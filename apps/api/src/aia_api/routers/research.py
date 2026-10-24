@@ -3250,6 +3250,25 @@ def _client_pdf(
         raise _unrecorded(exc) from exc
 
 
+def _client_pdf_fields(
+    run_id: str,
+    report: Artifact,
+    mark: ReviewMark,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """A stored client report's PDF (report-delivery RD1), and whether approving it now gives
+    the approved version one too, as far as AIA knows (report_variants.approval_renders_pdf)."""
+    pdf = _client_pdf(run_id, report, scope, session, store)
+    return {
+        "pdf": pdf.to_json(),
+        "approval_renders_pdf": approval_renders_pdf(
+            scope, report, mark, pdf_ready=pdf.state is PdfState.READY
+        ),
+    }
+
+
 def _ask_client_pdf(
     run_id: str,
     report: Artifact,
@@ -3292,9 +3311,18 @@ def ask_client_report_pdf(
     """A rendering of the client report as stored (the approved version's export once there
     is one), after its PDF failed or became invalid; one ready or under way is left as it is.
     Composes nothing: 404 while no client report is stored (``…/client/prepare`` stores it)."""
-    report, model = _stored_client_version(run_id, scope, session, store)
+    report, _model = _stored_client_version(run_id, scope, session, store)
     _ask_client_pdf(run_id, report, scope, session, store)
-    return _client_document_body(run_id, report, model, scope, session, store)
+    # The version and its PDF, never its document: a version stored before RD5a has none and
+    # still renders (its DOCX is what the job reads).
+    mark = _mark(report, scope, session, store)
+    return {
+        "run_id": run_id,
+        "report_artifact_id": report.artifact_id,
+        "report_sha256": report.sha256,
+        **_review_fields(report, mark),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
+    }
 
 
 @router.get(
@@ -3411,7 +3439,6 @@ def _client_document_body(
     except DocumentModelInvalid as exc:
         raise HTTPException(409, detail={"code": "report_artifact_invalid"}) from exc
     mark = _mark(report, scope, session, store)
-    pdf = _client_pdf(run_id, report, scope, session, store)
     return {
         "run_id": run_id,
         "artifact_id": model.artifact_id,
@@ -3420,15 +3447,10 @@ def _client_document_body(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        **_client_pdf_fields(run_id, report, mark, scope, session, store),
         # The client deliverable's checks on this version (RD0): warnings the approval dialog
         # shows and the approval records, never a refusal.
         "warnings": [f.to_json() for f in client_gate(document)],
-        # Its PDF (report-delivery RD1), and whether approving it now gives the approved
-        # version one too, as far as AIA knows (report_variants.approval_renders_pdf).
-        "pdf": pdf.to_json(),
-        "approval_renders_pdf": approval_renders_pdf(
-            scope, report, mark, pdf_ready=pdf.state is PdfState.READY
-        ),
         "document": document,
     }
 

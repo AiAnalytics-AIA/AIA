@@ -977,3 +977,37 @@ def test_the_client_report_has_a_pdf_and_it_is_approved_with_its_docx(
             route
         )
     assert researcher.get(f"{base}/pdf/download").content != draft_pdf.content
+
+
+def test_a_client_report_stored_before_its_document_still_gets_its_pdf(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: Any
+) -> None:
+    """A client report stored before RD5a has no document model; its PDF renders its DOCX all
+    the same, so asking for it is never refused for the document it lacks."""
+    from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, CLIENT_REPORT_STAGE
+
+    run_id = _client_run(app, researcher, world, monkeypatch)
+    with create_session_factory(app.state.engine)() as session:
+        scope = _scope(session, world)
+        runs = ResearchRuns(session, scope)
+        run = runs.get(run_id)
+        docx, _ = research_artifacts(session, scope, app.state.artifact_store).put(
+            project_id=run["project_id"],
+            revision=int(run["project_revision"]),
+            stage_type=CLIENT_REPORT_STAGE,
+            artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+            data=b"PK fictional client report stored before RD5a",
+            input_fingerprint="fictional-client-before-rd5a",
+            metadata={"run_id": run_id, "report_kind": "client"},
+        )
+        session.commit()
+    base = f"{_study(world)}/research/runs/{run_id}/report/client"
+    assert researcher.get(f"{base}/document").status_code == 409  # no document to read
+    asked = researcher.post(f"{base}/pdf")
+    assert asked.status_code == 200, asked.text
+    assert asked.json()["report_artifact_id"] == docx.artifact_id
+    assert asked.json()["pdf"]["state"] == "RENDERING"
+    _render_pdfs(app, world)
+    got = researcher.get(f"{base}/pdf/download")
+    assert got.status_code == 200, got.text
+    assert got.headers["X-AIA-Artifact-Id"] == docx.artifact_id
