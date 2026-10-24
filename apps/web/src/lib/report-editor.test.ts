@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { ApiError } from "./api";
 import {
+  documentKeyOf, newPageId, unsavedWords, UNSTORED,
   apiScriptUrl, changesListed, changeWords, editedApprovalQuestion, editedWords, editorMode, type EditorVersionRead, holdsEdit,
   openFailure, problemWords, type SavedChange, savedWords,
 } from "./report-editor";
@@ -148,5 +149,27 @@ describe("whether a stored version holds an edit", () => {
     expect(holdsEdit(version(null), at("2026-10-24T00:29:58.000Z"), now)).toBe(false);
     expect(holdsEdit(version("včera"), now - 60_000, now)).toBe(false);
     expect(holdsEdit({ content_at: "2026-10-24T00:30:00.000Z" }, now - 60_000, now)).toBe(false);
+  });
+});
+
+describe("the edit sequence (RPT8f)", () => {
+  it("gives a page an id within the server's grammar, a new one each time", () => {
+    const a = newPageId();
+    expect(a).toMatch(/^[0-9A-Za-z_-]{8,64}$/);
+    expect(newPageId()).not.toBe(a);
+  });
+
+  it("reads the session's key from the signed config, or none", () => {
+    expect(documentKeyOf({ document: { key: "ART-1.aa.1" } })).toBe("ART-1.aa.1");
+    expect(documentKeyOf({ document: {} })).toBeNull();
+    expect(documentKeyOf({})).toBeNull();
+  });
+
+  it("says why the server held an approval, and nothing for another refusal", () => {
+    const held = (reason: string) => new ApiError(409, "report_edits_unsaved", "…", null, { reason });
+    expect(unsavedWords(held("edit_not_saved"))).toBe(UNSTORED);
+    expect(unsavedWords(held("edit_not_received"))).toMatch(/nedorazila do AIA/);
+    expect(unsavedWords(new ApiError(409, "report_version_stale", "…", null, {}))).toBeNull();
+    expect(unsavedWords(new Error("x"))).toBeNull();
   });
 });

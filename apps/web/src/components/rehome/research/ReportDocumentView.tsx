@@ -26,6 +26,7 @@ import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
 import { approvalQuestion, pdfStatesReview, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
+import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
 
 // A line carrying an id or a SHA-256 breaks anywhere: an unbroken hash would widen the page past a
@@ -60,7 +61,7 @@ export type ReportApproved = {
 type Approved = Awaited<ReturnType<typeof research.approveReport>>;
 
 /** A composed draft's approval asked from the editor's doc bar: why it must wait, or null. */
-type EditorAsk = { held: () => string | null };
+type EditorAsk = { held: () => string | null; seen: () => SeenEdit | null };
 
 /** Which document the pane reads: the internal draft, the client report (RD3), or the report with
  *  one completed literature review (RPT3a). */
@@ -204,13 +205,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         const held = editor?.held();
         if (held) return setAct({ slot, ask: null, busy: false, refused: held });
         setAct({ slot, ask: null, busy: true, refused: null });
-        (editor ? research.approveReport(frame.studyId, run.run_id, version, "", true) : research.approveReport(frame.studyId, run.run_id, version)).then(
+        (editor ? research.approveReport(frame.studyId, run.run_id, version, "", true, editor.seen()) : research.approveReport(frame.studyId, run.run_id, version)).then(
           (done) => {
             setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
             if (shown) approved(version, done);
             tell(done);
           },
-          (error: unknown) => setAct({ slot, ask: null, busy: false, refused: approvalRefusal(error) }),
+          (error: unknown) => setAct({ slot, ask: null, busy: false, refused: unsavedWords(error) ?? approvalRefusal(error) }),
         );
       },
     };
@@ -382,7 +383,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           <EditorDocBar
             key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
             documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
-            approveComposed={(held) => askApproval(stored, { held })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
+            approveComposed={(held, seen) => askApproval(stored, { held, seen })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
           />
         ) : null}
         {controls.after}

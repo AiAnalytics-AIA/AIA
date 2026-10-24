@@ -1069,3 +1069,91 @@ def test_the_first_version_serves_the_pdf_its_report_step_rendered(
     got = researcher.get(f"{versions}/pdf/download")
     assert got.status_code == 200 and got.content == b"%PDF-1.7 the step's rendering"
     assert got.headers["X-AIA-Artifact-Id"] == draft
+
+
+def _stamp(at: Any) -> str:
+    return at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+
+
+def test_an_approval_waits_for_a_save_that_holds_every_edit_the_server_received(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT8f: the server, not the page, decides whether the version holds the edits made."""
+    from datetime import UTC, datetime, timedelta
+
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    key = config["document"]["key"]
+    me = world.users["researcher"]
+    edits = f"{_editor(world, run_id)}/sessions/{key}/edits"
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+    page = "page-0123456789"
+
+    def ask(version: str, seq: int) -> Any:
+        return researcher.post(
+            approve,
+            json={
+                "artifact_id": version,
+                "newest_of_line": True,
+                "seen_edit": {"document_key": key, "page": page, "seq": seq},
+            },
+        )
+
+    an_hour_ago = datetime.now(UTC) - timedelta(hours=1)
+    assert researcher.post(edits, json={"page": page, "seq": 1}).status_code == 204
+    # A save whose last change is before the edit reached AIA does not hold it.
+    _callback(
+        client,
+        config,
+        status=6,
+        url=saves.put(_docx("50 %")),
+        users=[me],
+        lastsave=_stamp(an_hour_ago),
+    )
+    older = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    held = ask(older, 1)
+    assert held.status_code == 409, held.text
+    assert held.json()["code"] == "report_edits_unsaved"
+    assert held.json()["details"] == {"reason": "edit_not_saved"}
+    # The page made edit 2 and its report has not arrived: the approval leaving first waits.
+    _callback(
+        client,
+        config,
+        status=6,
+        url=saves.put(_docx("51 %")),
+        users=[me],
+        lastsave=_stamp(datetime.now(UTC) + timedelta(seconds=5)),
+    )
+    newer = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    early = ask(newer, 2)
+    assert early.status_code == 409 and early.json()["details"] == {"reason": "edit_not_received"}
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{newer}").json()["approval"] is None
+    # A report that arrives late or twice keeps the page's highest.
+    assert researcher.post(edits, json={"page": page, "seq": 1}).status_code == 204
+    assert ask(newer, 1).status_code == 200
+
+
+def test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_signed_into(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    key = config["document"]["key"]
+    body = {"page": "page-0123456789", "seq": 1}
+    assert (
+        researcher.post(f"{_editor(world, run_id)}/sessions/NO-SUCH/edits", json=body).status_code
+        == 404
+    )
+    other = f"{API}/studies/{world.study_id()}/research/runs/RUN-0000000000000000/report/editor"
+    assert researcher.post(f"{other}/sessions/{key}/edits", json=body).status_code in (404, 422)
+    for bad in ({"page": "short", "seq": 1}, {"page": "page-0123456789", "seq": 0}):
+        assert (
+            researcher.post(f"{_editor(world, run_id)}/sessions/{key}/edits", json=bad).status_code
+            == 422
+        )
+    # Everyone left: the session is closed and takes no edit.
+    _callback(client, config, status=4, users=[world.users["researcher"]])
+    assert (
+        researcher.post(f"{_editor(world, run_id)}/sessions/{key}/edits", json=body).status_code
+        == 404
+    )

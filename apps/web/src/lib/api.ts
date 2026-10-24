@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened, EditorVersionRead } from "@/lib/report-editor";
+import type { EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1422,6 +1422,11 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
+  reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
+    request<void>(
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/sessions/${enc(documentKey)}/edits`, body,
+    ),
   /** A saved version of a report line as its DOCX, its review in the headers (RPT8c). */
   downloadReportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}/download`),
@@ -1460,8 +1465,11 @@ export const research = {
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run: internal, with literature or the client report (recorded in the ledger). */
   /** `newestOfLine`: a report-editor version approved only while it is its line's newest (RPT8d):
-   *  409 `report_version_stale` once a save stored the next koncept. */
-  approveReport: (studyId: string, runId: string, artifactId: string, note = "", newestOfLine = false) =>
+   *  409 `report_version_stale` once a save stored the next koncept. `seenEdit`: the page's last
+   *  edit start (RPT8f): 409 `report_edits_unsaved` until a stored version holds it and every edit. */
+  approveReport: (
+    studyId: string, runId: string, artifactId: string, note = "", newestOfLine = false, seenEdit: SeenEdit | null = null,
+  ) =>
     request<{
       run_id: string;
       artifact_id: string;
@@ -1475,7 +1483,9 @@ export const research = {
       internal_only: boolean;
     }>(
       "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`,
-      newestOfLine ? { artifact_id: artifactId, note, newest_of_line: true } : { artifact_id: artifactId, note },
+      newestOfLine
+        ? { artifact_id: artifactId, note, newest_of_line: true, ...(seenEdit ? { seen_edit: seenEdit } : {}) }
+        : { artifact_id: artifactId, note },
     ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
   sociomappingReport: (studyId: string, runId: string) =>

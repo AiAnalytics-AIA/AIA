@@ -76,6 +76,36 @@ export function openFailure(error: unknown): OpenFailure {
 }
 
 /** The editor did not come up: its script did not load, or it did not answer in time. */
+/** The edit start a page last made in an editing session (RPT8f): its session's key, the page's own
+ *  id and its count from 1. The page reports each start to AIA; an approval names the last one, and
+ *  the server refuses it (409 `report_edits_unsaved`) until a stored version holds it. */
+export type SeenEdit = { document_key: string; page: string; seq: number };
+
+/** This page's id for its edit reports: random, within the server's `[0-9A-Za-z_-]{8,64}`. */
+export function newPageId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return `p${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** The document key a signed config opens, or null when it names none. */
+export function documentKeyOf(config: Record<string, unknown>): string | null {
+  const document = config.document;
+  const key = document && typeof document === "object" ? (document as Record<string, unknown>).key : null;
+  return typeof key === "string" ? key : null;
+}
+
+/** An edit is in no stored version yet: approval waits for the save that holds it. */
+export const UNSTORED = "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.";
+
+/** Why the server held an edited version's approval (RPT8f), in words; null for another refusal. */
+export function unsavedWords(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.code !== "report_edits_unsaved") return null;
+  return error.details.reason === "edit_not_received"
+    ? "Poslední úprava z editoru ještě nedorazila do AIA; schvalte znovu za chvíli."
+    : UNSTORED;
+}
+
 export const UNREACHABLE = "Editor zprávy neodpovídá; zobrazuje se koncept jen ke čtení.";
 
 const PROBLEMS: Record<string, string> = {

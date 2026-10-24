@@ -54,6 +54,7 @@ from aia_core.application.report import (
 from aia_core.application.report_approval import (
     APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
+    ReportEditsUnsaved,
     ReportNotApprovable,
     ReportVersionStale,
     approve_report,
@@ -130,6 +131,7 @@ from aia_core.domain.report.document_model import (
     DocumentModelInvalid,
     read_document_payload,
 )
+from aia_core.domain.report.editor import SeenEdit
 from aia_core.domain.report.review import ReviewMark, ReviewState
 from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
@@ -3222,6 +3224,16 @@ def prepare_client_report_route(
     return _client_document_body(run_id, report, model, scope, session, store)
 
 
+class SeenEditRequest(BaseModel):
+    """An edit start a page reported: its session's key, the page's id, its count from 1."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    document_key: str = Field(pattern=r"^[0-9A-Za-z._=-]{1,128}$")
+    page: str = Field(pattern=r"^[0-9A-Za-z_-]{8,64}$")
+    seq: int = Field(ge=1, le=2_000_000_000)
+
+
 class ReportApprovalRequest(BaseModel):
     """Which stored report of the run a person approves, and why."""
 
@@ -3232,6 +3244,9 @@ class ReportApprovalRequest(BaseModel):
     #: A report-editor version approved only while it is its line's newest (RPT8d): 409
     #: ``report_version_stale`` once a save stored the next koncept.
     newest_of_line: bool = False
+    #: The approving page's last edit start in the editor (RPT8f); with ``newest_of_line``, 409
+    #: ``report_edits_unsaved`` until a stored version holds it and every edit AIA received.
+    seen_edit: SeenEditRequest | None = None
 
 
 @router.get(
@@ -3315,7 +3330,21 @@ def approve_run_report(
             artifact_id=body.artifact_id,
             note=body.note,
             newest_of_line=body.newest_of_line,
+            seen_edit=(
+                SeenEdit(body.seen_edit.document_key, body.seen_edit.page, body.seen_edit.seq)
+                if body.seen_edit is not None
+                else None
+            ),
         )
+    except ReportEditsUnsaved as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "report_edits_unsaved",
+                "message": "An edit made in the editor is not in a saved version yet.",
+                "details": {"reason": exc.reason.value},
+            },
+        ) from exc
     except ReportVersionStale as exc:
         raise HTTPException(
             409,

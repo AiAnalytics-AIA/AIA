@@ -13,6 +13,7 @@ import { research } from "@/lib/api";
 import { approvalWords, reviewWords } from "@/lib/artifacts/report";
 import {
   changeWords, editedApprovalQuestion, editedWords, type EditorLine, type EditorVersionRead, holdsEdit, savedWords,
+  type SeenEdit, UNSTORED, unsavedWords,
 } from "@/lib/report-editor";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import type { EditorShown } from "./ReportEditor";
@@ -34,7 +35,7 @@ export type EditorDocBarProps = {
   /** Approve the composed draft through the pane's own flow (its PDF and status read on the ask),
    *  as its line's newest: the server refuses once a save moved the line on, and `held` (read on
    *  the pane's own ask and yes) refuses while an edit waits to be stored. */
-  approveComposed: (held: () => string | null) => void;
+  approveComposed: (held: () => string | null, seen: () => SeenEdit | null) => void;
   /** An edited version was approved, as the server answered. */
   onApproved: (done: Approved) => void;
   /** Open another line in the editor. */
@@ -47,7 +48,6 @@ export type EditorDocBarProps = {
  *  it is typed: while one waits, the bar reads the line again this often. */
 const POLL_MS = 10_000;
 
-const UNSTORED = "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.";
 const UNKNOWN_CONTENT = (koncept: number) =>
   `Editor u konceptu ${koncept} neuvedl, které úpravy obsahuje; po načtení stránky znovu lze schválit uložený koncept.`;
 const MOVED = (koncept: number) => `Editor mezitím uložil koncept ${koncept}; zkontrolujte jeho změny a schvalte znovu.`; // = approvalRefusal's report_version_stale
@@ -124,7 +124,7 @@ export function EditorDocBar({
         if (reviewStatus(now.review_state) === "APPROVED") return setAct({ ask: null, busy: false, said: null });
         if (now.version_artifact_id === composedId) {
           setAct({ ask: null, busy: false, said: null });
-          return approveComposed(() => (waitingNow.current ? UNSTORED : null));
+          return approveComposed(() => (waitingNow.current ? UNSTORED : null), shown.seen);
         }
         const ask: Ask = {
           kind: "confirm",
@@ -143,14 +143,15 @@ export function EditorDocBar({
                   setAct({ ask: null, busy: false, said: MOVED(latest.koncept) });
                   return null;
                 }
-                // An edit started while that read was in flight: checked again as the approval leaves
-                // (the remaining window, between this line and the server's lock, is RPT8f's).
+                // An edit started while that read was in flight: checked again as the approval leaves.
                 if (waitingNow.current) {
                   setAct({ ask: null, busy: false, said: UNSTORED });
                   return null;
                 }
-                // The server's check is the last word: it refuses once the line has moved on.
-                return research.approveReport(studyId, runId, now.version_artifact_id, "", true);
+                // The server's check is the last word (RPT8f): under the line's lock it refuses once the
+                // line has moved on, or while an edit it received, or the last one this page made, is
+                // in no stored version.
+                return research.approveReport(studyId, runId, now.version_artifact_id, "", true, shown.seen());
               })
               .then(
                 (done) => {
@@ -160,7 +161,7 @@ export function EditorDocBar({
                   again();
                 },
                 (error: unknown) => {
-                  setAct({ ask: null, busy: false, said: approvalRefusal(error) });
+                  setAct({ ask: null, busy: false, said: unsavedWords(error) ?? approvalRefusal(error) });
                   again();
                 },
               );

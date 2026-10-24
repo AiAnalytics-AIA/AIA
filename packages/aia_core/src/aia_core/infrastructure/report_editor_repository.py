@@ -16,14 +16,15 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, select, update
+from sqlalchemy import ColumnElement, func, select, update
 from sqlalchemy.orm import Session
 
-from ..domain.report.editor import LineHead
+from ..domain.report.editor import EditMark, LineHead
 from ..domain.scope import StudyContext
 from .tables import (
     OrganizationMemberRow,
     ProjectArtifactRow,
+    ReportEditorEditRow,
     ReportEditorSessionRow,
     ReportEditorVersionRow,
     UserRow,
@@ -376,3 +377,61 @@ class ReportEditorRepository:
             .values(closed_at=now, closed_reason=reason)
         )
         self._session.flush()
+
+    # -- edit starts ---------------------------------------------------------
+
+    def record_edit(self, document_key: str, *, page: str, seq: int, now: datetime) -> None:
+        """``page``'s edit start ``seq`` in the session, received ``now``: kept when it is the
+        page's highest, so a report that arrives late or twice changes nothing. The session's
+        row is locked first, so two reports of one page take their turn (PostgreSQL)."""
+        self._session.execute(
+            select(ReportEditorSessionRow.document_key)
+            .where(*self._sessions_in_scope(), ReportEditorSessionRow.document_key == document_key)
+            .with_for_update()
+        )
+        row = self._session.scalar(
+            select(ReportEditorEditRow).where(
+                ReportEditorEditRow.organization_id == self._scope.organization_id,
+                ReportEditorEditRow.client_id == self._scope.client_id,
+                ReportEditorEditRow.study_id == self._scope.study_id,
+                ReportEditorEditRow.document_key == document_key,
+                ReportEditorEditRow.page == page,
+            )
+        )
+        if row is None:
+            s = self._scope
+            self._session.add(
+                ReportEditorEditRow(
+                    document_key=document_key,
+                    page=page,
+                    organization_id=s.organization_id,
+                    client_id=s.client_id,
+                    study_id=s.study_id,
+                    user_id=s.actor_id,
+                    seq=seq,
+                    received_at=now,
+                )
+            )
+        elif seq > row.seq:
+            row.seq, row.received_at = seq, now
+        self._session.flush()
+
+    def edit_marks(self, line_id: str, *, also: str | None = None) -> list[EditMark]:
+        """The edit starts of ``line_id``'s open session, and of the session ``also`` names
+        when it is the line's (the approving page's, closed or not)."""
+        open_or_named: ColumnElement[bool] = ReportEditorSessionRow.closed_at.is_(None)
+        if also is not None:
+            open_or_named = open_or_named | (ReportEditorSessionRow.document_key == also)
+        rows = self._session.scalars(
+            select(ReportEditorEditRow)
+            .join(
+                ReportEditorSessionRow,
+                ReportEditorSessionRow.document_key == ReportEditorEditRow.document_key,
+            )
+            .where(
+                *self._sessions_in_scope(),
+                ReportEditorSessionRow.line_id == line_id,
+                open_or_named,
+            )
+        )
+        return [EditMark(r.document_key, r.page, r.seq, as_utc(r.received_at)) for r in rows]

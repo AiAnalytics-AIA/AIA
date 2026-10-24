@@ -110,6 +110,15 @@ class EditorRequest(BaseModel):
     mode: Literal["edit", "view"] = "edit"
 
 
+class EditReport(BaseModel):
+    """An edit start a page reports (RPT8f): the page's id and its count from 1."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    page: str = Field(pattern=r"^[0-9A-Za-z_-]{8,64}$")
+    seq: int = Field(ge=1, le=2_000_000_000)
+
+
 def _tokens(settings: Any) -> EditorTokens:
     if not settings.report_editor_on:
         raise HTTPException(404, detail={"code": "not_found", "message": "No such resource."})
@@ -246,6 +255,37 @@ def open_report_editor(
             for h in lines
         ],
     }
+
+
+@router.post(
+    "/research/runs/{run_id}/report/editor/sessions/{document_key}/edits",
+    status_code=204,
+    response_class=Response,
+    summary="An edit start the page reports in an editing session",
+)
+def report_editor_edit(
+    run_id: RunIdPath,
+    body: EditReport,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    document_key: Annotated[str, Path(pattern=r"^[0-9A-Za-z._=-]{1,128}$")],
+) -> Response:
+    """The caller's page started edit ``seq`` in the open session ``document_key``: kept with
+    AIA's time of receipt, so an approval is refused while no stored version holds it (409
+    ``report_edits_unsaved``). 404 for a session that is not the run's, not open, or not one a
+    config was signed for the caller in."""
+    _tokens(settings)
+    try:
+        ReportEditor(session, scope).record_edit(
+            document_key, run_id=run_id, page=body.page, seq=body.seq, now=_now()
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except LineNotFound as exc:
+        raise _not_found("editor_session") from exc
+    session.commit()
+    return Response(status_code=204)
 
 
 def _session_scope(

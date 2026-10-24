@@ -156,6 +156,22 @@ class ReportEditor:
     def note_problem(self, session: EditorSession, *, now: datetime, problem: str) -> None:
         self._repo.note_problem(session.document_key, now=now, problem=problem)
 
+    def record_edit(
+        self, document_key: str, *, run_id: str, page: str, seq: int, now: datetime
+    ) -> None:
+        """An edit start the caller's page reports in the open session ``document_key`` of
+        ``run_id`` (RPT8f): :class:`LineNotFound` for a session that is not the run's, not
+        open, or not one a config was signed for the caller in."""
+        found = self._repo.session(document_key)
+        if (
+            found is None
+            or found.run_id != run_id
+            or found.closed_at is not None
+            or self._scope.actor_id not in found.users
+        ):
+            raise LineNotFound(document_key)
+        self._repo.record_edit(document_key, page=page, seq=seq, now=now)
+
     def lines(
         self, *, run_id: str, variant: str, deep_research_run_id: str | None = None
     ) -> list[LineHead]:

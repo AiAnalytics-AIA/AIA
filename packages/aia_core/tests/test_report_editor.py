@@ -461,3 +461,33 @@ def test_approved_edits_are_read_from_the_approved_rows_alone(editor_world: Any)
     found = repo.approved_edits(run_id="RUN-1", variant="internal", deep_research_run_id=None)
     assert [v.artifact_id for v in found] == [saved[2]]
     assert repo.approved_edits(run_id="RUN-1", variant="context", deep_research_run_id=None) == []
+
+
+def test_an_edit_is_held_only_by_a_version_whose_last_change_is_no_earlier_than_its_receipt() -> (
+    None
+):
+    from aia_core.domain.report.editor import EditMark, SeenEdit, UnsavedEdits, unsaved_edits
+
+    mark = EditMark("K.1", "page-0123456789", 3, T0)
+    seen = SeenEdit("K.1", "page-0123456789", 3)
+    assert unsaved_edits(T0, [mark], seen) is None
+    assert unsaved_edits(T0 - timedelta(milliseconds=1), [mark], seen) is UnsavedEdits.NOT_SAVED
+    # Koncept 1, or a save that named no time: unknown, never held.
+    assert unsaved_edits(None, [mark], seen) is UnsavedEdits.NOT_SAVED
+    assert unsaved_edits(None, [], None) is None
+    # The page's own edit 4 has not arrived; another page's or another session's is not its.
+    assert (
+        unsaved_edits(T0, [mark], SeenEdit("K.1", "page-0123456789", 4))
+        is UnsavedEdits.NOT_RECEIVED
+    )
+    assert (
+        unsaved_edits(T0, [mark], SeenEdit("K.1", "page-other-0000", 1))
+        is UnsavedEdits.NOT_RECEIVED
+    )
+    assert (
+        unsaved_edits(T0, [mark], SeenEdit("K.2", "page-0123456789", 1))
+        is UnsavedEdits.NOT_RECEIVED
+    )
+    # A co-editor's edit no save holds keeps the approval waiting too.
+    other = EditMark("K.1", "page-other-0000", 1, T0 + timedelta(seconds=1))
+    assert unsaved_edits(T0, [mark, other], seen) is UnsavedEdits.NOT_SAVED

@@ -16,7 +16,7 @@ chunks:
   - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[x] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT8e. Before activation, a hard gate: the editor's api.js loaded with Subresource Integrity, the hash taken from the pinned Document Server image's own api.js and configured beside AIA_ONLYOFFICE_URL, verified against the real Document Server with CORS; AIA_ONLYOFFICE_URL stays unset until this is ticked (the PM, 2026-10-23; owner: Zpráva)"
-  - "[ ] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
+  - "[x] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
@@ -557,6 +557,22 @@ it approves, under the line's lock:
 3. The approval names the edit sequence the page last saw; `approve_report(newest_of_line=True)` refuses 409
    `report_edits_unsaved` unless the newest stored version holds that sequence and no higher one was received.
 4. The browser's hold stays as the visible state, no longer the gate.
+
+*RPT8f, built (`feature/report-edit-sequence`).* `POST …/report/editor/sessions/{document_key}/edits` (`{page, seq}`,
+204; 404 for a session not the run's, not open, or not one a config was signed for the caller in) keeps each page's
+highest edit start with AIA's time of receipt (`report_editor_edits`, migration `9c1e3a5b7d2f`, one row per session
+and page, the session's row locked first). The approval names `seen_edit` (`{document_key, page, seq}`, read as it
+leaves); `approve_report(newest_of_line=True)`, under the line's lock, refuses 409 `report_edits_unsaved` with
+`details.reason` `edit_not_received` (the page's edit has not arrived) or `edit_not_saved` (an edit of the line's open
+session, or of the seen one, was received after the newest version's `content_at`, or the version has none:
+`domain/report/editor.py` `unsaved_edits`). Held is received no later than `lastsave`: a save made while an edit's
+report was in flight holds the approval until the next save (late, never early; Ctrl+S forces one). The page
+(`ReportEditor`) counts edit starts per session from 1 under a random page id, reports each, once more after 2 s on a
+failure; the bar and koncept 1's question send it and say the server's reason. Tests: `test_report_editor.py`
+`test_an_edit_is_held_only_by_a_version_whose_last_change_is_no_earlier_than_its_receipt`; `test_report_editor_api.py`
+`test_an_approval_waits_for_a_save_that_holds_every_edit_the_server_received`,
+`test_an_edit_is_reported_only_in_an_open_session_of_the_run_the_caller_was_signed_into`; `ReportEditor.test.tsx`,
+`EditorDocBar.test.tsx`, `report-editor.test.ts` ("the edit sequence (RPT8f)").
 It is RPT8f, a gate before activation beside RPT8e (the PM, 2026-10-24). Meanwhile the yes checks the hold again as
 the approval leaves, after its read, which narrows the window to the moment between that check and the server's lock. The server is the last word: the
 bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save

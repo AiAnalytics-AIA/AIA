@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, research } from "@/lib/api";
-import type { EditorOpened, EditorVersionRead } from "@/lib/report-editor";
+import type { EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { EditorDocBar } from "./EditorDocBar";
 
 vi.mock("@/lib/api", async () => ({
@@ -45,8 +45,8 @@ const storeKoncept = (k: number, ms: number) => {
   line.newest = k;
 };
 
-const bar = (startedAt: number | null = null, pollMs = 20, dirty = false) => (
-  <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty }} composedId="ART-docx" documentName="interní zprávu"
+const bar = (startedAt: number | null = null, pollMs = 20, dirty = false, seen: () => SeenEdit | null = () => null) => (
+  <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty, seen }} composedId="ART-docx" documentName="interní zprávu"
     canApprove approveComposed={vi.fn()} onApproved={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
 );
 const approveButton = (koncept: number) => screen.findByRole("button", { name: `Schválit koncept ${koncept}` });
@@ -136,7 +136,7 @@ describe("approving the editor's version", () => {
     fireEvent.click(await approveButton(2));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
-    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true, null));
   });
 });
 
@@ -151,6 +151,23 @@ describe("the server's last word", () => {
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Schválit koncept 2" }));
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Editor mezitím uložil koncept 3; zkontrolujte jeho změny a schvalte znovu.");
     expect(await approveButton(3)).toBeTruthy();
+  });
+
+  it("names the page's last edit, read as the approval leaves, and says why the server held it (RPT8f)", async () => {
+    const edit: SeenEdit = { document_key: "KEY.1", page: "p0123456789", seq: 1 };
+    let seen: SeenEdit | null = null;
+    vi.mocked(research.approveReport).mockRejectedValue(
+      new ApiError(409, "report_edits_unsaved", "An edit…", null, { reason: "edit_not_received" }),
+    );
+    render(bar(null, 60_000, false, () => seen));
+    fireEvent.click(await approveButton(2));
+    const dialog = await screen.findByRole("dialog");
+    seen = edit; // made after the question opened: the yes names it
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true, edit));
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent", "Poslední úprava z editoru ještě nedorazila do AIA; schvalte znovu za chvíli.",
+    );
   });
 });
 
