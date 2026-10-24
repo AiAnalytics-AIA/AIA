@@ -134,17 +134,19 @@ export type EditorVersionRead = {
 const HOLD_TOLERANCE_MS = 1_000;
 
 /** Whether `version` holds an edit this person started at `startedAt` (this browser's clock): its
- *  last change (else, when the Document Server did not say, the time AIA stored it) is no earlier
- *  than the edit, both on the server's clock. The server answered `server_now` somewhere between
+ *  last change, as the Document Server signed it (`content_at`), is no earlier than the edit, both
+ *  on the server's clock. Without that time nothing says what the file holds (when AIA stored it is
+ *  when the callback came, which a snapshot taken before the edit can reach after it), so it holds
+ *  nothing. The server answered `server_now` somewhere between
  *  the request leaving (`sentAt`) and its answer arriving, so the edit is placed as late on the
  *  server's clock as that allows (`server_now - sentAt`): a slow answer holds the approval longer,
  *  never certifies a snapshot from before the edit. A time that does not parse holds nothing. */
 export function holdsEdit(
-  version: Pick<EditorVersionRead, "content_at" | "saved_at" | "server_now">, startedAt: number, sentAt: number,
+  version: Pick<EditorVersionRead, "content_at" | "server_now">, startedAt: number, sentAt: number,
 ): boolean {
   if (!version.server_now) return false;
   const latest = Date.parse(version.server_now) - sentAt;
-  const held = Date.parse(version.content_at ?? version.saved_at);
+  const held = version.content_at ? Date.parse(version.content_at) : Number.NaN;
   if (Number.isNaN(held) || Number.isNaN(latest)) return false;
   return held >= startedAt + latest - HOLD_TOLERANCE_MS;
 }

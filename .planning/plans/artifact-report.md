@@ -526,7 +526,7 @@ nothing), then approved as itself (`POST …/report/approve`), and the report ca
 version: the event's `false` only says the edit reached the Document Server, and AIA stores a version on the callback's
 status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a stored version holds
 it: the time of the last change its file holds (ONLYOFFICE's signed `lastsave`, kept as the version's `content_at`;
-else the time AIA stored it) no earlier than the edit, both on the server's clock (`server_now` beside each read,
+without it a version holds nothing, since the time AIA stored it is only when the callback came) no earlier than the edit, both on the server's clock (`server_now` beside each read,
 the edit placed as late as the request's send time allows, so a slow answer only holds longer; `holdsEdit`, a second's
 tolerance for the Document Server's time); and while the editor holds an edit not yet sent.
 A version id alone could not tell: a save in flight while the person typed on is a newer version that does not hold

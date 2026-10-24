@@ -102,7 +102,7 @@ describe("a saved version in words", () => {
 describe("whether a stored version holds an edit", () => {
   const at = (iso: string) => Date.parse(iso);
   const version = (content_at: string | null, server_now = "2026-10-24T00:30:00.000Z") =>
-    ({ content_at, saved_at: "2026-10-24T00:29:59.000Z", server_now });
+    ({ content_at, server_now });
 
   it("holds an edit its last change is no earlier than, on the server's clock", () => {
     // The browser runs 10 s behind the server: an edit at its 00:29:45 is the server's 00:29:55.
@@ -124,11 +124,11 @@ describe("whether a stored version holds an edit", () => {
     expect(holdsEdit(version("2026-10-24T00:30:00.000Z"), now + 1_500, now)).toBe(false);
   });
 
-  it("falls back on the time AIA stored it, and holds nothing on a time that does not parse or no server time", () => {
+  it("holds nothing without the Document Server's time, a time that does not parse, or no server time", () => {
     const now = at("2026-10-24T00:30:00.000Z");
-    expect(holdsEdit(version(null), at("2026-10-24T00:29:58.000Z"), now)).toBe(true);
-    expect(holdsEdit(version(null), at("2026-10-24T00:30:10.000Z"), now)).toBe(false);
+    // Stored a second after the edit, yet it says nothing of what it holds: a snapshot taken before.
+    expect(holdsEdit(version(null), at("2026-10-24T00:29:58.000Z"), now)).toBe(false);
     expect(holdsEdit(version("včera"), now - 60_000, now)).toBe(false);
-    expect(holdsEdit({ content_at: "2026-10-24T00:30:00.000Z", saved_at: "2026-10-24T00:30:00.000Z" }, now - 60_000, now)).toBe(false);
+    expect(holdsEdit({ content_at: "2026-10-24T00:30:00.000Z" }, now - 60_000, now)).toBe(false);
   });
 });
