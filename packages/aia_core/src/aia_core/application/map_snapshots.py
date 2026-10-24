@@ -209,14 +209,15 @@ def approve_map_snapshot(
 
     The run's row is locked before the snapshot's review is read, so two approvals at once
     record one decision: the second waits, then reads it approved. The caller reads nothing of
-    the snapshot before this, which would leave a stale review in the session."""
+    the snapshot before this, which would leave a stale review in the session. The run is found
+    first, so one outside the study is ``ResearchRunNotFound``, as every read of it is."""
+    run = ResearchRuns(session, scope).get(run_id)
     WorkflowRepository(session, scope).lock_run(run_id)
     found = stored_map_snapshot(session, scope, store, run_id=run_id, artifact_id=artifact_id)
     repo = research_artifacts(session, scope, store)
     if found.artifact.is_approved:
         frozen = found.artifact if found.artifact.is_frozen else repo.freeze(artifact_id)
         return MapSnapshot(frozen, found.status)
-    run = ResearchRuns(session, scope).get(run_id)
     starter = run.get("triggered_by")
     repo.approve(artifact_id, note=note, co_producers={str(starter)} if starter else ())
     return MapSnapshot(repo.freeze(artifact_id), found.status)

@@ -3480,6 +3480,8 @@ def test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_
 
     foreign = f"{_runs(world, 'other_client')}/{run_id}/map-snapshots/{snapshot['artifact_id']}"
     assert other_client_lead.get(foreign).status_code == 404
+    # The run is found before its row is locked: a run outside the study is 404, never 500.
+    assert other_client_lead.post(f"{foreign}/approve", json={}).status_code == 404
     # A member of another organization finds neither the study nor its snapshot.
     from aia_core.infrastructure.scope_repository import ScopeRepository
 
