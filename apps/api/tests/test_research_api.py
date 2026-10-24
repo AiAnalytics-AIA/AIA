@@ -3332,3 +3332,431 @@ def test_a_report_a_module_holds_is_refused_naming_the_modules(
     body = refused.json()
     assert body["code"] == "context_report_refused"
     assert body["details"] == {"reason": "analysis_holds_report", "modules": ["executive"]}
+
+
+# --------------------------------------------------- map snapshots (report-delivery RD4)
+
+
+def _fictional_map() -> dict[str, Any]:
+    """A stored Sociomap result with one contract-3 object map, computed by the engine on
+    fictional ratings, as the sociomap step stores it."""
+    import random
+
+    from aia_core.domain.sociomap import (
+        AIA_SOCIOMAP_V3,
+        ObjectMapInputs,
+        RatingItem,
+        compute_object_map,
+    )
+
+    rng = random.Random(92)
+    objects = ("a", "b", "c", "d")
+    inputs = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(40)),
+        donor_ids=tuple(f"DONOR-{i // 2}" for i in range(40)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objects),
+        values=tuple(tuple(float(rng.randint(1, 10)) for _ in objects) for _ in range(40)),
+        weights=(1.0,) * 40,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    artifact = compute_object_map(inputs, AIA_SOCIOMAP_V3, connectedness_interval=False)
+    return {
+        "batteries": [
+            {
+                "battery_id": "fictional",
+                "title": "Fiktivní nabídky",
+                "objects": [{"id": o, "label": f"Objekt {o}"} for o in objects],
+                "maps": {AIA_SOCIOMAP_V3.methodology_version: artifact.to_payload()},
+            }
+        ],
+        # As a run records its pinned methods: the register's approved -3, at its exact spec.
+        "methods": [
+            {
+                "method_id": AIA_SOCIOMAP_V3.methodology_version,
+                "spec_fingerprint": artifact.spec_fingerprint,
+            }
+        ],
+    }
+
+
+def _store_map(
+    app: FastAPI, world: Any, run_id: str, body: dict[str, Any], *, reused: str | None = None
+) -> str:
+    """Drive the run's steps to the end, its sociomap step storing ``body``, or naming the map
+    ``reused`` another run stored (as a retry reuses it); the map's id."""
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        map_id = None
+        while (work := workflow.claim_next(worker_id="map-fixture")) is not None:
+            output: dict[str, Any] = {}
+            if work.node_key == "sociomap" and reused:
+                map_id = output["artifact_id"] = reused
+            elif work.node_key == "sociomap":
+                stored, _ = research_artifacts(session, scope, app.state.artifact_store).put_json(
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="SOCIOMAP",
+                    artifact_type="research_sociomap",
+                    payload={"kind": "research_sociomap", "sociomap": body},
+                    input_fingerprint=f"map-route-test-{run_id}",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={"run_id": run_id},
+                )
+                map_id = output["artifact_id"] = stored.artifact_id
+            workflow.complete_attempt(work.attempt_id, worker_id="map-fixture", output=output)
+        session.commit()
+    assert map_id is not None
+    return map_id
+
+
+def test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_once(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """RD4: the snapshot is the stored map drawn by the report's figure function, never the
+    browser's bytes; stored once per map and view; its status is the register's for the map's
+    method, read now; approved as any deliverable is, the run's starter its producer."""
+    from aia_core.application.map_snapshots import MAP_SNAPSHOT_ARTIFACT_TYPE
+
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    early = researcher.post(url, json=asked)
+    assert early.status_code == 409 and early.json()["details"]["reason"] == "no_map"
+    map_id = _store_map(app, world, run_id, _fictional_map())
+
+    drawn = researcher.post(url, json=asked)
+    assert drawn.status_code == 201, drawn.text
+    snapshot = drawn.json()
+    assert snapshot["status"] == "CLIENT_FACING"  # aia-sociomap-3 at its registered spec
+    assert snapshot["camera"] is None and snapshot["view"] == "top"
+    assert snapshot["review_state"] == "DRAFT_UNAPPROVED" and snapshot["approval"] is None
+    again = researcher.post(url, json=asked)
+    assert again.status_code == 200 and again.json()["artifact_id"] == snapshot["artifact_id"]
+    side = researcher.post(url, json={**asked, "view": "3d"})
+    assert side.status_code == 201 and side.json()["artifact_id"] != snapshot["artifact_id"]
+    for wrong, reason in (
+        ({**asked, "battery_id": "nowhere"}, "no_battery"),
+        ({**asked, "method": "aia-sociomap-1"}, "no_method"),
+    ):
+        refused = researcher.post(url, json=wrong)
+        assert refused.status_code == 409 and refused.json()["details"]["reason"] == reason
+
+    one = f"{url}/{snapshot['artifact_id']}"
+    png = researcher.get(f"{one}/download")
+    assert png.status_code == 200 and png.content.startswith(b"\x89PNG")
+    assert png.headers["content-type"] == "image/png"
+    assert png.headers["x-aia-artifact-id"] == snapshot["artifact_id"]
+    assert png.headers["content-disposition"].endswith(
+        f'-mapa-fictional-top-klient-{snapshot["artifact_id"]}-koncept.png"'
+    )
+    # The same map and view draw the same bytes: the figure function fits nothing.
+    from aia_core.domain.sociomap import read_object_maps
+    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshot
+
+    battery = _fictional_map()["batteries"][0]
+    ((_, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    assert png.content == object_map_snapshot(artifact, labels, "top")
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.artifact_id == snapshot["artifact_id"]
+            )
+        ).one()
+        assert stored.artifact_type == MAP_SNAPSHOT_ARTIFACT_TYPE
+        assert stored.artifact_metadata["map_artifact_id"] == map_id
+        assert stored.produced_by_user_id is None  # code drew it; no person is its producer
+
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/map-snapshots/{snapshot['artifact_id']}"
+    assert other_client_lead.get(foreign).status_code == 404
+    # The run is found before its row is locked: a run outside the study is 404, never 500.
+    assert other_client_lead.post(f"{foreign}/approve", json={}).status_code == 404
+    # A member of another organization finds neither the study nor its snapshot.
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).create_organization(
+            slug="elsewhere", name="Elsewhere", owner_email="o@elsewhere.example"
+        )
+        session.commit()
+    app.state.identity_provider.register(
+        "token-elsewhere", subject="o@elsewhere.example", email="o@elsewhere.example"
+    )
+    stranger = TestClient(app)
+    stranger.headers.update({"Authorization": "Bearer token-elsewhere"})
+    for path in ("", "/download"):
+        assert stranger.get(f"{url}/{snapshot['artifact_id']}{path}").status_code == 404
+    assert stranger.post(url, json=asked).status_code == 404
+    approved = outsider.post(f"{one}/approve", json={"note": "Zkontrolováno."})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["review_state"] == "APPROVED_INTERNAL"
+    assert approved.json()["approval"]["note"] == "Zkontrolováno."
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_id == snapshot["artifact_id"]
+            )
+        ).all()
+    assert [r.subject_type for r in rows] == ["artifact"]  # one ledger shape
+    assert outsider.post(f"{one}/approve", json={}).status_code == 200  # once: nothing new
+    with create_session_factory(app.state.engine)() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(ApprovalDecisionRow)
+                .where(ApprovalDecisionRow.subject_id == snapshot["artifact_id"])
+            )
+            == 1
+        )
+
+
+def test_the_run_starter_may_not_approve_a_map_snapshot_under_independent_review(
+    app: FastAPI, owner: TestClient, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    # The reviewer asks for it: the run's work all the same, not theirs.
+    snapshot = outsider.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ).json()
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    own = researcher.post(f"{url}/{snapshot['artifact_id']}/approve", json={})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    assert outsider.post(f"{url}/{snapshot['artifact_id']}/approve", json={}).status_code == 200
+
+
+def test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal() -> None:
+    """The register's status, read at every read: -3 at another specification is no method it
+    approved, so its snapshot is internal whatever its review."""
+    from aia_core.application.map_snapshots import _status
+    from aia_core.domain.sociomap_register import MethodologyStatus
+
+    body = _fictional_map()
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.CLIENT_FACING
+    body["methods"][0]["spec_fingerprint"] = "0" * 64
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    assert _status({}, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    # A stored methodology edit is another method, whatever its base: never the register's.
+    edited = _fictional_map()
+    edited["methods"][0]["formulas"] = {"relation": "fiktivní"}
+    assert _status(edited, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+
+
+@pytest.mark.parametrize("unapproved", ["another_spec", "stored_edit"])
+def test_a_map_the_register_does_not_approve_is_internal_through_every_route_and_its_approval(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any, unapproved: str
+) -> None:
+    """The snapshot's status is the register's for the map's method, read at every read: a
+    method at a specification the register never approved, or a stored methodology edit of an
+    approved one, is INTERNAL_ONLY when drawn, read and downloaded, and approving the snapshot
+    does not make it the client's."""
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    body = _fictional_map()
+    if unapproved == "another_spec":
+        body["methods"][0]["spec_fingerprint"] = "0" * 64
+    else:
+        body["methods"][0]["formulas"] = {"relation": "fiktivní"}
+    _store_map(app, world, run_id, body)
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    drawn = researcher.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    )
+    assert drawn.status_code == 201 and drawn.json()["status"] == "INTERNAL_ONLY"
+    one = f"{url}/{drawn.json()['artifact_id']}"
+    assert researcher.get(one).json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-koncept.png"')
+    approved = outsider.post(f"{one}/approve", json={})
+    assert approved.status_code == 200 and approved.json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-schvaleno.png"')
+
+
+def test_two_first_asks_of_one_snapshot_store_one(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A double click: the second ask waits on the run's lock and answers the first's
+    snapshot, never a second one under the same key. PostgreSQL only: the guard is a row lock,
+    which SQLite does not take (it serialises writers instead)."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    first_in, second_stored = threading.Event(), threading.Event()
+    real = ArtifactRepository.put
+
+    def held(self: ArtifactRepository, **kw: Any) -> Any:
+        stored = real(self, **kw)
+        if kw.get("artifact_type") != "research_map_snapshot":
+            return stored
+        if not first_in.is_set():
+            # The first ask: its snapshot stored, not yet committed. Held until the second
+            # has stored one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_stored.wait(10)
+        else:
+            second_stored.set()
+        return stored
+
+    monkeypatch.setattr(ArtifactRepository, "put", held)
+    factory = create_session_factory(app.state.engine)
+    ids: list[str] = []
+    errors: list[BaseException] = []
+
+    def ask() -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users["researcher"], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                found, _created = map_snapshots.map_snapshot(
+                    own,
+                    scope,
+                    app.state.artifact_store,
+                    run_id=run_id,
+                    battery_id="fictional",
+                    method="aia-sociomap-3",
+                    view="top",
+                )
+                own.commit()
+                ids.append(found.artifact.artifact_id)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=ask)
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=ask)
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert len(ids) == 2 and ids[0] == ids[1]
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalar(
+            select(func.count())
+            .select_from(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_type == "research_map_snapshot")
+        )
+    assert stored == 1
+
+
+def test_a_run_that_reuses_another_runs_map_gets_a_snapshot_of_its_own(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A run whose sociomap step reuses the map another run stored (a retry does) is drawn its
+    own snapshot: found through it, read, downloaded and approved under it, never the other
+    run's, which it could not read."""
+    import copy
+
+    first = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()
+    map_id = _store_map(app, world, first["run_id"], _fictional_map())
+    other = copy.deepcopy(DESIGN)
+    other["title"] = "Fiktivní studie, druhá revize"
+    second = start(researcher, world, submit(researcher, world, other).json()["revision_id"]).json()
+    assert first["run_id"] != second["run_id"]
+    _store_map(app, world, second["run_id"], {}, reused=map_id)
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ids = []
+    for run in (first, second):
+        url = f"{_runs(world)}/{run['run_id']}/map-snapshots"
+        drawn = researcher.post(url, json=asked)
+        assert drawn.status_code == 201, drawn.text
+        one = f"{url}/{drawn.json()['artifact_id']}"
+        assert researcher.get(one).status_code == 200
+        assert researcher.get(f"{one}/download").status_code == 200
+        assert outsider.post(f"{one}/approve", json={}).status_code == 200
+        ids.append(drawn.json()["artifact_id"])
+    assert ids[0] != ids[1]
+
+
+def test_two_approvals_of_one_snapshot_at_once_record_one_decision(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Approve once: the second approval waits on the run's lock, then reads the snapshot
+    approved and records nothing. PostgreSQL only, as the store race above."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    snapshot = researcher.post(
+        f"{_runs(world)}/{run_id}/map-snapshots",
+        json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"},
+    ).json()["artifact_id"]
+    first_in, second_in = threading.Event(), threading.Event()
+    real = ArtifactRepository.approve
+
+    def held(self: ArtifactRepository, artifact_id: str, **kw: Any) -> Any:
+        approved = real(self, artifact_id, **kw)
+        if not first_in.is_set():
+            # The first approval: recorded, not yet committed. Held until the second has
+            # recorded one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_in.wait(10)
+        else:
+            second_in.set()
+        return approved
+
+    monkeypatch.setattr(ArtifactRepository, "approve", held)
+    factory = create_session_factory(app.state.engine)
+    errors: list[BaseException] = []
+
+    def approve(user: str) -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users[user], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                map_snapshots.approve_map_snapshot(
+                    own, scope, app.state.artifact_store, run_id=run_id, artifact_id=snapshot
+                )
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=approve, args=("outsider",))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=approve, args=("lead",))
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    with create_session_factory(app.state.engine)() as session:
+        decisions = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == snapshot)
+        )
+    assert decisions == 1
