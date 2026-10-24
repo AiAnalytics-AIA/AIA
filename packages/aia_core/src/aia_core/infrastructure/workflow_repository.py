@@ -3492,6 +3492,8 @@ class WorkflowRepository:
             "project_id": run.project_id,
             "project_revision": run.project_revision,
             "cancel_requested": run.cancel_requested,
+            # Who started the run: the person its outputs are the work of (null for a system run).
+            "triggered_by": run.triggered_by,
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,

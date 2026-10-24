@@ -330,6 +330,7 @@ class ArtifactRepository:
         depends_on: list[str] | None = None,
         reuse: bool = True,
         artifact_id: str | None = None,
+        by_person: bool = True,
     ) -> tuple[Artifact, bool]:
         """Store an artifact, reusing an existing one when the inputs match.
 
@@ -344,6 +345,11 @@ class ArtifactRepository:
         ``artifact_id`` is for a caller that must name the artifact before it is
         stored -- the 18.6.6 migration writes a revision citing a file in the same
         transaction -- and is one :func:`new_artifact_id` made; any other is refused.
+
+        ``by_person=False``: what code composed from a run's own outputs, which the caller only
+        happened to be the one to store (the client report on its first download, RD8): it records
+        no person as its producer, so whoever's read stored it is not its author. It can name no
+        one else; the approval names the run's people (``approve(co_producers=)``).
         """
         self._scope.require(Permission.EDIT_STUDY)
         if artifact_id is not None and not _ARTIFACT_ID.fullmatch(artifact_id):
@@ -408,8 +414,8 @@ class ArtifactRepository:
             produced_by_job_id=produced_by_job_id,
             # Recorded from the authorised scope, never from a caller argument,
             # so the separation-of-duties check cannot be defeated by passing
-            # someone else's id.
-            produced_by_user_id=self._scope.actor_id,
+            # someone else's id; ``by_person=False`` records no one.
+            produced_by_user_id=self._scope.actor_id if by_person else None,
             artifact_metadata=metadata or {},
         )
         self._session.add(row)
