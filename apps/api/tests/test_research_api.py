@@ -652,6 +652,10 @@ def test_a_runs_question_tables_export_as_the_report_prints_them(
     assert got.status_code == 200, got.text
     assert got.headers["content-type"].startswith("text/csv")
     assert got.headers["x-aia-artifact-id"] == report_id
+    assert (
+        got.headers["x-aia-artifact-sha256"]
+        == researcher.get(f"{_runs(world)}/{run_id}/report/document").json()["report_sha256"]
+    )
     assert got.headers["x-aia-review-state"] == "DRAFT_UNAPPROVED"
     assert f"-tabulky-zakladni-{report_id}-koncept.csv" in got.headers["content-disposition"]
     rows = list(csv.reader(io.StringIO(got.content.decode("utf-8-sig")), delimiter=";"))
@@ -667,7 +671,8 @@ def test_a_runs_question_tables_export_as_the_report_prints_them(
     assert book.status_code == 200, book.text
     sheet = openpyxl.load_workbook(io.BytesIO(book.content)).active
     cells = [[c if c is not None else "" for c in r] for r in sheet.iter_rows(values_only=True)]
-    assert cells == rows
+    # A workbook cell is text, never a formula: it carries the title as written, unguarded.
+    assert cells == [[c.removeprefix("'") for c in row] for row in rows]
 
     # The client report's export is its own: this one has no question table, said by name.
     monkeypatch.setattr(

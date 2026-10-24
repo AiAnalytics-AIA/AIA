@@ -3285,19 +3285,21 @@ def download_question_tables(
     data = export_question_tables(body["document"], file_format)
     if data is None:
         raise HTTPException(409, detail={"code": "no_question_tables"})
-    state = "schvaleno" if body["review_state"] == "APPROVED_INTERNAL" else "koncept"
+    # The stored report these tables are from, and its review, as every download names them.
+    approved_on = body["approved_on"]
+    mark = ReviewMark(
+        ReviewState(body["review_state"]),
+        str(body["report_artifact_id"]),
+        str(body["report_sha256"]),
+        date.fromisoformat(approved_on) if approved_on else None,
+    )
+    state = "schvaleno" if mark.state is ReviewState.APPROVED else "koncept"
     variant = "zakladni" if document == "internal" else "klient"
-    name = f"AIA-{scope.study_id}-{run_id}-tabulky-{variant}-{body['report_artifact_id']}-{state}"
+    name = f"AIA-{scope.study_id}-{run_id}-tabulky-{variant}-{mark.artifact_id}-{state}"
     return Response(
         content=data,
         media_type=EXPORT_MEDIA_TYPES[file_format],
-        headers={
-            "Content-Disposition": f'attachment; filename="{name}.{file_format}"',
-            "Cache-Control": "no-store",
-            # The stored report these tables are from, and its review.
-            "X-AIA-Artifact-Id": str(body["report_artifact_id"]),
-            "X-AIA-Review-State": str(body["review_state"]),
-        },
+        headers=_review_headers(mark, f"{name}.{file_format}"),
     )
 
 

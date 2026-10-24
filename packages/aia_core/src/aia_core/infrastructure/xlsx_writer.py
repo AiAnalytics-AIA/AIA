@@ -4,12 +4,13 @@ AIA's own XLSX files (the questionnaire template, report-delivery RD12's questio
 small sheets of strings and integers. This writes them without a spreadsheet library: inline
 strings, a bold header row, frozen under it, set column widths, and fixed timestamps, so the same
 rows give the same bytes. A string is always written as text (``inlineStr``), never as a formula,
-whatever it starts with.
+whatever it starts with; a character XML 1.0 cannot carry is left out of it.
 """
 
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from collections.abc import Sequence
 from typing import Final
@@ -28,6 +29,8 @@ _SHEETML: Final = "application/vnd.openxmlformats-officedocument.spreadsheetml"
 _DATED: Final = (2026, 1, 1, 0, 0, 0)
 
 MEDIA_TYPE: Final = f"{_SHEETML}.sheet"
+#: What XML 1.0 cannot carry in text: a cell holding one would be a workbook no reader opens.
+_NOT_XML: Final = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]")
 
 
 def _column(i: int) -> str:
@@ -47,7 +50,7 @@ def _cell(ref: str, value: Cell, *, bold: bool) -> str:
         return f'<c r="{ref}" t="b"{style}><v>{int(value)}</v></c>'
     if isinstance(value, int):
         return f'<c r="{ref}"{style}><v>{value}</v></c>'
-    text = escape(value)
+    text = escape(_NOT_XML.sub("", value))
     return f'<c r="{ref}" t="inlineStr"{style}><is><t xml:space="preserve">{text}</t></is></c>'
 
 

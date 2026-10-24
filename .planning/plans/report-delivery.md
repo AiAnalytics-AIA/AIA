@@ -223,12 +223,19 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 read through its document route (the same checks, the same 404 and 409 answers; `EXPORT_DELIVERABLE`). The rows are
 `domain/report/table_export.py` `question_rows`: the tables the composer anchors `tab-question-<n>`, one row per printed
 number with the report's own text for the value, its interval where the table asks for it, the base, the evidence grade
-and "modelováno: AI respondenti z populace" for a modelled-panel number; a table's rows left out for want of support are
-counted, never numbers. Nothing is computed or re-rounded, so every cell is a claim that report admitted for its surface,
-and the client's export is the client report's alone. CSV is UTF-8 with its mark and `;` between cells; XLSX is one sheet
-(`infrastructure/xlsx_writer.py`, the standard-library writer the questionnaire template now shares, its bytes unchanged).
-A text cell a spreadsheet would read as a formula keeps a leading apostrophe; numbers print U+2212, so none is touched.
-409 `no_question_tables` for a document without one. The Results screen's download control is
+(with "orientační" where the report prints it beside a low-support number) and "modelováno: AI respondenti z populace"
+for a modelled-panel number; a table's rows left out for want of support are counted, never numbers; a question the
+evidence gate refused, which has no table, is the row of the chapter's limitation callout (internal: the question and the
+gate's reasons; client: how many), so no refused question is read as none. Nothing is computed or re-rounded, so every
+cell is a claim that report admitted for its surface, and the client's export is the client report's alone. CSV is UTF-8
+with its mark and `;` between cells, and a text cell a spreadsheet would read as a formula keeps a leading apostrophe
+(numbers print U+2212, so none is touched); XLSX is one sheet of text cells, never formulas, without a guard, a character
+XML cannot carry left out (`infrastructure/xlsx_writer.py`, the standard-library writer the questionnaire template now
+shares, its bytes unchanged and pinned to `aia_sablona.xlsx`). The headers are every download's (`_review_headers`: the
+version's id, SHA-256 and review). The internal export is the run's composed draft (koncept 1), as the internal DOCX
+download is, even where a person approved an edited version of it (RPT8c); an edited version's tables wait for its
+document model. 409 `no_question_tables` for a document with no question table and no refusal. The Results screen's
+download control is
 `research-lead-workbench#31`'s. Tests: `test_table_export.py`; `test_research_api.py`
 `test_a_runs_question_tables_export_as_the_report_prints_them`.
 
