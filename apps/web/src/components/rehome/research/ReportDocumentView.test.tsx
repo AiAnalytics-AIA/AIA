@@ -401,6 +401,31 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(heard[0]).toMatchObject({ kind: "internal", artifactId: "ART-docx", reviewState: "APPROVED_INTERNAL" });
   });
 
+  it("offers no approval of a draft a version saved in the editor stands over, when the editor cannot show it", async () => {
+    // The PM's walk: the Document Server fails, the draft is shown, koncept 4 is approved.
+    vi.mocked(research.openReportEditor).mockRejectedValue(new ApiError(503, "unavailable", "Služba nedostupná.", null));
+    const line = { artifact_id: "ART-k4", koncept: 4, review_state: "APPROVED_INTERNAL" as const, approved_on: "2026-10-24", stamped: true };
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, edited_line: line });
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    expect(within(bar(container)).queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
+    const said = container.querySelector("[data-report-edited-line]") as HTMLElement;
+    expect(said.textContent).toBe("Nad tímto konceptem je v editoru uložen koncept 4 (interně schválen); schvaluje se v editoru, tento koncept už ne.");
+  });
+
+  it("refuses at the ask a draft it cannot show once the run's status names a version saved over it", async () => {
+    vi.mocked(research.reportDocument).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    vi.mocked(research.report).mockResolvedValue({
+      artifact_id: "ART-old", pdf: { state: "READY" }, approval_renders_pdf: true,
+      edited_line: { artifact_id: "ART-k2", koncept: 2, review_state: "DRAFT_UNAPPROVED" },
+    } as never);
+    const { container } = show();
+    fireEvent.click(await screen.findByRole("button", { name: "Schválit pro interní použití" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("koncept 2 (neschválen)");
+    expect(container.querySelector("dialog[open]")).toBeNull();
+    expect(research.approveReport).not.toHaveBeenCalled();
+  });
+
   it("still offers the internal draft's approval when its document could not be read", async () => {
     vi.mocked(research.reportDocument).mockRejectedValue(new ApiError(503, "unavailable", "Služba nedostupná.", null));
     show();

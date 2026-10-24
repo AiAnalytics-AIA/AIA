@@ -12,7 +12,7 @@ import { ApiError, deepResearch, type DeepResearchRun, research, type ResearchRu
 import {
   type Block, type Cell, claimLines, claimTarget, gradeWords, type Inline, type LedgerEntry, type ListItem,
   approvalWords, readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
-  type StoredReportDocument, markSpans, sentenceMarks, unresolvedRefs, valueWords, warningsWords,
+  type StoredReportDocument, editedLineWords, markSpans, sentenceMarks, unresolvedRefs, valueWords, warningsWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
 import { isModelled, stepOf } from "@/lib/research-execution";
@@ -262,6 +262,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           tell(done);
           return;
         }
+        // A version saved over the draft in the editor stands over it: the draft is not offered.
+        const over = editedLineWords(report.edited_line);
+        if (over) return refuse(over);
         const held = editor?.held();
         if (held) return refuse(held);
         confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
@@ -274,8 +277,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const approval = (shown: StoredReportDocument | null) => {
     const mine = act?.slot === slotOf(shown) ? act : null;
     const approvedAlready = mine?.done || (shown !== null && reviewStatus(shown.review_state) === "APPROVED");
+    const over = editedLineWords(shown?.edited_line);
     return {
-      button: canReview(frame) && !approvedAlready ? (
+      button: canReview(frame) && !approvedAlready && !over ? (
         <Button className="!min-h-11 ml-auto" disabled={mine?.busy} onClick={() => askApproval(shown)}>
           {t(kind === "client" ? "research.exec.results.reportApproveClient" : "research.exec.results.reportApprove")}
         </Button>
@@ -383,6 +387,10 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
             </>
           )}
         </div>
+        {/* The editor names its own version; without it, what stands over the draft is said here. */}
+        {!inEditor && stored.edited_line ? (
+          <p role="status" className="mb-2 text-sm text-ink-muted" data-report-edited-line>{editedLineWords(stored.edited_line)}</p>
+        ) : null}
         {inEditor ? (
           // Read again once the composed draft's review moves (koncept 1 approved through the pane).
           <EditorDocBar

@@ -6,7 +6,7 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
-import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
+import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
 import type { EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
@@ -1286,6 +1286,8 @@ export type ReportVariant = {
   contract_current?: boolean | null;
   /** Its edited versions a person approved (RPT8c); absent from an API before them. */
   approved_edits?: ApprovedEdit[];
+  /** The newest version saved over the draft in the report editor (RPT8d); null while none. */
+  edited_line?: EditedLine | null;
 };
 export type ResearchReport = {
   run_id: string;
@@ -1311,6 +1313,8 @@ export type ResearchReport = {
   approval_renders_pdf?: boolean;
   /** As ReportVariant's: its edited versions a person approved. */
   approved_edits?: ApprovedEdit[];
+  /** As ReportVariant's: the newest version saved over the draft in the report editor. */
+  edited_line?: EditedLine | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;

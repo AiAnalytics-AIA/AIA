@@ -116,7 +116,19 @@ export type StoredReportDocument = {
   /** The checks on this version, warnings, never a refusal: the client report's (RD0) and, on every
    *  report, the sentence check (RD7); absent from an API before them. */
   warnings?: GateWarning[];
+  /** The newest version a person saved over this draft in the report editor (RPT8d); null while none,
+   *  absent from an API before it. */
+  edited_line?: EditedLine | null;
   document: ReportDocumentModel;
+};
+
+/** A version saved over a composed draft in the report editor, with its review (RPT8d). */
+export type EditedLine = {
+  artifact_id: string;
+  koncept: number;
+  review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  approved_on?: string | null;
+  stamped?: boolean | null;
 };
 
 /** One thing a check found and the block it is in: the client deliverable's (RD0), or a sentence
@@ -281,6 +293,15 @@ export function warningsWords(warnings: GateWarning[] | undefined, document?: Re
   if (!warnings?.length) return null;
   const listed = warnings.map((w) => `${w.message} (${whereWords(w.where, document)})`).join("; ");
   return `Upozornění (${warnings.length}): ${listed}. Schválením je berete na vědomí; zaznamenají se se schválením.`;
+}
+
+/** What stands over a composed draft once a person saved a version over it in the report editor:
+ *  that version, by koncept, and its review. The draft is then not what the editor shows, so it is
+ *  not offered for approval; null while nothing was saved over it. */
+export function editedLineWords(line: EditedLine | null | undefined): string | null {
+  if (!line) return null;
+  const review = line.review_state === "APPROVED_INTERNAL" ? "interně schválen" : "neschválen";
+  return `Nad tímto konceptem je v editoru uložen koncept ${line.koncept} (${review}); schvaluje se v editoru, tento koncept už ne.`;
 }
 
 /** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. The server

@@ -604,6 +604,24 @@ workbench. `research_journey.mjs` takes the editor's open as a known write. Foun
 text (a design span is a paragraph) made a change line unreadable; `changeWords` cuts a long pair around where the two
 differ, so "…" never hides the difference (Codex on #878).
 
+*RPT8d, fix (`fix/report-pane-superseded-draft`), the draft a saved version stands over:* found by the PM's audit walk on
+develop 156d339c. With the Document Server down (or the editor off) the pane fell back to the composed draft, said
+"neschváleno" and offered its approval while koncept 4 of its line was approved: a person could approve the older draft
+beside the approved edit. The server approves an older version as itself without `newest_of_line`, as designed
+(`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`), so the pane is where it is offered. The
+run's report status, the report-with-review status and both document reads now answer `edited_line`: the newest version
+saved over the composed draft (koncept 2 on) with its review, null while none (`report_editor_saves.newest_saved`, a read
+any member who reads the report may make). The pane says it over the draft where the editor does not show it
+(`editedLineWords`) and offers no approval of the draft; an ask for a draft it cannot show is refused at the ask by the
+status read then. Tests: `test_the_reports_status_names_the_version_saved_over_its_composed_draft`;
+`ReportDocumentView.test.tsx` ("offers no approval of a draft a version saved in the editor stands over…", "refuses at
+the ask…"); `report.test.ts` (editedLineWords); `report_editor_journey.mjs`, the Document Server down at 1440, 1100,
+768 and 390 px. The two 404s the walk saw with the editor off are the pane's probe, `POST …/report/editor`, answering
+404 while the editor is off (its documented "off"), once per mount of the editor's slot.
+An older version approved as itself (the API, without `newest_of_line`) records the `superseded_version` warning on its
+approval's ledger row, naming the newer koncept (`report_approval._newer_koncept`; the PM, 2026-10-24), so approving it on
+purpose is on the record; no page offers that approval any more, so no dialog names it. Test: the stale test above.
+
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) and RPT8f (the server's edit sequence) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 
