@@ -283,7 +283,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
           </div>
           <span className="text-xs text-ink-muted">{tv(`${M}.stepCount`, { n: g.steps.length })}</span>
         </div>
-        {g.group?.note_cs ? <p className="mt-2 text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
+        {g.group?.note_cs ? <p className="mt-2 break-words text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
         {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}
       </section>
     ))}
@@ -328,7 +328,7 @@ function StepBody({ step, editable, titles, onPick }: { step: MethodStepOut; edi
     <>
       {step.audit ? <p data-step-origin className="text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
       <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={step.formula_latex} /></div>
-      {step.note_cs ? <p className="max-w-3xl text-sm text-ink-muted">{step.note_cs}</p> : null}
+      {step.note_cs ? <p className="max-w-3xl break-words text-sm text-ink-muted">{step.note_cs}</p> : null}
       <StepContext step={step} titles={titles} onPick={onPick} />
       {step.symbols.length ? (
         <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
@@ -397,7 +397,7 @@ function EditableFormula({ formula, editable }: { formula: MethodFormula; editab
         <span className="text-xs text-ink-muted">{t(`${M}.expression`)}: </span>
         <code className="whitespace-pre-wrap break-all font-mono text-xs">{formula.expression}</code>
       </p>
-      {formula.note_cs ? <p className="text-xs text-ink-muted">{formula.note_cs}</p> : null}
+      {formula.note_cs ? <p className="break-words text-xs text-ink-muted">{formula.note_cs}</p> : null}
       {formula.kept_cs.length ? (
         <div data-kept className="text-xs">
           <p className="text-ink-muted">{t(`${M}.kept`)}:</p>
