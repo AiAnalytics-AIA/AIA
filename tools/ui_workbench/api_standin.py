@@ -42,14 +42,25 @@ import os
 import shutil
 import sys
 from pathlib import Path
-
-import report_editor_standin
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[2]
 HOME = REPO / "tmp" / "ui-workbench"
 DB = HOME / "aia.sqlite"
 WORKBENCH_EMAIL = "workbench@example.invalid"
-REPORT_EDITOR = os.environ.get("AIA_WORKBENCH_REPORT_EDITOR") == "true"
+
+
+def _report_editor_standin() -> Any:
+    """The stand-in Document Server beside this file, loaded by its path: this file is itself
+    loaded by path (the API's tests), where its directory is on no import path."""
+    import importlib.util
+
+    path = Path(__file__).with_name("report_editor_standin.py")
+    spec = importlib.util.spec_from_file_location("ui_workbench_report_editor_standin", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def build(
@@ -65,6 +76,11 @@ def build(
     from aia_core.infrastructure.tables import Base
     from sqlalchemy.orm import Session
 
+    standin = (
+        _report_editor_standin()
+        if os.environ.get("AIA_WORKBENCH_REPORT_EDITOR") == "true"
+        else None
+    )
     settings = Settings(
         env=Environment.LOCAL,
         database_url=f"sqlite+pysqlite:///{db}",
@@ -98,11 +114,11 @@ def build(
         # (AIA_WORKBENCH_REPORT_EDITOR=true): against the stand-in Document Server, whose saves
         # are read from a local directory (report_editor_standin.py); off by default, as in every
         # deployment until it is activated.
-        **(report_editor_standin.settings() if REPORT_EDITOR else {}),
+        **(standin.settings() if standin else {}),
     )
     app = create_app(settings)
-    if REPORT_EDITOR:
-        app.state.editor_fetcher = report_editor_standin.WorkbenchSaves()
+    if standin:
+        app.state.editor_fetcher = standin.WorkbenchSaves()
     return app, Base, seed_develop, Session
 
 
