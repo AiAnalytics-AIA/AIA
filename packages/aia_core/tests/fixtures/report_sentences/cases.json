@@ -180,6 +180,24 @@
       "cites": null,
       "marked": true,
       "why": "KNOWN OVER-MARK, for the methodology owner's review: a comparative about the method, not a result; a word list cannot tell them apart"
+    },
+    {
+      "text": "Zjistit, zda nový ranní nápoj v plechovce dává smysl lidem, kteří denně dojíždějí do práce, komu nejvíc a za jakou cenu.",
+      "cites": null,
+      "marked": false,
+      "why": "a study's goal restated (zda): it asks, it claims nothing (seen on the workbench's fictional draft)"
+    },
+    {
+      "text": "Kdo nakupuje nejčastěji?",
+      "cites": null,
+      "marked": false,
+      "why": "a question claims nothing"
+    },
+    {
+      "text": "Ověřili jsme, jestli jsou mladší spokojenější.",
+      "cites": null,
+      "marked": false,
+      "why": "jestli: an indirect question"
     }
   ],
   "status": "PROVISIONAL: AIA's starting reading of a Czech comparison (the PM, 2026-10-24), for the methodology owner, Aram, to review. It only marks a sentence, never refuses one."

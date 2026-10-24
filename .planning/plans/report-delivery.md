@@ -148,7 +148,9 @@ and capitals read alike. A sentence claims a comparison when it holds "než", a 
 vyššího, nižší, větší, menší, lepší, horší, delší, kratší, dražší, mladší, starší; "-ější"; častěji, silněji…), a
 superlative ("nej…", not the negations nejsou / nejde / nejistota… nor nejen / nejprve / nejdřív / nejspíš /
 nejpozději), "oproti", "ve srovnání", "v porovnání", "rozdíl…", "převyšuje", "převažuje" or "převládá" (not
-většina / menšina, a share; "dvou nejvyšších bodů" is a metric's name). **The word lists are PROVISIONAL** (the PM,
+většina / menšina, a share; "dvou nejvyšších bodů" is a metric's name); a sentence that asks ("…?", or "zda" / "zdali" /
+"jestli": a research question or a study's goal restated, as the workbench's fictional draft does) claims nothing and
+is not marked. **The word lists are PROVISIONAL** (the PM,
 2026-10-24): AIA's starting reading, for the methodology owner (Aram) to review; the case file names a known
 over-mark ("na větším vzorku", a comparative about the method). It is
 supported when it prints a ledger number: a `value` inline, a `cross_ref` to a figure or table, or the printed text of

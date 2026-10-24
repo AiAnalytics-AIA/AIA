@@ -8,8 +8,9 @@ each such sentence. Since 2026-10-22 it marks, never blocks (the product owner, 
 
 A sentence claims a comparison when it holds a comparative (vyšší, spokojenější, častěji; or
 "než"), a superlative ("nej…", not the few words that only look like one), or a word that
-states a difference or a lead (:data:`COMPARISON_WORDS`). The lists are PROVISIONAL, for the
-methodology owner to review. It is supported when it prints a number from the ledger: a value in
+states a difference or a lead (:data:`COMPARISON_WORDS`), and does not ask (a question, or
+"zda": a research question or goal restated claims nothing). The lists are PROVISIONAL, for
+the methodology owner to review. It is supported when it prints a number from the ledger: a value in
 it (a ``value`` inline), a figure or table of them it points at (a ``cross_ref``), or the
 printed text of a number its block cites (analysis prose writes its numbers as text and cites
 their claims on the paragraph). Anything else is
@@ -89,6 +90,9 @@ NOT_COMPARISON: Final = frozenset(
     }
 )
 NOT_COMPARISON_STARTS: Final = ("nejist", "nejedn", "vetsin", "mensin")
+#: A sentence that asks -- "…?", or "zda" / "zdali" / "jestli" (whether) -- claims nothing: a
+#: research question or a study's goal restated ("Zjistit, zda …, komu nejvíc …").
+QUESTION_WORDS: Final = frozenset({"zda", "zdali", "jestli"})
 #: A metric's name, not a comparison: the share of the top two points of a scale.
 METRIC_NAMES: Final = ("dvou nejvyssich bodu", "dva nejvyssi body")
 UNSUPPORTED_COMPARISON: Final = "unsupported_comparison"
@@ -142,6 +146,8 @@ def fold(text: str) -> str:
 
 def claims_comparison(sentence: str) -> bool:
     folded = fold(sentence)
+    if folded.rstrip(' "“”)').endswith("?") or QUESTION_WORDS & set(_WORD.findall(folded)):
+        return False
     for name in METRIC_NAMES:
         folded = folded.replace(name, " ")
     if any(p in folded for p in COMPARISON_PHRASES):
