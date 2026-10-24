@@ -530,7 +530,12 @@ else the time AIA stored it) no earlier than the edit, both on the server's cloc
 `holdsEdit`, a second's tolerance for the Document Server's time); and while the editor holds an edit not yet sent.
 A version id alone could not tell: a save in flight while the person typed on is a newer version that does not hold
 the later edit, and a save stored before the first read after the edit would have become the edit's own baseline
-(the stand-in's review and Codex on #877). The server is the last word: the
+(the stand-in's review and Codex on #877). Koncept 1's approval, which goes through the pane's own question, asks
+the bar's hold too, on the ask and on the yes (Codex on #877). An assumption, named (the PM, 2026-10-24): `lastsave` is
+the Document Server's clock and `server_now` the API's, compared within a second. On develop they share a host, so it
+holds. A Document Server moved to another host with more than a second of skew would hold an approval too long (safe)
+or release it early (not safe); before it moves, both hosts keep NTP time or AIA checks the skew (the Document
+Server's `Date` beside the API's on each callback). The server is the last word: the
 bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
 takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
 the server does not name reads "neznámý autor". The report card downloads each approved edit as itself

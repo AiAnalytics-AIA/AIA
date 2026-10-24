@@ -32,8 +32,9 @@ export type EditorDocBarProps = {
   documentName: string;
   canApprove: boolean;
   /** Approve the composed draft through the pane's own flow (its PDF and status read on the ask),
-   *  as its line's newest: the server refuses once a save moved the line on. */
-  approveComposed: () => void;
+   *  as its line's newest: the server refuses once a save moved the line on, and `held` (read on
+   *  the pane's own ask and yes) refuses while an edit waits to be stored. */
+  approveComposed: (held: () => string | null) => void;
   /** An edited version was approved, as the server answered. */
   onApproved: (done: Approved) => void;
   /** Open another line in the editor. */
@@ -113,7 +114,7 @@ export function EditorDocBar({
         if (reviewStatus(now.review_state) === "APPROVED") return setAct({ ask: null, busy: false, said: null });
         if (now.version_artifact_id === composedId) {
           setAct({ ask: null, busy: false, said: null });
-          return approveComposed();
+          return approveComposed(() => (waitingNow.current ? UNSTORED : null));
         }
         const ask: Ask = {
           kind: "confirm",

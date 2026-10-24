@@ -5,7 +5,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { type ReactNode, useEffect } from "react";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -24,13 +24,19 @@ vi.mock("@/lib/api", async () => ({
 }));
 
 type Handed = { variant: string; review: string | null; line?: string | null };
-const editor = vi.hoisted(() => ({ handed: [] as { variant: string; review: string | null; line?: string | null }[], shows: null as EditorShown | null }));
+const editor = vi.hoisted(() => ({
+  handed: [] as { variant: string; review: string | null; line?: string | null }[],
+  shows: null as EditorShown | null,
+  /** What the editor shows later: an edit starting, say. */
+  emit: (() => undefined) as (shown: EditorShown | null) => void,
+}));
 
 vi.mock("./ReportEditor", () => ({
   ReportEditor: ({ variant, review, line, children, onShown }: { variant: string; review: string | null; line?: string | null; children: ReactNode; onShown?: (v: EditorShown | null) => void }) => {
     useEffect(() => {
       editor.handed.push(line ? { variant, review, line } : { variant, review });
       onShown?.(editor.shows);
+      editor.emit = (shown) => onShown?.(shown);
     }, [variant, review, line, onShown]);
     return <div data-stub-editor={variant}>{children}</div>;
   },
@@ -193,6 +199,31 @@ describe("the doc bar while the editor shows the document", () => {
     // Approved as its line's newest: the server refuses once a save moved the line on.
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx", "", true));
+  });
+
+  it("approves koncept 1 nothing when an edit starts while its status is read, or while its question is open", async () => {
+    const K1 = { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] };
+    editor.shows = { opened: K1, startedAt: null, dirty: false };
+    versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
+    const READY = { artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false };
+    let answer: (value: unknown) => void = () => undefined;
+    vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
+    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true })); // typed while the status is read
+    await act(async () => { answer(READY); });
+    expect(await screen.findByText(/V editoru jsou úpravy, které AIA ještě neuložila/)).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    // The edit stored, then another started while the question is open: the yes approves nothing.
+    act(() => editor.emit({ opened: K1, startedAt: null, dirty: false }));
+    vi.mocked(research.report).mockResolvedValue(READY as never);
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
+    const dialog = await screen.findByRole("dialog");
+    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true }));
+    fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);
+    await waitFor(() => expect(screen.getAllByText(/V editoru jsou úpravy, které AIA ještě neuložila/).length).toBeGreaterThan(0));
+    expect(research.approveReport).not.toHaveBeenCalled();
   });
 
   it("opens another line of the run when asked", async () => {
