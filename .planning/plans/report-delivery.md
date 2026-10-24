@@ -144,6 +144,29 @@ approval (F17, "no unapproved internal-draft exception").
 **RD4. The map snapshot: an approvable object rendered server-side from the stored map and camera parameters, never browser bytes; one ledger shape**  
 The existing approval writes subject `artifact` (`artifact_repository.py:568`) and M3 names `map_snapshot`; one is chosen and the other removed. S2 supplies the deterministic figure function. Interfaces I13.
 
+*RD4a, the snapshot (`feature/map-snapshot`):* `application/map_snapshots.py` draws one stored contract-3 map of the run
+(read through `read_object_maps`, every fingerprint verified) with the report's own figure function at its fixed print
+camera (`object_map_figure.object_map_snapshot`, the signed-off renderer for `aia-sociomap-5`): nothing laid out, fitted
+or computed again, the same map and view the same bytes. It is stored as `research_map_snapshot` (PNG) on the run's
+design project, once per map SHA-256, battery, method, view (`top`, `3d`) and renderer (`aia-map-snapshot-1`), with
+`camera: null` (no person chose one) and `by_person=False`. Its status is the Sociomap register's for the map's method,
+read at every read and never stored (`CLIENT_FACING` or `INTERNAL_ONLY`, in the download's name as `klient` /
+`interni`). Routes: `POST …/research/runs/{id}/map-snapshots` `{battery_id, method, view}` (201 drawn, 200 stored;
+409 `map_snapshot_refused`: `no_map`, `no_battery`, `no_method`, `view_unavailable`, `map_invalid`; EXPORT_DELIVERABLE),
+`GET …/map-snapshots/{artifact_id}` and `…/download` (the PNG with every download's review headers), `POST
+…/map-snapshots/{artifact_id}/approve` `{note}`. One ledger shape: approved through `ArtifactRepository.approve`,
+subject `artifact`, as a report; the run's starter its producer (RD8), so under independent review they may not. The
+ledger's `map_snapshot` subject is left as it is (the PM, 2026-10-24: `domain/approval_ledger.py` is LO16's). Tests:
+`test_research_api.py` `test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_once`,
+`test_the_run_starter_may_not_approve_a_map_snapshot_under_independent_review`,
+`test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal`; `test_report_map_snapshots.py`
+`test_one_view_is_drawn_as_the_report_draws_it_and_an_unshowable_view_is_none`. RD4b, the screen's camera
+(`{yaw, elevation, zoom, relief}`) through the Sociomap screen's camera-parameterised figure function and its snapshot
+button moved onto these routes, follows once that function exists.
+
+*Finding (RD4a, for LO16):* the ledger's `map_snapshot` subject has no writer; RD4 approves snapshots as artifacts
+(subject `artifact`); LO16 to decide whether to drop it (`domain/approval_ledger.py:58 @ 156d339c`).
+
 **RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork**  
 The prototype's D6. The counter against ADR 0016's revision semantics is an owner clarification below.
 

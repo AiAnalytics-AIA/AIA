@@ -3332,3 +3332,200 @@ def test_a_report_a_module_holds_is_refused_naming_the_modules(
     body = refused.json()
     assert body["code"] == "context_report_refused"
     assert body["details"] == {"reason": "analysis_holds_report", "modules": ["executive"]}
+
+
+# --------------------------------------------------- map snapshots (report-delivery RD4)
+
+
+def _fictional_map() -> dict[str, Any]:
+    """A stored Sociomap result with one contract-3 object map, computed by the engine on
+    fictional ratings, as the sociomap step stores it."""
+    import random
+
+    from aia_core.domain.sociomap import (
+        AIA_SOCIOMAP_V3,
+        ObjectMapInputs,
+        RatingItem,
+        compute_object_map,
+    )
+
+    rng = random.Random(92)
+    objects = ("a", "b", "c", "d")
+    inputs = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(40)),
+        donor_ids=tuple(f"DONOR-{i // 2}" for i in range(40)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objects),
+        values=tuple(tuple(float(rng.randint(1, 10)) for _ in objects) for _ in range(40)),
+        weights=(1.0,) * 40,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    artifact = compute_object_map(inputs, AIA_SOCIOMAP_V3, connectedness_interval=False)
+    return {
+        "batteries": [
+            {
+                "battery_id": "fictional",
+                "title": "Fiktivní nabídky",
+                "objects": [{"id": o, "label": f"Objekt {o}"} for o in objects],
+                "maps": {AIA_SOCIOMAP_V3.methodology_version: artifact.to_payload()},
+            }
+        ],
+        # As a run records its pinned methods: the register's approved -3, at its exact spec.
+        "methods": [
+            {
+                "method_id": AIA_SOCIOMAP_V3.methodology_version,
+                "spec_fingerprint": artifact.spec_fingerprint,
+            }
+        ],
+    }
+
+
+def _store_map(app: FastAPI, world: Any, run_id: str, body: dict[str, Any]) -> str:
+    """Drive the run's steps to the end, its sociomap step storing ``body``; the map's id."""
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        map_id = None
+        while (work := workflow.claim_next(worker_id="map-fixture")) is not None:
+            output: dict[str, Any] = {}
+            if work.node_key == "sociomap":
+                stored, _ = research_artifacts(session, scope, app.state.artifact_store).put_json(
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="SOCIOMAP",
+                    artifact_type="research_sociomap",
+                    payload={"kind": "research_sociomap", "sociomap": body},
+                    input_fingerprint=f"map-route-test-{run_id}",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={"run_id": run_id},
+                )
+                map_id = output["artifact_id"] = stored.artifact_id
+            workflow.complete_attempt(work.attempt_id, worker_id="map-fixture", output=output)
+        session.commit()
+    assert map_id is not None
+    return map_id
+
+
+def test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_once(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """RD4: the snapshot is the stored map drawn by the report's figure function, never the
+    browser's bytes; stored once per map and view; its status is the register's for the map's
+    method, read now; approved as any deliverable is, the run's starter its producer."""
+    from aia_core.application.map_snapshots import MAP_SNAPSHOT_ARTIFACT_TYPE
+
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    early = researcher.post(url, json=asked)
+    assert early.status_code == 409 and early.json()["details"]["reason"] == "no_map"
+    map_id = _store_map(app, world, run_id, _fictional_map())
+
+    drawn = researcher.post(url, json=asked)
+    assert drawn.status_code == 201, drawn.text
+    snapshot = drawn.json()
+    assert snapshot["status"] == "CLIENT_FACING"  # aia-sociomap-3 at its registered spec
+    assert snapshot["camera"] is None and snapshot["view"] == "top"
+    assert snapshot["review_state"] == "DRAFT_UNAPPROVED" and snapshot["approval"] is None
+    again = researcher.post(url, json=asked)
+    assert again.status_code == 200 and again.json()["artifact_id"] == snapshot["artifact_id"]
+    side = researcher.post(url, json={**asked, "view": "3d"})
+    assert side.status_code == 201 and side.json()["artifact_id"] != snapshot["artifact_id"]
+    for wrong, reason in (
+        ({**asked, "battery_id": "nowhere"}, "no_battery"),
+        ({**asked, "method": "aia-sociomap-1"}, "no_method"),
+    ):
+        refused = researcher.post(url, json=wrong)
+        assert refused.status_code == 409 and refused.json()["details"]["reason"] == reason
+
+    one = f"{url}/{snapshot['artifact_id']}"
+    png = researcher.get(f"{one}/download")
+    assert png.status_code == 200 and png.content.startswith(b"\x89PNG")
+    assert png.headers["content-type"] == "image/png"
+    assert png.headers["x-aia-artifact-id"] == snapshot["artifact_id"]
+    assert png.headers["content-disposition"].endswith(
+        f'-mapa-fictional-top-klient-{snapshot["artifact_id"]}-koncept.png"'
+    )
+    # The same map and view draw the same bytes: the figure function fits nothing.
+    from aia_core.domain.sociomap import read_object_maps
+    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshot
+
+    battery = _fictional_map()["batteries"][0]
+    ((_, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    assert png.content == object_map_snapshot(artifact, labels, "top")
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.artifact_id == snapshot["artifact_id"]
+            )
+        ).one()
+        assert stored.artifact_type == MAP_SNAPSHOT_ARTIFACT_TYPE
+        assert stored.artifact_metadata["map_artifact_id"] == map_id
+        assert stored.produced_by_user_id is None  # code drew it; no person is its producer
+
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/map-snapshots/{snapshot['artifact_id']}"
+    assert other_client_lead.get(foreign).status_code == 404
+    approved = outsider.post(f"{one}/approve", json={"note": "Zkontrolováno."})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["review_state"] == "APPROVED_INTERNAL"
+    assert approved.json()["approval"]["note"] == "Zkontrolováno."
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_id == snapshot["artifact_id"]
+            )
+        ).all()
+    assert [r.subject_type for r in rows] == ["artifact"]  # one ledger shape
+    assert outsider.post(f"{one}/approve", json={}).status_code == 200  # once: nothing new
+    with create_session_factory(app.state.engine)() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(ApprovalDecisionRow)
+                .where(ApprovalDecisionRow.subject_id == snapshot["artifact_id"])
+            )
+            == 1
+        )
+
+
+def test_the_run_starter_may_not_approve_a_map_snapshot_under_independent_review(
+    app: FastAPI, owner: TestClient, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    # The reviewer asks for it: the run's work all the same, not theirs.
+    snapshot = outsider.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ).json()
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    own = researcher.post(f"{url}/{snapshot['artifact_id']}/approve", json={})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    assert outsider.post(f"{url}/{snapshot['artifact_id']}/approve", json={}).status_code == 200
+
+
+def test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal() -> None:
+    """The register's status, read at every read: -3 at another specification is no method it
+    approved, so its snapshot is internal whatever its review."""
+    from aia_core.application.map_snapshots import _status
+    from aia_core.domain.sociomap_register import MethodologyStatus
+
+    body = _fictional_map()
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.CLIENT_FACING
+    body["methods"][0]["spec_fingerprint"] = "0" * 64
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    assert _status({}, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY

@@ -43,6 +43,14 @@ from aia_core.application.deep_research import (
 )
 from aia_core.application.errors import WorkspaceConflict
 from aia_core.application.lead_chat_start import RunStartSettings
+from aia_core.application.map_snapshots import (
+    MAP_SNAPSHOT_MEDIA_TYPE,
+    MapSnapshot,
+    SnapshotRefused,
+    approve_map_snapshot,
+    map_snapshot,
+    stored_map_snapshot,
+)
 from aia_core.application.proposal_accept import StaleProposal
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
@@ -146,7 +154,7 @@ from aia_core.domain.scope import (
     SeparationOfDutiesViolation,
     StudyContext,
 )
-from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER
+from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER, MethodologyStatus
 from aia_core.domain.workflow import StepRunStatus
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
@@ -4046,3 +4054,204 @@ def accept_agent_result(
             workspace_revision=accepted.working.revision,
             workspace_revision_id=accepted.working.revision_id,
         )
+
+
+# --------------------------------------------------- map snapshots (report-delivery RD4)
+
+
+class MapSnapshotRequest(BaseModel):
+    """Which stored map, and which view of it, to draw."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    battery_id: str = Field(min_length=1, max_length=128)
+    method: str = Field(pattern=r"^[0-9A-Za-z.+_-]{1,64}$")
+    view: Literal["top", "3d"]
+
+
+class MapSnapshotApproval(BaseModel):
+    """Why a person approves a snapshot (optional)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    note: str = Field(default="", max_length=2000)
+
+
+def _snapshot_body(
+    run_id: str, found: MapSnapshot, scope: StudyContext, session: SessionDep, store: Any
+) -> dict[str, Any]:
+    """A stored snapshot as the routes answer it: what it shows, the Sociomap register's status
+    for its method read now (never stored), its review and who approved it (RD2)."""
+    snapshot = found.artifact
+    mark = _mark(snapshot, scope, session, store)
+    meta = snapshot.metadata
+    return {
+        "run_id": run_id,
+        "artifact_id": snapshot.artifact_id,
+        "sha256": snapshot.sha256,
+        "battery_id": meta.get("battery_id"),
+        "method": meta.get("method"),
+        "view": meta.get("view"),
+        "camera": meta.get("camera"),
+        "status": found.status.value,
+        "review_state": mark.state.value,
+        "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
+        **_approval_fields(snapshot, scope, session, store),
+    }
+
+
+def _snapshot_refused(exc: SnapshotRefused) -> HTTPException:
+    return HTTPException(
+        409,
+        detail={
+            "code": "map_snapshot_refused",
+            "message": str(exc),
+            "details": {"reason": exc.reason},
+        },
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/map-snapshots",
+    response_model=dict[str, Any],
+    status_code=status.HTTP_201_CREATED,
+    summary="Draw one stored map of the run on the server, or answer the snapshot stored",
+    responses={404: {"model": ErrorResponse}, 409: {"model": ErrorResponse}},
+)
+def create_map_snapshot(
+    run_id: RunIdPath,
+    body: MapSnapshotRequest,
+    response: Response,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    settings: SettingsDep,
+) -> dict[str, Any]:
+    """The run's stored contract-3 map drawn at the report's print camera, never the browser's
+    bytes, stored once per map and view (201), or the one stored (200). 409
+    ``map_snapshot_refused`` for a run with no map, a battery or method it did not map, or a
+    view the map cannot show."""
+    try:
+        found, created = map_snapshot(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            battery_id=body.battery_id,
+            method=body.method,
+            view=body.view,
+            build=settings.build.sha or "",
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except SnapshotRefused as exc:
+        raise _snapshot_refused(exc) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return _snapshot_body(run_id, found, scope, session, store)
+
+
+def _found_snapshot(
+    run_id: str, artifact_id: str, scope: StudyContext, session: SessionDep, store: Any
+) -> MapSnapshot:
+    try:
+        return stored_map_snapshot(session, scope, store, run_id=run_id, artifact_id=artifact_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (SnapshotRefused, ArtifactNotFound) as exc:
+        raise _not_found("map_snapshot") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+
+
+@router.get(
+    "/research/runs/{run_id}/map-snapshots/{artifact_id}",
+    response_model=dict[str, Any],
+    summary="A stored map snapshot of the run: what it shows, its status and its review",
+    responses={404: {"model": ErrorResponse}},
+)
+def read_map_snapshot(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    found = _found_snapshot(run_id, artifact_id, scope, session, store)
+    return _snapshot_body(run_id, found, scope, session, store)
+
+
+@router.get(
+    "/research/runs/{run_id}/map-snapshots/{artifact_id}/download",
+    response_class=Response,
+    summary="A stored map snapshot of the run as its PNG",
+    responses={404: {"model": ErrorResponse}},
+)
+def download_map_snapshot(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> Response:
+    """The PNG; its name says the register's status for the map's method (``interni`` unless
+    the register approves it for a client) and the snapshot's review."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    found = _found_snapshot(run_id, artifact_id, scope, session, store)
+    try:
+        data = research_artifacts(session, scope, store).read(artifact_id)
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+    mark = _mark(found.artifact, scope, session, store)
+    meta = found.artifact.metadata
+    battery = re.sub(r"[^0-9A-Za-z_-]", "-", str(meta.get("battery_id")))[:40]
+    use = "klient" if found.status is MethodologyStatus.CLIENT_FACING else "interni"
+    review = "schvaleno" if mark.approved_on else "koncept"
+    shows = f"mapa-{battery}-{meta.get('view')}-{use}"
+    name = f"AIA-{scope.study_id}-{run_id}-{shows}-{artifact_id}-{review}.png"
+    return Response(
+        content=data, media_type=MAP_SNAPSHOT_MEDIA_TYPE, headers=_review_headers(mark, name)
+    )
+
+
+@router.post(
+    "/research/runs/{run_id}/map-snapshots/{artifact_id}/approve",
+    response_model=dict[str, Any],
+    summary="Approve a stored map snapshot of the run (recorded as any deliverable's approval)",
+    responses={403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+)
+def approve_map_snapshot_route(
+    run_id: RunIdPath,
+    artifact_id: ArtifactIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    body: MapSnapshotApproval,
+) -> dict[str, Any]:
+    """One ledger shape: subject ``artifact``, as a report's. The run's starter is the
+    snapshot's producer, so with independent review on they may not approve it."""
+    _found_snapshot(run_id, artifact_id, scope, session, store)
+    try:
+        approved = approve_map_snapshot(
+            session, scope, store, run_id=run_id, artifact_id=artifact_id, note=body.note
+        )
+    except SeparationOfDutiesViolation as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": exc.reason,
+                "message": "Someone other than the snapshot's producer must approve it.",
+            },
+        ) from exc
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    return _snapshot_body(run_id, approved, scope, session, store)
