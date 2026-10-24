@@ -315,7 +315,7 @@ describe("the Metodika tab", () => {
     await waitFor(() => expect(document.querySelectorAll("article[data-step]").length).toBeGreaterThan(10));
     expect(document.querySelector("[data-step-body]")).toBeNull();
     // One stage by its tile; the other stages' steps leave the page.
-    fireEvent.click(within(tiles).getByRole("button", { name: /^Terén/ }));
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M6 · Terén/ }));
     const sections = [...document.querySelectorAll("section[aria-labelledby^='mg-']:not([data-not-computed] section)")].map((x) => x.querySelector("h3")?.textContent);
     expect(sections).toEqual(["Terén"]);
     fireEvent.click(all);
@@ -329,5 +329,57 @@ describe("the Metodika tab", () => {
     expect(document.querySelectorAll("[data-step-body]").length).toBe(rows.length);
     fireEvent.click(screen.getByRole("button", { name: "Sbalit všechny kroky" }));
     expect(document.querySelector("[data-step-body]")).toBeNull();
+  });
+
+  it("counts steps in Czech on the tiles and the stage heads: 1 krok, 3 kroky, 17 kroků", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    const count = (tile: RegExp) => within(tiles).getByRole("button", { name: tile }).querySelector(".text-xs")?.textContent;
+    expect(count(/^Všechny etapy/)).toBe("17 kroků");
+    expect(count(/^M1 · Schéma vah/)).toBe("3 kroky");
+    expect(count(/^M2 · Součty populace/)).toBe("1 krok");
+    const head = screen.getByRole("heading", { name: "Součty populace" }).closest("section") as HTMLElement;
+    expect(within(head).getByText("1 krok")).toBeTruthy();
+    // The catalogue's cards count the same way.
+    fireEvent.click(document.querySelector<HTMLElement>("[data-methodology-back]")!);
+    const readiness = await waitFor(() => document.querySelector('[data-module-card="readiness"]') as HTMLElement);
+    expect(readiness.textContent).toContain("3 kroky · 3 etapy");
+  });
+
+  it("says a stage has no step with a parameter rather than showing nothing", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M4 · Neplatná váha/ }));
+    expect(document.querySelectorAll("article[data-step]").length).toBe(2);
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
+    expect(document.querySelector("article[data-step]")).toBeNull();
+    expect(screen.getByRole("status").textContent).toBe("Žádný krok této etapy nečte parametr.");
+  });
+
+  it("counts as a parameter only what a version can change, never a code constant or the method's name", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
+    // The method's own step (its name) and the run's raking (code constants) are not among them.
+    const shown = [...document.querySelectorAll("article[data-step] [id^='mst-']")].map((n) => n.textContent);
+    expect(shown).not.toContain("Váha respondenta běhu: vzorek z panelu");
+    expect(screen.queryByRole("heading", { name: "Vážení" })).toBeNull();
+    expect(shown.length).toBe(2);
+  });
+
+  it("follows a context link out of a single stage: all stages again, the step open and focused", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    const tiles = await screen.findByRole("group", { name: "Etapy" });
+    fireEvent.click(within(tiles).getByRole("button", { name: /^M3 · Rozložení na mapě/ }));
+    expect(document.getElementById("ms-f3_correlation")).toBeNull();
+    const distance = await card("Cílová vzdálenost z korelace");
+    Element.prototype.scrollIntoView = vi.fn();
+    fireEvent.click(distance.querySelector('[data-context="from"] [data-context-link="f3_correlation"]')!);
+    await waitFor(() => expect(document.getElementById("ms-f3_correlation")?.closest("article")?.querySelector("[data-step-body]")).toBeTruthy());
+    expect(within(tiles).getByRole("button", { name: /^Všechny etapy/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(document.querySelector("#ms-f3_correlation button[aria-expanded]"));
   });
 

@@ -12,7 +12,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodVersions, methodology } from "@/lib/api";
-import { type GroupedSteps, groupSteps, showValue, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
+import { type GroupedSteps, groupSteps, isParameter, methodologyCount, showValue, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
 import { Tag } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineConfirm } from "../../rehome/step";
@@ -156,7 +156,7 @@ function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Reso
   return <div data-module-chips className="flex flex-wrap items-center gap-1.5">
     {name ? <span data-in-force-chip className={`${CHIP} border-in-force bg-in-force-wash font-mono font-medium text-ink`}><span aria-hidden="true" className="size-1.5 rounded-full bg-in-force" />{tv(`${M}.inForceChip`, { name })}</span> : null}
     {summary.id === "sociomap" ? <RegisterChip head status={res.state === "ready" ? res.data?.in_force.register_status : res.state === "loading" ? undefined : null} /> : null}
-    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: summary.steps, groups: summary.groups.length })}</span>
+    <span className={`${CHIP} border-border text-ink-muted`}>{tv(`${M}.stepsChip`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stageIn") })}</span>
   </div>;
 }
 
@@ -175,7 +175,7 @@ function ModuleCard({ area, summary, onOpen }: { area: Area; summary: MethodModu
         {summary ? <>
           <dt className="text-ink-faint">{t(`${M}.facts.inForce`)}</dt><dd className="break-words font-mono"><InForceFact summary={summary} res={res} /></dd>
           {area.id === "sociomap" ? <><dt className="text-ink-faint">{t(`${M}.facts.forClients`)}</dt><dd><RegisterChip status={versions ? versions.in_force.register_status : unread ? null : undefined} /></dd></> : null}
-          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: summary.steps, groups: summary.groups.length })}</dd>
+          <dt className="text-ink-faint">{t(`${M}.facts.calculation`)}</dt><dd>{tv(`${M}.facts.steps`, { steps: methodologyCount(summary.steps, "step"), groups: methodologyCount(summary.groups.length, "stage") })}</dd>
         </> : null}
         <dt className="text-ink-faint">{t(`${M}.facts.edits`)}</dt>
         <dd>{!area.editable ? t(`${M}.facts.readOnly`) : versions ? t(`${M}.facts.${versions.may_edit ? "youEdit" : "metodikEdits"}`) : unread ? t(`${M}.facts.unknown`) : "…"}</dd>
@@ -238,7 +238,9 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
   const [withValues, setWithValues] = useState(false);
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   const [goTo, setGoTo] = useState<string | null>(null);
-  const filtered = (g: GroupedSteps[number]) => (withValues ? g.steps.filter((x) => x.values.length > 0) : g.steps);
+  // "S parametry": the steps that read a value a version can change, not a code constant or the
+  // method's own name.
+  const filtered = (g: GroupedSteps[number]) => (withValues ? g.steps.filter((x) => x.values.some(isParameter)) : g.steps);
   const shown = live.filter((g) => stage === null || key(g) === stage).map((g) => ({ ...g, steps: filtered(g) })).filter((g) => g.steps.length);
   const allOpen = shown.length > 0 && shown.every((g) => g.steps.every((x) => open.has(x.id)));
   const toggle = (id: string) => setOpen((o) => { const n = new Set(o); if (n.has(id)) n.delete(id); else n.add(id); return n; });
@@ -246,7 +248,10 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
   const pick = (id: string) => { setStage(null); setWithValues(false); setOpen((o) => new Set(o).add(id)); setGoTo(id); };
   useEffect(() => {
     if (!goTo) return;
-    document.getElementById(`ms-${goTo}`)?.scrollIntoView({ block: "start" });
+    const heading = document.getElementById(`ms-${goTo}`);
+    heading?.scrollIntoView({ block: "start" });
+    // The focus follows the move: the next Tab starts from the step the link named.
+    heading?.querySelector<HTMLElement>("button[aria-expanded]")?.focus({ preventScroll: true });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot move, cleared once made
     setGoTo(null);
   }, [goTo]);
@@ -254,7 +259,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
     const on = stage === id;
     return <button key={id ?? "all"} type="button" data-stage-tile={id ?? "all"} aria-pressed={on} onClick={() => setStage(id)}
       className={`flex min-h-11 flex-col items-start rounded-md border px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash" : "border-border bg-surface-raised hover:border-border-strong"}`}>
-      <span className="font-medium">{label}</span><span className="text-xs text-ink-muted">{tv(`${M}.stepCount`, { n: count })}</span>
+      <span className="font-medium">{label}</span><span className="text-xs text-ink-muted">{methodologyCount(count, "step")}</span>
     </button>;
   };
   return <div className="flex min-w-0 flex-col gap-3">
@@ -266,7 +271,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
       </div>
       <div role="group" aria-label={t(`${M}.stagesGroup`)} className="mt-2.5 grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(130px,1fr))]">
         {tile(null, t(`${M}.allStages`), live.reduce((n, g) => n + g.steps.length, 0))}
-        {live.map((g) => tile(key(g), g.group?.title_cs ?? t(`${M}.calculation`), g.steps.length))}
+        {live.map((g) => tile(key(g), g.group ? `${stages.get(g.group.id) ? `M${stages.get(g.group.id)} · ` : ""}${g.group.title_cs}` : t(`${M}.calculation`), g.steps.length))}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
         <span aria-hidden="true">{t(`${M}.onlySteps`)}</span>
@@ -281,7 +286,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
             {g.group && stages.get(g.group.id) ? <span data-stage-number className="inline-flex min-h-[22px] items-center rounded-[11px] border border-border px-2 font-mono text-xs text-ink-muted">M{stages.get(g.group.id)}</span> : null}
             <h3 id={g.group ? `mg-${detail.id}-${g.group.id}` : undefined} className="text-sm font-semibold">{g.group?.title_cs ?? t(`${M}.calculation`)}</h3>
           </div>
-          <span className="text-xs text-ink-muted">{tv(`${M}.stepCount`, { n: g.steps.length })}</span>
+          <span className="text-xs text-ink-muted">{methodologyCount(g.steps.length, "step")}</span>
         </div>
         {g.group?.note_cs ? <p className="mt-2 break-words text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
         {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}

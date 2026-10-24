@@ -987,7 +987,7 @@ export const cs = {
           headINTERNAL_ONLY: "Jen interně (neregistrováno)",
         },
         inForceChip: "V platnosti: {name}",
-        stepsChip: "{steps} kroků v {groups} etapách",
+        stepsChip: "{steps} v {groups}",
         facts: {
           forClients: "Pro klienty",
           youEdit: "můžete upravit (Metodik)",
@@ -996,7 +996,7 @@ export const cs = {
           fromCode: "z kódu",
           unknown: "nezjištěno",
           calculation: "Výpočet",
-          steps: "{steps} kroků · {groups} etap",
+          steps: "{steps} · {groups}",
           edits: "Úpravy",
           editable: "verze a aktivace",
           readOnly: "jen ke čtení",
@@ -1034,7 +1034,13 @@ export const cs = {
           duties: "povinnost: {list}",
         },
         // Výpočet (fidelity F5): the stages as tiles, the steps as rows.
-        stages: "Etapy výpočtu", stagesGroup: "Etapy", allStages: "Všechny etapy", stepCount: "{n} kroků",
+        stages: "Etapy výpočtu", stagesGroup: "Etapy", allStages: "Všechny etapy",
+        // Counted in Czech: 1 krok, 2-4 kroky, 5 kroků (methodologyCount in lib/methodology.ts).
+        count: {
+          step: { one: "krok", few: "kroky", many: "kroků" },
+          stage: { one: "etapa", few: "etapy", many: "etap" },
+          stageIn: { one: "etapě", few: "etapách", many: "etapách" },
+        },
         onlySteps: "Jen kroky", allSteps: "Všechny", withValues: "S parametry",
         stepsHelp: "Výpočet v pořadí, jak běží; rozbalením uvidíte vzorec a jeho hodnoty.",
         expandAll: "Rozbalit všechny kroky", collapseAll: "Sbalit všechny kroky",
