@@ -12,8 +12,9 @@ states a difference or a lead (:data:`COMPARISON_WORDS`), and does not ask (a qu
 "zda": a research question or goal restated claims nothing). The lists are PROVISIONAL, for
 the methodology owner to review. It is supported when it prints a number from the ledger: a value in
 it (a ``value`` inline), a figure or table of them it points at (a ``cross_ref``), or the
-printed text of a number its block cites (analysis prose writes its numbers as text and cites
-their claims on the paragraph). Anything else is
+number its block cites, as prose writes it (analysis prose writes its numbers as text and cites
+their claims on the paragraph; a decimal point or comma and any thousands space read alike).
+Anything else is
 ``unsupported_comparison``. A reading rule, deliberately plain: it flags a comparison the text
 states without a number, and says nothing about whether a cited number bears the comparison out.
 
@@ -101,7 +102,15 @@ _WRITTEN_FROM: Final = ANALYSIS_MODULE_ARTIFACT
 _VALUE: Final = "\u0000"
 _WORD: Final = re.compile(r"\w+")
 # A sentence ends at . ! ? or … followed by space and a capital, a digit or an opening quote.
-_END: Final = re.compile(r"(?<=[.!?…])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9„\"(])")
+# Its closing quote or bracket may follow the stop: „… 48,2 %.“ Nejvíc … is two sentences.
+_END: Final = re.compile(
+    '(?:(?<=[.!?…])|(?<=[.!?…][“”"»\u2019)]))\\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9„"(])'
+)
+# A number as prose or the ledger prints it: thousands grouped by a space of any width, a
+# decimal comma or point, a minus or a hyphen before it.
+_NUMBER: Final = re.compile(
+    "[\u2212-]?\\d{1,3}(?:[ \u00a0\u202f]\\d{3})+(?:[.,]\\d+)?|[\u2212-]?\\d+(?:[.,]\\d+)?"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -165,15 +174,25 @@ def claims_comparison(sentence: str) -> bool:
     return False
 
 
+def numbers(text: str) -> set[str]:
+    """The numbers ``text`` states, each in one form whatever its print: "1 204", "1\u00a0204"
+    and "1204" alike, "48,2" and "48.2" alike, a minus sign (U+2212) and a hyphen alike."""
+    return {
+        re.sub(r"[ \u00a0\u202f]", "", n).replace(",", ".").replace("\u2212", "-")
+        for n in _NUMBER.findall(text)
+    }
+
+
 def _supported(sentence: str, cited: Sequence[Mapping[str, Any]]) -> bool:
     if _VALUE in sentence:
         return True
-    return any(
-        text and str(text) in sentence
+    printed = {
+        n
         for entry in cited
         if not entry.get("suppressed")
-        for text in (entry.get("value_text"), entry.get("number_text"))
-    )
+        for n in numbers(str(entry.get("number_text") or ""))
+    }
+    return bool(printed & numbers(sentence))
 
 
 def _texts(section: Mapping[str, Any]) -> Iterator[tuple[str, list[Any], list[str]]]:

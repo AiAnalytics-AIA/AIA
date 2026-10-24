@@ -154,15 +154,18 @@ is not marked. **The word lists are PROVISIONAL** (the PM,
 2026-10-24): AIA's starting reading, for the methodology owner (Aram) to review; the case file names a known
 over-mark ("na větším vzorku", a comparative about the method). It is
 supported when it prints a ledger number: a `value` inline, a `cross_ref` to a figure or table, or the printed text of
-a number its block cites (analysis prose writes its numbers as text and cites their claims on the paragraph); a
-suppressed number supports nothing. Anything else is `unsupported_comparison`, naming its block, its sentence's index
+a number its block cites (analysis prose writes its numbers as text and cites their claims on the paragraph), the
+numbers compared parsed, so a decimal point or comma and any thousands space read alike; a suppressed number supports
+nothing. A sentence ends at its stop or after a closing quote or bracket that follows it. Anything else is `unsupported_comparison`, naming its block, its sentence's index
 and its text. Not read: the composer's own text (map reading guides, method, the question chapter's intro, the
 questionnaire), a lead-in and a `control` block. A reading rule, deliberately plain, not a methodology: it flags a
 comparison stated without a number and says nothing of whether a cited number bears it out. The internal draft's,
 the report with literature's and the client report's document routes answer the findings in `warnings` (the client's
 beside RD0's), and `approve_report` records them on the approval's ledger row (RD0's mechanism); a version with no
 stored document (a report-editor version, one stored before RD5a) records `NULL`, nothing checked, never "nothing
-found". Cases: `tests/fixtures/report_sentences/cases.json`. Tests: `test_sentence_check.py`; `test_research_api.py`
+found". Migration `3abba24ff47c`'s downgrade now refuses only while a row holds at least one warning (`[]` holds none),
+changed in place: Alembic runs a revision's downgrade from its file, so no later migration could change what it counts
+(`test_approval_ledger.py`, the two `…downgrade` tests on PostgreSQL). Cases: `tests/fixtures/report_sentences/cases.json`. Tests: `test_sentence_check.py`; `test_research_api.py`
 `test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record`. RD7b, the pane marking the sentence and
 the approval dialog naming it, follows.
 

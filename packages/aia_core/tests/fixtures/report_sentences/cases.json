@@ -198,6 +198,30 @@
       "cites": null,
       "marked": false,
       "why": "jestli: an indirect question"
+    },
+    {
+      "text": "Nejvyšší počet je 1 204.",
+      "cites": "1 204",
+      "marked": false,
+      "why": "a thousands space reads as the ledger's no-break space"
+    },
+    {
+      "text": "Nejvíc důvěřují lidé v Praze, 48.2 %.",
+      "cites": "48,2 %",
+      "marked": false,
+      "why": "a decimal point reads as the ledger's comma"
+    },
+    {
+      "text": "Nejvíc důvěřují lidé v Praze, 48 %.",
+      "cites": "48,2 %",
+      "marked": true,
+      "why": "another number is no support: 48 is not 48,2"
+    },
+    {
+      "text": "Respondenti uvedli: „Důvěra dosahuje 48,2 %.“ Nejvíc důvěřují lidé v Praze.",
+      "cites": "48,2 %",
+      "marked": true,
+      "why": "a closing quote ends its sentence: the number supports only the sentence it is in"
     }
   ],
   "status": "PROVISIONAL: AIA's starting reading of a Czech comparison (the PM, 2026-10-24), for the methodology owner, Aram, to review. It only marks a sentence, never refuses one."

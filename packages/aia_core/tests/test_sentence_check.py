@@ -41,7 +41,9 @@ def _paragraph(*content: dict[str, Any], refs: tuple[str, ...] = (), **extra: An
 
 
 def _entry(value_text: str) -> dict[str, Any]:
-    return {"suppressed": False, "value_text": value_text, "number_text": value_text.split()[0]}
+    # The number before its unit, as the ledger prints it: split at an ordinary space only, a
+    # thousands no-break space stays inside the number.
+    return {"suppressed": False, "value_text": value_text, "number_text": value_text.split(" ")[0]}
 
 
 @pytest.mark.parametrize("case", CASES, ids=[c["text"] for c in CASES])
