@@ -309,3 +309,15 @@ def approved_versions(
         except ArtifactNotFound:
             continue  # its row outlived the artifact: nothing approved to name
     return found
+
+
+def newest_saved(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, composed_id: str
+) -> tuple[EditorVersion, Artifact] | None:
+    """The newest version a person saved over the composed draft ``composed_id`` (koncept 2
+    on), with its artifact; ``None`` while none was saved. A read, any member's who reads the
+    run's report: it changes nothing and opens no line."""
+    versions = ReportEditorRepository(session, scope).versions(composed_id)
+    if not versions or versions[-1].koncept < 2:
+        return None
+    return versions[-1], research_artifacts(session, scope, store).get(versions[-1].artifact_id)

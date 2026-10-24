@@ -147,6 +147,11 @@ def approve_report(
     # (the product owner, "Warnings for all of it"); what they find is recorded with the approval,
     # so who approved past which warning is on record.
     warnings = _warnings(artifacts, artifact)
+    # An older version of an editor line is approved as itself (exact-version approval), with the
+    # newer koncept on record beside it, so approving it on purpose shows (the PM, 2026-10-24).
+    newer = _newer_koncept(session, scope, artifact)
+    if newer is not None:
+        warnings = [*(warnings or []), newer]
     if artifact.artifact_type in EDITED_REPORT_KINDS:
         authors = _line_authors(session, scope, artifacts, artifact)
     elif artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE and run.get("triggered_by"):
@@ -194,6 +199,24 @@ def _check_line(
     reason = unsaved_edits(content_held(version, artifact), marks, seen)
     if reason is not None:
         raise ReportEditsUnsaved(artifact.artifact_id, reason)
+
+
+def _newer_koncept(
+    session: Session, scope: StudyContext, artifact: Artifact
+) -> dict[str, Any] | None:
+    """``superseded_version`` when ``artifact`` is a version of an editor line a later save
+    stands over, naming that koncept; ``None`` otherwise."""
+    repo = ReportEditorRepository(session, scope)
+    version = repo.version(artifact.artifact_id)
+    last = repo.versions(version.line_id)[-1] if version is not None else None
+    if version is None or last is None or last.koncept == version.koncept:
+        return None
+    return {
+        "code": "superseded_version",
+        "where": last.artifact_id,
+        "message": f"schválen koncept {version.koncept}, novější je koncept {last.koncept}",
+        "koncept": last.koncept,
+    }
 
 
 def _line_authors(
