@@ -2005,7 +2005,12 @@ class ApprovalDecisionRow(Base):
     # What the person was warned of and approved past, as shown to them: the client report's
     # checks (report-delivery RD0, warnings since 2026-10-22), each {code, where, message}. NULL
     # where nothing is checked (every subject but a client report, and rows from before).
-    warnings: Mapped[list[dict[str, str]] | None] = mapped_column(JSONType, nullable=True)
+    #: ``none_as_null``: ``None`` is SQL NULL, not JSON null, so "nothing checked" stays apart
+    #: from a recorded ``[]`` and the downgrade counts only rows that recorded warnings.
+    warnings: Mapped[list[dict[str, str]] | None] = mapped_column(
+        JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql"),
+        nullable=True,
+    )
     request_id: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow

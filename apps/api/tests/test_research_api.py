@@ -883,7 +883,18 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
         decisions = session.scalars(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
         ).all()
+        # Nothing checked on an internal report: SQL NULL, never JSON null (RD0), so the
+        # migration's downgrade counts only the rows that recorded warnings.
+        unchecked = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.subject_id == report_id,
+                ApprovalDecisionRow.warnings.is_(None),
+            )
+        )
     assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
+    assert unchecked == 1
 
 
 def _prague_today() -> str:
