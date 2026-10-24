@@ -143,6 +143,12 @@ export function EditorDocBar({
                   setAct({ ask: null, busy: false, said: MOVED(latest.koncept) });
                   return null;
                 }
+                // An edit started while that read was in flight: checked again as the approval leaves
+                // (the remaining window, between this line and the server's lock, is RPT8f's).
+                if (waitingNow.current) {
+                  setAct({ ask: null, busy: false, said: UNSTORED });
+                  return null;
+                }
                 // The server's check is the last word: it refuses once the line has moved on.
                 return research.approveReport(studyId, runId, now.version_artifact_id, "", true);
               })

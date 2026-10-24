@@ -16,6 +16,7 @@ chunks:
   - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
   - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
   - "[ ] RPT8e. Before activation, a hard gate: the editor's api.js loaded with Subresource Integrity, the hash taken from the pinned Document Server image's own api.js and configured beside AIA_ONLYOFFICE_URL, verified against the real Document Server with CORS; AIA_ONLYOFFICE_URL stays unset until this is ticked (the PM, 2026-10-23; owner: Zpráva)"
+  - "[ ] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
 ---
@@ -556,7 +557,8 @@ it approves, under the line's lock:
 3. The approval names the edit sequence the page last saw; `approve_report(newest_of_line=True)` refuses 409
    `report_edits_unsaved` unless the newest stored version holds that sequence and no higher one was received.
 4. The browser's hold stays as the visible state, no longer the gate.
-Not built: it is the PM's call when; the client hold covers every case reviewed but this one. The server is the last word: the
+It is RPT8f, a gate before activation beside RPT8e (the PM, 2026-10-24). Meanwhile the yes checks the hold again as
+the approval leaves, after its read, which narrows the window to the moment between that check and the server's lock. The server is the last word: the
 bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
 takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
 the server does not name reads "neznámý autor". The report card downloads each approved edit as itself
@@ -575,7 +577,7 @@ catch their stored saves only. Tests: `test_a_version_names_its_authors_and_its_
 `ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
 `ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").
 
-Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) → activation (infra: the
+Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) and RPT8f (the server's edit sequence) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 
 *RPT8a, part 3, the map (`feature/report-locked-facts-map`):* a paragraph, callout, text cell, table's notes or

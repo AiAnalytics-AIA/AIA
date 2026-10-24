@@ -154,6 +154,21 @@ describe("the server's last word", () => {
   });
 });
 
+describe("an edit started while the yes's read is in flight", () => {
+  it("approves nothing", async () => {
+    const { rerender } = render(bar(null, 60_000));
+    fireEvent.click(await approveButton(2));
+    const dialog = await screen.findByRole("dialog");
+    let answer: (value: EditorVersionRead) => void = () => undefined;
+    vi.mocked(research.reportEditorVersion).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+    await act(async () => { fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" })); });
+    rerender(bar(Date.now(), 60_000)); // typed while the yes's read is out
+    await act(async () => { answer(v(2)); });
+    expect(await screen.findByRole("alert")).toHaveProperty("textContent", "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.");
+    expect(research.approveReport).not.toHaveBeenCalled();
+  });
+});
+
 describe("an edit started while the question is open", () => {
   it("approves nothing", async () => {
     const { rerender } = render(bar(null, 60_000));
