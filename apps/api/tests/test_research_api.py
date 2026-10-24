@@ -570,6 +570,117 @@ def _document_model(title: str = "Úvod a rámec studie") -> bytes:
     ).encode()
 
 
+def _question_table_model() -> bytes:
+    """A stored internal document with one per-question table, as the composer anchors it."""
+    model = json.loads(_document_model())
+    model["sections"].append(
+        {
+            "id": "ch-tables",
+            "title": "Výsledky jednotlivých otázek",
+            "appendix": False,
+            "refs": ["q1.pct.1", "q1.n"],
+            "blocks": [
+                {
+                    "id": "ch-tables.1",
+                    "type": "table",
+                    "anchor": "tab-question-1",
+                    "title": "@Jak často nakupujete?",
+                    "columns": [{"label": "Ukazatel", "align": "left", "unit": None}],
+                    "rows": [
+                        {
+                            "cells": [
+                                {"type": "text", "text": "Denně", "control": None},
+                                {"type": "number", "ref": "q1.pct.1", "with_interval": True},
+                            ],
+                            "emphasis": False,
+                        },
+                        {
+                            "cells": [
+                                {"type": "text", "text": "platné odpovědi", "control": None},
+                                {"type": "number", "ref": "q1.n", "with_interval": False},
+                            ],
+                            "emphasis": False,
+                        },
+                    ],
+                    "suppressed_rows": 1,
+                    "source": "Fiktivní",
+                    "base_ref": "q1.n",
+                    "notes": [],
+                    "notes_control": None,
+                    "refs": ["q1.pct.1", "q1.n"],
+                }
+            ],
+        }
+    )
+    entry = {"suppressed": False, "grade": "measured", "modelled_panel": False}
+    model["ledger"]["refs"] = {
+        "q1.pct.1": {
+            **entry,
+            "value_text": "42,5 %",
+            "interval_text": "38,1 až 46,9 %",
+            "base_text": "n = 480",
+        },
+        "q1.n": {**entry, "value_text": "480", "interval_text": None, "base_text": None},
+    }
+    return json.dumps(model, sort_keys=True, separators=(",", ":")).encode()
+
+
+def test_a_runs_question_tables_export_as_the_report_prints_them(
+    app: FastAPI,
+    researcher: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD12 (D-41): the per-question tables of the stored internal draft as CSV and XLSX, each
+    number the text the report prints; the client report's alone with document=client."""
+    import csv
+    import io
+
+    import openpyxl
+
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report/tables"
+    assert researcher.get(f"{url}/csv").status_code == 404  # no report yet
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=_question_table_model()
+    )
+
+    got = researcher.get(f"{url}/csv")
+    assert got.status_code == 200, got.text
+    assert got.headers["content-type"].startswith("text/csv")
+    assert got.headers["x-aia-artifact-id"] == report_id
+    assert got.headers["x-aia-review-state"] == "DRAFT_UNAPPROVED"
+    assert f"-tabulky-zakladni-{report_id}-koncept.csv" in got.headers["content-disposition"]
+    rows = list(csv.reader(io.StringIO(got.content.decode("utf-8-sig")), delimiter=";"))
+    title = "'@Jak často nakupujete?"  # a formula's first character, kept as text
+    assert rows == [
+        ["Otázka", "Ukazatel", "Hodnota", "95% interval", "Základ", "Evidence", "Původ"],
+        [title, "Denně", "42,5 %", "38,1 až 46,9 %", "n = 480", "Měřeno", ""],
+        [title, "platné odpovědi", "480", "", "", "Měřeno", ""],
+        [title, "vynecháno pro nedostatečnou oporu: 1", "", "", "", "", ""],
+    ]
+
+    book = researcher.get(f"{url}/xlsx")
+    assert book.status_code == 200, book.text
+    sheet = openpyxl.load_workbook(io.BytesIO(book.content)).active
+    cells = [[c if c is not None else "" for c in r] for r in sheet.iter_rows(values_only=True)]
+    assert cells == rows
+
+    # The client report's export is its own: this one has no question table, said by name.
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    assert researcher.get(f"{_runs(world)}/{run_id}/report/client/download").status_code == 200
+    none = researcher.get(f"{url}/csv", params={"document": "client"})
+    assert none.status_code == 409 and none.json()["code"] == "no_question_tables"
+    assert researcher.get(f"{url}/pdf").status_code == 422
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/tables/csv"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
 def test_the_internal_draft_is_read_as_its_document_beside_its_docx(
     app: FastAPI,
     researcher: TestClient,

@@ -68,6 +68,7 @@ from aia_core.application.report_export import (
     stampable,
 )
 from aia_core.application.report_method import research_question_gap, research_question_gaps
+from aia_core.application.report_tables import EXPORT_MEDIA_TYPES, export_question_tables
 from aia_core.application.report_variants import (
     PdfState,
     VariantState,
@@ -3250,6 +3251,54 @@ class ReportApprovalRequest(BaseModel):
     #: The approving page's last edit start in the editor (RPT8f); with ``newest_of_line``, 409
     #: ``report_edits_unsaved`` until a stored version holds it and every edit AIA received.
     seen_edit: SeenEditRequest | None = None
+
+
+@router.get(
+    "/research/runs/{run_id}/report/tables/{file_format}",
+    response_class=Response,
+    summary="Download a run's per-question tables as CSV or XLSX",
+    responses={409: {"model": ErrorResponse}},
+)
+def download_question_tables(
+    run_id: RunIdPath,
+    file_format: Literal["csv", "xlsx"],
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    document: Literal["internal", "client"] = "internal",
+) -> Response:
+    """The per-question tables of the run's stored internal draft, or of its stored client
+    report (``document=client``), as CSV or XLSX (report-delivery RD12, D-41): read from the
+    stored document model as its document route reads it (the same checks, the same 404 and 409
+    answers), every cell a number that report admitted for its surface, printed as it prints it.
+    The client's export is the client report's numbers alone. 409 ``no_question_tables`` for a
+    document without one."""
+    try:
+        scope.require(Permission.EXPORT_DELIVERABLE)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    body = (
+        run_report_document(run_id, scope, session, store)
+        if document == "internal"
+        else client_report_document_route(run_id, scope, session, store)
+    )
+    data = export_question_tables(body["document"], file_format)
+    if data is None:
+        raise HTTPException(409, detail={"code": "no_question_tables"})
+    state = "schvaleno" if body["review_state"] == "APPROVED_INTERNAL" else "koncept"
+    variant = "zakladni" if document == "internal" else "klient"
+    name = f"AIA-{scope.study_id}-{run_id}-tabulky-{variant}-{body['report_artifact_id']}-{state}"
+    return Response(
+        content=data,
+        media_type=EXPORT_MEDIA_TYPES[file_format],
+        headers={
+            "Content-Disposition": f'attachment; filename="{name}.{file_format}"',
+            "Cache-Control": "no-store",
+            # The stored report these tables are from, and its review.
+            "X-AIA-Artifact-Id": str(body["report_artifact_id"]),
+            "X-AIA-Review-State": str(body["review_state"]),
+        },
+    )
 
 
 @router.get(
