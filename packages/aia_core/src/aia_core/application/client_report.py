@@ -396,6 +396,9 @@ def _client_report(
             **review_stamp_record(data),
         },
         depends_on=list(composed.depends_on),
+        # Composed by code from the run; the person whose download stored it is not its author
+        # (RD8): its approval names the run's starter as the producer instead.
+        by_person=False,
     )
     _store_document(artifacts, run_id, artifact, composed.document, build)
     return artifact, data

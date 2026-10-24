@@ -10,7 +10,7 @@ chunks:
   - "[x] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
   - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
-  - "[ ] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
+  - "[x] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
   - "[ ] RD11. Deep Research context in the client report: accepted findings as cited context in its research-context chapter, labelled external, never respondent evidence (MVP-26)"
@@ -166,6 +166,16 @@ the approval dialog naming it, follows.
 
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.
+
+*RD8, done (`fix/client-report-producer`):* the client report is stored on whoever's read first asks for it
+(`application/client_report.py` `_client_report`), but code composed it from the run, so it is stored with
+`ArtifactRepository.put(by_person=False)`, which records no person as its producer and can name no one else (the
+producer is still never a caller argument). Its approval names the run's starter as its producer through
+`approve(co_producers=)`, as the internal report's worker-written producer is the run's `triggered_by` (now on
+`WorkflowRepository.get_run`): with independent review on, the starter may not approve it and the reviewer who
+downloaded it first may. A draft stored before this keeps its downloader as producer until the run's sources change.
+Test: `test_research_api.py` `test_the_client_report_is_the_runs_work_not_its_first_downloaders` (fails before: the
+starter's approval went through and the downloader's was refused). No run reaches a client report without a starter: the one writer of a run row records `triggered_by=scope.actor_id` (`workflow_repository.py:630 @ ee20550f`), and every scope refuses an empty `actor_id` (`domain/scope.py:724 @ ee20550f`); the column is nullable only since the first workflow migration (`20260922_e0e14f1b5e3c`), and no row is written without it. Pinned by `test_the_client_report_is_the_runs_work_not_its_first_downloaders`, which reads the run's starter back.
 
 **RD9. The report's assumptions chapter (W3)**  
 Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, the person's accept that set it, and its support: admitted claims by reference, cited Deep Research findings as context labelled external. A status with no accepted decision or no support is not printed as established. Test: a report built from an assumption set to supported without support is refused by the composer.
