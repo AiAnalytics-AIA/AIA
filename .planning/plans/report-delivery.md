@@ -149,7 +149,9 @@ The existing approval writes subject `artifact` (`artifact_repository.py:568`) a
 camera (`object_map_figure.object_map_snapshot`, the signed-off renderer for `aia-sociomap-5`): nothing laid out, fitted
 or computed again, the same map and view the same bytes. It is stored as `research_map_snapshot` (PNG) on the run's
 design project, once per map SHA-256, battery, method, view (`top`, `3d`) and renderer (`aia-map-snapshot-1`), with
-`camera: null` (no person chose one) and `by_person=False`. Its status is the Sociomap register's for the map's method,
+`camera: null` (no person chose one) and `by_person=False`. Two first asks of the same map and view store one: the
+second waits on the run's row (`WorkflowRepository.lock_run`) and finds the first's (`test_two_first_asks_of_one_snapshot_store_one`,
+PostgreSQL; it fails without the lock). Its status is the Sociomap register's for the map's method,
 read at every read and never stored (`CLIENT_FACING` or `INTERNAL_ONLY`, in the download's name as `klient` /
 `interni`). Routes: `POST …/research/runs/{id}/map-snapshots` `{battery_id, method, view}` (201 drawn, 200 stored;
 409 `map_snapshot_refused`: `no_map`, `no_battery`, `no_method`, `view_unavailable`, `map_invalid`; EXPORT_DELIVERABLE),
@@ -163,6 +165,10 @@ ledger's `map_snapshot` subject is left as it is (the PM, 2026-10-24: `domain/ap
 `test_one_view_is_drawn_as_the_report_draws_it_and_an_unshowable_view_is_none`. RD4b, the screen's camera
 (`{yaw, elevation, zoom, relief}`) through the Sociomap screen's camera-parameterised figure function and its snapshot
 button moved onto these routes, follows once that function exists.
+
+*Finding (RD4a review):* the client report's store-on-first-read (`application/client_report.py` `_client_report`)
+looks up and stores without a lock, as snapshots did: two first reads of the same sources can store two drafts, and an
+approval of the first is then not the one read next. The snapshot's fix (lock the run first) applies; not changed here.
 
 *Finding (RD4a, for LO16):* the ledger's `map_snapshot` subject has no writer; RD4 approves snapshots as artifacts
 (subject `artifact`); LO16 to decide whether to drop it (`domain/approval_ledger.py:58 @ 156d339c`).

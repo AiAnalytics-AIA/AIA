@@ -36,6 +36,7 @@ from aia_core.domain.sociomap.models import ArtifactIntegrityError
 from aia_core.domain.sociomap_register import MethodologyStatus, recorded_statuses
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactStatus
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 MAP_SNAPSHOT_ARTIFACT_TYPE: Final = "research_map_snapshot"
 MAP_SNAPSHOT_MEDIA_TYPE: Final = "image/png"
@@ -119,6 +120,9 @@ def map_snapshot(
         raise SnapshotRefused("map_invalid", "uložená mapa neprošla kontrolou integrity") from exc
     if found is None:
         raise SnapshotRefused("no_method", f"sada {battery_id} nemá mapu metodou {method}")
+    # Two first asks of the same map and view (a double click) draw and store one snapshot:
+    # the second waits on the run's row and finds the first's (artifacts have no unique key).
+    WorkflowRepository(session, scope).lock_run(run_id)
     key = fingerprint(
         {
             "map": stored.sha256,

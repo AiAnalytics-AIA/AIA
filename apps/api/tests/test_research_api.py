@@ -3529,3 +3529,109 @@ def test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal() -> N
     body["methods"][0]["spec_fingerprint"] = "0" * 64
     assert _status(body, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
     assert _status({}, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    # A stored methodology edit is another method, whatever its base: never the register's.
+    edited = _fictional_map()
+    edited["methods"][0]["formulas"] = {"relation": "fiktivní"}
+    assert _status(edited, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+
+
+def test_a_map_the_register_does_not_approve_is_internal_through_every_route_and_its_approval(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """The snapshot's status is the register's for the map's method, read at every read: a
+    method at a specification the register never approved is INTERNAL_ONLY when drawn, read
+    and downloaded, and approving the snapshot does not make it the client's."""
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    body = _fictional_map()
+    body["methods"][0]["spec_fingerprint"] = "0" * 64
+    _store_map(app, world, run_id, body)
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    drawn = researcher.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    )
+    assert drawn.status_code == 201 and drawn.json()["status"] == "INTERNAL_ONLY"
+    one = f"{url}/{drawn.json()['artifact_id']}"
+    assert researcher.get(one).json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-koncept.png"')
+    approved = outsider.post(f"{one}/approve", json={})
+    assert approved.status_code == 200 and approved.json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-schvaleno.png"')
+
+
+def test_two_first_asks_of_one_snapshot_store_one(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A double click: the second ask waits on the run's lock and answers the first's
+    snapshot, never a second one under the same key. PostgreSQL only: the guard is a row lock,
+    which SQLite does not take (it serialises writers instead)."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    first_in, second_stored = threading.Event(), threading.Event()
+    real = ArtifactRepository.put
+
+    def held(self: ArtifactRepository, **kw: Any) -> Any:
+        stored = real(self, **kw)
+        if kw.get("artifact_type") != "research_map_snapshot":
+            return stored
+        if not first_in.is_set():
+            # The first ask: its snapshot stored, not yet committed. Held until the second
+            # has stored one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_stored.wait(10)
+        else:
+            second_stored.set()
+        return stored
+
+    monkeypatch.setattr(ArtifactRepository, "put", held)
+    factory = create_session_factory(app.state.engine)
+    ids: list[str] = []
+    errors: list[BaseException] = []
+
+    def ask() -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users["researcher"], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                found, _created = map_snapshots.map_snapshot(
+                    own,
+                    scope,
+                    app.state.artifact_store,
+                    run_id=run_id,
+                    battery_id="fictional",
+                    method="aia-sociomap-3",
+                    view="top",
+                )
+                own.commit()
+                ids.append(found.artifact.artifact_id)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=ask)
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=ask)
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert len(ids) == 2 and ids[0] == ids[1]
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalar(
+            select(func.count())
+            .select_from(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_type == "research_map_snapshot")
+        )
+    assert stored == 1
