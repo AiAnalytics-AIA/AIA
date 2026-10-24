@@ -4239,7 +4239,6 @@ def approve_map_snapshot_route(
 ) -> dict[str, Any]:
     """One ledger shape: subject ``artifact``, as a report's. The run's starter is the
     snapshot's producer, so with independent review on they may not approve it."""
-    _found_snapshot(run_id, artifact_id, scope, session, store)
     try:
         approved = approve_map_snapshot(
             session, scope, store, run_id=run_id, artifact_id=artifact_id, note=body.note
@@ -4254,4 +4253,10 @@ def approve_map_snapshot_route(
         ) from exc
     except ScopeDenied as exc:
         raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except (SnapshotRefused, ArtifactNotFound) as exc:
+        raise _not_found("map_snapshot") from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
     return _snapshot_body(run_id, approved, scope, session, store)

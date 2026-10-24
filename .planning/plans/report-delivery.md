@@ -170,6 +170,9 @@ button moved onto these routes, follows once that function exists.
 *Finding (RD4a review):* the client report's store-on-first-read (`application/client_report.py` `_client_report`)
 looks up and stores without a lock, as snapshots did: two first reads of the same sources can store two drafts, and an
 approval of the first is then not the one read next. The snapshot's fix (lock the run first) applies; not changed here.
+`report_approval.approve_report` reads a report's review and approves it without a lock too, so two approvals at once
+record two decisions; a snapshot's approval locks the run first (`test_two_approvals_of_one_snapshot_at_once_record_one_decision`,
+PostgreSQL), and the same fix applies there.
 
 *Finding (RD4a, for LO16):* the ledger's `map_snapshot` subject has no writer; RD4 approves snapshots as artifacts
 (subject `artifact`); LO16 to decide whether to drop it (`domain/approval_ledger.py:58 @ 156d339c`).

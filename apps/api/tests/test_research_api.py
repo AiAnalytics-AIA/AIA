@@ -3690,3 +3690,71 @@ def test_a_run_that_reuses_another_runs_map_gets_a_snapshot_of_its_own(
         assert outsider.post(f"{one}/approve", json={}).status_code == 200
         ids.append(drawn.json()["artifact_id"])
     assert ids[0] != ids[1]
+
+
+def test_two_approvals_of_one_snapshot_at_once_record_one_decision(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Approve once: the second approval waits on the run's lock, then reads the snapshot
+    approved and records nothing. PostgreSQL only, as the store race above."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    snapshot = researcher.post(
+        f"{_runs(world)}/{run_id}/map-snapshots",
+        json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"},
+    ).json()["artifact_id"]
+    first_in, second_in = threading.Event(), threading.Event()
+    real = ArtifactRepository.approve
+
+    def held(self: ArtifactRepository, artifact_id: str, **kw: Any) -> Any:
+        approved = real(self, artifact_id, **kw)
+        if not first_in.is_set():
+            # The first approval: recorded, not yet committed. Held until the second has
+            # recorded one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_in.wait(10)
+        else:
+            second_in.set()
+        return approved
+
+    monkeypatch.setattr(ArtifactRepository, "approve", held)
+    factory = create_session_factory(app.state.engine)
+    errors: list[BaseException] = []
+
+    def approve(user: str) -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users[user], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                map_snapshots.approve_map_snapshot(
+                    own, scope, app.state.artifact_store, run_id=run_id, artifact_id=snapshot
+                )
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=approve, args=("outsider",))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=approve, args=("lead",))
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    with create_session_factory(app.state.engine)() as session:
+        decisions = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == snapshot)
+        )
+    assert decisions == 1

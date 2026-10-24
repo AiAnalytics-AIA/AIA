@@ -205,7 +205,12 @@ def approve_map_snapshot(
     note: str = "",
 ) -> MapSnapshot:
     """A person approves a stored snapshot of the run's map, once (approving again changes
-    nothing). The run's starter is its producer: with independent review on, they may not."""
+    nothing). The run's starter is its producer: with independent review on, they may not.
+
+    The run's row is locked before the snapshot's review is read, so two approvals at once
+    record one decision: the second waits, then reads it approved. The caller reads nothing of
+    the snapshot before this, which would leave a stale review in the session."""
+    WorkflowRepository(session, scope).lock_run(run_id)
     found = stored_map_snapshot(session, scope, store, run_id=run_id, artifact_id=artifact_id)
     repo = research_artifacts(session, scope, store)
     if found.artifact.is_approved:
