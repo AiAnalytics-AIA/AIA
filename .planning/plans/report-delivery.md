@@ -152,7 +152,7 @@ producer is still never a caller argument). Its approval names the run's starter
 `WorkflowRepository.get_run`): with independent review on, the starter may not approve it and the reviewer who
 downloaded it first may. A draft stored before this keeps its downloader as producer until the run's sources change.
 Test: `test_research_api.py` `test_the_client_report_is_the_runs_work_not_its_first_downloaders` (fails before: the
-starter's approval went through and the downloader's was refused).
+starter's approval went through and the downloader's was refused). No run reaches a client report without a starter: the one writer of a run row records `triggered_by=scope.actor_id` (`workflow_repository.py:630 @ ee20550f`), and every scope refuses an empty `actor_id` (`domain/scope.py:724 @ ee20550f`); the column is nullable only since the first workflow migration (`20260922_e0e14f1b5e3c`), and no row is written without it. Pinned by `test_the_client_report_is_the_runs_work_not_its_first_downloaders`, which reads the run's starter back.
 
 **RD9. The report's assumptions chapter (W3)**  
 Each assumption of `assumptions-and-open-answer-coding#AOC1` with its status, the person's accept that set it, and its support: admitted claims by reference, cited Deep Research findings as context labelled external. A status with no accepted decision or no support is not printed as established. Test: a report built from an assumption set to supported without support is refused by the composer.

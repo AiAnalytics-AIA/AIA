@@ -1449,6 +1449,14 @@ def test_the_client_report_is_the_runs_work_not_its_first_downloaders(
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
+    # Every run names its starter: no run reaches a client report without a producer.
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = WorkflowRepository(session, scope).get_run(run_id)
+    assert run["triggered_by"] == world.users["researcher"]
     monkeypatch.setattr(
         client_report, "compose_client_report", _composing(_client_report_document())
     )
