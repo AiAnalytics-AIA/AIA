@@ -6,7 +6,8 @@ This module decides only *which* artifacts are a run's reports: the internal rep
 REPORT step stored, the report with literature or the client report stored for it, each
 found through the Study's run and checked to name that run. Approval is a person's sign-off
 on the stored document; what the client report may contain was decided when it was composed, and
-the client deliverable's gate (RD0) is read before the client report's approval.
+the client deliverable's checks (RD0) are read at the client report's approval and recorded
+with it, as warnings, never a refusal.
 
 Approving a version (research-integrity-report D2) also freezes it -- it can no longer be
 deleted or superseded in place -- and, for a report the worker renders whose approved export is
@@ -27,7 +28,7 @@ from typing import Final
 
 from sqlalchemy.orm import Session
 
-from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, require_client_gate
+from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, client_gate_findings
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.application.report_editor_saves import coverage
@@ -133,10 +134,14 @@ def approve_report(
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
         return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
-    if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
-        # The client deliverable's gate (RD0, MVPQ-09): it blocks, never a flag a reviewer
-        # approves past.
-        require_client_gate(artifacts, artifact)
+    # The client deliverable's checks (RD0, MVPQ-09): warnings since 2026-10-22, never a refusal
+    # (the product owner, "Warnings for all of it"); what they find is recorded with the approval,
+    # so who approved past which warning is on record.
+    warnings = (
+        [f.to_json() for f in client_gate_findings(artifacts, artifact)]
+        if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE
+        else None
+    )
     authors = (
         _line_authors(session, scope, artifacts, artifact)
         if artifact.artifact_type in EDITED_REPORT_KINDS
@@ -144,7 +149,7 @@ def approve_report(
     )
     # Read while it is still a draft: its own PDF, under the draft's key.
     ready = draft_pdf_ready(session, scope, store, docx=artifact, run_id=run_id)
-    artifacts.approve(artifact_id, note=note, co_producers=authors)
+    artifacts.approve(artifact_id, note=note, co_producers=authors, warnings=warnings)
     approved = artifacts.freeze(artifact_id)
     if approval_asks_pdf(scope, approved, pdf_ready=ready):
         request_pdf(

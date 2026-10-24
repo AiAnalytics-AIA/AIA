@@ -25,7 +25,6 @@ from aia_core.application.analysis_results import (
 from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
-    ClientGateRefused,
     ClientReportRefused,
     client_report_document,
     prepare_client_report,
@@ -126,6 +125,7 @@ from aia_core.domain.methodology.pins import response_deviates, run_methods
 from aia_core.domain.persona_topics import dimension_topic
 from aia_core.domain.population import PopulationError, UnknownDatasetVersion
 from aia_core.domain.population.sampling import quota_keys
+from aia_core.domain.report.client_gate import client_gate
 from aia_core.domain.report.document_model import (
     DOCUMENT_MODEL_MEDIA_TYPE,
     DocumentModelInvalid,
@@ -2544,6 +2544,9 @@ def _approval_fields(
             "self_approval_allowed": record.self_approval_allowed,
             "self_approval_source": record.self_approval_source,
             "note": record.note,
+            # What the approver was warned of and approved past (a client report's checks,
+            # RD0); null where nothing was checked.
+            "warnings": list(record.warnings) if record.warnings is not None else None,
         }
     }
 
@@ -3304,6 +3307,9 @@ def _client_document_body(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        # The client deliverable's checks on this version (RD0): warnings the approval dialog
+        # shows and the approval records, never a refusal.
+        "warnings": [f.to_json() for f in client_gate(document)],
         "document": document,
     }
 
@@ -3368,15 +3374,6 @@ def approve_run_report(
         raise _not_found("run") from exc
     except ArtifactNotFound as exc:
         raise _not_found("report") from exc
-    except ClientGateRefused as exc:
-        raise HTTPException(
-            409,
-            detail={
-                "code": "client_gate_refused",
-                "message": "Klientskou zprávu nelze schválit: " + str(exc),
-                "details": {"refusals": [r.to_json() for r in exc.refusals]},
-            },
-        ) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
     except DocumentModelInvalid as exc:

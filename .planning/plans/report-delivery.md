@@ -62,6 +62,19 @@ Doc follow-up.
 The third check, `internal_source_cited`, waits for a chapter that cites a client source (RD11): no client report cites
 one, so it would read nothing. RD0 stays open until it lands.
 
+*RD0's change, built (`feature/client-report-warnings`):* `client_gate` returns findings (`GateFinding`), never
+refusals; `application/client_report.py` `client_gate_findings` replaces `require_client_gate` and `ClientGateRefused`
+(a version with no stored document is the `gate_unrecorded` warning, "nelze ji ověřit"); a ledger off the client surface is the
+`ledger_not_client_facing` warning, and the block checks still run beside it (the PM, 2026-10-24: a warning about the
+whole never hides one about a block). `approve_report` records them
+on the approval's ledger row: `approval_decisions.warnings` (JSON, nullable: NULL where nothing is checked; migration
+`3abba24ff47c`), read back as `ApprovalRecord.warnings` and answered in every approval's `approval.warnings`. `GET
+…/report/client/document` answers the version's `warnings` before the approval; the pane's question names each with its
+block ("Upozornění (n): …; Schválením je berete na vědomí"), and the doc bar says "přes n upozornění" after. 409
+`client_gate_refused` is gone. Tests: `test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record`,
+`test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable`, `report.test.ts` (approvalWords, warningsWords),
+`ReportDocumentView.test.tsx` ("names the client checks' warnings in the question…").
+
 **Findings (RD0).**
 - *The prose-number half of G63 is not built.* A client report's prose is written by code alone and states design and
   method numbers: the scale's ends and the planned n (`application/report_design.py`), the day of the owner's decision

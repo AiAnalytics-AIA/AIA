@@ -113,8 +113,14 @@ export type StoredReportDocument = {
   stamped: boolean;
   /** Who approved the DOCX and when, from its ledger row (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
+  /** The client report's checks on this version (RD0): warnings, never a refusal; absent for an
+   *  internal document, and from an API before them. */
+  warnings?: GateWarning[];
   document: ReportDocumentModel;
 };
+
+/** One thing the client deliverable's checks found (RD0), and the block it is in. */
+export type GateWarning = { code: string; where: string; message: string };
 
 /** One approval as the ledger recorded it. `approver_name` null: a person with no name, or one the store no longer knows. */
 export type Approval = {
@@ -125,6 +131,9 @@ export type Approval = {
   self_approval_allowed: boolean;
   self_approval_source: string;
   note: string;
+  /** What the approver was warned of and approved past (a client report's checks, RD0); null
+   *  where nothing was checked, absent from an API before them. */
+  warnings?: GateWarning[] | null;
 };
 
 /** A stored document of this contract, or null: one of any other is not read. */
@@ -217,7 +226,29 @@ export function approvalWords(approval: Approval | null | undefined, approvedOn:
   if (!approval) return null;
   const day = approvedOn ? czechDate(approvedOn) : "neznámého dne";
   const said = approval.by_you ? `schválili jste ${day}` : `schválil(a) ${approval.approver_name ?? "člen bez jména"} ${day}`;
-  return approval.self_approved ? `${said} · vlastní práce` : said;
+  const warned = approval.warnings?.length ? ` přes ${approval.warnings.length} ${czechCount(approval.warnings.length, "upozornění", "upozornění", "upozornění")}` : "";
+  return approval.self_approved ? `${said}${warned} · vlastní práce` : `${said}${warned}`;
+}
+
+const czechCount = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n < 5 ? few : many);
+
+/** The two locators a warning names for the whole document, in words. */
+const WHOLE: Record<string, string> = { report: "celá zpráva", evidence: "čísla zprávy" };
+
+/** Where a warning is, in words: the whole document, or the section its block is in (by its heading
+ *  in `document`), else the block by its id. */
+function whereWords(where: string, document: ReportDocumentModel | undefined): string {
+  if (WHOLE[where]) return WHOLE[where];
+  const section = document?.sections.find((s) => s.blocks.some((b) => b.id === where));
+  return section ? `oddíl „${section.title}“` : `blok ${where}`;
+}
+
+/** The client report's warnings as its approval question says them (RD0): each with where it is,
+ *  in words; null when there are none, or none were read (an older API), never "none found". */
+export function warningsWords(warnings: GateWarning[] | undefined, document?: ReportDocumentModel): string | null {
+  if (!warnings?.length) return null;
+  const listed = warnings.map((w) => `${w.message} (${whereWords(w.where, document)})`).join("; ");
+  return `Upozornění (${warnings.length}): ${listed}. Schválením je berete na vědomí; zaznamenají se se schválením.`;
 }
 
 /** The review the doc bar names: the DOCX's, since the DOCX is what a person approves. The server

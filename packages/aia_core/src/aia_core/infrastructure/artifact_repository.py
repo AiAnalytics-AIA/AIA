@@ -146,6 +146,9 @@ class ApprovalRecord:
     self_approval_allowed: bool
     self_approval_source: str
     note: str
+    #: The warnings the person approved past (a client report's checks, RD0); ``None`` where
+    #: nothing was checked, ``()`` where the checks found nothing.
+    warnings: tuple[dict[str, str], ...] | None = None
 
 
 def _to_domain(row: ProjectArtifactRow) -> Artifact:
@@ -555,7 +558,12 @@ class ArtifactRepository:
         return len(rows)
 
     def approve(
-        self, artifact_id: str, *, note: str = "", co_producers: Collection[str] = ()
+        self,
+        artifact_id: str,
+        *,
+        note: str = "",
+        co_producers: Collection[str] = (),
+        warnings: Sequence[dict[str, str]] | None = None,
     ) -> Artifact:
         """Record human sign-off on an artifact.
 
@@ -580,7 +588,8 @@ class ArtifactRepository:
 
         The decision, the policy and its source are appended to
         ``approval_decisions``, so a sign-off remains reconstructible after the
-        configuration changes.
+        configuration changes. ``warnings``: what the person was warned of and approved past
+        (a client report's checks, RD0), kept on the same row; ``None`` where nothing was checked.
         """
         self._scope.require(Permission.SIGN_OFF_DELIVERABLE)
         row = self._row(artifact_id)
@@ -608,6 +617,7 @@ class ArtifactRepository:
                 artifact_type=row.artifact_type,
                 decision="APPROVED",
                 comment=note,
+                warnings=list(warnings) if warnings is not None else None,
                 request_id=self._scope.request_id,
                 **independence.audit_fields(),
             )
@@ -654,6 +664,7 @@ class ArtifactRepository:
             self_approval_allowed=decision.self_approval_allowed,
             self_approval_source=decision.self_approval_source,
             note=decision.comment,
+            warnings=tuple(decision.warnings) if decision.warnings is not None else None,
         )
 
     def freeze(self, artifact_id: str) -> Artifact:
