@@ -171,11 +171,31 @@ export function savedWords(v: Pick<EditorVersionRead, "koncept" | "saved_at" | "
 const clip = (text: string | null, max = 80): string =>
   text === null ? "?" : text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 
+/** Both sides of a change as a line shows them: where either is long, each is cut to the stretch
+ *  where the two differ, with `context` characters around it, so the difference is never what "…"
+ *  hides. */
+function clipPair(was: string | null, now: string | null, max = 80, context = 24): [string, string] {
+  if (was === null || now === null || (was.length <= max && now.length <= max)) return [clip(was), clip(now)];
+  let head = 0;
+  while (head < was.length && head < now.length && was[head] === now[head]) head++;
+  let tail = 0;
+  while (tail < was.length - head && tail < now.length - head && was[was.length - 1 - tail] === now[now.length - 1 - tail]) tail++;
+  const around = (text: string) => {
+    const from = Math.max(0, head - context);
+    const to = Math.min(text.length, text.length - tail + context);
+    return `${from > 0 ? "…" : ""}${clip(text.slice(from, to), max)}${to < text.length ? "…" : ""}`;
+  };
+  return [around(was), around(now)];
+}
+
 /** One change in words: what code wrote and what the person left there. */
 export function changeWords(c: SavedChange): string {
   const of = c.tag ? `Číslo ${c.tag}` : "Číslo";
   switch (c.kind) {
-    case "changed": return `${of}: ${clip(c.was)} → ${clip(c.now)}`;
+    case "changed": {
+      const [was, now] = clipPair(c.was, c.now);
+      return `${of}: ${was} → ${now}`;
+    }
     case "removed": return `${of} odstraněno (bylo ${clip(c.was)})`;
     case "added": return `${of} přidáno: ${clip(c.now)}`;
     case "typed": return `Číslo napsané ručně: ${clip(c.now)}${c.paragraph ? ` (v odstavci „${clip(c.paragraph)}“)` : ""}`;

@@ -82,8 +82,19 @@ describe("a saved version in words", () => {
   it("ends a long span's text in an ellipsis, never dropping that it changed", () => {
     const long = "Sledovaná sada — varianty — 4 položky hodnocené otázkou „Jak vás oslovuje …?“ na škále 1 až 10.";
     const said = changeWords(change({ tag: "design:a1", was: long, now: `91,5 % ${long}` }));
-    expect(said).toMatch(/^Číslo design:a1: Sledovaná sada — .{20,}… → 91,5 % Sledovaná sada .{20,}…$/);
+    // The difference is at the start: each side shows it with its context, the rest cut.
+    expect(said).toMatch(/^Číslo design:a1: Sledovaná sada — .{5,}… → 91,5 % Sledovaná sada.{5,}…$/);
     expect(said.length).toBeLessThan(190);
+  });
+
+  it("keeps the difference in view when it lies past the cut", () => {
+    const long = "Sledovaná sada — varianty — 4 položky hodnocené otázkou „Jak vás oslovuje …?“ na škále 1 až 10.";
+    const said = changeWords(change({ tag: "design:a1", was: long, now: long.replace("1 až 10.", "1 až 100.") }));
+    const [was, now] = said.replace("Číslo design:a1: ", "").split(" → ");
+    expect(was).not.toBe(now);
+    expect(was).toMatch(/1 až 10\.$/);
+    expect(now).toMatch(/1 až 100\.$/);
+    expect(was.startsWith("…")).toBe(true);
   });
 
   it("counts Upraveno ručně, says why nothing compared, and nothing for koncept 1", () => {

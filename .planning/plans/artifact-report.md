@@ -590,7 +590,8 @@ koncept; that koncept's Upraveno ručně naming the number; a save while the que
 started while the question is open approving nothing until its save is stored (the PM's ask on #877); the newest
 approved with `newest_of_line` and downloaded from the report card; nothing paid. It runs again on the same
 workbench. `research_journey.mjs` takes the editor's open as a known write. Found while building it: a locked span's
-text (a design span is a paragraph) made a change line unreadable; `changeWords` ends a long text in "…".
+text (a design span is a paragraph) made a change line unreadable; `changeWords` cuts a long pair around where the two
+differ, so "…" never hides the difference (Codex on #878).
 
 Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) and RPT8f (the server's edit sequence) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
