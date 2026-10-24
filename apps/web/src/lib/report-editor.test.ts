@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { ApiError } from "./api";
 import {
-  apiScriptUrl, changesListed, changeWords, editedApprovalQuestion, editedWords, editorMode, type EditorVersionRead, holdsEdit,
+  documentKeyOf, newPageId, unsavedWords, UNSTORED,
+  apiScriptUrl, changesListed, changeWords, editedApprovalQuestion, editedWords, editorMode, type EditorVersionRead,
   openFailure, problemWords, type SavedChange, savedWords,
 } from "./report-editor";
 
@@ -117,36 +118,24 @@ describe("a saved version in words", () => {
   });
 });
 
-describe("whether a stored version holds an edit", () => {
-  const at = (iso: string) => Date.parse(iso);
-  const version = (content_at: string | null, server_now = "2026-10-24T00:30:00.000Z") =>
-    ({ content_at, server_now });
-
-  it("holds an edit its last change is no earlier than, on the server's clock", () => {
-    // The browser runs 10 s behind the server: an edit at its 00:29:45 is the server's 00:29:55.
-    const sent = at("2026-10-24T00:29:50.000Z");
-    expect(holdsEdit(version("2026-10-24T00:29:56.000Z"), at("2026-10-24T00:29:45.000Z"), sent)).toBe(true);
-    expect(holdsEdit(version("2026-10-24T00:29:50.000Z"), at("2026-10-24T00:29:45.000Z"), sent)).toBe(false);
+describe("the edit sequence (RPT8f)", () => {
+  it("gives a page an id within the server's grammar, a new one each time", () => {
+    const a = newPageId();
+    expect(a).toMatch(/^[0-9A-Za-z_-]{8,64}$/);
+    expect(newPageId()).not.toBe(a);
   });
 
-  it("never takes a slow answer for clock skew: a snapshot from before the edit holds nothing", () => {
-    // Clocks agree. Snapshot at 00:00:00; the edit and the request at 00:00:10, the server answering
-    // then; the answer arriving at 00:00:25. Placed by its arrival, the edit would read as 00:29:55.
-    const snapshot = version("2026-10-24T00:00:00.000Z", "2026-10-24T00:00:10.000Z");
-    expect(holdsEdit(snapshot, at("2026-10-24T00:00:10.000Z"), at("2026-10-24T00:00:10.000Z"))).toBe(false);
+  it("reads the session's key from the signed config, or none", () => {
+    expect(documentKeyOf({ document: { key: "ART-1.aa.1" } })).toBe("ART-1.aa.1");
+    expect(documentKeyOf({ document: {} })).toBeNull();
+    expect(documentKeyOf({})).toBeNull();
   });
 
-  it("allows the second the Document Server reads its time to, no more", () => {
-    const now = at("2026-10-24T00:30:00.000Z");
-    expect(holdsEdit(version("2026-10-24T00:30:00.000Z"), now + 900, now)).toBe(true);
-    expect(holdsEdit(version("2026-10-24T00:30:00.000Z"), now + 1_500, now)).toBe(false);
-  });
-
-  it("holds nothing without the Document Server's time, a time that does not parse, or no server time", () => {
-    const now = at("2026-10-24T00:30:00.000Z");
-    // Stored a second after the edit, yet it says nothing of what it holds: a snapshot taken before.
-    expect(holdsEdit(version(null), at("2026-10-24T00:29:58.000Z"), now)).toBe(false);
-    expect(holdsEdit(version("včera"), now - 60_000, now)).toBe(false);
-    expect(holdsEdit({ content_at: "2026-10-24T00:30:00.000Z" }, now - 60_000, now)).toBe(false);
+  it("says why the server held an approval, and nothing for another refusal", () => {
+    const held = (reason: string) => new ApiError(409, "report_edits_unsaved", "…", null, { reason });
+    expect(unsavedWords(held("edit_not_saved"))).toBe(`${UNSTORED} Neuloží-li editor koncept sám, uložte ho v editoru (Ctrl+S).`);
+    expect(unsavedWords(held("edit_not_received"))).toMatch(/nedorazila do AIA/);
+    expect(unsavedWords(new ApiError(409, "report_version_stale", "…", null, {}))).toBeNull();
+    expect(unsavedWords(new Error("x"))).toBeNull();
   });
 });

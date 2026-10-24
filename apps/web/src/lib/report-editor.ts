@@ -76,6 +76,36 @@ export function openFailure(error: unknown): OpenFailure {
 }
 
 /** The editor did not come up: its script did not load, or it did not answer in time. */
+/** The edit start a page last made in an editing session (RPT8f): its session's key, the page's own
+ *  id and its count from 1. The page reports each start to AIA; an approval names the last one, and
+ *  the server refuses it (409 `report_edits_unsaved`) until a stored version holds it. */
+export type SeenEdit = { document_key: string; page: string; seq: number };
+
+/** This page's id for its edit reports: random, within the server's `[0-9A-Za-z_-]{8,64}`. */
+export function newPageId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return `p${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** The document key a signed config opens, or null when it names none. */
+export function documentKeyOf(config: Record<string, unknown>): string | null {
+  const document = config.document;
+  const key = document && typeof document === "object" ? (document as Record<string, unknown>).key : null;
+  return typeof key === "string" ? key : null;
+}
+
+/** An edit is in no stored version yet: approval waits for the save that holds it. */
+export const UNSTORED = "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.";
+
+/** Why the server held an edited version's approval (RPT8f), in words; null for another refusal. */
+export function unsavedWords(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.code !== "report_edits_unsaved") return null;
+  return error.details.reason === "edit_not_received"
+    ? "Poslední úprava z editoru ještě nedorazila do AIA; schvalte znovu za chvíli."
+    : `${UNSTORED} Neuloží-li editor koncept sám, uložte ho v editoru (Ctrl+S).`;
+}
+
 export const UNREACHABLE = "Editor zprávy neodpovídá; zobrazuje se koncept jen ke čtení.";
 
 const PROBLEMS: Record<string, string> = {
@@ -127,29 +157,11 @@ export type EditorVersionRead = {
   content_at?: string | null;
   /** The server's time when it answered: the clock `content_at` and `saved_at` are on. */
   server_now?: string;
+  /** The server's verdict (RPT8f): whether this version holds every edit its line's open session
+   *  reported and the asking page's (`seen_*` on the read), by the rule an approval is refused
+   *  under, and why not; absent from an API before it, which holds the approval. */
+  edits?: { saved: boolean; reason: string | null };
 };
-
-/** How far an edit may precede the last change a save holds and still count as held: the
- *  Document Server's time is read to the second, and the two clocks are matched over one request. */
-const HOLD_TOLERANCE_MS = 1_000;
-
-/** Whether `version` holds an edit this person started at `startedAt` (this browser's clock): its
- *  last change, as the Document Server signed it (`content_at`), is no earlier than the edit, both
- *  on the server's clock. Without that time nothing says what the file holds (when AIA stored it is
- *  when the callback came, which a snapshot taken before the edit can reach after it), so it holds
- *  nothing. The server answered `server_now` somewhere between
- *  the request leaving (`sentAt`) and its answer arriving, so the edit is placed as late on the
- *  server's clock as that allows (`server_now - sentAt`): a slow answer holds the approval longer,
- *  never certifies a snapshot from before the edit. A time that does not parse holds nothing. */
-export function holdsEdit(
-  version: Pick<EditorVersionRead, "content_at" | "server_now">, startedAt: number, sentAt: number,
-): boolean {
-  if (!version.server_now) return false;
-  const latest = Date.parse(version.server_now) - sentAt;
-  const held = version.content_at ? Date.parse(version.content_at) : Number.NaN;
-  if (Number.isNaN(held) || Number.isNaN(latest)) return false;
-  return held >= startedAt + latest - HOLD_TOLERANCE_MS;
-}
 
 const stamp = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague",

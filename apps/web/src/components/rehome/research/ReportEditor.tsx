@@ -7,20 +7,31 @@
 // With the editor off (404) the read-only draft is the pane, as before; with a Document Server that
 // fails or does not answer, the read-only draft stays and says so -- never a blank pane.
 
-import { type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { research } from "@/lib/api";
 import {
-  apiScriptUrl, EDIT_FROM_PX, EDITOR_TIMEOUT_MS, type EditorMode, type EditorOpened, editorMode, openFailure,
-  problemWords, UNREACHABLE,
+  apiScriptUrl, documentKeyOf, EDIT_FROM_PX, EDITOR_TIMEOUT_MS, type EditorMode, type EditorOpened, editorMode, newPageId,
+  openFailure, problemWords, type SeenEdit, UNREACHABLE,
 } from "@/lib/report-editor";
 
 /** What the editor shows once it is ready: the line and version opened, when this person last
  *  started an edit (`onDocumentStateChange` with `true`, by this browser's clock; null before any),
  *  and whether an edit is not yet sent to the Document Server (`dirty`). An edit is not a stored
  *  version: `false` only says it reached the Document Server, so the pane asks the API whether a
- *  version stored since holds it (`lib/report-editor.ts` `holdsEdit`). */
-export type EditorShown = { opened: EditorOpened; startedAt: number | null; dirty: boolean };
+ *  version stored since holds it (the version read's `edits`, RPT8f). */
+export type EditorShown = {
+  opened: EditorOpened;
+  startedAt: number | null;
+  dirty: boolean;
+  /** The last edit start this page made, read as the approval leaves (RPT8f): the server holds the
+   *  approval until a stored version holds it; null before any. */
+  seen: () => SeenEdit | null;
+};
+
+/** A report of an edit start that did not reach AIA is sent once more after this long; one that
+ *  still fails holds the approval (`edit_not_received`) until the next edit's report arrives. */
+const REPORT_RETRY_MS = 2_000;
 
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
 export type DocsApi = {
@@ -89,14 +100,16 @@ export type ReportEditorProps = {
   /** Told what the editor shows once it is ready, and null whenever it shows nothing: the doc bar
    *  names that version and approves only it. */
   onShown?: (shown: EditorShown | null) => void;
-  /** Seams for the tests: the open route and the script loader. */
+  /** Seams for the tests: the open route, the edit report and the script loader. */
   open?: typeof research.openReportEditor;
+  report?: typeof research.reportEditorEdit;
   load?: (url: string) => Promise<DocsApi>;
   timeoutMs?: number;
 };
 
 export function ReportEditor({
-  studyId, runId, variant, review, line = null, children, onShown, open = research.openReportEditor, load = loadDocsApi,
+  studyId, runId, variant, review, line = null, children, onShown, open = research.openReportEditor,
+  report = research.reportEditorEdit, load = loadDocsApi,
   timeoutMs = EDITOR_TIMEOUT_MS,
 }: ReportEditorProps) {
   const mode = useMode();
@@ -107,6 +120,12 @@ export function ReportEditor({
   // When this person last started an edit, and whether one is not yet sent: this document only.
   const [edits, setEdits] = useState<{ at: string; startedAt: number | null; dirty: boolean }>({ at, startedAt: null, dirty: false });
   const host = useRef<HTMLDivElement>(null);
+  // This page's edit starts, counted from 1 in each session (RPT8f), and the session on screen: the
+  // approval names that session's last one, never another line's.
+  const page = useRef<string | null>(null);
+  const last = useRef(new Map<string, SeenEdit>());
+  const onScreen = useRef<string | null>(null);
+  const seen = useCallback(() => (onScreen.current ? last.current.get(onScreen.current) ?? null : null), []);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
 
   useEffect(() => {
@@ -127,6 +146,7 @@ export function ReportEditor({
   }, [at, studyId, runId, variant, review, line, mode, open]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
+  useEffect(() => { onScreen.current = opened ? documentKeyOf(opened.opened.config) : null; }, [opened]);
   useEffect(() => {
     const element = host.current;
     if (!opened || !element) return;
@@ -168,6 +188,15 @@ export function ReportEditor({
                 if (!going()) return;
                 const dirty = event?.data === true;
                 const now = Date.now();
+                const key = documentKeyOf(opened.opened.config);
+                // An edit start is reported to AIA as the next of this session (RPT8f).
+                if (dirty && key) {
+                  page.current ??= newPageId();
+                  const edit = { document_key: key, page: page.current, seq: (last.current.get(key)?.seq ?? 0) + 1 };
+                  last.current.set(key, edit);
+                  const send = () => report(studyId, runId, key, { page: edit.page, seq: edit.seq });
+                  send().catch(() => setTimeout(() => { send().catch(() => undefined); }, REPORT_RETRY_MS));
+                }
                 setEdits((was) => ({ at, startedAt: dirty ? now : was.at === at ? was.startedAt : null, dirty }));
               },
               onError: fail,
@@ -185,7 +214,7 @@ export function ReportEditor({
       editor?.destroyEditor?.();
       element.replaceChildren();
     };
-  }, [opened, at, load, placeholder, timeoutMs]);
+  }, [opened, at, load, placeholder, timeoutMs, report, studyId, runId]);
 
   const current = state.at === at ? state : { at, kind: "opening" as const };
   const status = up.at === at ? up : { ready: false, failed: false };
@@ -193,8 +222,8 @@ export function ReportEditor({
   const started = edits.at === at ? edits.startedAt : null;
   const unsent = edits.at === at && edits.dirty;
   useEffect(() => {
-    onShown?.(shownOpened ? { opened: shownOpened, startedAt: started, dirty: unsent } : null);
-  }, [shownOpened, started, unsent, onShown]);
+    onShown?.(shownOpened ? { opened: shownOpened, startedAt: started, dirty: unsent, seen } : null);
+  }, [shownOpened, started, unsent, onShown, seen]);
   if (current.kind === "off") return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (

@@ -69,7 +69,7 @@ await context.route(`${EDITOR_ORIGIN}/**`, (route) =>
     ? route.fulfill({ status: 200, contentType: "application/javascript", body: standin })
     : route.abort());
 const page = await context.newPage();
-const errors = [], writes = [], checks = [], approvals = [];
+const errors = [], writes = [], checks = [], approvals = [], editReports = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 const consoleErrors = [];
 page.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
@@ -77,6 +77,10 @@ page.on("request", (r) => {
   const path = new URL(r.url()).pathname;
   if (!["GET", "HEAD", "OPTIONS"].includes(r.method()) && !path.startsWith("/_next/")) writes.push({ method: r.method(), path });
   if (path.endsWith("/report/approve")) approvals.push(JSON.parse(r.postData() ?? "{}"));
+});
+// Each edit start the page reports (RPT8f), with what the server answered.
+page.on("response", (r) => {
+  if (new URL(r.url()).pathname.endsWith("/edits")) editReports.push({ body: JSON.parse(r.request().postData() ?? "{}"), status: r.status() });
 });
 const check = (name) => checks.push(name);
 
@@ -177,9 +181,8 @@ try {
   await docbar().getByRole("button", { name: `Schválit koncept ${k + 2}` }).click();
   dialog = page.getByRole("dialog");
   await dialog.waitFor({ timeout: 10000 });
-  // A person's edit, past the second the Document Server's time is read to: an edit within it of the last
-  // save counts as held (HOLD_TOLERANCE_MS), and this journey is faster than anyone types.
-  await page.waitForTimeout(1500);
+  // A person's edit comes after the last save: kept apart from it on AIA's clock, as typing would be.
+  await page.waitForTimeout(200);
   await page.evaluate(() => window.__standinEditor.events.onDocumentStateChange({ data: true }));
   await dialog.getByRole("button", { name: `Schválit koncept ${k + 2}` }).click();
   await docbar().getByText("V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.").first().waitFor({ timeout: 10000 });
@@ -196,6 +199,11 @@ try {
   await docbar().getByText(/interně schváleno/).waitFor({ timeout: 30000 });
   assert.equal(approvals.length, 1, "one approval");
   assert.equal(approvals[0].newest_of_line, true, "approved as its line's newest");
+  // RPT8f: every edit start reached AIA, and the approval named the last one the page made.
+  assert(editReports.length > 0 && editReports.every((e) => e.status === 204), `edit reports: ${JSON.stringify(editReports)}`);
+  const lastSeq = Math.max(...editReports.map((e) => e.body.seq));
+  assert.equal(approvals[0].seen_edit?.seq, lastSeq, "the approval names the page's last edit start");
+  assert.equal(approvals[0].seen_edit?.page, editReports.at(-1).body.page, "by the page that made it");
   await page.screenshot({ path: join(out, "1440-approved.png") });
   const card = page.locator("[data-approved-edits]");
   await card.waitFor({ timeout: 30000 });
@@ -204,7 +212,7 @@ try {
     card.getByRole("button", { name: `Stáhnout schválenou úpravu, koncept ${k + 3} (DOCX)` }).click(),
   ]);
   assert.match(download.suggestedFilename(), /schvaleno/, "the file downloaded is the approved version");
-  check("the newest koncept approved as itself (newest_of_line), and the report card downloads it");
+  check("the newest koncept approved as itself (newest_of_line), naming the page's last edit start the server received (RPT8f), and the report card downloads it");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

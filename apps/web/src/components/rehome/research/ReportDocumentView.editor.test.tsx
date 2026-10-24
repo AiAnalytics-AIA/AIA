@@ -121,6 +121,7 @@ const version = (over: Partial<EditorVersionRead> = {}): EditorVersionRead => ({
   saved_at: "2026-10-23T20:10:00+00:00", review_state: "DRAFT_UNAPPROVED", approved_on: null, approval: null,
   changes: { uncomparable: null, changes: [{ kind: "changed", tag: "trust_total", was: "42,5 %", now: "50 %", paragraph: null }] },
   newest_in_line: { version_artifact_id: "ART-edit", koncept: 2 },
+  edits: { saved: true, reason: null },
   ...over,
 });
 const versions = (...list: EditorVersionRead[]) =>
@@ -139,7 +140,7 @@ const shownBar = (c: HTMLElement) => waitFor(() => {
 
 describe("the doc bar while the editor shows the document", () => {
   it("names the version on screen and who saved it, never the composed draft's approval", async () => {
-    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     const { container } = show();
     await waitFor(() => expect(editorBar(container)?.textContent).toContain("Koncept 2, uložen 23. 10. 2026 22:10 · Jana Výzkumná"));
@@ -148,7 +149,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("lists what the version changed under Upraveno ručně", async () => {
-    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     const { container } = show();
     const toggle = await within(container).findByRole("button", { name: "Upraveno ručně: 1 číslo" });
@@ -158,7 +159,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("approves the edited version as itself, its changes named in the question", async () => {
-    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     vi.mocked(research.approveReport).mockResolvedValue({ run_id: "RUN-1", artifact_id: "ART-edit", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-23", stamped: true, approval: null, internal_only: true } as never);
     const heard: unknown[] = [];
@@ -170,13 +171,13 @@ describe("the doc bar while the editor shows the document", () => {
     expect(dialog.textContent).toContain("Schválit interní zprávu, koncept 2 (ART-edit)?");
     expect(dialog.textContent).toContain("Číslo trust_total: 42,5 % → 50 %");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
-    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true, null));
     await waitFor(() => expect(heard).toContainEqual(expect.objectContaining({ artifactId: "ART-edit", kind: "internal" })));
     window.removeEventListener("aia:report-approved", on);
   });
 
   it("asks again when a later save exists, approving nothing", async () => {
-    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     const { container } = show();
     const button = await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" });
@@ -188,7 +189,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("approves koncept 1, the composed draft, through the pane's own question", async () => {
-    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: false };
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: false, seen: () => null };
     versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
     vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false } as never);
     const { container } = show();
@@ -198,36 +199,36 @@ describe("the doc bar while the editor shows the document", () => {
     expect(container.querySelector("[data-editor-edited]")).toBeNull();
     // Approved as its line's newest: the server refuses once a save moved the line on.
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);
-    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx", "", true));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx", "", true, null));
   });
 
   it("approves koncept 1 nothing when an edit starts while its status is read, or while its question is open", async () => {
     const K1 = { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] };
-    editor.shows = { opened: K1, startedAt: null, dirty: false };
+    editor.shows = { opened: K1, startedAt: null, dirty: false, seen: () => null };
     versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
     const READY = { artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false };
     let answer: (value: unknown) => void = () => undefined;
     vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
-    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true })); // typed while the status is read
+    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true, seen: () => null })); // typed while the status is read
     await act(async () => { answer(READY); });
     expect(await screen.findByText(/V editoru jsou úpravy, které AIA ještě neuložila/)).toBeTruthy();
     expect(screen.queryByRole("dialog")).toBeNull();
 
     // The edit stored, then another started while the question is open: the yes approves nothing.
-    act(() => editor.emit({ opened: K1, startedAt: null, dirty: false }));
+    act(() => editor.emit({ opened: K1, startedAt: null, dirty: false, seen: () => null }));
     vi.mocked(research.report).mockResolvedValue(READY as never);
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
     const dialog = await screen.findByRole("dialog");
-    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true }));
+    act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true, seen: () => null }));
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);
     await waitFor(() => expect(screen.getAllByText(/V editoru jsou úpravy, které AIA ještě neuložila/).length).toBeGreaterThan(0));
     expect(research.approveReport).not.toHaveBeenCalled();
   });
 
   it("opens another line of the run when asked", async () => {
-    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Koncept 4 (ze starší složené zprávy)" }));

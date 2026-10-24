@@ -5,7 +5,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, research } from "@/lib/api";
-import type { EditorOpened, EditorVersionRead } from "@/lib/report-editor";
+import type { EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { EditorDocBar } from "./EditorDocBar";
 
 vi.mock("@/lib/api", async () => ({
@@ -28,25 +28,27 @@ const OPENED: EditorOpened = {
   document_server: "https://docs.aia.example.test", config: { token: "signed" }, line_id: "ART-docx", koncept: 2,
   version_artifact_id: "ART-2", problem: null, lines: [],
 };
-/** The line as stored: its newest koncept, and when each koncept's last change was (the server's clock). */
-const line = { newest: 2, contentAt: {} as Record<number, string> };
+/** The line as the server holds it: its newest koncept, and its verdict on each (RPT8f): whether that
+ *  koncept holds every edit reported, unset meaning it does. */
+const line = { newest: 2, saved: {} as Record<number, boolean> };
 const v = (koncept: number, newest = koncept): EditorVersionRead => ({
   version_artifact_id: `ART-${koncept}`, line_id: "ART-docx", koncept, edited_from: "ART-docx", author_names: ["Jana"],
   saved_at: "2026-10-23T20:10:00+00:00", review_state: "DRAFT_UNAPPROVED", approved_on: null, approval: null,
   changes: { uncomparable: null, changes: [{ kind: "changed", tag: "t", was: "1", now: "2", paragraph: null }] },
   newest_in_line: { version_artifact_id: `ART-${newest}`, koncept: newest },
-  content_at: line.contentAt[koncept] ?? null, server_now: new Date().toISOString(),
+  content_at: null, server_now: new Date().toISOString(),
+  edits: (line.saved[koncept] ?? true) ? { saved: true, reason: null } : { saved: false, reason: "edit_not_saved" },
 });
 const stored = () =>
   vi.mocked(research.reportEditorVersion).mockImplementation(async (_s, _r, id) => v(Number(id.slice(4)), line.newest));
-/** A save stored as koncept `k`, its last change `ms` from now. */
-const storeKoncept = (k: number, ms: number) => {
-  line.contentAt[k] = new Date(Date.now() + ms).toISOString();
+/** A save stored as koncept `k`, which the server says holds every edit, or not. */
+const storeKoncept = (k: number, holds: boolean) => {
+  line.saved[k] = holds;
   line.newest = k;
 };
 
-const bar = (startedAt: number | null = null, pollMs = 20, dirty = false) => (
-  <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty }} composedId="ART-docx" documentName="interní zprávu"
+const bar = (startedAt: number | null = null, pollMs = 20, dirty = false, seen: () => SeenEdit | null = () => null) => (
+  <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty, seen }} composedId="ART-docx" documentName="interní zprávu"
     canApprove approveComposed={vi.fn()} onApproved={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
 );
 const approveButton = (koncept: number) => screen.findByRole("button", { name: `Schválit koncept ${koncept}` });
@@ -54,61 +56,57 @@ const isOff = async (koncept: number) => (await approveButton(koncept) as HTMLBu
 
 beforeEach(() => {
   line.newest = 2;
-  line.contentAt = {};
+  line.saved = {};
   stored();
 });
 
 describe("an edit waiting to be stored", () => {
-  it("keeps the approval off until AIA stores a version holding it, whatever the editor says it saved", async () => {
+  /** The person starts an edit: its report reaches AIA, so the server holds the koncept on screen. */
+  const edits = (koncept = line.newest) => { line.saved[koncept] = false; };
+
+  it("keeps the approval off until the server says a stored version holds it, whatever the editor says it saved", async () => {
     const { rerender } = render(bar());
     expect(await isOff(2)).toBe(false);
-    // The person starts an edit; the editor then says it reached it (dirty false). AIA has stored nothing.
-    rerender(bar(Date.now()));
+    edits();
+    rerender(bar(Date.now())); // the editor then says it reached it (dirty false); AIA has stored nothing
     await waitFor(async () => expect(await isOff(2)).toBe(true));
     expect(document.querySelector("[data-editor-unsaved]")).not.toBeNull();
     const reads = vi.mocked(research.reportEditorVersion).mock.calls.length;
     await waitFor(() => expect(vi.mocked(research.reportEditorVersion).mock.calls.length).toBeGreaterThan(reads + 2));
     expect(await isOff(2)).toBe(true);
-    storeKoncept(3, 2_000); // the Document Server's save, its last change after the edit
+    storeKoncept(3, true); // the Document Server's save, which the server says holds the edit
     await waitFor(async () => expect(await isOff(3)).toBe(false));
     expect(document.querySelector("[data-editor-unsaved]")).toBeNull();
   });
 
-  it("is not released by a version saved before the latest edit, which does not hold it", async () => {
+  it("is not released by a version the server says does not hold the edit, and is once its verdict moves on", async () => {
     const { rerender } = render(bar());
     await approveButton(2);
+    edits();
     rerender(bar(Date.now()));
-    storeKoncept(3, -5_000); // a save in flight: an earlier snapshot, stored after the edit started
+    storeKoncept(3, false); // a snapshot from before the edit, stored after it
     expect(await isOff(3)).toBe(true);
     const reads = vi.mocked(research.reportEditorVersion).mock.calls.length;
     await waitFor(() => expect(vi.mocked(research.reportEditorVersion).mock.calls.length).toBeGreaterThan(reads + 2));
     expect(await isOff(3)).toBe(true);
-    storeKoncept(4, 2_000);
-    await waitFor(async () => expect(await isOff(4)).toBe(false));
-  });
-
-  it("is released by a save stored before the first read after the edit, never stuck", async () => {
-    const { rerender } = render(bar());
-    await approveButton(2);
-    storeKoncept(3, 2_000); // stored before the bar reads again
-    rerender(bar(Date.now()));
+    // The clean-report recovery: a later save of the same bytes, after the page's clean report,
+    // and the server says the koncept holds the edit; nothing on the page guesses it.
+    line.saved[3] = true;
     await waitFor(async () => expect(await isOff(3)).toBe(false));
   });
 
-  it("is not released by a save that does not say what it holds, and says a reload starts again", async () => {
-    // Codex on #877: a snapshot taken, an edit made, the snapshot's callback arriving after it with no lastsave.
-    const { rerender } = render(bar());
-    await approveButton(2);
-    rerender(bar(Date.now()));
-    line.newest = 3; // stored now, with no content_at
-    expect(await isOff(3)).toBe(true);
-    expect((await screen.findByText(/Editor u konceptu 3 neuvedl, které úpravy obsahuje/)).textContent).toMatch(/po načtení stránky/);
-    const reads = vi.mocked(research.reportEditorVersion).mock.calls.length;
-    await waitFor(() => expect(vi.mocked(research.reportEditorVersion).mock.calls.length).toBeGreaterThan(reads + 2));
-    expect(await isOff(3)).toBe(true);
-    // Reloaded: no edit started in this editor, so the stored koncept is what it shows.
-    rerender(bar(null));
-    await waitFor(async () => expect(await isOff(3)).toBe(false));
+  it("asks the server about the page's own last edit; a verdict read before it says nothing of it", async () => {
+    let seen: SeenEdit | null = null;
+    const { rerender } = render(bar(null, 60_000, false, () => seen));
+    expect(await isOff(2)).toBe(false);
+    let answer: (value: EditorVersionRead) => void = () => undefined;
+    vi.mocked(research.reportEditorVersion).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
+    seen = { document_key: "KEY.1", page: "p0123456789", seq: 1 };
+    rerender(bar(Date.now(), 60_000, false, () => seen));
+    await waitFor(async () => expect(await isOff(2)).toBe(true)); // no verdict counts edit 1 yet
+    await act(async () => { answer(v(2)); });
+    await waitFor(async () => expect(await isOff(2)).toBe(false));
+    expect(vi.mocked(research.reportEditorVersion)).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", seen);
   });
 
   it("keeps the approval off while the editor holds an edit not yet sent", async () => {
@@ -136,7 +134,7 @@ describe("approving the editor's version", () => {
     fireEvent.click(await approveButton(2));
     const dialog = await screen.findByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
-    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true, null));
   });
 });
 
@@ -152,6 +150,28 @@ describe("the server's last word", () => {
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "Editor mezitím uložil koncept 3; zkontrolujte jeho změny a schvalte znovu.");
     expect(await approveButton(3)).toBeTruthy();
   });
+
+  it("names the page's last edit, read as the approval leaves, and says why the server held it (RPT8f)", async () => {
+    const edit: SeenEdit = { document_key: "KEY.1", page: "p0123456789", seq: 1 };
+    let seen: SeenEdit | null = null;
+    vi.mocked(research.approveReport).mockRejectedValue(
+      new ApiError(409, "report_edits_unsaved", "An edit…", null, { reason: "edit_not_received" }),
+    );
+    const { rerender } = render(bar(null, 60_000, false, () => seen));
+    fireEvent.click(await approveButton(2));
+    const dialog = await screen.findByRole("dialog");
+    // Made after the question opened, and read again with it: the server counts it (here as
+    // saved), and the yes names it, so the server's lock has the last word.
+    seen = edit;
+    rerender(bar(Date.now(), 60_000, false, () => seen));
+    await waitFor(() => expect(research.reportEditorVersion).toHaveBeenLastCalledWith("STU-1", "RUN-1", "ART-2", edit));
+    await waitFor(() => expect(document.querySelector("[data-editor-unsaved]")).toBeNull());
+    await act(async () => { fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" })); });
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", "", true, edit));
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent", "Poslední úprava z editoru ještě nedorazila do AIA; schvalte znovu za chvíli.",
+    );
+  });
 });
 
 describe("an edit started while the yes's read is in flight", () => {
@@ -162,6 +182,7 @@ describe("an edit started while the yes's read is in flight", () => {
     let answer: (value: EditorVersionRead) => void = () => undefined;
     vi.mocked(research.reportEditorVersion).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }));
     await act(async () => { fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" })); });
+    line.saved[2] = false; // its report reached AIA: the server holds koncept 2
     rerender(bar(Date.now(), 60_000)); // typed while the yes's read is out
     await act(async () => { answer(v(2)); });
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.");
@@ -174,6 +195,7 @@ describe("an edit started while the question is open", () => {
     const { rerender } = render(bar(null, 60_000));
     fireEvent.click(await approveButton(2));
     const dialog = await screen.findByRole("dialog");
+    line.saved[2] = false; // its report reached AIA: the server holds koncept 2
     rerender(bar(Date.now(), 60_000));
     await act(async () => { fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" })); });
     expect(await screen.findByRole("alert")).toHaveProperty("textContent", "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.");

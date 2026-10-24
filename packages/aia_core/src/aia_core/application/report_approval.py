@@ -31,9 +31,15 @@ from sqlalchemy.orm import Session
 from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, client_gate_findings
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
+from aia_core.application.report_editor_saves import content_held
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
-from aia_core.domain.report.editor import EDIT_ARTIFACT_TYPES
+from aia_core.domain.report.editor import (
+    EDIT_ARTIFACT_TYPES,
+    SeenEdit,
+    UnsavedEdits,
+    unsaved_edits,
+)
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
@@ -77,6 +83,17 @@ class ReportVersionStale(Exception):
         self.koncept = koncept
 
 
+class ReportEditsUnsaved(Exception):
+    """An edited version asked to be approved as its line's newest does not hold an edit made in
+    the editor (artifact-report RPT8f): the approving page's edit has not reached AIA, or an edit
+    AIA received is later than the version's last change. The server decides, under the line's
+    lock, so no edit made before the approval left is approved without being in the version."""
+
+    def __init__(self, artifact_id: str, reason: UnsavedEdits) -> None:
+        super().__init__(f"{artifact_id} does not hold every edit made ({reason.value})")
+        self.reason = reason
+
+
 def approve_report(
     session: Session,
     scope: StudyContext,
@@ -86,6 +103,7 @@ def approve_report(
     artifact_id: str,
     note: str = "",
     newest_of_line: bool = False,
+    seen_edit: SeenEdit | None = None,
 ) -> Artifact:
     """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
     is ready, ask for its approved PDF. A report already approved records no second decision
@@ -94,7 +112,10 @@ def approve_report(
 
     ``newest_of_line``: approve a version of a report-editor line only while it is that line's
     newest (the editor shows the newest), under the line's lock a save also takes, so a save
-    and this approval take their turn; :class:`ReportVersionStale` otherwise."""
+    and this approval take their turn; :class:`ReportVersionStale` otherwise. Under the same lock,
+    and for every edited version whatever the caller asks (RPT8f: the server decides),
+    :class:`ReportEditsUnsaved` while an edit of the line's open session, or ``seen_edit`` (the
+    approving page's last edit start), is not held by it (``unsaved_edits``)."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
     ResearchRuns(session, scope).get(run_id)
     artifacts = research_artifacts(session, scope, store)
@@ -105,8 +126,10 @@ def approve_report(
         or artifact.metadata.get("run_id") != run_id
     ):
         raise ReportNotApprovable(artifact_id)
-    if newest_of_line:
-        _require_newest(session, scope, artifact_id)
+    if newest_of_line or (
+        artifact.artifact_type in EDITED_REPORT_KINDS and not artifact.is_approved
+    ):
+        _check_line(session, scope, artifact, seen_edit, newest=newest_of_line)
     if artifact.is_approved:
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
@@ -140,15 +163,29 @@ def approve_report(
     return approved
 
 
-def _require_newest(session: Session, scope: StudyContext, artifact_id: str) -> None:
+def _check_line(
+    session: Session,
+    scope: StudyContext,
+    artifact: Artifact,
+    seen: SeenEdit | None,
+    *,
+    newest: bool,
+) -> None:
+    """Under the line's lock: with ``newest``, the version is its line's newest, else
+    :class:`ReportVersionStale`; and it holds every edit the line's open session reported, else
+    :class:`ReportEditsUnsaved`."""
     repo = ReportEditorRepository(session, scope)
-    version = repo.version(artifact_id)
+    version = repo.version(artifact.artifact_id)
     if version is None:
-        raise ReportNotApprovable(artifact_id)
+        raise ReportNotApprovable(artifact.artifact_id)
     repo.lock_line(version.line_id)  # as store_save does, before the versions are read
-    newest = repo.versions(version.line_id)[-1]
-    if newest.artifact_id != artifact_id:
-        raise ReportVersionStale(artifact_id, newest.artifact_id, newest.koncept)
+    last = repo.versions(version.line_id)[-1]
+    if newest and last.artifact_id != artifact.artifact_id:
+        raise ReportVersionStale(artifact.artifact_id, last.artifact_id, last.koncept)
+    marks = repo.edit_marks(version.line_id, also=seen.document_key if seen else None)
+    reason = unsaved_edits(content_held(version, artifact), marks, seen)
+    if reason is not None:
+        raise ReportEditsUnsaved(artifact.artifact_id, reason)
 
 
 def _line_authors(

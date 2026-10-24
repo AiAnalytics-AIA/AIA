@@ -25,7 +25,13 @@ from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import research_artifacts
 from aia_core.domain.deep_research.documents import DocumentRefused
-from aia_core.domain.report.editor import CHANGES_ARTIFACT_TYPE, EDIT_ARTIFACT_TYPES
+from aia_core.domain.report.editor import (
+    CHANGES_ARTIFACT_TYPE,
+    EDIT_ARTIFACT_TYPES,
+    SeenEdit,
+    UnsavedEdits,
+    unsaved_edits,
+)
 from aia_core.domain.report.saved_changes import (
     SavedChanges,
     changes_payload,
@@ -48,7 +54,9 @@ __all__ = [
     "StoredSave",
     "VersionNotFound",
     "approved_versions",
+    "content_held",
     "edited_version",
+    "edits_verdict",
     "store_save",
     "version_changes",
 ]
@@ -151,6 +159,9 @@ def _store(
     sha256 = hashlib.sha256(data).hexdigest()
     same = next((v for v in versions if v.sha256 == sha256), None)
     if same is not None:
+        # The newest's bytes again, saved later: it holds what this save holds too (RPT8f).
+        if same is versions[-1] and content_at is not None:
+            repo.cover(same.artifact_id, content_at)
         return StoredSave(same, created=False)
     first, previous = versions[0], versions[-1]
     artifacts = research_artifacts(session, scope, store)
@@ -218,8 +229,33 @@ def _store(
         saved_at=now,
         authors=authors,
         changes_artifact_id=changed.artifact_id,
+        content_at=content_at,
     )
     return StoredSave(added, created=True)
+
+
+def content_held(version: EditorVersion, artifact: Artifact) -> datetime | None:
+    """The last change ``version`` (``artifact``) is known to hold (RPT8f): the latest ``lastsave``
+    of a save of its bytes, else its own save's as stored before RPT8f; ``None`` for koncept 1 and
+    a save that said none: unknown, never held."""
+    stamp = artifact.metadata.get("content_at")
+    stored = datetime.fromisoformat(stamp) if isinstance(stamp, str) else None
+    return version.content_at or stored
+
+
+def edits_verdict(
+    session: Session,
+    scope: StudyContext,
+    version: EditorVersion,
+    artifact: Artifact,
+    seen: SeenEdit | None = None,
+) -> UnsavedEdits | None:
+    """Why ``version`` does not hold every edit its line's open session reported and the one
+    the asking page saw (RPT8f), by the rule the approval refuses under; ``None`` when it does.
+    The server's verdict, which the pane's hold follows."""
+    repo = ReportEditorRepository(session, scope)
+    marks = repo.edit_marks(version.line_id, also=seen.document_key if seen else None)
+    return unsaved_edits(content_held(version, artifact), marks, seen)
 
 
 def edited_version(

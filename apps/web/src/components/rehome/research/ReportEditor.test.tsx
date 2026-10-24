@@ -79,11 +79,11 @@ describe("the draft in the report editor", () => {
   it("tells the pane what it shows once ready, when this person last started an edit, and whether one is unsent", async () => {
     const { api, made } = docsApi();
     const onShown = vi.fn();
-    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown });
+    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown, report: vi.fn().mockResolvedValue(undefined) });
     await vi.waitFor(() => expect(made).toHaveLength(1));
     expect(onShown).toHaveBeenLastCalledWith(null);
     act(() => events(made[0].config).onAppReady());
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: null, dirty: false });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: null, dirty: false, seen: expect.any(Function) });
     const before = Date.now();
     act(() => events(made[0].config).onDocumentStateChange({ data: true }));
     const first = onShown.mock.lastCall?.[0] as { startedAt: number; dirty: boolean };
@@ -91,9 +91,61 @@ describe("the draft in the report editor", () => {
     expect(first.startedAt).toBeGreaterThanOrEqual(before);
     // false: the edit reached the Document Server, not AIA; the start stays, only "unsent" clears.
     act(() => events(made[0].config).onDocumentStateChange({ data: false }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: first.startedAt, dirty: false });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: first.startedAt, dirty: false, seen: expect.any(Function) });
     act(() => events(made[0].config).onError());
     expect(onShown).toHaveBeenLastCalledWith(null);
+  });
+
+  it("names only the edit of the session on screen: another line opened names none of the first's (RPT8f)", async () => {
+    const { api, made } = docsApi();
+    const onShown = vi.fn();
+    const B: EditorOpened = { ...OPENED, line_id: "ART-9", config: { ...OPENED.config, document: { key: "ART-9.bbbb.1" } } };
+    const open = vi.fn(async (_s: string, _r: string, body: { line?: string | null }) => (body.line === "ART-9" ? B : OPENED));
+    const props = { open, load: vi.fn().mockResolvedValue(api), onShown, report: vi.fn().mockResolvedValue(undefined) };
+    const view = render(
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} {...props}><article /></ReportEditor>,
+    );
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    act(() => events(made[0].config).onAppReady());
+    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
+    const seen = () => (onShown.mock.lastCall?.[0] as { seen: () => unknown } | null)?.seen();
+    expect(seen()).toMatchObject({ document_key: "ART-1.aaaa.1", seq: 1 });
+    view.rerender(
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line="ART-9" {...props}><article /></ReportEditor>,
+    );
+    await vi.waitFor(() => expect(made).toHaveLength(2));
+    act(() => events(made[1].config).onAppReady());
+    expect(seen()).toBeNull();
+    act(() => events(made[1].config).onDocumentStateChange({ data: true }));
+    expect(seen()).toMatchObject({ document_key: "ART-9.bbbb.1", seq: 1 });
+  });
+
+  it("reports each edit start to AIA, counted from 1 in the session, and names the last as seen (RPT8f)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { api, made } = docsApi();
+    const onShown = vi.fn();
+    const report = vi.fn().mockRejectedValueOnce(new Error("offline")).mockResolvedValue(undefined);
+    show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown, report });
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    act(() => events(made[0].config).onAppReady());
+    const seen = () => (onShown.mock.lastCall?.[0] as { seen: () => unknown }).seen();
+    expect(seen()).toBeNull();
+    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
+    const first = seen() as { document_key: string; page: string; seq: number };
+    expect(first).toMatchObject({ document_key: "ART-1.aaaa.1", seq: 1 });
+    expect(first.page).toMatch(/^[0-9A-Za-z_-]{8,64}$/);
+    act(() => events(made[0].config).onDocumentStateChange({ data: false })); // sent, not an edit
+    expect(seen()).toEqual(first);
+    expect(report).toHaveBeenCalledTimes(1);
+    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
+    expect(seen()).toEqual({ ...first, seq: 2 });
+    // The first report failed and is sent once more; each names the page and its count.
+    await act(async () => { await vi.advanceTimersByTimeAsync(2_500); });
+    expect(report.mock.calls).toEqual([
+      ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 1 }],
+      ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 2 }],
+      ["STU-1", "RUN-1", "ART-1.aaaa.1", { page: first.page, seq: 1 }],
+    ]);
   });
 
   it("opens the line asked for", async () => {

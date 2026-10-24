@@ -3004,6 +3004,10 @@ class ReportEditorVersionRow(Base):
     saved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    #: The latest ``lastsave`` of a save of exactly these bytes, never later than AIA's receipt of
+    #: it (RPT8f), moved on by a later save of the same bytes, so a save that changed nothing still
+    #: releases a hold. Null for koncept 1, a save that said none, and rows from before.
+    content_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -3071,5 +3075,32 @@ class ReportEditorSessionRow(Base):
             unique=True,
             postgresql_where=text("closed_at IS NULL"),
             sqlite_where=text("closed_at IS NULL"),
+        ),
+    )
+
+
+class ReportEditorEditRow(Base):
+    """The newest edit start one page reported in an editing session (artifact-report RPT8f).
+
+    The page counts its edit starts from 1 and reports each; AIA keeps the highest with the time
+    it received it, by AIA's clock, so an approval is refused while an edit no stored version
+    holds is known (``domain.report.editor.unsaved_edits``). One row per session and page; it
+    goes with its session. Only ``ReportEditorRepository`` reads or writes it.
+    """
+
+    __tablename__ = "report_editor_edits"
+
+    document_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    page: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["document_key"], ["report_editor_sessions.document_key"], ondelete="CASCADE"
         ),
     )
