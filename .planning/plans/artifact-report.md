@@ -526,7 +526,9 @@ nothing), then approved as itself (`POST …/report/approve`), and the report ca
 version: the event's `false` only says the edit reached the Document Server, and AIA stores a version on the callback's
 status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a stored version holds
 it: the time of the last change its file holds (ONLYOFFICE's signed `lastsave`, kept as the version's `content_at`;
-without it a version holds nothing, since the time AIA stored it is only when the callback came) no earlier than the edit, both on the server's clock (`server_now` beside each read,
+without it a version holds nothing, since the time AIA stored it is only when the callback came, and the bar says a
+reload starts again from what is stored: ONLYOFFICE sends `lastsave` on status 2 and 6, so this is rare) no earlier
+than the edit, both on the server's clock (`server_now` beside each read,
 the edit placed as late as the request's send time allows, so a slow answer only holds longer; `holdsEdit`, a second's
 tolerance for the Document Server's time); and while the editor holds an edit not yet sent.
 A version id alone could not tell: a save in flight while the person typed on is a newer version that does not hold
@@ -536,7 +538,25 @@ the bar's hold too, on the ask and on the yes (Codex on #877). An assumption, na
 the Document Server's clock and `server_now` the API's, compared within a second. On develop they share a host, so it
 holds. A Document Server moved to another host with more than a second of skew would hold an approval too long (safe)
 or release it early (not safe); before it moves, both hosts keep NTP time or AIA checks the skew (the Document
-Server's `Date` beside the API's on each callback). The server is the last word: the
+Server's `Date` beside the API's on each callback). Five review rounds found client-side timing edges in this hold; a
+further one is answered with a server-authoritative rule, not another patch (the PM, 2026-10-24), for instance a
+per-session edit counter the editor reports and the server checks against the save that holds it.
+
+*Known limit, and the server-authoritative proposal (Codex on #877 at e81333b8; the PM's rule, 2026-10-24).* The hold is
+the browser's: it checks for an edit before it reads the version on the yes, and an edit the person starts while that
+read is in flight is not checked again before the approval is sent, so the earlier snapshot can be approved (sequence:
+confirm the question; the yes's version read leaves; the person types; the read answers; the approval posts; no save
+holds the new edit yet, so `newest_of_line` passes). Each round of review found such a corner, because the browser
+decides on facts it reads at different moments. The proposal ends the class by letting the server decide at the moment
+it approves, under the line's lock:
+1. The editor reports each edit start to AIA (`POST …/report/editor/sessions/{key}/edits`, the session's own key and a
+   per-session sequence number the page keeps), and AIA records it with the server's time of receipt.
+2. A save records, beside its signed `lastsave`, the highest edit sequence whose receipt it holds (receipt no later
+   than `lastsave`; on develop both clocks are one host's).
+3. The approval names the edit sequence the page last saw; `approve_report(newest_of_line=True)` refuses 409
+   `report_edits_unsaved` unless the newest stored version holds that sequence and no higher one was received.
+4. The browser's hold stays as the visible state, no longer the gate.
+Not built: it is the PM's call when; the client hold covers every case reviewed but this one. The server is the last word: the
 bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
 takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
 the server does not name reads "neznámý autor". The report card downloads each approved edit as itself

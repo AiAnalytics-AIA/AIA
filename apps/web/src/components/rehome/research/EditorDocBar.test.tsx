@@ -95,6 +95,22 @@ describe("an edit waiting to be stored", () => {
     await waitFor(async () => expect(await isOff(3)).toBe(false));
   });
 
+  it("is not released by a save that does not say what it holds, and says a reload starts again", async () => {
+    // Codex on #877: a snapshot taken, an edit made, the snapshot's callback arriving after it with no lastsave.
+    const { rerender } = render(bar());
+    await approveButton(2);
+    rerender(bar(Date.now()));
+    line.newest = 3; // stored now, with no content_at
+    expect(await isOff(3)).toBe(true);
+    expect((await screen.findByText(/Editor u konceptu 3 neuvedl, které úpravy obsahuje/)).textContent).toMatch(/po načtení stránky/);
+    const reads = vi.mocked(research.reportEditorVersion).mock.calls.length;
+    await waitFor(() => expect(vi.mocked(research.reportEditorVersion).mock.calls.length).toBeGreaterThan(reads + 2));
+    expect(await isOff(3)).toBe(true);
+    // Reloaded: no edit started in this editor, so the stored koncept is what it shows.
+    rerender(bar(null));
+    await waitFor(async () => expect(await isOff(3)).toBe(false));
+  });
+
   it("keeps the approval off while the editor holds an edit not yet sent", async () => {
     render(bar(null, 20, true));
     expect(await isOff(2)).toBe(true);

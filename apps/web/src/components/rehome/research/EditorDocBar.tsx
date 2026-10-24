@@ -48,6 +48,8 @@ export type EditorDocBarProps = {
 const POLL_MS = 10_000;
 
 const UNSTORED = "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.";
+const UNKNOWN_CONTENT = (koncept: number) =>
+  `Editor u konceptu ${koncept} neuvedl, které úpravy obsahuje; po načtení stránky znovu lze schválit uložený koncept.`;
 const MOVED = (koncept: number) => `Editor mezitím uložil koncept ${koncept}; zkontrolujte jeho změny a schvalte znovu.`; // = approvalRefusal's report_version_stale
 
 /** The version `id` and, when a later save of its line exists, that one instead: the newest is the
@@ -189,6 +191,11 @@ export function EditorDocBar({
         ) : null}
       </div>
       {waiting ? <p data-editor-unsaved>{UNSTORED}</p> : null}
+      {waiting && version && version.koncept > 1 && !version.content_at ? (
+        // A save the Document Server stored without saying what it holds (no lastsave): nothing
+        // releases the hold for this edit; a reload starts from what is stored.
+        <p data-editor-unknown-content>{UNKNOWN_CONTENT(version.koncept)}</p>
+      ) : null}
       {edited ? (
         changes.length ? (
           <div>
