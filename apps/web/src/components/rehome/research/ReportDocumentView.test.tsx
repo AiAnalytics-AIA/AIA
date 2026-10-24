@@ -256,6 +256,30 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-client"));
   });
 
+  it("marks a sentence that compares with no number where it stands, names it in the question and approves past it (RD7)", async () => {
+    const sentence = "Nejvíc důvěřují lidé v Praze, nejméně v Ostravě; rozdíl je dost velký na to, aby rozhodl o tom, kde začít.";
+    const elsewhere = "Věta, kterou žádný úsek textu neobsahuje celou.";
+    const mark = (where: string, text: string, n: number) => ({ code: "unsupported_comparison", where, message: `srovnání bez doloženého čísla: „${text}“`, sentence: n, text });
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, warnings: [mark("ch-summary.1", sentence, 1), mark("ch-confidence.1", elsewhere, 0)] });
+    vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-docx", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: false, approval: null } as never);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    // In place, inside its paragraph, every other word of it kept and unmarked.
+    const marked = container.querySelector('[data-aia="report:ch-summary.1"] mark[data-sentence-mark]') as HTMLElement;
+    expect(marked.textContent).toBe(`${sentence} (srovnání bez doloženého čísla)`);
+    expect(container.querySelector('[data-aia="report:ch-summary.1"] p')?.textContent).toContain("Bankám v Česku důvěřuje");
+    // One no inline holds whole is named under its block, never dropped.
+    const under = container.querySelector('[data-aia="report:ch-confidence.1"] p[data-sentence-mark]');
+    expect(under?.textContent).toBe(`Upozornění: srovnání bez doloženého čísla: „${elsewhere}“`);
+    expect(container.querySelectorAll("[data-sentence-mark]")).toHaveLength(2);
+    fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
+    await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain(`Upozornění (2): srovnání bez doloženého čísla: „${sentence}“ (oddíl „`);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx"));
+  });
+
   it("says a refusal in words over the version refused only, and tells the card nothing", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);

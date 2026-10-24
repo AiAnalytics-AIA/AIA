@@ -9,7 +9,7 @@ chunks:
   - "[ ] RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork"
   - "[x] RD5a. The report's document model stored and served (W2, before RD5 and RD7): the ReportDocument as JSON beside each DOCX under the same fingerprint, with stable paragraph ids and claim refs, read by a VIEW_RESULTS route"
   - "[ ] RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint; and, before any semantic report edit exists, the ADR with its deterministic admission rule that ADR 0026 decision 4 requires"
-  - "[ ] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
+  - "[x] RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim is marked at the sentence, in the pane and the approval dialog, never blocking (changed 2026-10-22)"
   - "[x] RD8. The producer of a client report is the run that composed it, not whoever first downloaded it"
   - "[ ] RD9. The report's assumptions chapter (W3, MVPQ-02): each tracked assumption with its status and its admitted or cited support, and nothing else"
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
@@ -181,8 +181,18 @@ stored document (a report-editor version, one stored before RD5a) records `NULL`
 found". Migration `3abba24ff47c`'s downgrade now refuses only while a row holds at least one warning (`[]` holds none),
 changed in place: Alembic runs a revision's downgrade from its file, so no later migration could change what it counts
 (`test_approval_ledger.py`, the two `…downgrade` tests on PostgreSQL). Cases: `tests/fixtures/report_sentences/cases.json`. Tests: `test_sentence_check.py`; `test_research_api.py`
-`test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record`. RD7b, the pane marking the sentence and
-the approval dialog naming it, follows.
+`test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record`.
+
+*RD7b, the marks (`feature/sentence-marks`; the check is RD7a's, #884):* Zpráva's pane marks each sentence the version's
+`warnings` name `unsupported_comparison` where it stands, in a `mark` saying "srovnání bez doloženého čísla" (also to a
+screen reader), every other word kept (`lib/artifacts/report.ts` `sentenceMarks`, `markSpans`); a sentence no single
+text inline holds whole is named under its block, never dropped. The approval question names every warning of the
+version, on every report kind (RD0's were the client report's alone), and the approval records them. Tests:
+`report.test.ts`; `ReportDocumentView.test.tsx` "marks a sentence that compares with no number where it stands…";
+`report_journey.mjs` at 1440, 1100, 768 and 390 px: exactly the sentences the server marked, each in its block. Run
+with RD7a on the workbench's fictional draft (2026-10-24): one sentence marked and shown at all four widths, a study's
+goal restated ("Zjistit, zda …, komu nejvíc …"), which RD7a then stopped marking (a sentence that asks claims
+nothing); run again, none marked and none shown.
 
 **RD8. The producer of a client report is the run that composed it, not whoever first downloaded it**  
 With self-approval off, the reviewer who opens it first cannot approve it today ◇.

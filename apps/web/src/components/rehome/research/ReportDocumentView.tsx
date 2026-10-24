@@ -12,7 +12,7 @@ import { ApiError, deepResearch, type DeepResearchRun, research, type ResearchRu
 import {
   type Block, type Cell, claimLines, claimTarget, gradeWords, type Inline, type LedgerEntry, type ListItem,
   approvalWords, readDocument, type ReportDocumentModel, reviewWords, type Section, sectionTarget, blockTarget,
-  type StoredReportDocument, unresolvedRefs, valueWords, warningsWords,
+  type StoredReportDocument, markSpans, sentenceMarks, unresolvedRefs, valueWords, warningsWords,
 } from "@/lib/artifacts/report";
 import { backEntry, closeStack, emptyStack, openEntry, type InspectorStack } from "@/lib/inspector-stack";
 import { isModelled, stepOf } from "@/lib/research-execution";
@@ -196,8 +196,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     const question = approvalQuestion(kind, version, { pdf, review });
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
-    // The client report's checks (RD0): warnings named in the question, recorded with the yes.
-    const warned = kind === "client" ? warningsWords(shown?.warnings, shown?.document) : null;
+    // The version's checks (RD0 on the client report, RD7 on every report): warnings named in the
+    // question, recorded with the yes.
+    const warned = warningsWords(shown?.warnings, shown?.document);
     const ask: Ask = {
       kind: "confirm",
       message: [question, carries, warned].filter(Boolean).join(" "),
@@ -342,6 +343,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const inEditor = shownInEditor?.doc === docId ? shownInEditor.shown : null;
   const line = lineAsked?.doc === docId ? lineAsked.line : null;
   const missing = unresolvedRefs(doc);
+  // The sentences the check marks (RD7), by block: marked where they are, never refused.
+  const marks = sentenceMarks(stored.warnings);
   const entry = (ref: string): LedgerEntry | undefined => doc.ledger.refs[ref];
   const claim = (ref: string) => <ul className="flex flex-col gap-1">{claimLines(entry(ref)).map((line) => <li key={line}>{line}</li>)}</ul>;
   const open = (ref: string) => {
@@ -356,7 +359,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         <p className="mt-1 font-sans text-sm text-ink-muted">{doc.meta.subtitle}</p>
       </header>
       {doc.sections.map((section) => (
-        <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} />
+        <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} marks={marks} />
       ))}
       <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
         {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
@@ -469,24 +472,57 @@ type Read = {
   refs: string[];
 };
 
-function DocSection({ section, ...read }: { section: Section } & Read) {
+/** The words a marked sentence says beside it (RD7). */
+const MARK_WORDS = "srovnání bez doloženého čísla";
+
+function DocSection({ section, marks, ...read }: { section: Section; marks: Map<string, string[]> } & Read) {
   return (
     <section data-aia={sectionTarget(section)} className="mb-2">
       <h2 className="mb-1.5 mt-5 font-sans text-base font-semibold">{section.appendix ? `Příloha · ${section.title}` : section.title}</h2>
-      {section.blocks.map((block) => (
-        <div key={block.id} data-aia={blockTarget(block)} className="mb-2.5">
-          <DocBlock block={block} {...read} point={pointer(block)} />
-        </div>
-      ))}
+      {section.blocks.map((block) => {
+        const marked = marks.get(block.id) ?? [];
+        // A sentence no single inline holds whole is named under its block, never dropped.
+        const texts = blockTexts(block);
+        const unplaced = marked.filter((sentence) => !texts.some((t) => t.includes(sentence)));
+        return (
+          <div key={block.id} data-aia={blockTarget(block)} className="mb-2.5">
+            <DocBlock block={block} {...read} point={pointer(block)} marked={marked} />
+            {unplaced.map((sentence) => (
+              <p key={sentence} className="mt-1 font-sans text-xs text-status-you-ink" data-sentence-mark>Upozornění: {MARK_WORDS}: „{sentence}“</p>
+            ))}
+          </div>
+        );
+      })}
     </section>
   );
+}
+
+/** A block's text inlines, as Inlines renders them: where a marked sentence can be marked. */
+function blockTexts(block: Block): string[] {
+  const of = (content: Inline[]) => content.flatMap((i) => (i.type === "text" ? [i.text] : []));
+  const items = (list: ListItem[]): string[] => list.flatMap((item) => [...of(item.content), ...items(item.children)]);
+  if (block.type === "paragraph" || block.type === "callout") return of(block.content);
+  if (block.type === "list") return items(block.items);
+  return [];
 }
 
 /** A number as a chip: the DOCX's text for it; a click opens its claim. Suppressed: never a number. */
 type Chip = Pick<Read, "entry" | "onClaim"> & {
   /** The chip's `data-aia` in its block: the first chip of a ref only, so no two elements share an id. */
   point: (ref: string) => string | undefined;
+  /** The block's sentences the check marks (RD7). */
+  marked?: readonly string[];
 };
+
+/** A text inline's words, a sentence the check marks in a `mark` that says why (RD7). */
+function Marked({ text, marked }: { text: string; marked?: readonly string[] }): ReactNode {
+  if (!marked?.length) return text;
+  return markSpans(text, marked).map((span, i) => span.marked ? (
+    <mark key={i} data-sentence-mark title={MARK_WORDS} className="rounded-sm bg-status-you-wash text-ink underline decoration-status-you-ink decoration-dotted underline-offset-2">
+      {span.text}<span className="sr-only"> ({MARK_WORDS})</span>
+    </mark>
+  ) : <span key={i}>{span.text}</span>);
+}
 
 /** A block's pointer: `report:<block id>:<ref>` for a ref's first chip in the block, none after. */
 function pointer(block: Block): (ref: string) => string | undefined {
@@ -517,8 +553,10 @@ function Marks({ refs, ...chip }: { refs: string[] } & Chip) {
 function Inlines({ content, ...chip }: { content: Inline[] } & Chip): ReactNode {
   return content.map((inline, i) => {
     switch (inline.type) {
-      case "text":
-        return inline.emphasis === "strong" ? <strong key={i}>{inline.text}</strong> : inline.emphasis === "em" ? <em key={i}>{inline.text}</em> : <span key={i}>{inline.text}</span>;
+      case "text": {
+        const words = <Marked text={inline.text} marked={chip.marked} />;
+        return inline.emphasis === "strong" ? <strong key={i}>{words}</strong> : inline.emphasis === "em" ? <em key={i}>{words}</em> : <span key={i}>{words}</span>;
+      }
       case "value":
         return <Claim key={i} ref_={inline.ref} withInterval={inline.with_interval} {...chip} />;
       case "footnote":
@@ -547,23 +585,24 @@ function TableCell({ cell, ...chip }: { cell: Cell } & Chip) {
   return <Claim ref_={cell.ref} withInterval={cell.with_interval} {...chip} />;
 }
 
-function DocBlock({ block, entry, onClaim, refs, point }: { block: Block; point: Chip["point"] } & Read) {
+function DocBlock({ block, entry, onClaim, refs, point, marked }: { block: Block; point: Chip["point"]; marked: readonly string[] } & Read) {
   const read = { entry, onClaim, point };
+  const prose = { ...read, marked };
   switch (block.type) {
     case "heading":
       return block.level === 2 ? <h3 className="mt-3 font-sans text-[15px] font-semibold">{block.text}</h3> : <h4 className="mt-2 font-sans text-sm font-semibold">{block.text}</h4>;
     case "paragraph":
       return <p className={block.role === "lede" ? "text-[17px] leading-7" : block.role === "lead_in" ? "font-sans text-sm font-semibold" : "text-[15px] leading-6"}>
-        <Inlines content={block.content} {...read} /><Marks refs={block.marks} {...read} />
+        <Inlines content={block.content} {...prose} /><Marks refs={block.marks} {...read} />
       </p>;
     case "list":
-      return <Items items={block.items} ordered={block.ordered} {...read} />;
+      return <Items items={block.items} ordered={block.ordered} {...prose} />;
     case "quote":
       return <blockquote className="border-l-2 border-border pl-3 text-[15px] italic leading-6">„{block.text}“ <span className="font-sans text-xs not-italic text-ink-muted">— {block.attribution}{block.synthetic ? " (smyšlený respondent)" : ""}</span></blockquote>;
     case "callout":
       return <div className="rounded-control border border-border bg-surface-sunken px-3 py-2 font-sans text-sm leading-6" data-callout={block.kind}>
         {block.title ? <p className="font-semibold">{block.title}<Marks refs={block.marks} {...read} /></p> : null}
-        <p><Inlines content={block.content} {...read} />{block.title ? null : <Marks refs={block.marks} {...read} />}</p>
+        <p><Inlines content={block.content} {...prose} />{block.title ? null : <Marks refs={block.marks} {...read} />}</p>
       </div>;
     case "key_finding":
       return <div className="border-l-2 border-signal pl-3 text-[15px] leading-6">

@@ -113,14 +113,46 @@ export type StoredReportDocument = {
   stamped: boolean;
   /** Who approved the DOCX and when, from its ledger row (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
-  /** The client report's checks on this version (RD0): warnings, never a refusal; absent for an
-   *  internal document, and from an API before them. */
+  /** The checks on this version, warnings, never a refusal: the client report's (RD0) and, on every
+   *  report, the sentence check (RD7); absent from an API before them. */
   warnings?: GateWarning[];
   document: ReportDocumentModel;
 };
 
-/** One thing the client deliverable's checks found (RD0), and the block it is in. */
-export type GateWarning = { code: string; where: string; message: string };
+/** One thing a check found and the block it is in: the client deliverable's (RD0), or a sentence
+ *  that compares with no number from the ledger (RD7: `unsupported_comparison`, with the sentence's
+ *  index in its block and its words). */
+export type GateWarning = { code: string; where: string; message: string; sentence?: number; text?: string };
+
+/** The code of a sentence the check marks (RD7). */
+const UNSUPPORTED_COMPARISON = "unsupported_comparison";
+
+/** Each block's marked sentences, by the block's id (RD7). */
+export function sentenceMarks(warnings: GateWarning[] | undefined): Map<string, string[]> {
+  const marks = new Map<string, string[]>();
+  for (const w of warnings ?? []) {
+    if (w.code !== UNSUPPORTED_COMPARISON || !w.text) continue;
+    marks.set(w.where, [...(marks.get(w.where) ?? []), w.text]);
+  }
+  return marks;
+}
+
+/** `text` cut where it holds a marked sentence, each piece saying whether it is one: every word kept,
+ *  in order. A sentence the text does not hold whole (it runs across inlines) marks nothing here. */
+export function markSpans(text: string, sentences: readonly string[]): { text: string; marked: boolean }[] {
+  const spans: { text: string; marked: boolean }[] = [];
+  let rest = text;
+  for (;;) {
+    const hits = sentences.map((s) => ({ s, at: s ? rest.indexOf(s) : -1 })).filter((h) => h.at >= 0);
+    if (!hits.length) break;
+    const first = hits.reduce((a, b) => (b.at < a.at ? b : a));
+    if (first.at > 0) spans.push({ text: rest.slice(0, first.at), marked: false });
+    spans.push({ text: first.s, marked: true });
+    rest = rest.slice(first.at + first.s.length);
+  }
+  if (rest || !spans.length) spans.push({ text: rest, marked: false });
+  return spans;
+}
 
 /** One approval as the ledger recorded it. `approver_name` null: a person with no name, or one the store no longer knows. */
 export type Approval = {
@@ -131,8 +163,8 @@ export type Approval = {
   self_approval_allowed: boolean;
   self_approval_source: string;
   note: string;
-  /** What the approver was warned of and approved past (a client report's checks, RD0); null
-   *  where nothing was checked, absent from an API before them. */
+  /** What the approver was warned of and approved past (a client report's checks, RD0; a sentence
+   *  the check marks, RD7); null where nothing was checked, absent from an API before them. */
   warnings?: GateWarning[] | null;
 };
 
@@ -243,8 +275,8 @@ function whereWords(where: string, document: ReportDocumentModel | undefined): s
   return section ? `oddíl „${section.title}“` : `blok ${where}`;
 }
 
-/** The client report's warnings as its approval question says them (RD0): each with where it is,
- *  in words; null when there are none, or none were read (an older API), never "none found". */
+/** A version's warnings as its approval question says them (RD0, RD7): each with where it is, in
+ *  words; null when there are none, or none were read (an older API), never "none found". */
 export function warningsWords(warnings: GateWarning[] | undefined, document?: ReportDocumentModel): string | null {
   if (!warnings?.length) return null;
   const listed = warnings.map((w) => `${w.message} (${whereWords(w.where, document)})`).join("; ");
