@@ -8,6 +8,7 @@ import json
 import os
 import time
 import zipfile
+from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -868,6 +869,8 @@ def test_a_version_names_its_authors_and_its_lines_newest_version(
 
     said = researcher.get(f"{versions}/{edited}").json()
     assert said["author_names"] == [name] and "@" not in name
+    assert said["content_at"] is None  # this save named no lastsave
+    assert datetime.fromisoformat(said["server_now"]).tzinfo is not None
     assert said["newest_in_line"] == {"version_artifact_id": edited, "koncept": 2}
     assert researcher.get(f"{versions}/{draft}").json()["newest_in_line"]["koncept"] == 2
 
@@ -907,6 +910,30 @@ def test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists
     # Without the flag an older version is approved as itself, as before.
     older = researcher.post(approve, json={"artifact_id": second})
     assert older.status_code == 200, older.text
+
+
+def test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    saved = _callback(
+        client,
+        config,
+        status=6,
+        url=saves.put(_docx("50 %")),
+        users=[me],
+        lastsave="2026-10-24T00:30:12.000Z",
+    )
+    assert saved.json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    said = researcher.get(f"{_editor(world, run_id)}/versions/{edited}").json()
+    assert said["content_at"] == "2026-10-24T00:30:12+00:00"
+    # A time that is not an aware ISO time is kept as nothing, never guessed.
+    _callback(client, config, status=6, url=saves.put(_docx("51 %")), users=[me], lastsave="today")
+    later = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    assert researcher.get(f"{_editor(world, run_id)}/versions/{later}").json()["content_at"] is None
 
 
 def test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail(

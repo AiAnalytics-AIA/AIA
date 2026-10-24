@@ -76,21 +76,22 @@ describe("the draft in the report editor", () => {
     expect(screen.queryByText("Koncept jen ke čtení")).toBeNull();
   });
 
-  it("tells the pane what it shows once ready, and each time this person starts editing", async () => {
+  it("tells the pane what it shows once ready, when this person last started an edit, and whether one is unsent", async () => {
     const { api, made } = docsApi();
     const onShown = vi.fn();
     show({ open: vi.fn().mockResolvedValue(OPENED), load: vi.fn().mockResolvedValue(api), onShown });
     await vi.waitFor(() => expect(made).toHaveLength(1));
     expect(onShown).toHaveBeenLastCalledWith(null);
     act(() => events(made[0].config).onAppReady());
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 0 });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: null, dirty: false });
+    const before = Date.now();
     act(() => events(made[0].config).onDocumentStateChange({ data: true }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 1 });
-    // false: the edit reached the Document Server, not AIA; it is no stored version, so it counts nothing.
+    const first = onShown.mock.lastCall?.[0] as { startedAt: number; dirty: boolean };
+    expect(first.dirty).toBe(true);
+    expect(first.startedAt).toBeGreaterThanOrEqual(before);
+    // false: the edit reached the Document Server, not AIA; the start stays, only "unsent" clears.
     act(() => events(made[0].config).onDocumentStateChange({ data: false }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 1 });
-    act(() => events(made[0].config).onDocumentStateChange({ data: true }));
-    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, edits: 2 });
+    expect(onShown).toHaveBeenLastCalledWith({ opened: OPENED, startedAt: first.startedAt, dirty: false });
     act(() => events(made[0].config).onError());
     expect(onShown).toHaveBeenLastCalledWith(null);
   });

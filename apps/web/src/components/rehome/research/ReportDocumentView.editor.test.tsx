@@ -133,7 +133,7 @@ const shownBar = (c: HTMLElement) => waitFor(() => {
 
 describe("the doc bar while the editor shows the document", () => {
   it("names the version on screen and who saved it, never the composed draft's approval", async () => {
-    editor.shows = { opened: OPENED, edits: 0 };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
     versions(version());
     const { container } = show();
     await waitFor(() => expect(editorBar(container)?.textContent).toContain("Koncept 2, uložen 23. 10. 2026 22:10 · Jana Výzkumná"));
@@ -142,7 +142,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("lists what the version changed under Upraveno ručně", async () => {
-    editor.shows = { opened: OPENED, edits: 0 };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
     versions(version());
     const { container } = show();
     const toggle = await within(container).findByRole("button", { name: "Upraveno ručně: 1 číslo" });
@@ -152,7 +152,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("approves the edited version as itself, its changes named in the question", async () => {
-    editor.shows = { opened: OPENED, edits: 0 };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
     versions(version());
     vi.mocked(research.approveReport).mockResolvedValue({ run_id: "RUN-1", artifact_id: "ART-edit", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-23", stamped: true, approval: null, internal_only: true } as never);
     const heard: unknown[] = [];
@@ -170,7 +170,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("asks again when a later save exists, approving nothing", async () => {
-    editor.shows = { opened: OPENED, edits: 0 };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
     versions(version());
     const { container } = show();
     const button = await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" });
@@ -182,7 +182,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("approves koncept 1, the composed draft, through the pane's own question", async () => {
-    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, edits: 0 };
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: false };
     versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
     vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false } as never);
     const { container } = show();
@@ -196,7 +196,7 @@ describe("the doc bar while the editor shows the document", () => {
   });
 
   it("opens another line of the run when asked", async () => {
-    editor.shows = { opened: OPENED, edits: 0 };
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false };
     versions(version());
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Koncept 4 (ze starší složené zprávy)" }));

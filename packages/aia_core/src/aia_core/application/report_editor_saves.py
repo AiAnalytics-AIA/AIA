@@ -84,14 +84,27 @@ def store_save(
     fetcher: SaveFetcher,
     authors: Sequence[str],
     now: datetime,
+    content_at: datetime | None = None,
 ) -> StoredSave:
     """The file at ``url`` stored as ``editor_session``'s line's next version, or
-    :class:`SaveNotStored` (noted on the session, in the caller's transaction)."""
+    :class:`SaveNotStored` (noted on the session, in the caller's transaction). ``content_at``:
+    the time of the last change the file holds, as the Document Server says it (``lastsave``),
+    kept with the version so the pane can tell an edit it holds from one made after (RPT8d)."""
     scope.require(Permission.EDIT_STUDY)
     repo = ReportEditorRepository(session, scope)
     try:
         stored = _store(
-            session, scope, store, repo, editor_session, url, origin, fetcher, authors, now
+            session,
+            scope,
+            store,
+            repo,
+            editor_session,
+            url,
+            origin,
+            fetcher,
+            authors,
+            now,
+            content_at,
         )
     except SaveNotStored as refused:
         repo.note_problem(editor_session.document_key, now=now, problem=refused.reason)
@@ -111,6 +124,7 @@ def _store(
     fetcher: SaveFetcher,
     authors: Sequence[str],
     now: datetime,
+    content_at: datetime | None,
 ) -> StoredSave:
     if not authors or not set(authors) <= set(editor_session.users):
         raise SaveNotStored("unknown_author")
@@ -158,6 +172,8 @@ def _store(
     }
     if previous.deep_research_run_id is not None:
         meta["deep_research_run_id"] = previous.deep_research_run_id
+    if content_at is not None:
+        meta["content_at"] = content_at.isoformat()
     # Whether its footers still take the review stamp, tried on the saved bytes as on every
     # stored report (report_export.review_stamp_record): approved, its export and its PDF then
     # say SCHVÁLENO there; where the editor changed the footers, it is served as saved and says

@@ -7,12 +7,12 @@
 // the editor made is approved only once AIA stored it, and a later save, before the ask or before
 // the yes, asks again.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { research } from "@/lib/api";
 import { approvalWords, reviewWords } from "@/lib/artifacts/report";
 import {
-  changeWords, editedApprovalQuestion, editedWords, type EditorLine, type EditorVersionRead, savedWords,
+  changeWords, editedApprovalQuestion, editedWords, type EditorLine, type EditorVersionRead, holdsEdit, savedWords,
 } from "@/lib/report-editor";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import type { EditorShown } from "./ReportEditor";
@@ -46,6 +46,7 @@ export type EditorDocBarProps = {
  *  it is typed: while one waits, the bar reads the line again this often. */
 const POLL_MS = 10_000;
 
+const UNSTORED = "V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.";
 const MOVED = (koncept: number) => `Editor mezitím uložil koncept ${koncept}; zkontrolujte jeho změny a schvalte znovu.`; // = approvalRefusal's report_version_stale
 
 /** The version `id` and, when a later save of its line exists, that one instead: the newest is the
@@ -67,39 +68,34 @@ export function EditorDocBar({
   const [reads, setReads] = useState(0);
   const again = useCallback(() => setReads((n) => n + 1), []);
 
-  // An edit this person started that no stored version holds yet: set at each start, with the newest
-  // version a read made after it found (`from`, null until that read answers); cleared only once a
-  // later read finds a newer one. The editor's own "saved" is no stored version (it means the edit
-  // reached the Document Server), so it clears nothing.
-  const [pending, setPending] = useState<{ from: string | null } | null>(null);
-  const [starts, setStarts] = useState(shown.edits);
-  if (starts !== shown.edits) {
-    setStarts(shown.edits);
-    if (shown.edits > starts) {
-      setPending({ from: null });
-      setReads((n) => n + 1);
-    }
-  }
-
+  // The latest edit this person started, held off until a read finds a stored version that holds it
+  // (`holdsEdit`: its last change no earlier than the edit, on the server's clock), and while the
+  // editor holds an edit not yet sent. The editor's own "saved" is no stored version, and a version
+  // stored before the edit, or saved while it was still being typed, does not hold it.
+  const startedAt = shown.startedAt;
+  const [held, setHeld] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
     newestOf(studyId, runId, opened.version_artifact_id).then(
       (version) => {
         if (!live) return;
+        const answeredAt = Date.now();
         setRead({ at, version, error: null });
-        const id = version.version_artifact_id;
-        setPending((was) => (was === null ? null : was.from === null ? { from: id } : was.from === id ? was : null));
+        if (startedAt !== null && holdsEdit(version, startedAt, answeredAt)) setHeld((was) => Math.max(was ?? 0, startedAt));
       },
       (error: unknown) => { if (live) setRead({ at, version: null, error: message(error) }); },
     );
     return () => { live = false; };
-  }, [at, studyId, runId, opened.version_artifact_id, reads]);
-  const waiting = pending !== null;
+  }, [at, studyId, runId, opened.version_artifact_id, reads, startedAt]);
+  const waiting = (startedAt !== null && (held === null || held < startedAt)) || shown.dirty;
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(again, pollMs);
     return () => clearInterval(timer);
   }, [waiting, again, pollMs]);
+  // Read on the yes, which a dialog left open may give long after the click.
+  const waitingNow = useRef(waiting);
+  useEffect(() => { waitingNow.current = waiting; }, [waiting]);
 
   const current = read?.at === at ? read : null;
   const version = current?.version ?? null;
@@ -125,6 +121,8 @@ export function EditorDocBar({
           yes: `Schválit koncept ${now.koncept}`,
           resolve: (ok) => {
             if (!ok) return setAct({ ask: null, busy: false, said: null });
+            // An edit started while the question was open is in no stored version yet.
+            if (waitingNow.current) return setAct({ ask: null, busy: false, said: UNSTORED });
             setAct({ ask: null, busy: true, said: null });
             // Read again on the yes: the dialog may have stayed open while a save stored the next koncept.
             newestOf(studyId, runId, now.version_artifact_id)
@@ -181,7 +179,7 @@ export function EditorDocBar({
           </Button>
         ) : null}
       </div>
-      {waiting ? <p data-editor-unsaved>V editoru jsou úpravy, které AIA ještě neuložila jako koncept; schválit lze až uložený koncept.</p> : null}
+      {waiting ? <p data-editor-unsaved>{UNSTORED}</p> : null}
       {edited ? (
         changes.length ? (
           <div>

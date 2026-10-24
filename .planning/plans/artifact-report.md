@@ -512,8 +512,8 @@ it with CORS for SRI to load; until then the editor stays off. Tests: `report-ed
 review, no approval of the composed draft while the editor shows the document).
 
 *RPT8d, part 2 (`feature/report-editor-doc-bar`), the doc bar on the editor's version:* while the editor shows a document
-(`ReportEditor` `onShown`: the line and version opened, and how many times this person started editing,
-`onDocumentStateChange` with `true`), the doc bar is
+(`ReportEditor` `onShown`: the line and version opened, when this person last started an edit,
+`onDocumentStateChange` with `true`, and whether one is not yet sent), the doc bar is
 `EditorDocBar`: the version on screen read from `GET …/report/editor/versions/{id}`, and its line's newest when a later
 save exists (`newest_in_line`, new), named "Koncept N, uložen <kdy> · <kdo>" (`author_names`, new: display names of
 the organization's members, never an e-mail, null otherwise); "Upraveno ručně" with its count (against the line's
@@ -524,8 +524,13 @@ goes through the pane's own question (its PDF read on the ask, as before); an ed
 changes listed (`editedApprovalQuestion`), read again on the yes (a save while the question was open approves
 nothing), then approved as itself (`POST …/report/approve`), and the report card hears it. An edit is not a stored
 version: the event's `false` only says the edit reached the Document Server, and AIA stores a version on the callback's
-status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a read finds a version
-newer than the one a read after that edit found (the stand-in's review of #877). The server is the last word: the
+status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a stored version holds
+it: the time of the last change its file holds (ONLYOFFICE's signed `lastsave`, kept as the version's `content_at`;
+else the time AIA stored it) no earlier than the edit, both on the server's clock (`server_now` beside each read;
+`holdsEdit`, a second's tolerance for the Document Server's time); and while the editor holds an edit not yet sent.
+A version id alone could not tell: a save in flight while the person typed on is a newer version that does not hold
+the later edit, and a save stored before the first read after the edit would have become the edit's own baseline
+(the stand-in's review and Codex on #877). The server is the last word: the
 bar approves with `newest_of_line` (koncept 1's question too), and `approve_report` then takes the line's lock a save
 takes and refuses 409 `report_version_stale` (with the newest's id and koncept) once a later version exists. An author
 the server does not name reads "neznámý autor". The report card downloads each approved edit as itself
@@ -538,7 +543,8 @@ but has not yet sent to AIA is not the version on screen until stored; the appro
 included. A co-editor's unstored edits start no event in this person's editor; the reads on the ask and on the yes
 catch their stored saves only. Tests: `test_a_version_names_its_authors_and_its_lines_newest_version`,
 `test_an_author_is_named_only_as_a_member_and_never_by_an_e_mail`,
-`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`, `EditorDocBar.test.tsx`,
+`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`,
+`test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it`, `EditorDocBar.test.tsx`,
 `CompleteReport.edits.test.tsx`, `report-editor.test.ts`,
 `ReportEditor.test.tsx` ("tells the pane what it shows…", "opens the line asked for"),
 `ReportDocumentView.editor.test.tsx` ("the doc bar while the editor shows the document").

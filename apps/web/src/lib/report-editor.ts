@@ -122,7 +122,29 @@ export type EditorVersionRead = {
   changes: { uncomparable: string | null; changes: SavedChange[] } | null;
   /** The line's newest version; another than this one means a later save exists. */
   newest_in_line: { version_artifact_id: string; koncept: number } | null;
+  /** The last change the file holds, as the Document Server said it (`lastsave`); null when it did
+   *  not, and for koncept 1. */
+  content_at?: string | null;
+  /** The server's time when it answered: the clock `content_at` and `saved_at` are on. */
+  server_now?: string;
 };
+
+/** How far an edit may precede the last change a save holds and still count as held: the
+ *  Document Server's time is read to the second, and the two clocks are matched over one request. */
+const HOLD_TOLERANCE_MS = 1_000;
+
+/** Whether `version` holds an edit this person started at `startedAt` (this browser's clock): its
+ *  last change (else, when the Document Server did not say, the time AIA stored it) is no earlier
+ *  than the edit, both on the server's clock (`server_now` read at `answeredAt`). A time that does
+ *  not parse holds nothing, never presumed. */
+export function holdsEdit(
+  version: Pick<EditorVersionRead, "content_at" | "saved_at" | "server_now">, startedAt: number, answeredAt: number,
+): boolean {
+  const offset = version.server_now ? Date.parse(version.server_now) - answeredAt : 0;
+  const held = Date.parse(version.content_at ?? version.saved_at);
+  if (Number.isNaN(held) || Number.isNaN(offset)) return false;
+  return held >= startedAt + offset - HOLD_TOLERANCE_MS;
+}
 
 const stamp = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague",

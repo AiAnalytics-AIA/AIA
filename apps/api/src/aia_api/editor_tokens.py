@@ -34,7 +34,7 @@ DOCUMENT_LIFETIME: Final = timedelta(minutes=30)
 CALLBACK_LIFETIME: Final = timedelta(days=7)
 _URL_LABEL: Final = b"aia-report-editor-url-1"
 #: What AIA reads of a callback; anything else it carries, registered claims included, is not.
-CALLBACK_FIELDS: Final = ("key", "status", "url", "users")
+CALLBACK_FIELDS: Final = ("key", "status", "url", "users", "lastsave")
 _ALGORITHM: Final = "HS256"
 
 Kind = Literal["document", "callback"]

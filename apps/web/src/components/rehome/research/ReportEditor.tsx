@@ -15,11 +15,12 @@ import {
   problemWords, UNREACHABLE,
 } from "@/lib/report-editor";
 
-/** What the editor shows once it is ready: the line and version opened, and how many times this
- *  person started editing it (`onDocumentStateChange` with `true`). An edit is not a stored version:
- *  the event's `false` only says the edit reached the Document Server, so the pane counts the starts
- *  and asks the API whether a version was stored since. */
-export type EditorShown = { opened: EditorOpened; edits: number };
+/** What the editor shows once it is ready: the line and version opened, when this person last
+ *  started an edit (`onDocumentStateChange` with `true`, by this browser's clock; null before any),
+ *  and whether an edit is not yet sent to the Document Server (`dirty`). An edit is not a stored
+ *  version: `false` only says it reached the Document Server, so the pane asks the API whether a
+ *  version stored since holds it (`lib/report-editor.ts` `holdsEdit`). */
+export type EditorShown = { opened: EditorOpened; startedAt: number | null; dirty: boolean };
 
 /** What api.js puts on the page: one constructor (ONLYOFFICE's DocsAPI). */
 export type DocsApi = {
@@ -103,8 +104,8 @@ export function ReportEditor({
   const [state, setState] = useState<State>({ at, kind: "opening" });
   // The editor came up (`onAppReady`), or it failed after the route answered: this document only.
   const [up, setUp] = useState<{ at: string; ready: boolean; failed: boolean }>({ at, ready: false, failed: false });
-  // How many times this person started editing, for this document only.
-  const [edits, setEdits] = useState<{ at: string; n: number }>({ at, n: 0 });
+  // When this person last started an edit, and whether one is not yet sent: this document only.
+  const [edits, setEdits] = useState<{ at: string; startedAt: number | null; dirty: boolean }>({ at, startedAt: null, dirty: false });
   const host = useRef<HTMLDivElement>(null);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
 
@@ -164,7 +165,10 @@ export function ReportEditor({
                 setUp({ at, ready: true, failed: false });
               },
               onDocumentStateChange: (event: { data?: unknown }) => {
-                if (going() && event?.data === true) setEdits((was) => ({ at, n: was.at === at ? was.n + 1 : 1 }));
+                if (!going()) return;
+                const dirty = event?.data === true;
+                const now = Date.now();
+                setEdits((was) => ({ at, startedAt: dirty ? now : was.at === at ? was.startedAt : null, dirty }));
               },
               onError: fail,
             },
@@ -186,8 +190,11 @@ export function ReportEditor({
   const current = state.at === at ? state : { at, kind: "opening" as const };
   const status = up.at === at ? up : { ready: false, failed: false };
   const shownOpened = current.kind === "open" && status.ready && !status.failed ? current.opened : null;
-  const started = edits.at === at ? edits.n : 0;
-  useEffect(() => { onShown?.(shownOpened ? { opened: shownOpened, edits: started } : null); }, [shownOpened, started, onShown]);
+  const started = edits.at === at ? edits.startedAt : null;
+  const unsent = edits.at === at && edits.dirty;
+  useEffect(() => {
+    onShown?.(shownOpened ? { opened: shownOpened, startedAt: started, dirty: unsent } : null);
+  }, [shownOpened, started, unsent, onShown]);
   if (current.kind === "off") return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (

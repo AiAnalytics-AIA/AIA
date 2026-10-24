@@ -403,6 +403,7 @@ def report_editor_callback(
                 fetcher=fetcher,
                 authors=[str(u) for u in users],
                 now=now,
+                content_at=_lastsave(payload.get("lastsave")),
             )
         except SaveNotStored as refused:
             session.commit()  # the problem is kept for the pane
@@ -412,6 +413,18 @@ def report_editor_callback(
             editor.close(found, now=now, reason="saved")
     session.commit()
     return {"error": 0}
+
+
+def _lastsave(value: Any) -> datetime | None:
+    """ONLYOFFICE's ``lastsave`` (signed, with the rest of the callback): the time of the last
+    change the saved file holds; ``None`` for anything that is not an aware ISO time."""
+    if not isinstance(value, str) or len(value) > 40:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return parsed.astimezone(UTC) if parsed.tzinfo is not None else None
 
 
 ArtifactIdPath = Annotated[str, Path(max_length=64, pattern=r"^ART-[0-9a-f]{1,32}$")]
@@ -510,6 +523,11 @@ def report_editor_version(
         # Each author's display name, null for one with none (never an e-mail), in that order.
         "author_names": [names.get(a) for a in version.authors],
         "saved_at": version.saved_at.isoformat(),
+        # The last change the file holds, as the Document Server said it (null when it did not,
+        # and for koncept 1), and this server's time, so the pane can place an edit it saw
+        # before or after it on one clock.
+        "content_at": artifact.metadata.get("content_at"),
+        "server_now": _now().isoformat(),
         # The line's newest version: approving this one while a later save exists approves what
         # the editor no longer shows, so the pane asks again (RPT8d).
         "newest_in_line": {"version_artifact_id": newest.artifact_id, "koncept": newest.koncept}
