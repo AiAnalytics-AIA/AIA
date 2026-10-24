@@ -148,7 +148,8 @@ The existing approval writes subject `artifact` (`artifact_repository.py:568`) a
 (read through `read_object_maps`, every fingerprint verified) with the report's own figure function at its fixed print
 camera (`object_map_figure.object_map_snapshot`, the signed-off renderer for `aia-sociomap-5`): nothing laid out, fitted
 or computed again, the same map and view the same bytes. It is stored as `research_map_snapshot` (PNG) on the run's
-design project, once per map SHA-256, battery, method, view (`top`, `3d`) and renderer (`aia-map-snapshot-1`), with
+design project, once per run, map SHA-256, battery, method, view (`top`, `3d`) and renderer (`aia-map-snapshot-1`: a run
+that reuses another's map, as a retry does, gets its own, found through it and produced by its starter), with
 `camera: null` (no person chose one) and `by_person=False`. Two first asks of the same map and view store one: the
 second waits on the run's row (`WorkflowRepository.lock_run`) and finds the first's (`test_two_first_asks_of_one_snapshot_store_one`,
 PostgreSQL; it fails without the lock). Its status is the Sociomap register's for the map's method,

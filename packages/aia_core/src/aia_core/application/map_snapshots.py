@@ -6,7 +6,7 @@ nothing could be approved or exported as the map. A snapshot is now drawn here f
 stored contract-3 map, read through :func:`read_object_maps` (every fingerprint verified), by
 the report's own figure functions at their fixed print cameras: nothing is laid out, fitted or
 computed again, and the same map and view give the same bytes. It is stored once per map,
-battery, method, view and renderer, as an artifact of the run's design project.
+battery, method, view and renderer for its run, as an artifact of the run's design project.
 
 ``camera`` is recorded as ``None``: no person chose one; the print camera is the renderer's
 (RD4b adds the screen's camera once the Sociomap screen's function takes it). Its status is the
@@ -125,6 +125,9 @@ def map_snapshot(
     WorkflowRepository(session, scope).lock_run(run_id)
     key = fingerprint(
         {
+            # The run's own: a run that reuses another's map gets its snapshot, found through
+            # it and produced by its starter, never the other run's.
+            "run": run_id,
             "map": stored.sha256,
             "battery": battery_id,
             "method": method,

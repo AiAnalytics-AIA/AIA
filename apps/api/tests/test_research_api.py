@@ -3381,8 +3381,11 @@ def _fictional_map() -> dict[str, Any]:
     }
 
 
-def _store_map(app: FastAPI, world: Any, run_id: str, body: dict[str, Any]) -> str:
-    """Drive the run's steps to the end, its sociomap step storing ``body``; the map's id."""
+def _store_map(
+    app: FastAPI, world: Any, run_id: str, body: dict[str, Any], *, reused: str | None = None
+) -> str:
+    """Drive the run's steps to the end, its sociomap step storing ``body``, or naming the map
+    ``reused`` another run stored (as a retry reuses it); the map's id."""
     with create_session_factory(app.state.engine)() as session:
         principal = AuthenticatedPrincipal(
             user_id=world.users["researcher"], organization_id=world.organization_id
@@ -3392,7 +3395,9 @@ def _store_map(app: FastAPI, world: Any, run_id: str, body: dict[str, Any]) -> s
         map_id = None
         while (work := workflow.claim_next(worker_id="map-fixture")) is not None:
             output: dict[str, Any] = {}
-            if work.node_key == "sociomap":
+            if work.node_key == "sociomap" and reused:
+                map_id = output["artifact_id"] = reused
+            elif work.node_key == "sociomap":
                 stored, _ = research_artifacts(session, scope, app.state.artifact_store).put_json(
                     project_id=work.project_id,
                     revision=work.project_revision,
@@ -3635,3 +3640,32 @@ def test_two_first_asks_of_one_snapshot_store_one(
             .where(ProjectArtifactRow.artifact_type == "research_map_snapshot")
         )
     assert stored == 1
+
+
+def test_a_run_that_reuses_another_runs_map_gets_a_snapshot_of_its_own(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A run whose sociomap step reuses the map another run stored (a retry does) is drawn its
+    own snapshot: found through it, read, downloaded and approved under it, never the other
+    run's, which it could not read."""
+    import copy
+
+    first = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()
+    map_id = _store_map(app, world, first["run_id"], _fictional_map())
+    other = copy.deepcopy(DESIGN)
+    other["title"] = "Fiktivní studie, druhá revize"
+    second = start(researcher, world, submit(researcher, world, other).json()["revision_id"]).json()
+    assert first["run_id"] != second["run_id"]
+    _store_map(app, world, second["run_id"], {}, reused=map_id)
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ids = []
+    for run in (first, second):
+        url = f"{_runs(world)}/{run['run_id']}/map-snapshots"
+        drawn = researcher.post(url, json=asked)
+        assert drawn.status_code == 201, drawn.text
+        one = f"{url}/{drawn.json()['artifact_id']}"
+        assert researcher.get(one).status_code == 200
+        assert researcher.get(f"{one}/download").status_code == 200
+        assert outsider.post(f"{one}/approve", json={}).status_code == 200
+        ids.append(drawn.json()["artifact_id"])
+    assert ids[0] != ids[1]
