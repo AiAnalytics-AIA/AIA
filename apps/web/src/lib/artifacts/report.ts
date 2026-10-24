@@ -232,11 +232,22 @@ export function approvalWords(approval: Approval | null | undefined, approvedOn:
 
 const czechCount = (n: number, one: string, few: string, many: string) => (n === 1 ? one : n < 5 ? few : many);
 
-/** The client report's warnings as its approval question says them (RD0): each with its block;
- *  null when there are none, or none were read (an older API), never "none found". */
-export function warningsWords(warnings: GateWarning[] | undefined): string | null {
+/** The two locators a warning names for the whole document, in words. */
+const WHOLE: Record<string, string> = { report: "celá zpráva", evidence: "čísla zprávy" };
+
+/** Where a warning is, in words: the whole document, or the section its block is in (by its heading
+ *  in `document`), else the block by its id. */
+function whereWords(where: string, document: ReportDocumentModel | undefined): string {
+  if (WHOLE[where]) return WHOLE[where];
+  const section = document?.sections.find((s) => s.blocks.some((b) => b.id === where));
+  return section ? `oddíl „${section.title}“` : `blok ${where}`;
+}
+
+/** The client report's warnings as its approval question says them (RD0): each with where it is,
+ *  in words; null when there are none, or none were read (an older API), never "none found". */
+export function warningsWords(warnings: GateWarning[] | undefined, document?: ReportDocumentModel): string | null {
   if (!warnings?.length) return null;
-  const listed = warnings.map((w) => `${w.message} (${w.where})`).join("; ");
+  const listed = warnings.map((w) => `${w.message} (${whereWords(w.where, document)})`).join("; ");
   return `Upozornění (${warnings.length}): ${listed}. Schválením je berete na vědomí; zaznamenají se se schválením.`;
 }
 

@@ -196,7 +196,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     // What the file carries, as the card says it (D2): known only when stamped.
     const carries = reviewLine(file, pdf);
     // The client report's checks (RD0): warnings named in the question, recorded with the yes.
-    const warned = kind === "client" ? warningsWords(shown?.warnings) : null;
+    const warned = kind === "client" ? warningsWords(shown?.warnings, shown?.document) : null;
     const ask: Ask = {
       kind: "confirm",
       message: [question, carries, warned].filter(Boolean).join(" "),

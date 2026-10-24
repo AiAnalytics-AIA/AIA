@@ -245,13 +245,13 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
 
   it("names the client checks' warnings in the question and approves past them (RD0, warnings since 2026-10-22)", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
-    const warnings = [{ code: "drill_down_content", where: "v.1", message: "doslovná odpověď jednoho respondenta" }];
+    const warnings = [{ code: "drill_down_content", where: "ch-summary.2", message: "doslovná odpověď jednoho respondenta" }];
     vi.mocked(research.clientReportDocument).mockResolvedValue({ ...CLIENT, warnings });
     vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: true, approval: null } as never);
     const container = await openClient();
     fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
     const dialog = container.querySelector("dialog[open]") as HTMLElement;
-    expect(dialog.textContent).toContain("Upozornění (1): doslovná odpověď jednoho respondenta (v.1). Schválením je berete na vědomí");
+    expect(dialog.textContent).toContain("Upozornění (1): doslovná odpověď jednoho respondenta (oddíl „Shrnutí pro vedení“). Schválením je berete na vědomí");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-client"));
   });

@@ -140,9 +140,18 @@ describe("who approved, in words (RD2)", () => {
     expect(approvalWords({ ...base, warnings: null }, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026");
   });
 
-  it("names each warning by its block, and says nothing for none or none read", () => {
+  it("names where each warning is in words, and says nothing for none or none read", () => {
     expect(warningsWords([{ code: "gate_unrecorded", where: "report", message: "verze nemá uložený dokument, nelze ji ověřit" }]))
-      .toBe("Upozornění (1): verze nemá uložený dokument, nelze ji ověřit (report). Schválením je berete na vědomí; zaznamenají se se schválením.");
+      .toBe("Upozornění (1): verze nemá uložený dokument, nelze ji ověřit (celá zpráva). Schválením je berete na vědomí; zaznamenají se se schválením.");
+    const document = { sections: [{ id: "ch-a", title: "Shrnutí", appendix: false, refs: [], blocks: [{ id: "ch-a.1" }] }] } as never;
+    expect(warningsWords([
+      { code: "unadmitted_number", where: "evidence", message: "čísla nejsou pro klienta" },
+      { code: "drill_down_content", where: "ch-a.1", message: "doslovná odpověď" },
+      { code: "drill_down_content", where: "ch-z.9", message: "doslovná odpověď" },
+    ], document)).toBe(
+      "Upozornění (3): čísla nejsou pro klienta (čísla zprávy); doslovná odpověď (oddíl „Shrnutí“); doslovná odpověď (blok ch-z.9). "
+      + "Schválením je berete na vědomí; zaznamenají se se schválením.",
+    );
     expect(warningsWords([])).toBeNull();
     expect(warningsWords(undefined)).toBeNull();
   });
