@@ -178,6 +178,33 @@ describe("Dotazník", () => {
     await waitFor(() => expect("filtr" in question()).toBe(false));
   });
 
+  it("moves focus into the condition form and back to its button when it closes, for the keyboard", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    fireEvent.click(await within(card).findByRole("button", { name: "Podmínka zobrazení" }));
+    const form = card.querySelector("[data-condition-form]") as HTMLElement;
+    // Opened: focus is in the form, on its first choice, never left on the page.
+    expect(form.contains(document.activeElement)).toBe(true);
+    // Escape: back on the button that opened it.
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    // Saved: on the stored condition's own button.
+    fireEvent.click(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    fireEvent.click(within(card).getByRole("radio", { name: /^Q1 · / }));
+    fireEvent.click(within(within(card).getByRole("group", { name: "Zobrazit těm, kdo odpověděli" })).getByRole("button", { name: "Týdně" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Uložit podmínku" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Zrušit: back on the same button.
+    fireEvent.click(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Zrušit" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Odebrat podmínku: on the button that sets one again.
+    fireEvent.click(within(card).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" })));
+  });
+
   it("keeps the form open and says why when the questionnaire moved under it", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
