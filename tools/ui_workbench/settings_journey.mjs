@@ -221,6 +221,21 @@ try {
   const sigmaField = await chooseField("terrain.sigma");
   const typeMs = await doherty("a typed value reaches the draft", () => sigmaField.fill("0,29"), () => methodEditor.getByText("Neuloženo: 2 změny", { exact: true }).waitFor());
   checks.push(`Metodika opens on the editor with its first parameter and its actions on the first screen at 1440/1710/1920; a press of + shows in ${stepMs} ms and a typed value in ${typeMs} ms (< 400 ms)`);
+  // A field the keyboard reaches is never under the sticky action bar (WCAG 2.4.11), down the list.
+  await page.setViewportSize({ width: 1024, height: 800 }); await page.evaluate(() => scrollTo(0, 0));
+  await methodEditor.locator("[data-start-note] select").focus();
+  for (let i = 0; i < 16; i += 1) {
+    await page.keyboard.press("Tab");
+    const covered = await page.evaluate(() => {
+      const active = document.activeElement; const bar = document.querySelector("[data-edit-actions]");
+      if (!active || !bar || bar.contains(active) || !active.closest("[data-methodology-editor]")) return null;
+      const r = active.getBoundingClientRect(); const b = bar.getBoundingClientRect();
+      return r.bottom > b.top + 1 ? { field: active.getAttribute("data-field") ?? active.tagName, bottom: Math.round(r.bottom), bar: Math.round(b.top) } : null;
+    });
+    assert.equal(covered, null, `1024: a focused field under the sticky bar ${JSON.stringify(covered)}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push("At 1024 px, sixteen Tabs down the parameter list never leave the focused field under the sticky action bar");
   // Zahodit úpravu asks, then starts over from what is in force, on Upravit.
   await methodEditor.getByRole("button", { name: "Zahodit úpravu", exact: true }).click();
   await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();

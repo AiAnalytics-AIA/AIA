@@ -441,10 +441,14 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
     const target = slot
       ? document.querySelector<HTMLElement>(`[data-edit-slot="${slot}"] textarea`)
       : [...document.querySelectorAll<HTMLElement>("[data-field]")].find((node) => owedFocus === `spec.${node.getAttribute("data-field")}` || owedFocus.startsWith(`spec.${node.getAttribute("data-field")}.`));
-    // Not drawn yet: the render that opens the formulas runs this again.
-    if (!target) return;
+    // Not drawn yet: the render that opens the formulas runs this again. A problem no field shows
+    // has nowhere to go: the list under the bar names it.
+    if (!target) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot focus, cleared once given or impossible
+      if (!slot) setOwedFocus(null);
+      return;
+    }
     target.focus();
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot focus, cleared once given
     setOwedFocus(null);
   }, [owedFocus, formulasOpen, slotOf]);
 
@@ -511,7 +515,11 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
   const valueOf = (path: string) => raw[path] ?? shown(readPath(start.spec, path));
   const internal = summary.id === "sociomap";
   return (
-    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit} className="flex min-w-0 max-w-full flex-col gap-4">
+    // Enter in a field never stores: a stored version cannot be deleted, so storing is the button's
+    // alone. A field the keyboard reaches keeps clear of the sticky bar below (WCAG 2.4.11).
+    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit}
+      onKeyDown={(e) => { if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault(); }}
+      className="flex min-w-0 max-w-full flex-col gap-4 sm:[&_input]:scroll-mb-36 sm:[&_select]:scroll-mb-36 sm:[&_summary]:scroll-mb-36 sm:[&_textarea]:scroll-mb-36">
       {leaveHref ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
 
       {/* Where the edit starts and what it will be called (prototype v51: the note above the list). */}
@@ -583,7 +591,16 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
         <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
         <Button type="submit" variant="primary" disabled={busy || changedCount === 0}>{t(`${V}.store`)}</Button>
         <Button variant="quiet" disabled={busy} onClick={onDiscard}>{t(`${V}.discard`)}</Button>
-        {changedCount ? <span data-draft-chip className="inline-flex min-h-[22px] items-center rounded-pill border border-signal-edge bg-signal-tint px-2 text-xs text-ink">{tv(`${V}.unsaved`, { count: plural(changedCount, "změna", "změny", "změn") })}</span> : null}
+        {changedCount ? <span data-draft-chip className="inline-flex min-h-[22px] items-center rounded-pill border border-signal-edge bg-signal-tint px-2 text-xs text-ink">{tv(`${V}.unsaved`, { count: plural(changedCount, t(`${V}.count.change.one`), t(`${V}.count.change.few`), t(`${V}.count.change.many`)) })}</span> : null}
+        {/* The check's outcome where the person pressed it: the full answer is under the bar,
+            often below the screen; a refusal takes the person to its first problem. */}
+        {check && !operation ? check.valid
+          ? <span data-bar-outcome="passed" className="text-xs font-medium text-ink">{t(`${V}.barPassed`)}</span>
+          : <button type="button" data-bar-outcome="problems" onClick={() => focusProblem(Object.keys(check.problems)[0] ?? "")}
+              className={`min-h-8 rounded-sm px-1 text-xs font-medium text-status-fault underline underline-offset-2 ${FOCUS}`}>
+              {plural(Object.keys(check.problems).length, t(`${V}.count.problem.one`), t(`${V}.count.problem.few`), t(`${V}.count.problem.many`))}
+            </button>
+          : null}
         {operation ? <OperationStatus key={operation} operation={operation} /> : <span className="text-xs text-ink-muted">{t(`${V}.activateHint`)}</span>}
       </div>
 

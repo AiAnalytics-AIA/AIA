@@ -1046,6 +1046,7 @@ export const cs = {
         expandAll: "Rozbalit všechny kroky", collapseAll: "Sbalit všechny kroky",
         noValues: "Žádný krok této etapy nečte parametr.",
         inForceVersion: "v platné verzi", inForceVersionNamed: "v platné verzi {name}", inCode: "v kódu:",
+        inForceUnknown: "v platné verzi: nezjištěno", inForceUnknownNamed: "v platné verzi {name}: nezjištěno",
         stepKeeps: "Co musí každá verze splnit",
         documents: "Kroky popisují metodu {preset} tak, jak je v kódu; co platí pro vaši organizaci, říká hlavička modulu.",
         leaveEditor: "Přepnutí oblasti zavře rozpracovaný editor metodiky. Chcete pokračovat?", discardEditor: "Zahodit úpravy a přepnout",
@@ -1144,6 +1145,8 @@ export const cs = {
           notePlaceholder: "Nepovinné: co a proč se mění",
           discard: "Zahodit úpravu",
           unsaved: "Neuloženo: {count}",
+          barPassed: "Kontrola prošla",
+          count: { change: { one: "změna", few: "změny", many: "změn" }, problem: { one: "problém", few: "problémy", many: "problémů" } },
           inForce: "Teď v platnosti",
           origin: { stored: "uložená verze", code: "z kódu" },
           pinNote:
