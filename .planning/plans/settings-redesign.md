@@ -21,7 +21,7 @@ chunks:
   - "[x] F2. Page frame and tab heads as the prototype draws them (breadcrumb, plain tab column, serif h1, one paragraph, status chips right)"
   - "[x] F3. One segmented control for role, status, self-approval, Audit period and Reference owner; Správa dat's client picker"
   - "[x] F4. Metodika opens on the module catalogue (one-line cards, 'Pro klienty' fact, the MVP note), back link and module header"
-  - "[ ] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
+  - "[x] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
   - "[ ] F6. Metodika → Upravit as one parameter list (original, stepper, bounds) over the existing guards, check/compare and activation with a reason; Verze and Porovnání as full tables even when empty; the Metodik rule kept"
   - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[ ] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"

@@ -907,9 +907,54 @@ def test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists
     newest = researcher.post(approve, json={"artifact_id": third, "newest_of_line": True})
     assert newest.status_code == 200, newest.text
     assert newest.json()["artifact_id"] == third
-    # Without the flag an older version is approved as itself, as before.
+    # Without the flag an older version is approved as itself, as before, the newer koncept on
+    # its record; the newest's own approval recorded none.
+    assert newest.json()["approval"]["warnings"] in (None, [])
     older = researcher.post(approve, json={"artifact_id": second})
     assert older.status_code == 200, older.text
+    assert older.json()["approval"]["warnings"] == [
+        {
+            "code": "superseded_version",
+            "where": third,
+            "message": "schválen koncept 2, novější je koncept 3",
+            "koncept": 3,
+        }
+    ]
+
+
+def test_the_reports_status_names_the_version_saved_over_its_composed_draft(
+    app: FastAPI,
+    researcher: TestClient,
+    viewer: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+) -> None:
+    """A pane that cannot show the editor reads the composed draft's status: once a person saved
+    a version over it, the status names that version and its review (``edited_line``), so the
+    pane offers no approval of the draft beside it. Any member who reads the report reads it."""
+    run_id, _draft = _reported_run(app, researcher, world)
+    status = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report"
+    assert researcher.get(status).json()["edited_line"] is None
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    # Opening the line (koncept 1) saves nothing.
+    assert researcher.get(status).json()["edited_line"] is None
+    saved = _callback(client, config, status=6, url=saves.put(_docx("50 %")), users=[me])
+    assert saved.json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    line = viewer.get(status)
+    assert line.status_code == 200, line.text
+    assert line.json()["edited_line"] == {
+        "artifact_id": edited,
+        "koncept": 2,
+        "review_state": "DRAFT_UNAPPROVED",
+        "approved_on": None,
+        "stamped": False,
+    }
+    approve = f"{status}/approve"
+    assert researcher.post(approve, json={"artifact_id": edited}).status_code == 200
+    assert researcher.get(status).json()["edited_line"]["review_state"] == "APPROVED_INTERNAL"
 
 
 def test_a_save_keeps_the_time_of_its_last_change_as_the_document_server_said_it(

@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import {
+  editedLineWords,
   approvalWords, blockTarget, claimLines, claimTarget, gradeWords, markSpans, readDocument, reviewWords, sectionTarget, sentenceMarks, warningsWords,
   supportWords, unresolvedRefs, valueWords, type LedgerEntry, type ReportDocumentModel,
 } from "./report";
@@ -180,5 +181,15 @@ describe("who approved, in words (RD2)", () => {
   it("says nothing for a draft", () => {
     expect(approvalWords(null, null)).toBeNull();
     expect(approvalWords(undefined, "2026-10-22")).toBeNull();
+  });
+});
+
+describe("editedLineWords: what stands over a composed draft (RPT8d)", () => {
+  it("names the version saved over it by koncept and review, and nothing while none was saved", () => {
+    expect(editedLineWords(null)).toBeNull();
+    expect(editedLineWords(undefined)).toBeNull();
+    expect(editedLineWords({ artifact_id: "ART-k3", koncept: 3, review_state: "DRAFT_UNAPPROVED" }))
+      .toBe("Nad tímto konceptem je v editoru uložen koncept 3 (neschválen); schvaluje se v editoru, tento koncept už ne.");
+    expect(editedLineWords({ artifact_id: "ART-k4", koncept: 4, review_state: "APPROVED_INTERNAL" })).toContain("koncept 4 (interně schválen)");
   });
 });
