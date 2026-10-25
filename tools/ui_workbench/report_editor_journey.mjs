@@ -63,9 +63,11 @@ await context.addInitScript((identity) => {
   }
 }, IDENTITY);
 // The stand-in Document Server: its api.js and nothing else; any other request to it is refused.
+// `down`: the Document Server unreachable, its api.js refused too.
 const standin = readFileSync(join(repo, "tools/ui_workbench/fixtures/report_editor/api.js"), "utf8");
+let down = false;
 await context.route(`${EDITOR_ORIGIN}/**`, (route) =>
-  new URL(route.request().url()).pathname === "/web-apps/apps/api/documents/api.js"
+  !down && new URL(route.request().url()).pathname === "/web-apps/apps/api/documents/api.js"
     ? route.fulfill({ status: 200, contentType: "application/javascript", body: standin })
     : route.abort());
 const page = await context.newPage();
@@ -213,6 +215,25 @@ try {
   ]);
   assert.match(download.suggestedFilename(), /schvaleno/, "the file downloaded is the approved version");
   check("the newest koncept approved as itself (newest_of_line), naming the page's last edit start the server received (RPT8f), and the report card downloads it");
+
+  // The Document Server down: the read-only draft stays, and it is no longer what stands -- the
+  // approved koncept is named over it and the draft is offered for no approval (the PM's audit walk).
+  down = true;
+  for (const width of [1440, 1100, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("about:blank");
+    await page.goto(`${base}/app/clients/${client}/research/${study}/results#report`);
+    await page.locator('[data-report-editor="unavailable"]').waitFor({ timeout: 60000 });
+    await page.getByRole("article", { name: "Koncept zprávy" }).waitFor({ timeout: 30000 });
+    const over = await page.locator("[data-report-edited-line]").innerText();
+    assert.match(over, new RegExp(`koncept ${k + 3} \\(interně schválen\\)`), `@${width}: the approved koncept is named over the draft`);
+    assert.equal(await page.getByRole("button", { name: "Schválit pro interní použití" }).count(), 0, `@${width}: no approval of the draft beside it`);
+    await noOverflow(`editor down @${width}`);
+    await page.screenshot({ path: join(out, `${width}-editor-down.png`) });
+  }
+  down = false;
+  assert.equal(approvals.length, 1, "nothing more was approved");
+  check("the Document Server down at 1440, 1100, 768 and 390: the read-only draft names the approved koncept over it and offers no approval of itself");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

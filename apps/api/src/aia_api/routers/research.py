@@ -66,7 +66,7 @@ from aia_core.application.report_approval import (
     ReportVersionStale,
     approve_report,
 )
-from aia_core.application.report_editor_saves import approved_versions
+from aia_core.application.report_editor_saves import approved_versions, newest_saved
 from aia_core.application.report_export import (
     Export,
     ReviewUnrecorded,
@@ -2397,6 +2397,7 @@ def run_report(
         # The versions edited in the report editor that a person approved (RPT8c): approving
         # one leaves this composed draft a draft, so the status names them beside it.
         "approved_edits": _approved_edits(run_id, None, scope, session, store),
+        "edited_line": _edited_line(artifact, scope, session, store),
     }
 
 
@@ -2426,6 +2427,25 @@ def _approved_edits(
         }
         for version, edited in found
     ]
+
+
+def _edited_line(
+    docx: Artifact | None, scope: StudyContext, session: SessionDep, store: ArtifactStoreDep
+) -> dict[str, Any] | None:
+    """The newest version a person saved over the composed ``docx`` in the report editor
+    (RPT8d), with its review; null while none was saved. The composed draft is then not what
+    the editor shows: a pane that cannot show the editor says so and offers no approval of the
+    draft beside it (its approval would stand beside an edited one). Read whether or not the
+    editor is on, as a version is."""
+    found = newest_saved(session, scope, store, composed_id=docx.artifact_id) if docx else None
+    if found is None:
+        return None
+    newest, edited = found
+    return {
+        "artifact_id": newest.artifact_id,
+        "koncept": newest.koncept,
+        **_review_fields(edited, _mark(edited, scope, session, store)),
+    }
 
 
 def _base_pdf(
@@ -2739,6 +2759,7 @@ def run_report_document(
         "report_sha256": report.sha256,
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
+        "edited_line": _edited_line(report, scope, session, store),
         # The sentence check on this version (RD7): marks, never a refusal.
         "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
@@ -2806,6 +2827,9 @@ class ReportVariantResponse(BaseModel):
     #: The versions of this report edited in the report editor that a person approved (RPT8c):
     #: approving one leaves the composed draft above a draft.
     approved_edits: list[dict[str, Any]] = []
+    #: The newest version saved over this draft in the report editor (RPT8d); null while none.
+    #: The draft is then not what the editor shows, so the page offers no approval of it.
+    edited_line: dict[str, Any] | None = None
 
 
 def _variant_response(
@@ -2829,6 +2853,23 @@ def _variant_response(
         approval_renders_pdf=status_.approval_renders_pdf,
         contract=docx.metadata.get("report_contract"),
         contract_current=status_.contract_current,
+    )
+
+
+def _variant_answer(
+    run_id: str,
+    deep_research_run_id: str,
+    scope: StudyContext,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> ReportVariantResponse:
+    """The variant's status as every route answers it, with its report editor's versions."""
+    found = _variant(run_id, deep_research_run_id, scope, session, store)
+    return _variant_response(run_id, deep_research_run_id, found).model_copy(
+        update={
+            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store),
+            "edited_line": _edited_line(found.docx, scope, session, store),
+        }
     )
 
 
@@ -2938,15 +2979,7 @@ def prepare_contextual_report(
                 ),
             },
         ) from exc
-    return _variant_response(
-        run_id,
-        deep_research_run_id,
-        _variant(run_id, deep_research_run_id, scope, session, store),
-    ).model_copy(
-        update={
-            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
-        }
-    )
+    return _variant_answer(run_id, deep_research_run_id, scope, session, store)
 
 
 @router.post(
@@ -2981,15 +3014,7 @@ def ask_contextual_report_pdf(
         raise _refused(exc) from exc
     except ReviewUnrecorded as exc:
         raise _unrecorded(exc) from exc
-    return _variant_response(
-        run_id,
-        deep_research_run_id,
-        _variant(run_id, deep_research_run_id, scope, session, store),
-    ).model_copy(
-        update={
-            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
-        }
-    )
+    return _variant_answer(run_id, deep_research_run_id, scope, session, store)
 
 
 @router.get(
@@ -3004,15 +3029,7 @@ def contextual_report_status(
     session: SessionDep,
     store: ArtifactStoreDep,
 ) -> ReportVariantResponse:
-    return _variant_response(
-        run_id,
-        deep_research_run_id,
-        _variant(run_id, deep_research_run_id, scope, session, store),
-    ).model_copy(
-        update={
-            "approved_edits": _approved_edits(run_id, deep_research_run_id, scope, session, store)
-        }
-    )
+    return _variant_answer(run_id, deep_research_run_id, scope, session, store)
 
 
 @router.get(
@@ -3055,6 +3072,7 @@ def contextual_report_document_route(
         "report_sha256": docx.sha256,
         **_review_fields(docx, _mark(docx, scope, session, store)),
         **_approval_fields(docx, scope, session, store),
+        "edited_line": _edited_line(docx, scope, session, store),
         # The sentence check on this version (RD7): marks, never a refusal.
         "warnings": [f.to_json() for f in sentence_findings(document)],
         "document": document,
