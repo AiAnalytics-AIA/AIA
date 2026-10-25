@@ -324,6 +324,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
 | `settings-redesign` | SUPPORT (S1) | the owner's Nastavení redesign; gates nothing alone | registered 2026-10-25 (register drift) |
 | `study-deletion` | ◇ for the owner (Q1-Q8, ADR 0043) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | planning proposes CORE once the owner answers Q1-Q8 and accepts ADR 0043 (SD0); no chunk is scheduled until then |
+| `lead-identity` | ◇ for the owner (core or post-MVP) | the Lead's hatching, mark and Můj Vedoucí from the Settings prototype v59 (Nigel's approval and answers, relayed 2026-10-25); LI0 adds a money amount (an ADR 0028 amendment) | registered 2026-10-25 (#901 added the plan); no wave until the owner places it |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
