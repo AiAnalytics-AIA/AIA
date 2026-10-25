@@ -1140,6 +1140,7 @@ export const cs = {
           startUntil: ", dokud ji vlastník metody nezapíše do registru.",
           parametersHelp: "Původní hodnota vlevo · upravte krokem (− / +, šipky ↑ ↓, Shift = ×10), nebo hodnotu přepište",
           boundsHint: "meze hlídá Zkontrolovat",
+          outsideBound: "„{value}“ je mimo {bound}; Zkontrolovat ji odmítne.",
           noParameters: "Tato část nemá parametry k úpravě; upravit lze vzorce níže.",
           formulasChanged: "upraveno: {count}",
           notePlaceholder: "Nepovinné: co a proč se mění",

@@ -7,9 +7,12 @@ import { describe, expect, it } from "vitest";
 import type { MethodModuleDetail } from "./api";
 import fixture from "./fixtures/methodology.json";
 import {
+  boundUnder,
+  boundWords,
   changedPaths,
   editableSteps,
   fromInput,
+  outsideBound,
   problemsFor,
   readPath,
   toInput,
@@ -101,5 +104,40 @@ describe("the domain's problems", () => {
   });
   it("that no field shows are kept, never dropped", () => {
     expect(unplacedProblems(problems, ["spec.relation.n_min", "formula.f12.kernel"])).toEqual([["base_preset", "no preset aia-sociomap-9"]]);
+  });
+});
+
+describe("a field's bound (settings-redesign F13)", () => {
+  const fields = Object.fromEntries(editableSteps(doc.details.sociomap["aia-sociomap-5"]).flatMap((s) => s.fields).map((f) => [f.reference, f]));
+  const draft = (values: Record<string, string>) => (path: string) => values[path];
+
+  it("is the API's, read as the tightest limit on each side, and none where no check holds the field", () => {
+    expect(boundWords(boundUnder(fields["terrain.grid_resolution"].bound!, draft({})))).toBe("mez 1–256");
+    expect(boundWords(boundUnder(fields["terrain.sigma"].bound!, draft({})))).toBe("mez > 0");
+    expect(boundWords(boundUnder(fields["terrain.frame_fill"].bound!, draft({})))).toBe("mez > 0 a ≤ 1");
+    expect(boundWords(boundUnder(fields["layout.sparse_share"].bound!, draft({})))).toBe("mez ≥ 0 a < 1");
+    // A strict limit on a whole number reads as the next whole one: > 3 is ≥ 4.
+    expect(boundWords(boundUnder(fields["segments.min_ratings"].bound!, draft({})))).toBe("mez ≥ 4");
+    // Held to one value under one preset, a range under another: no bound is declared.
+    expect(fields["layout.min_objects"].bound).toBeNull();
+    expect(fields["relation.estimator"].bound).toBeNull();
+  });
+
+  it("reads a limit from another field's draft value, and leaves out one whose draft is not a number", () => {
+    const floor = fields["layout.layout_floor"].bound!;
+    expect(boundWords(boundUnder(floor, draft({ "relation.n_min": "10" })))).toBe("mez 1–10");
+    expect(boundWords(boundUnder(floor, draft({ "relation.n_min": "12" })))).toBe("mez 1–12");
+    expect(boundWords(boundUnder(floor, draft({ "relation.n_min": "dvanáct" })))).toBe("mez ≥ 1");
+  });
+
+  it("says a number outside it, never text that is no number (the check's to refuse)", () => {
+    const sides = boundUnder(fields["terrain.frame_fill"].bound!, draft({}));
+    expect(outsideBound(sides, "0")).toBe(true);
+    expect(outsideBound(sides, "0,7")).toBe(false);
+    expect(outsideBound(sides, "1")).toBe(false);
+    expect(outsideBound(sides, "1,01")).toBe(true);
+    expect(outsideBound(sides, "")).toBe(false);
+    expect(outsideBound(sides, "hodně")).toBe(false);
+    expect(boundWords({ low: null, high: null })).toBe("");
   });
 });
