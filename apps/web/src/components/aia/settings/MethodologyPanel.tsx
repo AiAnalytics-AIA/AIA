@@ -24,6 +24,7 @@ import { Formula } from "./MethodologyFormula";
 import { StepContext } from "./MethodologyContext";
 import { MethodologyVersions, type People } from "./MethodologyVersions";
 import { ModuleArt, accentOf } from "./MethodologyArt";
+import { CHIP, RegisterChip } from "./MethodologyRegister";
 
 const M = "aia.settings.methodology";
 const WORDS = { absent: t(`${M}.absent`), none: t(`${M}.none`), yes: t(`${M}.yes`), no: t(`${M}.no`) };
@@ -141,15 +142,6 @@ function useModuleFacts(summary: MethodModuleSummary | undefined): ModuleVersion
   return { res, reload, editable };
 }
 type ModuleVersions = { res: Resource<MethodVersions | null>; reload: () => void; editable: boolean };
-
-const CHIP = "inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs";
-
-function RegisterChip({ status, head = false }: { status: string | null | undefined; head?: boolean }) {
-  if (status === undefined) return <span data-register="loading" className="text-ink-muted">…</span>;
-  if (status !== "CLIENT_FACING" && status !== "INTERNAL_ONLY") return <span data-register="unknown" className={`${CHIP} border-border text-ink-muted`}>{t(`${M}.facts.unknown`)}</span>;
-  // Approved is a strong-edged chip, never green (green is only what is in force); internal is the fault's.
-  return <span data-register={status} className={`${CHIP} ${status === "CLIENT_FACING" ? "border-border-strong text-ink" : "border-status-fault bg-status-fault-wash text-status-fault"}`}>{t(`${M}.register.${head ? `head${status}` : status}`)}</span>;
-}
 
 function ModuleChips({ summary, res }: { summary: MethodModuleSummary; res: Resource<MethodVersions | null> }) {
   const editable = summary.editable;
