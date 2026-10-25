@@ -232,6 +232,7 @@ export function AppShell({
   aside,
   track,
   topbar = false,
+  crumbEnd,
   bleed = false,
   children,
 }: {
@@ -261,6 +262,8 @@ export function AppShell({
   track?: ReactNode;
   /** The header is the breadcrumb alone; the page draws its own heading (Settings: each tab's h1). */
   topbar?: boolean;
+  /** With `topbar`: a control after the breadcrumb, as its last step (Settings: the section menu). */
+  crumbEnd?: ReactNode;
   /** The page lays out its own columns and gutters, edge to edge under the header (Settings). */
   bleed?: boolean;
   children: ReactNode;
@@ -317,7 +320,10 @@ export function AppShell({
           <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
             <div aria-hidden="true" className={`h-[3px] ${accent}`} />
             <div className="flex min-h-11 flex-wrap items-center gap-3 px-4 py-2.5 md:px-6">
-              <Breadcrumbs crumbs={crumbs.length ? crumbs : [{ label: title }]} strong />
+              <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
+                <Breadcrumbs crumbs={crumbs.length || crumbEnd ? crumbs : [{ label: title }]} strong />
+                {crumbEnd ? <>{crumbs.length ? <span aria-hidden="true" className="text-ink-muted">/</span> : null}{crumbEnd}</> : null}
+              </div>
               {status || action ? <div className="ml-auto flex flex-wrap items-center gap-3">{status}{action}</div> : null}
             </div>
           </header>

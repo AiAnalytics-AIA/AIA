@@ -22,7 +22,13 @@ page.on("pageerror", (error) => errors.push(String(error)));
 page.on("request", (request) => { if (!["GET", "HEAD", "OPTIONS"].includes(request.method()) && new URL(request.url()).pathname.startsWith("/api/")) writes.push({ method: request.method(), path: new URL(request.url()).pathname }); });
 const headers = { Authorization: "Bearer workbench@example.invalid" };
 const get = async (path) => { const r = await page.request.get(base + path, { headers }); assert(r.ok(), `${path}: ${r.status()}`); return r.json(); };
-const tab = async (id) => { await page.locator(`#tab-${id}`).click(); assert.equal(await page.locator(`#tab-${id}`).getAttribute("aria-selected"), "true"); return page.locator(`#panel-${id}`); };
+// A section is opened as a person does (prototype v54): the top bar's section menu, then its link.
+const menuButton = () => page.locator("[data-section-menu] > button");
+const tab = async (id) => {
+  await menuButton().click(); await page.locator(`[data-section-link="${id}"]`).click();
+  await page.locator(`#panel-${id}`).waitFor({ state: "visible" });
+  assert.equal(new URL(page.url()).hash, `#${id}`); return page.locator(`#panel-${id}`);
+};
 const measure = async (name) => {
   const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth }));
   if (size.documentWidth > size.width + 2) console.log(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("body *")].map(e => ({ tag: e.tagName, text: e.textContent?.slice(0,75), classes: e.className?.toString(), right: e.getBoundingClientRect().right, width: e.getBoundingClientRect().width })).filter(e => e.width && e.right > innerWidth + 2).slice(-20)), null, 2));
@@ -36,11 +42,28 @@ const chooseField = async (reference) => {
   const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor(); return field;
 };
 try {
-  await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  // The page's ten tabs; a Metodika module's own sub-tabs (#856) are another tablist.
-  assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).getByRole("tab").count(), 10);
+  await page.goto(base + "/app/settings"); await menuButton().waitFor();
+  // No column of tabs (prototype v54): the section menu in the top bar, by click or ⌘K / Ctrl+K.
+  assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).count(), 0, "no tab column");
+  const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
+  for (const keys of ["Control+k", "Meta+k"]) {
+    await page.locator("body").press(keys); await menu.waitFor();
+    // Ten sections in three columns, each with its line.
+    assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 10);
+    await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+    assert(await menuButton().evaluate((b) => b === document.activeElement), "Esc gives the focus back to the menu's button");
+  }
+  // A keyword finds its section, and Enter opens the first match.
+  await page.locator("body").press("Control+k"); await page.keyboard.type("Brave"); await page.keyboard.press("Enter");
+  await page.locator("#panel-deep_research").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#deep_research");
+  // A deep link opens its section, and the menu's button names it.
+  await page.goto(base + "/app/settings#audit"); await page.locator("#panel-audit").waitFor({ state: "visible" });
+  assert.equal(await menuButton().getAttribute("aria-label"), "Nastavení › Audit");
+  checks.push("The section menu opens on ⌘K and Ctrl+K, closes on Esc with the focus back, finds Brave and opens it on Enter; #audit opens Audit");
+  await page.goto(base + "/app/settings"); await menuButton().waitFor();
+  await menuButton().click();
   // At 1440 every tab shows its line under its name (settings-redesign 1).
-  assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
+  assert.equal(await menu.locator("[data-section-link]:visible").count(), 10); await page.keyboard.press("Escape");
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("[data-tab-header] h1").waitFor();
     if (id === "ai") {
@@ -70,14 +93,14 @@ try {
     }
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All ten settings tabs load and fit desktop/tablet/phone without page overflow; each names its purpose under its name at 1440");
+  checks.push("All ten settings sections load and fit desktop/tablet/phone without page overflow; the section menu names each with its line");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);
     assert.equal(await panel.locator("details, summary").count(), 0, `${id}: a disclosure is back`);
     // The prototype's head (v51): the tab's name as h1 and one paragraph; who may change it in chips.
     assert.equal(await panel.locator("[data-tab-header] p").count(), 1, `${id}: one lede`);
-    assert.equal(await panel.locator("[data-tab-header] [role=switch]").count(), 0, `${id}: the switch is the page's`);
+    assert.equal(await panel.locator("[data-tab-header] [role=switch]").count(), 1, `${id}: the page's one switch, at the end of the open section's head`);
     for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }

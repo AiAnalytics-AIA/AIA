@@ -153,6 +153,12 @@ function waitsForActivation(v: Pick<PromptVersion, "version_number" | "created_a
  * the list knows it. The summary carries no version's date, so a newer number waits only when nothing
  * was ever switched on; otherwise the list does not say, and unknown never reads as waiting.
  */
+/** How many prompts have a saved version waiting to be switched on, as the list knows it: what the
+ *  section menu counts for an administrator (prototype v54), never more than `standing` says. */
+export function waitingPrompts(rows: readonly PromptSlotSummary[]): number {
+  return rows.filter((row) => standing(row).waiting).length;
+}
+
 function standing(row: PromptSlotSummary): { text: string; waiting: boolean } {
   if (!row.wired) return { text: t(`${P}.state.locked`), waiting: false };
   const active = row.active.origin === "stored" ? row.active.version_number : null;
