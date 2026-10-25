@@ -60,7 +60,8 @@ type Loaded =
   | { kind: "failed"; message: string }
   | { kind: "awaiting_migration" }
   | { kind: "unrecoverable"; template: Template; canEdit: boolean }
-  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null };
+  /** `forCanEdit`: what the study allowed (the session's `canEdit`) when this store was built. */
+  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null; forCanEdit?: boolean };
 
 type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
@@ -109,9 +110,11 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit, itemIds });
+        // Read-only when the content says so or the study does: never a store that takes edits the
+        // study refuses, nor one the screen would show enabled while it drops them.
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit || editable.current === false, itemIds });
         store = s;
-        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
+        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin, forCanEdit: editable.current });
       },
       (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
     );
@@ -124,13 +127,16 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null, forCanEdit: editable.current } : l));
   }, [studyId]);
 
-  const value = useMemo(
-    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory, lost }),
-    [studyId, loaded, startAgain, memory, lost],
-  );
+  // A store built for what the study allowed before is not handed out: until the store for what it
+  // allows now is in, the stages wait (loading), so no field is enabled over a store that drops its
+  // edits, nor a read-only one shown over a store still taking them (Codex on #892).
+  const value = useMemo(() => {
+    const current: Loaded = loaded.kind === "ready" && canEdit !== undefined && loaded.forCanEdit !== canEdit ? { kind: "loading" } : loaded;
+    return { studyId, loaded: current, retry: () => setVersion((v) => v + 1), startAgain, memory, lost };
+  }, [studyId, loaded, canEdit, startAgain, memory, lost]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
@@ -279,9 +285,12 @@ function useWorkbenchSwitch(): boolean | null {
   return on;
 }
 
-function Ready({ store, template, origin, memory, step, frame, reload }: {
+function Ready({ store, template, origin, memory, step, frame: given, reload }: {
   store: ResearchStore; template: Template; origin: string | null; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
+  // The stages may edit only what the store that receives the edit takes: the study's permission and
+  // the store's own editability, never the first alone.
+  const frame = useMemo(() => (given.canEdit && !store.editable ? { ...given, canEdit: false } : given), [given, store]);
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const { onStage, stepHref } = frame;
   useEffect(() => {

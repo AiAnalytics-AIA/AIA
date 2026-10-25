@@ -31,10 +31,22 @@ export function useStudyStatus(studyId: string, onChanged: () => Promise<void> |
   const change = async (status: string) => {
     // The whole change -- the save, the status, the study read again -- holds the editor read-only, so
     // nothing typed meanwhile lands in a store the change is about to replace (Codex on #892).
+    // A status the server changed but a study not read again leaves what the study allows unknown:
+    // it stays held read-only, said so, rather than shown editable over a study that may be closed.
     setBusy(true); setError(null); hold?.(true);
-    try { await beforeChange?.(); await admin.setStudyStatus(studyId, status); await onChanged(); }
-    catch (e) { setError(describeError(e)); }
-    finally { setBusy(false); hold?.(false); }
+    let changed = false;
+    try {
+      await beforeChange?.();
+      await admin.setStudyStatus(studyId, status);
+      changed = true;
+      await onChanged();
+      hold?.(false);
+    } catch (e) {
+      setError(changed ? tv("aia.study.status.unread", { reason: describeError(e) }) : describeError(e));
+      if (!changed) hold?.(false);
+    } finally {
+      setBusy(false);
+    }
   };
   const shown = error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null;
   return { busy, change, shown };

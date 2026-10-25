@@ -185,6 +185,11 @@ export class ResearchStore {
     for (const l of this.listeners) l();
   }
 
+  /** Whether this copy takes edits at all: false for a store built read-only, whose update() changes nothing. */
+  get editable(): boolean {
+    return !this.opts.readOnly;
+  }
+
   /** True once the study's content exists in AIA (its first save has happened). */
   get saved(): boolean {
     return this.state.revision !== null;

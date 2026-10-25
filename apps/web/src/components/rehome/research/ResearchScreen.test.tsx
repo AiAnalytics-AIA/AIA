@@ -41,7 +41,9 @@ function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown 
         : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
         : u.endsWith("/research/agent-jobs") ? []
         : {};
-      return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
+      // An answer may be a promise: a test holds a read back until it says so.
+      const given = await answer;
+      return given instanceof Response ? given : new Response(JSON.stringify(given), { status: 200 });
     }),
   );
 }
@@ -169,16 +171,23 @@ describe("ResearchScreen", () => {
     expect(calls.filter((c) => c.method === "PUT" && c.url === "/api/v1/studies/STU-1/status").map((c) => c.body)).toEqual([{ status: "ACTIVE" }]);
   });
 
-  it("takes edits once a closed study is reopened: the store follows the study's editability (Codex on #892)", async () => {
+  it("takes edits once a closed study is reopened, and only once the store that takes them is in (Codex on #892)", async () => {
     let editable = false;
-    api(() => content({ can_edit: editable }));
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    // The first read answers at once; the read after the reopen is held back until the test says so.
+    api(() => (editable ? held.then(() => content({ can_edit: true })) : content({ can_edit: false })));
     const closedFrame = { ...TEST_FRAME, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null }, refreshStudy: async () => {} };
     const { rerender } = render(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={closedFrame} /></ResearchSession>);
     expect(((await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true);
-    // Reopened: the study reads as editable again, and the session reads its content again.
+    // Reopened: the study now allows edits, but the store that would take them is not in yet.
     editable = true;
     rerender(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={{ ...closedFrame, canEdit: true, status: "ACTIVE", closed: null }} /></ResearchSession>);
-    await vi.waitFor(() => expect(loads().length).toBeGreaterThanOrEqual(2));
+    await vi.waitFor(() => expect(loads()).toHaveLength(2));
+    // No field is offered over the read-only store while the new one loads: the stage waits.
+    expect(screen.queryByLabelText(GOAL_LABEL)).toBeNull();
+    expect(screen.getByText(t("research.loading"))).toBeTruthy();
+    release();
     const goal = await vi.waitFor(() => {
       const el = screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement;
       if (el.closest("fieldset")?.disabled) throw new Error("still read-only");
@@ -187,6 +196,14 @@ describe("ResearchScreen", () => {
     fireEvent.change(goal, { target: { value: "Po znovuotevření" } });
     await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
     expect(saves()[0].body).toMatchObject({ content: { goal: "Po znovuotevření" } });
+  });
+
+  it("never enables a field over a store that takes no edits, whatever the frame allows", async () => {
+    // The study's permission says yes, its content says no: the store is read-only, and so are the fields.
+    api(() => content({ can_edit: false }));
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={{ ...TEST_FRAME, canEdit: true }} /></ResearchSession>);
+    const goal = (await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement;
+    expect(goal.closest("fieldset")?.disabled).toBe(true);
   });
 
   it("saves a typed change before closing the study, then reads it read-only; a failed save keeps it open", async () => {
@@ -259,6 +276,19 @@ describe("ResearchScreen", () => {
       return el;
     }, { timeout: 10_000 });
     expect(lost.getAttribute("role")).toBe("alert");
+  });
+
+  it("keeps a study read-only when its status changed but it could not be read again", async () => {
+    api(() => content(), undefined, { "PUT /api/v1/studies/STU-1/status": () => ({ study_id: "STU-1", status: "DELIVERED" }) });
+    const holds: boolean[] = [];
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => { throw new Error("offline"); }, holdEdits: (on: boolean) => holds.push(on) };
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("zůstává jen ke čtení");
+    // Held, and never let go: what the study allows is not known.
+    expect(holds).toEqual([true]);
   });
 
   it("says the API's refusal of a status change as given", async () => {
