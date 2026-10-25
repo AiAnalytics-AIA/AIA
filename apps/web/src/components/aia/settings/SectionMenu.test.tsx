@@ -164,6 +164,13 @@ describe("the settings section menu", () => {
     api();
     render(<SectionMenu mayAdminister={false} />);
     fireEvent.click(trigger());
+    // A click for a new tab or window is the browser's: not prevented, the page stays where it is.
+    const audit = within(dialog()).getByRole("link", { name: /Audit/ });
+    for (const modifier of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
+      expect(fireEvent.click(audit, modifier)).toBe(true);
+      expect(window.location.hash).toBe("#deep_research");
+      expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Deep Research");
+    }
     fireEvent.click(within(dialog()).getByRole("link", { name: /Audit/ }));
     expect(window.location.hash).toBe("#audit");
     expect(screen.queryByRole("dialog")).toBeNull();

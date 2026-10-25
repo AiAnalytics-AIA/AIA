@@ -29,13 +29,15 @@ export function goToSection(id: SectionId): void {
   window.dispatchEvent(new HashChangeEvent("hashchange"));
 }
 
-/** A plain click on a link to a section: opened through goToSection. A click with a modifier (a new
- *  tab, a new window) or another button is left to the browser, which the link's href serves. */
-export function sectionLinkClick(id: SectionId) {
+/** A plain click on a link to a section: opened through goToSection, then `opened` (the menu closes
+ *  itself). A click with a modifier (a new tab, a new window) or another button is left to the
+ *  browser, which the link's href serves, and the page stays where it is. */
+export function sectionLinkClick(id: SectionId, opened?: () => void) {
   return (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number; preventDefault: () => void }) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
     e.preventDefault();
     goToSection(id);
+    opened?.();
   };
 }
 

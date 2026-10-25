@@ -21,7 +21,7 @@ import { type PromptSlotSummary, admin, deepResearchSettings } from "@/lib/api";
 import { Icon, type IconName } from "../../rehome/icons";
 import { waitingPrompts } from "./SystemPromptsPanel";
 import { FOCUS, useDismiss } from "../../ui/parts";
-import { SECTIONS, SECTION_GROUPS, type SectionId, WAITING_CHANGED, appleKeys, goToSection, sectionFromHash } from "./sections";
+import { SECTIONS, SECTION_GROUPS, type SectionId, WAITING_CHANGED, appleKeys, goToSection, sectionFromHash, sectionLinkClick } from "./sections";
 
 const P = "aia.settings.panel";
 const M = `${P}.menu`;
@@ -151,12 +151,13 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
   const chord = apple ? "⌘K" : "Ctrl K";
   const hits = useMemo(() => SECTIONS.filter((id) => sectionMatches(id, query)), [query]);
   const total = Object.values(counts).reduce((n, c) => n + (c ?? 0), 0);
+  // Opened, the menu closes and the focus goes back to its button.
+  const closeToButton = () => { setOpen(false); trigger.current?.focus(); };
   const go = (id: SectionId) => {
-    setOpen(false);
     // A new history entry with the framework's state kept, as every link to a section on the page
     // makes one (goToSection): Back returns to the section before; the page follows the event.
     goToSection(id);
-    trigger.current?.focus();
+    closeToButton();
   };
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && hits[0]) { e.preventDefault(); go(hits[0]); }
@@ -199,7 +200,7 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
                   <p className="px-2 pb-1 text-[11px] uppercase tracking-[0.06em] text-ink-faint">{t(`${M}.groups.${group.key}`)}</p>
                   {items.map((id) => (
                     <a key={id} href={`#${id}`} data-section-link={id} aria-current={id === current ? "true" : undefined}
-                      onClick={(e) => { e.preventDefault(); go(id); }}
+                      onClick={(e) => sectionLinkClick(id, closeToButton)(e)}
                       className={`flex min-h-11 items-start gap-2.5 rounded-sm px-2 py-1.5 no-underline ${id === current ? "bg-signal-wash" : "hover:bg-surface-sunken"} ${FOCUS}`}>
                       <Icon name={ICON[id]} size={16} className="mt-0.5 shrink-0 text-ink-muted" />
                       <span className="min-w-0 flex-1">
