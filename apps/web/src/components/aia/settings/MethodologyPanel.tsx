@@ -210,9 +210,12 @@ function liveVersion(res: Resource<MethodVersions | null>, shown: string | null)
  *  -- a version built on another preset, or one without the field, is never read as matching. */
 type Live = "same" | "unknown" | MethodValue;
 function liveValue(v: MethodValue, live: LiveVersion): Live {
-  if (!live || !isParameter(v)) return "same";
+  // Every value of the specification counts, one the shown preset leaves out (absent) included;
+  // a code constant and the method's own name are no version's to change.
+  if (!live || v.origin !== "specification" || v.reference === "methodology_version") return "same";
   const value = readPath(live.spec, v.reference);
-  if (live.base !== live.shown || value === undefined) return "unknown";
+  if (live.base !== live.shown) return "unknown";
+  if (value === undefined) return v.absent ? "same" : "unknown";
   return JSON.stringify(value) === JSON.stringify(v.value) ? "same" : { ...v, value };
 }
 

@@ -402,6 +402,17 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
     headingRef.current?.focus({ preventScroll: true });
   }, []);
 
+  // A field the keyboard reaches keeps clear of the sticky action bar (WCAG 2.4.11): the page's
+  // scroller treats its bottom 9rem, the bar and a margin, as out of view while the editor is
+  // here. A field's own scroll margin does not do it: a field already on screen, under the bar,
+  // is not scrolled at all (measured at 1024 px).
+  useEffect(() => {
+    const root = document.documentElement;
+    const before = root.style.scrollPaddingBottom;
+    root.style.scrollPaddingBottom = "9rem";
+    return () => { root.style.scrollPaddingBottom = before; };
+  }, []);
+
   const router = useRouter();
   const titles = useMemo(() => Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs])), [detail]);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
@@ -515,11 +526,10 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
   const valueOf = (path: string) => raw[path] ?? shown(readPath(start.spec, path));
   const internal = summary.id === "sociomap";
   return (
-    // Enter in a field never stores: a stored version cannot be deleted, so storing is the button's
-    // alone. A field the keyboard reaches keeps clear of the sticky bar below (WCAG 2.4.11).
+    // Enter in a field never stores: a stored version cannot be deleted, so storing is the button's alone.
     <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit}
       onKeyDown={(e) => { if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault(); }}
-      className="flex min-w-0 max-w-full flex-col gap-4 sm:[&_input]:scroll-mb-36 sm:[&_select]:scroll-mb-36 sm:[&_summary]:scroll-mb-36 sm:[&_textarea]:scroll-mb-36">
+      className="flex min-w-0 max-w-full flex-col gap-4">
       {leaveHref ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
 
       {/* Where the edit starts and what it will be called (prototype v51: the note above the list). */}
