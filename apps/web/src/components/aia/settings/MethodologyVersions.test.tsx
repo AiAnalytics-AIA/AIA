@@ -486,7 +486,9 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
     fireEvent.click(screen.getByRole("tab", { name: "Verze a aktivace" }));
     const act = within(row).getByRole("button", { name: "Aktivovat aia-sociomap-5+e1" });
     expect(act.textContent).toBe("Aktivovat");
-    expect(within(row).getByRole("button", { name: "Upravit z této verze" }).textContent).toBe("Upravit");
+    expect(within(row).getByRole("button", { name: "Upravit z verze aia-sociomap-5+e1" }).textContent).toBe("Upravit");
+    // Each row is named by its version, so a screen reader can tell the rows apart.
+    expect(within(row).getByRole("rowheader").textContent).toMatch(/^aia-sociomap-5\+e1/);
   });
 
   it("has no register column for a module no register covers", async () => {
@@ -877,7 +879,7 @@ describe("a module's view (settings-redesign 10b)", () => {
     expect((tab(/^Upravit · jen Metodik$/) as HTMLButtonElement).disabled).toBe(true);
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
     fireEvent.click(tab("Verze a aktivace"));
-    expect(screen.queryByRole("button", { name: /Vrátit na .* z kódu|Upravit z této verze/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Vrátit na .* z kódu|Upravit z verze/ })).toBeNull();
     fireEvent.click(tab("Porovnání"));
     expect(screen.queryByText(/Bez úpravy jsou obě strany stejné/)).toBeNull();
     cleanup();
@@ -896,7 +898,7 @@ describe("a module's view (settings-redesign 10b)", () => {
     // e1 is stored, not in force: an edit from it differs from what is in force before a key is pressed.
     fireEvent.click(tab("Verze a aktivace"));
     const version = await found('[data-methodology-version="1"]');
-    fireEvent.click(within(version).getByRole("button", { name: "Upravit z této verze" }));
+    fireEvent.click(within(version).getByRole("button", { name: "Upravit z verze aia-sociomap-5+e1" }));
     await editor();
     fireEvent.click(tab("Porovnání"));
     expect(screen.queryByText(/Bez úpravy jsou obě strany stejné/)).toBeNull();

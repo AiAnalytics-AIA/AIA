@@ -13,6 +13,10 @@ export const CHIP = "inline-flex min-h-[22px] items-center gap-[5px] whitespace-
 export function RegisterChip({ status, head = false }: { status: string | null | undefined; head?: boolean }) {
   if (status === undefined) return <span data-register="loading" className="text-ink-muted">…</span>;
   if (status !== "CLIENT_FACING" && status !== "INTERNAL_ONLY") return <span data-register="unknown" className={`${CHIP} border-border text-ink-muted`}>{t(`${M}.facts.unknown`)}</span>;
-  // Approved is a strong-edged chip, never green (green is only what is in force); internal is the fault's.
-  return <span data-register={status} className={`${CHIP} ${status === "CLIENT_FACING" ? "border-border-strong text-ink" : "border-status-fault bg-status-fault-wash text-status-fault"}`}>{t(`${M}.register.${head ? `head${status}` : status}`)}</span>;
+  // Approved is a strong-edged chip, never green (green is only what is in force); internal is the
+  // fault's, with its × glyph beside the words (the status-fault token's rule).
+  return <span data-register={status} className={`${CHIP} ${status === "CLIENT_FACING" ? "border-border-strong text-ink" : "border-status-fault bg-status-fault-wash text-status-fault"}`}>
+    {status === "INTERNAL_ONLY" ? <span aria-hidden="true">×</span> : null}
+    <span>{t(`${M}.register.${head ? `head${status}` : status}`)}</span>
+  </span>;
 }

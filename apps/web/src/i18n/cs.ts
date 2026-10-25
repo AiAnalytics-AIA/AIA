@@ -1157,6 +1157,7 @@ export const cs = {
           kindCode: "Výchozí v kódu",
           kindStored: "Uložená verze",
           activateShort: "Aktivovat", activateNamed: "Aktivovat {name}",
+          editFromNamed: "Upravit z verze {name}",
           editFromShort: "Upravit",
           codeChanges: "Metoda tak, jak ji počítá kód.",
           baselineButton: "Ukázat metodiku v platnosti na fiktivních panelech",
@@ -1166,7 +1167,6 @@ export const cs = {
           changes: "Oproti {base} mění:",
           noChanges: "Shodná s {base}.",
           activate: "Uvést {name} v platnost",
-          editFrom: "Upravit z této verze",
           reset: "Vrátit na {preset} z kódu",
           activateTitle: "Uvést {name} v platnost",
           sociomapInternal:

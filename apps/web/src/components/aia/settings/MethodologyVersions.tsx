@@ -207,7 +207,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
               </tr></thead>
               <tbody>
                 <tr data-methodology-version="code">
-                  <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</td>
+                  <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</th>
                   <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindCode`)}</td>
                   <td className={`${CELL} min-w-[10rem]`}>{t(`${V}.codeChanges`)}</td>
                   <td className={`${CELL} text-ink-faint`}>—</td>
@@ -221,7 +221,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                   const formulas = Object.keys(v.formulas);
                   return (
                     <tr key={v.version_number} data-methodology-version={v.version_number}>
-                      <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</td>
+                      <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</th>
                       <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindStored`)}</td>
                       <td className={`${CELL} min-w-[10rem] break-words`}>
                         {v.note ? <p>{v.note}</p> : null}
@@ -242,7 +242,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                           {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                             <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
                           ) : null}
-                          {data.may_edit ? <Button small aria-label={t(`${V}.editFrom`)} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
+                          {data.may_edit ? <Button small aria-label={tv(`${V}.editFromNamed`, { name: v.name })} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
                         </div>
                       </td>
                     </tr>
