@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
+import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1426,6 +1426,9 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A one-time ticket into the editor's origin for this person (report-editor-hosting): spent by
+   *  loading api.js through it, which sets the docs gate's cookie there. */
+  reportEditorTicket: () => request<DocsTicket>("POST", "/api/v1/session/docs-ticket"),
   /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
   reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
     request<void>(
