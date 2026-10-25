@@ -203,6 +203,28 @@ describe("Dimenze", () => {
     expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
   }, 20_000);
 
+  it("names what \"Použít doporučené\" drops and puts it back on Vrátit; a remove does the same, order kept (DIM-F10)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Použít doporučené" }));
+    await savedWith("persona_autofill");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
+    expect(await screen.findByText("Použity doporučené dimenze; odebráno: Cena / value for money")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["cena", "media"]);
+    // A remove takes the row away at once; Vrátit puts it back where it was, not at the end.
+    const chosen = screen.getByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await savedWith("dimension_catalog_remove");
+    expect(await screen.findByText("Dimenze „Cena / value for money“ odebrána")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["cena", "media"]);
+    // Focus lands on the dimension put back, not at the page's top.
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Cena / value for money"));
+  }, 20_000);
+
   it("removes a chosen dimension where it is listed and shows a waiting request beside it, not only in the inspector (DIM-F5)", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] }, requested_dimensions: [{ label: "Vztah k tramvajím" }] });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);

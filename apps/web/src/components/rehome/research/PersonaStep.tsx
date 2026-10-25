@@ -50,6 +50,7 @@ import {
   recommendedSample,
   recordRequest,
   removeDimension,
+  undoChosen,
   requestLabel,
   requestedLabels,
   sampleRefusalMessage,
@@ -63,6 +64,7 @@ import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { Stepper } from "@/components/ui/Stepper";
+import { UndoToast, useUndo } from "@/components/ui/UndoToast";
 import { rangeWords } from "@/lib/number-input";
 import { dimensionAia } from "@/lib/artifacts/dimensions";
 import { sampleAia } from "@/lib/artifacts/sample";
@@ -207,16 +209,43 @@ export function PersonaStep() {
   const visible = entries.filter((d) => matchesDimensionSearch(d, query));
   const recommendedRows = visible.filter((d) => suggested.has(d.id));
   const catalogRows = visible.filter((d) => !suggested.has(d.id));
+  const chosenList = useRef<HTMLUListElement>(null);
+  // A change that takes dimensions away, or replaces them, offers "Vrátit" (I6): it takes back that
+  // change alone (undoChosen), and focus lands on the first dimension it put back.
+  const undo = useUndo();
+  const applyUndoable = (change: Change, message: string) => {
+    const before = chosenDimensions(store.get().project);
+    const after = chosenDimensions(change.project);
+    apply(change);
+    undo.offer({
+      message,
+      undo: () => {
+        apply(undoChosen(store.get().project, before, after));
+        const back = before.find((id) => !after.includes(id));
+        if (back !== undefined)
+          requestAnimationFrame(() => [...(chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]") ?? [])].find((b) => b.dataset.remove === back)?.focus());
+      },
+    });
+  };
   // A removed row takes its button with it: focus goes to the next row's remove, else the previous
   // one's, else the list, never to the page's top.
-  const chosenList = useRef<HTMLUListElement>(null);
   const removeChosen = (id: string) => {
     const at = approved.indexOf(id);
-    apply(removeDimension(store.get().project, id));
+    applyUndoable(removeDimension(store.get().project, id), tv("research.persona.removed", { label: labels[id] || id }));
     requestAnimationFrame(() => {
       const left = chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]");
       (left?.[Math.min(at, left.length - 1)] ?? chosenList.current)?.focus();
     });
+  };
+  // The classic's autofill replaces the selection; whatever it changes can be taken back, and what it
+  // dropped is named.
+  const applyRecommended = () => {
+    const before = chosenDimensions(store.get().project);
+    const change = autofill(store.get().project);
+    const after = chosenDimensions(change.project);
+    if (before.length === after.length && before.every((id, i) => id === after[i])) return apply(change);
+    const dropped = before.filter((id) => !after.includes(id)).map((id) => labels[id] || id);
+    applyUndoable(change, dropped.length ? tv("research.persona.autofillDropped", { list: dropped.join(", ") }) : t("research.persona.autofillDone"));
   };
   const toggle = (id: string) => apply(chosen.has(id) ? removeDimension(store.get().project, id) : addDimension(store.get().project, id));
   const storedN = Number(p.n) > 0 ? Number(p.n) : null;
@@ -246,7 +275,7 @@ export function PersonaStep() {
                   <button
                     type="button"
                     aria-label={tv("research.persona.remove", { label })}
-                    data-remove
+                    data-remove={id}
                     onClick={() => removeChosen(id)}
                     className="ml-auto inline-flex size-6 items-center justify-center rounded-sm text-ink-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-focus-ring"
                   >
@@ -293,7 +322,7 @@ export function PersonaStep() {
               {recommendedRows.length ? (
                 <DimensionGroup
                   title={t("research.persona.groupRecommended")}
-                  action={<Button small variant="quiet" onClick={() => apply(autofill(store.get().project))}>{t("research.persona.autofill")}</Button>}
+                  action={<Button small variant="quiet" onClick={applyRecommended}>{t("research.persona.autofill")}</Button>}
                   rows={recommendedRows}
                   chosen={chosen}
                   suggested={suggested}
@@ -407,6 +436,7 @@ export function PersonaStep() {
           </section>
         </StepSection>
 
+        <UndoToast offer={undo.current} onDone={undo.clear} />
         <ActionDock
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
           note={tv("research.persona.dockNote", { d: approved.length, n })}
