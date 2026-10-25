@@ -181,6 +181,9 @@ should be able to start a client, that is a one-line permission change plus its 
 
 ## Chunk 5b design (proposed 2026-10-02, awaiting the owner)
 
+*The owner, 2026-10-25 (TWO-ROLES-5b (b), the audit page, relayed by coordinator 3): review 5b against what was built first (5b.1 to
+5b.3 are built, 5b.4 is `report-delivery` RD2-RD4's); the design below is not decided until then.*
+
 Status of what ADR 0019 decision 4 calls the three gates, read against `develop` @ 78c5b9e. The ADR
 fixes **what** the gates are; this section is **how**, using what the engine already has, and
 asks for three decisions. Nothing here is built.
