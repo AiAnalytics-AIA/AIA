@@ -50,6 +50,7 @@ function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare
           presets: doc.presets[id],
           versions: [...versions].reverse(),
           history: [...history].reverse(),
+          code_register_status: id === "sociomap" ? "CLIENT_FACING" : null,
         });
       }
       if (what === "compare") return json(compare ?? { valid: true, problems: {}, in_force: "aia-sociomap-5", panels: [] });
@@ -59,7 +60,7 @@ function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare
       if (what === "versions" && method === "POST") {
         const n = versions.length + 1;
         const name = `${String(body?.base_preset)}+e${n}`;
-        const stored = { version_number: n, name, base_preset: body?.base_preset, spec: { ...(body?.spec as object), methodology_version: name }, formulas: body?.formulas, payload_sha256: "a".repeat(64), note: body?.note ?? "", created_by: "U-1", created_at: now };
+        const stored = { version_number: n, name, base_preset: body?.base_preset, spec: { ...(body?.spec as object), methodology_version: name }, formulas: body?.formulas, payload_sha256: "a".repeat(64), note: body?.note ?? "", created_by: "U-1", created_at: now, register_status: id === "sociomap" ? "INTERNAL_ONLY" : null };
         versions.push(stored);
         return json(stored, 201);
       }
@@ -446,6 +447,63 @@ describe("the methodology's versions", () => {
 const summary = (stress: number, reliable: number, unknown: number) => ({
   outcome: "MAPPED", not_mappable: null, stress_1: stress, quality: "good",
   status_counts: { reliable, weak: 15 - reliable - unknown, unknown }, effective_n: 36,
+});
+
+describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () => {
+  it("lists the code's preset as a version, even with nothing stored, and the history as a table", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    fireEvent.click(await screen.findByRole("tab", { name: "Verze a aktivace" }));
+    const table = screen.getByRole("table", { name: "Uložené verze" });
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Verze", "Druh", "Co mění", "Uložil", "Stav pro klienty", "Aktivace"]);
+    const code = table.querySelector('[data-methodology-version="code"]') as HTMLElement;
+    expect(within(code).getByText("aia-sociomap-5")).toBeTruthy();
+    expect(within(code).getByText("Výchozí v kódu")).toBeTruthy();
+    expect(within(code).getByText("v platnosti")).toBeTruthy();
+    expect(code.querySelector("[data-register]")?.getAttribute("data-register")).toBe("CLIENT_FACING");
+    // Nothing to put back to: the code is in force.
+    expect(within(code).queryByRole("button")).toBeNull();
+    const history = screen.getByRole("table", { name: "Historie platnosti" });
+    expect(within(history).getAllByRole("columnheader").length).toBe(4);
+    expect(within(history).getByText("Zatím nic nebylo uvedeno v platnost.")).toBeTruthy();
+  });
+
+  it("gives a stored version its kind, its author and the register's answer for it", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    const form = await editor();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
+    fireEvent.change(within(form).getByLabelText("Poznámka k verzi"), { target: { value: "širší kopec" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
+    const row = await found('[data-methodology-version="1"]');
+    expect(within(row).getByText("aia-sociomap-5+e1")).toBeTruthy();
+    expect(within(row).getByText("Uložená verze")).toBeTruthy();
+    expect(within(row).getByText("širší kopec")).toBeTruthy();
+    expect(row.querySelector("[data-register]")?.getAttribute("data-register")).toBe("INTERNAL_ONLY");
+    expect(within(row).getByText("Jen interně")).toBeTruthy();
+  });
+
+  it("has no register column for a module no register covers", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
+    fireEvent.click(await screen.findByRole("tab", { name: "Verze a aktivace" }));
+    const table = screen.getByRole("table", { name: "Uložené verze" });
+    expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Verze", "Druh", "Co mění", "Uložil", "Aktivace"]);
+  });
+
+  it("shows what is in force beside itself on Porovnání when asked, with no edit and nothing stored", async () => {
+    const { sent } = fakeApi({ compare: { valid: true, problems: {}, in_force: "aia-sociomap-5", panels: [] } });
+    render(<MethodologyPanel />); await openMap();
+    await editor();
+    fireEvent.click(screen.getByRole("tab", { name: "Porovnání" }));
+    // Opening the tab computes nothing; the person asks.
+    expect(sent.some((x) => x.url.endsWith("/compare"))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech" }));
+    await waitFor(() => expect(document.querySelector("[data-compare-baseline]")?.textContent).toBe("Bez úpravy: aia-sociomap-5 vedle sebe sama"));
+    expect(document.querySelector("[data-methodology-compare]")).toBeTruthy();
+    const body = sent.find((x) => x.url.endsWith("/compare"))?.body;
+    expect(body?.base_preset).toBe("aia-sociomap-5");
+    expect(body?.formulas).toEqual({});
+    expect(sent.some((x) => x.method === "POST" && x.url.endsWith("/versions"))).toBe(false);
+  });
 });
 
 describe("the comparison with what is in force", () => {
