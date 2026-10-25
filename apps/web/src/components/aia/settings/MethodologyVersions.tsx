@@ -566,8 +566,9 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
         <TextInput disabled={busy} value={note} maxLength={500} placeholder={t(`${V}.notePlaceholder`)} onChange={(e) => setNote(e.target.value)} />
       </Field>
 
-      {/* The decision, kept in reach under a long list: check, compare, store, or throw the edit away. */}
-      <div data-edit-actions className="sticky bottom-0 z-10 flex flex-wrap items-center gap-2 border-t border-border bg-surface py-3">
+      {/* The decision, kept in reach under a long list: check, compare, store, or throw the edit away.
+          On a phone it would take a fifth of the screen, so there it sits at the end of the list. */}
+      <div data-edit-actions className="z-10 flex flex-wrap items-center gap-2 border-t border-border bg-surface py-3 sm:sticky sm:bottom-0">
         <Button disabled={busy} onClick={() => void run(false)}>{t(`${V}.check`)}</Button>
         <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
         <Button type="submit" variant="primary" disabled={busy || changedCount === 0}>{t(`${V}.store`)}</Button>
