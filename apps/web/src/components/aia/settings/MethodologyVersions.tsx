@@ -424,19 +424,29 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
   }, [dirty]);
   const clearPreview = useCallback(() => { setCheck(null); setError(null); onCompared(null); }, [onCompared]);
   const setValue = useCallback((reference: string, value: string) => { setRaw((r) => ({ ...r, [reference]: value })); clearPreview(); }, [clearPreview]);
-  const slotOf = (path: string) => [...builtin.keys()].find((slot) => path === `formula.${slot}` || path.startsWith(`formula.${slot}.`));
+  const slotOf = useCallback((path: string) => [...builtin.keys()].find((slot) => path === `formula.${slot}` || path.startsWith(`formula.${slot}.`)), [builtin]);
   // A problem in a formula opens the formulas: a refused edit is never hidden in a closed part.
   const showProblems = (problems: Record<string, string>) => { if (Object.keys(problems).some((path) => slotOf(path))) setFormulasOpen(true); };
+  // A problem's link owes the focus to its field: a formula's textarea exists only once the
+  // formulas are drawn, so the focus is given after the render that mounts it, never on a frame
+  // guess (AGENTS.md, "Focus an element after the render that mounts it").
+  const [owedFocus, setOwedFocus] = useState<string | null>(null);
   const focusProblem = (path: string) => {
-    const slot = slotOf(path);
-    if (slot) setFormulasOpen(true);
-    requestAnimationFrame(() => {
-      const target = slot
-        ? document.querySelector<HTMLElement>(`[data-edit-slot="${slot}"] textarea`)
-        : [...document.querySelectorAll<HTMLElement>("[data-field]")].find((node) => path === `spec.${node.getAttribute("data-field")}` || path.startsWith(`spec.${node.getAttribute("data-field")}.`));
-      target?.focus();
-    });
+    if (slotOf(path)) setFormulasOpen(true);
+    setOwedFocus(path);
   };
+  useEffect(() => {
+    if (!owedFocus) return;
+    const slot = slotOf(owedFocus);
+    const target = slot
+      ? document.querySelector<HTMLElement>(`[data-edit-slot="${slot}"] textarea`)
+      : [...document.querySelectorAll<HTMLElement>("[data-field]")].find((node) => owedFocus === `spec.${node.getAttribute("data-field")}` || owedFocus.startsWith(`spec.${node.getAttribute("data-field")}.`));
+    // Not drawn yet: the render that opens the formulas runs this again.
+    if (!target) return;
+    target.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot focus, cleared once given
+    setOwedFocus(null);
+  }, [owedFocus, formulasOpen, slotOf]);
 
   // The whole edit, or the fields the page itself cannot read (a word where a number was).
   const build = (): { edit: { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string> } } | { local: Record<string, string> } => {
@@ -625,7 +635,8 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
     const parsed = fromInput(original, value);
     if (!parsed.ok || typeof parsed.value !== "number") return;
     const next = parsed.value + direction * 10 ** -places * (big ? 10 : 1);
-    onChange(field.reference, shown(Number(next.toFixed(Math.min(places, 20)))));
+    // The step never takes a place the value has: 0,255 − 0,01 is 0,245, not 0,25 rounded down.
+    onChange(field.reference, shown(Number(next.toFixed(Math.min(Math.max(places, placesOf(parsed.value)), 20)))));
   };
   const steppable = numeric && (() => { const parsed = fromInput(original, value); return parsed.ok && typeof parsed.value === "number"; })();
   const hintId = `${id}-hint`;

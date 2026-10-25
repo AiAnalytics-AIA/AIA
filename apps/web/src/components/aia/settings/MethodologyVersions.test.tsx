@@ -354,6 +354,24 @@ describe("the methodology's versions", () => {
     expect(sent.some((s) => s.url.endsWith("/check") || s.method === "POST")).toBe(false);
   });
 
+  it("moves the focus to a refused formula from its problem, the formulas closed or not", async () => {
+    fakeApi({ check: () => ({ valid: false, problems: { "formula.f12.kernel": "rises with distance" }, not_computed: [], formulas_latex: {} }) });
+    render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
+    const link = await within(form).findByRole("button", { name: /: rises with distance$/ });
+    // The check opened the formulas; the person closes them again before following the problem.
+    const formulas = form.querySelector("[data-edit-formulas]") as HTMLDetailsElement;
+    await waitFor(() => expect(formulas.open).toBe(true));
+    fireEvent.click(formulas.querySelector("summary")!);
+    await waitFor(() => expect(form.querySelector('[data-edit-slot="f12.kernel"]')).toBeNull());
+    // Every frame runs at once, before React commits: a focus given on a frame would find nothing.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(0); return 0; });
+    fireEvent.click(link);
+    await waitFor(() => expect(document.activeElement).toBe(form.querySelector('[data-edit-slot="f12.kernel"] textarea')));
+  });
+
   it("say a replaced formula can be stored but not yet put in force, and draw it", async () => {
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: ["f12.kernel"], formulas_latex: { "f12.kernel": "h \\exp\\left(-\\frac{d_2}{2\\sigma^{2}}\\right)" } }) });
     render(<MethodologyPanel />); await openMap();
@@ -558,6 +576,10 @@ describe("guided methodology editing", () => {
     fireEvent.click(within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Snížit: Šířka kopce σ" }));
     expect(sigma.value).toBe("0,24");
     expect(sigma.closest("[data-edit-row]")?.getAttribute("data-changed")).toBe("true");
+    // A value typed finer than the step keeps its places: 0,255 − 0,01 is 0,245 (review of #889).
+    fireEvent.change(sigma, { target: { value: "0,255" } });
+    fireEvent.click(within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Snížit: Šířka kopce σ" }));
+    expect(sigma.value).toBe("0,245");
     // A typed value stays as typed: the domain's check decides, nothing here rounds it.
     fireEvent.change(nMin, { target: { value: "2" } });
     expect(nMin.value).toBe("2");
