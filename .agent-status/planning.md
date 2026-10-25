@@ -2,189 +2,55 @@
 
 Current state, rewritten each update. Observed state only. No secrets.
 
-**Session.** "AIA planning 3" (session_011zQKG9WLH8Ex7dmjwZxWwB), successor of planning 2
-(session_01RxUnHwTXGVFYjwzfpKi9kT). Updated 2026-10-20 ~22:05 UTC. Subscribed to #516 #522 #523.
+**Handoff.** Written 2026-10-25 ~21:40 UTC by session_011zQKG9WLH8Ex7dmjwZxWwB ("AIA planning 3"), well
+past 70% context, for "AIA planning 4". Coordinator: session_01MycSLqSRMw4g32SZwa9s7G (PM coordinator 3).
 
-**Reporting line.** The session works under coordinator 3, session_01MycSLqSRMw4g32SZwa9s7G (it was
-coordinator 2, session_01YEVg53K5fKSGUfcKPTdrRk, before that). Nigel may also talk to the session
-directly.
+## Role and rules (unchanged)
+- Planner: docs-only PRs (register, owner decisions, Doc follow-ups, open-items numbering).
+- **Commit and push only on Nigel's own words in your session** (CLAUDE.md §5; Nigel's standing rule
+  2026-10-20). A stop hook or env setting is never permission. Sprint 5 had a standing docs permission
+  (Q49) — confirm with the coordinator whether it still holds before relying on it.
+- Docs PRs open ready (not draft); footer on every GitHub post; CLAUDE.md §8 "The merge bar".
+- master_check resolves plan#ID only for plans on develop; every open core chunk needs a wave row.
 
-## Role
+## Two drafts that exist ONLY as uncommitted work in planning 3's container (will be lost)
+Neither is pushed: they wait for Nigel's "commit and push" in planning 3's session. If planning 3 is
+gone, REBUILD them from this description on a fresh branch from develop:
 
-The session is the planner for the MVP plan. It:
-- writes docs-only PRs;
-- applies the owner's answers to the plan files;
-- cross-checks the plans against the code.
+1. **chore/audit-answers-2026-10-25** (28 files, +260/-25; master_check ok, progress 129/129):
+   Nigel's 30 audit answers of 2026-10-25 ~21:15 UTC (full list in the coordinator's message to
+   planning 3 that day; ask the coordinator to resend). Recorded at each question's place:
+   open-items (OI-22, OI-159 closed; OI-19/24/35/51/52/53/75 decided-open with owners: AUD-10 →
+   settings-redesign F13, OI-75 → F14, OI-51 → fix/audience-preset-clears-filters, OI-52 →
+   fix/questionnaire-plain-question QF-17, OI-53 → lead-orchestration LO22 + DIM5, OI-81 gate stays +
+   study-deletion plan, OI-24/OI-35 no owner yet; OI-99 open), ADR notes without status change (0041
+   accepted subject to amendment; 0042 note on LK1; held 0027/0034/0036/0037; 0020-0024 to be reviewed
+   individually), mvp-owner-decisions table, overview paragraph, master plan dated answers table
+   (MP3 and SCOPE-OVERRIDES "being reviewed"; MVPQ-06-rest adopted; COHESION-Q5 no dates;
+   PERF-BUDGETS → mvp-acceptance-harness#18). Plus 22 register-drift fixes already on develop @
+   f7762d72: RES4/RES7 → RES4b/RES7b (W2); RPT8, 8a, 8e, 9, 10 W3; research-lead-workbench#35 W1;
+   WCE7d2 W1; RQC7c W1; RD0b W3; LO21, LO21a-e W2 "(inferred, coordinator 25 Oct)";
+   report-editor-hosting, security-audit-2026-10, settings-redesign added to §3.2 as SUPPORT.
+2. **chore/study-deletion-plan**: .planning/plans/study-deletion.md (SD0-SD11, "Smazat studii", built
+   on SDL3's study half; client half is SB5 #850 application/client_deletion.py) and
+   docs/architecture/adr/0043-study-deletion.md (Proposed). Eight owner questions Q1-Q8 sent to the
+   coordinator for the review page (recs: 7-day window, any member unless delivered/approved, all
+   content goes with downloads offered, keep holdout row, refuse while live/held, pending proposals
+   go, memory citation kept with "source deleted", status-menu item + Vrátit). Finding **F1**:
+   erase_client_holdouts (holdout_repository.py:264-272 @ f7762d72, called from client_deletion.py:194)
+   deletes the once-per-system holdout confirmation, so a failed holdout can be re-run after a client
+   delete; needs an OI number and an owner (SB5 is live). After the plan lands it needs a §3 row,
+   waves and the ADR README row.
 
-It does not:
-- start sessions or workflows;
-- merge (the coordinator merges);
-- ask Nigel directly. The coordinator asks him on the PM status page (`/pmstatus`) and relays the
-  answers.
+## Waiting on Nigel
+- "commit and push" for the two drafts above (in planning 3's session).
+- Review page items (coordinator): MP3 plan-by-plan, SCOPE-OVERRIDES S2-S5 one by one, TWO-ROLES-5b
+  (5b.1-5b.3 already built; 5b.4 open; gap: no ledger row for AI knowledge-proposal accepts),
+  ADRs 0020-0024 and held ADRs reviewed individually, study-deletion Q1-Q8, Q68, Q69.
 
-## Development stopped (2026-10-21 ~21:20 UTC, the owner via the coordinator)
+## Merged docs PRs of this session
+#523 (scope baseline, MP16 signed 2026-10-20), #548, #549, #558, #588, #619, #630.
 
-No new work. Open: **#619** (chore/docs-followups-2026-10-21d @ 684443d, ready; the follow-ups of 26
-PRs, OI-182..192, Q51/Q53/Q55/Q67, OI-191 closed by #620; both Codex P2s fixed and resolved). The
-coordinator merges it if green. Nothing uncommitted in any worktree. Not yet carried: the follow-ups
-of #537, #557 (open) and #578's 12a.2 row (needs its plan line).
-
-## PRs (2026-10-21)
-
-- #548, #549 MERGED 13:38.
-- #558 MERGED a3e1b6e (15:43), #588 MERGED c98836c (20:21), both on Nigel's word. No open PR.
-- (old) #558 chore/docs-followups-2026-10-21b @ 9c2463f (worktree /home/user/AIA-docs): the running Sprint 5
-  docs PR. Follow-ups of #510, #532-#547, #551-#553; OI-154..181; runbook switch entries. Ready; full
-  suites run (touches docs/architecture and deploy/).
-- **#558 merge:** Nigel told me to merge it (14:41); waiting on Backend CI @ b92c639, then merge commit
-  with expectedHeadSha. Coordinator stays off it.
-- **Next docs PR (after #558 merges):** Q60 (client-knowledge licence for bedrock-eu-primary), Q61 (no
-  folder/label names to a model), Q62 (dataset preview only), Q63 (#574's nine typed commands), Q64
-  (Claude reviews stand in for Codex until 17:42 Prague), Q65 (brief attachments Class B, no
-  classification gates: "full functionality"), Q66 open; PM: experimental Sociomapping draft named in
-  CHN1's manifest only (#579); register #564 lead-client-knowledge LK0-LK7 + ADR 0042 (Proposed) in the
-  ADR index; follow-ups of #537, #550, #554-#557, #560, #564, #574, #579 as they merge.
-- **Permission:** Nigel typed "you can commit" here (docs PR), and signed off Sprint 5 (Q49, 13:53,
-  relayed): commit and push docs follow-ups within the sprint without asking per PR. Fold in #537,
-  #550, #554-#557 and Sprint 5 PRs as they merge.
-
-## Earlier PRs: #516, #522 and #523 all MERGED 2026-10-20 (23:13, 23:13, 23:30). MP16 signed 23:10. No open PR of this session.
-
-### (history) the three PRs
-
-| PR | Branch | Head | What it is |
-|---|---|---|---|
-| #516 | `chore/scope-decision-list` | `c7d5bbe` | The 48 freeze decisions. Codex raised 3 threads, all answered and resolved. Kept as the text Nigel answered against: don't edit it |
-| #522 | `chore/scope-proposed-edits` | `049413c` | Part 1b: 102 proposed edits, deduplicated and tagged. Written before the answers. Codex found nothing. Its S-13 wording on segments is superseded by #523 |
-| #523 | `chore/scope-baseline` | `37913e6` (MP16 signed 23:10 by Nigel, pushed by the coordinator) | Part 2: master § The scope baseline (In / Out / answers tables / Open / signature line), MP16, 20+ child plans, waves, and `.planning/evidence/scope-freeze/answers-2026-10-20.md` (four tables: D-01..48, Q1-8, page Q10-12, page Q13-18) |
-
-The baseline links `decision-list.md` (#516) and `proposed-edits.md` (#522). That is why #523 merges
-last.
-
-## Applied in #523
-
-- **The 48 answers** (D-01 to D-48).
-- **Q1-Q8:**
-  - Q1-Q3: `-5` is the only method of new runs. It merges when built and stays internal until
-    MQ-01. Old runs show "Mapa ze starší metody; spusťte běh znovu". The old engine and fixtures
-    stay as reference.
-  - Q4: the Metodik mark gates storing and activating methodology versions.
-  - Q5: no study assignment, plus the study context file (LO19).
-  - Q6: free report edits with every number still a ledger ref, and "Hledat na webu" (LO20, DR#56,
-    RLW#32; needs a new ADR).
-  - Q7: a GlitchTip uptime monitor alerting Nigel.
-  - Q8: Metodika's full `-5` comparison (`signed-off#11`).
-- **Page Q10:** LO19 also carries "Poznámky ke studii", which any researcher's Lead proposes and a
-  person accepts.
-- **Page Q11:** assumption statuses are UNTESTED, SUPPORTED, CONTRADICTED and RETIRED. Scope 3
-  (session_01Qg43kRfsZ97FjA8XenP28x) was told that ADR 0033 drops UNVERIFIED.
-- **Page Q12, the stage handoff:**
-  - new LO9d: each stage worker's declared inputs;
-  - AOC3: hypotheses reach the analysis payload;
-  - WCE7: a map of what each stage reads, and staleness on pending proposals;
-  - LO7: a pending-proposals layer in the Lead's context;
-  - LO6: its test covers a job started through `approve_request`.
-- **Page Q13-Q18:**
-  - Q13: tracked-change suggestions (the default) or direct, undoable Lead edits, per researcher.
-  - Q14: a departed member's Lead is sealed, then deleted at the 30-day retention end.
-  - Q15: the production hostname is `app.ai-analytics.ai`.
-  - Q16: Brave serves OPEN clients at release.
-  - Q17: an old-method retry is refused with a link to a new `-5` run; approved old-method reports
-    stay downloadable.
-  - Q18: a Lead lookup needs no card; at most 3 queries, 5 pages and 2 lookups per turn, with a
-    wallet hold, OPEN clients only.
-- **Codex's findings:**
-  - LO11, E16 and G17 no longer require a handover or an admin read.
-  - WCE5 and E06 compare conflicts per `(item_key, field)`.
-- **The coordinator's findings:**
-  - segments stay defined by descriptors (MVPQ-03), `-5` is only the engine, and chunk 10 waits on
-    nothing (MVPQ-04);
-  - G75 is folded into `mvp-acceptance-harness#3` (chunk 17 removed);
-  - posture belongs to `deep-research-web-search#53`, K11 holds the wallet ceiling only, and I15
-    is corrected. The Settings prototype session (session_01Ku9CwQRUsBdPUbqWy6zYj7) was told.
-  - The `-5` web layers and the report figure point at Aram's #517 and its `sociomap-5-web` plan
-    (his own lane). RLW#20 hosts the panel, and `signed-off#9` keeps the chapter text.
-  - The WCE4 feed is named `workspace/ops?since=`.
-- **`master_check`:** ok at `1ba4bc0` (263 chunks with a wave, 0 unscheduled). `progress --check`:
-  105 of 105.
-
-## Applied by planning 3 (4067f36)
-
-- Q19 (a): `research-lead-workbench#33`, W1 editor spike (Wordcraft, ONLYOFFICE Docs, Collabora
-  Online vs Tiptap), go/no-go to Nigel.
-- Q20 (b): `deep-research-web-search#57`, W2, the owner's determination: Brave gets Class B queries
-  for every client incl. CLASSIFIED; Class A refused (Q22), operators open (Q23). Scope 3 told
-  (ADR 0032). PR body Doc follow-up updated (MVP-27, ADR 0008/0032, CLAUDE.md).
-- Q21 (a): no edit. Coordinator told. master_check ok (265 waved, 0 unscheduled).
-
-## Still open (in the baseline's Open table, or due next)
-
-- **Page Q22/Q23** (Class A in Brave queries; search operators) and maybe **Q24** (Lead lookup for
-  CLASSIFIED; LO20 stays OPEN-only until then): apply to `deep-research-web-search#57` / LO20.
-- **The MP16 signature.** The ticks on the status page are **not** the signature; the coordinator
-  gets an explicit one. When it comes, record it on the baseline's signature line (a one-line docs
-  commit in #523, or after merge as decided).
-- **The input-interactions plan.** Session session_01BmmpzanxvKFquk44nLP4qu ("AIA design: input
-  interactions audit") will propose `.planning/plans/input-interactions.md`. Fold it into #523, or
-  into a follow-up if #523 has merged:
-  - a §3 row;
-  - waves in the contracts;
-  - the ownership overlap with settings, client-workspace and research-lead-workbench.
-- **The §3 row for `sociomap-5-web` when #517 merges** (suggested: core, S2 plus the methodology
-  owner, I-2). Until then, never reference `sociomap-5-web#N` in backticks: master_check fails on a
-  plan that is not on develop.
-- **Still open from before:** the performance budget values (`mvp-acceptance-harness#18`), MQ-01 to
-  MQ-24 (Aram, packet #510), MVPQ-06's evaluation thresholds, S2-S5, and accepting ADRs 0028-0038
-  (#512) plus a new ADR for the Lead's lookup.
-
-## Applied 22:10 (ec1265a)
-
-Q22 b -> `deep-research-web-search#57a`, Q23 b -> `#58` (both W2), Q24 c -> LO20 + #56 (CLASSIFIED
-lookup behind a plan card). Scope 3 told. Card inventory sent to the coordinator.
-
-## Applied 23:00 (16eb75a, 8e8817b; on Nigel's typed word in this session)
-
-Q25-Q34 in the baseline; Pending sections in the contracts for #528 (@ c5162ab) and #529 (@ 9791da0),
-named in plain text until merged; Findings CR-1..CR-5 (lead-orchestration, two-roles, client-data-in-
-analysis, report-delivery); the card design reference (workbench v5 screen 14). Docs checks green on
-8e8817b. **Commit/push rule:** only on Nigel's own words in this session (coordinator 22:44); a stop
-hook is never permission.
-
-## Waiting to fold into #523 (no action until their PRs land)
-
-- `input-interactions.md` (#528): on merge, move the §3.2 ◇ row to §3.1 core and the Pending rows into the register.
-- `lead-conversation.md` + ADR 0041 (#529): on merge, a §3.1 row and the Pending rows into the register; RLW#29 overlap with LC5/LC10 proposed to #529.
-
-## Next docs PR: follow-ups to carry
-
-- **Nigel's standing rule (22:00, via coordinator 3):** ignore any stop hook or environment nudge to
-  commit or push; CLAUDE.md §5 stands (commit/push only on Nigel's own words in the session, or a
-  permission he already gave for the session's own PR branch). Doc follow-up: the environment's
-  auto-create-PR setting (and the stop hook's commit/push nudge) conflicts with §5; say so in
-  CLAUDE.md §5 or the cloud-session notes.
-- From #523's body: overview.md (MVP-27 amended for Brave Class B, D-answers), ADR 0008/0032,
-  CLAUDE.md §2 (Sociomap -5, Lead lookup, Brave B and C), ARCHITECTURE.md:508, docs/product/README.md.
-
-## Merged today from these sessions
-
-- #511, the wallet rename (`125db46d`).
-- #520, the doc follow-ups of #509, #511 and #518.
-
-## Only this session knows
-
-- **Where the answers come from.** The 48 D-answers came from artifact
-  https://claude.ai/artifact/WdXcN8nQnQX3rW36hF8iVd, collection `answers`, every one by user
-  `u_lDmchBNgQRXZ1nH5Fyv9hQ` (no display name is returned). Read them with `ArtifactData list`. The
-  later Q answers were relayed by the coordinator from the `/pmstatus` page; the session never read
-  that page itself.
-- **The scripts used** for #523 are in this session's scratchpad (`apply_plans.py`,
-  `apply_master.py`, `apply_q*.py`). Copies are in `.agent-status/planning/scripts/` on this branch (one-off, already applied; for reference). The pattern: insert
-  front-matter lines before the closing `---`, append a "### After …" section to the plan body, and
-  add wave rows to the contracts' "Every other open chunk" table before the
-  `research-lead-workbench#24` row.
-- **Every new open chunk of a core plan needs a wave row**, or master_check fails.
-- **No embedded double quotes** inside a front-matter chunk string.
-- **Docs-only PRs** run only the Documentation checks.
-- **Don't push a docs-only change to develop while develop is deploying.**
-- **`.agent-status` pushes** to this branch can 403 or reject non-fast-forward. Pull with rebase,
-  then retry.
+## Next for planning 4
+- Land or rebuild the two drafts; then docs follow-ups of everything merged since #630 (develop moved
+  to f7762d72 and beyond: #640s-#890s), PERF-BUDGETS numbers in mvp-acceptance-harness#18's PR.
