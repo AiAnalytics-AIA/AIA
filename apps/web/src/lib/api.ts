@@ -1960,6 +1960,9 @@ export type DrSettingVersion = {
   state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
   /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
   decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
+  /** Whether the caller may approve it now (#897): false for their own proposal while independent
+   *  review is required. Absent from a server before it: the page offers it to an administrator. */
+  may_approve?: boolean;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
