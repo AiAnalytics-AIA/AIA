@@ -243,6 +243,8 @@ const KNOWN = [
   // Zpráva opening its draft in the report editor, on a workbench started with it on
   // (AIA_WORKBENCH_REPORT_EDITOR=true): a session for the draft, nothing paid (artifact-report RPT8d).
   /^POST \/api\/v1\/studies\/[^/]+\/research\/runs\/[^/]+\/report\/editor$/,
+  // and the one-time ticket its script is loaded through (RPT8e)
+  /^POST \/api\/v1\/session\/docs-ticket$/,
 ];
 const starts = writes.filter((w) => /^POST \/api\/v1\/studies\/[^/]+\/research\/runs$/.test(w));
 const unknown = writes.filter((w) => !starts.includes(w) && !KNOWN.some((k) => k.test(w)));

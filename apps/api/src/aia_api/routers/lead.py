@@ -38,8 +38,10 @@ from aia_core.application.research_lead import (
     LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
+    LeadMessageNotQueued,
     LeadNotHatched,
     LeadProfile,
+    LeadQueueFull,
     LeadRejected,
     LeadSelfUpdateDecided,
     LeadSelfUpdateNone,
@@ -230,6 +232,13 @@ class LeadTurn(BaseModel):
     #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
     #: as the person's own, a ``chat_start``. ``null`` on every other turn.
     command: str | None = None
+    #: A person's message that waits for the Lead: no Lead turn was sent it and no withdrawal
+    #: names it (ADR 0041 decision 7). Derived from the rows, never stored.
+    queued: bool = False
+    #: A person's message the researcher withdrew before the Lead was sent it.
+    withdrawn: bool = False
+    #: The messages a Lead turn was sent, in queue order (its answer rows).
+    answers: list[str] = Field(default_factory=list)
 
 
 class TypedCommand(BaseModel):
@@ -423,6 +432,10 @@ def _lead_errors() -> Iterator[None]:
         raise _error(409, exc.reason, "Your Research Lead is already hatched.") from exc
     except LeadBusy as exc:
         raise _error(409, exc.reason, "The Lead is still answering your last message.") from exc
+    except LeadQueueFull as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
+    except LeadMessageNotQueued as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
     except LeadTurnNotReady as exc:
         raise _error(409, exc.reason, "The Lead has not finished this turn.") from exc
     except LeadSelfUpdateDecided as exc:
@@ -620,6 +633,48 @@ def read_omitted(
         total=total,
         omitted=[OmittedId.model_validate(o) for o in omitted],
     )
+
+
+@router.post(
+    "/lead/turns/queued",
+    response_model=LeadTurns,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Off, or not hatched"}},
+)
+def answer_queued(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    store: ArtifactStoreDep,
+    response: Response,
+) -> LeadTurns:
+    """Start the Lead's turn on the caller's messages that wait, once the conversation is free:
+    201 with the Lead turn, or 200 with none when nothing waits or the Lead is still at work.
+    Any tab may ask; two asks start one turn (ADR 0041 decision 7)."""
+    external = store if settings.ai_analysis_external_context else None
+    with _lead_errors():
+        turns = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).answer_queued()
+    if not turns:
+        response.status_code = status.HTTP_200_OK
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+
+
+@router.post(
+    "/lead/turns/{turn_id}/withdraw",
+    response_model=LeadTurns,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not the caller's own message"},
+        409: {"model": ErrorResponse, "description": "The message no longer waits"},
+    },
+)
+def withdraw_message(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> LeadTurns:
+    """Withdraw one of the caller's messages that still waits for the Lead: it stays stored,
+    and no turn is ever sent it."""
+    with _lead_errors():
+        turns = ResearchLead(session, scope).withdraw(turn_id)
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
 
 
 @router.post(
