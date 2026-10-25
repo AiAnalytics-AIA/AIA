@@ -738,7 +738,9 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
   const steppable = numeric && (() => { const parsed = fromInput(original, value); return parsed.ok && typeof parsed.value === "number"; })();
   const hintId = `${id}-hint`;
   const step = (direction: 1 | -1) => (
-    <button type="button" tabIndex={-1} disabled={!steppable}
+    // Dense: the pointer's shortcut beside the field, which takes ↑ ↓ from the keyboard (WCAG 2.5.8's
+    // 24 px holds; the workspace's 44 px is for controls with no other path).
+    <button type="button" tabIndex={-1} data-dense disabled={!steppable}
       aria-label={tv(direction > 0 ? "input.increase" : "input.decrease", { label: field.label_cs })}
       onClick={(e) => nudge(direction, e.shiftKey)}
       className={`inline-flex size-11 shrink-0 items-center justify-center text-ink-muted hover:bg-surface-sunken hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent sm:size-8 ${FOCUS}`}>
