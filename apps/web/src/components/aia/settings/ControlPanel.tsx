@@ -768,7 +768,10 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       {/* The tab list as the prototype's plain column (v51): 228 px, a rule on its right; a
           scrolling row with the names alone on a phone. */}
       <div data-settings-tabs className="flex min-w-0 shrink-0 flex-col border-b border-border xl:w-[228px] xl:border-b-0 xl:border-r">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex min-w-0 gap-0.5 overflow-x-auto px-4 py-2 xl:sticky xl:top-[47px] xl:flex-col xl:overflow-visible xl:px-3 xl:pb-3 xl:pt-5">
+      {/* The tabs and the switch under them stay put together as the page scrolls: the tabs alone
+          sticky let the switch slide under them. */}
+      <div className="flex min-w-0 flex-col xl:sticky xl:top-[47px]">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex min-w-0 gap-0.5 overflow-x-auto px-4 py-2 xl:flex-col xl:overflow-visible xl:px-3 xl:pb-3 xl:pt-5">
         {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-0.5 xl:flex-col">
           <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
@@ -794,6 +797,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
           prototype has no place for it, so it waits under the tabs, out of every head. */}
       <div data-technical-switch className="flex justify-end px-4 pb-2 xl:justify-start xl:px-5 xl:pb-5">
         <TechnicalSwitch on={technical} onChange={setTechnical} />
+      </div>
       </div>
       </div>
       <div className="min-w-0 max-w-[1180px] flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
