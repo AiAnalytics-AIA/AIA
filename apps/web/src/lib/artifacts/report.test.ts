@@ -9,7 +9,8 @@ import { describe, expect, it } from "vitest";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 
 import {
-  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, readDocument, reviewWords, sectionTarget,
+  editedLineWords,
+  approvalWords, blockTarget, claimLines, claimTarget, gradeWords, markSpans, readDocument, reviewWords, sectionTarget, sentenceMarks, warningsWords,
   supportWords, unresolvedRefs, valueWords, type LedgerEntry, type ReportDocumentModel,
 } from "./report";
 
@@ -133,8 +134,62 @@ describe("who approved, in words (RD2)", () => {
     expect(approvalWords({ ...base, self_approved: true }, "2026-10-22")).toBe("schválil(a) Fiktivní Recenzentka 22. 10. 2026 · vlastní práce");
   });
 
+  it("says an approval that went past the client checks' warnings, and none when it went past none", () => {
+    const warned = { ...base, warnings: [{ code: "drill_down_content", where: "v.1", message: "doslovná odpověď" }] };
+    expect(approvalWords(warned, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026 přes 1 upozornění");
+    expect(approvalWords({ ...base, warnings: [] }, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026");
+    expect(approvalWords({ ...base, warnings: null }, "2026-10-24")).toBe("schválil(a) Fiktivní Recenzentka 24. 10. 2026");
+  });
+
+  it("groups the sentences the check marks by block, and nothing else (RD7)", () => {
+    const marks = sentenceMarks([
+      { code: "unsupported_comparison", where: "ch-a.1", message: "…", sentence: 0, text: "Nejvíc v Praze." },
+      { code: "unsupported_comparison", where: "ch-a.1", message: "…", sentence: 2, text: "Vyšší než loni." },
+      { code: "drill_down_content", where: "ch-a.1", message: "doslovná odpověď" },
+      { code: "unsupported_comparison", where: "ch-b.1", message: "…" },
+    ]);
+    expect([...marks]).toEqual([["ch-a.1", ["Nejvíc v Praze.", "Vyšší než loni."]]]);
+    expect(sentenceMarks(undefined).size).toBe(0);
+  });
+
+  it("cuts a text where it holds a marked sentence, keeping every word in order", () => {
+    const text = "Bankám důvěřuje většina. Nejvíc v Praze. Vyšší než loni. Konec.";
+    const spans = markSpans(text, ["Vyšší než loni.", "Nejvíc v Praze."]);
+    expect(spans.map((s) => s.text).join("")).toBe(text);
+    expect(spans.filter((s) => s.marked).map((s) => s.text)).toEqual(["Nejvíc v Praze.", "Vyšší než loni."]);
+    expect(markSpans("Jiný text.", ["Nejvíc v Praze."])).toEqual([{ text: "Jiný text.", marked: false }]);
+    expect(markSpans("Nejvíc v Praze.", ["Nejvíc v Praze."])).toEqual([{ text: "Nejvíc v Praze.", marked: true }]);
+    expect(markSpans("", ["x"])).toEqual([{ text: "", marked: false }]);
+  });
+
+  it("names where each warning is in words, and says nothing for none or none read", () => {
+    expect(warningsWords([{ code: "gate_unrecorded", where: "report", message: "verze nemá uložený dokument, nelze ji ověřit" }]))
+      .toBe("Upozornění (1): verze nemá uložený dokument, nelze ji ověřit (celá zpráva). Schválením je berete na vědomí; zaznamenají se se schválením.");
+    const document = { sections: [{ id: "ch-a", title: "Shrnutí", appendix: false, refs: [], blocks: [{ id: "ch-a.1" }] }] } as never;
+    expect(warningsWords([
+      { code: "unadmitted_number", where: "evidence", message: "čísla nejsou pro klienta" },
+      { code: "drill_down_content", where: "ch-a.1", message: "doslovná odpověď" },
+      { code: "drill_down_content", where: "ch-z.9", message: "doslovná odpověď" },
+    ], document)).toBe(
+      "Upozornění (3): čísla nejsou pro klienta (čísla zprávy); doslovná odpověď (oddíl „Shrnutí“); doslovná odpověď (blok ch-z.9). "
+      + "Schválením je berete na vědomí; zaznamenají se se schválením.",
+    );
+    expect(warningsWords([])).toBeNull();
+    expect(warningsWords(undefined)).toBeNull();
+  });
+
   it("says nothing for a draft", () => {
     expect(approvalWords(null, null)).toBeNull();
     expect(approvalWords(undefined, "2026-10-22")).toBeNull();
+  });
+});
+
+describe("editedLineWords: what stands over a composed draft (RPT8d)", () => {
+  it("names the version saved over it by koncept and review, and nothing while none was saved", () => {
+    expect(editedLineWords(null)).toBeNull();
+    expect(editedLineWords(undefined)).toBeNull();
+    expect(editedLineWords({ artifact_id: "ART-k3", koncept: 3, review_state: "DRAFT_UNAPPROVED" }))
+      .toBe("Nad tímto konceptem je v editoru uložen koncept 3 (neschválen); schvaluje se v editoru, tento koncept už ne.");
+    expect(editedLineWords({ artifact_id: "ART-k4", koncept: 4, review_state: "APPROVED_INTERNAL" })).toContain("koncept 4 (interně schválen)");
   });
 });

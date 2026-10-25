@@ -135,6 +135,19 @@ describe("LeadPane", () => {
     }
   });
 
+  it("shows a turn parked on the budget in coral to whoever can raise it, and slate to a reader who cannot", async () => {
+    state.turns = [turn({ turn_id: "LDT-B", status: "WAITING", reason: "budget_exceeded", output: null })];
+    render(pane());
+    const wait = await waitFor(() => { const n = document.querySelector('[data-lead-wait="budget_exceeded"]'); if (!n) throw new Error("no wait"); return n as HTMLElement; });
+    expect(wait.querySelector(".glyph")?.getAttribute("data-tone")).toBe("you");
+    expect(wait.textContent).toMatch(/Nastavte ho v Nastavení → Studie/);
+    cleanup();
+    state.turns = [turn({ turn_id: "LDT-B", status: "WAITING", reason: "budget_exceeded", output: null })];
+    render(pane({ canEdit: false }));
+    const read = await waitFor(() => { const n = document.querySelector('[data-lead-wait="budget_exceeded"]'); if (!n) throw new Error("no wait"); return n as HTMLElement; });
+    expect(read.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
+  });
+
   it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
     state.turns = [turn({ output: { reply: "Hotovo." } })];
     render(pane());

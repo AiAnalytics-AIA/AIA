@@ -304,8 +304,8 @@ describe("Deep Research settings", () => {
     fakeApi();
     render(<DeepResearchSettingsPanel people={people} />);
     await row(RETENTION);
-    expect(screen.getByText("Čte každý člen")).toBeTruthy();
-    expect(screen.getByText("Vy: navrhujete a schvalujete")).toBeTruthy();
+    // Who reads and who decides is the tab head's (ControlPanel), said once there.
+    expect(screen.queryByText("Vy: navrhujete a schvalujete")).toBeNull();
     // No reach route in this deployment (a 404): not in AIA yet, never an empty "nothing reachable".
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
     expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
@@ -532,7 +532,7 @@ describe("Deep Research settings", () => {
     const r = await row(RETENTION);
     expect(within(r).queryByRole("spinbutton", { hidden: true })).toBeNull();
     expect(within(r).getByText("žádný návrh")).toBeTruthy();
-    expect(screen.getByText("Navrhuje a schvaluje vlastník nebo správce")).toBeTruthy();
+    expect(screen.getByText(/Hodnoty navrhuje a schvaluje vlastník nebo správce/)).toBeTruthy();
   });
 
   it("says the API sent no settings rather than drawing an empty tab", async () => {

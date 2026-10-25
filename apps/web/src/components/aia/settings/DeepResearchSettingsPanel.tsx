@@ -117,10 +117,6 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
   const anyVisible = overview.settings.some(matches);
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-ink-muted">{t(`${D}.board.readsEveryone`)}</span>
-        <span className={`inline-flex min-h-[22px] items-center rounded-pill border px-2 ${overview.may_administer ? "border-signal-edge bg-signal-wash text-ink" : "border-border text-ink-muted"}`}>{t(`${D}.board.${overview.may_administer ? "youDecide" : "ownerDecides"}`)}</span>
-      </div>
       <Reach mayAdminister={overview.may_administer} />
       <Posture />
       {overview.may_administer ? null : <p className="text-sm text-ink-muted">{t(`${D}.adminNote`)}</p>}
@@ -423,7 +419,7 @@ function ProposeInPlace({ setting: s, onChanged, onOpen }: { setting: DrSetting;
       : STATUS_VALUES.map((v) => ({ key: v, label: t(`${D}.status.${v}`) }));
     const value = s.value === null ? null : String(s.value);
     return <>
-      <ChoiceChips label={label} value={value} options={options} onChange={(k) => { if (k !== value) void propose(kind === "decision" ? k === "true" : k).catch(() => {}); }} />
+      <ChoiceChips look="segmented" small label={label} value={value} options={options} onChange={(k) => { if (k !== value) void propose(kind === "decision" ? k === "true" : k).catch(() => {}); }} />
       {shown}
     </>;
   }

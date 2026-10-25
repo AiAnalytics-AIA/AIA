@@ -4,24 +4,26 @@
 // 8W9LR8Ju9BWnR5JACmiWv7, Access board): members with their role chosen in the row, the roles
 // explained, self-approval above the clients, and each client's status and self-approval chosen
 // in its row. Every change is one API call made where the value is shown (input standard I3/I4);
-// a role change offers Vrátit for 8 s (I6). What AIA does not have yet -- the Metodik mark,
-// deactivating a member, a client's data posture and wallet ceiling -- says so in its place.
+// a role change offers Vrátit for 8 s (I6). The Metodik mark is the OWNER's to grant (#823, D-14);
+// deactivating a member seals their Lead (#830, ADR 0030), both at once with Vrátit. A client's
+// data posture and wallet ceiling are read here (#853) and set on its Profil → Pravidla (D-17).
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type AdminClient, type Member, type SelfApprovalLevels, type Vocabularies, Unauthenticated, admin } from "@/lib/api";
+import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import { useSession } from "@/lib/auth";
 import type { SaveState } from "@/lib/inline-edit";
+import { usd } from "@/lib/researcher-spend";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineText } from "../../ui/InlineText";
+import { Switch } from "../../ui/Switch";
 import { FOCUS, SaveNote } from "../../ui/parts";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { Button } from "../../rehome/ui";
-import { describeMemberError } from "./errors";
+import { describeError, describeMemberError } from "./errors";
 
 const P = "aia.settings.panel";
 const A = `${P}.accessTab`;
@@ -77,10 +79,14 @@ const GRID_HEAD = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
 
 // ---------------------------------------------------------------- members
 
-function MemberRow({ m, roles, locked, lockedWhy, canAdminister, self, reload, offerUndo }: {
+function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, known, reload, offerUndo }: {
   m: Member; roles: readonly string[]; locked: boolean; lockedWhy: string | null; canAdminister: boolean;
+  /** The signed-in person is an OWNER: only they grant the Metodik mark. */
+  owner: boolean;
   /** The signed-in person's own row. */
   self: boolean;
+  /** Whether who you are was read: unknown, no row offers deactivation (it could be yours). */
+  known: boolean;
   reload: () => void;
   offerUndo: (message: string, undo: () => void) => void;
 }) {
@@ -109,9 +115,29 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, self, reload, o
     // A refused name is not the newest: a later role change must not send it again.
     return save(typed.current, m.organization_role).then(reload, (e: unknown) => { typed.current = null; throw e; });
   };
+  const who = m.display_name || m.email;
+  const deactivatedHere = !!m.deactivated_at;
+  const mark = useSave(reload);
+  const membership = useSave(reload);
+  const setMark = async (on: boolean) => {
+    if (await mark.run(() => admin.setMethodologist(m.user_id, on))) {
+      offerUndo(tv(`${A}.${on ? "metodikGranted" : "metodikRevoked"}`, { who }), () => { void mark.run(() => admin.setMethodologist(m.user_id, !on)); });
+    }
+  };
+  // Deactivation is at once and undone by reactivating: within 30 days the Lead is unsealed for them.
+  const deactivate = async () => {
+    // The toast says the Lead is sealed only when the answer says so: a member who never hatched one has none.
+    let sealed = false;
+    if (await membership.run(async () => { sealed = !!(await admin.deactivateMember(m.user_id))?.lead_sealed_at; })) {
+      offerUndo(tv(`${A}.${sealed ? "deactivated" : "deactivatedNoLead"}`, { who }), () => { void membership.run(() => admin.reactivateMember(m.user_id)); });
+    }
+  };
+  // Only an OWNER restores an OWNER (owner_only): an administrator is not offered what the API refuses.
+  const restoreLocked = m.organization_role === "OWNER" && !owner;
+  const eraseOn = m.lead_erase_after ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeZone: "Europe/Prague" }).format(new Date(m.lead_erase_after)) : null;
   const initials = (m.display_name || m.email).split(/[\s.@]+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
   return (
-    <div role="row" data-member={m.user_id} className={`contents ${m.is_active ? "" : "[&>div]:text-ink-faint"}`}>
+    <div role="row" data-member={m.user_id} data-deactivated={deactivatedHere ? "true" : undefined} className={`contents ${m.is_active ? "" : "[&>div]:text-ink-faint"}`}>
       <div role="cell" className="flex min-w-0 items-center gap-2 border-t border-border px-2 py-2">
         <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-medium text-ink-muted">{initials}</span>
         <span className="min-w-0">
@@ -124,17 +150,36 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, self, reload, o
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {canAdminister && !locked ? (
-          <ChoiceChips label={tv(`${A}.roleOf`, { who: m.email })} value={m.organization_role} options={roles.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={(role) => void setRole(role)} />
+          <ChoiceChips look="segmented" small label={tv(`${A}.roleOf`, { who: m.email })} value={m.organization_role} options={roles.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={(role) => void setRole(role)} />
         ) : (
           <span className="text-sm">{t(`aia.orgRoles.${m.organization_role}`)}{lockedWhy ? <span className="block text-xs text-ink-faint">{lockedWhy}</span> : null}</span>
         )}
         {error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null}
         {note ? <p role="status" data-self-demoted className="mt-1 max-w-64 text-xs text-ink-muted">{note}</p> : null}
       </div>
-      <div role="cell" className="border-t border-border px-2 py-2"><NotYetChip /></div>
+      <div role="cell" className="border-t border-border px-2 py-2">
+        <Switch on={m.methodologist} label={tv(`${A}.metodikOf`, { who: m.email })} disabled={!owner || !m.is_active || mark.state === "saving"} onChange={(on) => void setMark(on)} />
+        {!owner && canAdminister ? <span className="block text-xs text-ink-faint">{t(`${A}.metodikOwnerOnly`)}</span> : null}
+        {mark.error ? <p role="alert" className="mt-1 max-w-56 text-xs text-status-fault">{mark.error}</p> : null}
+      </div>
       <div role="cell" className="border-t border-border px-2 py-2 text-sm">
         {t(`${A}.${m.is_active ? "active" : "inactive"}`)}
-        <span className="block"><SaveNote state={state} /></span>
+        {/* A seal is said only when the API reports one; none read is not "sealed" (never hatched, or erased). */}
+        {deactivatedHere && m.lead_sealed_at ? <span data-lead-sealed={m.user_id} className="block max-w-64 text-xs leading-5 text-ink-faint">{eraseOn ? tv(`${A}.sealed`, { when: eraseOn }) : t(`${A}.sealedNoDate`)}</span> : null}
+        {deactivatedHere && !m.lead_sealed_at && canAdminister ? <span data-lead-none={m.user_id} className="block max-w-64 text-xs leading-5 text-ink-faint">{t(`${A}.noSealedLead`)}</span> : null}
+        <span className="block"><SaveNote state={state === "idle" ? (mark.state === "idle" ? membership.state : mark.state) : state} /></span>
+        {membership.error ? <p role="alert" className="mt-1 max-w-56 text-xs text-status-fault">{membership.error}</p> : null}
+      </div>
+      <div role="cell" className="border-t border-border px-2 py-2">
+        {canAdminister && m.is_active && known && !self ? (
+          <Button small variant="quiet" disabled={locked || membership.state === "saving"} aria-label={tv(`${A}.deactivateOf`, { who: m.email })} onClick={() => void deactivate()}>{t(`${A}.deactivate`)}</Button>
+        ) : null}
+        {canAdminister && deactivatedHere ? (
+          <>
+            <Button small disabled={restoreLocked || membership.state === "saving"} aria-label={tv(`${A}.restoreOf`, { who: m.email })} onClick={() => void membership.run(() => admin.reactivateMember(m.user_id))}>{t(`${A}.restore`)}</Button>
+            {restoreLocked ? <span className="mt-1 block max-w-48 text-xs text-ink-faint">{t(`${P}.members.ownerOnly`)}</span> : null}
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -179,8 +224,10 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
         {error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null}
       </div>
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2">
-        <ChoiceChips label={t(`${A}.newRole`)} value={role} options={choices.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={setRole} />
+        <ChoiceChips look="segmented" small label={t(`${A}.newRole`)} value={role} options={choices.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={setRole} />
       </div>
+      {/* Metodik: a new member has no mark; the cell keeps the five columns in step (review of #859). */}
+      <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2" />
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</div>
       <div role="cell" className="flex items-start gap-1 border-t border-border bg-surface-sunken px-2 py-2">
         <Button small variant="primary" disabled={!email.trim() || state === "saving"} onClick={() => void add()}>{t(`${A}.add`)}</Button>
@@ -192,11 +239,14 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
 
 const ROLE_BOXES = ["OWNER", "ADMIN", "MEMBER", "METODIK"] as const;
 
-export function MembersCard({ members, vocab, canAdminister, yourRole, reload }: {
+export function MembersCard({ members, vocab, canAdminister, yourRole, reload, myId }: {
   members: Part<Member[]>; vocab: Vocabularies; canAdminister: boolean; yourRole: string; reload: () => void;
+  /** Your own user id, from the page's one /workspace/me read; null while unread or refused. */
+  myId: string | null;
 }) {
   const undo = useUndo();
-  const me = useSession()?.email?.toLocaleLowerCase() ?? null;
+  // You are your user id: a token's e-mail can be missing or changed under the same subject (review
+  // of #859). Until the id is read, no row is yours and none offers deactivation.
   // Only an OWNER grants or removes OWNER (the API refuses it, owner_only); the last active OWNER
   // is not offered a demotion the API refuses (last_owner).
   const owner = yourRole === "OWNER";
@@ -212,29 +262,32 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload }:
         <div className="flex flex-wrap items-center gap-1.5">
           {members.ok ? <Count>{tv(`${A}.activeCount`, { n: list.length - inactive })}</Count> : null}
           {inactive ? <Count>{tv(`${A}.inactiveCount`, { n: inactive })}</Count> : null}
+          {members.ok ? <Count>{tv(`${A}.metodikCount`, { n: list.filter((m) => m.methodologist).length })}</Count> : null}
           <Count tone={canAdminister ? "signal" : "neutral"}>{t(`${A}.${canAdminister ? "youManage" : "managedBy"}`)}</Count>
         </div>
       </div>
       <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.membersHelp`)}</p>
       {members.ok ? (
-        <div role="table" aria-label={t(`${A}.members`)} className="mt-3 grid min-w-0 grid-cols-[minmax(12rem,1.4fr)_minmax(10rem,max-content)_max-content_minmax(7rem,1fr)] overflow-x-auto">
+        <div role="table" aria-label={t(`${A}.members`)} className="mt-3 grid min-w-0 grid-cols-[minmax(12rem,1.4fr)_minmax(10rem,max-content)_max-content_minmax(7rem,1fr)_max-content] overflow-x-auto">
           <div role="row" className="contents">
             <div role="columnheader" className={GRID_HEAD}>{t(`${P}.col.member`)}</div>
             <div role="columnheader" className={GRID_HEAD}>{t(`${P}.members.role`)}</div>
             <div role="columnheader" className={GRID_HEAD}>{t(`${A}.metodik`)}</div>
             <div role="columnheader" className={GRID_HEAD}>{t(`${A}.state`)}</div>
+            {/* relative: the sr-only label is absolute, and must stay inside the scrolling table. */}
+            <div role="columnheader" className={`relative ${GRID_HEAD}`}><span className="sr-only">{t(`${A}.deactivate`)}</span></div>
           </div>
           {ordered.map((m) => {
             const isOwnerRow = m.organization_role === "OWNER";
             const locked = isOwnerRow && !(owner && activeOwners > 1);
             const lockedWhy = isOwnerRow && canAdminister ? t(`${P}.members.${owner ? "lastOwner" : "ownerOnly"}`) : null;
-            return <MemberRow key={m.user_id} m={m} roles={roles} locked={locked} lockedWhy={locked ? lockedWhy : null} canAdminister={canAdminister}
-              self={me !== null && m.email.toLocaleLowerCase() === me} reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
+            return <MemberRow key={m.user_id} m={m} roles={roles} locked={locked} lockedWhy={locked ? lockedWhy : null} canAdminister={canAdminister} owner={owner}
+              self={myId === m.user_id} known={myId !== null} reload={reload} offerUndo={(message, back) => undo.offer({ message, undo: back })} />;
           })}
           {canAdminister ? <AddMemberRow roles={roles} reload={reload} /> : null}
         </div>
       ) : <p role="alert" className="mt-3 text-sm text-status-fault">{members.message}</p>}
-      <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${A}.deactivateNotYet`)}</p>
+      {inactive ? <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${A}.deactivatedHelp`)}</p> : null}
       <div className="mt-5 border-t border-border pt-4">
         <h4 className="text-sm font-semibold">{t(`${A}.rolesTitle`)}</h4>
         <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2.5">
@@ -263,7 +316,7 @@ function OrgSelfApproval({ value, canAdminister, reload }: { value: boolean | nu
     <div data-level="organization" className="mt-3.5 flex flex-wrap items-center gap-3">
       <b className="min-w-[7.5rem] text-sm font-medium">{t(`${P}.approvals.organization`)}</b>
       {/* Výchozí clears the organization's rule (allowed: null): the code's default, allowed, applies again. */}
-      <ChoiceChips label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
+      <ChoiceChips look="segmented" label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
         options={[{ key: "inherit" as const, label: t(`${A}.orgDefaultChip`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k) }))} />
       <SaveNote state={state} />
@@ -279,7 +332,7 @@ function StudyRule({ studyId, name, value, canAdminister, reload }: { studyId: s
   return (
     <li data-study-rule={studyId} className="flex flex-wrap items-center gap-3">
       <span className="min-w-[10rem] text-sm">{name}</span>
-      <ChoiceChips label={tv(`${A}.selfOfStudy`, { study: name })} disabled={!canAdminister} value={value}
+      <ChoiceChips look="segmented" small label={tv(`${A}.selfOfStudy`, { study: name })} disabled={!canAdminister} value={value}
         options={[{ key: "inherit" as const, label: t(`${A}.inherit`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId }))} />
       <SaveNote state={state} />
@@ -302,7 +355,7 @@ function AddStudyRule({ studies, reload }: { studies: { study_id: string; name: 
         <option value="">{t(`${A}.chooseStudy`)}</option>
         {studies.map((s) => <option key={s.study_id} value={s.study_id}>{s.name}</option>)}
       </select>
-      <ChoiceChips label={t(`${A}.newStudyRule`)} disabled={!studyId} value={null}
+      <ChoiceChips look="segmented" small label={t(`${A}.newStudyRule`)} disabled={!studyId} value={null}
         options={[{ key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId })).then((ok) => { if (ok) { setStudyId(""); setOpen(false); } })} />
       <Button small variant="quiet" onClick={() => { setOpen(false); setStudyId(""); }}>{t(`${A}.cancel`)}</Button>
@@ -343,8 +396,39 @@ export function SelfApprovalCard({ levels, studies, canAdminister, reload }: {
   );
 }
 
-function ClientRow({ c, statuses, self, canAdminister, reload }: {
-  c: AdminClient; statuses: readonly string[]; self: Tri | null; canAdminister: boolean; reload: () => void;
+/** Every client's rules from one read: a 404 is "not in AIA yet", a client not answered for unknown. */
+type RulesRead = { state: "loading" } | { state: "not_yet" } | { state: "ready"; byClient: Map<string, ClientRules> } | { state: "refused"; message: string };
+
+function useClientRules(): RulesRead {
+  const [read, setRead] = useState<RulesRead>({ state: "loading" });
+  useEffect(() => {
+    let live = true;
+    clientRules.list().then(
+      (rows) => { if (live) setRead(Array.isArray(rows) ? { state: "ready", byClient: new Map(rows.map((r) => [r.client_id, r])) } : { state: "refused", message: t(`${A}.rulesMalformed`) }); },
+      (e: unknown) => { if (live) setRead(e instanceof ApiError && e.status === 404 && e.code === "http_404" ? { state: "not_yet" } : { state: "refused", message: describeError(e) }); },
+    );
+    return () => { live = false; };
+  }, []);
+  return read;
+}
+
+function RulesCell({ id, read }: { id: string; read: RulesRead }) {
+  if (read.state === "not_yet") return <NotYetChip />;
+  if (read.state === "loading") return <span data-client-rules="loading" className="text-xs text-ink-faint">…</span>;
+  // A refused read is said once, above the table; here the row is unknown.
+  const r = read.state === "ready" ? read.byClient.get(id) : undefined;
+  if (!r) return <span data-client-rules="unknown" className="text-sm text-ink-muted">{t(`${A}.rulesUnknown`)}</span>;
+  return (
+    <span data-client-rules="read" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 font-mono text-xs">{t(`${A}.posture.${r.effective_posture}`)}</span>
+      {r.data_posture === null ? <span className="text-xs text-ink-muted">{t(`${A}.postureUnset`)}</span> : null}
+      <span>{r.wallet_ceiling_usd === null ? t(`${A}.noCeiling`) : tv(`${A}.ceilingOf`, { amount: usd(r.wallet_ceiling_usd) })}</span>
+    </span>
+  );
+}
+
+function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
+  c: AdminClient; statuses: readonly string[]; self: Tri | null; rules: RulesRead; canAdminister: boolean; reload: () => void;
 }) {
   const status = useSave(reload);
   const approval = useSave(reload);
@@ -356,7 +440,7 @@ function ClientRow({ c, statuses, self, canAdminister, reload }: {
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {canAdminister ? (
-          <ChoiceChips label={tv(`${A}.statusOf`, { client: c.name })} value={c.status} options={statuses.map((s) => ({ key: s, label: t(`${P}.clientStatus.${s}`) }))}
+          <ChoiceChips look="segmented" small label={tv(`${A}.statusOf`, { client: c.name })} value={c.status} options={statuses.map((s) => ({ key: s, label: t(`${P}.clientStatus.${s}`) }))}
             onChange={(s) => void status.run(() => admin.setClientStatus(c.client_id, s))} />
         ) : <span className="text-sm">{t(`${P}.clientStatus.${c.status}`)}</span>}
         <SaveNote state={status.state} />
@@ -364,7 +448,7 @@ function ClientRow({ c, statuses, self, canAdminister, reload }: {
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {self === null ? <span className="text-xs text-ink-faint">{t(`${A}.adminOnlyShort`)}</span> : (
-          <ChoiceChips label={tv(`${A}.selfOf`, { client: c.name })} disabled={!canAdminister} value={self}
+          <ChoiceChips look="segmented" small label={tv(`${A}.selfOf`, { client: c.name })} disabled={!canAdminister} value={self}
             options={[{ key: "inherit" as const, label: t(`${A}.inherit`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
             onChange={(k) => void approval.run(() => admin.setSelfApproval({ allowed: allowed(k), client_id: c.client_id }))} />
         )}
@@ -372,7 +456,7 @@ function ClientRow({ c, statuses, self, canAdminister, reload }: {
         {approval.error ? <p role="alert" className="mt-1 text-xs text-status-fault">{approval.error}</p> : null}
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
-        <NotYetChip />
+        <RulesCell id={c.client_id} read={rules} />
         <Link href={appRoutes.area(c.client_id, "profile")} className={`mt-1 block text-xs text-signal hover:underline ${FOCUS}`}>{t(`${A}.changeInProfile`)}</Link>
       </div>
     </div>
@@ -383,10 +467,12 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
   clients: Part<AdminClient[]>; levels: Part<SelfApprovalLevels> | null; vocab: Vocabularies; canAdminister: boolean; reload: () => void;
 }) {
   const byClient = new Map(levels?.ok ? levels.data.clients.map((c) => [c.client_id, c.allowed]) : []);
+  const rules = useClientRules();
   return (
     <section id="set-clients" aria-labelledby="set-clients-title" className={CARD}>
       <CardHead title={t(`${P}.clients.title`)}>{clients.ok ? <Count>{tv(`${A}.clientCount`, { n: clients.data.length })}</Count> : null}</CardHead>
       <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.clientsHelp`)}</p>
+      {rules.state === "refused" ? <p role="alert" className="mt-2 text-sm text-status-fault">{rules.message}</p> : null}
       {!clients.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{clients.message}</p>
         : !clients.data.length ? <p className="mt-3 text-sm text-ink-muted">{t(`${P}.clients.none`)}</p>
         : (
@@ -398,7 +484,7 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
               <div role="columnheader" className={GRID_HEAD}>{t(`${A}.postureCeiling`)}</div>
             </div>
             {clients.data.map((c) => (
-              <ClientRow key={c.client_id} c={c} statuses={vocab.client_statuses} reload={reload} canAdminister={canAdminister}
+              <ClientRow key={c.client_id} c={c} statuses={vocab.client_statuses} rules={rules} reload={reload} canAdminister={canAdminister}
                 self={levels === null || !levels.ok ? null : tri(byClient.get(c.client_id))} />
             ))}
           </div>

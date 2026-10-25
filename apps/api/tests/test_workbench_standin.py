@@ -59,3 +59,20 @@ def test_the_population_double_mode_offers_the_panel_and_refuses_the_fixture(
     assert settings.research_fieldwork_source is FieldworkSource.AI_RUNTIME
     with pytest.raises(SystemExit):
         standin.main(["--population-double", "--fieldwork", "synthetic_fixture"])
+
+
+def test_the_report_editor_runs_against_the_stand_in_only_when_asked(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``AIA_WORKBENCH_REPORT_EDITOR=true`` (artifact-report RPT8d): the editor on, at the stand-in
+    Document Server's fictional origins, its saves read from the local folder; off otherwise."""
+    standin = _standin()
+    off, *_ = standin.build(tmp_path / "off.sqlite")
+    assert not off.state.settings.report_editor_on
+    assert getattr(off.state, "editor_fetcher", None) is None
+
+    monkeypatch.setenv("AIA_WORKBENCH_REPORT_EDITOR", "true")
+    on, *_ = standin.build(tmp_path / "on.sqlite")
+    assert on.state.settings.report_editor_on
+    assert on.state.settings.onlyoffice_url == "https://docs.workbench.invalid"
+    assert type(on.state.editor_fetcher).__name__ == "WorkbenchSaves"

@@ -19,6 +19,7 @@ import { type ActivityState, type SwitchValues, activityState, approvedClasses }
 import {
   type AdminClient,
   type AuditEntry,
+  type Me,
   type Member,
   type NativeActivity,
   type NativeRuntime,
@@ -31,6 +32,7 @@ import {
   type Vocabularies,
   Unauthenticated,
   admin,
+  workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { nearLimitTally } from "@/lib/researcher-spend";
@@ -40,15 +42,17 @@ import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
 import { MethodologyPanel } from "./MethodologyPanel";
 import { ResearcherSpendCard } from "./ResearcherSpendCard";
 import { StudiesTable } from "./StudiesPanel";
+import { ChoiceChips } from "../../ui/ChoiceChips";
 import { AUDIT_PAGE, AuditPanel } from "./AuditPanel";
-import { SETTING_HELP, TAB_GUIDE } from "./settings-guide";
+import { DataPanel } from "./DataPanel";
+import { SystemPanel } from "./SystemPanel";
+import { SETTING_HELP } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
-import { Activity, BookOpen, Cpu, Database, History, type LucideIcon, ScrollText, Sigma, Telescope, Users, Wallet } from "lucide-react";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Chip, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Loaded } from "../states";
-import { useResource } from "../useResource";
+import { type Resource, useResource } from "../useResource";
 
 const P = "aia.settings.panel";
 const R = `${P}.runtime`;
@@ -84,6 +88,8 @@ export type Panel = {
   studies: Part<StudyRow[]>;
   levels: Part<SelfApprovalLevels> | null; // null: not an administrator, so not asked
   audit: Part<AuditEntry[]> | null;
+  /** Who you are: null while the page that holds the read has not finished it. */
+  me: Part<Me> | null;
 };
 
 async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -97,7 +103,8 @@ async function loadRuntimeConfig(): Promise<RuntimeConfig> {
   return { switches: ai.switches, region: ai.region ?? null, model: ai.model ?? null, approvedClasses: ai.approvedClasses };
 }
 
-async function loadPanel(): Promise<Panel> {
+/** `readMe`: false when the page passes its own /workspace/me read down (it is read once). */
+async function loadPanel(readMe: boolean): Promise<Panel> {
   const doc = await admin.settings();
   // A document without its groups is not a settings document; say so rather than
   // render an empty page that looks like "no settings".
@@ -109,15 +116,16 @@ async function loadPanel(): Promise<Panel> {
     const details = await Promise.all(list.map((s) => part(admin.study(s.study_id))));
     return list.map((study, i) => ({ study, detail: details[i] }));
   };
-  const [runtime, members, clients, studies, levels, audit] = await Promise.all([
+  const [runtime, members, clients, studies, levels, audit, me] = await Promise.all([
     part(loadRuntimeConfig()),
     part(admin.members()),
     part(admin.clients()),
     part(loadStudies()),
     doc.may_administer ? part(admin.selfApproval()) : Promise.resolve(null),
     doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
+    readMe ? part(workspace.me()) : Promise.resolve(null),
   ]);
-  return { doc, runtime, members, clients, studies, levels, audit };
+  return { doc, runtime, members, clients, studies, levels, audit, me };
 }
 
 // ---------------------------------------------------------------- atoms
@@ -191,6 +199,43 @@ function SettingRow({ item }: { item: SettingItem }) {
       </div>
       <div className="min-w-0">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</div>
       <ControlBadge control={item.control} />
+    </div>
+  );
+}
+
+/** Who changes a reference value: the deployment, a rule in code (code or invariant), or AIA's own API. */
+type RefOwner = "deployment" | "fixed" | "app";
+const ownerOf = (c: SettingControl): RefOwner => (c === "DEPLOYMENT" ? "deployment" : c === "API" ? "app" : "fixed");
+const itemName = (key: string) => (t(`${P}.items.${key}`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.items.${key}`));
+
+/** A reference value as a table row: Hodnota, Nastaveno, Kdo mění, Co znamená (the redesign's Reference). */
+function ReferenceRow({ item }: { item: SettingItem }) {
+  return (
+    <tr data-setting={item.key} data-owner={ownerOf(item.control)}>
+      <td className="border-t border-border px-2 py-2 align-top text-sm font-medium text-ink">
+        {itemName(item.key)}
+        <Technical><code data-technical className="mt-1 block break-all text-xs font-normal text-ink-faint">{item.source}</code></Technical>
+      </td>
+      <td className="border-t border-border px-2 py-2 align-top">{item.control === "API" ? <ApiHint item={item} /> : <Value value={item.value} unit={item.unit} />}</td>
+      <td className="whitespace-nowrap border-t border-border px-2 py-2 align-top"><ControlBadge control={item.control} /></td>
+      <td className="border-t border-border px-2 py-2 align-top text-xs leading-5 text-ink-muted">{SETTING_HELP[item.key] ?? "—"}</td>
+    </tr>
+  );
+}
+
+function ReferenceTable({ items }: { items: SettingItem[] }) {
+  const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+  return (
+    <div data-setting-rows className="overflow-x-auto">
+      <table className="w-full min-w-[36rem] border-collapse">
+        <thead><tr>
+          <th scope="col" className={`${head} w-[24%]`}>{t(`${P}.reference.col.value`)}</th>
+          <th scope="col" className={`${head} w-[22%]`}>{t(`${P}.reference.col.set`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.owner`)}</th>
+          <th scope="col" className={head}>{t(`${P}.reference.col.means`)}</th>
+        </tr></thead>
+        <tbody>{items.map((item) => <ReferenceRow key={item.key} item={item} />)}</tbody>
+      </table>
     </div>
   );
 }
@@ -355,9 +400,6 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
   const region = config.ok ? config.data.region : null;
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${R}.readOnlyChip`)}</span>
-      </div>
       <div className="flex max-w-3xl flex-col gap-1 text-sm">
         <p>{tv(`${R}.powers`, { provider: providers })}</p>
         <p>{t(`${R}.credential.${runtime.credential}`)}</p>
@@ -520,29 +562,38 @@ const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
   { title: "Tým a peníze", tabs: ["access", "studies"] },
   { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
 ];
-// Each tab's line under its name in the side navigation, and its icon (decorative: the name is the label).
-const TAB_ICON: Record<TabId, LucideIcon> = {
-  methodology: Sigma, prompts: ScrollText, deep_research: Telescope, ai: Cpu,
-  access: Users, studies: Wallet,
-  audit: History, system: Activity, reference: BookOpen, data: Database,
-};
-const TAB_FACTS: Record<TabId, { scope: string; owner: string }> = {
-  methodology: { scope: "Budoucí běhy studií", owner: "Verze může upravovat vlastník nebo správce; účinná je až po aktivaci" },
-  prompts: { scope: "Nově zadané AI úlohy organizace", owner: "Vlastník nebo správce; uložení a zapnutí jsou samostatné kroky" },
-  deep_research: { scope: "Celá organizace", owner: "Vlastník nebo správce; návrh platí až po schválení" },
-  ai: { scope: "Toto nasazení", owner: "Modely a připojení spravuje nasazení" },
-  access: { scope: "Organizace, klient nebo studie", owner: "Změny podléhají roli a oprávnění ověřenému serverem" },
-  studies: { scope: "Jednotlivá studie", owner: "Rozpočet se mění jen s oprávněním pro danou studii" },
-  audit: { scope: "Historie organizace", owner: "Záznamy jsou jen ke čtení" },
-  system: { scope: "Toto nasazení", owner: "Jen ke čtení; připravenost hlásí nasazení, chyby GlitchTip" },
-  reference: { scope: "Toto nasazení a kód", owner: "Technické hodnoty a pevná pravidla zde nelze upravit" },
-  data: { scope: "Organizace a její klienti", owner: "Vlastník nebo správce; smazání klienta je nevratné" },
+/** A chip in a tab's head: who reads it and who may change it, as the prototype draws them. */
+type HeadChip = { label: string; tone?: "you" | "deployment"; glyph?: string };
+
+/** The tab head's chips. They say only what the API told this page (may_administer, the Metodik
+ *  mark): a mark that could not be read claims nothing about editing. */
+function headChips(tab: TabId, mayAdminister: boolean, methodologist: boolean | null): HeadChip[] {
+  const c = (key: string, tone?: HeadChip["tone"], glyph?: string): HeadChip => ({ label: t(`${P}.chips.${key}`), tone, glyph });
+  switch (tab) {
+    case "methodology": return [c("everyone"), methodologist ? c("methodologist", "you") : c("methodologistOnly")];
+    case "prompts": return [mayAdminister ? c("promptsYou", "you") : c("promptsAdmin")];
+    case "deep_research": return [c("everyone"), mayAdminister ? c("drYou", "you") : c("drAdmin")];
+    case "ai": return [c("deployedReadOnly", "deployment")];
+    case "access": return [mayAdminister ? c("accessYou", "you") : c("accessAdmin")];
+    // ADR 0019: every member holds the study permissions, a budget's among them.
+    case "studies": return [c("studiesYou", "you", "✎")];
+    case "system": return [c("deployed", "deployment")];
+    case "data": return [c("adminOnly")];
+    default: return [];
+  }
+}
+
+const CHIP_TONE: Record<NonNullable<HeadChip["tone"]> | "plain", string> = {
+  plain: "border-border bg-surface-raised text-ink-muted",
+  you: "border-signal-edge bg-signal-tint text-ink",
+  deployment: "border-status-world bg-status-world-wash text-ink",
 };
 
 const NO_ITEMS: SettingItem[] = [];
 
-// Tabs that read their own route and are drawn on the first visit only.
-const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology"]);
+// Tabs that read their own route and are drawn on the first visit only: opening Settings reads
+// nothing of a tab not yet opened (Stav systému's error read reaches GlitchTip; review of #854).
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology", "system", "data"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
@@ -562,13 +613,15 @@ function tabFromHash(): TabId | null {
   return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
 }
 
-function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
+function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void; footer?: ReactNode }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
   const [active, setActive] = useState<TabId>("methodology");
   const [referenceQuery, setReferenceQuery] = useState("");
+  const [referenceCategory, setReferenceCategory] = useState<string>("all");
+  const [referenceOwner, setReferenceOwner] = useState<"all" | RefOwner>("all");
   const [technical, setTechnical] = useTechnicalChoice();
   const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["methodology"]));
   const select = (tab: TabId) => {
@@ -610,7 +663,7 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
-    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} />,
+    access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
       <>
         <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
@@ -633,45 +686,78 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
   const present = (k: string) => (byKey.has(k) || k === "ai" || k === "roles" || k === "audit") && (technical || (k !== "roles" && k !== "ai_history"));
   const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
+  const referenceMatch = (item: SettingItem) => (referenceOwner === "all" || ownerOf(item.control) === referenceOwner)
+    && `${itemName(item.key)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"));
+  // A reference group's own values: its invariants are listed once, under Invarianty.
+  const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []).filter((i) => i.control !== "INVARIANT"));
   const section = (key: string, tab: TabId) => {
     const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
     const query = referenceQuery.trim().toLocaleLowerCase("cs");
-    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || !query || `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(query));
-    if (reference && query && !items.length && !t(`${P}.groups.${key}.title`).toLocaleLowerCase("cs").includes(query)) return null;
-    const rows = <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
-    // A group with its own panel keeps the document's rows as technical details; a group
-    // without one (the reference) is its rows.
+    // An invariant is listed once, under Invarianty, not again in its group (review of #851).
+    const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || (item.control !== "INVARIANT" && referenceMatch(item)));
+    if (reference && (referenceCategory !== "all" && referenceCategory !== key)) return null;
+    if (reference && (query || referenceOwner !== "all") && !items.length) return null;
+    const rows = reference ? <ReferenceTable items={items} /> : <div data-setting-rows>{items.map((item) => <SettingRow key={item.key} item={item} />)}</div>;
+    // A group with its own panel keeps the document's rows as technical details. A reference group
+    // is its rows, always: a search or category that finds a value shows it, and only each row's
+    // source waits for technical details (ReferenceRow), never the table (review of #851).
     return <Section key={key} id={key} tab={tab}>
       {extra[key] ?? null}
-      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
+      {OWN_ROWS.has(key) || key === "roles" || key === "audit" || !items.length ? null : extra[key] && !reference ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub>{rows}</Technical> : rows}
     </Section>;
   };
   const body = (tab: TabId): ReactNode => {
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
-    if (tab === "system") return <SystemSection />;
-    if (tab === "data") return <DataSection />;
+    if (tab === "system") return <SystemPanel mayAdminister={doc.may_administer} />;
+    if (tab === "data") return <DataPanel mayAdminister={doc.may_administer} clients={clients} reload={reload} />;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
-        {tab === "reference" ? <>
-          <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
-          <nav aria-label={t(`${P}.referenceJump`)} data-reference-jump className="flex flex-wrap gap-2">
-            {[...keys, "invariants"].map((key) => <a key={key} href={`#set-${key}`} onClick={(e) => { e.preventDefault(); document.getElementById(`set-${key}`)?.scrollIntoView({ block: "start" }); }} className="rounded-sm border border-border px-3 py-2 text-sm text-ink hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring">{t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`)}</a>)}
-          </nav>
-        </> : null}
+        {tab === "reference" ? (() => {
+          const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
+          const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
+          const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
+          return <div data-reference-filters className={`${CARD} flex flex-col gap-3`}>
+            <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="text-xs text-ink-faint">{t(`${P}.reference.categories`)}</span>
+              <span role="status" className="text-xs text-ink-muted">{tv(`${P}.reference.shown`, { shown, total })}</span>
+            </div>
+            <div data-reference-categories className="flex flex-wrap gap-1.5">
+              {["all", ...keys, "invariants"].map((key) => {
+                const on = referenceCategory === key;
+                // A chip counts what its group shows under the search and Kdo mění, as the tables do.
+                const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
+                const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
+                return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
+                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
+                  {label}<span className="font-mono tabular-nums text-ink-faint">{n}</span>
+                </button>;
+              })}
+            </div>
+            <ChoiceChips look="segmented" small label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
+          </div>;
+        })() : null}
         {keys.map((key) => section(key, tab))}
-        {tab === "reference" ? <Section id="invariants"><div>{invariants.filter((item) => `${t(`${P}.items.${item.key}`)} ${SETTING_HELP[item.key] ?? ""} ${item.key}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"))).map((item) => <SettingRow key={item.key} item={item} />)}</div></Section> : null}
+        {tab === "reference" && (referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
+        {tab === "reference" && ![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
       </>
     );
   };
+  const methodologist = panel.me?.ok ? panel.me.data.methodologist === true : null;
   return (
     <TechnicalProvider on={technical}>
-    <div data-settings-workspace className="flex flex-col gap-4 [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      <div className="grid min-w-0 gap-5 xl:grid-cols-[14.25rem_minmax(0,1fr)]">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex h-fit min-w-0 gap-3 overflow-x-auto border-b border-border bg-surface-raised p-2 xl:sticky xl:top-28 xl:flex-col xl:overflow-visible xl:rounded-md xl:border">
-        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-1 xl:flex-col">
+    <div data-settings-workspace className="flex min-w-0 flex-1 flex-col xl:flex-row [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
+      {/* The tab list as the prototype's plain column (v51): 228 px, a rule on its right; a
+          scrolling row with the names alone on a phone. */}
+      <div data-settings-tabs className="flex min-w-0 shrink-0 flex-col border-b border-border xl:w-[228px] xl:border-b-0 xl:border-r">
+      {/* The tabs and the switch under them stay put together as the page scrolls: the tabs alone
+          sticky let the switch slide under them. */}
+      <div className="flex min-w-0 flex-col xl:sticky xl:top-[47px]">
+      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex min-w-0 gap-0.5 overflow-x-auto px-4 py-2 xl:flex-col xl:overflow-visible xl:px-3 xl:pb-3 xl:pt-5">
+        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-0.5 xl:flex-col">
           <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
           {group.tabs.map((tab) => (
           <button
@@ -684,74 +770,44 @@ function PanelView({ panel, reload }: { panel: Panel; reload: () => void }) {
             aria-controls={`panel-${tab}`}
             tabIndex={active === tab ? 0 : -1}
             onClick={() => select(tab)}
-            className={`flex min-w-28 items-start gap-2.5 rounded-md border px-2.5 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:min-w-0 ${active === tab ? "border-transparent bg-signal-wash font-medium text-ink" : "border-transparent text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
+            className={`flex min-h-11 flex-col justify-center whitespace-nowrap rounded-[6px] px-2.5 py-[7px] text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:whitespace-normal ${active === tab ? "bg-signal-wash font-medium text-ink" : "text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
           >
-            <TabIcon tab={tab} active={active === tab} />
-            <span className="min-w-0">
-              <span className="block whitespace-nowrap">{t(`${P}.tabs.${tab}`)}</span>
-              <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
-            </span>
+            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
+            <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
           </button>
           ))}
         </div>)}
       </div>
-      <div className="min-w-0">{TABS.map((tab) => (
+      {/* One switch for the whole page's technical detail (the product owner, 2026-10-13); the
+          prototype has no place for it, so it waits under the tabs, out of every head. */}
+      <div data-technical-switch className="flex justify-end px-4 pb-2 xl:justify-start xl:px-5 xl:pb-5">
+        <TechnicalSwitch on={technical} onChange={setTechnical} />
+      </div>
+      </div>
+      </div>
+      <div className="min-w-0 max-w-[1180px] flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
+        const chips = headChips(tab, doc.may_administer, methodologist);
+        return (
         <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
-          <header data-tab-header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-border pb-4">
-            <div className="min-w-0 max-w-3xl flex-[1_1_28rem]">
-              <h2 className="text-lg font-semibold">{t(`${P}.tabs.${tab}`)}</h2>
-              <p className="mt-1 text-sm font-medium leading-6 text-ink">{TAB_GUIDE[tab].purpose}</p>
-              <p className="text-sm leading-6 text-ink-muted">{TAB_GUIDE[tab].action}</p>
-              <p data-tab-facts className="mt-2 text-sm leading-6 text-ink"><span className="font-medium">{t(`${P}.appliesTo`)}:</span> {TAB_FACTS[tab].scope} <span aria-hidden="true" className="text-ink-faint">·</span> <span className="font-medium">{t(`${P}.changedBy`)}:</span> {TAB_FACTS[tab].owner}</p>
+          <header data-tab-header className="mb-0.5 flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="font-serif text-2xl font-semibold leading-[30px]">{t(`${P}.tabs.${tab}`)}</h1>
+              <p data-tab-lede className="mt-1.5 max-w-[720px] text-sm leading-6 text-ink-muted">{t(`${P}.lede.${tab}`)}</p>
             </div>
-            {tab === "methodology" ? null : <TechnicalSwitch on={technical} onChange={setTechnical} />}
+            {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
+              <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
+            ))}</div> : null}
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </div>
-      ))}</div></div>
+        );
+      })}{footer}</div>
     </div>
     </TechnicalProvider>
   );
 }
 
-/** A tab's icon in the side navigation: decorative, the tab's name is its label. */
-function TabIcon({ tab, active }: { tab: TabId; active: boolean }) {
-  const Glyph = TAB_ICON[tab];
-  return <Glyph aria-hidden="true" focusable="false" size={18} strokeWidth={1.75} className={`mt-px shrink-0 ${active ? "text-signal" : "text-ink-faint"}`} />;
-}
-
 /** One card of a tab whose content AIA does not have yet: its heading, what it will hold, and the plain fact. */
-function NotYet({ id, title, holds }: { id: string; title: string; holds: string }) {
-  return (
-    <section id={`set-${id}`} aria-labelledby={`set-${id}-title`} className="rounded-md border border-border bg-surface-raised px-6 py-5">
-      <h3 id={`set-${id}-title`} className="text-base font-semibold">{title}</h3>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{holds}</p>
-      <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t(`${P}.notYet`)}</p>
-    </section>
-  );
-}
-
-/** Stav systému: readiness after a deploy and error reporting (settings-redesign chunk 1; the content comes with its backend). */
-function SystemSection() {
-  const S = `${P}.system`;
-  return (
-    <div className="flex flex-col gap-4">
-      <NotYet id="readiness" title={t(`${S}.readiness`)} holds={t(`${S}.readinessHolds`)} />
-      <NotYet id="errors" title={t(`${S}.errors`)} holds={t(`${S}.errorsHolds`)} />
-    </div>
-  );
-}
-
-/** Správa dat: deleting a client and the records AIA keeps (settings-redesign chunk 1; the content comes with its backend). */
-function DataSection() {
-  const D = `${P}.data`;
-  return (
-    <div className="flex flex-col gap-4">
-      <NotYet id="client-delete" title={t(`${D}.clientDelete`)} holds={t(`${D}.clientDeleteHolds`)} />
-      <NotYet id="kept-records" title={t(`${D}.keptRecords`)} holds={t(`${D}.keptRecordsHolds`)} />
-    </div>
-  );
-}
 
 // The three tabs that read their own routes are memoised: the technical switch re-renders the
 // page, and redrawing Metodika's formulas on every toggle cost ~0.5 s (settings_journey).
@@ -786,7 +842,20 @@ const DeepResearchSection = memo(function DeepResearchSection({ items, members }
   );
 });
 
-export function ControlPanel() {
-  const [res, retry] = useResource(loadPanel, []);
-  return <Loaded res={res} retry={retry}>{(panel) => <PanelView panel={panel} reload={retry} />}</Loaded>;
+export function ControlPanel({ footer, me, rereadMe }: { footer?: ReactNode; me?: Resource<Me>; rereadMe?: () => void } = {}) {
+  const passed = me !== undefined;
+  const [res, reloadPanel] = useResource(() => loadPanel(!passed), [passed]);
+  // A change in the panel may be your own (your role, your Metodik mark): who you are is read again
+  // with it, or the heads keep the old answer (review of #870). The read keeps its value meanwhile.
+  const retry = () => { reloadPanel(); if (passed) rereadMe?.(); };
+  // The page is edge to edge (AppShell bleed); a loading or failed read keeps the content's gutter,
+  // and the page keeps its one heading in every state.
+  if (res.state !== "ready") {
+    return <div className="px-4 py-5 md:px-8">
+      <h1 className="font-serif text-2xl font-semibold leading-[30px]">{t("aia.settings.title")}</h1>
+      <Loaded res={res} retry={retry}>{() => null}</Loaded>{footer}
+    </div>;
+  }
+  const panel = passed ? { ...res.data, me: me.state === "ready" ? { ok: true as const, data: me.data } : me.state === "loading" ? null : { ok: false as const, message: me.state === "failed" ? me.message : "" } } : res.data;
+  return <PanelView panel={panel} reload={retry} footer={footer} />;
 }

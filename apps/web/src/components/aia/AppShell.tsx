@@ -18,7 +18,8 @@ import { useSession } from "@/lib/auth";
 import { signOut } from "@/lib/session";
 import { Icon, type IconName } from "../rehome/icons";
 
-export type Crumb = { label: string; href?: string };
+/** A breadcrumb; `prefix` is a muted word before its label ("Organizace" before the name). */
+export type Crumb = { label: string; href?: string; prefix?: string };
 /**
  * A tab, optionally with a count: `countLabel` says it in words for a screen reader
  * ("3 čekají na schválení"), `attention` marks a count that waits on a person.
@@ -63,22 +64,23 @@ function initials(name: string): string {
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
-function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
+function Breadcrumbs({ crumbs, strong = false }: { crumbs: Crumb[]; strong?: boolean }) {
   if (!crumbs.length) return null;
   return (
     <nav aria-label={t("aia.breadcrumbs")}>
-      <ol className="flex flex-wrap items-center gap-1 text-sm text-ink-muted">
+      <ol className={`flex flex-wrap items-center gap-1 text-ink-muted ${strong ? "text-[13px] leading-5" : "text-sm"}`}>
         {crumbs.map((c, i) => {
           const last = i === crumbs.length - 1;
           return (
             <li key={`${c.label}-${i}`} className="flex items-center gap-1">
-              {i > 0 ? <span aria-hidden="true" className="text-ink-faint">/</span> : null}
+              {i > 0 ? <span aria-hidden="true" className={strong ? "" : "text-ink-faint"}>/</span> : null}
+              {c.prefix ? <span>{c.prefix}</span> : null}
               {c.href && !last ? (
                 <Link href={c.href} className={`whitespace-nowrap rounded-sm no-underline hover:text-ink hover:underline ${FOCUS}`}>
                   {c.label}
                 </Link>
               ) : (
-                <span aria-current={last ? "page" : undefined} className={`break-words ${last ? "font-medium text-ink" : ""}`}>
+                <span aria-current={last ? "page" : undefined} className={`break-words ${last || strong ? "font-medium text-ink" : ""}`}>
                   {c.label}
                 </span>
               )}
@@ -229,6 +231,8 @@ export function AppShell({
   back,
   aside,
   track,
+  topbar = false,
+  bleed = false,
   children,
 }: {
   crumbs?: Crumb[];
@@ -255,6 +259,10 @@ export function AppShell({
    * global navigation, a one-row header, the title at the top of the page.
    */
   track?: ReactNode;
+  /** The header is the breadcrumb alone; the page draws its own heading (Settings: each tab's h1). */
+  topbar?: boolean;
+  /** The page lays out its own columns and gutters, edge to edge under the header (Settings). */
+  bleed?: boolean;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -305,6 +313,15 @@ export function AppShell({
       <Sidebar path={path} client={client} />
 
       <div className="flex min-w-0 flex-1 flex-col">
+        {topbar ? (
+          <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
+            <div aria-hidden="true" className={`h-[3px] ${accent}`} />
+            <div className="flex min-h-11 flex-wrap items-center gap-3 px-4 py-2.5 md:px-6">
+              <Breadcrumbs crumbs={crumbs.length ? crumbs : [{ label: title }]} strong />
+              {status || action ? <div className="ml-auto flex flex-wrap items-center gap-3">{status}{action}</div> : null}
+            </div>
+          </header>
+        ) : (
         <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
           <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
@@ -366,13 +383,18 @@ export function AppShell({
             ) : null}
           </div>
         </header>
+        )}
         <div className="flex min-w-0 flex-1 flex-col xl:flex-row">
           {aside ? (
             <aside className="shrink-0 border-b border-border bg-surface-raised xl:w-56 xl:border-b-0 xl:border-r">{aside}</aside>
           ) : null}
+          {bleed ? (
+            <main id="aia-main-content" tabIndex={-1} className="flex min-w-0 flex-1 flex-col">{children}</main>
+          ) : (
           <main id="aia-main-content" tabIndex={-1} className="min-w-0 flex-1 px-4 py-5 lg:px-6 xl:px-8">
             <div className="mx-auto max-w-[88rem]">{children}</div>
           </main>
+          )}
         </div>
       </div>
     </div>

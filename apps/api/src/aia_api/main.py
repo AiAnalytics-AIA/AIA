@@ -34,6 +34,7 @@ from .routers import (
     organization_spend,
     population,
     projects,
+    report_editor,
     research,
     researcher_spend,
     runs,
@@ -45,6 +46,7 @@ from .routers import (
     workspace,
 )
 from .routers import settings as settings_router
+from .warmup import start_object_map_warmup
 
 API_PREFIX = "/api/v1"
 
@@ -97,9 +99,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 }
             },
         )
+        # Launched before uvicorn accepts connections, never waited for (warmup.py).
+        warmup = start_object_map_warmup() if resolved.sociomap_warmup_enabled else None
         try:
             yield
         finally:
+            if warmup is not None:
+                warmup.stop()
             engine = getattr(app.state, "engine", None)
             if owns_engine and engine is not None:
                 engine.dispose()
@@ -154,6 +160,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(workspace.router, prefix=API_PREFIX)
     app.include_router(client_sources.router, prefix=API_PREFIX)
     app.include_router(research.router, prefix=API_PREFIX)
+    app.include_router(report_editor.router, prefix=API_PREFIX)
+    app.include_router(report_editor.document_server, prefix=API_PREFIX)
     app.include_router(lead.router, prefix=API_PREFIX)
     app.include_router(lead.profile_router, prefix=API_PREFIX)
     app.include_router(deep_research.router, prefix=API_PREFIX)

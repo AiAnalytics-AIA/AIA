@@ -80,9 +80,9 @@ try {
     if (id === "ai" && mode === "first") continue;
     await timed(`${mode} ${id} tab`, page.locator(`#tab-${id}`), targets[id]);
     assert.equal(await page.locator(`#tab-${id}`).getAttribute("aria-selected"), "true");
-    assert(await page.locator(`#panel-${id} [data-tab-facts]`).isVisible(), `${id} lacks scope/ownership facts`);
+    assert(await page.locator(`#panel-${id} [data-tab-lede]`).isVisible(), `${id} lacks its lede`);
   }
-  checks.push("All eight purpose-grouped tabs retain their hashes and show scope/ownership facts");
+  checks.push("All eight purpose-grouped tabs retain their hashes and show their lede");
   await page.locator("#tab-methodology").click();
   const choose = page.locator("#panel-methodology").getByRole("button", { name: "Změnit oblast", exact: true });
   await choose.click();
@@ -101,7 +101,7 @@ try {
   assert(!(await editor.locator("h4").evaluate((node) => node === document.activeElement)), "Opening Metodika moves focus into the editor unasked");
   // The editor's own Zrušit, in its header row before any step's content.
   await editor.getByRole("button", { name: "Zrušit", exact: true }).first().click();
-  await versions.getByRole("button", { name: "Upravit metodiku" }).click();
+  await versions.getByRole("tab", { name: "Upravit" }).click();
   editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
   assert(await editor.locator("h4").evaluate((node) => node === document.activeElement), "Asking for an edit does not focus the editor's heading");
   assert.equal(await nav.count(), 0, "Expanded chooser obscures the active editor");
