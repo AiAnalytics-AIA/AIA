@@ -354,6 +354,64 @@ describe("the methodology's versions", () => {
     expect(sent.some((s) => s.url.endsWith("/check") || s.method === "POST")).toBe(false);
   });
 
+  it("says the check's outcome in the bar where it was pressed, and goes to the first problem from there", async () => {
+    let refuse = false;
+    const { sent } = fakeApi({ check: () => (refuse
+      ? { valid: false, problems: { "spec.relation.n_min": "must be at least 4" }, not_computed: [], formulas_latex: {} }
+      : { valid: true, problems: {}, not_computed: [], formulas_latex: {} }) });
+    render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    const bar = form.querySelector("[data-edit-actions]") as HTMLElement;
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
+    await waitFor(() => expect(bar.querySelector('[data-bar-outcome="passed"]')?.textContent).toBe("Kontrola prošla"));
+    // A store the check refuses stores nothing and says so in the bar too.
+    refuse = true;
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "2" } });
+    expect(bar.querySelector("[data-bar-outcome]")).toBeNull(); // a changed draft is no longer checked
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
+    const problems = await waitFor(() => {
+      const outcome = bar.querySelector<HTMLElement>('[data-bar-outcome="problems"]');
+      if (!outcome) throw new Error("no outcome in the bar");
+      return outcome;
+    });
+    expect(problems.textContent).toBe("1 problém");
+    expect(sent.some((x) => x.method === "POST" && x.url.endsWith("/versions"))).toBe(false);
+    fireEvent.click(problems);
+    await waitFor(() => expect(document.activeElement).toBe(form.querySelector('[data-field="relation.n_min"]')));
+  });
+
+  it("never stores on Enter in a field: storing is the button's alone", async () => {
+    const { sent } = fakeApi();
+    render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    const nMin = await field(form, "relation.n_min");
+    fireEvent.change(nMin, { target: { value: "12" } });
+    // The browser submits a form on Enter in its text field unless the key is stopped.
+    expect(fireEvent.keyDown(nMin, { key: "Enter" })).toBe(false);
+    expect(fireEvent.keyDown(within(form).getByLabelText("Poznámka k verzi"), { key: "Enter" })).toBe(false);
+    expect(sent.some((x) => x.method === "POST")).toBe(false);
+  });
+
+  it("moves the focus to a refused formula from its problem, the formulas closed or not", async () => {
+    fakeApi({ check: () => ({ valid: false, problems: { "formula.f12.kernel": "rises with distance" }, not_computed: [], formulas_latex: {} }) });
+    render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
+    const link = await within(form).findByRole("button", { name: /: rises with distance$/ });
+    // The check opened the formulas; the person closes them again before following the problem.
+    const formulas = form.querySelector("[data-edit-formulas]") as HTMLDetailsElement;
+    await waitFor(() => expect(formulas.open).toBe(true));
+    fireEvent.click(formulas.querySelector("summary")!);
+    await waitFor(() => expect(form.querySelector('[data-edit-slot="f12.kernel"]')).toBeNull());
+    // Every frame runs at once, before React commits: a focus given on a frame would find nothing.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(0); return 0; });
+    fireEvent.click(link);
+    await waitFor(() => expect(document.activeElement).toBe(form.querySelector('[data-edit-slot="f12.kernel"] textarea')));
+  });
+
   it("say a replaced formula can be stored but not yet put in force, and draw it", async () => {
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: ["f12.kernel"], formulas_latex: { "f12.kernel": "h \\exp\\left(-\\frac{d_2}{2\\sigma^{2}}\\right)" } }) });
     render(<MethodologyPanel />); await openMap();
@@ -558,6 +616,13 @@ describe("guided methodology editing", () => {
     fireEvent.click(within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Snížit: Šířka kopce σ" }));
     expect(sigma.value).toBe("0,24");
     expect(sigma.closest("[data-edit-row]")?.getAttribute("data-changed")).toBe("true");
+    // A value typed finer than the step keeps its places: 0,255 − 0,01 is 0,245 (review of #889).
+    fireEvent.change(sigma, { target: { value: "0,255" } });
+    fireEvent.click(within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Snížit: Šířka kopce σ" }));
+    expect(sigma.value).toBe("0,245");
+    fireEvent.change(sigma, { target: { value: "0,255" } });
+    fireEvent.keyDown(sigma, { key: "ArrowUp" });
+    expect(sigma.value).toBe("0,265");
     // A typed value stays as typed: the domain's check decides, nothing here rounds it.
     fireEvent.change(nMin, { target: { value: "2" } });
     expect(nMin.value).toBe("2");
@@ -646,6 +711,29 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
       return chip as HTMLElement;
     });
     expect(live.textContent).toMatch(/Šířka kopce σ: 0,3.*v platné verzi/);
+  });
+
+  it("never reads a version built on another preset as matching the steps shown: its values are unknown there", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    // A version stored over aia-sociomap-3 and put in force; Výpočet documents aia-sociomap-5.
+    const spec = doc.presets.sociomap["aia-sociomap-3"];
+    await fetch("/api/v1/methodology/sociomap/versions", { method: "POST", body: JSON.stringify({ base_preset: "aia-sociomap-3", spec, formulas: {} }) });
+    await fetch("/api/v1/methodology/sociomap/activation", { method: "PUT", body: JSON.stringify({ version_number: 1, reason: "test" }) });
+    cleanup();
+    render(<MethodologyPanel />); await openMap();
+    await editor();
+    fireEvent.click(screen.getByRole("tab", { name: "Výpočet" }));
+    const chips = await waitFor(() => {
+      const found = [...document.querySelectorAll<HTMLElement>("[data-step-value][data-live]")];
+      if (!found.length) throw new Error("nothing marked");
+      return found;
+    });
+    expect(chips.every((c) => c.getAttribute("data-live") === "unknown")).toBe(true);
+    expect(chips[0].textContent).toMatch(/v platné verzi: nezjištěno$/);
+    // A parameter both presets have is unknown too, never left unmarked as if it matched.
+    const sigma = [...document.querySelectorAll<HTMLElement>("[data-step-value]")].find((c) => c.textContent?.startsWith("Šířka kopce σ"));
+    expect(sigma?.getAttribute("data-live")).toBe("unknown");
+    expect(document.querySelector("[data-step-value]:not([data-live])")?.textContent).toMatch(/^Verze metodiky/);
   });
 
   it("marks what the draft changes, and passes the check before storing", async () => {

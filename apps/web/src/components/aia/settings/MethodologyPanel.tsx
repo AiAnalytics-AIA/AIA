@@ -192,17 +192,23 @@ function InForceFact({ summary, res }: { summary: MethodModuleSummary; res: Reso
 
 /** A version the organization stored and put in force: the steps below show the code's preset,
  *  and a parameter this version changes is shown with its value in force beside it. */
-type LiveVersion = { name: string; spec: Record<string, unknown> } | null;
-function liveVersion(res: Resource<MethodVersions | null>): LiveVersion {
+type LiveVersion = { name: string; base: string; spec: Record<string, unknown>; shown: string | null } | null;
+function liveVersion(res: Resource<MethodVersions | null>, shown: string | null): LiveVersion {
   if (res.state !== "ready" || !res.data || res.data.in_force.origin !== "stored") return null;
   const found = res.data.versions.find((v) => v.version_number === res.data!.in_force.version_number);
-  return found ? { name: found.name, spec: found.spec } : null;
+  return found ? { name: found.name, base: found.base_preset, spec: found.spec, shown } : null;
 }
-/** A parameter's value in the version in force, where that version changes it; undefined otherwise. */
-function liveValue(v: MethodValue, live: LiveVersion): MethodValue | undefined {
-  if (!live || !isParameter(v)) return undefined;
+/** A parameter in the version in force: "same" as the preset shown, its own value, or "unknown"
+ *  -- a version built on another preset, or one without the field, is never read as matching. */
+type Live = "same" | "unknown" | MethodValue;
+function liveValue(v: MethodValue, live: LiveVersion): Live {
+  // Every value of the specification counts, one the shown preset leaves out (absent) included;
+  // a code constant and the method's own name are no version's to change.
+  if (!live || v.origin !== "specification" || v.reference === "methodology_version") return "same";
   const value = readPath(live.spec, v.reference);
-  return value === undefined || JSON.stringify(value) === JSON.stringify(v.value) ? undefined : { ...v, value };
+  if (live.base !== live.shown) return "unknown";
+  if (value === undefined) return v.absent ? "same" : "unknown";
+  return JSON.stringify(value) === JSON.stringify(v.value) ? "same" : { ...v, value };
 }
 
 function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void; versions: ModuleVersions }) {
@@ -221,7 +227,7 @@ function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: M
         </button>)}
       </div>
     </div> : null}
-    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} live={liveVersion(versions.res)} />}</Loaded>
+    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} live={liveVersion(versions.res, detail.preset)} />}</Loaded>
   </>;
   // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
   if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} versions={{ res: versions.res as Resource<MethodVersions>, reload: versions.reload }} />;
@@ -326,8 +332,10 @@ function StepRow({ step, number, live, editable, titles, open, onToggle, onPick 
           {line ? <span id={`msl-${step.id}`} className="text-xs leading-5 text-ink-muted">{line}</span> : null}
           {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => {
             // A value the version in force changes is shown as it runs, marked so (prototype v51).
-            const now = liveValue(v, live) ?? v;
-            return <span key={v.reference} data-step-value data-live={now !== v || undefined} className={`inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border px-2 text-xs font-normal text-ink-muted ${now !== v ? "border-signal-edge bg-signal-tint" : "border-border"}`}>{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(now, WORDS)}{v.unit && !now.absent && now.value !== null ? ` ${v.unit}` : ""}</b>{now !== v ? <span className="ml-1">· {t(`${M}.inForceVersion`)}</span> : null}</span>;
+            const live2 = liveValue(v, live);
+            const now = typeof live2 === "string" ? v : live2;
+            const marked = live2 !== "same";
+            return <span key={v.reference} data-step-value data-live={marked ? (live2 === "unknown" ? "unknown" : "changed") : undefined} className={`inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border px-2 text-xs font-normal text-ink-muted ${marked ? "border-signal-edge bg-signal-tint" : "border-border"}`}>{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(now, WORDS)}{v.unit && !now.absent && now.value !== null ? ` ${v.unit}` : ""}</b>{live2 === "unknown" ? <span className="ml-1">· {t(`${M}.inForceUnknown`)}</span> : marked ? <span className="ml-1">· {t(`${M}.inForceVersion`)}</span> : null}</span>;
           })}</span> : null}
         </span>
         <span aria-hidden="true" className="pt-0.5 text-ink-faint">{open ? "▾" : "▸"}</span>
@@ -374,10 +382,13 @@ function StepBody({ step, live, editable, titles, onPick }: { step: MethodStepOu
                 <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{(() => {
                   const now = liveValue(v, live);
                   const code = <>{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</>;
-                  return now ? <span data-live-value className="flex flex-col">
-                    <span>{showValue(now, WORDS)}{v.unit && now.value !== null ? ` ${v.unit}` : ""} <span className="font-sans text-xs text-signal">{tv(`${M}.inForceVersionNamed`, { name: live!.name })}</span></span>
+                  if (now === "same") return code;
+                  return <span data-live-value={now === "unknown" ? "unknown" : "changed"} className="flex flex-col">
+                    {now === "unknown"
+                      ? <span className="font-sans text-xs text-ink-muted">{tv(`${M}.inForceUnknownNamed`, { name: live!.name })}</span>
+                      : <span>{showValue(now, WORDS)}{v.unit && now.value !== null ? ` ${v.unit}` : ""} <span className="font-sans text-xs text-signal">{tv(`${M}.inForceVersionNamed`, { name: live!.name })}</span></span>}
                     <span className="font-sans text-xs text-ink-faint">{t(`${M}.inCode`)} {code}</span>
-                  </span> : code;
+                  </span>;
                 })()}</td>
                 <td className="py-1.5 text-right" title={t(`${M}.originHelp.${v.origin}`)}><Tag>{t(`${M}.origin.${v.origin}`)}</Tag></td>
               </tr>

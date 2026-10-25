@@ -402,6 +402,17 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
     headingRef.current?.focus({ preventScroll: true });
   }, []);
 
+  // A field the keyboard reaches keeps clear of the sticky action bar (WCAG 2.4.11): the page's
+  // scroller treats its bottom 9rem, the bar and a margin, as out of view while the editor is
+  // here. A field's own scroll margin does not do it: a field already on screen, under the bar,
+  // is not scrolled at all (measured at 1024 px).
+  useEffect(() => {
+    const root = document.documentElement;
+    const before = root.style.scrollPaddingBottom;
+    root.style.scrollPaddingBottom = "9rem";
+    return () => { root.style.scrollPaddingBottom = before; };
+  }, []);
+
   const router = useRouter();
   const titles = useMemo(() => Object.fromEntries(detail.step_details.map((s) => [s.id, s.title_cs])), [detail]);
   const [leaveHref, setLeaveHref] = useState<string | null>(null);
@@ -424,19 +435,33 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
   }, [dirty]);
   const clearPreview = useCallback(() => { setCheck(null); setError(null); onCompared(null); }, [onCompared]);
   const setValue = useCallback((reference: string, value: string) => { setRaw((r) => ({ ...r, [reference]: value })); clearPreview(); }, [clearPreview]);
-  const slotOf = (path: string) => [...builtin.keys()].find((slot) => path === `formula.${slot}` || path.startsWith(`formula.${slot}.`));
+  const slotOf = useCallback((path: string) => [...builtin.keys()].find((slot) => path === `formula.${slot}` || path.startsWith(`formula.${slot}.`)), [builtin]);
   // A problem in a formula opens the formulas: a refused edit is never hidden in a closed part.
   const showProblems = (problems: Record<string, string>) => { if (Object.keys(problems).some((path) => slotOf(path))) setFormulasOpen(true); };
+  // A problem's link owes the focus to its field: a formula's textarea exists only once the
+  // formulas are drawn, so the focus is given after the render that mounts it, never on a frame
+  // guess (AGENTS.md, "Focus an element after the render that mounts it").
+  const [owedFocus, setOwedFocus] = useState<string | null>(null);
   const focusProblem = (path: string) => {
-    const slot = slotOf(path);
-    if (slot) setFormulasOpen(true);
-    requestAnimationFrame(() => {
-      const target = slot
-        ? document.querySelector<HTMLElement>(`[data-edit-slot="${slot}"] textarea`)
-        : [...document.querySelectorAll<HTMLElement>("[data-field]")].find((node) => path === `spec.${node.getAttribute("data-field")}` || path.startsWith(`spec.${node.getAttribute("data-field")}.`));
-      target?.focus();
-    });
+    if (slotOf(path)) setFormulasOpen(true);
+    setOwedFocus(path);
   };
+  useEffect(() => {
+    if (!owedFocus) return;
+    const slot = slotOf(owedFocus);
+    const target = slot
+      ? document.querySelector<HTMLElement>(`[data-edit-slot="${slot}"] textarea`)
+      : [...document.querySelectorAll<HTMLElement>("[data-field]")].find((node) => owedFocus === `spec.${node.getAttribute("data-field")}` || owedFocus.startsWith(`spec.${node.getAttribute("data-field")}.`));
+    // Not drawn yet: the render that opens the formulas runs this again. A problem no field shows
+    // has nowhere to go: the list under the bar names it.
+    if (!target) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a one-shot focus, cleared once given or impossible
+      if (!slot) setOwedFocus(null);
+      return;
+    }
+    target.focus();
+    setOwedFocus(null);
+  }, [owedFocus, formulasOpen, slotOf]);
 
   // The whole edit, or the fields the page itself cannot read (a word where a number was).
   const build = (): { edit: { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string> } } | { local: Record<string, string> } => {
@@ -501,7 +526,10 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
   const valueOf = (path: string) => raw[path] ?? shown(readPath(start.spec, path));
   const internal = summary.id === "sociomap";
   return (
-    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit} className="flex min-w-0 max-w-full flex-col gap-4">
+    // Enter in a field never stores: a stored version cannot be deleted, so storing is the button's alone.
+    <form data-methodology-editor aria-label={t(`${V}.editorLabel`)} onSubmit={submit}
+      onKeyDown={(e) => { if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault(); }}
+      className="flex min-w-0 max-w-full flex-col gap-4">
       {leaveHref ? <InlineConfirm message={t(`${V}.replaceDraft`)} action={t(`${V}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
 
       {/* Where the edit starts and what it will be called (prototype v51: the note above the list). */}
@@ -573,7 +601,16 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
         <Button disabled={busy} onClick={() => void compare()}>{t(`${V}.compareButton`)}</Button>
         <Button type="submit" variant="primary" disabled={busy || changedCount === 0}>{t(`${V}.store`)}</Button>
         <Button variant="quiet" disabled={busy} onClick={onDiscard}>{t(`${V}.discard`)}</Button>
-        {changedCount ? <span data-draft-chip className="inline-flex min-h-[22px] items-center rounded-pill border border-signal-edge bg-signal-tint px-2 text-xs text-ink">{tv(`${V}.unsaved`, { count: plural(changedCount, "změna", "změny", "změn") })}</span> : null}
+        {changedCount ? <span data-draft-chip className="inline-flex min-h-[22px] items-center rounded-pill border border-signal-edge bg-signal-tint px-2 text-xs text-ink">{tv(`${V}.unsaved`, { count: plural(changedCount, t(`${V}.count.change.one`), t(`${V}.count.change.few`), t(`${V}.count.change.many`)) })}</span> : null}
+        {/* The check's outcome where the person pressed it: the full answer is under the bar,
+            often below the screen; a refusal takes the person to its first problem. */}
+        {check && !operation ? check.valid
+          ? <span data-bar-outcome="passed" className="text-xs font-medium text-ink">{t(`${V}.barPassed`)}</span>
+          : <button type="button" data-bar-outcome="problems" onClick={() => focusProblem(Object.keys(check.problems)[0] ?? "")}
+              className={`min-h-8 rounded-sm px-1 text-xs font-medium text-status-fault underline underline-offset-2 ${FOCUS}`}>
+              {plural(Object.keys(check.problems).length, t(`${V}.count.problem.one`), t(`${V}.count.problem.few`), t(`${V}.count.problem.many`))}
+            </button>
+          : null}
         {operation ? <OperationStatus key={operation} operation={operation} /> : <span className="text-xs text-ink-muted">{t(`${V}.activateHint`)}</span>}
       </div>
 
@@ -625,7 +662,8 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
     const parsed = fromInput(original, value);
     if (!parsed.ok || typeof parsed.value !== "number") return;
     const next = parsed.value + direction * 10 ** -places * (big ? 10 : 1);
-    onChange(field.reference, shown(Number(next.toFixed(Math.min(places, 20)))));
+    // The step never takes a place the value has: 0,255 − 0,01 is 0,245, not 0,25 rounded down.
+    onChange(field.reference, shown(Number(next.toFixed(Math.min(Math.max(places, placesOf(parsed.value)), 20)))));
   };
   const steppable = numeric && (() => { const parsed = fromInput(original, value); return parsed.ok && typeof parsed.value === "number"; })();
   const hintId = `${id}-hint`;
