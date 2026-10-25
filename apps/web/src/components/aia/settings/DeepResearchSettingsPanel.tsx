@@ -112,12 +112,15 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
   };
   const missing = new Set(overview.missing_for_live);
   const q = query.trim().toLocaleLowerCase("cs");
+  // The live filter holds only while something waits: once the last rule is approved its toggle
+  // goes, and so does the filter, never leaving every row hidden with nothing to restore them.
+  const live = liveOnly && missing.size > 0;
   const matches = (s: DrSetting) => (s.key === open && dirty) ||
-    (`${labelOf(s)} ${t(`${D}.groups.${s.group}`)} ${s.key} ${researchPolicyHelp(s.key, s.group)}`.toLocaleLowerCase("cs").includes(q) && (!liveOnly || missing.has(s.key)));
+    (`${labelOf(s)} ${t(`${D}.groups.${s.group}`)} ${s.key} ${researchPolicyHelp(s.key, s.group)}`.toLocaleLowerCase("cs").includes(q) && (!live || missing.has(s.key)));
   const anyVisible = rules.some(matches);
   return (
     <div className="flex flex-col gap-4">
-      <Reach mayAdminister={overview.may_administer} />
+      <Reach mayAdminister={overview.may_administer} missing={overview.missing_for_live} />
       <section data-dr-rules aria-labelledby="dr-rules-h" className={CARD}>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <h3 id="dr-rules-h" className="text-base font-semibold">{t(`${D}.board.rules`)}</h3>
@@ -129,7 +132,7 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
         <Technical><p data-technical className="mt-1 text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <TextInput type="search" className="w-full sm:w-72" aria-label={t(`${D}.search`)} placeholder={t(`${D}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-          {missing.size ? <Button aria-pressed={liveOnly} onClick={() => setLiveOnly((v) => !v)}>{t(`${D}.live.${liveOnly ? "showAll" : "showWaiting"}`)}</Button> : null}
+          {missing.size ? <Button aria-pressed={live} onClick={() => setLiveOnly((v) => !v)}>{t(`${D}.live.${live ? "showAll" : "showWaiting"}`)}</Button> : null}
         </div>
         {pending ? <div className="mt-2"><InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setOpen(pending.key); setDirty(false); setPending(null); }} /></div> : null}
         {!anyVisible ? <p role="status" className="mt-2 text-sm text-ink-muted">{t(`${D}.noMatch`)}</p> : null}
@@ -202,8 +205,11 @@ function StateDot({ state, yours }: { state: ReachRoute["state"]; yours: boolean
 
 /** Dosah: where Deep Research reaches, from the newest worker's record of its composition (#844). The
  *  table is drawn whatever the record holds; an empty one says why in its one row, never a route. */
-function Reach({ mayAdminister }: { mayAdminister: boolean }) {
-  const [res, retry] = useResource(() => deepResearchSettings.reach(), []);
+function Reach({ mayAdminister, missing }: { mayAdminister: boolean; missing: readonly string[] }) {
+  // Read again whenever what live needs changes (an approval, a withdrawal, a return to the
+  // default): a priced route's "schváleno" or "čeká" is the organization's, read with the record.
+  const needs = [...missing].sort().join("\n");
+  const [res, retry] = useResource(() => deepResearchSettings.reach(), [needs]);
   const head = (summary?: ReactNode, source?: ReactNode) => (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
@@ -336,16 +342,23 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
   const approved = s.origin === "approved";
   const pending = usePending(s);
   const waiting = pending?.version_number ?? null;
+  // Coral and Schválit only for someone the server will let approve it (#897): never for a proposer
+  // whose own proposal waits on independent review.
+  const approver = mayAdminister && (pending?.may_approve ?? true);
   const help = researchPolicyHelp(s.key, s.group);
+  const [explained, setExplained] = useState(false);
   return (
     <>
       <tr data-dr-setting={s.key} data-dr-group={s.group} data-missing={missing ? s.key : undefined} data-pending={waiting !== null ? waiting : undefined} hidden={!shown}
-        className={open ? "bg-signal-wash/50" : waiting !== null ? (mayAdminister ? "bg-status-you-wash" : "bg-surface-sunken") : undefined}>
+        className={open ? "bg-signal-wash/50" : waiting !== null ? (approver ? "bg-status-you-wash" : "bg-surface-sunken") : undefined}>
         <td className={`${TD} text-ink-muted`}>{t(`${D}.groups.${s.group}`)}</td>
         <th scope="row" className={`${TD} text-left font-normal`}>
           <span className="font-medium text-ink">{labelOf(s)}</span>
-          <span aria-hidden="true" title={help} className="ml-1 cursor-help text-ink-faint">ⓘ</span>
-          <span className="sr-only"> {help}</span>
+          {/* A real disclosure, as on Studie a rozpočty: keyboard and touch open what it explains. */}
+          <button type="button" data-dense aria-expanded={explained} aria-controls={`dr-help-${s.key}`} aria-label={tv(`${D}.helpOf`, { rule: labelOf(s) })}
+            title={help} onClick={() => setExplained((v) => !v)}
+            className={`ml-1 inline-flex size-11 items-center justify-center rounded-full align-middle text-ink-faint hover:text-ink sm:size-6 ${FOCUS}`}>ⓘ</button>
+          <span id={`dr-help-${s.key}`} hidden={!explained} className="mt-0.5 block max-w-prose text-xs leading-5 text-ink-muted">{help}</span>
           {/* The rule's marks and the way into its history, one line: 52 rows read at a glance. */}
           <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-muted">
             {FLAGS.filter((f) => s[f]).map((f) => <span key={f} title={t(`${D}.flagHelp.${f}`)}>{t(`${D}.flag.${f}`)}</span>)}
@@ -366,13 +379,13 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
           </span>
         </td>
         <td className={TD}>
-          {pending ? <PendingValue setting={s} version={pending} yours={mayAdminister} />
+          {pending ? <PendingValue setting={s} version={pending} yours={approver} />
             : mayAdminister ? <ProposeInPlace setting={s} onChanged={onChanged} onOpen={onToggle} />
             : <span className="text-xs text-ink-faint">{t(`${D}.noProposal`)}</span>}
         </td>
         <td className={TD}>
           <div className="flex flex-col items-start gap-1.5">
-            {waiting !== null && mayAdminister ? <ApproveButton setting={s} version={waiting} onDone={onChanged} /> : null}
+            {waiting !== null && approver ? <ApproveButton setting={s} version={waiting} onDone={onChanged} /> : null}
             {pending && mayAdminister ? <WithdrawButton setting={s} version={pending} onDone={onChanged} /> : null}
           </div>
         </td>
@@ -477,7 +490,7 @@ function WithdrawButton({ setting: s, version: v, onDone }: { setting: DrSetting
     finally { setBusy(false); }
   };
   return <>
-    <Button small onClick={() => { setError(null); setOpen(true); }}>{t(`${D}.withdrawProposal`)}</Button>
+    <Button small className="max-sm:min-h-11" onClick={() => { setError(null); setOpen(true); }}>{t(`${D}.withdrawProposal`)}</Button>
     {open ? (
       <ConfirmDialog open marker="dr-withdraw" busy={busy} error={error} title={t(`${D}.withdraw.title`)}
         rows={[{ label: t(`${D}.approve.rule`), value: labelOf(s) }, { label: t(`${D}.approve.from`), value: fmt(s.value) }, { label: t(`${D}.withdraw.taking`), value: fmt(v.value) }]}
@@ -495,7 +508,7 @@ function WithdrawButton({ setting: s, version: v, onDone }: { setting: DrSetting
 function ApproveButton({ setting: s, version, onDone }: { setting: DrSetting; version: number; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   return <>
-    <Button small variant="primary" onClick={() => setOpen(true)}>{t(`${D}.approve.short`)}</Button>
+    <Button small variant="primary" className="max-sm:min-h-11" onClick={() => setOpen(true)}>{t(`${D}.approve.short`)}</Button>
     {open ? <Approve settingKey={s.key} version={version} onCancel={() => setOpen(false)} onDone={() => { setOpen(false); onDone(); }} /> : null}
   </>;
 }
@@ -575,7 +588,7 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
                     {v.decline ? <span data-declined={v.decline.kind} className="text-xs text-ink-muted">{t(`${D}.detail.${v.decline.kind === "WITHDRAWN" ? "withdrawnProposal" : "declinedProposal"}`)} · {people(v.decline.by)} · {when(v.decline.at)} — {v.decline.reason}</span> : null}
                     <span className="basis-full text-xs text-ink-muted">{people(v.created_by)} · {when(v.created_at)}{v.note ? ` · ${v.note}` : ""}</span>
                     {v.source_url ? <a className="text-xs underline" href={v.source_url} target="_blank" rel="noreferrer noopener">{t(`${D}.detail.source`)}</a> : null}
-                    {mayAdminister && inForce !== v.version_number && !v.decline ? (
+                    {mayAdminister && inForce !== v.version_number && !v.decline && (v.may_approve ?? true) ? (
                       <Button small disabled={draftDirty} onClick={() => { setDone(null); setApproving({ version: v.version_number }); }}>{tv(`${D}.detail.approve`, { version: v.version_number })}</Button>
                     ) : null}
                   </li>

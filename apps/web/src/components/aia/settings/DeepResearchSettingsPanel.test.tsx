@@ -38,7 +38,13 @@ const CATALOGUE: DrSetting[] = [
   base(DENYLIST, "extraction", "host_list", { method: true, default: [], value: [] }),
 ];
 
-type Backend = { versions: Record<string, DrSettingVersion[]>; approvals: Record<string, DrSettingApproval[]>; declines: Record<string, Record<number, NonNullable<DrSettingVersion["decline"]>>>; withStates: boolean };
+type Backend = {
+  versions: Record<string, DrSettingVersion[]>; approvals: Record<string, DrSettingApproval[]>; declines: Record<string, Record<number, NonNullable<DrSettingVersion["decline"]>>>; withStates: boolean;
+  /** Dosah, answered from the state as it stands (each read sees what live needs now). */
+  reach?: (missing: string[]) => unknown;
+  /** What the server says of each version's approval for the caller (#897); unset: not sent. */
+  mayApprove?: boolean;
+};
 let backend: Backend;
 let calls: { method: string; url: string; body: Record<string, unknown> | null }[] = [];
 
@@ -65,6 +71,7 @@ function fakeApi(mayAdminister = true, refuse: Record<string, Response> = {}) {
     const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
     if (u === "/config") return json({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } });
     if (refuse[`${method} ${u}`]) return refuse[`${method} ${u}`];
+    if (method === "GET" && u === "/api/v1/settings/deep-research/reach" && backend.reach) return json(backend.reach(missing()));
     if (method === "GET" && u === "/api/v1/deep-research/settings") {
       return json({ catalogue_version: "aia-dr-settings-catalogue-1", may_administer: mayAdminister, missing_for_live: missing(), settings: CATALOGUE.map(inForce) });
     }
@@ -72,7 +79,8 @@ function fakeApi(mayAdminister = true, refuse: Record<string, Response> = {}) {
     const s = m && CATALOGUE.find((x) => x.key === decodeURIComponent(m[1]));
     if (!m || !s) return json({ code: "unknown_setting", message: "no such setting" }, 404);
     // As #841 answers: each version's state and decline, read from the logs (only when the test asks).
-    const stated = (v: DrSettingVersion): DrSettingVersion => {
+    const stated = (given: DrSettingVersion): DrSettingVersion => {
+      const v = backend.mayApprove === undefined ? given : { ...given, may_approve: backend.mayApprove };
       if (!backend.withStates) return v;
       const decline = backend.declines[s.key][v.version_number] ?? null;
       const approvals = backend.approvals[s.key];
@@ -403,7 +411,8 @@ describe("Deep Research settings", () => {
     const pending = await row(RETENTION);
     expect(pending.className).toContain("bg-status-you-wash");
     await waitFor(() => expect(pending.querySelector("[data-pending-value]")?.textContent).toContain("90"));
-    expect(within(pending).getByRole("button", { name: "Stáhnout návrh" })).toBeTruthy();
+    expect(within(pending).getByRole("button", { name: "Stáhnout návrh" }).className).toContain("max-sm:min-h-11");
+    expect(within(pending).getByRole("button", { name: "Schválit" }).className).toContain("max-sm:min-h-11");
     // Nothing is in force until approved.
     expect(pending.querySelector("[data-origin]")?.textContent).toBe("Navržená výchozí");
     fireEvent.click(within(pending).getByRole("button", { name: "Schválit" }));
@@ -553,6 +562,107 @@ describe("Deep Research settings", () => {
     expect(within(r).queryByRole("spinbutton", { hidden: true })).toBeNull();
     expect(within(r).getByText("žádný návrh")).toBeTruthy();
     expect(screen.getByText(/Hodnoty navrhuje a schvaluje vlastník nebo správce/)).toBeTruthy();
+  });
+
+  // An approved version in force, as the fake's log keeps it.
+  const approvedIn = (key: string, value: DrSettingValue) => {
+    backend.versions[key] = [{ version_number: 1, value, value_sha256: "x", source_url: "", note: "", created_by: "USR-2", created_at: "2026-10-20T10:00:00.000Z" }];
+    backend.approvals[key] = [{ approval_id: 1, version_number: 1, approved_by: "USR-2", reason: "", approved_at: "2026-10-21T10:00:00.000Z" }];
+  };
+  const approveInPlace = async (key: string, value: string) => {
+    const field = within(await row(key)).getByRole("spinbutton", { name: /^Návrh:/ });
+    fireEvent.change(field, { target: { value } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    await waitFor(async () => expect((await row(key)).getAttribute("data-pending")).not.toBeNull());
+    fireEvent.click(within(await row(key)).getByRole("button", { name: "Schválit" }));
+    const dialog = await waitFor(() => {
+      const el = document.querySelector("[data-dr-approve]") as HTMLElement | null;
+      const confirm = el && (within(el).getByRole("button", { name: "Schválit" }) as HTMLButtonElement);
+      if (!confirm || confirm.disabled) throw new Error("not confirmable yet");
+      return el;
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(async () => expect((await row(key)).getAttribute("data-pending")).toBeNull());
+  };
+
+  it("lets the live filter go once nothing waits, never leaving every rule hidden (#897)", async () => {
+    fakeApi();
+    approvedIn(REGISTER, "approved");
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    fireEvent.click(await screen.findByRole("button", { name: "Zobrazit jen tato pravidla" }));
+    expect((await row(CRAWL)).hidden).toBe(true);
+    // The last rule live needs is approved: the toggle goes, and every rule is shown again.
+    await approveInPlace(RETENTION, "90");
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Zobrazit (jen tato|všechna) pravidla/ })).toBeNull());
+    expect([...document.querySelectorAll<HTMLElement>("[data-dr-setting]")].every((r) => !r.hidden)).toBe(true);
+  });
+
+  const reachFor = (missing: string[]) => ({
+    recorded: true, worker: "worker-1", build_sha: "abc1234def", composed_at: new Date().toISOString(), agent_directed: false,
+    class_gates: "enforce", data_class: null, missing_for_live: missing,
+    routes: [
+      { route: "brave-web-search", kind: "search", state: missing.length ? "waiting" : "active", reason: missing.length ? "settings_unapproved" : null, detail: null,
+        classes: ["C"], priced: true, zone: "NON_EU", missing_settings: missing, class_advisory: false },
+      // Composed but idle: only the agent-directed ladder asks it, and that is off.
+      { route: "common-crawl-athena-index", kind: "index", state: "built", reason: "agent_directed_off", detail: null,
+        classes: ["C"], priced: true, zone: "EU", missing_settings: [], class_advisory: false },
+    ],
+  });
+
+  it("reads Dosah again when what live needs changes, so a priced route's approval is never stale (#897)", async () => {
+    fakeApi();
+    approvedIn(REGISTER, "approved");
+    approvedIn(RETENTION, 90);
+    backend.reach = reachFor;
+    render(<DeepResearchSettingsPanel people={people} />);
+    const approval = (id: string) => document.querySelector(`[data-reach-route="${id}"] [data-reach-approval]`)?.textContent;
+    // Everything live needs approved: the priced route runs on it, the idle priced one is approved too.
+    await waitFor(() => expect(approval("brave-web-search")).toBe("schváleno"));
+    expect(approval("common-crawl-athena-index")).toBe("schváleno");
+    const idle = document.querySelector('[data-reach-route="common-crawl-athena-index"]') as HTMLElement;
+    expect(idle.getAttribute("data-reach-state")).toBe("built");
+    expect(within(idle).getByText(/ptá se ho jen výzkum řízený agenty/)).toBeTruthy();
+    // Back to the default: live needs the rule again, and Dosah says so without a reload.
+    const detail = await openDetail(RETENTION);
+    fireEvent.click(within(detail).getByRole("button", { name: "Vrátit na výchozí" }));
+    const back = document.querySelector("[data-dr-approve]") as HTMLElement;
+    await waitFor(() => expect((within(back).getByRole("button", { name: "Vrátit na výchozí" }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(within(back).getByRole("button", { name: "Vrátit na výchozí" }));
+    await waitFor(() => expect(approval("brave-web-search")).toBe("čeká: 1 pravidlo"));
+    expect(approval("common-crawl-athena-index")).toBe("čeká na pravidla");
+  });
+
+  it("opens a rule's purpose from its ⓘ by keyboard or touch, not on hover alone", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    const r = await row(RETENTION);
+    const info = within(r).getByRole("button", { name: "K čemu je: Zachycené stránky uchovávat" });
+    const help = document.getElementById(`dr-help-${RETENTION}`) as HTMLElement;
+    expect(info.getAttribute("aria-expanded")).toBe("false");
+    expect(help.hidden).toBe(true);
+    fireEvent.click(info);
+    expect(info.getAttribute("aria-expanded")).toBe("true");
+    expect(help.hidden).toBe(false);
+    expect(help.textContent).toBe(researchPolicyHelp(RETENTION, "retention"));
+    expect(info.className).toContain("size-11");
+  });
+
+  it("offers a proposer no Schválit and no coral for their own proposal while independent review is required (#897)", async () => {
+    fakeApi();
+    backend.mayApprove = false;
+    backend.versions[RETENTION] = [{ version_number: 1, value: 90, value_sha256: "x", source_url: "", note: "", created_by: "USR-1", created_at: new Date().toISOString() }];
+    render(<DeepResearchSettingsPanel people={people} />);
+    await waitFor(async () => expect((await row(RETENTION)).getAttribute("data-pending")).toBe("1"));
+    const r = await row(RETENTION);
+    expect(r.className).not.toContain("bg-status-you-wash");
+    expect(within(r).queryByRole("button", { name: "Schválit" })).toBeNull();
+    // Taking one's own proposal back stays possible, a 44 px target on a phone.
+    expect(within(r).getByRole("button", { name: "Stáhnout návrh" }).className).toContain("max-sm:min-h-11");
+    // Nor does the history offer it.
+    const detail = await openDetail(RETENTION);
+    await waitFor(() => expect(detail.querySelector("[data-dr-version]")).toBeTruthy());
+    expect(within(detail).queryByRole("button", { name: "Schválit verzi 1" })).toBeNull();
   });
 
   it("says the API sent no settings rather than drawing an empty tab", async () => {

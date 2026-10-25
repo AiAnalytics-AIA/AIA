@@ -26,6 +26,7 @@ chunks:
   - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
   - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
+  - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
@@ -147,7 +148,7 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
-(decided that day), F15, F16, then F9-F12. The list above is the chunks' ids, not their order.
+(decided that day), F15, F16, F8b, then F9-F12 built against prototype v56-v58 (Systémové prompty, AI běh, Přístup compacted). The list above is the chunks' ids, not their order.
 
 ## Fidelity to the prototype v51 (the product owner, 2026-10-23)
 "Implement the settings pages just as we designed them; the current deploy is far from it."

@@ -1373,6 +1373,7 @@ export const cs = {
           cited: "každé zjištění doložené citací",
         },
         proposeOf: "Návrh: {rule}",
+        helpOf: "K čemu je: {rule}",
         proposeHere: "Napsat návrh",
         noProposal: "žádný návrh",
         waitingVersion: "verze {version} čeká na schválení",
