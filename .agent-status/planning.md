@@ -13,9 +13,9 @@ past 70% context, for "AIA planning 4". Coordinator: session_01MycSLqSRMw4g32SZw
 - Docs PRs open ready (not draft); footer on every GitHub post; CLAUDE.md §8 "The merge bar".
 - master_check resolves plan#ID only for plans on develop; every open core chunk needs a wave row.
 
-## Two drafts that exist ONLY as uncommitted work in planning 3's container (will be lost)
-Neither is pushed: they wait for Nigel's "commit and push" in planning 3's session. If planning 3 is
-gone, REBUILD them from this description on a fresh branch from develop:
+## Two PRs, pushed on Nigel's "commit and push" (2026-10-25 ~21:45): #893 (audit answers, f7fcf5e9) and
+#894 (study deletion + ADR 0043, d7e61ed0). Both ready, docs-only; merge #893 first (it fixes the
+develop register drift #894's master_check still shows). Planning 4 drives them to merge. Contents:
 
 1. **chore/audit-answers-2026-10-25** (28 files, +260/-25; master_check ok, progress 129/129):
    Nigel's 30 audit answers of 2026-10-25 ~21:15 UTC (full list in the coordinator's message to
