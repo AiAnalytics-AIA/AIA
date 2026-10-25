@@ -332,9 +332,23 @@ describe("Deep Research settings", () => {
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
     expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
     const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
-    // A plain same-page anchor: it fires the hashchange the page follows (a next/link to the same
-    // page wrote "#deep_research#access" and opened no section, review of #900).
-    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("#access");
+    // A same-page anchor (a next/link to the same page wrote "#deep_research#access" and opened no
+    // section): its href serves a new tab; a plain click pushes an entry that keeps the framework's
+    // history state, so Back from another page lands on Přístup (review of #900).
+    const access = within(posture).getByRole("link", { name: "Přístup a schvalování" });
+    expect(access.getAttribute("href")).toBe("#access");
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    const entries = window.history.length;
+    const changes: string[] = [];
+    window.addEventListener("hashchange", () => changes.push(window.location.hash), { once: true });
+    expect(fireEvent.click(access)).toBe(false); // prevented: the page, not the browser, navigates
+    expect(window.location.hash).toBe("#access");
+    expect(window.history.state).toMatchObject({ __NA: true });
+    expect(window.history.length).toBe(entries + 1);
+    expect(changes).toEqual(["#access"]);
+    // A click for a new tab is the browser's.
+    expect(fireEvent.click(access, { metaKey: true })).toBe(true);
+    expect(fireEvent.click(access, { ctrlKey: true })).toBe(true);
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",

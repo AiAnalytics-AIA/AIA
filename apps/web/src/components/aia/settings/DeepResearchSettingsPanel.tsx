@@ -39,7 +39,7 @@ import { Technical } from "./technical";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
-import { waitingChanged } from "./sections";
+import { sectionLinkClick, waitingChanged } from "./sections";
 
 const D = "aia.settings.deepResearch";
 const LABELS: Record<string, string> = cs.aia.settings.deepResearch.labels;
@@ -306,7 +306,7 @@ function Posture() {
         {t(`${D}.posture.text`)}{" "}
         <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
         {t(`${D}.posture.between`)}{" "}
-        <a href="#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</a>
+        <a href="#access" onClick={sectionLinkClick("access")} className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</a>
         {t(`${D}.posture.end`)}
       </p>
     </div>

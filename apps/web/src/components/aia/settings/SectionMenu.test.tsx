@@ -145,10 +145,12 @@ describe("the settings section menu", () => {
     expect(shown()).toEqual(["methodology", "studies"]);
     const events: string[] = [];
     window.addEventListener("hashchange", () => events.push(window.location.hash), { once: true });
+    const entries = window.history.length;
     fireEvent.keyDown(search, { key: "Enter" });
     expect(window.location.hash).toBe("#methodology");
     expect(events).toEqual(["#methodology"]);
-    // The address is replaced, the framework's history state kept.
+    // A new entry, the framework's history state kept on it: Back from another page lands here.
+    expect(window.history.length).toBe(entries + 1);
     expect(window.history.state).toMatchObject({ __NA: true });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Metodika");

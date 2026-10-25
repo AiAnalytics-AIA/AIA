@@ -6,8 +6,9 @@
 // rozpočet); the sections stand in three columns, each with its icon and line; Enter opens the first
 // match and Esc closes it, focus back on the button. The shortcut is the platform's (⌘ on Apple, Ctrl
 // elsewhere) and never taken from a field being typed in. A section is its address (#deep_research):
-// a link, so a deep link, the back button and a new tab all work as before; a link to a section from
-// the page itself is a plain <a href="#…">, which fires the hashchange the page follows. The coral
+// a link, so a deep link, the back button and a new tab all work as before; opening one from the page
+// itself (the menu, an in-page link) pushes an entry that keeps the framework's history state
+// (goToSection), so Back from another page lands on it. The coral
 // counts say what waits on an administrator, read from the API (rules live needs approved, prompts
 // saved and not yet switched on) when the page opens, the menu opens, the section changes and a
 // section says it changed one; a count that could not be read is not drawn, never guessed.
@@ -20,7 +21,7 @@ import { type PromptSlotSummary, admin, deepResearchSettings } from "@/lib/api";
 import { Icon, type IconName } from "../../rehome/icons";
 import { waitingPrompts } from "./SystemPromptsPanel";
 import { FOCUS, useDismiss } from "../../ui/parts";
-import { SECTIONS, SECTION_GROUPS, type SectionId, WAITING_CHANGED, appleKeys, sectionFromHash } from "./sections";
+import { SECTIONS, SECTION_GROUPS, type SectionId, WAITING_CHANGED, appleKeys, goToSection, sectionFromHash } from "./sections";
 
 const P = "aia.settings.panel";
 const M = `${P}.menu`;
@@ -152,12 +153,9 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
   const total = Object.values(counts).reduce((n, c) => n + (c ?? 0), 0);
   const go = (id: SectionId) => {
     setOpen(false);
-    // The address is replaced, not pushed, keeping the history entry's own state: the framework's
-    // router keeps what it stored there (as the tabs before did); the page follows the event.
-    if (window.location.hash !== `#${id}`) {
-      window.history.replaceState(window.history.state, "", `#${id}`);
-      window.dispatchEvent(new HashChangeEvent("hashchange"));
-    }
+    // A new history entry with the framework's state kept, as every link to a section on the page
+    // makes one (goToSection): Back returns to the section before; the page follows the event.
+    goToSection(id);
     trigger.current?.focus();
   };
   const onSearchKey = (e: KeyboardEvent<HTMLInputElement>) => {

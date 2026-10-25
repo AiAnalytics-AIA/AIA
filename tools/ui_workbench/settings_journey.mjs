@@ -74,11 +74,19 @@ try {
   await page.locator("#panel-access").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#access");
   // (an administrator's button adds what waits on them: ", čeká na vás: n")
   assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Přístup a schvalování");
+  // The entry keeps the framework's history state: Back from another page lands on Přístup, not on
+  // that page under Přístup's address (a bare #access entry had none, and Next ignored its popstate).
+  assert.equal(await page.evaluate(() => history.state?.__NA === true), true, "the in-page link's entry keeps Next's state");
+  await page.locator('aside a[href="/app/clients"], nav a[href="/app/clients"]').first().click();
+  await page.waitForURL((url) => url.pathname === "/app/clients");
+  await page.goBack(); await page.locator("#panel-access").waitFor({ state: "visible" });
+  assert.equal(new URL(page.url()).hash, "#access"); assert.equal(await page.evaluate(() => history.state?.__NA === true), true);
+  assert.equal(await page.locator("[data-section-menu]").count(), 1, "Back left another page on screen");
   // A deep link opens its section, and the menu's button names it, the trail's current page.
   await page.goto(base + "/app/settings#audit"); await page.locator("#panel-audit").waitFor({ state: "visible" });
   assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
   assert.equal((await page.getByRole("navigation", { name: "Kde jste" }).locator('[aria-current="page"]').getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
-  checks.push("The section menu opens on Ctrl+K (⌘K off Apple does nothing), closes on Esc or Ctrl+K with the focus back, says what the search found, opens Brave on Enter; Ctrl+K in a field stays the field's; the in-page Přístup link and #audit open their sections");
+  checks.push("The section menu opens on Ctrl+K (⌘K off Apple does nothing), closes on Esc or Ctrl+K with the focus back, says what the search found, opens Brave on Enter; Ctrl+K in a field stays the field's; the in-page Přístup link and #audit open their sections, and Back from Klienti lands on Přístup");
   await page.goto(base + "/app/settings"); await menuButton().waitFor();
   // Open, the menu fits every width (it ran past the viewport from 768 to 1330 px), and every
   // section shows its line under its name.
