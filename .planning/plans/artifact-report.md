@@ -756,6 +756,19 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## Findings
 
+- **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
+  `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
+  `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
+  real host every path there passes the docs gate, which needs the cookie only a spent one-time ticket sets
+  (report-editor-hosting.md:288, "the script load is the way in"; `POST /session/docs-ticket`,
+  `GET /session/docs?ticket&next`, both built). Consequence: on activation the docs gate answers api.js
+  401 and Zpráva falls back to read only on day one. The workbench's stand-in served api.js ungated, so no
+  journey showed it. Fix: the page loads api.js through the ticket (`apiScriptUrl(documentServer,
+  sessionUrl)`), under RPT8e's integrity with credentials, and the docs site answers CORS for AIA's
+  origin on those two paths. Tests: `report-editor.test.ts` ("is api.js through the ticket's session
+  path…"), `ReportEditor.test.tsx` ("keeps the read-only draft when no ticket is given…"),
+  `report_editor_journey.mjs` (every script load spends a ticket).
+
 - **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
   internal draft never said what the person asked for: "Návrh studie" printed only how the study
   measured. Now `NativeSources.brief` (`analysis_results.Brief`: the Design Revision's goal and decision
