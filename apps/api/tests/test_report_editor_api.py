@@ -42,6 +42,8 @@ API = "/api/v1"
 EDITOR = "https://docs.aia.example.test"
 PUBLIC = "https://aia.example.test"
 SECRET = "k" * 48
+#: A fictional api.js integrity: one SHA-384 digest as the attribute takes it (RPT8e).
+INTEGRITY = "sha384-" + "a" * 64
 DESIGN = {
     "title": "Ranní nápoj",
     "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
@@ -68,6 +70,7 @@ def settings() -> Settings:
         onlyoffice_url=EDITOR,
         onlyoffice_jwt_secret=SECRET,
         onlyoffice_callback_base=PUBLIC,
+        onlyoffice_api_integrity=INTEGRITY,
         # A run has a report step only with its analysis (no model is called here).
         ai_analysis_enabled=True,
     )
@@ -167,6 +170,7 @@ def test_the_config_is_signed_names_no_e_mail_and_fetches_its_version(
     assert response.status_code == 200, response.text
     body = response.json()
     assert body["document_server"] == EDITOR
+    assert body["api_integrity"] == INTEGRITY
     assert body["line_id"] == draft and body["koncept"] == 1
     config = body["config"]
     signed = jwt.decode(config.pop("token"), SECRET, algorithms=["HS256"])
@@ -309,16 +313,36 @@ def test_the_public_origin_is_an_https_origin_and_nothing_else(base: str) -> Non
         Settings(env=Environment.TEST, onlyoffice_callback_base=base)
 
 
-def test_the_editor_is_on_only_with_its_origin_its_secret_and_aias_public_origin() -> None:
+def test_the_editor_is_on_only_with_its_origins_its_secret_and_its_integrity() -> None:
     on = Settings(
         env=Environment.TEST,
         onlyoffice_url=EDITOR,
         onlyoffice_jwt_secret=SECRET,
         onlyoffice_callback_base=PUBLIC,
+        onlyoffice_api_integrity=INTEGRITY,
     )
     assert on.report_editor_on
-    for missing in ("onlyoffice_url", "onlyoffice_callback_base"):
+    for missing in ("onlyoffice_url", "onlyoffice_callback_base", "onlyoffice_api_integrity"):
         assert not on.model_copy(update={missing: ""}).report_editor_on
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "sha256-" + "A" * 43 + "=",  # another digest
+        "sha384-" + "A" * 63,  # one character short
+        "sha384-" + "A" * 64 + " sha384-" + "B" * 64,  # two hashes: the page takes exactly one
+        "A" * 64,  # no prefix
+    ],
+)
+def test_the_api_integrity_is_one_sha384_digest_or_nothing(value: str) -> None:
+    """RPT8e: the integrity the page's api.js must match is refused at start unless it is one
+    SHA-384 digest as an integrity attribute takes it."""
+    with pytest.raises(ValueError):
+        Settings(env=Environment.TEST, onlyoffice_api_integrity=value)
+    assert Settings(
+        env=Environment.TEST, onlyoffice_api_integrity=INTEGRITY
+    ).onlyoffice_api_integrity
 
 
 # -- the Document Server's routes are outside the study tree: their scope, tested here ---------

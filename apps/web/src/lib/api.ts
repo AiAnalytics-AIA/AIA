@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
+import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1426,6 +1426,9 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A one-time ticket into the editor's origin for this person (report-editor-hosting): spent by
+   *  loading api.js through it, which sets the docs gate's cookie there. */
+  reportEditorTicket: () => request<DocsTicket>("POST", "/api/v1/session/docs-ticket"),
   /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
   reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
     request<void>(
@@ -1661,6 +1664,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** Start the Lead's turn on the messages that wait, once the conversation is free (any tab). */
+  answerQueued: (studyId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/queued`),
+  /** Withdraw a message that still waits: it stays stored, and no turn is sent it. */
+  withdraw: (studyId: string, turnId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/withdraw`),
   /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
   manifest: (studyId: string, turnId: string) =>
     request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
@@ -1954,6 +1963,9 @@ export type DrSettingVersion = {
   state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
   /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
   decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
+  /** Whether the caller may approve it now (#897): false for their own proposal while independent
+   *  review is required. Absent from a server before it: the page offers it to an administrator. */
+  may_approve?: boolean;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };

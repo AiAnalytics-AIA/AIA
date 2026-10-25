@@ -54,7 +54,7 @@ export const SETTING_HELP: Record<string, string> = {
   deep_research_grounded_findings: "Publikované zjištění musí mít doloženou citaci zachyceného zdroje.",
 };
 
-export const DR_GROUP_HELP: Record<string, string> = {
+const DR_GROUP_HELP: Record<string, string> = {
   sign_off: "Schválení vymezuje povolený způsob použití rešerše. Nejde o zapnutí poskytovatele.",
   provider: "Podmínky tarifu, cena požadavků a oprávnění k uchovávání výsledků vyhledávání.",
   budgets: "Limity útraty a rozsahu rešerše. Rozpočet konkrétní studie nadále platí jako společný tvrdý strop.",
