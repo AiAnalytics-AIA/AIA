@@ -31,11 +31,9 @@ const measure = async (name) => {
 const widths = async (name) => { for (const width of [1440, 1024, 768, 390]) { await page.setViewportSize({ width, height: 1000 }); await measure(name); } await page.setViewportSize({ width: 1440, height: 1000 }); };
 const waitFor = async (check, what, ms = 15000) => { const end = Date.now() + ms; while (Date.now() < end) { if (await check()) return; await page.waitForTimeout(250); } throw new Error(`timed out: ${what}`); };
 const screenshot = async (name) => { await page.evaluate(() => scrollTo({ top: 0, left: 0, behavior: "instant" })); await page.screenshot({ path: join(out, `${name}.png`), fullPage: true, animations: "disabled" }); await page.screenshot({ path: join(out, `${name}-viewport.png`), animations: "disabled" }); };
+// The editor is one list of parameters (fidelity F6): a field is there once Upravit shows.
 const chooseField = async (reference) => {
-  const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor({ state: "attached" });
-  const step = await field.locator("xpath=ancestor::fieldset").getAttribute("data-edit-step");
-  await page.locator(`[data-edit-step-link="${step}"]`).click();
-  await field.waitFor(); return field;
+  const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor(); return field;
 };
 try {
   await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
@@ -205,26 +203,45 @@ try {
   assert(await page.locator("[data-mvp-note]").isVisible(), "methodology: the MVP note");
   await widths("methodology cards");
   await page.locator('[data-module-card="sociomap"]').click();
-  // An administrator opens the map on the editor, its five-step sequence on the first screen (product owner, 2026-10-13).
+  // An administrator opens the map on the editor (product owner, 2026-10-13): where the edit starts
+  // and the list of parameters begin on the first screen (prototype v51, fidelity F6).
   const methodEditor = page.locator("[data-methodology-editor]"); await methodEditor.waitFor();
   for (const [width, height] of [[1440, 900], [1710, 1000], [1920, 1080]]) {
     await page.setViewportSize({ width, height }); await page.evaluate(() => scrollTo(0, 0));
-    const flow = await page.locator("[data-methodology-flow]").boundingBox(); assert(flow && flow.y + flow.height <= height, `${width}: the change sequence is below the fold (${flow?.y})`);
+    const first = await methodEditor.locator("[data-edit-row]").first().boundingBox(); assert(first && first.y + first.height <= height, `${width}: the first parameter is below the fold (${first?.y})`);
+    const actions = await methodEditor.locator("[data-edit-actions]").boundingBox(); assert(actions && actions.y + actions.height <= height, `${width}: the actions are not in reach (${actions?.y})`);
     await measure(`methodology editor ${width}`);
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
-  // Visible feedback inside the Doherty threshold: a step opens, a typed value shows in the draft.
+  // Visible feedback inside the Doherty threshold: a press of + and a typed value reach the draft.
   const doherty = async (name, act, done) => { const t0 = Date.now(); await act(); await done(); const ms = Date.now() - t0; assert(ms < 400, `${name}: ${ms} ms`); return ms; };
-  const stepLink = methodEditor.locator("[data-edit-step-link]").nth(3); const stepId = await stepLink.getAttribute("data-edit-step-link");
-  const openMs = await doherty("open a step", () => stepLink.click(), () => methodEditor.locator(`[data-edit-step="${stepId}"]`).waitFor({ state: "visible" }));
+  const nMinField = await chooseField("relation.n_min");
+  const stepMs = await doherty("a press of + changes the value", () => methodEditor.locator('[data-edit-row="relation.n_min"]').getByRole("button", { name: "Zvýšit: Nejmenší n páru", exact: true }).click(), () => methodEditor.getByText("Neuloženo: 1 změna", { exact: true }).waitFor());
+  assert.equal(await nMinField.inputValue(), "11");
   const sigmaField = await chooseField("terrain.sigma");
-  const typeMs = await doherty("a typed value reaches the draft", () => sigmaField.fill("0,29"), () => methodEditor.getByRole("complementary", { name: "Dopad a rozhodnutí" }).getByText("0,29").waitFor());
-  checks.push(`Metodika opens on the editor with its sequence above the fold at 1440/1710/1920; a step opens in ${openMs} ms and a typed value reaches the draft in ${typeMs} ms (< 400 ms)`);
-  // The read-only explanation is the editor's other side: close it, and the catalogue is there.
-  await methodEditor.getByRole("button", { name: "Zrušit", exact: true }).click();
-  if (await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).count()) await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();
-  await methodEditor.waitFor({ state: "detached" });
-  assert.equal(await page.getByRole("tab", { name: "Výpočet", exact: true }).getAttribute("aria-selected"), "true", "methodology: a cancelled edit returns to Výpočet");
+  const typeMs = await doherty("a typed value reaches the draft", () => sigmaField.fill("0,29"), () => methodEditor.getByText("Neuloženo: 2 změny", { exact: true }).waitFor());
+  checks.push(`Metodika opens on the editor with its first parameter and its actions on the first screen at 1440/1710/1920; a press of + shows in ${stepMs} ms and a typed value in ${typeMs} ms (< 400 ms)`);
+  // A field the keyboard reaches is never under the sticky action bar (WCAG 2.4.11), down the list.
+  await page.setViewportSize({ width: 1024, height: 800 }); await page.evaluate(() => scrollTo(0, 0));
+  await methodEditor.locator("[data-start-note] select").focus();
+  for (let i = 0; i < 16; i += 1) {
+    await page.keyboard.press("Tab");
+    const covered = await page.evaluate(() => {
+      const active = document.activeElement; const bar = document.querySelector("[data-edit-actions]");
+      if (!active || !bar || bar.contains(active) || !active.closest("[data-methodology-editor]")) return null;
+      const r = active.getBoundingClientRect(); const b = bar.getBoundingClientRect();
+      return r.bottom > b.top + 1 ? { field: active.getAttribute("data-field") ?? active.tagName, bottom: Math.round(r.bottom), bar: Math.round(b.top) } : null;
+    });
+    assert.equal(covered, null, `1024: a focused field under the sticky bar ${JSON.stringify(covered)}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push("At 1024 px, sixteen Tabs down the parameter list never leave the focused field under the sticky action bar");
+  // Zahodit úpravu asks, then starts over from what is in force, on Upravit.
+  await methodEditor.getByRole("button", { name: "Zahodit úpravu", exact: true }).click();
+  await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();
+  await methodEditor.getByText("Neuloženo: 2 změny", { exact: true }).waitFor({ state: "detached" });
+  assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,25", "methodology: a discarded edit starts over from what is in force");
+  await page.getByRole("tab", { name: "Výpočet", exact: true }).click();
   // Výpočet as the prototype draws it (fidelity F5): stage tiles, the parameter filter, rows.
   const stageTiles = page.getByRole("group", { name: "Etapy", exact: true }); await stageTiles.waitFor();
 
@@ -254,7 +271,7 @@ try {
   // Back to the catalogue with a draft open asks first; Ponechat keeps the draft.
   await page.locator("[data-methodology-back]").click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   await widths("methodology editor"); await screenshot("methodology-editor");
-  await methodForm.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
+  await methodForm.getByRole("button", { name: "Porovnat s platnou", exact: true }).click();
   // The comparison is the module's Porovnání (settings-redesign 10b); the draft stays on Upravit.
   await page.locator("[data-methodology-compare]").waitFor(); assert.equal(await page.getByRole("tab", { name: "Porovnání", exact: true }).getAttribute("aria-selected"), "true");
   await widths("methodology comparison");
@@ -263,9 +280,9 @@ try {
   await (await chooseField("terrain.sigma")).fill("0,3");
   let refused = false;
   await page.route("**/api/v1/methodology/sociomap/versions", (route) => { if (route.request().method() === "POST" && !refused) { refused = true; return route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "local_save_refused", message: "Local acceptance refusal" }) }); } return route.continue(); });
-  await methodForm.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click(); await methodForm.getByRole("alert").filter({ hasText: "Local acceptance refusal" }).waitFor();
+  await methodForm.getByRole("button", { name: "Uložit verzi", exact: true }).click(); await methodForm.getByRole("alert").filter({ hasText: "Local acceptance refusal" }).waitFor();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
-  await methodForm.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click();
+  await methodForm.getByRole("button", { name: "Uložit verzi", exact: true }).click();
   await methodForm.waitFor({ state: "detached" }); await page.unroute("**/api/v1/methodology/sociomap/versions");
   let versions = await get("/api/v1/methodology/sociomap/versions"); const created = versions.versions.find((v) => v.spec.terrain.sigma === 0.3 && v.spec.relation.n_min === 34 && !beforeVersions.versions.some((old) => old.version_number === v.version_number)); assert(created); assert.equal(versions.in_force.origin, "code");
   // Right after a save its confirmation offers the activation, the one button for that version.
@@ -284,7 +301,8 @@ try {
   await mapCard.click();
   await page.locator("[data-module-chips]").getByText(`V platnosti: ${created.name}`, { exact: true }).waitFor();
   await page.locator("[data-module-chips]").getByText("Jen interně (neregistrováno)", { exact: true }).waitFor();
-  await page.locator("[data-in-force]").filter({ hasText: created.name }).waitFor();
+  // The next edit starts from it, and says so.
+  await page.locator("[data-start-note]").filter({ hasText: created.name }).waitFor();
   versions = await get("/api/v1/methodology/sociomap/versions"); assert.equal(versions.in_force.version_number, created.version_number);
   await screenshot("methodology-activated");
   await page.getByRole("tab", { name: "Verze a aktivace", exact: true }).click();
