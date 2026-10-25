@@ -38,6 +38,9 @@ let selfUpdates: unknown[];
 let staleAnswer: string[];
 let drains = 0;
 let failDrains = 0;
+let failStates = 0;
+let drainStarts: LeadTurn[] = [];
+let onDrain: (() => void) | null = null;
 let withdrawn: string[] = [];
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -59,7 +62,8 @@ function api() {
         failDrains -= 1;
         return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 500 });
       }
-      return new Response(JSON.stringify({ turns: [] }));
+      onDrain?.();
+      return new Response(JSON.stringify({ turns: drainStarts }), { status: drainStarts.length ? 201 : 200 });
     }
     if (u.endsWith("/withdraw")) {
       withdrawn.push(u.split("/").at(-2)!);
@@ -77,7 +81,13 @@ function api() {
       return new Response(JSON.stringify({ layer: "knowledge", after: 50, total: 51, omitted: [{ id: "K-51", reason: "over_budget" }] }));
     }
     if (u.endsWith("/manifest")) return new Response(JSON.stringify(MANIFEST));
-    if (u.endsWith("/lead")) return new Response(JSON.stringify(state));
+    if (u.endsWith("/lead")) {
+      if (failStates > 0) {
+        failStates -= 1;
+        return new Response(JSON.stringify({ code: "service_unavailable" }), { status: 503 });
+      }
+      return new Response(JSON.stringify(state));
+    }
     return new Response(JSON.stringify({ code: "not_found" }), { status: 404 });
   }));
 }
@@ -91,6 +101,9 @@ beforeEach(() => {
   withdrawn = [];
   failPosts = 0;
   failDrains = 0;
+  failStates = 0;
+  drainStarts = [];
+  onDrain = null;
   me = hatched;
   state = { available: true, unavailable_reason: null, busy: false, turns: [] };
   api();
@@ -491,6 +504,22 @@ describe("LeadPane", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     await waitFor(() => expect(drains).toBe(2));
     await waitFor(() => expect(screen.queryByText(/Vedoucí zatím neodpovídá/)).toBeNull());
+  });
+
+  it("keeps reading after it started the queue's turn, though the read after the start failed", async () => {
+    const waiting = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: true });
+    state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting] };
+    const started = turn({ turn_id: "LDT-10", sequence_no: 3, run_id: "RUN-2", status: "RUNNING", output: null });
+    drainStarts = [started];
+    onDrain = () => {
+      // The server starts the turn, which soon answers; the read right after the start fails once.
+      state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), { ...waiting, queued: false }, { ...started, status: "COMPLETED", output: { reply: "Odpověď z fronty" } }] };
+      failStates = 1;
+    };
+    render(pane({ canEdit: false })); // no greeting, whose read would hide the gap
+    // Only a pane that kept polling after the failed read sees the answer.
+    expect(await screen.findByText("Odpověď z fronty", undefined, { timeout: 4000 })).toBeTruthy();
+    expect(drains).toBe(1);
   });
 
   it("names a view chip's research question or hypothesis by its words in the working copy (F18)", async () => {

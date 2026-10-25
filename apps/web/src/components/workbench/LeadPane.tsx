@@ -245,7 +245,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     if (asked.current === key) return;
     asked.current = key;
     leadApi.answerQueued(studyId).then(
-      () => { setDrainFailed(null); return read(); },
+      (started) => {
+        setDrainFailed(null);
+        // A turn started is a busy Lead even if the read below fails: the poll keeps reading.
+        if (started.turns.length) setSession((s) => (s ? { ...s, busy: true } : s));
+        return read();
+      },
       (e: unknown) => setDrainFailed(e instanceof ApiError ? reasonWords(e.code) : String(e)),
     );
   }, [session, sending, waiting, studyId, read]);
