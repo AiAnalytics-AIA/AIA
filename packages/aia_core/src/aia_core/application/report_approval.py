@@ -53,6 +53,7 @@ from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 #: Each approvable report by its stored type, as the approval names it (report-delivery RD3, G66):
 #: the client report is the one deliverable that leaves the organization.
@@ -127,6 +128,10 @@ def approve_report(
     approving page's last edit start), is not held by it (``unsaved_edits``)."""
     scope.require(Permission.SIGN_OFF_DELIVERABLE)
     run = ResearchRuns(session, scope).get(run_id)
+    # Approve once: the run's row is held before the report's review is read, so a second
+    # approval at the same time waits and reads it approved (two would record two decisions).
+    # Taken before any line lock, never after, as a map snapshot's approval takes it.
+    WorkflowRepository(session, scope).lock_run(run_id)
     artifacts = research_artifacts(session, scope, store)
     artifact = artifacts.get(artifact_id)
     if (
