@@ -175,6 +175,11 @@ approval of the first is then not the one read next. The snapshot's fix (lock th
 `report_approval.approve_report` reads a report's review and approves it without a lock too, so two approvals at once
 record two decisions; a snapshot's approval locks the run first (`test_two_approvals_of_one_snapshot_at_once_record_one_decision`,
 PostgreSQL), and the same fix applies there.
+*Fixed (`fix/report-store-and-approve-races`):* both now take the run's row (`WorkflowRepository.lock_run`) after
+finding the run and before they look: `_client_report` before it looks for a stored draft, `approve_report` before it
+reads the review, before any line lock (as a snapshot's approval). Tests (PostgreSQL, each holding the first between
+its write and its commit; each fails without its lock): `test_two_first_reads_of_the_client_report_store_one_draft`,
+`test_two_approvals_of_one_report_at_once_record_one_decision`.
 
 *Finding (RD4a, for LO16):* the ledger's `map_snapshot` subject has no writer; RD4 approves snapshots as artifacts
 (subject `artifact`); LO16 to decide whether to drop it (`domain/approval_ledger.py:58 @ 156d339c`).
