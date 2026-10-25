@@ -118,6 +118,15 @@ try {
   const nMin = editor.locator('[data-field="relation.n_min"]');
   await timed("Step a parameter", editor.locator('[data-edit-row="relation.n_min"]').getByRole("button", { name: "Zvýšit: Nejmenší n páru", exact: true }), "[data-draft-chip]", "Neuloženo");
   assert.equal(await nMin.inputValue(), "11");
+  // The 24 px − / + are a shortcut, never the only way: the field itself keeps a 44 px target and
+  // takes ↑ ↓ from the keyboard.
+  const field = await nMin.boundingBox();
+  assert(field && field.width >= 44 && field.height >= 44, `The parameter's field is below 44 px: ${JSON.stringify(field)}`);
+  assert.equal(await nMin.getAttribute("data-dense"), null, "The parameter's field is marked dense");
+  await nMin.focus(); await page.keyboard.press("ArrowUp");
+  assert.equal(await nMin.inputValue(), "12", "↑ on the field does not step it");
+  await page.keyboard.press("ArrowDown");
+  assert.equal(await nMin.inputValue(), "11", "↓ on the field does not step it");
   await timed("Open the formulas", editor.locator("[data-edit-formulas] summary"), "[data-edit-slot]");
   await editor.locator("[data-edit-formulas] summary").click();
   // Výpočet: one stage by its tile.
