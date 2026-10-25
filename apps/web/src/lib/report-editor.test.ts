@@ -4,29 +4,40 @@ import { ApiError } from "./api";
 import {
   documentKeyOf, newPageId, unsavedWords, UNSTORED,
   apiScriptUrl, changesListed, changeWords, editedApprovalQuestion, editedWords, editorMode, type EditorVersionRead,
-  openFailure, problemWords, type SavedChange, savedWords, scriptIntegrity,
+  openFailure, problemWords, type SavedChange, savedWords, scriptIntegrity, ticketUrl,
 } from "./report-editor";
 
 describe("where the editor's script is loaded from", () => {
   const DOCS = "https://docs.aia.example.test";
   const ticket = `${DOCS}/__aia/session?ticket=t.k`;
 
-  it("is api.js through the ticket's session path on the named origin, whatever path the answer carried", () => {
-    const url = new URL(apiScriptUrl(DOCS, ticket)!);
-    expect(url.origin).toBe(DOCS);
-    expect(url.pathname).toBe("/__aia/session");
-    expect(url.searchParams.get("ticket")).toBe("t.k");
-    expect(url.searchParams.get("next")).toBe("/web-apps/apps/api/documents/api.js");
-    expect(apiScriptUrl(`${DOCS}/elsewhere/?x=1`, ticket)).toBe(url.href);
+  it("is the named origin's api.js, whatever path the answer carried", () => {
+    expect(apiScriptUrl(DOCS)).toBe(`${DOCS}/web-apps/apps/api/documents/api.js`);
+    expect(apiScriptUrl(`${DOCS}:8443/elsewhere/?x=1`)).toBe(`${DOCS}:8443/web-apps/apps/api/documents/api.js`);
+  });
+
+  it("is where ONLYOFFICE's api.js finds its own base, the editor's origin (its getBasePath)", () => {
+    // ONLYOFFICE 9.4.0.1, web-apps apps/api/documents/api.js getBasePath: the script element's src.
+    const match = apiScriptUrl(DOCS)!.match(/(.*)api\/documents\/api.js/i);
+    expect(match?.[1]).toBe(`${DOCS}/web-apps/apps/`);
   });
 
   it("is nothing for an origin that is not https, carries credentials or is not a URL", () => {
     for (const bad of ["http://docs.aia.example.test", "https://u:p@docs.aia.example.test", "javascript:alert(1)", "", "docs"]) {
-      expect(apiScriptUrl(bad, ticket)).toBeNull();
+      expect(apiScriptUrl(bad)).toBeNull();
+      expect(ticketUrl(bad, ticket)).toBeNull();
     }
   });
 
-  it("is nothing for a ticket spent anywhere but the named origin's session path, or naming its own next", () => {
+  it("spends the ticket at the named origin's session path, next the script", () => {
+    const url = new URL(ticketUrl(DOCS, ticket)!);
+    expect(url.origin).toBe(DOCS);
+    expect(url.pathname).toBe("/__aia/session");
+    expect(url.searchParams.get("ticket")).toBe("t.k");
+    expect(url.searchParams.get("next")).toBe("/web-apps/apps/api/documents/api.js");
+  });
+
+  it("spends no ticket anywhere but the named origin's session path, nor one naming its own next", () => {
     for (const bad of [
       "https://evil.example.test/__aia/session?ticket=t.k",
       `${DOCS}/web-apps/apps/api/documents/api.js?ticket=t.k`,
@@ -34,7 +45,7 @@ describe("where the editor's script is loaded from", () => {
       `${DOCS}/__aia/session?ticket=t.k&next=/elsewhere.js`,
       "http://docs.aia.example.test/__aia/session?ticket=t.k",
     ]) {
-      expect(apiScriptUrl(DOCS, bad)).toBeNull();
+      expect(ticketUrl(DOCS, bad)).toBeNull();
     }
   });
 });

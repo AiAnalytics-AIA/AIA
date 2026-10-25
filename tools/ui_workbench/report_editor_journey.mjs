@@ -64,21 +64,24 @@ await context.addInitScript((identity) => {
   }
 }, IDENTITY);
 // The stand-in Document Server, answering as docs.<hostname> does (the Caddyfile's @editor_script,
-// RPT8e): the ticket's URL answers api.js, with CORS for AIA's origin with credentials, and nothing
-// else is served. The real ticket redirects to api.js (test_docs_session_api.py); here it answers the
-// script itself, because Playwright does not intercept the target of a redirect it fulfilled.
+// RPT8e): the ticket's URL and api.js, each with CORS for AIA's origin with credentials, and nothing
+// else. The real ticket redirects to api.js (test_docs_session_api.py); here it answers 204, because
+// Playwright does not intercept the target of a redirect it fulfilled, and the page only spends it.
 // `down`: unreachable. `swapped`: an api.js other than the pinned one, which its integrity refuses.
-const API_JS = "/web-apps/apps/api/documents/api.js"; // the ticket's next
+const API_JS = "/web-apps/apps/api/documents/api.js";
 const standin = readFileSync(join(repo, "tools/ui_workbench/fixtures/report_editor/api.js"), "utf8");
 const cors = { "Access-Control-Allow-Origin": new URL(base).origin, "Access-Control-Allow-Credentials": "true", Vary: "Origin" };
 let down = false;
 let swapped = false;
-const scriptLoads = [];
+const spent = [];
 await context.route(`${EDITOR_ORIGIN}/**`, (route) => {
   const url = new URL(route.request().url());
   if (down) return route.abort();
   if (url.pathname === "/__aia/session" && url.searchParams.get("ticket") && url.searchParams.get("next") === API_JS) {
-    scriptLoads.push(url.href);
+    spent.push(url.href);
+    return route.fulfill({ status: 204, headers: cors });
+  }
+  if (url.pathname === API_JS && !url.search) {
     return route.fulfill({ status: 200, contentType: "application/javascript", headers: cors, body: swapped ? `${standin}\n// swapped\n` : standin });
   }
   return route.abort();
@@ -147,6 +150,7 @@ try {
     assert.equal(await page.locator("[data-report-editor]").getAttribute("data-mode"), mode, `@${width}: the editor opens in ${mode} mode`);
     assert.equal(await page.evaluate(() => window.__standinEditor.config.editorConfig.mode), mode, `@${width}: the signed config says ${mode}`);
     assert.equal(await page.evaluate(() => typeof window.__standinEditor.config.token), "string", `@${width}: the config is handed over signed`);
+    assert.equal(await page.evaluate(() => window.__standinEditor.basePath), `${EDITOR_ORIGIN}/web-apps/apps/`, `@${width}: api.js finds its base on the editor's origin (ONLYOFFICE's getBasePath)`);
     if (mode === "view") assert(await page.getByText("Jen ke čtení (úzká obrazovka)").isVisible(), "@390: read only, said");
     assert.equal(await page.getByRole("article", { name: "Koncept zprávy" }).count(), 0, `@${width}: the read-only draft gives way to the editor`);
     assert.match(await docbar().innerText(), /Koncept \d+/, `@${width}: the doc bar names the version on screen`);
@@ -258,8 +262,8 @@ try {
   await page.getByRole("article", { name: "Koncept zprávy" }).waitFor({ timeout: 30000 });
   await page.screenshot({ path: join(out, "1440-script-swapped.png") });
   swapped = false;
-  check("api.js loads only through a one-time ticket and under the integrity the API names; a swapped script runs nothing and leaves the read-only draft");
-  assert(scriptLoads.length > 0 && scriptLoads.every((u) => new URL(u).searchParams.get("ticket")), "every script load spent a ticket");
+  check("a one-time ticket is spent before api.js loads, at its canonical path under the integrity the API names; a swapped script runs nothing and leaves the read-only draft");
+  assert(spent.length > 0, "a ticket was spent before the script loaded");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

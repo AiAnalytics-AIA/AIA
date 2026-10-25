@@ -20,8 +20,11 @@ const OPENED: EditorOpened = {
 };
 /** The one-time ticket the page spends by loading api.js through it (report-editor-hosting). */
 const TICKET = { session_url: "https://docs.aia.example.test/__aia/session?ticket=t.k", expires_at: "2026-10-25T21:00:00Z" };
-const SCRIPT = "https://docs.aia.example.test/__aia/session?ticket=t.k&next=%2Fweb-apps%2Fapps%2Fapi%2Fdocuments%2Fapi.js";
+const SPENT_AT = "https://docs.aia.example.test/__aia/session?ticket=t.k&next=%2Fweb-apps%2Fapps%2Fapi%2Fdocuments%2Fapi.js";
+/** The canonical api.js: ONLYOFFICE finds its base, the editor's origin, from this src (getBasePath). */
+const SCRIPT = "https://docs.aia.example.test/web-apps/apps/api/documents/api.js";
 const ticket = () => vi.fn().mockResolvedValue(TICKET);
+const spend = () => vi.fn().mockResolvedValue(undefined);
 
 /** A stand-in DocsAPI: records each editor made and what it was configured with. */
 function docsApi() {
@@ -44,7 +47,7 @@ const events = (config: Record<string, unknown>) =>
 
 const show = (props: Partial<Parameters<typeof ReportEditor>[0]> = {}) =>
   render(
-    <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} {...props}>
+    <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} spend={spend()} {...props}>
       <article>Koncept jen ke čtení</article>
     </ReportEditor>,
   );
@@ -108,7 +111,7 @@ describe("the draft in the report editor", () => {
     const open = vi.fn(async (_s: string, _r: string, body: { line?: string | null }) => (body.line === "ART-9" ? B : OPENED));
     const props = { open, load: vi.fn().mockResolvedValue(api), onShown, report: vi.fn().mockResolvedValue(undefined) };
     const view = render(
-      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} {...props}><article /></ReportEditor>,
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} spend={spend()} {...props}><article /></ReportEditor>,
     );
     await vi.waitFor(() => expect(made).toHaveLength(1));
     act(() => events(made[0].config).onAppReady());
@@ -116,7 +119,7 @@ describe("the draft in the report editor", () => {
     const seen = () => (onShown.mock.lastCall?.[0] as { seen: () => unknown } | null)?.seen();
     expect(seen()).toMatchObject({ document_key: "ART-1.aaaa.1", seq: 1 });
     view.rerender(
-      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line="ART-9" ticket={ticket()} {...props}><article /></ReportEditor>,
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line="ART-9" ticket={ticket()} spend={spend()} {...props}><article /></ReportEditor>,
     );
     await vi.waitFor(() => expect(made).toHaveLength(2));
     act(() => events(made[1].config).onAppReady());
@@ -212,14 +215,31 @@ describe("the draft in the report editor", () => {
     }
   });
 
-  it("keeps the read-only draft when no ticket is given, and loads nothing", async () => {
-    const load = vi.fn();
-    show({ open: vi.fn().mockResolvedValue(OPENED), ticket: vi.fn().mockRejectedValue(new ApiError(403, "not_a_member", "", null)), load });
-    expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
-    expect(load).not.toHaveBeenCalled();
+  it("spends the ticket at the editor's origin before the script loads", async () => {
+    const { api, made } = docsApi();
+    const spent = spend();
+    const load = vi.fn().mockResolvedValue(api);
+    show({ open: vi.fn().mockResolvedValue(OPENED), spend: spent, load });
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    expect(spent).toHaveBeenCalledWith(SPENT_AT);
+    expect(spent.mock.invocationCallOrder[0]).toBeLessThan(load.mock.invocationCallOrder[0]);
   });
 
-  it("puts api.js on the page under its integrity, with credentials, through the ticket", async () => {
+  it("keeps the read-only draft when no ticket is given or it is not spent, and loads nothing", async () => {
+    for (const props of [
+      { ticket: vi.fn().mockRejectedValue(new ApiError(403, "not_a_member", "", null)) },
+      { ticket: vi.fn().mockResolvedValue({ ...TICKET, session_url: "https://evil.example.test/__aia/session?ticket=t.k" }) },
+      { spend: vi.fn().mockRejectedValue(new Error("the ticket was not spent (401)")) },
+    ]) {
+      const load = vi.fn();
+      const { unmount } = show({ open: vi.fn().mockResolvedValue(OPENED), load, ...props });
+      expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
+      expect(load).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
+  it("puts api.js on the page at its canonical path, under its integrity, with credentials", async () => {
     show({ open: vi.fn().mockResolvedValue(OPENED) });
     await vi.waitFor(() => expect(document.head.querySelector("script[integrity]")).not.toBeNull());
     const script = document.head.querySelector<HTMLScriptElement>("script[integrity]")!;

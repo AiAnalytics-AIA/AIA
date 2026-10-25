@@ -381,21 +381,23 @@ def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_un
 ) -> None:
     """The Document Server is not on AIA's network: it reaches the API on the public hostname
     (report-editor-hosting decision 4). The develop host hands the API that origin, and the
-    editor's routes are still off until the editor's URL and secret are set from SSM."""
+    editor's routes are still off until the editor's URL, secret and api.js integrity (RPT8e)
+    are set from SSM."""
     dotenv = HOST_ENV
     off = _api_settings(_container("api", dotenv), monkeypatch)
     assert off.onlyoffice_callback_base == "https://aia.example.test"
     assert not off.report_editor_on
+    editor = {
+        "AIA_ONLYOFFICE_URL": "https://docs.example.test",
+        "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
+    }
+    unverified = _api_settings(_container("api", {**dotenv, **editor}), monkeypatch)
+    assert not unverified.report_editor_on
+    integrity = "sha384-" + "A" * 64
     on = _api_settings(
-        _container(
-            "api",
-            {
-                **dotenv,
-                "AIA_ONLYOFFICE_URL": "https://docs.example.test",
-                "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
-            },
-        ),
+        _container("api", {**dotenv, **editor, "AIA_ONLYOFFICE_API_INTEGRITY": integrity}),
         monkeypatch,
     )
     assert on.report_editor_on
+    assert on.onlyoffice_api_integrity == integrity
     assert "AIA_ONLYOFFICE_CALLBACK_BASE" not in _container("worker", dotenv)

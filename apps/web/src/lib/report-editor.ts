@@ -56,12 +56,20 @@ const httpsOrigin = (value: string): URL | null => {
   }
 };
 
-/** The Document Server's api.js, loaded through the one-time ticket that opens its origin to this person
- *  (report-editor-hosting: the docs gate needs its cookie, which spending the ticket sets, then the
- *  redirect to api.js carries it): the ticket's URL with `next` set to the script's path. Null unless the
- *  ticket is spent on the origin the API named, at its session path, over https: the page never loads a
- *  script from elsewhere, nor from a path an answer chose. */
-export function apiScriptUrl(documentServer: string, sessionUrl: string): string | null {
+/** The Document Server's api.js on the origin the API named, or null for anything but an https origin:
+ *  the page never loads a script from elsewhere, nor from a path an answer chose. The canonical path,
+ *  because ONLYOFFICE's api.js finds its own base (and so its iframes' origin) by matching its script
+ *  element's src against `api/documents/api.js` (getBasePath; Codex on #895). */
+export function apiScriptUrl(documentServer: string): string | null {
+  const origin = httpsOrigin(documentServer);
+  return origin ? `${origin.origin}${API_JS}` : null;
+}
+
+/** Where the page spends the one-time ticket that opens the editor's origin to this person
+ *  (report-editor-hosting: the docs gate needs its cookie, which spending the ticket sets), before
+ *  api.js is loaded: the ticket's URL, `next` the script's path. Null unless the ticket is spent on the
+ *  origin the API named, at its session path, over https, and names no `next` of its own. */
+export function ticketUrl(documentServer: string, sessionUrl: string): string | null {
   const origin = httpsOrigin(documentServer);
   const ticket = httpsOrigin(sessionUrl);
   if (!origin || !ticket || ticket.origin !== origin.origin || ticket.pathname !== DOCS_SESSION) return null;

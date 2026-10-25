@@ -5,7 +5,8 @@
 // Document Server's api.js from the origin the API names and hands it the config the API signed;
 // it signs nothing and stores nothing itself (saves reach the API from the Document Server). The script
 // runs in AIA's origin, so it loads only under the integrity the API names (RPT8e), through the one-time
-// ticket that opens the editor's origin to this person (report-editor-hosting: the docs gate's cookie).
+// ticket, spent first, that opens the editor's origin to this person (report-editor-hosting: the docs
+// gate's cookie).
 // With the editor off (404) the read-only draft is the pane, as before; with a Document Server that
 // fails or does not answer, the read-only draft stays and says so -- never a blank pane.
 
@@ -14,7 +15,7 @@ import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 
 import { research } from "@/lib/api";
 import {
   apiScriptUrl, documentKeyOf, EDIT_FROM_PX, EDITOR_TIMEOUT_MS, type EditorMode, type EditorOpened, editorMode, newPageId,
-  openFailure, problemWords, scriptIntegrity, type SeenEdit, UNREACHABLE, UNVERIFIED,
+  openFailure, problemWords, scriptIntegrity, type SeenEdit, ticketUrl, UNREACHABLE, UNVERIFIED,
 } from "@/lib/report-editor";
 
 /** What the editor shows once it is ready: the line and version opened, when this person last
@@ -48,12 +49,18 @@ declare global {
 
 const scripts = new Map<string, Promise<DocsApi>>();
 
-/** api.js from `url` (its ticket's URL), loaded once per page, origin and integrity: the browser runs it
- *  only if it hashes to `integrity`, and sends the request with credentials, so the ticket's cookie is set
- *  and carried to api.js through the redirect (both answer CORS for AIA's origin). A load that failed,
- *  a mismatch included, is tried again next time, with a new ticket. */
+/** Spend a one-time ticket at `url`: a credentialed CORS request, so the docs cookie it sets is kept
+ *  for the script and the editor after it (the ticket's redirect and api.js answer CORS for AIA's origin). */
+async function spendTicket(url: string): Promise<void> {
+  const answer = await fetch(url, { credentials: "include", mode: "cors", cache: "no-store" });
+  if (!answer.ok) throw new Error(`the ticket was not spent (${answer.status})`);
+}
+
+/** api.js from `url`, loaded once per page and integrity: the browser runs it only if it hashes to
+ *  `integrity`, and fetches it with credentials, so the docs cookie the ticket set goes with it. A load
+ *  that failed, a mismatch included, is tried again next time. */
 function loadDocsApi(url: string, integrity: string): Promise<DocsApi> {
-  const key = `${new URL(url).origin} ${integrity}`;
+  const key = `${url} ${integrity}`;
   const known = scripts.get(key);
   if (known) return known;
   const loaded = new Promise<DocsApi>((resolve, reject) => {
@@ -108,9 +115,10 @@ export type ReportEditorProps = {
   /** Told what the editor shows once it is ready, and null whenever it shows nothing: the doc bar
    *  names that version and approves only it. */
   onShown?: (shown: EditorShown | null) => void;
-  /** Seams for the tests: the open route, the ticket, the edit report and the script loader. */
+  /** Seams for the tests: the open route, the ticket and its spending, the edit report and the script loader. */
   open?: typeof research.openReportEditor;
   ticket?: typeof research.reportEditorTicket;
+  spend?: (url: string) => Promise<void>;
   report?: typeof research.reportEditorEdit;
   load?: (url: string, integrity: string) => Promise<DocsApi>;
   timeoutMs?: number;
@@ -118,7 +126,7 @@ export type ReportEditorProps = {
 
 export function ReportEditor({
   studyId, runId, variant, review, line = null, children, onShown, open = research.openReportEditor,
-  ticket = research.reportEditorTicket, report = research.reportEditorEdit, load = loadDocsApi,
+  ticket = research.reportEditorTicket, spend = spendTicket, report = research.reportEditorEdit, load = loadDocsApi,
   timeoutMs = EDITOR_TIMEOUT_MS,
 }: ReportEditorProps) {
   const mode = useMode();
@@ -144,14 +152,18 @@ export function ReportEditor({
         if (!live) return;
         const integrity = scriptIntegrity(opened.api_integrity);
         if (!integrity) return setState({ at, kind: "said", words: UNVERIFIED });
-        ticket().then(
-          (spent) => {
-            if (!live) return;
-            const script = apiScriptUrl(opened.document_server, spent.session_url);
-            setState(script ? { at, kind: "open", opened, script, integrity } : { at, kind: "said", words: UNREACHABLE });
-          },
-          () => { if (live) setState({ at, kind: "said", words: UNREACHABLE }); },
-        );
+        const script = apiScriptUrl(opened.document_server);
+        if (!script) return setState({ at, kind: "said", words: UNREACHABLE });
+        ticket()
+          .then((given) => {
+            const url = ticketUrl(opened.document_server, given.session_url);
+            if (!url) throw new Error("a ticket for another origin");
+            return spend(url);
+          })
+          .then(
+            () => { if (live) setState({ at, kind: "open", opened, script, integrity }); },
+            () => { if (live) setState({ at, kind: "said", words: UNREACHABLE }); },
+          );
       },
       (error: unknown) => {
         if (!live) return;
@@ -160,7 +172,7 @@ export function ReportEditor({
       },
     );
     return () => { live = false; };
-  }, [at, studyId, runId, variant, review, line, mode, open, ticket]);
+  }, [at, studyId, runId, variant, review, line, mode, open, ticket, spend]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
   useEffect(() => { onScreen.current = opened ? documentKeyOf(opened.opened.config) : null; }, [opened]);
