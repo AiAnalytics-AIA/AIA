@@ -47,5 +47,15 @@ All ten artboards now use develop's Indigo tokens (1d7eae81) and the in-force gr
 
 develop has no separate "parked" token, so each old amber was mapped by meaning to coral, slate or neutral. Contrast was checked on every changed pairing; the lowest text ratio is 4.69 (AI ink, dark). The coral dot gets a youink ring, because coral alone is 2.42:1.
 
+## Since Version 51 (2026-10-25, up to Version 64)
+
+- Every page is compacted to fit its artboard: one-line intros and tooltips in place of captions.
+- The rail's "Nastavení" button opens the settings menu as a flyout beside the rail; the top bar only shows where you are.
+- The menu has a fourth column with no heading: the animated Můj Vedoucí button, or "Vypěstujte si Vedoucího" when there is no Lead yet.
+- From the Lead handoff (session_01MP5DxZK1Z8iwyGnRxD6RKK): Můj Vedoucí (files first, at full reading width) and the test-tube start (looping test tube, four questions).
+- Fixed the still Lissajous and Gauss marks, which had no position.
+- Nigel: no emoji at all, Phosphor icons only (from @phosphor-icons/core 2.1.1, MIT, inlined); no menu or filter as a row of pill buttons. Audit and Reference categories are now dropdowns.
+- Nigel: the real Sociomap screenshot waits until aia-sociomap-5 renders in the web app. A local run today draws aia-sociomap-3, so the Metodika card keeps its drawing.
+
 ## Open, with Nigel
 None.
