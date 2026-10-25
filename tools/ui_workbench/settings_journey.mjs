@@ -225,13 +225,23 @@ try {
   if (await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).count()) await page.getByRole("button", { name: "Zahodit neuložené úpravy", exact: true }).click();
   await methodEditor.waitFor({ state: "detached" });
   assert.equal(await page.getByRole("tab", { name: "Výpočet", exact: true }).getAttribute("aria-selected"), "true", "methodology: a cancelled edit returns to Výpočet");
-  await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).waitFor();
+  // Výpočet as the prototype draws it (fidelity F5): stage tiles, the parameter filter, rows.
+  const stageTiles = page.getByRole("group", { name: "Etapy", exact: true }); await stageTiles.waitFor();
 
-  const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 4500, `Methodology default height ${defaultHeight}`);
-  await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).fill("Kish"); assert(await page.locator("#panel-methodology article").count());
-  for (const disclosure of await page.locator("#panel-methodology article details").all()) { if (!await disclosure.evaluate((e) => e.open)) await disclosure.locator("summary").first().click(); }
+  // 6,200 px: Výpočet lists every step as a closed row, as prototype v51 draws it, and the object map
+  // has 48 steps (5,904 px measured at F5); the product owner chose this limit on 2026-10-24 (#876).
+  // It still catches the page growing with the versions stored on a workbench.
+  const defaultHeight = await page.locator("#panel-methodology").evaluate((e) => e.scrollHeight); assert(defaultHeight < 6200, `Methodology default height ${defaultHeight}`);
+  await stageTiles.getByRole("button", { name: /^M6\s·\sTerén/ }).click();
+  assert.equal(await page.locator("#panel-methodology section[aria-labelledby^='mg-'] h3").filter({ hasText: /^Terén$/ }).count(), 1, "methodology: one stage by its tile");
+  await stageTiles.getByRole("button", { name: /^Všechny etapy/ }).click();
+  await page.getByRole("radiogroup", { name: "Jen kroky" }).getByRole("radio", { name: "S parametry", exact: true }).click();
+  assert(await page.locator("#panel-methodology article[data-step]").count() > 0, "methodology: steps with values");
+  await page.getByRole("button", { name: "Rozbalit všechny kroky", exact: true }).click();
+  for (const disclosure of await page.locator("#panel-methodology [data-step-body] details").all()) { if (!await disclosure.evaluate((e) => e.open)) await disclosure.locator("summary").first().click(); }
   await widths("methodology technical and formula details");
-  await page.getByRole("searchbox", { name: "Hledat výpočet nebo parametr" }).fill("");
+  await page.getByRole("button", { name: "Sbalit všechny kroky", exact: true }).click();
+  await page.getByRole("radiogroup", { name: "Jen kroky" }).getByRole("radio", { name: "Všechny", exact: true }).click();
   const beforeVersions = await get("/api/v1/methodology/sociomap/versions");
   await page.getByRole("tab", { name: "Upravit", exact: true }).click();
   const methodForm = page.locator("[data-methodology-editor]");
