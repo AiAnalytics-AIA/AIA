@@ -13,6 +13,11 @@
 carried by the evidence register (AUDIT-F1 … F16) and
 [`sociomap-formula-corrections.md`](../../../.planning/plans/sociomap-formula-corrections.md).
 **Leaves unchanged:** the D6 / OI-17 client-facing gate, the licence gate, residency and egress.
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-11
 
 ## Context

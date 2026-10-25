@@ -159,6 +159,15 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-orchestration#LO9d` | W2 | scope freeze, Q12: after LO9a and `working-copy-edit-ops#WCE7a`, `working-copy-edit-ops#WCE7b`, `working-copy-edit-ops#WCE7c` |
 | `lead-orchestration#LO19` | W2 | scope freeze, Q5: the study's context file; after LO8 and `working-copy-edit-ops#WCE4` |
 | `lead-orchestration#LO20` | W3 | scope freeze, Q6: Hledat na webu; after `deep-research-web-search#56`; an ADR first |
+| `lead-orchestration#LO21` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21a` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21b` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21c` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21d` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `lead-orchestration#LO21e` | W2 | CARD-1 (2026-10-22): after `lead-orchestration#LO4` (E10, W1), whose card LO21e extends; the plan states no wave (inferred, coordinator 25 Oct; registered 2026-10-25) |
+| `research-lead-workbench#35` | W1 | the stage navigator of the frame `research-lead-workbench#15` (E26) (registered 2026-10-25) |
+| `working-copy-edit-ops#WCE7d2` | W1 | with `working-copy-edit-ops#WCE7a` to `#WCE7c` (E26); WCE7d1 landed (registered 2026-10-25) |
+| `run-qc-and-checkpoint#RQC7c` | W1 | its parent `run-qc-and-checkpoint#RQC7` (E08) (registered 2026-10-25) |
 | `deep-research-web-search#56` | W3 | scope freeze, Q6: the Lead's quick lookup through RetrievalGate |
 | `research-lead-workbench#32` | W3 | scope freeze, Q5 and Q6: with `lead-orchestration#LO19` and `#LO20` |
 | `deep-research-web-search#51a` | W1 | cross-check G67: with E12 |
@@ -179,6 +188,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `research-lead-workbench#30` | W3 | scope freeze, D-39: with `lead-orchestration#LO18` |
 | `research-lead-workbench#31` | W3 | scope freeze, D-41: with `report-delivery#RD12` |
 | `report-delivery#RD11` | W3 | MVP-26, chunk missing until the scope freeze: after RD0 |
+| `report-delivery#RD0b` | W3 | with `report-delivery#RD11`, as the plan says (registered 2026-10-25) |
 | `report-delivery#RD12` | W3 | scope freeze, D-41: after RD0 |
 | `segment-maps-and-drilldown#11` | W3 | scope freeze, D-42: after 8 and `research-lead-workbench#20` (E15) |
 | `working-copy-edit-ops#WCE14` | W2 | scope freeze, D-45 |
@@ -279,11 +289,11 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-results#RES1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-results#RES4` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES4b` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); RES4 split, RES4a landed (2026-10-25) |
 | `artifact-results#RES5b` | W3 | artifact plans: the coded counts, after `assumptions-and-open-answer-coding#AOC8` (RES5a landed) |
 | `artifact-results#RES8` | W2 | the per-question CSV/XLSX export, moved from `report-delivery#RD12` by the coordinator (2026-10-21); umbrella `research-lead-workbench#20` (E15) |
 | `artifact-results#RES6` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
-| `artifact-results#RES7` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
+| `artifact-results#RES7b` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); RES7 split, RES7a landed (2026-10-25) |
 | `artifact-sociomap#SOC1` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15); landed in #601 |
 | `artifact-sociomap#SOC2` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
 | `artifact-sociomap#SOC3` | W2 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#20` (E15) |
@@ -319,6 +329,11 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `artifact-report#RPT5` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT6` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
 | `artifact-report#RPT7` | W3 | artifact plans (#560, 2026-10-21): umbrella `research-lead-workbench#21` (E20) |
+| `artifact-report#RPT8` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT8a` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT8e` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT9` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
+| `artifact-report#RPT10` | W3 | umbrella `research-lead-workbench#21` (E20), the artifact plan's wave (registered 2026-10-25) |
 | `artifact-chain-to-draft-report#CHN1` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20); landed in #621 |
 | `artifact-chain-to-draft-report#CHN2` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
 | `artifact-chain-to-draft-report#CHN3` | W3 | artifact plans (#560): a hand-off into the internal draft, with `research-lead-workbench#21` (E20) |
