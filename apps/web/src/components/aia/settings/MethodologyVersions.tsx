@@ -200,7 +200,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
         <section aria-labelledby={`mvl-${summary.id}`} className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-5">
           <h4 id={`mvl-${summary.id}`} className="text-base font-semibold">{t(`${V}.list`)}</h4>
           <div className="relative mt-2 min-w-0 overflow-x-auto">
-            <table aria-label={t(`${V}.list`)} className={`w-full border-collapse text-sm ${registered ? "min-w-[52rem]" : "min-w-[44rem]"}`}>
+            <table aria-label={t(`${V}.list`)} className={`w-full border-collapse text-sm ${registered ? "min-w-[46rem]" : "min-w-[38rem]"}`}>
               <thead><tr>
                 {(["version", "kind", "changes", "by", ...(registered ? ["clients"] as const : [])] as const).map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left text-xs font-normal text-ink-faint">{t(`${V}.versionsCol.${c}`)}</th>)}
                 <th scope="col" className="px-2 py-1.5"><span className="sr-only">{t(`${V}.versionsCol.act`)}</span></th>
@@ -209,7 +209,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                 <tr data-methodology-version="code">
                   <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</td>
                   <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindCode`)}</td>
-                  <td className={`${CELL} min-w-[14rem]`}>{t(`${V}.codeChanges`)}</td>
+                  <td className={`${CELL} min-w-[12rem]`}>{t(`${V}.codeChanges`)}</td>
                   <td className={`${CELL} text-ink-faint`}>—</td>
                   {registered ? <td className={CELL}><RegisterChip status={data.code_register_status ?? null} /></td> : null}
                   <td className={`${CELL} text-right`}>
@@ -223,7 +223,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                     <tr key={v.version_number} data-methodology-version={v.version_number}>
                       <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</td>
                       <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindStored`)}</td>
-                      <td className={`${CELL} min-w-[14rem] break-words`}>
+                      <td className={`${CELL} min-w-[12rem] break-words`}>
                         {v.note ? <p>{v.note}</p> : null}
                         <div className="text-xs text-ink-muted">
                           {changed.length || formulas.length ? (
@@ -234,15 +234,15 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                           ) : tv(`${V}.noChanges`, { base: v.base_preset })}
                         </div>
                       </td>
-                      <td className={CELL}>{people(v.created_by)}<div className="text-xs text-ink-muted">{when(v.created_at)}</div></td>
+                      <td className={`${CELL} [overflow-wrap:anywhere]`}>{people(v.created_by)}<div className="text-xs text-ink-muted">{when(v.created_at)}</div></td>
                       {registered ? <td className={CELL}><RegisterChip status={v.register_status === undefined ? null : v.register_status} /></td> : null}
                       <td className={`${CELL} text-right`}>
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex flex-nowrap justify-end gap-2">
                           {/* A version just saved is activated from its confirmation above: one button, never two. */}
                           {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
-                            <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
+                            <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
                           ) : null}
-                          {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
+                          {data.may_edit ? <Button small aria-label={t(`${V}.editFrom`)} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
                         </div>
                       </td>
                     </tr>

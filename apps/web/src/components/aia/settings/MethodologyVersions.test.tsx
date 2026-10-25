@@ -479,6 +479,14 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
     expect(within(row).getByText("širší kopec")).toBeTruthy();
     expect(row.querySelector("[data-register]")?.getAttribute("data-register")).toBe("INTERNAL_ONLY");
     expect(within(row).getByText("Jen interně")).toBeTruthy();
+    // The row's own activation reads "Aktivovat", its name carrying the version, once the
+    // confirmation that offered it is gone (a new edit clears it).
+    fireEvent.click(screen.getByRole("tab", { name: "Upravit" }));
+    await editor();
+    fireEvent.click(screen.getByRole("tab", { name: "Verze a aktivace" }));
+    const act = within(row).getByRole("button", { name: "Aktivovat aia-sociomap-5+e1" });
+    expect(act.textContent).toBe("Aktivovat");
+    expect(within(row).getByRole("button", { name: "Upravit z této verze" }).textContent).toBe("Upravit");
   });
 
   it("has no register column for a module no register covers", async () => {
@@ -821,6 +829,7 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     // Once the list holds the saved version, it still offers one button for it: the confirmation's.
     await found('[data-methodology-version="1"]', section);
     expect(within(section).getAllByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" })).toEqual([offer]);
+    expect(within(section).queryByRole("button", { name: "Aktivovat aia-sociomap-5+e1" })).toBeNull();
     fireEvent.click(offer);
     const confirm = await found("[data-methodology-activate]", section);
     fireEvent.click(within(confirm).getByRole("radio", { name: "Rozhodnutí vlastníka metody" }));

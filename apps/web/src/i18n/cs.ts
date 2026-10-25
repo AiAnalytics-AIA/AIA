@@ -1156,6 +1156,8 @@ export const cs = {
           versionsCol: { version: "Verze", kind: "Druh", changes: "Co mění", by: "Uložil", clients: "Stav pro klienty", act: "Aktivace" },
           kindCode: "Výchozí v kódu",
           kindStored: "Uložená verze",
+          activateShort: "Aktivovat", activateNamed: "Aktivovat {name}",
+          editFromShort: "Upravit",
           codeChanges: "Metoda tak, jak ji počítá kód.",
           baselineButton: "Ukázat metodiku v platnosti na fiktivních panelech",
           baselineChip: "Bez úpravy: {name} vedle sebe sama",
