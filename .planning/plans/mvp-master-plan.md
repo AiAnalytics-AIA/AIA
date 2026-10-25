@@ -306,6 +306,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
 | `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `study-deletion` | ◇ for the owner (Q1-Q8, ADR 0043) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | planning proposes CORE once the owner answers Q1-Q8 and accepts ADR 0043 (SD0); no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
