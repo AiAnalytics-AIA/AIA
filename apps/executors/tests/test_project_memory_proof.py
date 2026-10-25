@@ -48,7 +48,7 @@ DESIGN = {
             "objects": ["Káva", "Čaj", "Kakao", "Džus", "Voda"],
             "object_question": "Jak hodnotíte {object}?",
             "scale": [1, 10],
-        }
+        },
     ],
 }
 
