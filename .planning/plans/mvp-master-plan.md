@@ -323,6 +323,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
 | `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
 | `settings-redesign` | SUPPORT (S1) | the owner's Nastavení redesign; gates nothing alone | registered 2026-10-25 (register drift) |
+| `study-deletion` | ◇ for the owner (Q1-Q8, ADR 0043) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | planning proposes CORE once the owner answers Q1-Q8 and accepts ADR 0043 (SD0); no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
