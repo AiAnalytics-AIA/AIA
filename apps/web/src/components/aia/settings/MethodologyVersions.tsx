@@ -209,7 +209,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                 <tr data-methodology-version="code">
                   <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</td>
                   <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindCode`)}</td>
-                  <td className={`${CELL} min-w-[12rem]`}>{t(`${V}.codeChanges`)}</td>
+                  <td className={`${CELL} min-w-[10rem]`}>{t(`${V}.codeChanges`)}</td>
                   <td className={`${CELL} text-ink-faint`}>—</td>
                   {registered ? <td className={CELL}><RegisterChip status={data.code_register_status ?? null} /></td> : null}
                   <td className={`${CELL} text-right`}>
@@ -223,7 +223,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                     <tr key={v.version_number} data-methodology-version={v.version_number}>
                       <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</td>
                       <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindStored`)}</td>
-                      <td className={`${CELL} min-w-[12rem] break-words`}>
+                      <td className={`${CELL} min-w-[10rem] break-words`}>
                         {v.note ? <p>{v.note}</p> : null}
                         <div className="text-xs text-ink-muted">
                           {changed.length || formulas.length ? (
@@ -234,10 +234,10 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                           ) : tv(`${V}.noChanges`, { base: v.base_preset })}
                         </div>
                       </td>
-                      <td className={`${CELL} [overflow-wrap:anywhere]`}>{people(v.created_by)}<div className="text-xs text-ink-muted">{when(v.created_at)}</div></td>
+                      <td className={`${CELL} min-w-[10rem] [overflow-wrap:anywhere]`}>{people(v.created_by)}<div className="text-xs text-ink-muted">{when(v.created_at)}</div></td>
                       {registered ? <td className={CELL}><RegisterChip status={v.register_status === undefined ? null : v.register_status} /></td> : null}
                       <td className={`${CELL} text-right`}>
-                        <div className="flex flex-nowrap justify-end gap-2">
+                        <div className="flex flex-col items-end gap-2">
                           {/* A version just saved is activated from its confirmation above: one button, never two. */}
                           {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                             <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
