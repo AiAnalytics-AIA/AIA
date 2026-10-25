@@ -69,6 +69,7 @@ from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 # The client report's document model beside its DOCX, under the same fingerprint
@@ -365,6 +366,9 @@ def _client_report(
         return approved, None
     composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
+    # Two first reads store one draft: the second waits on the run's row and finds the first's
+    # (artifacts have no unique key), so the draft approved is the one read after.
+    WorkflowRepository(session, scope).lock_run(run_id)
     found = artifacts.find_reusable(
         project_id=run["project_id"],
         stage_type=CLIENT_REPORT_STAGE,
