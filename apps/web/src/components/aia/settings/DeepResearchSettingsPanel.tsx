@@ -5,17 +5,17 @@
 // approves a value, the code's proposed default is in force and is labelled so. An
 // administrator proposes a value -- a new version, not yet in force -- and approves a
 // version or withdraws to the default; each change takes effect for runs enqueued
-// after it. The redesign's board (settings-redesign chunk 6): where research reaches
-// (Dosah), the client's data posture pointed to where it is set, the rules with a
-// proposal made in their Návrh cell and approved through a modal (I7), and the code's
-// fixed protections, which no rule turns off. What is allowed is the API's to say: its
+// after it. The redesign's board (prototype v51, fidelity F8): where research reaches
+// (Dosah) with the client's data posture pointed to where it is set, one flat table of
+// the rules with a proposal made in their Návrh cell and approved through a modal (I7),
+// and the code's fixed protections, which no rule turns off. What is allowed is the API's to say: its
 // refusal is shown as it gave it.
 
 import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 import { InlineConfirm } from "../../rehome/step";
-import { DR_GROUP_HELP, researchPolicyHelp } from "./settings-guide";
+import { researchPolicyHelp } from "./settings-guide";
 import { cs } from "@/i18n/cs";
 import { t, tv } from "@/i18n/t";
 import {
@@ -24,10 +24,11 @@ import {
   type DrSettingValue,
   type DrSettingVersion,
   type DrSettingsOverview,
+  type ReachRoute,
   deepResearchSettings,
 } from "@/lib/api";
 import { STATUS_VALUES, groupsInOrder, inputKind, parseInput, toInput } from "@/lib/deep-research-settings";
-import { relative } from "@/lib/format";
+import { plural, relative } from "@/lib/format";
 import Link from "next/link";
 import { Button, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
@@ -88,99 +89,77 @@ export function DeepResearchSettingsPanel({ people }: { people: People }) {
   return <Loaded res={res} retry={retry}>{(overview) => <Overview overview={overview} people={people} reload={retry} />}</Loaded>;
 }
 
-const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
-const TD = "px-2 py-2 align-top text-sm";
+const TH = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+const TD = "border-t border-border px-2 py-2.5 align-top text-sm";
 const FLAGS = ["required_for_live", "lower_only", "method"] as const;
+const CARD = "rounded-md border border-border bg-surface-raised px-5 py-4";
 
-// The canvas design (AIA desktop research studio, "Nastavení · Deep Research"): the groups on
-// the left with what still waits in each, the chosen group's rules as a table, and a rule's
-// change opened in place beneath its row -- propose, then approve. Every group stays mounted
-// and is only hidden, so a draft survives a change of group; a search or the live filter
-// shows the matches of every group at once.
+// The prototype's board (v51, fidelity F8): Dosah with the client's data posture inside it, then one
+// card of the rules -- readiness in its head, one flat table of every rule with its group, what is
+// in force, the proposal made in its Návrh cell and Schválit / Stáhnout beside it -- and the code's
+// fixed protections at its foot. A rule's history and a written proposal open beneath its row.
+// A search or the live filter hides rows; a draft survives both, because no row unmounts.
 function Overview({ overview, people, reload }: { overview: DrSettingsOverview; people: People; reload: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [liveOnly, setLiveOnly] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [pending, setPending] = useState<{ key: string | null } | null>(null);
-  const groups = groupsInOrder(overview.settings);
-  const [chosen, setChosen] = useState(() => groups.find((g) => g.group === "budgets")?.group ?? groups[0]?.group ?? "");
+  const rules = groupsInOrder(overview.settings).flatMap(({ settings }) => settings);
   const toggle = (key: string) => {
     const next = open === key ? null : key;
     if (dirty) setPending({ key: next }); else { setOpen(next); setDirty(false); }
   };
   const missing = new Set(overview.missing_for_live);
   const q = query.trim().toLocaleLowerCase("cs");
-  const across = !!q || liveOnly;
   const matches = (s: DrSetting) => (s.key === open && dirty) ||
-    (`${labelOf(s)} ${s.key} ${researchPolicyHelp(s.key, s.group)}`.toLocaleLowerCase("cs").includes(q) && (!liveOnly || missing.has(s.key)));
-  const anyVisible = overview.settings.some(matches);
+    (`${labelOf(s)} ${t(`${D}.groups.${s.group}`)} ${s.key} ${researchPolicyHelp(s.key, s.group)}`.toLocaleLowerCase("cs").includes(q) && (!liveOnly || missing.has(s.key)));
+  const anyVisible = rules.some(matches);
   return (
     <div className="flex flex-col gap-4">
       <Reach mayAdminister={overview.may_administer} />
-      <Posture />
-      {overview.may_administer ? null : <p className="text-sm text-ink-muted">{t(`${D}.adminNote`)}</p>}
-      <Technical><p data-technical className="text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
-      <h3 className="mt-2 text-base font-semibold">{t(`${D}.board.rules`)}</h3>
-      <p className="-mt-2 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.board.rulesHelp`)}</p>
-      <Readiness count={missing.size} liveOnly={liveOnly} onToggle={() => setLiveOnly((v) => !v)} />
-      {pending ? <InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setOpen(pending.key); setDirty(false); setPending(null); }} /> : null}
-      <div className="grid min-w-0 gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
-        <div className="flex min-w-0 flex-col gap-2">
-          <TextInput type="search" aria-label={t(`${D}.search`)} placeholder={t(`${D}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
-          <nav aria-label={t(`${D}.groupsLabel`)} className="flex flex-col gap-0.5">
-            {groups.map(({ group, settings }) => {
-              const waiting = settings.filter((s) => missing.has(s.key)).length;
-              const on = !across && group === chosen;
-              return (
-                <button
-                  key={group} type="button" data-dr-group-link={group} aria-current={on ? "true" : undefined}
-                  onClick={() => { setChosen(group); setQuery(""); setLiveOnly(false); }}
-                  className={`flex min-h-10 items-center gap-2 rounded-sm px-3 text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash font-semibold text-signal" : "text-ink hover:bg-surface-sunken"}`}
-                >
-                  <span className="min-w-0 flex-1">{t(`${D}.groups.${group}`)}</span>
-                  {waiting ? <span className="rounded-sm border border-status-you-ink/40 bg-status-you-wash px-1.5 text-xs font-semibold text-status-you-ink" title={t(`${D}.waitingHelp`)}>{waiting}</span> : <span className="text-xs text-ink-faint">{settings.length}</span>}
-                </button>
-              );
-            })}
-          </nav>
+      <section data-dr-rules aria-labelledby="dr-rules-h" className={CARD}>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 id="dr-rules-h" className="text-base font-semibold">{t(`${D}.board.rules`)}</h3>
+          <Readiness count={missing.size} yours={overview.may_administer} />
         </div>
-        <div className="flex min-w-0 flex-col gap-6">
-          {!anyVisible ? <p role="status" className="text-sm text-ink-muted">{t(`${D}.noMatch`)}</p> : null}
-          {groups.map(({ group, settings }) => {
-            const shown = settings.filter(matches);
-            const hidden = across ? !shown.length : group !== chosen;
-            return (
-              <section key={group} data-dr-group={group} aria-labelledby={`dr-${group}`} hidden={hidden} className="flex min-w-0 flex-col gap-2">
-                <div>
-                  <h3 id={`dr-${group}`} className="text-base font-semibold">{t(`${D}.groups.${group}`)}</h3>
-                  <p className="max-w-3xl text-sm leading-6 text-ink-muted">{DR_GROUP_HELP[group] ?? researchPolicyHelp("", group)}</p>
-                </div>
-                <div className="overflow-x-auto"><table className="w-full">
-                  <thead><tr><th className={TH}>{t(`${D}.col.setting`)}</th><th className={`${TH} w-44`}>{t(`${D}.col.value`)}</th><th className={`${TH} w-56`}>{t(`${D}.col.proposal`)}</th><th className={`${TH} w-32`}>{t(`${D}.col.approval`)}</th></tr></thead>
-                  <tbody className="divide-y divide-border">
-                    {settings.map((s) => (
-                      <Row
-                        key={s.key}
-                        setting={s}
-                        shown={across ? shown.includes(s) : true}
-                        missing={missing.has(s.key)}
-                        people={people}
-                        open={open === s.key}
-                        onToggle={() => toggle(s.key)}
-                        onDirty={setDirty}
-                        mayAdminister={overview.may_administer}
-                        onChanged={reload}
-                      />
-                    ))}
-                  </tbody>
-                </table></div>
-              </section>
-            );
-          })}
+        <p className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">
+          {t(`${D}.board.rulesHelp`)}{missing.size ? <> {t(`${D}.live.note`)}</> : null}
+        </p>
+        <Technical><p data-technical className="mt-1 text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <TextInput type="search" className="w-full sm:w-72" aria-label={t(`${D}.search`)} placeholder={t(`${D}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
+          {missing.size ? <Button aria-pressed={liveOnly} onClick={() => setLiveOnly((v) => !v)}>{t(`${D}.live.${liveOnly ? "showAll" : "showWaiting"}`)}</Button> : null}
         </div>
-      </div>
-      <Protections />
+        {pending ? <div className="mt-2"><InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setPending(null)} onConfirm={() => { setOpen(pending.key); setDirty(false); setPending(null); }} /></div> : null}
+        {!anyVisible ? <p role="status" className="mt-2 text-sm text-ink-muted">{t(`${D}.noMatch`)}</p> : null}
+        <div className="relative mt-2 overflow-x-auto"><table className="w-full min-w-[54rem]">
+          <caption className="sr-only">{t(`${D}.board.rules`)}</caption>
+          <thead><tr>
+            <th scope="col" className={`${TH} w-32`}>{t(`${D}.col.group`)}</th><th scope="col" className={TH}>{t(`${D}.col.setting`)}</th>
+            <th scope="col" className={`${TH} w-44`}>{t(`${D}.col.value`)}</th><th scope="col" className={`${TH} w-56`}>{t(`${D}.col.proposal`)}</th>
+            <th scope="col" className={`${TH} w-28`}>{t(`${D}.col.approval`)}</th>
+          </tr></thead>
+          <tbody>
+            {rules.map((s) => (
+              <Row
+                key={s.key}
+                setting={s}
+                shown={matches(s)}
+                missing={missing.has(s.key)}
+                people={people}
+                open={open === s.key}
+                onToggle={() => toggle(s.key)}
+                onDirty={setDirty}
+                mayAdminister={overview.may_administer}
+                onChanged={reload}
+              />
+            ))}
+          </tbody>
+        </table></div>
+        {overview.may_administer ? null : <p className="mt-2 text-xs text-ink-muted">{t(`${D}.adminNote`)}</p>}
+        <Protections />
+      </section>
     </div>
   );
 }
@@ -196,74 +175,116 @@ const ROUTE_NAMES: Record<string, string> = {
 const routeName = (id: string) => ROUTE_NAMES[id] ?? (id.startsWith("connector-") ? tv(`${D}.reach.connector`, { name: id.slice("connector-".length) }) : id);
 const REASONS = new Set(["settings_unapproved", "class", "deep_research_off", "search_route_other", "public_fetch_off", "connector_not_listed", "common_crawl_off", "agent_directed_off", "unavailable"]);
 
-/** Dosah: where Deep Research reaches, from the newest worker's record of its composition (#844). */
+/**
+ * What the organization's approval means for a route, from what the worker recorded and nothing
+ * else: a priced route waits for the rules live needs or runs on them; a composed route without a
+ * price needs none. A route the deployment did not compose recorded no price, so its approval is
+ * not known ("—"), never "not needed".
+ */
+function reachApproval(r: ReachRoute, missingForLive: number): string {
+  if (r.state === "waiting") {
+    const n = r.missing_settings.length || missingForLive;
+    const R = `${D}.reach.approval.rules`;
+    return tv(`${D}.reach.approval.waiting`, { n, rules: plural(n, t(`${R}.one`), t(`${R}.few`), t(`${R}.many`)) });
+  }
+  const composed = r.state === "active" || r.classes.length > 0;
+  if (!composed) return "—";
+  if (r.priced) return t(`${D}.reach.approval.${missingForLive ? "missing" : "approved"}`);
+  return t(`${D}.reach.approval.free`);
+}
+
+/** The state's dot: filled while it runs or waits, hollow when it is off. Coral only for someone who can approve. */
+function StateDot({ state, yours }: { state: ReachRoute["state"]; yours: boolean }) {
+  const look = state === "waiting" ? (yours ? "bg-status-you border-status-you" : "bg-ink-muted border-ink-muted")
+    : state === "active" ? "bg-ink border-ink" : "border-ink-muted";
+  return <span aria-hidden="true" className={`mt-1.5 inline-block size-2.5 shrink-0 rounded-full border ${look}`} />;
+}
+
+/** Dosah: where Deep Research reaches, from the newest worker's record of its composition (#844). The
+ *  table is drawn whatever the record holds; an empty one says why in its one row, never a route. */
 function Reach({ mayAdminister }: { mayAdminister: boolean }) {
   const [res, retry] = useResource(() => deepResearchSettings.reach(), []);
-  const head = (extra?: ReactNode) => (
-    <div className="flex flex-wrap items-center gap-2">
+  const head = (summary?: ReactNode, source?: ReactNode) => (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
-      {extra}
+      {summary}
+      {source ? <span className="text-xs text-ink-muted sm:ml-auto">{source}</span> : null}
     </div>
   );
-  // Until the route is deployed (a 404), the panel says it is not in AIA yet, as before.
-  if (res.state === "not-found") return (
-    <section data-dr-reach aria-labelledby="dr-reach-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
-      {head(<span data-not-yet className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>)}
-      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.notYet`)}</p>
-    </section>
+  const table = (body: ReactNode) => (
+    <div className="relative mt-2 overflow-x-auto"><table className="w-full min-w-[48rem]">
+      <caption className="sr-only">{t(`${D}.reach.title`)}</caption>
+      <thead><tr>
+        <th scope="col" className={TH}>{t(`${D}.reach.col.route`)}</th><th scope="col" className={TH}>{t(`${D}.reach.col.kind`)}</th>
+        <th scope="col" className={TH}>{t(`${D}.reach.col.approval`)}</th><th scope="col" className={`${TH} w-20`}>{t(`${D}.reach.col.classes`)}</th>
+        <th scope="col" className={`${TH} w-[34%]`}>{t(`${D}.reach.col.state`)}</th>
+      </tr></thead>
+      <tbody>{body}</tbody>
+    </table></div>
+  );
+  const empty = (marker: "data-not-yet" | "data-reach-unrecorded", text: string) => (
+    <tr><td colSpan={5} className={`${TD} text-ink-muted`} {...{ [marker]: "" }}>{text}</td></tr>
   );
   return (
-    <section data-dr-reach aria-labelledby="dr-reach-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
-      <Loaded res={res} retry={retry}>{(reach) => {
-        const active = reach.routes.filter((r) => r.state === "active").length;
-        if (!reach.recorded) return <>
-          {head()}
-          <p data-reach-unrecorded className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${D}.reach.unrecorded`)}</p>
-        </>;
-        return <>
-          {head(<span className="text-xs text-ink-muted">{tv(`${D}.reach.summary`, { active, n: reach.routes.length })}</span>)}
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {tv(`${D}.reach.source`, { when: when(reach.composed_at) })}
-            {reach.build_sha ? <> · {tv(`${D}.reach.build`, { sha: reach.build_sha.slice(0, 7) })}</> : null}
-            {reach.class_gates === "advisory" ? <> · {t(`${D}.reach.advisory`)}</> : null}
-          </p>
-          <p className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
-          <div className="mt-2 overflow-x-auto"><table className="w-full">
-            <thead><tr>
-              <th className={TH}>{t(`${D}.reach.col.route`)}</th><th className={TH}>{t(`${D}.reach.col.kind`)}</th>
-              <th className={TH}>{t(`${D}.reach.col.classes`)}</th><th className={TH}>{t(`${D}.reach.col.state`)}</th>
-            </tr></thead>
-            <tbody className="divide-y divide-border">
-              {reach.routes.map((r) => {
-                const tone = r.state === "waiting" && mayAdminister ? "bg-status-you-wash" : r.state === "active" ? "" : "text-ink-muted";
-                return (
-                  <tr key={r.route} data-reach-route={r.route} data-reach-state={r.state} className={tone}>
-                    <td className={TD}>
-                      <span className="font-medium text-ink">{routeName(r.route)}</span>
-                      <Technical><code data-technical className="block break-all text-xs text-ink-faint">{r.route}</code></Technical>
-                    </td>
-                    <td className={TD}>
-                      {t(`${D}.reach.kind.${r.kind}`)}
-                      {r.priced ? <span className="block text-xs">{t(`${D}.reach.priced`)}</span> : null}
-                      {r.zone && r.zone !== "EU" ? <span className="block text-xs">{t(`${D}.reach.zone.${r.zone === "NON_EU" ? "nonEu" : "unknown"}`)}</span> : null}
-                    </td>
-                    <td className={TD}>{r.classes.length ? r.classes.join(", ") : "—"}</td>
-                    <td className={TD}>
-                      <span className={`font-medium ${r.state === "waiting" && mayAdminister ? "text-status-you-ink" : r.state === "active" ? "text-ink" : ""}`}>{t(`${D}.reach.state.${r.state}`)}</span>
-                      {r.reason ? <span data-reach-reason className="block max-w-prose text-xs leading-5">
-                        {REASONS.has(r.reason) ? t(`${D}.reach.reason.${r.reason}`) : r.reason}
-                        {r.reason === "settings_unapproved" && r.missing_settings.length ? ` ${tv(`${D}.reach.missing`, { n: r.missing_settings.length })}` : ""}
-                      </span> : null}
-                      {r.class_advisory ? <span className="block text-xs">{t(`${D}.reach.classAdvisory`)}</span> : null}
-                      {r.detail ? <Technical><span data-technical className="block break-words font-mono text-[11px] text-ink-faint">{r.detail}</span></Technical> : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
-        </>;
-      }}</Loaded>
+    <section data-dr-reach aria-labelledby="dr-reach-h" className={CARD}>
+      {/* Until the route is deployed (a 404), the panel says it is not in AIA yet, as before. */}
+      {res.state === "not-found" ? <>
+        {head(<span className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>)}
+        {table(empty("data-not-yet", t(`${D}.reach.notYet`)))}
+      </> : (
+        <Loaded res={res} retry={retry}>{(reach) => {
+          if (!reach.recorded) return <>
+            {head()}
+            <p className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
+            {table(empty("data-reach-unrecorded", t(`${D}.reach.unrecorded`)))}
+          </>;
+          const active = reach.routes.filter((r) => r.state === "active").length;
+          return <>
+            {head(
+              <span data-reach-summary className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${D}.reach.summary`, { active, n: reach.routes.length })}</span>,
+              <>
+                {tv(`${D}.reach.source`, { when: when(reach.composed_at) })}
+                {reach.build_sha ? <> · {tv(`${D}.reach.build`, { sha: reach.build_sha.slice(0, 7) })}</> : null}
+                {reach.class_gates === "advisory" ? <> · {t(`${D}.reach.advisory`)}</> : null}
+              </>,
+            )}
+            <p className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
+            {table(reach.routes.map((r) => {
+              const yours = r.state === "waiting" && mayAdminister;
+              return (
+                <tr key={r.route} data-reach-route={r.route} data-reach-state={r.state} className={yours ? "bg-status-you-wash" : r.state === "active" || r.state === "waiting" ? "" : "text-ink-muted"}>
+                  <th scope="row" className={`${TD} text-left font-normal`}>
+                    <span className={`font-medium ${r.state === "active" || r.state === "waiting" ? "text-ink" : ""}`}>{routeName(r.route)}</span>
+                    <Technical><code data-technical className="block break-all text-xs text-ink-faint">{r.route}</code></Technical>
+                  </th>
+                  <td className={TD}>
+                    {t(`${D}.reach.kind.${r.kind}`)}
+                    {r.priced ? <> · {t(`${D}.reach.priced`)}</> : null}
+                    {r.zone && r.zone !== "EU" ? <>, {t(`${D}.reach.zone.${r.zone === "NON_EU" ? "nonEu" : "unknown"}`)}</> : null}
+                  </td>
+                  <td data-reach-approval className={TD}>{reachApproval(r, reach.missing_for_live.length)}</td>
+                  <td className={`${TD} font-mono text-xs`}>{r.classes.length ? r.classes.join(", ") : "—"}</td>
+                  <td className={TD}>
+                    <span className="flex items-start gap-2">
+                      <StateDot state={r.state} yours={yours} />
+                      <span className="min-w-0">
+                        <span className={`font-medium ${r.state === "active" || r.state === "waiting" ? "text-ink" : ""}`}>{t(`${D}.reach.state.${r.state}`)}</span>
+                        {r.reason ? <span data-reach-reason className="block max-w-prose text-xs leading-5">
+                          {REASONS.has(r.reason) ? t(`${D}.reach.reason.${r.reason}`) : r.reason}
+                          {r.reason === "settings_unapproved" && r.missing_settings.length ? ` ${tv(`${D}.reach.missing`, { n: r.missing_settings.length })}` : ""}
+                        </span> : null}
+                        {r.class_advisory ? <span className="block text-xs">{t(`${D}.reach.classAdvisory`)}</span> : null}
+                        {r.detail ? <Technical><span data-technical className="block break-words font-mono text-[11px] text-ink-faint">{r.detail}</span></Technical> : null}
+                      </span>
+                    </span>
+                  </td>
+                </tr>
+              );
+            }))}
+          </>;
+        }}</Loaded>
+      )}
+      <Posture />
     </section>
   );
 }
@@ -271,42 +292,40 @@ function Reach({ mayAdminister }: { mayAdminister: boolean }) {
 /** The client's data posture: set at the client, read here so a person knows where it lives. */
 function Posture() {
   return (
-    <section data-dr-posture aria-labelledby="dr-posture-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
-      <h3 id="dr-posture-h" className="text-sm font-semibold">{t(`${D}.posture.title`)}</h3>
-      <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">
+    <div data-dr-posture className="mt-4 border-t border-border pt-4">
+      <h4 className="text-sm font-semibold">{t(`${D}.posture.title`)}</h4>
+      <p className="mt-1 max-w-3xl text-sm leading-6">
         {t(`${D}.posture.text`)}{" "}
         <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
-        {" · "}
+        {t(`${D}.posture.between`)}{" "}
         <Link href="/app/settings#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</Link>
+        {t(`${D}.posture.end`)}
       </p>
-    </section>
+    </div>
   );
 }
 
 const PROTECTIONS = ["robots", "noLogin", "noPersonal", "publicOnly", "cited"] as const;
-/** "Pevné ochrany v kódu": what holds for every run, whatever a rule says. */
+/** "Pevné ochrany v kódu": what holds for every run, whatever a rule says; at the rules' foot. */
 function Protections() {
   return (
-    <section data-dr-protections aria-labelledby="dr-prot-h" className="rounded-md border border-border bg-surface-raised px-5 py-4">
-      <h3 id="dr-prot-h" className="text-sm font-semibold">{t(`${D}.protections.title`)}</h3>
+    <div data-dr-protections className="mt-4 border-t border-border pt-4">
+      <h4 className="text-sm font-semibold">{t(`${D}.protections.title`)}</h4>
       <p className="mt-0.5 text-xs text-ink-muted">{t(`${D}.protections.note`)}</p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {PROTECTIONS.map((k) => <li key={k} className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{t(`${D}.protections.${k}`)}</li>)}
       </ul>
-    </section>
+    </div>
   );
 }
 
-/** What live still needs, in one line; its button shows exactly those rules. */
-function Readiness({ count, liveOnly, onToggle }: { count: number; liveOnly: boolean; onToggle: () => void }) {
+/** What live still needs, as the rules card's chip: coral for someone who can approve, neutral otherwise. */
+function Readiness({ count, yours }: { count: number; yours: boolean }) {
+  const look = count && yours ? "border-status-you/50 bg-status-you-wash text-status-you-ink" : "border-border text-ink";
   return (
-    <div data-live-readiness className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border px-4 py-3 text-sm ${count ? "border-status-you/40 bg-status-you-wash" : "border-border bg-surface-raised"}`}>
-      <p className="min-w-0 flex-1">
-        {count ? <><strong className="font-semibold">{t(`${D}.live.blocked`)}</strong> {tv(`${D}.live.waiting`, { count })}</> : t(`${D}.live.ready`)}{" "}
-        <span className="text-ink-muted">{t(`${D}.live.note`)}</span>
-      </p>
-      {count ? <Button aria-pressed={liveOnly} onClick={onToggle}>{t(`${D}.live.${liveOnly ? "showAll" : "showWaiting"}`)}</Button> : null}
-    </div>
+    <p data-live-readiness role="status" className={`inline-flex min-h-[26px] items-center rounded-pill border px-2.5 text-xs ${look}`}>
+      {count ? tv(`${D}.live.chip`, { count }) : t(`${D}.live.ready`)}
+    </p>
   );
 }
 
@@ -314,31 +333,36 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
   setting: DrSetting; shown: boolean; missing: boolean; people: People; open: boolean; onToggle: () => void; mayAdminister: boolean; onChanged: () => void; onDirty: (value: boolean) => void;
 }) {
   const approved = s.origin === "approved";
-  const range = bounds(s);
   const pending = usePending(s);
   const waiting = pending?.version_number ?? null;
+  const help = researchPolicyHelp(s.key, s.group);
   return (
     <>
-      <tr data-dr-setting={s.key} data-missing={missing ? s.key : undefined} data-pending={waiting !== null ? waiting : undefined} hidden={!shown}
+      <tr data-dr-setting={s.key} data-dr-group={s.group} data-missing={missing ? s.key : undefined} data-pending={waiting !== null ? waiting : undefined} hidden={!shown}
         className={open ? "bg-signal-wash/50" : waiting !== null ? (mayAdminister ? "bg-status-you-wash" : "bg-surface-sunken") : undefined}>
-        <td className={TD}>
-          <div className="font-medium text-ink">{labelOf(s)}</div>
-          <p className="mt-0.5 max-w-prose text-[13px] leading-5 text-ink-muted">{researchPolicyHelp(s.key, s.group)}</p>
-          {FLAGS.some((f) => s[f]) ? (
-            <p className="mt-1 flex flex-wrap gap-x-3 text-xs">
-              {FLAGS.filter((f) => s[f]).map((f) => <span key={f} title={t(`${D}.flagHelp.${f}`)} className={f === "required_for_live" && missing ? "font-semibold text-status-you-ink" : "text-ink-muted"}>{t(`${D}.flag.${f}`)}</span>)}
-            </p>
-          ) : null}
+        <td className={`${TD} text-ink-muted`}>{t(`${D}.groups.${s.group}`)}</td>
+        <th scope="row" className={`${TD} text-left font-normal`}>
+          <span className="font-medium text-ink">{labelOf(s)}</span>
+          <span aria-hidden="true" title={help} className="ml-1 cursor-help text-ink-faint">ⓘ</span>
+          <span className="sr-only"> {help}</span>
+          {/* The rule's marks and the way into its history, one line: 52 rows read at a glance. */}
+          <span className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-ink-muted">
+            {FLAGS.filter((f) => s[f]).map((f) => <span key={f} title={t(`${D}.flagHelp.${f}`)}>{t(`${D}.flag.${f}`)}</span>)}
+            {/* Dense beside the rule on a desktop (24 px); a 44 px target on a phone (I11). */}
+            <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={`dr-detail-${s.key}`} data-dense
+              className={`inline-flex min-h-11 items-center text-signal hover:underline sm:min-h-6 ${FOCUS}`}>
+              {t(`${D}.${open ? "close" : mayAdminister ? "open" : "view"}`)}
+            </button>
+          </span>
           <Technical><code data-technical className="mt-1 block break-all text-xs text-ink-faint">{s.key}</code></Technical>
-        </td>
+        </th>
         <td className={TD}>
-          <span data-value className={`break-words font-mono ${s.value === null ? "text-status-you-ink" : ""}`}>{showValue(s.type, s.value)}</span>
+          <span data-value className="break-words font-mono">{showValue(s.type, s.value)}</span>
           {s.value !== null && unitOf(s) ? <span className="text-ink-muted"> {unitOf(s)}</span> : null}
-          {range ? <div className="text-xs text-ink-faint">{range}</div> : null}
-          <span data-origin={s.origin} className={`mt-1 block text-xs ${approved ? "font-semibold text-ink" : "text-ink-muted"}`}>{t(`${D}.origin.${s.origin}`)}</span>
-          {approved && s.version !== null ? (
-            <span className="block text-xs text-ink-muted">{tv(`${D}.origin.approvedBy`, { version: s.version, who: people(s.approved_by), when: when(s.approved_at) })}</span>
-          ) : null}
+          <span className="mt-0.5 block text-xs text-ink-muted">
+            <span data-origin={s.origin}>{t(`${D}.origin.${s.origin}`)}</span>
+            {approved && s.version !== null ? <> · {tv(`${D}.origin.approvedBy`, { version: s.version, who: people(s.approved_by), when: when(s.approved_at) })}</> : null}
+          </span>
         </td>
         <td className={TD}>
           {pending ? <PendingValue setting={s} version={pending} yours={mayAdminister} />
@@ -349,12 +373,12 @@ function Row({ setting: s, shown, missing, people, open, onToggle, mayAdminister
           <div className="flex flex-col items-start gap-1.5">
             {waiting !== null && mayAdminister ? <ApproveButton setting={s} version={waiting} onDone={onChanged} /> : null}
             {pending && mayAdminister ? <WithdrawButton setting={s} version={pending} onDone={onChanged} /> : null}
-            <Button small variant="quiet" onClick={onToggle} aria-expanded={open} aria-controls={`dr-detail-${s.key}`}>{t(`${D}.${open ? "close" : mayAdminister ? "open" : "view"}`)}</Button>
           </div>
         </td>
       </tr>
       {open ? (
-        <tr hidden={!shown}><td colSpan={4} id={`dr-detail-${s.key}`} className="bg-surface-sunken px-3 py-4">
+        <tr hidden={!shown}><td colSpan={5} id={`dr-detail-${s.key}`} className="border-t border-border bg-surface-sunken px-3 py-4">
+          <p className="mb-3 max-w-3xl text-sm leading-6 text-ink-muted">{help}</p>
           <Detail settingKey={s.key} people={people} mayAdminister={mayAdminister} onChanged={onChanged} onDirty={onDirty} />
         </td></tr>
       ) : null}
