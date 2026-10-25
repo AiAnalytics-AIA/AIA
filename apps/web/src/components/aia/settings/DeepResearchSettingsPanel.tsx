@@ -211,8 +211,9 @@ function Reach({ mayAdminister }: { mayAdminister: boolean }) {
       {source ? <span className="text-xs text-ink-muted sm:ml-auto">{source}</span> : null}
     </div>
   );
-  const table = (body: ReactNode) => (
-    <div className="relative mt-2 overflow-x-auto"><table className="w-full min-w-[48rem]">
+  // An empty table keeps no width of its own: its one row's sentence wraps on a phone, not scrolls.
+  const table = (body: ReactNode, empty = false) => (
+    <div className="relative mt-2 overflow-x-auto"><table className={`w-full ${empty ? "" : "min-w-[48rem]"}`}>
       <caption className="sr-only">{t(`${D}.reach.title`)}</caption>
       <thead><tr>
         <th scope="col" className={TH}>{t(`${D}.reach.col.route`)}</th><th scope="col" className={TH}>{t(`${D}.reach.col.kind`)}</th>
@@ -230,13 +231,13 @@ function Reach({ mayAdminister }: { mayAdminister: boolean }) {
       {/* Until the route is deployed (a 404), the panel says it is not in AIA yet, as before. */}
       {res.state === "not-found" ? <>
         {head(<span className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>)}
-        {table(empty("data-not-yet", t(`${D}.reach.notYet`)))}
+        {table(empty("data-not-yet", t(`${D}.reach.notYet`)), true)}
       </> : (
         <Loaded res={res} retry={retry}>{(reach) => {
           if (!reach.recorded) return <>
             {head()}
             <p className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
-            {table(empty("data-reach-unrecorded", t(`${D}.reach.unrecorded`)))}
+            {table(empty("data-reach-unrecorded", t(`${D}.reach.unrecorded`)), true)}
           </>;
           const active = reach.routes.filter((r) => r.state === "active").length;
           return <>
