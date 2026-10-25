@@ -1162,6 +1162,7 @@ export const cs = {
           codeChanges: "Metoda tak, jak ji počítá kód.",
           baselineButton: "Ukázat metodiku v platnosti na fiktivních panelech",
           baselineChip: "Bez úpravy: {name} vedle sebe sama",
+          baselineMoved: "Mezitím někdo uvedl v platnost {name}. Stránka teď ukazuje, co platí; porovnání spusťte znovu.",
           none: "Žádná uložená verze: platí metodika z kódu.",
           current: "v platnosti",
           changes: "Oproti {base} mění:",

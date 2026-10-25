@@ -127,8 +127,12 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
     setBaselineBusy(true); setBaselineError(null);
     try {
       const result = await methodology.compare(summary.id, { base_preset: live.base, spec: live.spec, formulas: live.formulas });
-      if (result.valid) setBaseline({ name: data.in_force.name, result });
-      else setBaselineError(Object.entries(result.problems).map(([k, m]) => `${k}: ${m}`).join("; "));
+      if (!result.valid) setBaselineError(Object.entries(result.problems).map(([k, m]) => `${k}: ${m}`).join("; "));
+      // The server compares with what is in force now. Someone may have activated another version
+      // since this page read it: then the two sides are two methodologies, never "itself", so the
+      // page reads what is in force again and the person asks again.
+      else if (result.in_force !== data.in_force.name) { setBaselineError(tv(`${V}.baselineMoved`, { name: result.in_force })); reload(); }
+      else setBaseline({ name: data.in_force.name, result });
     } catch (e) {
       setBaselineError(describeError(e));
     } finally {

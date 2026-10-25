@@ -516,6 +516,26 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
   });
 });
 
+describe("the comparison without an edit, when what is in force moves meanwhile (review of #890)", () => {
+  it("never shows two methodologies as one beside itself: it says what is in force now and reads it again", async () => {
+    // The page read aia-sociomap-5 in force; the server, asked later, compares with a version
+    // someone else has put in force since.
+    const { sent } = fakeApi({ compare: { valid: true, problems: {}, in_force: "aia-sociomap-5+e7", panels: [] } });
+    render(<MethodologyPanel />); await openMap();
+    await editor();
+    fireEvent.click(screen.getByRole("tab", { name: "Porovnání" }));
+    const reads = sent.filter((x) => x.method === "GET" && x.url.endsWith("/sociomap/versions")).length;
+    fireEvent.click(screen.getByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech" }));
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("Mezitím někdo uvedl v platnost aia-sociomap-5+e7. Stránka teď ukazuje, co platí; porovnání spusťte znovu."));
+    expect(document.querySelector("[data-compare-baseline]")).toBeNull();
+    expect(document.querySelector("[data-methodology-compare]")).toBeNull();
+    await waitFor(() => expect(sent.filter((x) => x.method === "GET" && x.url.endsWith("/sociomap/versions")).length).toBeGreaterThan(reads));
+    // The page stays, the words stay, and the person may ask again.
+    expect(screen.getByRole("alert").textContent).toMatch(/^Mezitím někdo uvedl v platnost aia-sociomap-5\+e7/);
+    expect(screen.getByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech" })).toBeTruthy();
+  });
+});
+
 describe("the comparison with what is in force", () => {
   it("shows per panel what the edit moves and says plainly what it does not", async () => {
     const { sent } = fakeApi({
