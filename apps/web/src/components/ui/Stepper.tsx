@@ -15,7 +15,7 @@ import { Icon } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 
 export function Stepper({
-  value, onCommit, onProblem, label, min, max, step = 1, decimals = 0, unit, disabled = false, showBounds = true, note, className = "",
+  value, onCommit, onProblem, label, min, max, step = 1, decimals = 0, unit, unitShown = true, disabled = false, showBounds = true, note, className = "",
 }: {
   /** The saved value; null when none is set yet (the field is empty until one is chosen). */
   value: number | null;
@@ -42,6 +42,9 @@ export function Stepper({
   disabled?: boolean;
   /** false: the caller states the bounds elsewhere (they are still in the field's description). */
   showBounds?: boolean;
+  /** false: the caller names the unit (a column's header, "Rozpočet (USD)"); it is still read with
+   *  the value and the bounds. */
+  unitShown?: boolean;
   /** A line under the field (a recommendation, a save state); an error takes its place. */
   note?: ReactNode;
   className?: string;
@@ -222,7 +225,7 @@ export function Stepper({
           />
           {button(1)}
         </span>
-        {unit ? <span className="text-sm text-ink-muted">{unit}</span> : null}
+        {unit && unitShown ? <span className="text-sm text-ink-muted">{unit}</span> : null}
         <span id={boundsId} className={showBounds ? "text-xs text-ink-faint" : "sr-only"}>
           {range} · {t("input.stepHint")}
         </span>

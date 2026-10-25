@@ -1,12 +1,14 @@
 "use client";
 
-// "Útrata podle výzkumníka" (Settings → Studie a rozpočty; develop-spend-attribution 7, Q40):
-// one row per researcher, the period's total and its parts, the holds open now and the
-// studies it touched; a row opens to its studies. An OWNER or ADMIN sees every member and
-// what is booked to nobody; a researcher sees themself only -- the API decides, the card shows
-// what it was given. Unknown reads as unknown, never as 0 (lib/researcher-spend.ts).
+// Studie a rozpočty's top as prototype v51 draws it (settings-redesign F7): four figures of the
+// period (spent, held by running work, calls with no known bill, studies near their budget),
+// then "Útrata podle výzkumníka": one row per person with the period's total and its share, a
+// stacked bar of what it went on and those amounts, the studies it touched and its holds; a row
+// opens to its studies (develop-spend-attribution 7, Q40). An OWNER or ADMIN sees every member
+// and what is booked to nobody; a researcher sees themself only -- the API decides, the card
+// shows what it was given. Unknown reads as unknown, never as 0 (lib/researcher-spend.ts).
 
-import { Fragment, useState } from "react";
+import { Fragment, type ReactNode, useState } from "react";
 
 import { type ResearcherSpend, type SpendPeriod, admin } from "@/lib/api";
 import {
@@ -23,17 +25,17 @@ import {
   personLabel,
   reservedLine,
   shareOf,
-  studyCount,
   totalLine,
   usd,
 } from "@/lib/researcher-spend";
 import { Button } from "../../rehome/ui";
-import { MoneyNames } from "./StudiesPanel";
-import { EYEBROW, Empty } from "../states";
+import { ChoiceChips } from "../../ui/ChoiceChips";
+import { FOCUS } from "../../ui/parts";
+import { Empty } from "../states";
 import { useResource } from "../useResource";
 
-const TH = "px-2 py-1 text-left font-mono text-[11px] font-normal uppercase tracking-[0.08em] text-ink-faint";
-const TD = "px-2 py-1.5 align-top text-sm";
+const TH = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
+const TD = "border-t border-border px-2 py-2.5 align-top text-sm";
 
 async function load(period: SpendPeriod): Promise<ResearcherSpend> {
   const report: unknown = await admin.researcherSpend(period);
@@ -50,95 +52,111 @@ function Amount({ line }: { line: AmountLine }) {
   );
 }
 
-// The bar's colours: the Lead, fieldwork, analysis and report, Deep Research, other (the design's four, and one more).
+// What the spend went on, in the prototype's four colours from the chart palette (never the AI's
+// violet, which marks a model at work): the Lead, fieldwork, analysis and report, Deep Research;
+// anything else neutral. Each colour sits beside its amount, so no part is read by colour alone.
 const BAR: Record<BarPart["activity"], string> = {
-  lead: "bg-ink", fieldwork: "bg-signal", analysis_report: "bg-status-world", deep_research: "bg-ai", other: "bg-border-strong",
+  lead: "bg-viz-cat-1", fieldwork: "bg-viz-cat-2", analysis_report: "bg-viz-cat-4", deep_research: "bg-viz-cat-6", other: "bg-border-strong",
 };
+const LEGEND: [BarPart["activity"], string][] = [["lead", "Vedoucí"], ["fieldwork", "sběr"], ["analysis_report", "analýza a zpráva"], ["deep_research", "Deep Research"]];
 
-/** What a person's spend went on, as one bar; the amounts are beside it in words. */
+/** What a person's spend went on, as one bar; the amounts are under it. */
 function ActivityBar({ items }: { items: BarPart[] }) {
   if (!items.length) return null;
   return (
-    <span data-activity-bar aria-hidden="true" className="mt-1 flex h-2 w-full max-w-56 overflow-hidden rounded-pill bg-surface-sunken">
+    <span data-activity-bar aria-hidden="true" className="mt-1 flex h-2.5 w-full overflow-hidden rounded-pill bg-surface-sunken">
       {items.map((p) => <i key={p.activity} title={p.label} className={`block h-full ${BAR[p.activity]}`} style={{ width: `${p.percent}%` }} />)}
     </span>
   );
 }
 
-function Tile({ label, children, note, highlight = false }: { label: string; children: React.ReactNode; note: string; highlight?: boolean }) {
-  return (
-    <div data-spend-tile className={`rounded-md border px-3.5 py-3 ${highlight ? "border-status-you bg-status-you-wash" : "border-border"}`}>
-      <div className="text-xs text-ink-muted">{label}</div>
-      <div className="mt-1 text-[22px] font-semibold leading-7 tabular-nums">{children}</div>
-      <div className="mt-0.5 text-xs text-ink-muted">{note}</div>
-    </div>
-  );
-}
-
-/** "Útrata organizace": the period's spend, what running work holds, calls with no known bill, and
- *  studies near their budget; then the four money names. A researcher sees their own only. */
-function OrgSpend({ report, nearLimitCount }: { report: ResearcherSpend; nearLimitCount: NearLimitTally | null }) {
-  const sum = overall(report);
-  const line = totalLine(sum);
-  return (
-    <section data-org-spend aria-labelledby="org-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-6 py-5">
-      <h3 id="org-spend-h" className="text-base font-semibold">{report.everyone ? "Útrata organizace" : "Vaše útrata"} · {PERIOD_LABEL[report.period].toLocaleLowerCase("cs")}</h3>
-      <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3">
-        <Tile label="Utraceno" note={line.note ?? `${report.people.filter((p) => p.user_id !== null && p.total_usd > 0).length} výzkumníků`}><Amount line={line} /></Tile>
-        <Tile label="Rezervováno" note="drží právě běžící práce">{usd(sum.reserved_usd)}</Tile>
-        <Tile label="Nejistá volání" note="počítají se zvlášť, nikdy jako nula USD">{sum.uncertain_calls}</Tile>
-        <Tile label="Téměř vyčerpané rozpočty"
-          note={nearLimitCount?.unknown ? `studie nad 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "studie nad 90 % rozpočtu"}
-          highlight={(nearLimitCount?.near ?? 0) > 0}>
-          {nearLimitCount ? nearLimitWords(nearLimitCount) : "neznámo"}
-        </Tile>
-      </div>
-      <MoneyNames />
-    </section>
-  );
-}
-
+/** The bar's amounts, in its order: each named to a screen reader, a dot of its colour to the eye. */
 function Parts({ items }: { items: ReturnType<typeof parts> }) {
   if (!items.length) return <span className="text-ink-faint">—</span>;
   return (
-    <ul className="flex flex-wrap gap-x-3 gap-y-1">
+    <ul className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 font-mono text-[11px] text-ink-muted">
       {items.map((p) => (
-        <li key={p.activity} data-part={p.activity} className="text-xs">
-          <span className="text-ink-muted">{p.label}</span> <Amount line={p.line} />
+        <li key={p.activity} data-part={p.activity} className="flex items-center gap-1">
+          <span aria-hidden="true" className={`size-1.5 rounded-full ${BAR[p.activity]}`} />
+          <span className="sr-only">{p.label} </span><Amount line={p.line} />
         </li>
       ))}
     </ul>
   );
 }
 
-export function ResearcherSpendCard({ nearLimitCount = null }: { nearLimitCount?: NearLimitTally | null }) {
+function Tile({ icon, label, children, note }: { icon: string; label: string; children: ReactNode; note: ReactNode }) {
+  return (
+    <div data-spend-tile className="flex items-start gap-3 rounded-md border border-border bg-surface-raised px-3.5 py-3">
+      <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-sm text-ink-muted">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-xs text-ink-muted">{label}</div>
+        <div className="text-[22px] font-semibold leading-7 tabular-nums">{children}</div>
+        <div className="text-xs text-ink-muted">{note}</div>
+      </div>
+    </div>
+  );
+}
+
+/** The period's four figures: spent, held, calls with no known bill, studies near their budget. */
+function Figures({ report, nearLimitCount }: { report: ResearcherSpend; nearLimitCount: NearLimitTally | null }) {
+  const sum = overall(report);
+  const line = totalLine(sum);
+  const people = report.people.filter((p) => p.user_id !== null && p.total_usd > 0).length;
+  const studies = new Set(report.people.flatMap((p) => p.studies.map((st) => st.study_id).filter((id) => id !== null))).size;
+  return (
+    <div data-org-spend className="grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3">
+      <Tile icon="Σ" label={`${report.everyone ? "Utraceno" : "Vaše útrata"} · ${PERIOD_LABEL[report.period].toLocaleLowerCase("cs")}`}
+        note={line.note ?? <span title="výzkumníci · studie"><span aria-hidden="true">👤︎ </span>{people}<span className="sr-only"> výzkumníků</span> · <span aria-hidden="true">▤ </span>{studies}<span className="sr-only"> studií</span></span>}>
+        <Amount line={line} />
+      </Tile>
+      <Tile icon="⧗" label="Rezervováno" note="běžící práce">{usd(sum.reserved_usd)}</Tile>
+      <Tile icon="?" label="Nejistá volání" note="nikdy jako 0 USD">{sum.uncertain_calls}</Tile>
+      <Tile icon="⚠" label="Téměř vyčerpané" note={nearLimitCount?.unknown ? `> 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "> 90 % rozpočtu"}>
+        {nearLimitCount ? nearLimitWords(nearLimitCount) : "neznámo"}
+      </Tile>
+    </div>
+  );
+}
+
+/** Up to two letters of a person's name or address; "?" for spend booked to nobody. */
+function initials(label: string, known: boolean): string {
+  if (!known) return "?";
+  // Letters only: "Kurátor (seed)" is KS, never "K(".
+  const words = label.match(/\p{L}+/gu) ?? [];
+  return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
+}
+
+export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null }: {
+  nearLimitCount?: NearLimitTally | null;
+  /** A member's role in words ("Správce · Metodik"), from the members the page read; null: unknown. */
+  roleOf?: (userId: string) => string | null;
+}) {
   const [period, setPeriod] = useState<SpendPeriod>("this_month");
   const [open, setOpen] = useState<string | null>(null);
   const [res, retry] = useResource(() => load(period), [period]);
+  const scope = res.state === "ready" ? (res.data.everyone ? "Vlastník a správce vidí všechny členy." : "Vidíte jen svou vlastní útratu.") : "";
+  const about = `Každá platba se připisuje tomu, kdo placenou práci schválil nebo spustil (krok Vedoucího, běh, analýza, rešerše). ${scope} Měsíce podle UTC. Rezerva: částky blokované právě běžící prací, zatím neutracené. Otazník: některé volání nemá známou cenu, částka proto není přesná.`;
 
   return (
     <>
-    {res.state === "ready" ? <OrgSpend report={res.data} nearLimitCount={nearLimitCount} /> : null}
-    <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-6 py-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 max-w-3xl">
-          <h3 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h3>
-          <p className="mt-1 text-sm leading-6 text-ink-muted">
-            Každá platba se připisuje tomu, kdo placenou práci schválil nebo spustil.
-            {res.state === "ready" && !res.data.everyone ? " Vidíte jen svou vlastní útratu." : null}
-            {res.state === "ready" && res.data.everyone ? " Vlastník a správce vidí všechny členy." : null}
-          </p>
-        </div>
-        <div role="group" aria-label="Období" className="flex flex-wrap gap-1">
-          {SPEND_PERIODS.map((p) => (
-            <Button key={p} small data-dense aria-pressed={period === p} variant={period === p ? "primary" : "secondary"} onClick={() => { setPeriod(p); setOpen(null); }}>
-              {PERIOD_LABEL[p]}
-            </Button>
-          ))}
-        </div>
+    {res.state === "ready" ? <Figures report={res.data} nearLimitCount={nearLimitCount} /> : null}
+    <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 id="researcher-spend-h" className="flex items-center gap-1.5 text-base font-semibold">
+          Útrata podle výzkumníka
+          <span aria-hidden="true" title={about} className="cursor-help text-sm font-normal text-ink-faint">ⓘ</span>
+        </h3>
+        <ChoiceChips look="segmented" small label="Období" value={period} options={SPEND_PERIODS.map((p) => ({ key: p, label: PERIOD_LABEL[p] }))}
+          onChange={(p) => { setPeriod(p); setOpen(null); }} />
+      </div>
+      <p className="sr-only">{about}</p>
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-ink-muted">
+        {LEGEND.map(([key, label]) => <span key={key} className="flex items-center gap-1"><span aria-hidden="true" className={`size-2 rounded-full ${BAR[key]}`} />{label}</span>)}
+        {res.state === "ready" && !res.data.everyone ? <span aria-hidden="true">· jen vaše útrata</span> : null}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         {res.state === "loading" ? <p className="text-sm text-ink-muted">Načítám…</p> : null}
         {res.state === "not-found" ? <Empty>Přehled útraty zde není k dispozici.</Empty> : null}
         {res.state === "failed" ? (
@@ -147,76 +165,82 @@ export function ResearcherSpendCard({ nearLimitCount = null }: { nearLimitCount?
             <Button small onClick={retry}>Zkusit znovu</Button>
           </div>
         ) : null}
-        {res.state === "ready" ? <Table report={res.data} open={open} setOpen={setOpen} /> : null}
+        {res.state === "ready" ? <Table report={res.data} open={open} setOpen={setOpen} roleOf={roleOf} /> : null}
       </div>
-      <p className="mt-3 text-xs leading-5 text-ink-faint">
-        Měsíce podle UTC. Drženo: částky blokované právě běžící prací, zatím neutracené. Otazník: některé volání nemá známou cenu, částka proto není přesná.
-      </p>
     </section>
     </>
   );
 }
 
-function Table({ report, open, setOpen }: { report: ResearcherSpend; open: string | null; setOpen: (key: string | null) => void }) {
+function Table({ report, open, setOpen, roleOf }: { report: ResearcherSpend; open: string | null; setOpen: (key: string | null) => void; roleOf: (userId: string) => string | null }) {
   if (!report.people.length) return <Empty>Za toto období nikdo nic neutratil.</Empty>;
   const sum = overall(report);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    // Its own scroll box where the page is narrower than the table, positioned so an absolute
+    // screen-reader-only label inside it never widens the page.
+    <div className="relative min-w-0 overflow-x-auto">
+      <table className="w-full min-w-[44rem] border-collapse">
         <thead>
           <tr>
-            <th className={TH}>Výzkumník</th>
-            <th className={`${TH} text-right`}>Celkem</th>
-            <th className={TH}>Z toho</th>
-            <th className={`${TH} text-right`}>Drženo</th>
-            <th className={`${TH} text-right`}>Studie</th>
-            <th className={TH} />
+            <th scope="col" className={TH}>Výzkumník</th>
+            <th scope="col" className={TH}>Utraceno</th>
+            <th scope="col" className={TH}>Na co</th>
+            <th scope="col" className={TH}><span aria-hidden="true" title="Studií">▤</span><span className="sr-only">Studií</span></th>
+            <th scope="col" className={TH}><span aria-hidden="true">⧗ </span>rezerva</th>
+            <th scope="col" className={TH}><span className="sr-only">Podle studií</span></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
+        <tbody>
           {report.people.map((p) => {
             const key = p.user_id ?? "__unattributed";
             const line = totalLine(p);
             const expanded = open === key;
+            const label = personLabel(p);
+            const role = p.user_id === null ? null : roleOf(p.user_id);
             return (
               <Fragment key={key}>
                 <tr data-person={key}>
-                  <td className={`${TD} font-medium`}>
-                    {personLabel(p)}
-                    {p.user_id === null ? <p className="text-xs font-normal text-ink-muted">Placená práce, kterou nikdo neschválil ani nespustil jménem; nepřipisuje se odhadem.</p> : null}
-                    {p.is_member === false ? <p className="text-xs font-normal text-ink-muted">Již není členem organizace</p> : null}
+                  <th scope="row" className={`${TD} text-left font-normal`}>
+                    <span className="flex items-start gap-2">
+                      <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-xs font-medium text-ink-muted">{initials(label, p.user_id !== null)}</span>
+                      <span className="min-w-0">
+                        <span className="block font-medium">{label}</span>
+                        {role ? <span className="block text-xs text-ink-muted">{role}</span> : null}
+                        {p.user_id === null ? <span className="block max-w-56 text-xs text-ink-muted">Placená práce, kterou nikdo neschválil ani nespustil jménem; nepřipisuje se odhadem.</span> : null}
+                        {p.is_member === false ? <span className="block text-xs text-ink-muted">Již není členem organizace</span> : null}
+                      </span>
+                    </span>
+                  </th>
+                  <td className={TD}>
+                    <b className="font-semibold"><Amount line={line} /></b>
+                    {line.note ? <span className="block text-xs text-ink-muted">{line.note}</span> : null}
+                    {report.everyone && shareOf(p, sum) ? <span data-share className="block text-xs text-ink-muted">{shareOf(p, sum)} organizace</span> : null}
                   </td>
-                  <td className={`${TD} text-right`}>
-                    <Amount line={line} />
-                    {line.note ? <p className="text-xs text-ink-muted">{line.note}</p> : null}
-                    {report.everyone && shareOf(p, sum) ? <p data-share className="text-xs text-ink-muted">{shareOf(p, sum)} útraty organizace</p> : null}
-                  </td>
-                  <td className={TD}><ActivityBar items={activityBar(p.by_activity)} /><Parts items={parts(p.by_activity)} /></td>
-                  <td className={`${TD} text-right`}><span className="whitespace-nowrap font-mono tabular-nums">{p.reserved_usd > 0 ? usd(p.reserved_usd) : "—"}</span></td>
-                  <td className={`${TD} text-right font-mono tabular-nums`}>{p.study_count}</td>
+                  <td className={`${TD} min-w-[12rem]`}><ActivityBar items={activityBar(p.by_activity)} /><Parts items={parts(p.by_activity)} /></td>
+                  <td className={`${TD} font-mono tabular-nums`}>{p.study_count}</td>
+                  <td className={TD}><span className="whitespace-nowrap font-mono tabular-nums">{p.reserved_usd > 0 ? usd(p.reserved_usd) : "—"}</span></td>
                   <td className={`${TD} text-right`}>
                     {p.studies.length ? (
-                      <Button small data-dense aria-expanded={expanded} onClick={() => setOpen(expanded ? null : key)}>
-                        {expanded ? "Skrýt studie" : "Po studiích"}
-                      </Button>
+                      <button type="button" data-dense aria-expanded={expanded} aria-label={`Podle studií: ${label}`} title="Podle studií" onClick={() => setOpen(expanded ? null : key)}
+                        className={`inline-flex size-8 items-center justify-center rounded-sm text-ink-muted hover:bg-surface-sunken hover:text-ink ${FOCUS}`}>
+                        <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>
+                      </button>
                     ) : null}
                   </td>
                 </tr>
                 {expanded ? (
                   <tr data-person-studies={key}>
-                    <td colSpan={6} className="bg-surface-sunken px-3 py-3">
-                      <p className={EYEBROW}>{personLabel(p)} · {studyCount(p.study_count)}</p>
-                      <ul className="mt-2 flex flex-col gap-2">
-                        {p.studies.map((s) => (
-                          <li key={`${s.client_id}:${s.study_id ?? ""}`} data-study-spend={s.study_id ?? `client:${s.client_id}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                    <td colSpan={6} className="bg-surface-sunken py-2 pl-14 pr-4">
+                      <ul className="flex flex-col">
+                        {p.studies.map((st) => (
+                          <li key={`${st.client_id}:${st.study_id ?? ""}`} data-study-spend={st.study_id ?? `client:${st.client_id}`} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-dashed border-border py-1 last:border-b-0">
                             <span className="min-w-0 text-sm">
-                              <span className="font-medium">{s.study_id === null ? "Vlastní práce klienta" : (s.study_name ?? s.study_id)}</span>
-                              <span className="text-ink-muted"> · {s.client_name ?? s.client_id}</span>
+                              {st.study_id === null ? "Vlastní práce klienta" : (st.study_name ?? st.study_id)}
+                              <span className="text-xs text-ink-muted"> · {st.client_name ?? st.client_id}</span>
                             </span>
                             <span className="flex flex-wrap items-baseline gap-3">
-                              <Parts items={parts(s.by_activity)} />
-                              <Amount line={totalLine(s)} />
-                              {reservedLine(s) ? <span className="text-xs text-ink-muted">{reservedLine(s)}</span> : null}
+                              {reservedLine(st) ? <span className="text-xs text-ink-muted">{reservedLine(st)}</span> : null}
+                              <b className="font-semibold"><Amount line={totalLine(st)} /></b>
                             </span>
                           </li>
                         ))}
@@ -228,17 +252,6 @@ function Table({ report, open, setOpen }: { report: ResearcherSpend; open: strin
             );
           })}
         </tbody>
-        {report.everyone && report.people.length > 1 ? (
-          <tfoot>
-            <tr className="border-t border-border-strong">
-              <td className={`${TD} font-semibold`}>Organizace celkem</td>
-              <td className={`${TD} text-right font-semibold`}><Amount line={totalLine(sum)} /></td>
-              <td className={TD} />
-              <td className={`${TD} text-right font-mono tabular-nums`}>{sum.reserved_usd > 0 ? usd(sum.reserved_usd) : "—"}</td>
-              <td className={TD} colSpan={2} />
-            </tr>
-          </tfoot>
-        ) : null}
       </table>
     </div>
   );

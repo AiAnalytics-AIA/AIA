@@ -70,7 +70,31 @@ describe("ResearcherSpendCard", () => {
     expect(within(nobody).getByText("neznámá")).toBeTruthy();
     expect(nobody.textContent).not.toContain("0,00 USD");
     expect(screen.getByText(/Vlastník a správce vidí všechny členy/)).toBeTruthy();
-    expect(screen.getByText("Organizace celkem")).toBeTruthy();
+    // The organization's total is the first figure above the table (prototype v51), not a footer.
+    expect(screen.queryByText("Organizace celkem")).toBeNull();
+    const spent = document.querySelector("[data-org-spend] [data-spend-tile]") as HTMLElement;
+    expect(spent.textContent).toMatch(/^ΣUtraceno · tento měsíc/);
+  });
+
+  it("draws what each person's spend went on as a stacked bar in the chart palette, never the AI's colour", async () => {
+    api(() => REPORT(true));
+    render(<ResearcherSpendCard roleOf={(id) => (id === "USR-1" ? "Výzkumník" : null)} />);
+    const row = (await screen.findByText("Jana")).closest("[data-person]") as HTMLElement;
+    const bar = row.querySelector("[data-activity-bar]") as HTMLElement;
+    expect([...bar.children].map((i) => i.className.match(/bg-[\w-]+/)?.[0])).toEqual(["bg-viz-cat-1", "bg-viz-cat-6"]);
+    expect(bar.innerHTML).not.toContain("bg-ai");
+    expect(within(row).getByText("Výzkumník")).toBeTruthy();
+    // The organization's total has a call with no known bill: the share is not known, so not shown.
+    expect(row.querySelector("[data-share]")).toBeNull();
+  });
+
+  it("draws a person's initials from the letters of their name alone", async () => {
+    const report = REPORT(false);
+    report.people[0]!.display_name = "Kurátor (seed)";
+    api(() => report);
+    render(<ResearcherSpendCard />);
+    const row = (await screen.findByText("Kurátor (seed)")).closest("[data-person]") as HTMLElement;
+    expect(row.querySelector("[aria-hidden='true']")?.textContent).toBe("KS");
   });
 
   it("asks the API for the period chosen and opens a row to its studies", async () => {
@@ -78,10 +102,10 @@ describe("ResearcherSpendCard", () => {
     render(<ResearcherSpendCard />);
     await screen.findByText("Jana");
     expect(asked.at(-1)).toContain("period=this_month");
-    fireEvent.click(screen.getByRole("button", { name: "Od začátku roku" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Od začátku roku" }));
     await waitFor(() => expect(asked.at(-1)).toContain("period=year_to_date"));
     await screen.findByText("Jana");
-    fireEvent.click(screen.getByRole("button", { name: "Po studiích" }));
+    fireEvent.click(screen.getByRole("button", { name: "Podle studií: Jana" }));
     const studies = document.querySelector('[data-person-studies="USR-1"]') as HTMLElement;
     expect(within(studies).getByText("Vnímání značky")).toBeTruthy();
     expect(studies.textContent).toContain("Klient A");
