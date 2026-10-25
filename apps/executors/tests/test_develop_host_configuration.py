@@ -376,6 +376,59 @@ def test_an_invocation_target_reaches_the_worker_alone_and_unset_changes_nothing
     assert called["eu.test.lead-model:1"].target == lead_arn
 
 
+#: Claude Sonnet 5.5 on the route as the SSM writes of sonnet-5-5-switch would carry it: the
+#: id, prices and limits the infra session read from develop's Bedrock account on 2026-10-25
+#: (eu-central-1, Standard geo, USD per Mtok), and the profile the model family needs.
+SONNET_5_5_ENV = {
+    **HOST_ENV,
+    "AIA_BEDROCK_MODEL_ID": "eu.anthropic.claude-sonnet-5-5",
+    "AIA_BEDROCK_INPUT_USD_PER_MTOK": "2.20",
+    "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "11.00",
+    "AIA_BEDROCK_CACHE_READ_USD_PER_MTOK": "0.11",
+    "AIA_BEDROCK_CACHE_WRITE_USD_PER_MTOK": "2.75",
+    "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "128000",
+    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "1000000",
+    "AIA_BEDROCK_STRUCTURED_OUTPUT": "auto_tool",
+    "AIA_BEDROCK_THINKING": "adaptive",
+    "AIA_BEDROCK_ACCEPTS_SAMPLING": "false",
+    "AIA_AI_FIELDWORK_EFFORT": "low",
+}
+
+
+def test_the_route_models_profile_reaches_the_worker_and_unset_changes_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from aia_core.domain.ai_models import DEFAULT_REQUEST_PROFILE, Effort, ThinkingMode
+
+    unset = AIRuntimeSettings.from_env(_container("worker", HOST_ENV))
+    assert unset is not None and unset.request_profile == DEFAULT_REQUEST_PROFILE
+
+    worker = _container("worker", SONNET_5_5_ENV)
+    for key in (
+        "AIA_BEDROCK_STRUCTURED_OUTPUT",
+        "AIA_BEDROCK_THINKING",
+        "AIA_BEDROCK_ACCEPTS_SAMPLING",
+        "AIA_AI_FIELDWORK_EFFORT",
+    ):
+        assert worker[key] == SONNET_5_5_ENV[key]
+    settings = AIRuntimeSettings.from_env(worker)
+    assert settings is not None and settings.model_id == "eu.anthropic.claude-sonnet-5-5"
+    assert settings.request_profile.thinking is ThinkingMode.ADAPTIVE
+    assert not settings.request_profile.accepts_sampling
+    policy = settings.model_document()["policies"][0]
+    assert policy["efforts"] == {"SIMULATION": Effort.LOW.value}
+    assert settings.cache_write_usd_per_mtok == 2.75
+
+    # The API prices a Deep Research ceiling as the worker sends it: no budget to this model.
+    api = _api_settings(
+        _container("api", {**SONNET_5_5_ENV, "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "2048"}),
+        monkeypatch,
+    )
+    assert api.bedrock_thinking == "adaptive"
+    assert api.deep_research_pricing().thinking_budget_tokens is None
+    assert api.deep_research_pricing().cache_write_usd_per_mtok == 2.75
+
+
 def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

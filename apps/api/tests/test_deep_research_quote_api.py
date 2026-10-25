@@ -203,6 +203,25 @@ def test_an_unpriced_route_is_null_never_zero(
     assert quoted["usd_by_kind"]["search"] is None
 
 
+def test_an_adaptive_route_model_is_priced_without_the_thinking_budget() -> None:
+    """The worker sends an adaptive route model no budget (sonnet-5-5-switch), so the ceiling
+    the API quotes leaves it out too; a budgeted model keeps it, as before."""
+    budget = {"deep_research_thinking_budget_tokens": 2_048}
+    assert Settings(**ROUTE, **budget).deep_research_pricing().thinking_budget_tokens == 2_048
+    assert (
+        Settings(**ROUTE, **budget, bedrock_thinking="budget")
+        .deep_research_pricing()
+        .thinking_budget_tokens
+        == 2_048
+    )
+    adaptive = Settings(**ROUTE, **budget, bedrock_thinking="adaptive")
+    assert adaptive.deep_research_pricing().thinking_budget_tokens is None
+    # Read as the worker reads it: stripped, in any case.
+    assert Settings(**ROUTE, bedrock_thinking=" Adaptive ").bedrock_thinking == "adaptive"  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="bedrock_thinking"):
+        Settings(**ROUTE, bedrock_thinking="enabled")  # type: ignore[arg-type]
+
+
 def test_the_api_settings_name_every_pricing_key() -> None:
     """Each key the ceiling is priced from reaches the application layer's settings."""
     settings = Settings(

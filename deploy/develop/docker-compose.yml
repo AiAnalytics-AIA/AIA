@@ -179,6 +179,8 @@ services:
       AIA_BEDROCK_CONTEXT_WINDOW_TOKENS: ${AIA_BEDROCK_CONTEXT_WINDOW_TOKENS:-}
       AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS: ${AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS:-}
       AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS: ${AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS:-}
+      # An adaptive route model is sent no thinking budget, so its ceiling is priced without.
+      AIA_BEDROCK_THINKING: ${AIA_BEDROCK_THINKING:-}
       AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED: ${AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED:-false}
       # The search route by name and Brave's dated price (chunk 23d): the ceiling prices each
       # search as the worker reserves it. Never the key: the API sends no search.
@@ -252,6 +254,15 @@ services:
       # application inference profile ARN over AIA_BEDROCK_MODEL_ID, tagged Environment=develop.
       # Empty: the id itself, as before. The model id stays the eu. id either way.
       AIA_BEDROCK_INVOCATION_TARGET: ${AIA_BEDROCK_INVOCATION_TARGET:-}
+      # The route model's request profile (sonnet-5-5-switch). All empty: the route model is sent
+      # what it always was. Set, the three are declared together (a missing one stops the
+      # worker by name); an effort, the route's or a capability's, is for adaptive only.
+      AIA_BEDROCK_STRUCTURED_OUTPUT: ${AIA_BEDROCK_STRUCTURED_OUTPUT:-}
+      AIA_BEDROCK_THINKING: ${AIA_BEDROCK_THINKING:-}
+      AIA_BEDROCK_ACCEPTS_SAMPLING: ${AIA_BEDROCK_ACCEPTS_SAMPLING:-}
+      AIA_BEDROCK_EFFORT: ${AIA_BEDROCK_EFFORT:-}
+      AIA_AI_FIELDWORK_EFFORT: ${AIA_AI_FIELDWORK_EFFORT:-}
+      AIA_AI_RESEARCH_EFFORT: ${AIA_AI_RESEARCH_EFFORT:-}
       AIA_AI_ROUTE_EU_PROCESSING_APPROVED: ${AIA_AI_ROUTE_EU_PROCESSING_APPROVED:-}
       AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING: ${AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING:-}
       AIA_AI_ROUTE_APPROVED_FOR: ${AIA_AI_ROUTE_APPROVED_FOR:-}
