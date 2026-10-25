@@ -716,12 +716,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).
+  // Below 1100 px the review lies under the drawer or the sheet: the conversation steps aside, as for a
+  // Lead's view, and the review takes the focus when it mounts (ProposalReview).
   const openJob = useCallback((job: ResearchAgentJob) => {
     const target = JOB_STAGE[job.action];
+    if (compact) setDrawerState(nextDrawer(drawer, { type: "view", target: target ?? stage }, layout).state);
     if (!target || target === stage || !memory) return onOpenJob(job);
     memory.set(OPEN_REVIEW_KEY, job);
     go(target);
-  }, [stage, memory, onOpenJob, go]);
+  }, [stage, memory, onOpenJob, go, compact, drawer, layout]);
 
   // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
   // stage, else its newest proposal still waiting for review; with neither, the stage itself.
