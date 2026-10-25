@@ -60,6 +60,9 @@ ONLYOFFICE = "onlyoffice:80"
 DOCS_GATE = "/api/v1/session/docs-gate"
 # The one path of docs.<hostname> the API answers: a one-time ticket spent for the docs cookie.
 DOCS_SESSION = "/__aia/session"
+# The editor's script and the ticket it is loaded through: the only answers of docs.<hostname> that
+# name AIA's origin for CORS with credentials (artifact-report RPT8e, Subresource Integrity).
+EDITOR_SCRIPT = {DOCS_SESSION, "/web-apps/apps/api/documents/api.js"}
 DOCS_SESSION_TARGET = "/api/v1/session/docs?{http.request.uri.query}"
 # The Document Server's server-to-server, AI proxy, hosting and admin paths: nothing outside
 # needs any of them. Each is refused in any
@@ -383,6 +386,24 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     }
     if framers != {f"frame-ancestors https://{PRODUCT}"}:
         problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
+    cors = [
+        (paths_of(r), n["response"]["set"])
+        for r in routes
+        for n in walk(r)
+        if n.get("handler") == "headers"
+        and "Access-Control-Allow-Origin" in n.get("response", {}).get("set", {})
+    ]
+    if {p for paths, _ in cors for p in paths} != EDITOR_SCRIPT or any(
+        not paths
+        or not set(paths) <= EDITOR_SCRIPT
+        or headers["Access-Control-Allow-Origin"] != [f"https://{PRODUCT}"]
+        or headers.get("Access-Control-Allow-Credentials") != ["true"]
+        for paths, headers in cors
+    ):
+        problems.append(
+            f"{DOCS} must answer CORS with credentials for https://{PRODUCT} on the editor's "
+            f"script and its ticket alone; got {cors}"
+        )
     if not logs_drop_ticket(config):
         problems.append(
             f"{DOCS}'s access log writes the ticket or a cache link's signature in a URI's "
