@@ -130,6 +130,16 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   decision for the product owner, recorded for 10b.
 - 10a's accents are wayfinding tints only; readiness takes hue-slate, not the design's green, which is
   "in force" alone. The support drawing's n = 30 line is ink, not fault red.
+- F7 (#892): the "Téměř vyčerpané" tile and each row's ⚠ read spent alone against the budget
+  (`lib/researcher-spend.ts` nearLimit, >= 0.9; closed studies left out of the tile). The server's
+  own rule, `GET /settings/organization-spend` `near_limit` (`domain/spend_attribution.py`
+  NEAR_LIMIT_SHARE), counts open studies by spent plus held; the Study response carries no held
+  amount, so a study whose budget is taken by open holds is near to the server and not here.
+  Follow-up: read `near_limit` from that route for an OWNER or ADMIN (it refuses a member 403), and
+  keep the client rule for a member's own rows. Test: a held-heavy study near on the tile.
+- F7 (#892): a study's status moved from the Settings table to the study (StudyStatusMenu in the
+  stage header and the workbench's study header; "Znovu otevřít" on a closed study's notice reopens
+  it in place), so the capability the picker held is not lost.
 
 ## Fidelity to the prototype v51 (the product owner, 2026-10-23)
 "Implement the settings pages just as we designed them; the current deploy is far from it."

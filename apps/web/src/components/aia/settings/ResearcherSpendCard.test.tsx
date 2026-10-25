@@ -104,13 +104,57 @@ describe("ResearcherSpendCard", () => {
     expect(legend.querySelector(".bg-border-strong")).toBeTruthy();
   });
 
-  it("draws a person's initials from the letters of their name alone", async () => {
-    const report = REPORT(false);
-    report.people[0]!.display_name = "Kurátor (seed)";
+  it("draws a person's initials from the letters of their name alone, a decomposed name included", async () => {
+    const cases: [string, string][] = [
+      ["Kurátor (seed)", "KS"],
+      ["Šárka Čermáková", "ŠČ"],
+      ["Šárka Čermáková".normalize("NFD"), "ŠČ"],
+      ["jana.mala@firma.cz", "JM"],
+      ["workbench", "W"],
+      ["(seed)", "S"],
+    ];
+    for (const [name, expected] of cases) {
+      const report = REPORT(false);
+      report.people[0]!.display_name = name;
+      api(() => report);
+      render(<ResearcherSpendCard />);
+      const row = (await screen.findByText(name)).closest("[data-person]") as HTMLElement;
+      expect(row.querySelector("[aria-hidden='true']")?.textContent).toBe(expected);
+      cleanup();
+    }
+  });
+
+  it("names each amount under a bar by its activity, visibly, whichever activities a person has", async () => {
+    api(() => REPORT(false));
+    render(<ResearcherSpendCard />);
+    const row = (await screen.findByText("Jana")).closest("[data-person]") as HTMLElement;
+    // Jana spent on the Lead and Deep Research only: each amount says which it is in words.
+    const shown = [...row.querySelectorAll<HTMLElement>("[data-part]")].map((p) =>
+      [...p.childNodes].filter((n) => !(n instanceof HTMLElement && (n.classList.contains("sr-only") || n.getAttribute("aria-hidden") === "true"))).map((n) => n.textContent).join(""));
+    expect(shown).toEqual(["Vedoucí 0,10 USD", "Deep Research 0,40 USD"]);
+  });
+
+  it("shows a person's share of the organization when its total is known", async () => {
+    const report = REPORT(true);
+    report.people[1] = { ...report.people[1]!, ...fig(0) };
     api(() => report);
     render(<ResearcherSpendCard />);
-    const row = (await screen.findByText("Kurátor (seed)")).closest("[data-person]") as HTMLElement;
-    expect(row.querySelector("[aria-hidden='true']")?.textContent).toBe("KS");
+    const row = (await screen.findByText("Jana")).closest("[data-person]") as HTMLElement;
+    expect(row.querySelector("[data-share]")?.textContent).toBe("100 % organizace");
+  });
+
+  it("opens what the ⓘ explains by keyboard or touch, not on hover alone", async () => {
+    api(() => REPORT(true));
+    render(<ResearcherSpendCard />);
+    await screen.findByText("Jana");
+    const info = screen.getByRole("button", { name: "Jak se útrata počítá" });
+    const about = document.getElementById("researcher-spend-about") as HTMLElement;
+    expect(info.getAttribute("aria-expanded")).toBe("false");
+    expect(about.hidden).toBe(true);
+    fireEvent.click(info);
+    expect(info.getAttribute("aria-expanded")).toBe("true");
+    expect(about.hidden).toBe(false);
+    expect(about.textContent).toContain("Měsíce podle UTC");
   });
 
   it("asks the API for the period chosen and opens a row to its studies", async () => {
@@ -121,7 +165,10 @@ describe("ResearcherSpendCard", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Od začátku roku" }));
     await waitFor(() => expect(asked.at(-1)).toContain("period=year_to_date"));
     await screen.findByText("Jana");
-    fireEvent.click(screen.getByRole("button", { name: "Podle studií: Jana" }));
+    const expander = screen.getByRole("button", { name: "Podle studií: Jana" });
+    expect(expander.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(expander);
+    expect(expander.getAttribute("aria-expanded")).toBe("true");
     const studies = document.querySelector('[data-person-studies="USR-1"]') as HTMLElement;
     expect(within(studies).getByText("Vnímání značky")).toBeTruthy();
     expect(studies.textContent).toContain("Klient A");

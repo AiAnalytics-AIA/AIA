@@ -31,11 +31,11 @@ import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
-import Link from "next/link";
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
+import { ReopenStudy, StudyStatusMenu } from "./StudyStatus";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
@@ -131,7 +131,7 @@ const DESIGN_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "q
  * and where it is reopened. Without it, a delivered study looked editable and every save was
  * refused as a role the person has (productization-coherence PC1).
  */
-export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["closed"]> }) {
+export function ClosedStudyNotice({ closed, studyId, onChanged }: { closed: NonNullable<StudyFrame["closed"]>; studyId: string; onChanged?: () => Promise<void> | void }) {
   const when = closed.deliveredAt ? new Date(closed.deliveredAt).toLocaleDateString("cs-CZ") : null;
   const title =
     closed.status === "DELIVERED" && when
@@ -141,9 +141,8 @@ export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["
     <section role="status" data-study-closed={closed.status} className="mb-4 max-w-3xl rounded-sm border border-border-strong bg-surface-sunken p-3 text-sm leading-6 text-ink">
       <p className="font-semibold">{title}</p>
       <p>{t("aia.study.closed.help")}</p>
-      <p className="text-ink-muted">
-        <Link href={`${appRoutes.settings()}#studies`} className="text-signal underline">{t("aia.study.closed.reopen")}</Link>.
-      </p>
+      {/* Reopened here, in place: the study is where its status is changed (F7). */}
+      {onChanged ? <div className="mt-2"><ReopenStudy studyId={studyId} onChanged={onChanged} /></div> : null}
     </section>
   );
 }
@@ -170,13 +169,13 @@ function StageChrome({ frame, step, state, status, help, children }: {
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      action={help}
+      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} /></> : help}
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
       ) : null}
-      {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+      {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} /> : null}
       {children}
     </AppShell>
   );
@@ -415,7 +414,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               </section> : null}
             </>)}>
             {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
-            {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+            {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">

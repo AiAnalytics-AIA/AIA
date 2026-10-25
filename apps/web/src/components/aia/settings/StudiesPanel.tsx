@@ -82,7 +82,8 @@ function Spend({ costs }: { costs: Study }) {
 function Budget({ costs, reload }: { costs: Study; reload: () => void }) {
   const refusal = useRefusal();
   const answered = useAnswered(costs.budget_usd);
-  // Never below what the study has spent: the API refuses it, and the field says so first.
+  // Never below what the study has spent, rounded up to the cent: the field refuses it before
+  // anything is sent (the API itself refuses only a negative budget). Open holds are not in it.
   const min = Math.ceil((costs.spent_usd ?? 0) * 100) / 100;
   return <>
     <Stepper label={tv(`${S}.budgetOf`, { study: costs.name })} value={answered.value} min={min} max={MAX_USD} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
@@ -114,11 +115,12 @@ export function StudiesTable({ studies, clients, reload }: {
   studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; reload: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [named, setNamed] = useState(false);
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   const q = query.trim().toLocaleLowerCase("cs");
   const count = studies.ok ? studies.data.length : 0;
-  // What each of the money columns is, said once: the header's ⓘ on hover, the table's caption to
-  // a screen reader (D-01: the four names, each with where it is set).
+  // What each of the money columns is: the header's ⓘ on hover, and the four D-01 names, each with
+  // where it is set, in the disclosure under the table, which a keyboard and a touch reach too.
   const info = (key: "studyBudget" | "confirmThreshold" | "wallet") => <span aria-hidden="true" title={t(`${S}.money.${key}`)} className="ml-1 cursor-help text-ink-faint">ⓘ</span>;
   return (
     <section id="set-studies-table" aria-labelledby="set-studies-table-title" className="rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
@@ -148,7 +150,8 @@ export function StudiesTable({ studies, clients, reload }: {
               </tr></thead>
               <tbody>
                 {studies.data.map(({ study, detail }) => {
-                  const costs = detail.ok && detail.data.budget_usd !== null ? detail.data : null;
+                  // Both known, or neither drawn: an unknown spend never reads as 0 (A6).
+                  const costs = detail.ok && detail.data.budget_usd !== null && detail.data.spent_usd !== null ? detail.data : null;
                   const client = clientName.get(study.client_id) ?? study.client_id;
                   const shown = `${study.name} ${client}`.toLocaleLowerCase("cs").includes(q);
                   const near = costs ? nearLimit(costs) : false;
@@ -170,7 +173,8 @@ export function StudiesTable({ studies, clients, reload }: {
                         </td>
                       )}
                       <td className={TD}>
-                        <Link href={appRoutes.area(study.client_id, "profile")} title={t(`${S}.profileRules`)} className={`whitespace-nowrap text-sm text-signal hover:underline ${FOCUS}`}>{t(`${S}.rules`)}<span aria-hidden="true"> ↗</span></Link>
+                        <Link href={appRoutes.area(study.client_id, "profile")} title={t(`${S}.profileRules`)} aria-label={tv(`${S}.rulesOf`, { client })}
+                          className={`inline-flex min-h-11 items-center whitespace-nowrap text-sm text-signal hover:underline sm:min-h-0 ${FOCUS}`}>{t(`${S}.rules`)}<span aria-hidden="true"> ↗</span></Link>
                       </td>
                     </tr>
                   );
@@ -180,6 +184,20 @@ export function StudiesTable({ studies, clients, reload }: {
           </div>
         )}
       <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.studies.permissionNote`)}</p>
+      {/* A button, not a <details>: a settings tab carries no disclosure element (F2), and this one
+          opens by keyboard and touch alike. */}
+      <button type="button" aria-expanded={named} aria-controls="set-studies-money" onClick={() => setNamed((v) => !v)}
+        className={`mt-1 inline-flex min-h-11 items-center gap-1 text-xs text-signal hover:underline sm:min-h-0 ${FOCUS}`}>
+        <span aria-hidden="true">{named ? "▾" : "▸"}</span>{t(`${S}.moneyNames`)}
+      </button>
+      <dl id="set-studies-money" data-money-names hidden={!named} className="mt-1 grid gap-x-3 gap-y-1 text-xs leading-5 text-ink-muted sm:grid-cols-[max-content_1fr]">
+        {(["clientBudget", "studyBudget", "wallet", "confirmThreshold"] as const).map((k) => (
+          <div key={k} className="contents">
+            <dt className="font-medium text-ink">{money[k]}</dt>
+            <dd>{t(`${S}.money.${k}`)}{k === "confirmThreshold" ? ` ${tv(`${S}.thresholdBounds`, { min: formatNumber(MIN_THRESHOLD_USD, 0) })}` : ""}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

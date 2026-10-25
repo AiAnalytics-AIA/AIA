@@ -7,7 +7,7 @@
 // who may only read never starts a study's content.
 
 import { notFound, useRouter, useSelectedLayoutSegment } from "next/navigation";
-import { type ReactNode, useCallback, useEffect, useMemo } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 
 import { t } from "@/i18n/t";
 import { type StudyWorkspace, type WorkingContent, workspace } from "@/lib/api";
@@ -38,9 +38,13 @@ function Waiting({ children, name }: { children: ReactNode; name?: string }) {
   );
 }
 
-function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingContent; children: ReactNode }) {
+function Frame({ w: first, content, children }: { w: StudyWorkspace; content?: WorkingContent; children: ReactNode }) {
   const { client } = useClient();
+  // The study as last read: a status changed on the study reads it again here, in place, so what
+  // it allows (can_edit, closed) follows without the stage or its unsaved state remounting.
+  const [w, setW] = useState(first);
   const studyId = w.study.study_id;
+  const refreshStudy = useCallback(async () => { setW(await workspace.study(studyId)); }, [studyId]);
   const clientId = client.client_id;
   const canEdit = w.can_edit;
   const canReview = w.can_review;
@@ -62,10 +66,12 @@ function Frame({ w, content, children }: { w: StudyWorkspace; content?: WorkingC
       canEdit,
       canReview,
       closed: closedStatus ? { status: closedStatus, deliveredAt } : null,
+      status: w.study.status,
+      refreshStudy,
       stepHref: (step: StepKey) => appRoutes.stage(clientId, studyId, step),
       onStage,
     }),
-    [clientId, client.name, studyId, w.study.name, w.study.last_stage, canEdit, canReview, closedStatus, deliveredAt, onStage],
+    [clientId, client.name, studyId, w.study.name, w.study.last_stage, w.study.status, canEdit, canReview, closedStatus, deliveredAt, onStage, refreshStudy],
   );
   return (
     <StudyFrameProvider frame={frame}>
@@ -112,7 +118,7 @@ export function ResearchStudy({ studyId, children }: { studyId: string; children
             <p className="text-sm">{t("aia.study.readOnly")}</p>
           </section>
         ) : (
-          <ClosedStudyNotice closed={{ status: w.study.status, deliveredAt: w.study.delivered_at ?? null }} />
+          <ClosedStudyNotice closed={{ status: w.study.status, deliveredAt: w.study.delivered_at ?? null }} studyId={w.study.study_id} onChanged={retry} />
         )}
       </Waiting>
     );

@@ -54,14 +54,17 @@ function Amount({ line }: { line: AmountLine }) {
 
 // What the spend went on, in the prototype's four colours from the chart palette (never the AI's
 // violet, which marks a model at work): the Lead, fieldwork, analysis and report, Deep Research;
-// anything else neutral. Each colour sits beside its amount, so no part is read by colour alone.
+// anything else neutral. Each amount under the bar carries its activity's short name as well as
+// its colour, so no part is read by colour alone.
 const BAR: Record<BarPart["activity"], string> = {
   lead: "bg-viz-cat-1", fieldwork: "bg-viz-cat-2", analysis_report: "bg-viz-cat-4", deep_research: "bg-viz-cat-6", other: "bg-border-strong",
 };
 const LEGEND: [BarPart["activity"], string][] = [["lead", "Vedoucí"], ["fieldwork", "sběr"], ["analysis_report", "analýza a zpráva"], ["deep_research", "Deep Research"]];
+/** Each activity's short name, as the legend and the amounts under a bar say it. */
+const SHORT: Record<BarPart["activity"], string> = { lead: "Vedoucí", fieldwork: "sběr", analysis_report: "analýza a zpráva", deep_research: "Deep Research", other: "ostatní" };
 // The prototype's legend has the four; spend booked to anything else (design proposals, a client
 // document's AI proposals) gets its grey named too whenever a row shows it (Codex on #892).
-const OTHER: [BarPart["activity"], string] = ["other", "ostatní"];
+const OTHER: [BarPart["activity"], string] = ["other", SHORT.other];
 const hasOther = (report: ResearcherSpend) => report.people.some((p) => parts(p.by_activity).some((a) => a.activity === "other"));
 
 /** What a person's spend went on, as one bar; the amounts are under it. */
@@ -74,15 +77,16 @@ function ActivityBar({ items }: { items: BarPart[] }) {
   );
 }
 
-/** The bar's amounts, in its order: each named to a screen reader, a dot of its colour to the eye. */
+/** The bar's amounts, in its order: each with its colour's dot and its activity's short name, to the
+ *  eye and to a screen reader alike (the full name stays in the dot's title). */
 function Parts({ items }: { items: ReturnType<typeof parts> }) {
   if (!items.length) return <span className="text-ink-faint">—</span>;
   return (
     <ul className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 font-mono text-[11px] text-ink-muted">
       {items.map((p) => (
         <li key={p.activity} data-part={p.activity} className="flex items-center gap-1">
-          <span aria-hidden="true" className={`size-1.5 rounded-full ${BAR[p.activity]}`} />
-          <span className="sr-only">{p.label} </span><Amount line={p.line} />
+          <span aria-hidden="true" title={p.label} className={`size-1.5 rounded-full ${BAR[p.activity]}`} />
+          <span className="font-sans">{SHORT[p.activity]}</span> <Amount line={p.line} />
         </li>
       ))}
     </ul>
@@ -116,7 +120,7 @@ function Figures({ report, nearLimitCount }: { report: ResearcherSpend; nearLimi
       </Tile>
       <Tile icon="⧗" label="Rezervováno" note="běžící práce">{usd(sum.reserved_usd)}</Tile>
       <Tile icon="?" label="Nejistá volání" note="nikdy jako 0 USD">{sum.uncertain_calls}</Tile>
-      <Tile icon="⚠" label="Téměř vyčerpané" note={nearLimitCount?.unknown ? `> 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "> 90 % rozpočtu"}>
+      <Tile icon="⚠" label="Téměř vyčerpané" note={nearLimitCount?.unknown ? `≥ 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "≥ 90 % rozpočtu"}>
         {nearLimitCount ? nearLimitWords(nearLimitCount) : "neznámo"}
       </Tile>
     </div>
@@ -126,9 +130,10 @@ function Figures({ report, nearLimitCount }: { report: ResearcherSpend; nearLimi
 /** Up to two letters of a person's name or address; "?" for spend booked to nobody. */
 function initials(label: string, known: boolean): string {
   if (!known) return "?";
-  // Letters only: "Kurátor (seed)" is KS, never "K(".
-  const words = label.match(/\p{L}+/gu) ?? [];
-  return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
+  // Letters only, a letter with its marks one: "Kurátor (seed)" is KS, never "K(", and "Šárka" typed
+  // decomposed (S + U+030C) is Š, never S.
+  const words = label.normalize("NFC").match(/[\p{L}\p{M}]+/gu) ?? [];
+  return words.slice(0, 2).map((w) => [...w][0]!.toLocaleUpperCase("cs")).join("") || "?";
 }
 
 export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null }: {
@@ -138,6 +143,7 @@ export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null
 }) {
   const [period, setPeriod] = useState<SpendPeriod>("this_month");
   const [open, setOpen] = useState<string | null>(null);
+  const [explained, setExplained] = useState(false);
   const [res, retry] = useResource(() => load(period), [period]);
   const scope = res.state === "ready" ? (res.data.everyone ? "Vlastník a správce vidí všechny členy." : "Vidíte jen svou vlastní útratu.") : "";
   const about = `Každá platba se připisuje tomu, kdo placenou práci schválil nebo spustil (krok Vedoucího, běh, analýza, rešerše). ${scope} Měsíce podle UTC. Rezerva: částky blokované právě běžící prací, zatím neutracené. Otazník: některé volání nemá známou cenu, částka proto není přesná.`;
@@ -147,14 +153,17 @@ export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null
     {res.state === "ready" ? <Figures report={res.data} nearLimitCount={nearLimitCount} /> : null}
     <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="researcher-spend-h" className="flex items-center gap-1.5 text-base font-semibold">
-          Útrata podle výzkumníka
-          <span aria-hidden="true" title={about} className="cursor-help text-sm font-normal text-ink-faint">ⓘ</span>
-        </h3>
+        <div className="flex items-center gap-1.5">
+          <h3 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h3>
+          {/* A real disclosure: a keyboard and a touch open what the ⓘ explains, not only a hover. */}
+          <button type="button" aria-expanded={explained} aria-controls="researcher-spend-about" aria-label="Jak se útrata počítá"
+            title={about} onClick={() => setExplained((v) => !v)} data-dense
+            className={`inline-flex size-11 items-center justify-center rounded-full text-sm text-ink-faint hover:text-ink sm:size-6 ${FOCUS}`}>ⓘ</button>
+        </div>
         <ChoiceChips look="segmented" small label="Období" value={period} options={SPEND_PERIODS.map((p) => ({ key: p, label: PERIOD_LABEL[p] }))}
           onChange={(p) => { setPeriod(p); setOpen(null); }} />
       </div>
-      <p className="sr-only">{about}</p>
+      <p id="researcher-spend-about" hidden={!explained} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{about}</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-ink-muted">
         {(res.state === "ready" && hasOther(res.data) ? [...LEGEND, OTHER] : LEGEND).map(([key, label]) => <span key={key} data-legend={key} className="flex items-center gap-1"><span aria-hidden="true" className={`size-2 rounded-full ${BAR[key]}`} />{label}</span>)}
         {res.state === "ready" && !res.data.everyone ? <span aria-hidden="true">· jen vaše útrata</span> : null}

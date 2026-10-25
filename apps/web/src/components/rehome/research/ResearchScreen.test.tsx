@@ -122,10 +122,12 @@ describe("ResearchScreen", () => {
     const closed = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: "2026-10-17T09:00:00Z" } };
     render(<ResearchScreen step="brief" frame={closed} />);
     const goal = (await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement;
-    // Said once, on the stage: what it is, what still works and where it is reopened.
+    // Said once, on the stage: what it is and what still works.
     expect(screen.getByText(tv("aia.study.closed.DELIVERED_on", { when: new Date("2026-10-17T09:00:00Z").toLocaleDateString("cs-CZ") }))).toBeTruthy();
     expect(screen.getByText(t("aia.study.closed.help"))).toBeTruthy();
-    expect(screen.getByRole("link", { name: t("aia.study.closed.reopen") }).getAttribute("href")).toBe("/app/settings#studies");
+    // Settings no longer changes a study's status (F7): the notice never sends a person there.
+    expect(document.querySelector('[data-study-closed] a[href*="settings"]')).toBeNull();
+    expect(t("aia.study.closed.reopen")).not.toMatch(/Nastavení/);
     // Every control of the design is disabled as one, and nothing is sent.
     expect(goal.closest("fieldset")?.disabled).toBe(true);
     expect(goal.closest("fieldset")?.getAttribute("role")).toBe("none"); // disables, announces no group
@@ -139,6 +141,42 @@ describe("ResearchScreen", () => {
     await new Promise((r) => setTimeout(r, 2100));
     expect(saves()).toHaveLength(0);
     expect(screen.queryByText(t("research.saveFailed"))).toBeNull();
+  });
+
+  it("changes the study's status on the study, and reopens a closed one in place (F7)", async () => {
+    let status = "DELIVERED";
+    const refreshed: string[] = [];
+    api(() => content({ can_edit: false }), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => { status = String(calls.at(-1)?.body?.status); return { study_id: "STU-1", status }; },
+    });
+    const frame = {
+      ...TEST_FRAME, canEdit: false, canReview: true, status, closed: { status, deliveredAt: null },
+      refreshStudy: async () => { refreshed.push(status); },
+    };
+    render(<ResearchScreen step="brief" frame={frame} />);
+    await screen.findByLabelText(GOAL_LABEL);
+    // The header's control names the status and offers every other one.
+    fireEvent.click(await screen.findByRole("button", { name: "Stav: Předáno" }));
+    expect(within(screen.getByRole("menu", { name: "Stav: Předáno" })).getAllByRole("menuitem").map((i) => i.textContent))
+      .toEqual(["Rozpracováno", "Aktivní", "V kontrole", "Archivováno", "Zrušeno"]);
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    // The notice reopens it where it stands, to a status that accepts work.
+    const notice = document.querySelector("[data-study-closed]") as HTMLElement;
+    fireEvent.click(within(notice).getByRole("button", { name: t("aia.study.closed.reopen") }));
+    fireEvent.click(within(screen.getByRole("menu", { name: t("aia.study.closed.reopen") })).getByRole("menuitem", { name: "Aktivní" }));
+    await vi.waitFor(() => expect(refreshed).toEqual(["ACTIVE"]));
+    expect(calls.filter((c) => c.method === "PUT" && c.url === "/api/v1/studies/STU-1/status").map((c) => c.body)).toEqual([{ status: "ACTIVE" }]);
+  });
+
+  it("says the API's refusal of a status change as given", async () => {
+    api(() => content(), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => new Response(JSON.stringify({ code: "forbidden", message: "Delivery needs sign-off" }), { status: 403 }),
+    });
+    render(<ResearchScreen step="brief" frame={{ ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} }} />);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(await screen.findByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Delivery needs sign-off");
   });
 
   it("reads an AI proposal on a closed study's run stage and closes it, never applies it (review, Codex on #479)", async () => {

@@ -30,6 +30,11 @@ export type StudyFrame = {
   canReview?: boolean;
   /** Why the study accepts no new work, when it does not: its status, and when it was delivered. */
   closed?: { status: string; deliveredAt: string | null } | null;
+  /** The study's status, where it may be changed here (StudyStatusMenu); absent on a past study read
+   *  from project memory, which offers no change. */
+  status?: string;
+  /** Reads the study again after its status changed, without leaving the stage. */
+  refreshStudy?: () => Promise<void>;
   /** The URL of one of this study's stages. */
   stepHref: (step: StepKey) => string;
   /** Remember the stage opened, for "continue where you left off". */

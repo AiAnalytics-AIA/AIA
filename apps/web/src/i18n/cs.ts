@@ -1839,8 +1839,10 @@ export const cs = {
           ceiling: money.studyBudget,
           budgetInvalid: "Rozpočet musí být číslo (USD).",
           costsHidden: "náklady nevidíte (chybí oprávnění VIEW_COSTS)",
-          permissionNote: "Stav a rozpočet studie smí měnit každý výzkumník. Rozpočet je tvrdý strop: krok, který by ho překročil, se zastaví.",
+          permissionNote: "Rozpočet studie smí měnit každý výzkumník; stav se mění na studii samé. Rozpočet studie je tvrdý strop: krok, který by ho překročil, se zastaví.",
         },
+
+        // The threshold's copy below asks, never stops; only Rozpočet studie stops spending (LO0, test_money.py).
         studiesTab: {
           count: "{n} studií",
           budgetOf: "Rozpočet studie {study}",
@@ -1853,6 +1855,9 @@ export const cs = {
           nearLimit: "téměř vyčerpáno",
           profileRules: "Profil → Pravidla klienta",
           rules: "Pravidla",
+          rulesOf: "Pravidla klienta {client}",
+          moneyNames: "Co znamenají částky",
+          thresholdBounds: "Od {min} USD, nejvýš rozpočet studie.",
           money: {
             studyBudget: "Strop, který útratu studie zastaví. Nastavuje se zde.",
             confirmThreshold: "Nad ním se AIA zeptá, ale nezastaví. Nastavuje se zde.",
@@ -2190,8 +2195,9 @@ export const cs = {
         CANCELLED: "Studie je zrušená.",
         other: "Studie nepřijímá novou práci.",
         help: "Návrh už nejde upravit a nová práce (běh, AI pomoc, rešerše) se nespustí. Výsledky a zprávy zůstávají k přečtení, stažení a schválení.",
-        reopen: "Znovu otevřít ji lze v Nastavení → Studie a rozpočty",
+        reopen: "Znovu otevřít",
       },
+      status: { label: "Stav: {status}", to: "Změnit stav na {status}" },
     },
     time: {
       justNow: "právě teď",
