@@ -20,7 +20,7 @@ real job, which runs the organization's active prompt. `POST …/research/agent-
 `prompt_version`: asking for one is 422 by the request's shape (`extra="forbid"`), administrator
 or not, fictional client or not (`apps/api/src/aia_api/routers/research.py:3710 @ 5d5ed250`;
 `test_system_prompts_api.py::test_a_job_runs_the_active_prompt_and_asking_for_a_version_is_refused`).
-No paid start outside the Lead stays reachable over HTTP. The status is unchanged.
+No HTTP route runs a draft prompt. The status is unchanged.
 
 **Date:** 2026-10-02
 
@@ -97,7 +97,7 @@ Two things make "just let people edit the string" unsafe here:
    system prompt exactly as sent, because a version label alone cannot say which bytes ran
    (`NULL` for every row before it existed — not recorded, not guessed).
 
-7. *Superseded by the status note of 2026-10-23 below: no job runs a draft.*
+7. *Superseded by the status note of 2026-10-23 above: no job runs a draft.*
    **A draft is tested by an ordinary job, and only on a fictional client.**
    `POST …/research/agent-jobs` accepts `prompt_version` and, for an organization administrator
    only, pins that stored version instead of the active one. The study's client must be on the

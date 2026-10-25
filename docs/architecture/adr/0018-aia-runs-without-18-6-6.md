@@ -116,7 +116,7 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
    session; every page's data is authorized per call by `ScopeResolver`, as it always was.
    No legacy flag decides whether AIA can be reached. `/login` turns the Cognito id token
    into an HttpOnly session cookie (`POST /api/v1/session`, `aia_session`; see the status note of
-   2026-10-23 below for its deployed name; admission by
+   2026-10-23 above for its deployed name; admission by
    `ScopeResolver.authorize_session`, recorded in the access audit). Caddy asks
    `GET /api/v1/session/gate` before every request to `/app`: a navigation without a
    session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,

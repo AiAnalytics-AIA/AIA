@@ -547,7 +547,7 @@ Before any live search or fetch, each of these needs an owner's decision (none i
 
 | Id | Decision | Effect until made |
 |---|---|---|
-| DR-2 | A search provider and route per data class, with terms covering stored excerpts | Every live route the composition builds is approved for Class C alone (`apps/executors/src/aia_executors/deep_research_live.py:28-30 @ 5d5ed250`); Class B has no route. Which routes a deployment composes is on Settings → Deep Research → Dosah (§ 9, *Reach*) |
+| DR-2 | A search provider and route per data class, with terms covering stored excerpts | Every live route the composition builds is approved for Class C alone (`apps/executors/src/aia_executors/deep_research_live.py:28-30 @ 5d5ed250`) and, under enforced class gates, refuses any other class before it leaves; under advisory gates (develop) Brave's search alone takes any class (`deep_research_live.py:233`, `application/web_retrieval.py:651-673 @ 1fed2969`), and every other route is still refused by residency. Which routes a deployment composes is on Settings → Deep Research → Dosah (§ 9, *Reach*) |
 | DR-2b | May a code-built digest of a client's design (questions, object names) travel as Class B? | Queries from a real client's design are Class A and never leave |
 | DR-5 | Depth presets and default run budget | A run must name a proposed preset |
 | D6 | A model route for Class A/B | Internal tracks, and any real client's tracks, are refused before any call |
