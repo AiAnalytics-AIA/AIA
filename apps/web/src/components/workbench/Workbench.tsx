@@ -989,7 +989,7 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
     setMenu(false);
     guardedNavigate(url, (u) => router.push(u));
   };
-  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}), flush);
+  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}), flush, frame.holdEdits);
   const budget = study?.budget_usd ?? null;
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
@@ -1012,7 +1012,7 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
       )}
       {/* The study's status (F7): its own menu beside the header's; under 768 px, items of the header's
           menu, where every target is 44 px (I11). */}
-      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} /> : null}
+      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /> : null}
       <div ref={menuBox} style={{ position: "relative" }}>
         <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
           onClick={() => (menu ? setMenu(false) : openMenu("first"))}

@@ -62,7 +62,7 @@ type Loaded =
   | { kind: "unrecoverable"; template: Template; canEdit: boolean }
   | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null };
 
-type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown> };
+type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -86,6 +86,8 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
+  // A change the store being replaced could not save (the study closed under it): said, never dropped.
+  const [lost, setLost] = useState<string | null>(null);
   // The store is built read-only or not from what the study allowed when it loaded. A status changed
   // on the study (reopened, closed) changes that: the content is read again and the store rebuilt, so
   // a reopened study takes edits and a closed one refuses them at the field, never silently (#892).
@@ -115,7 +117,7 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
     );
     return () => {
       live = false;
-      store?.dispose();
+      store?.dispose((e) => setLost(message(e)));
     };
   }, [studyId, version, initialContent]);
 
@@ -126,10 +128,16 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
   }, [studyId]);
 
   const value = useMemo(
-    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory }),
-    [studyId, loaded, startAgain, memory],
+    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory, lost }),
+    [studyId, loaded, startAgain, memory, lost],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/** A change the replaced store could not save when the study's status changed under it. */
+function LostEdit() {
+  const lost = useContext(SessionContext)?.lost;
+  return lost ? <p role="alert" data-lost-edit className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{tv("aia.study.status.lost", { reason: lost })}</p> : null;
 }
 
 /** The stages a person edits the design on: read-only, as one, when the study may not change. */
@@ -140,7 +148,7 @@ const DESIGN_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "q
  * and where it is reopened. Without it, a delivered study looked editable and every save was
  * refused as a role the person has (productization-coherence PC1).
  */
-export function ClosedStudyNotice({ closed, studyId, onChanged }: { closed: NonNullable<StudyFrame["closed"]>; studyId: string; onChanged?: () => Promise<void> | void }) {
+export function ClosedStudyNotice({ closed, studyId, onChanged, hold }: { closed: NonNullable<StudyFrame["closed"]>; studyId: string; onChanged?: () => Promise<void> | void; hold?: (on: boolean) => void }) {
   const when = closed.deliveredAt ? new Date(closed.deliveredAt).toLocaleDateString("cs-CZ") : null;
   const title =
     closed.status === "DELIVERED" && when
@@ -151,7 +159,7 @@ export function ClosedStudyNotice({ closed, studyId, onChanged }: { closed: NonN
       <p className="font-semibold">{title}</p>
       <p>{t("aia.study.closed.help")}</p>
       {/* Reopened here, in place: the study is where its status is changed (F7). */}
-      {onChanged ? <div className="mt-2"><ReopenStudy studyId={studyId} onChanged={onChanged} /></div> : null}
+      {onChanged ? <div className="mt-2"><ReopenStudy studyId={studyId} onChanged={onChanged} hold={hold} /></div> : null}
     </section>
   );
 }
@@ -180,13 +188,14 @@ function StageChrome({ frame, step, state, status, help, flush, children }: {
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} /></> : help}
+      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /></> : help}
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
       ) : null}
-      {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} /> : null}
+      <LostEdit />
+      {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
       {children}
     </AppShell>
   );
@@ -425,7 +434,8 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               </section> : null}
             </>)}>
             {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
-            {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} /> : null}
+            <LostEdit />
+            {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">

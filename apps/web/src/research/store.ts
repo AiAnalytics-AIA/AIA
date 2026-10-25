@@ -410,9 +410,17 @@ export class ResearchStore {
    * any more, so if that save fails, no one is told; the next load shows the last
    * revision AIA stored.
    */
-  dispose(): void {
+  /**
+   * The store is let go: a change still owed is saved. `onRefused` (a rebuild while the person stays,
+   * the study's status changed) hears a save that is refused, or a change already refused and never
+   * saved, so it is said and never dropped in silence; without it, leaving the study, nothing is left
+   * on screen to say it to.
+   */
+  dispose(onRefused?: (e: unknown) => void): void {
     this.listeners.clear();
-    if (this.timer || this.state.save.kind === "pending") this.flush().catch(() => {});
+    const kind = this.state.save.kind;
+    const refused = onRefused !== undefined && (kind === "failed" || kind === "closed" || kind === "conflict" || (kind === "locked" && !this.state.save.reverted));
+    if (this.timer || kind === "pending" || kind === "saving" || refused) this.flush().catch(onRefused ?? (() => {}));
   }
 }
 

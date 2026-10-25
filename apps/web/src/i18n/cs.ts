@@ -2197,7 +2197,7 @@ export const cs = {
         help: "Návrh už nejde upravit a nová práce (běh, AI pomoc, rešerše) se nespustí. Výsledky a zprávy zůstávají k přečtení, stažení a schválení.",
         reopen: "Znovu otevřít",
       },
-      status: { label: "Stav: {status}", to: "Změnit stav na {status}" },
+      status: { label: "Stav: {status}", to: "Změnit stav na {status}", lost: "Změna napsaná při změně stavu studie se neuložila: {reason}" },
     },
     time: {
       justNow: "právě teď",

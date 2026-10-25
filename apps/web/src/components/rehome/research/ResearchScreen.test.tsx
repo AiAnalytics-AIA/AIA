@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -220,6 +221,44 @@ describe("ResearchScreen", () => {
       return alert;
     }, { timeout: 10_000 })).toBeTruthy();
     expect(calls.filter((c) => c.url === "/api/v1/studies/STU-1/status")).toEqual([]);
+  });
+
+  it("holds the editor read-only for the whole change of status, so nothing typed meanwhile is lost (Codex on #892)", async () => {
+    let answer: (r: Response) => void = () => {};
+    const pending = new Promise<Response>((r) => { answer = r; });
+    api(() => content(), undefined, { "PUT /api/v1/studies/STU-1/status": () => pending });
+    function Harness() {
+      // The study's layout as ResearchStudy holds it: editable, and read-only while held.
+      const [holding, setHolding] = useState(false);
+      const frame = { ...TEST_FRAME, canEdit: !holding, status: "ACTIVE", refreshStudy: async () => {}, holdEdits: setHolding };
+      return <ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>;
+    }
+    render(<Harness />);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    // While the status is asked, the design is refused at the field: nothing typed can land in the
+    // store the change is about to replace.
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true));
+    answer(new Response(JSON.stringify({ study_id: "STU-1", status: "DELIVERED" })));
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")).toBeNull());
+  });
+
+  it("says a change the replaced store could not save once the study closed, never dropping it in silence", async () => {
+    let editable = true;
+    api(() => content({ can_edit: editable }), () => new Response(JSON.stringify({ code: "study_closed", message: "Study is closed" }), { status: 403 }));
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Napsáno pozdě" } });
+    // Closed elsewhere before the change was saved: the session rebuilds, and the refused save is said.
+    editable = false;
+    rerender(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={{ ...frame, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null } }} /></ResearchSession>);
+    const lost = await vi.waitFor(() => {
+      const el = document.querySelector("[data-lost-edit]");
+      if (!el) throw new Error("not said yet");
+      return el;
+    }, { timeout: 10_000 });
+    expect(lost.getAttribute("role")).toBe("alert");
   });
 
   it("says the API's refusal of a status change as given", async () => {

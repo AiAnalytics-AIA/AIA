@@ -35,6 +35,8 @@ export type StudyFrame = {
   status?: string;
   /** Reads the study again after its status changed, without leaving the stage. */
   refreshStudy?: () => Promise<void>;
+  /** Holds the study read-only while its status changes (true), and lets it go (false). */
+  holdEdits?: (on: boolean) => void;
   /** The URL of one of this study's stages. */
   stepHref: (step: StepKey) => string;
   /** Remember the stage opened, for "continue where you left off". */

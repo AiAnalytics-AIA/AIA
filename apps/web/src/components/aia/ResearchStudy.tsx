@@ -45,6 +45,9 @@ function Frame({ w: first, content, children }: { w: StudyWorkspace; content?: W
   const [w, setW] = useState(first);
   const studyId = w.study.study_id;
   const refreshStudy = useCallback(async () => { setW(await workspace.study(studyId)); }, [studyId]);
+  // While its status changes the study is read-only to the stages (the session keeps its store: it is
+  // rebuilt only when what the study allows has changed, once the study is read again).
+  const [holding, setHolding] = useState(false);
   const clientId = client.client_id;
   const canEdit = w.can_edit;
   const canReview = w.can_review;
@@ -63,15 +66,16 @@ function Frame({ w: first, content, children }: { w: StudyWorkspace; content?: W
       studyId,
       studyName: w.study.name,
       lastStage: w.study.last_stage && isStepKey(w.study.last_stage) ? w.study.last_stage : null,
-      canEdit,
+      canEdit: canEdit && !holding,
       canReview,
       closed: closedStatus ? { status: closedStatus, deliveredAt } : null,
       status: w.study.status,
       refreshStudy,
+      holdEdits: setHolding,
       stepHref: (step: StepKey) => appRoutes.stage(clientId, studyId, step),
       onStage,
     }),
-    [clientId, client.name, studyId, w.study.name, w.study.last_stage, w.study.status, canEdit, canReview, closedStatus, deliveredAt, onStage, refreshStudy],
+    [clientId, client.name, studyId, w.study.name, w.study.last_stage, w.study.status, canEdit, holding, canReview, closedStatus, deliveredAt, onStage, refreshStudy],
   );
   return (
     <StudyFrameProvider frame={frame}>

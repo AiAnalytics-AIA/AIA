@@ -25,24 +25,26 @@ export const otherStatuses = (status: string): string[] => STUDY_STATUSES.filter
  * change still owed is saved first (`beforeChange`, the store's flush): a study about to close would
  * refuse it after, so it is saved or the change of status is refused with the reason, never dropped.
  */
-export function useStudyStatus(studyId: string, onChanged: () => Promise<void> | void, beforeChange?: () => Promise<unknown>) {
+export function useStudyStatus(studyId: string, onChanged: () => Promise<void> | void, beforeChange?: () => Promise<unknown>, hold?: (on: boolean) => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const change = async (status: string) => {
-    setBusy(true); setError(null);
+    // The whole change -- the save, the status, the study read again -- holds the editor read-only, so
+    // nothing typed meanwhile lands in a store the change is about to replace (Codex on #892).
+    setBusy(true); setError(null); hold?.(true);
     try { await beforeChange?.(); await admin.setStudyStatus(studyId, status); await onChanged(); }
     catch (e) { setError(describeError(e)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); hold?.(false); }
   };
   const shown = error ? <p role="alert" className="mt-1 text-xs text-status-fault">{error}</p> : null;
   return { busy, change, shown };
 }
 
 /** The study header's status: its name on the button, every other status in its menu. */
-export function StudyStatusMenu({ studyId, status, onChanged, beforeChange }: {
-  studyId: string; status: string; onChanged: () => Promise<void> | void; beforeChange?: () => Promise<unknown>;
+export function StudyStatusMenu({ studyId, status, onChanged, beforeChange, hold }: {
+  studyId: string; status: string; onChanged: () => Promise<void> | void; beforeChange?: () => Promise<unknown>; hold?: (on: boolean) => void;
 }) {
-  const { busy, change, shown } = useStudyStatus(studyId, onChanged, beforeChange);
+  const { busy, change, shown } = useStudyStatus(studyId, onChanged, beforeChange, hold);
   return (
     <span data-study-status={status} className="inline-flex flex-col items-end">
       <MenuButton label={tv("aia.study.status.label", { status: t(`aia.status.${status}`) })} align="end" disabled={busy}
@@ -54,8 +56,8 @@ export function StudyStatusMenu({ studyId, status, onChanged, beforeChange }: {
 }
 
 /** "Znovu otevřít" on a closed study's notice: the statuses that accept work again, in place. */
-export function ReopenStudy({ studyId, onChanged }: { studyId: string; onChanged: () => Promise<void> | void }) {
-  const { busy, change, shown } = useStudyStatus(studyId, onChanged);
+export function ReopenStudy({ studyId, onChanged, hold }: { studyId: string; onChanged: () => Promise<void> | void; hold?: (on: boolean) => void }) {
+  const { busy, change, shown } = useStudyStatus(studyId, onChanged, undefined, hold);
   return (
     <span data-study-reopen className="inline-flex flex-col items-start">
       <MenuButton label={t("aia.study.closed.reopen")} disabled={busy}
