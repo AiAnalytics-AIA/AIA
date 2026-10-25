@@ -59,6 +59,10 @@ const BAR: Record<BarPart["activity"], string> = {
   lead: "bg-viz-cat-1", fieldwork: "bg-viz-cat-2", analysis_report: "bg-viz-cat-4", deep_research: "bg-viz-cat-6", other: "bg-border-strong",
 };
 const LEGEND: [BarPart["activity"], string][] = [["lead", "Vedoucí"], ["fieldwork", "sběr"], ["analysis_report", "analýza a zpráva"], ["deep_research", "Deep Research"]];
+// The prototype's legend has the four; spend booked to anything else (design proposals, a client
+// document's AI proposals) gets its grey named too whenever a row shows it (Codex on #892).
+const OTHER: [BarPart["activity"], string] = ["other", "ostatní"];
+const hasOther = (report: ResearcherSpend) => report.people.some((p) => parts(p.by_activity).some((a) => a.activity === "other"));
 
 /** What a person's spend went on, as one bar; the amounts are under it. */
 function ActivityBar({ items }: { items: BarPart[] }) {
@@ -152,7 +156,7 @@ export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null
       </div>
       <p className="sr-only">{about}</p>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs text-ink-muted">
-        {LEGEND.map(([key, label]) => <span key={key} className="flex items-center gap-1"><span aria-hidden="true" className={`size-2 rounded-full ${BAR[key]}`} />{label}</span>)}
+        {(res.state === "ready" && hasOther(res.data) ? [...LEGEND, OTHER] : LEGEND).map(([key, label]) => <span key={key} data-legend={key} className="flex items-center gap-1"><span aria-hidden="true" className={`size-2 rounded-full ${BAR[key]}`} />{label}</span>)}
         {res.state === "ready" && !res.data.everyone ? <span aria-hidden="true">· jen vaše útrata</span> : null}
       </div>
 

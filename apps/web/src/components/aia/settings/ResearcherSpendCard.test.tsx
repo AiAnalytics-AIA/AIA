@@ -88,6 +88,22 @@ describe("ResearcherSpendCard", () => {
     expect(row.querySelector("[data-share]")).toBeNull();
   });
 
+  it("names the grey of spend on anything else in the legend whenever a row shows it", async () => {
+    api(() => REPORT(false));
+    render(<ResearcherSpendCard />);
+    await screen.findByText("Jana");
+    expect(document.querySelector('[data-legend="other"]')).toBeNull();
+    cleanup();
+    const report = REPORT(false);
+    report.people[0]!.by_activity = report.people[0]!.by_activity.map((a) => (a.activity === "other" ? { ...a, ...fig(0.2) } : a));
+    api(() => report);
+    render(<ResearcherSpendCard />);
+    await screen.findByText("Jana");
+    const legend = document.querySelector('[data-legend="other"]') as HTMLElement;
+    expect(legend.textContent).toBe("ostatní");
+    expect(legend.querySelector(".bg-border-strong")).toBeTruthy();
+  });
+
   it("draws a person's initials from the letters of their name alone", async () => {
     const report = REPORT(false);
     report.people[0]!.display_name = "Kurátor (seed)";
