@@ -190,10 +190,10 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
   - Tests: `AudienceStep.test.tsx` "switching preset clears the previous subpanel and filters";
     `audience.live.test.ts` "what a preset change clears"; `audience.parity.test.ts` setAudienceEntry,
     setAnalyticsChoice and the preset-after-preset cases; the audience journey's step 3.
-  - Left for the owner (beyond answer (a)): a preset's other writes survive a preset change. These are
-    the description it wrote, its strategy, and the subpanel's support figures. On the classic's port
-    they also include a special panel's key, which keeps a coming-soon preset after a special panel
-    "ready". Whether to clear them is a decision, since the description may be the person's own words.
+  - The description stays as it is on a preset change (the product owner, 2026-10-25). Still open:
+    a preset's strategy and the subpanel's support figures survive a preset change too. On the classic's
+    port a special panel's key does as well, which keeps a coming-soon preset after a special panel
+    "ready".
 
 ## 8. Owner questions
 
