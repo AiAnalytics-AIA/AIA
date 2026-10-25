@@ -12,7 +12,8 @@
  * 1440 px: an edit started holds the approval off whatever the editor says it saved, until AIA stores
  * the next koncept; that koncept's "Upraveno ručně" names the number changed; a save landing while
  * the question is open approves nothing; the newest koncept is approved as itself (newest_of_line),
- * and the report card downloads it. Nothing paid starts.
+ * and the report card downloads it; api.js loads only through a one-time ticket and under the
+ * integrity the API names, and a swapped one runs nothing (RPT8e). Nothing paid starts.
  */
 import assert from "node:assert/strict";
 import { execFileSync, execSync } from "node:child_process";
@@ -62,14 +63,29 @@ await context.addInitScript((identity) => {
     /* about:blank between widths has no storage */
   }
 }, IDENTITY);
-// The stand-in Document Server: its api.js and nothing else; any other request to it is refused.
-// `down`: the Document Server unreachable, its api.js refused too.
+// The stand-in Document Server, answering as docs.<hostname> does (the Caddyfile's @editor_script,
+// RPT8e): the ticket's URL and api.js, each with CORS for AIA's origin with credentials, and nothing
+// else. The real ticket redirects to api.js (test_docs_session_api.py); here it answers 204, because
+// Playwright does not intercept the target of a redirect it fulfilled, and the page only spends it.
+// `down`: unreachable. `swapped`: an api.js other than the pinned one, which its integrity refuses.
+const API_JS = "/web-apps/apps/api/documents/api.js";
 const standin = readFileSync(join(repo, "tools/ui_workbench/fixtures/report_editor/api.js"), "utf8");
+const cors = { "Access-Control-Allow-Origin": new URL(base).origin, "Access-Control-Allow-Credentials": "true", Vary: "Origin" };
 let down = false;
-await context.route(`${EDITOR_ORIGIN}/**`, (route) =>
-  !down && new URL(route.request().url()).pathname === "/web-apps/apps/api/documents/api.js"
-    ? route.fulfill({ status: 200, contentType: "application/javascript", body: standin })
-    : route.abort());
+let swapped = false;
+const spent = [];
+await context.route(`${EDITOR_ORIGIN}/**`, (route) => {
+  const url = new URL(route.request().url());
+  if (down) return route.abort();
+  if (url.pathname === "/__aia/session" && url.searchParams.get("ticket") && url.searchParams.get("next") === API_JS) {
+    spent.push(url.href);
+    return route.fulfill({ status: 204, headers: cors });
+  }
+  if (url.pathname === API_JS && !url.search) {
+    return route.fulfill({ status: 200, contentType: "application/javascript", headers: cors, body: swapped ? `${standin}\n// swapped\n` : standin });
+  }
+  return route.abort();
+});
 const page = await context.newPage();
 const errors = [], writes = [], checks = [], approvals = [], editReports = [];
 page.on("pageerror", (e) => errors.push(String(e)));
@@ -134,6 +150,7 @@ try {
     assert.equal(await page.locator("[data-report-editor]").getAttribute("data-mode"), mode, `@${width}: the editor opens in ${mode} mode`);
     assert.equal(await page.evaluate(() => window.__standinEditor.config.editorConfig.mode), mode, `@${width}: the signed config says ${mode}`);
     assert.equal(await page.evaluate(() => typeof window.__standinEditor.config.token), "string", `@${width}: the config is handed over signed`);
+    assert.equal(await page.evaluate(() => window.__standinEditor.basePath), `${EDITOR_ORIGIN}/web-apps/apps/`, `@${width}: api.js finds its base on the editor's origin (ONLYOFFICE's getBasePath)`);
     if (mode === "view") assert(await page.getByText("Jen ke čtení (úzká obrazovka)").isVisible(), "@390: read only, said");
     assert.equal(await page.getByRole("article", { name: "Koncept zprávy" }).count(), 0, `@${width}: the read-only draft gives way to the editor`);
     assert.match(await docbar().innerText(), /Koncept \d+/, `@${width}: the doc bar names the version on screen`);
@@ -234,6 +251,19 @@ try {
   down = false;
   assert.equal(approvals.length, 1, "nothing more was approved");
   check("the Document Server down at 1440, 1100, 768 and 390: the read-only draft names the approved koncept over it and offers no approval of itself");
+
+  // An api.js that is not the pinned one runs nothing in AIA's page: its integrity refuses it (RPT8e).
+  swapped = true;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("about:blank");
+  await page.goto(`${base}/app/clients/${client}/research/${study}/results#report`);
+  await page.locator('[data-report-editor="unavailable"]').waitFor({ timeout: 60000 });
+  assert.equal(await page.evaluate(() => typeof window.__standinEditor), "undefined", "the swapped script did not run");
+  await page.getByRole("article", { name: "Koncept zprávy" }).waitFor({ timeout: 30000 });
+  await page.screenshot({ path: join(out, "1440-script-swapped.png") });
+  swapped = false;
+  check("a one-time ticket is spent before api.js loads, at its canonical path under the integrity the API names; a swapped script runs nothing and leaves the read-only draft");
+  assert(spent.length > 0, "a ticket was spent before the script loaded");
 
   const paid = writes.filter((w) => /\/research\/runs$|\/agent-jobs$|\/deep-research\/runs|\/lead\/turns\/[^/]+\/request$/.test(w.path));
   assert.deepEqual(paid, [], "nothing paid started");

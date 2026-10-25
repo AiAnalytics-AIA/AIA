@@ -430,12 +430,55 @@ def _definition(key: str) -> SettingDefinition:
         raise SettingRefused(str(exc), reason="unknown_setting") from exc
 
 
+def _approves_alone(
+    session: Session, org: str, actor: str, key: str, number: int, created_by: str
+) -> bool:
+    """Whether ``actor`` may approve version ``number`` of ``key`` by themself: someone else
+    proposed it, the organization allows self-approval, or someone else already approved it
+    (approving it again is not a new decision). The one rule both the approval and what the
+    page offers read."""
+    if created_by != actor:
+        return True
+    row = session.get(OrganizationRow, org)
+    if resolve_self_approval_policy(
+        organization=None if row is None else row.allow_self_approval
+    ).allowed:
+        return True
+    reviewed = session.scalar(
+        select(func.count())
+        .select_from(DeepResearchSettingApprovalRow)
+        .where(
+            DeepResearchSettingApprovalRow.organization_id == org,
+            DeepResearchSettingApprovalRow.setting_key == key,
+            DeepResearchSettingApprovalRow.version_number == number,
+            DeepResearchSettingApprovalRow.approved_by != actor,
+        )
+    )
+    return bool(reviewed)
+
+
 class DeepResearchSettingsReader:
     """The organization's Deep Research settings, read by any of its members."""
 
     def __init__(self, session: Session, reader: OrganizationContext) -> None:
         self._session = session
         self._org = reader.organization_id
+        self._reader = reader
+
+    def may_approve(self, version: StoredSettingVersion) -> bool:
+        """Whether the reader may approve ``version`` now: an administrator, a version not
+        withdrawn or declined, and not one they proposed while independent review is required
+        (``_approves_alone``). What the page offers; the approval itself checks it again."""
+        if not self._reader.may_administer or version.decline is not None:
+            return False
+        return _approves_alone(
+            self._session,
+            self._org,
+            self._reader.actor_id,
+            version.key,
+            version.version_number,
+            version.created_by,
+        )
 
     def effective(self) -> EffectiveSettings:
         """What is in force now: what a run enqueued now would pin."""
@@ -817,20 +860,14 @@ class DeepResearchSettingsRepository:
 
         Approving again a version somebody else already approved is not a new decision.
         """
-        actor = self._admin.actor_id
-        if row.created_by != actor or self._self_approval().allowed:
-            return
-        reviewed = self._session.scalar(
-            select(func.count())
-            .select_from(DeepResearchSettingApprovalRow)
-            .where(
-                DeepResearchSettingApprovalRow.organization_id == row.organization_id,
-                DeepResearchSettingApprovalRow.setting_key == row.setting_key,
-                DeepResearchSettingApprovalRow.version_number == row.version_number,
-                DeepResearchSettingApprovalRow.approved_by != actor,
-            )
-        )
-        if not reviewed:
+        if not _approves_alone(
+            self._session,
+            row.organization_id,
+            self._admin.actor_id,
+            row.setting_key,
+            row.version_number,
+            row.created_by,
+        ):
             raise SettingRefused(
                 "a setting is approved by someone other than whoever proposed it "
                 "(organization self-approval is off)",

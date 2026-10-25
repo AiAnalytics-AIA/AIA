@@ -25,11 +25,18 @@ chunks:
   - "[x] F6a. Metodika → Upravit as one parameter list (original, stepper; no bound the domain does not declare, AUD-10) over the existing guards, every editable field in stage order with the formulas in a closed expert disclosure (AUD-9), check/compare and activation with a reason; the module's tabs unboxed; Výpočet marks a parameter the version in force changes; the Metodik rule kept"
   - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
   - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
-  - "[ ] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
+  - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
+  - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
+  - "[ ] F12a. AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP (K12); the route kept, and an existing simulation keeps its status on its frame"
+  - "[ ] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
+  - "[ ] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
+  - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
+  - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
+  - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
 ---
 # Settings redesign (Nastavení)
 
@@ -130,6 +137,18 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   decision for the product owner, recorded for 10b.
 - 10a's accents are wayfinding tints only; readiness takes hue-slate, not the design's green, which is
   "in force" alone. The support drawing's n = 30 line is ink, not fault red.
+
+- F8: the catalogue holds 52 rules where the design's flat table drew 8. The table is the design's --
+  one flat table, the group a column -- with the search and "only what live needs" kept above it; a
+  rule's purpose moved from its row to the name's ⓘ (and a screen reader's text) and to the top of
+  its opened row, so 52 rows read at a glance. Dosah's "Schválení organizace" is read from the
+  worker's record alone: a route it did not compose recorded no price, so its approval reads "—",
+  never "nepotřebuje". With no record the table is drawn with one row saying why; no route is named
+  by hand ("No screen or document names a route set by hand", domain/deep_research_reach.py).
+
+The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
+that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
+(decided that day), F15, F16, F8b, then F9-F12 built against prototype v56-v58 (Systémové prompty, AI běh, Přístup compacted). The list above is the chunks' ids, not their order.
 
 ## Fidelity to the prototype v51 (the product owner, 2026-10-23)
 "Implement the settings pages just as we designed them; the current deploy is far from it."
