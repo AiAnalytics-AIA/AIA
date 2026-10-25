@@ -38,6 +38,7 @@ import { Technical } from "./technical";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
+import { waitingChanged } from "./sections";
 
 const D = "aia.settings.deepResearch";
 const LABELS: Record<string, string> = cs.aia.settings.deepResearch.labels;
@@ -277,7 +278,7 @@ function Posture() {
         {t(`${D}.posture.text`)}{" "}
         <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
         {" · "}
-        <Link href="/app/settings#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</Link>
+        <a href="#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</a>
       </p>
     </section>
   );
@@ -594,6 +595,7 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
     setError(null);
     try {
       await deepResearchSettings.approve(settingKey, version, reason.trim());
+      waitingChanged();
       onDone();
     } catch (e) {
       setError(describeError(e));

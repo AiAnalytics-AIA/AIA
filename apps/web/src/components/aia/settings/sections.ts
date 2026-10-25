@@ -15,3 +15,15 @@ export function sectionFromHash(hash: string = typeof window === "undefined" ? "
   const id = hash.replace(/^#/, "");
   return (SECTIONS as readonly string[]).includes(id) ? (id as SectionId) : null;
 }
+
+/** The event a section sends when it has changed what waits on the person (an approval, a prompt
+ *  switched on): the section menu reads its counts again, so its coral total is never left stale. */
+export const WAITING_CHANGED = "aia:settings-waiting-changed";
+export function waitingChanged(): void {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(WAITING_CHANGED));
+}
+
+/** Whether the shortcut chord is ⌘ (Apple platforms) rather than Ctrl. */
+export function appleKeys(): boolean {
+  return typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+}

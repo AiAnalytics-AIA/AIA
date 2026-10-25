@@ -310,7 +310,9 @@ describe("Deep Research settings", () => {
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
     expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
     const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
-    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("/app/settings#access");
+    // A plain same-page anchor: it fires the hashchange the page follows (a next/link to the same
+    // page wrote "#deep_research#access" and opened no section, review of #900).
+    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("#access");
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",

@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
-// The settings section menu (prototype v54): a button in the top bar names where you are; ⌘K or
-// Ctrl+K opens it from anywhere; a search finds a section by name, line or keyword, accents
-// ignored; Enter opens the first match and Esc closes it, focus back on the button. A section is
-// its address. The coral counts are an administrator's, read from the API, and never guessed.
+// The settings section menu (prototype v54): a button in the top bar names where you are; ⌘K on
+// Apple platforms, Ctrl+K elsewhere, opens it from anywhere but a field being typed in; a search
+// finds a section by name, line or keyword, accents ignored, and says how many it found; Enter
+// opens the first match, Esc or the shortcut closes it, focus back on the button, and focus leaving
+// it closes it. A section is its address. The coral counts are an administrator's, read from the
+// API, again on a section change or when a section says it changed one, and never guessed.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resetConfigCache } from "@/lib/auth";
 import { SectionMenu, sectionMatches } from "./SectionMenu";
+import { waitingChanged } from "./sections";
 
 let asked: string[] = [];
 function api(answers: { dr?: unknown; prompts?: unknown; fail?: boolean } = {}) {
@@ -32,7 +35,7 @@ beforeEach(() => {
   sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3_600_000, email: "owner@example.test", subject: "s" }));
   window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); resetConfigCache(); sessionStorage.clear(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); resetConfigCache(); sessionStorage.clear(); });
 
 const trigger = () => screen.getByRole("button", { name: /^Nastavení › / });
 const dialog = () => screen.getByRole("dialog", { name: "Nastavení – přejít na" });
@@ -55,22 +58,76 @@ describe("the settings section menu", () => {
     expect(here.textContent).toContain("Dosah, pravidla, schválení");
     // The search takes the focus as the menu opens.
     await waitFor(() => expect(document.activeElement).toBe(within(menu).getByRole("searchbox", { name: "Hledat v nastavení" })));
+    // The button is the trail's current page; the shortcut is the platform's, named after mount.
+    expect(trigger().getAttribute("aria-current")).toBe("page");
+    expect(trigger().getAttribute("aria-keyshortcuts")).toBe("Control+K");
+    expect(document.querySelector("[data-shortcut]")?.textContent).toBe("Ctrl K");
   });
 
-  it("opens on ⌘K or Ctrl+K from anywhere, and Esc closes it with the focus back on its button", async () => {
+  it("opens on Ctrl+K off Apple platforms; Esc or Ctrl+K again closes it with the focus back on its button", async () => {
     api();
-    render(<><input aria-label="jinde" /><SectionMenu mayAdminister={false} /></>);
-    screen.getByLabelText("jinde").focus();
-    fireEvent.keyDown(document.body, { key: "k", metaKey: true });
+    render(<SectionMenu mayAdminister={false} />);
+    fireEvent.keyDown(document.body, { key: "k", ctrlKey: true });
     expect(dialog()).toBeTruthy();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(document.activeElement).toBe(trigger());
     fireEvent.keyDown(document.body, { key: "K", ctrlKey: true });
-    expect(dialog()).toBeTruthy();
-    // K alone is a letter typed, not the menu.
-    fireEvent.keyDown(document, { key: "Escape" });
+    const search = within(dialog()).getByRole("searchbox");
+    await waitFor(() => expect(document.activeElement).toBe(search));
+    // The shortcut pressed in the menu's own search closes it, the focus back on the button.
+    fireEvent.keyDown(search, { key: "k", ctrlKey: true });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.activeElement).toBe(trigger());
+    // K alone is a letter typed, ⌘K is not this platform's chord, a held key repeats nothing.
     fireEvent.keyDown(document.body, { key: "k" });
+    fireEvent.keyDown(document.body, { key: "k", metaKey: true });
+    fireEvent.keyDown(document.body, { key: "k", ctrlKey: true, repeat: true });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens on ⌘K on Apple platforms, where Ctrl+K is the text field's own", () => {
+    vi.spyOn(navigator, "platform", "get").mockReturnValue("MacIntel");
+    api();
+    render(<SectionMenu mayAdminister={false} />);
+    expect(trigger().getAttribute("aria-keyshortcuts")).toBe("Meta+K");
+    expect(document.querySelector("[data-shortcut]")?.textContent).toBe("⌘K");
+    fireEvent.keyDown(document.body, { key: "k", ctrlKey: true });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.keyDown(document.body, { key: "k", metaKey: true });
+    expect(dialog()).toBeTruthy();
+  });
+
+  it("leaves the shortcut to a field being typed in, and to a key another handler took", () => {
+    api();
+    render(<><input aria-label="jinde" /><textarea aria-label="text" /><div contentEditable aria-label="editor" /><SectionMenu mayAdminister={false} /></>);
+    for (const label of ["jinde", "text", "editor"]) {
+      const field = screen.getByLabelText(label);
+      field.focus();
+      const pressed = new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true });
+      field.dispatchEvent(pressed);
+      expect(pressed.defaultPrevented).toBe(false);
+      expect(screen.queryByRole("dialog")).toBeNull();
+      expect(document.activeElement).toBe(field);
+    }
+    const taken = new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true });
+    taken.preventDefault();
+    document.body.dispatchEvent(taken);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("says how many sections the search found, and closes when the focus leaves it", async () => {
+    api();
+    render(<><SectionMenu mayAdminister={false} /><button type="button">jinde</button></>);
+    fireEvent.click(trigger());
+    const status = within(dialog()).getByRole("status");
+    expect(status.textContent).toBe("10 oddílů");
+    fireEvent.change(within(dialog()).getByRole("searchbox"), { target: { value: "Brave" } });
+    expect(status.textContent).toBe("1 oddíl");
+    fireEvent.change(within(dialog()).getByRole("searchbox"), { target: { value: "práh" } });
+    expect(status.textContent).toBe("2 oddíly");
+    const last = within(dialog()).getAllByRole("link").at(-1)!;
+    fireEvent.blur(last, { relatedTarget: screen.getByRole("button", { name: "jinde" }) });
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -124,6 +181,27 @@ describe("the settings section menu", () => {
     await waitFor(() => expect(count("deep_research")).toBe("2"));
     expect(count("prompts")).toBe("1");
     expect(count("studies")).toBeUndefined();
+  });
+
+  it("reads the counts again when the section changes and when a section says what waits changed", async () => {
+    let missing = ["a", "b"];
+    api();
+    const fetcher = vi.mocked(fetch);
+    const answer = fetcher.getMockImplementation()!;
+    fetcher.mockImplementation(async (url, init) => String(url).startsWith("/api/v1/deep-research/settings")
+      ? new Response(JSON.stringify({ catalogue_version: "c", may_administer: true, missing_for_live: missing, settings: [] }))
+      : answer(url, init));
+    render(<SectionMenu mayAdminister />);
+    await waitFor(() => expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Deep Research, čeká na vás: 2"));
+    missing = ["a"];
+    act(() => waitingChanged());
+    await waitFor(() => expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Deep Research, čeká na vás: 1"));
+    missing = [];
+    act(() => {
+      window.history.replaceState(null, "", "/app/settings#access");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await waitFor(() => expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Přístup a schvalování"));
   });
 
   it("counts nothing for a member, asks nothing, and draws no count it could not read", async () => {

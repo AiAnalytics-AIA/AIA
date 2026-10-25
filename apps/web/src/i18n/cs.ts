@@ -1565,6 +1565,7 @@ export const cs = {
           groups: { research: "Nastavení výzkumu", team: "Tým a peníze", operations: "Provoz" },
           waiting: "čeká na vás: {n}",
           none: "Nic nenalezeno pro „{q}“.",
+          found: { one: "oddíl", few: "oddíly", many: "oddílů" },
           hintAnywhere: "odkudkoli",
           hintFirst: "první výsledek",
           hintClose: "zavřít",

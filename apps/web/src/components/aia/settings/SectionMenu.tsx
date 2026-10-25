@@ -4,19 +4,23 @@
 // gives way to "Nastavení › <sekce> ⌄" in the top bar. It opens on a click or on ⌘K / Ctrl+K from
 // anywhere on the page; a search matches a section's name, its line and its keywords (práh, Brave,
 // rozpočet); the sections stand in three columns, each with its icon and line; Enter opens the first
-// match and Esc closes it, focus back on the button. A section is its address (#deep_research): a
-// link, so a deep link, the back button and a new tab all work as before. The coral counts say what
-// waits on an administrator, read from the API (rules live needs approved, prompts saved and not yet
-// switched on); a count that could not be read is not drawn, never guessed.
+// match and Esc closes it, focus back on the button. The shortcut is the platform's (⌘ on Apple, Ctrl
+// elsewhere) and never taken from a field being typed in. A section is its address (#deep_research):
+// a link, so a deep link, the back button and a new tab all work as before; a link to a section from
+// the page itself is a plain <a href="#…">, which fires the hashchange the page follows. The coral
+// counts say what waits on an administrator, read from the API (rules live needs approved, prompts
+// saved and not yet switched on) when the page opens, the menu opens, the section changes and a
+// section says it changed one; a count that could not be read is not drawn, never guessed.
 
-import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type FocusEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { t, tv } from "@/i18n/t";
+import { plural } from "@/lib/format";
 import { type PromptSlotSummary, admin, deepResearchSettings } from "@/lib/api";
 import { Icon, type IconName } from "../../rehome/icons";
 import { waitingPrompts } from "./SystemPromptsPanel";
 import { FOCUS, useDismiss } from "../../ui/parts";
-import { SECTIONS, SECTION_GROUPS, type SectionId, sectionFromHash } from "./sections";
+import { SECTIONS, SECTION_GROUPS, type SectionId, WAITING_CHANGED, appleKeys, sectionFromHash } from "./sections";
 
 const P = "aia.settings.panel";
 const M = `${P}.menu`;
@@ -63,6 +67,18 @@ async function readSectionCounts(mayAdminister: boolean): Promise<SectionCounts>
   return counts;
 }
 
+/** The platform never changes under a page: nothing to subscribe to. */
+const noChange = () => () => {};
+
+/** Whether a modal dialog is open over the page: the menu would open beneath its top layer. */
+function modalOpen(): boolean {
+  try {
+    return document.querySelector("dialog:modal") !== null;
+  } catch {
+    return false; // a browser without :modal has no modal dialog to sit beneath
+  }
+}
+
 function Count({ n }: { n: number | undefined }) {
   if (!n) return null;
   return <span data-section-count className="inline-flex min-w-5 items-center justify-center rounded-pill bg-status-you px-1.5 text-[11px] font-semibold leading-5 text-on-status-you">{n}</span>;
@@ -71,40 +87,67 @@ function Count({ n }: { n: number | undefined }) {
 export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }) {
   const current = useSection();
   const [open, setOpen] = useState(false);
-  // The counts are read when the page opens and again each time the menu does: an approval made on
-  // a section is counted out the next time the person looks.
+  // ⌘ on Apple platforms, Ctrl elsewhere: known only in the browser, so read after mount (the
+  // server's page and the first render say nothing of the chord).
+  const apple = useSyncExternalStore(noChange, appleKeys, () => null);
+  // The counts are read when the page opens, each time the menu does, when the section changes and
+  // when a section says it changed what waits (an approval, a prompt switched on): the coral total
+  // on the button is never left counting what was already done.
   const [counts, setCounts] = useState<SectionCounts>({});
-  const read = useRef(false);
+  const [opened, setOpened] = useState(0);
+  const [changed, setChanged] = useState(0);
   useEffect(() => {
-    if (mayAdminister === null || (read.current && !open)) return;
-    read.current = true;
+    const on = () => setChanged((n) => n + 1);
+    window.addEventListener(WAITING_CHANGED, on);
+    return () => window.removeEventListener(WAITING_CHANGED, on);
+  }, []);
+  useEffect(() => {
+    if (mayAdminister === null) return;
     let live = true;
     readSectionCounts(mayAdminister).then((c) => { if (live) setCounts(c); }, () => {});
     return () => { live = false; };
-  }, [mayAdminister, open]);
+  }, [mayAdminister, current, opened, changed]);
   const [query, setQuery] = useState("");
   const box = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(open, close, box, trigger);
-  const show = useCallback(() => { setQuery(""); setOpen(true); }, []);
+  const show = useCallback(() => { setQuery(""); setOpened((n) => n + 1); setOpen(true); }, []);
+  // Closed by the button or the shortcut, the focus goes back to the button: the search it was in
+  // is gone, and a keyboard user keeps their place.
+  const hide = useCallback(() => { setOpen(false); trigger.current?.focus(); }, []);
+  const openRef = useRef(open);
+  useEffect(() => { openRef.current = open; }, [open]);
   // The search takes focus once the menu is drawn (an effect, after the commit): typing is the
   // first thing it is opened for.
   const search = useRef<HTMLInputElement>(null);
   useEffect(() => { if (open) search.current?.focus(); }, [open]);
 
-  // ⌘K / Ctrl+K from anywhere on the page opens it (and closes it again, as the prototype does).
+  // ⌘K (Apple) / Ctrl+K (elsewhere) from anywhere on the page opens it, and closes it again, as the
+  // prototype does. Never from a field being typed in outside the menu (Ctrl+K deletes to the end
+  // of the line on macOS, and moving the focus would commit a half-typed value on blur), never under
+  // a modal dialog, never a key another handler took or one held down (ObjectMapPanel's guard).
   useEffect(() => {
     const key = (e: globalThis.KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "k" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.defaultPrevented || e.repeat || e.key.toLowerCase() !== "k" || e.altKey || e.shiftKey) return;
+      if (!(appleKeys() ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey)) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])") && !box.current?.contains(target)) return;
+      if (modalOpen()) return;
       e.preventDefault();
-      setQuery("");
-      setOpen((o) => !o);
+      if (openRef.current) hide(); else show();
     };
     document.addEventListener("keydown", key);
     return () => document.removeEventListener("keydown", key);
-  }, []);
+  }, [hide, show]);
+  // Focus that leaves the menu for something outside it closes the menu (it is not modal, and an
+  // open panel left over the page would cover what the focus went to).
+  const onBlur = (e: FocusEvent<HTMLDivElement>) => {
+    const next = e.relatedTarget;
+    if (open && next instanceof Node && !box.current?.contains(next)) setOpen(false);
+  };
 
+  const chord = apple ? "⌘K" : "Ctrl K";
   const hits = useMemo(() => SECTIONS.filter((id) => sectionMatches(id, query)), [query]);
   const total = Object.values(counts).reduce((n, c) => n + (c ?? 0), 0);
   const go = (id: SectionId) => {
@@ -122,10 +165,11 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
   };
 
   return (
-    <div ref={box} data-section-menu className="relative inline-flex items-center gap-2">
-      <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} aria-controls="settings-section-menu"
+    <div ref={box} data-section-menu onBlur={onBlur} className="inline-flex items-center gap-2">
+      <button ref={trigger} type="button" aria-haspopup="dialog" aria-expanded={open} aria-controls="settings-section-menu" aria-current="page"
+        aria-keyshortcuts={apple === null ? undefined : apple ? "Meta+K" : "Control+K"}
         aria-label={`${tv(`${M}.button`, { section: t(`${P}.tabs.${current}`) })}${total ? `, ${tv(`${M}.waiting`, { n: total })}` : ""}`}
-        onClick={() => (open ? setOpen(false) : show())}
+        onClick={() => (open ? hide() : show())}
         className={`inline-flex min-h-11 items-center gap-1.5 rounded-sm px-1.5 text-[13px] hover:bg-surface-sunken sm:min-h-8 ${FOCUS}`}>
         <Icon name={ICON[current]} size={14} className="text-ink-muted" />
         <span className="text-ink-muted">{t("aia.settings.title")}</span>
@@ -134,10 +178,13 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
         <span aria-hidden="true"><Count n={total} /></span>
         <span aria-hidden="true" className="text-ink-faint">⌄</span>
       </button>
-      <kbd aria-hidden="true" className="hidden rounded-[4px] border border-border px-1 font-mono text-[11px] text-ink-faint sm:inline">⌘K</kbd>
+      {apple === null ? null : <kbd data-shortcut aria-hidden="true" className="hidden rounded-[4px] border border-border px-1 font-mono text-[11px] text-ink-faint sm:inline">{chord}</kbd>}
       {open ? (
+        // Anchored to the header row, not the button (AppShell's topbar is the positioned box): the
+        // button sits after the sidebar and the breadcrumb, and a panel from there ran past the
+        // viewport from 768 to 1330 px. Inside the row's gutters it always fits.
         <div id="settings-section-menu" role="dialog" aria-label={t(`${M}.label`)}
-          className="absolute left-0 top-full z-[var(--z-overlay)] mt-1 w-[min(56rem,calc(100vw-2rem))] rounded-md border border-border bg-surface-overlay shadow-[var(--shadow-overlay)]">
+          className="absolute inset-x-4 top-full z-[var(--z-overlay)] mt-1 rounded-md border border-border bg-surface-overlay shadow-[var(--shadow-overlay)] md:inset-x-6 lg:right-auto lg:w-[min(56rem,calc(100%-3rem))]">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2">
             <Icon name="search" size={14} className="text-ink-faint" />
             <input ref={search} type="search" aria-label={t(`${M}.search`)} placeholder={t(`${M}.placeholder`)} value={query}
@@ -169,9 +216,11 @@ export function SectionMenu({ mayAdminister }: { mayAdminister: boolean | null }
               );
             })}
           </div>
-          {!hits.length ? <p role="status" className="px-5 pb-3 text-sm text-ink-muted">{tv(`${M}.none`, { q: query.trim() })}</p> : null}
+          {/* Always in the page, so each change of what the search found is said, not only "none". */}
+          <p role="status" className="sr-only">{hits.length ? plural(hits.length, t(`${M}.found.one`), t(`${M}.found.few`), t(`${M}.found.many`)) : tv(`${M}.none`, { q: query.trim() })}</p>
+          {!hits.length ? <p aria-hidden="true" className="px-5 pb-3 text-sm text-ink-muted">{tv(`${M}.none`, { q: query.trim() })}</p> : null}
           <p aria-hidden="true" className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border px-4 py-2 text-xs text-ink-faint">
-            <span><kbd className="font-mono">⌘K</kbd> {t(`${M}.hintAnywhere`)}</span>
+            {apple === null ? null : <span><kbd className="font-mono">{chord}</kbd> {t(`${M}.hintAnywhere`)}</span>}
             <span><kbd className="font-mono">Enter</kbd> {t(`${M}.hintFirst`)}</span>
             <span><kbd className="font-mono">Esc</kbd> {t(`${M}.hintClose`)}</span>
           </p>

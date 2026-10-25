@@ -43,27 +43,55 @@ const chooseField = async (reference) => {
 };
 try {
   await page.goto(base + "/app/settings"); await menuButton().waitFor();
-  // No column of tabs (prototype v54): the section menu in the top bar, by click or ⌘K / Ctrl+K.
+  // No column of tabs (prototype v54): the section menu in the top bar, by click or the platform's
+  // shortcut (Chromium on Linux: Ctrl+K; ⌘K is Apple's and does nothing here).
   assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).count(), 0, "no tab column");
   const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
-  for (const keys of ["Control+k", "Meta+k"]) {
-    await page.locator("body").press(keys); await menu.waitFor();
-    // Ten sections in three columns, each with its line.
-    assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 10);
-    await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
-    assert(await menuButton().evaluate((b) => b === document.activeElement), "Esc gives the focus back to the menu's button");
-  }
-  // A keyword finds its section, and Enter opens the first match.
-  await page.locator("body").press("Control+k"); await page.keyboard.type("Brave"); await page.keyboard.press("Enter");
+  assert.equal(await menuButton().getAttribute("aria-keyshortcuts"), "Control+K");
+  assert.equal(await page.locator("[data-section-menu] [data-shortcut]").textContent(), "Ctrl K");
+  await page.locator("body").press("Meta+k"); await page.waitForTimeout(200);
+  assert.equal(await menu.count(), 0, "⌘K is not this platform's shortcut");
+  await page.locator("body").press("Control+k"); await menu.waitFor();
+  // Ten sections in three columns, each with its line.
+  assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 10);
+  await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+  assert(await menuButton().evaluate((b) => b === document.activeElement), "Esc gives the focus back to the menu's button");
+  // The shortcut again closes it, the focus back on the button too.
+  await page.locator("body").press("Control+k"); await menu.waitFor(); await page.keyboard.press("Control+k"); await menu.waitFor({ state: "detached" });
+  assert(await menuButton().evaluate((b) => b === document.activeElement), "the shortcut closing the menu gives the focus back");
+  // A keyword finds its section, the search says how many, and Enter opens the first match.
+  await page.locator("body").press("Control+k"); await page.keyboard.type("Brave");
+  assert.equal(await menu.getByRole("status").textContent(), "1 oddíl"); await page.keyboard.press("Enter");
   await page.locator("#panel-deep_research").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#deep_research");
-  // A deep link opens its section, and the menu's button names it.
+  // The shortcut is the field's own while a person types in one: no menu, the focus stays, the text too.
+  const typing = page.locator("#panel-deep_research input:visible").first(); await typing.click();
+  await page.keyboard.press("Control+k"); await page.waitForTimeout(200);
+  assert.equal(await menu.count(), 0, "Ctrl+K in a field opens no menu");
+  assert(await typing.evaluate((f) => f === document.activeElement), "Ctrl+K in a field keeps the focus there");
+  await page.keyboard.press("Escape");
+  // A link to a section from the page itself opens it (a next/link wrote #deep_research#access).
+  await page.locator('#panel-deep_research [data-dr-posture] a[href="#access"]').click();
+  await page.locator("#panel-access").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#access");
+  // (an administrator's button adds what waits on them: ", čeká na vás: n")
+  assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Přístup a schvalování");
+  // A deep link opens its section, and the menu's button names it, the trail's current page.
   await page.goto(base + "/app/settings#audit"); await page.locator("#panel-audit").waitFor({ state: "visible" });
-  assert.equal(await menuButton().getAttribute("aria-label"), "Nastavení › Audit");
-  checks.push("The section menu opens on ⌘K and Ctrl+K, closes on Esc with the focus back, finds Brave and opens it on Enter; #audit opens Audit");
+  assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
+  assert.equal((await page.getByRole("navigation", { name: "Kde jste" }).locator('[aria-current="page"]').getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
+  checks.push("The section menu opens on Ctrl+K (⌘K off Apple does nothing), closes on Esc or Ctrl+K with the focus back, says what the search found, opens Brave on Enter; Ctrl+K in a field stays the field's; the in-page Přístup link and #audit open their sections");
   await page.goto(base + "/app/settings"); await menuButton().waitFor();
-  await menuButton().click();
-  // At 1440 every tab shows its line under its name (settings-redesign 1).
-  assert.equal(await menu.locator("[data-section-link]:visible").count(), 10); await page.keyboard.press("Escape");
+  // Open, the menu fits every width (it ran past the viewport from 768 to 1330 px), and every
+  // section shows its line under its name.
+  for (const width of [1440, 1330, 1280, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 }); await menuButton().click(); await menu.waitFor();
+    await measure(`section menu open at ${width}`);
+    const box = await menu.boundingBox(); assert(box && box.x >= 0 && box.x + box.width <= width + 1, `section menu inside the viewport at ${width}: ${JSON.stringify(box)}`);
+    const lines = await menu.locator("[data-section-link] > span > span:nth-child(2)").evaluateAll((spans) => spans.map((s) => s.offsetParent !== null && s.textContent.trim() !== ""));
+    assert.deepEqual(lines, Array(10).fill(true), `every section's line at ${width}`);
+    await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push("The open section menu stays inside the viewport at 1440, 1330, 1280, 1024, 768 and 390, every section with its line");
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("[data-tab-header] h1").waitFor();
     if (id === "ai") {
@@ -93,7 +121,7 @@ try {
     }
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All ten settings sections load and fit desktop/tablet/phone without page overflow; the section menu names each with its line");
+  checks.push("All ten settings sections load and fit desktop/tablet/phone without page overflow");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);

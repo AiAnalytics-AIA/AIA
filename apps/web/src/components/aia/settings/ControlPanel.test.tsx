@@ -925,14 +925,18 @@ describe("what powers AIA", () => {
     expect(section("ai")).toBeTruthy();
   });
 
-  it("on the Settings page, the top bar is the breadcrumb, Organizace <name> / Nastavení, and each tab's h1 the one heading", async () => {
+  it("on the Settings page, the top bar is the breadcrumb, Organizace <name> / Nastavení › <sekce>, and each tab's h1 the one heading", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: false, organization_name: "Výzkumná agentura Delta" }) });
     render(<SettingsPage />);
     const crumbs = await screen.findByRole("navigation", { name: BREADCRUMBS });
-    await waitFor(() => expect(crumbs.textContent).toBe("OrganizaceVýzkumná agentura Delta"));
-    // "Nastavení › <sekce>" is the section menu's button, after the breadcrumb (prototype v54).
-    const menu = screen.getByRole("button", { name: /^Nastavení › AI běh/ });
+    await waitFor(() => expect(within(crumbs).getByText("Výzkumná agentura Delta")).toBeTruthy());
+    // "Nastavení › <sekce>" is the section menu's button, the trail's last step and its current
+    // page (prototype v54); the organization is a step on the way, not the page.
+    const menu = within(crumbs).getByRole("button", { name: /^Nastavení › AI běh/ });
     expect(menu.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(menu.getAttribute("aria-current")).toBe("page");
+    expect(crumbs.querySelectorAll("[aria-current]")).toHaveLength(1);
+    expect(within(crumbs).getAllByRole("listitem")).toHaveLength(2);
     await sectionsDrawn();
     expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual(["AI běh"]);
   });
@@ -972,8 +976,10 @@ describe("what powers AIA", () => {
     api();
     render(<SettingsPage />);
     await sectionsDrawn();
-    expect(screen.queryByRole("navigation", { name: BREADCRUMBS })).toBeNull();
-    expect(screen.getByRole("button", { name: /^Nastavení › / })).toBeTruthy();
+    const crumbs = screen.getByRole("navigation", { name: BREADCRUMBS });
+    expect(within(crumbs).getAllByRole("listitem")).toHaveLength(1);
+    expect(crumbs.textContent).not.toContain("Organizace");
+    expect(within(crumbs).getByRole("button", { name: /^Nastavení › / })).toBeTruthy();
   });
 
   it("on the Settings page, AI is one section, and the separate Bedrock card is gone", async () => {
