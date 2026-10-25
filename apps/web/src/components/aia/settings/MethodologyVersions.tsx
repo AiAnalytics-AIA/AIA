@@ -45,6 +45,7 @@ import { Loaded } from "../states";
 import { type Resource, useResource } from "../useResource";
 import { describeError } from "./errors";
 import { MethodologyComparison } from "./MethodologyComparison";
+import { RegisterChip } from "./MethodologyRegister";
 import { Formula } from "./MethodologyFormula";
 
 const V = "aia.settings.methodology.versions";
@@ -69,6 +70,13 @@ export function MethodologyVersions({ summary, people, calc, onEditing, onDirty,
   if (res.state === "ready") return <Body summary={summary} data={res.data} people={people} calc={calc} reload={retry} onEditing={onEditing} onDirty={onDirty} />;
   // Versions not read (yet): the calculation is still the module's, shown under why.
   return <div className="flex min-w-0 flex-col gap-4"><Loaded res={res} retry={retry}>{() => null}</Loaded>{calc}</div>;
+}
+
+/** A table cell of the versions' tables. */
+const CELL = "border-t border-border px-2 py-2 align-top";
+/** "v platnosti" beside the version a run started now pins: green is only what is in force. */
+function InForceChip() {
+  return <span data-in-force-version className="inline-flex min-h-[22px] items-center whitespace-nowrap rounded-pill border border-in-force px-2 text-xs text-in-force">{t(`${V}.current`)}</span>;
 }
 
 /** Where an edit starts: a code preset, or a stored version (its spec and its formulas). */
@@ -109,6 +117,28 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
   const [dirty, setDirty] = useState(false);
   useEffect(() => { onDirty?.(start !== null && dirty); }, [start, dirty, onDirty]);
   const [pending, setPending] = useState<{ next: Start | null; again: boolean } | null>(null);
+  // What is in force beside itself, asked for on Porovnání with no edit to compare; kept with the
+  // name it was computed for, so a change of what is in force never shows a stale one.
+  const [baseline, setBaseline] = useState<{ name: string; result: MethodCompare } | null>(null);
+  const [baselineBusy, setBaselineBusy] = useState(false);
+  const [baselineError, setBaselineError] = useState<string | null>(null);
+  const showBaseline = async () => {
+    const live = editStart();
+    setBaselineBusy(true); setBaselineError(null);
+    try {
+      const result = await methodology.compare(summary.id, { base_preset: live.base, spec: live.spec, formulas: live.formulas });
+      if (!result.valid) setBaselineError(Object.entries(result.problems).map(([k, m]) => `${k}: ${m}`).join("; "));
+      // The server compares with what is in force now. Someone may have activated another version
+      // since this page read it: then the two sides are two methodologies, never "itself", so the
+      // page reads what is in force again and the person asks again.
+      else if (result.in_force !== data.in_force.name) { setBaselineError(tv(`${V}.baselineMoved`, { name: result.in_force })); reload(); }
+      else setBaseline({ name: data.in_force.name, result });
+    } catch (e) {
+      setBaselineError(describeError(e));
+    } finally {
+      setBaselineBusy(false);
+    }
+  };
   // Each discarded edit starts a fresh one: the list is drawn again from what is in force.
   const [fresh, setFresh] = useState(0);
   const begin = (next: Start | null, again: boolean) => {
@@ -124,6 +154,8 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
     begin(next, again);
   };
   const inForce = data.in_force;
+  // The register covers the object map alone; another module's table has no column for it.
+  const registered = summary.id === "sociomap";
   const currentSpec = inForce.origin === "stored"
     ? data.versions.find((version) => version.version_number === inForce.version_number)?.spec
     : data.presets[inForce.preset ?? summary.in_force ?? ""];
@@ -164,64 +196,87 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
           {t(`${V}.inForce`)}: <strong className="font-mono">{inForce.name}</strong>{" "}
           <Tag>{t(`${V}.origin.${inForce.origin}`)}</Tag>
         </p>
-        <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>
-        <div>
-          <h4 className="text-sm font-semibold">{t(`${V}.list`)}</h4>
-          {data.versions.length ? (
-            <ul className="mt-1 flex flex-col gap-2 text-sm">
-              {data.versions.map((v) => {
-                const changed = changedPaths(data.presets[v.base_preset] ?? {}, v.spec).filter((p) => p !== "methodology_version");
-                const formulas = Object.keys(v.formulas);
-                return (
-                  <li key={v.version_number} data-methodology-version={v.version_number} className="flex flex-col gap-1 rounded-sm border border-border p-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <strong className="font-mono">{v.name}</strong>
-                      <span className="text-ink-muted">· {people(v.created_by)} · {when(v.created_at)}</span>
-                      {inForce.version_number === v.version_number ? <span data-in-force-version className="inline-flex min-h-[22px] items-center rounded-pill border border-in-force px-2 text-xs text-in-force">{t(`${V}.current`)}</span> : null}
-                    </div>
-                    {v.note ? <p className="text-ink-muted">{v.note}</p> : null}
-                    <div className="text-xs">
-                      {changed.length || formulas.length ? (
-                        <>
-                          {tv(`${V}.changes`, { base: v.base_preset })}{" "}
-                          <span>{tv(`${V}.versionChangeCount`, { fields: changed.length, formulas: formulas.length })}</span><details className="mt-1"><summary className="cursor-pointer text-ink-muted">{t(`${V}.changeDetails`)}</summary><span className="break-all font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span></details>
-                        </>
-                      ) : tv(`${V}.noChanges`, { base: v.base_preset })}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {/* A version just saved is activated from its confirmation above: one button, never two. */}
-                      {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
-                        <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{tv(`${V}.activate`, { name: v.name })}</Button>
-                      ) : null}
-                      {data.may_edit ? <Button small onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFrom`)}</Button> : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
-        </div>
-        {data.may_edit && inForce.origin === "stored" ? (
-          <div><Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button></div>
-        ) : null}
-        <div>
-          <h4 className="text-sm font-semibold">{t(`${V}.history`)}</h4>
-          {data.history.length ? (
-            <div className="mt-1 overflow-x-auto">
-              <table aria-label={t(`${V}.history`)} className="w-full min-w-[28rem] border-collapse text-sm">
-                <thead><tr>{(["when", "who", "version", "why"] as const).map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left text-xs font-normal text-ink-faint">{t(`${V}.historyCol.${c}`)}</th>)}</tr></thead>
-                <tbody>{data.history.map((h) => (
+        {/* Every version as one table, the code's preset its first row, even with nothing stored
+            (prototype v51, fidelity F6b): what it is, what it changes, who stored it, what the
+            register says of it, and its activation. */}
+        {/* Each table scrolls inside its own box, positioned so the header's screen-reader-only
+            cell (absolute) stays inside it too: unpositioned, it widened a phone's page to 720 px. */}
+        <section aria-labelledby={`mvl-${summary.id}`} className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-5">
+          <h4 id={`mvl-${summary.id}`} className="text-base font-semibold">{t(`${V}.list`)}</h4>
+          <div className="relative mt-2 min-w-0 overflow-x-auto">
+            <table aria-label={t(`${V}.list`)} className={`w-full border-collapse text-sm ${registered ? "min-w-[46rem]" : "min-w-[38rem]"}`}>
+              <thead><tr>
+                {(["version", "kind", "changes", "by", ...(registered ? ["clients"] as const : [])] as const).map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left text-xs font-normal text-ink-faint">{t(`${V}.versionsCol.${c}`)}</th>)}
+                <th scope="col" className="px-2 py-1.5"><span className="sr-only">{t(`${V}.versionsCol.act`)}</span></th>
+              </tr></thead>
+              <tbody>
+                <tr data-methodology-version="code">
+                  <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</th>
+                  <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindCode`)}</td>
+                  <td className={`${CELL} min-w-[10rem]`}>{t(`${V}.codeChanges`)}</td>
+                  <td className={`${CELL} text-ink-faint`}>—</td>
+                  {registered ? <td className={CELL}><RegisterChip status={data.code_register_status ?? null} /></td> : null}
+                  <td className={`${CELL} text-right`}>
+                    {data.may_edit && inForce.origin === "stored" ? <Button small disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: null }); }}>{tv(`${V}.reset`, { preset: summary.in_force ?? "" })}</Button> : null}
+                  </td>
+                </tr>
+                {data.versions.map((v) => {
+                  const changed = changedPaths(data.presets[v.base_preset] ?? {}, v.spec).filter((p) => p !== "methodology_version");
+                  const formulas = Object.keys(v.formulas);
+                  return (
+                    <tr key={v.version_number} data-methodology-version={v.version_number}>
+                      <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</th>
+                      <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindStored`)}</td>
+                      <td className={`${CELL} min-w-[10rem] break-words`}>
+                        {v.note ? <p>{v.note}</p> : null}
+                        <div className="text-xs text-ink-muted">
+                          {changed.length || formulas.length ? (
+                            <>
+                              {tv(`${V}.changes`, { base: v.base_preset })}{" "}
+                              <span>{tv(`${V}.versionChangeCount`, { fields: changed.length, formulas: formulas.length })}</span><details className="mt-1"><summary className="cursor-pointer">{t(`${V}.changeDetails`)}</summary><span className="break-all font-mono">{[...changed, ...formulas.map((f) => `ƒ ${f}`)].join(", ")}</span></details>
+                            </>
+                          ) : tv(`${V}.noChanges`, { base: v.base_preset })}
+                        </div>
+                      </td>
+                      <td className={`${CELL} min-w-[10rem] [overflow-wrap:anywhere]`}>{people(v.created_by)}<div className="text-xs text-ink-muted">{when(v.created_at)}</div></td>
+                      {registered ? <td className={CELL}><RegisterChip status={v.register_status === undefined ? null : v.register_status} /></td> : null}
+                      <td className={`${CELL} text-right`}>
+                        <div className="flex flex-col items-end gap-2">
+                          {/* A version just saved is activated from its confirmation above: one button, never two. */}
+                          {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
+                            <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
+                          ) : null}
+                          {data.may_edit ? <Button small aria-label={tv(`${V}.editFromNamed`, { name: v.name })} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {data.versions.length ? null : <p className="mt-2 text-sm text-ink-muted">{t(`${V}.none`)}</p>}
+          <p className="mt-2 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${V}.pinNote`)}</p>
+        </section>
+        <section aria-labelledby={`mvh-${summary.id}`} className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-5">
+          <h4 id={`mvh-${summary.id}`} className="text-base font-semibold">{t(`${V}.history`)}</h4>
+          <div className="relative mt-2 min-w-0 overflow-x-auto">
+            <table aria-label={t(`${V}.history`)} className="w-full min-w-[28rem] border-collapse text-sm">
+              <thead><tr>{(["when", "who", "version", "why"] as const).map((c) => <th key={c} scope="col" className="px-2 py-1.5 text-left text-xs font-normal text-ink-faint">{t(`${V}.historyCol.${c}`)}</th>)}</tr></thead>
+              <tbody>
+                {data.history.map((h) => (
                   <tr key={h.activation_id} data-methodology-activation={h.activation_id}>
-                    <td className="whitespace-nowrap border-t border-border px-2 py-2 align-top text-ink-muted">{when(h.activated_at)}</td>
-                    <td className="border-t border-border px-2 py-2 align-top">{people(h.activated_by)}</td>
-                    <td className="border-t border-border px-2 py-2 align-top font-mono">{h.version_number === null ? tv(`${V}.backToPreset`, { preset: summary.in_force ?? "" }) : `e${h.version_number}`}</td>
-                    <td className="break-words border-t border-border px-2 py-2 align-top">{h.reason || <span className="text-ink-faint">{t(`${V}.noReason`)}</span>}</td>
+                    <td className={`${CELL} whitespace-nowrap text-ink-muted`}>{when(h.activated_at)}</td>
+                    <td className={CELL}>{people(h.activated_by)}</td>
+                    <td className={`${CELL} font-mono`}>{h.version_number === null ? tv(`${V}.backToPreset`, { preset: summary.in_force ?? "" }) : `e${h.version_number}`}</td>
+                    <td className={`${CELL} break-words`}>{h.reason || <span className="text-ink-faint">{t(`${V}.noReason`)}</span>}</td>
                   </tr>
-                ))}</tbody>
-              </table>
-            </div>
-          ) : <p className="mt-1 text-sm text-ink-muted">{t(`${V}.noHistory`)}</p>}
-        </div>
+                ))}
+                {data.history.length ? null : <tr data-history-empty><td colSpan={4} className={`${CELL} text-ink-muted`}>{t(`${V}.noHistory`)}</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
 
       <div role="tabpanel" id={`mv-${summary.id}-compare`} aria-labelledby={`mv-${summary.id}-tab-compare`} hidden={view !== "compare"} className="flex min-w-0 flex-col gap-3">
@@ -229,7 +284,22 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
         {comparison ? <>
           <p data-compare-draft className="self-start rounded-pill border border-status-you-ink/40 bg-status-you-wash px-2 py-0.5 text-xs">{t(`${V}.compareDraft`)}</p>
           <MethodologyComparison result={comparison} />
-        </> : <p data-compare-none className="text-sm text-ink-muted">{!data.may_edit ? t(`${V}.compareReader`) : sameAsInForce ? t(`${V}.compareSame`) : t(`${V}.compareNotYet`)}</p>}
+        </> : <>
+          <p data-compare-none className="text-sm text-ink-muted">{!data.may_edit ? t(`${V}.compareReader`) : sameAsInForce ? t(`${V}.compareSame`) : t(`${V}.compareNotYet`)}</p>
+          {/* Without an edit to compare, the tables still show (prototype v51, fidelity F6b): what is
+              in force beside itself on the same fictional panels, computed when asked -- a map
+              comparison takes seconds of the server's time, so opening the tab never starts one. */}
+          {baseline && baseline.name === inForce.name ? <>
+            <p data-compare-baseline className="self-start rounded-pill border border-border px-2 py-0.5 text-xs text-ink-muted">{tv(`${V}.baselineChip`, { name: inForce.name })}</p>
+            <MethodologyComparison result={baseline.result} />
+          </> : (
+            <div className="flex flex-wrap items-center gap-3">
+              <Button disabled={baselineBusy} onClick={() => void showBaseline()}>{t(`${V}.baselineButton`)}</Button>
+              {baselineBusy ? <OperationStatus operation="compare" /> : null}
+              {baselineError ? <p role="alert" className="text-sm text-status-fault">{baselineError}</p> : null}
+            </div>
+          )}
+        </>}
       </div>
 
       <div role="tabpanel" id={`mv-${summary.id}-edit`} aria-labelledby={`mv-${summary.id}-tab-edit`} hidden={view !== "edit"} className="flex min-w-0 flex-col gap-3">

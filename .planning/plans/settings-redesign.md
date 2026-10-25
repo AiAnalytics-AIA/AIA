@@ -23,7 +23,7 @@ chunks:
   - "[x] F4. Metodika opens on the module catalogue (one-line cards, 'Pro klienty' fact, the MVP note), back link and module header"
   - "[x] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
   - "[x] F6a. Metodika → Upravit as one parameter list (original, stepper; no bound the domain does not declare, AUD-10) over the existing guards, every editable field in stage order with the formulas in a closed expert disclosure (AUD-9), check/compare and activation with a reason; the module's tabs unboxed; Výpočet marks a parameter the version in force changes; the Metodik rule kept"
-  - "[ ] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty)"
+  - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
   - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[ ] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"

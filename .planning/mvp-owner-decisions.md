@@ -1,6 +1,6 @@
 # MVP owner decision packet
 
-2026-10-20. MVPQ-01, MVPQ-02, MVPQ-04, MVPQ-07, MVPQ-08 and MVPQ-11 are SETTLED by the product owner below. MVPQ-03, MVPQ-05, MVPQ-06 and MVPQ-09 have their product-owner parts ANSWERED; their methodology or quality parts, and MVPQ-10 and MVPQ-12, remain OPEN until the named owner answers. The coding feature's scope is settled; its methodology specification and admission rules still require the methodology owner's approval. A session,
+2026-10-20. MVPQ-01, MVPQ-02, MVPQ-04, MVPQ-07, MVPQ-08 and MVPQ-11 are SETTLED by the product owner below. MVPQ-03, MVPQ-05, MVPQ-06 and MVPQ-09 have their product-owner parts ANSWERED (MVPQ-06's rest too, 2026-10-25: the plan's proposed targets adopted); their methodology or quality parts, and MVPQ-10 and MVPQ-12, remain OPEN until the named owner answers. The coding feature's scope is settled; its methodology specification and admission rules still require the methodology owner's approval. A session,
 question widget or usage limit ending is not an answer. Recommendations below
 are proposals, not approvals. The master plan §11.4 is the index; the settled
 decisions remain in §11.1 and the cohesion register.
@@ -136,6 +136,12 @@ evaluations 25, 26 and 39 and their thresholds. Their allowance is **USD 50**, s
 the USD 25 representative tier-B study, with costs estimated from the configured ceilings
 before any paid run. **Still open:** the representative tasks, metrics and measured
 thresholds themselves. No paid work is authorized by recording this.
+
+**2026-10-25 (MVPQ-06 rest (a), the audit page, relayed by coordinator 3):** adopt the plan's
+proposed targets: the tasks, metrics and targets written in `deep-research-web-search` 25, 26 and
+39 (25: zero false acceptances, at least 90 % exact accuracy at Deep; 39: no invented values and no
+personal values stored; 26: a step becomes a default only if it wins). Not asked again; still no
+paid work authorized.
 
 
 **Product owner plus research-quality owner.** Evaluation thresholds and allowance
@@ -360,6 +366,46 @@ everything else it leaves open are in [`mvp-methodology-packet.md`](mvp-methodol
 evidence (`segment-maps-and-drilldown#10`); build questionnaire routing end to end
 (`working-copy-edit-ops#WCE13`, `run-qc-and-checkpoint#RQC11`, `evidence-integrity#10`); remove
 Settings' draft-prompt test (`system-prompts-settings#14`). Not asked again.
+
+## The audit answers of 2026-10-25
+
+**Product owner answers** (Nigel Blount, on the audit page, about 21:15 UTC, relayed by coordinator 3).
+Each choice letter and its wording are as the page offered them; the notes are his, verbatim where
+quoted. An answer marked *being reviewed* is not a decision, and nothing is ticked because an answer
+is recorded. Ids are the audit page's; `OI-` ids are `open-items.md`'s.
+
+| Id | Answer | Note | Status | Recorded in |
+|---|---|---|---|---|
+| ADR-0020-0024 | (b) review them one by one | "i want to review them, Create a document that includes all the questions, how they're connected in AIA, and the inputs and outputs. Include an example when explaining complex topics. do it for each individually." | Being reviewed; status unchanged | ADRs 0020-0024, `adr/README.md` |
+| ADR-0041 | (b) accept with amendments | align with Sonnet 5.5's capabilities, enough context for all documents and actions, "What's a good benchmark? How do we design this?" | Amendment being drafted (the Lead design session); still Proposed | ADR 0041, `adr/README.md`, `lead-conversation` LC0 |
+| ADR-0042 | (a) accept when LK1 writes it | the Lead should retrieve and search relevant documents, "like claude projects / chatgpt folders" | ADR 0042 not written yet | `lead-client-knowledge` LK1 |
+| ADR-HELD | (a) accept each once its methodology answer is written in (0027, 0034, 0036, 0037) | same document request as ADR-0020-0024 | Status unchanged until then | ADRs 0027, 0034, 0036, 0037, `adr/README.md` |
+| AUD-1 | (a) the Lead reads and acts on result stages, never edits results | — | Decided | `lead-orchestration` LO8 |
+| AUD-2 | (a) the Lead edits the report as proposed versions a person approves (RPT9) | — | Decided | `artifact-report` RPT9 |
+| AUD-6 | (a) hide the Simulace tab for the MVP (K12) | — | Decided | `client-knowledge-lifecycle` K12 |
+| AUD-7 | (a) plan the switch off Sonnet 4.5 now, develop first | "sonnet 5.5" | To be built by the new plan `sonnet-5-5-switch.md` (session "AIA build: Sonnet 5.5 readiness") | this entry |
+| AUD-8 | (a) turn the fieldwork checkpoint on (operator, SSM) | — | The infra session is preparing it | OI-64 |
+| AUD-10 | (b) add the backend chunk, then show real bounds (Metodika → Upravit) | — | To be built by `settings-redesign` F13 (in the builder's F8 PR) | this entry (`settings-redesign` F6a shows no undeclared bound) |
+| COHESION-Q5 | (c) no dates | — | Decided | `mvp-cohesion.md` §5 Q5 |
+| DR-SIGNOFF | (a) approve the proposed values on Settings → Deep Research | the owner clicks that himself | Owner action | `deep-research-web-search` 1 |
+| MP3 | (b) go plan by plan | — | Being reviewed | `mvp-master-plan` MP3, §3.2 |
+| MVPQ-06-rest | (a) adopt the plan's proposed targets | — | Settled | MVPQ-06 above, `deep-research-web-search` 25 |
+| OI-159 | (a) use the organisation's live approvals for the acceptance organisation | "deep research uses budget of the study it pertains to." | Closed | `open-items.md` |
+| OI-19 | (b) re-issue the certificate naming the block (religion) | — | Open until re-issued | `open-items.md` |
+| OI-22 | (a) runs keep going when a researcher leaves | — | Closed | `open-items.md` |
+| OI-24 | (a) the population's policy (stricter, 115 fields) is the one authority | — | Decided; no owner yet (the coordinator is finding one) | `open-items.md`, `population-operations` D8 |
+| OI-35 | (a) HttpOnly cookie session before production | — | Decided; no owner yet (the coordinator is finding one) | `open-items.md` |
+| OI-51 | (a) clear the subpanel and filters on every preset change | — | To be built by the audience session's fix PR, `fix/audience-preset-clears-filters` | `open-items.md` |
+| OI-52 | (b) a questionnaire needs at least one plain question | — | To be built by the questionnaire session's fix PR, `fix/questionnaire-plain-question` (QF-17) | `open-items.md` |
+| OI-53 | (a) filter to the catalogue | the buttons should not be part of the UI but a card in the Lead researcher | To be built by `lead-orchestration` LO22, the classic button removed as DIM5 | `open-items.md` |
+| OI-75 | (a) allow the aggregate | — | To be built by `settings-redesign` F14 (in the builder's F8 PR) | `open-items.md` |
+| OI-81 | (b) keep the gate; stamp the delivery date only once | "lets delete old studies" (clarified: a real "Smazat studii" feature) | The gate stays where it is; the deletion is the new plan `study-deletion.md` | `open-items.md` |
+| OI-99 | (c) redraw with new seeds and keep the first that passes | "lets create an individual artifact to explore and decide this" | Still open: an artifact explores it | `open-items.md` |
+| PERF-BUDGETS | (b) planning proposes per-journey numbers in `mvp-acceptance-harness` chunk 18's PR | — | Decided | `mvp-acceptance-harness` 18, master plan |
+| RD-EDITOR-ACTIVATION | (a) go once OI-200's cookie fix is merged | — | Decided; waits on OI-200 | `report-editor-hosting` 4 |
+| RIR-5 | (a) go | — | Decided | `research-integrity-report` 5 |
+| SCOPE-OVERRIDES | (d) another combination | "i want to review each individually" (S2-S5 go to a review page) | Being reviewed, not decided | master plan §11.3 |
+| TWO-ROLES-5b | (b) review 5b against what was built first | — | Being reviewed | `two-roles-human-ai-gates` 5b |
 
 ## Operator facts are a separate checklist
 

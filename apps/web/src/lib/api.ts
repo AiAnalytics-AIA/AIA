@@ -2094,6 +2094,8 @@ export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; 
 export type MethodVersion = {
   version_number: number; name: string; base_preset: string; spec: Record<string, unknown>;
   formulas: Record<string, string>; payload_sha256: string; note: string; created_by: string; created_at: string;
+  /** The object map only: the Sociomap register's status for the method this version pins; null elsewhere, absent before the API said it. */
+  register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 export type MethodActivation = {
   activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
@@ -2107,6 +2109,8 @@ export type MethodInForce = {
 export type MethodVersions = {
   in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
+  /** The object map only: the register's status for the code's preset, whatever is in force. */
+  code_register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };

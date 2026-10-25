@@ -71,6 +71,10 @@ Waves are `mvp-execution-contracts.md`'s; the row these chunks join is the docs 
 
 ## Chunks
 
+*The owner, 2026-10-25 (ADR-0041 (b), the audit page, relayed by coordinator 3): accept with amendments (Sonnet 5.5's capabilities,
+enough context for all documents and actions, a benchmark); the amendment is being drafted, and LC0
+stays open until it is written in.*
+
 **LC0. ADR 0041 accepted.** The coordinator relayed the owner's answers from the PM status page
 (2026-10-20 22:39-22:42 UTC): Q25 (a) the digest plus a model summary, "ensure we are using an
 innovative approach, and that we ensure we best preserve the context properly"; Q26 (a) feedback in
