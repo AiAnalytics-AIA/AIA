@@ -127,8 +127,12 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
     setBaselineBusy(true); setBaselineError(null);
     try {
       const result = await methodology.compare(summary.id, { base_preset: live.base, spec: live.spec, formulas: live.formulas });
-      if (result.valid) setBaseline({ name: data.in_force.name, result });
-      else setBaselineError(Object.entries(result.problems).map(([k, m]) => `${k}: ${m}`).join("; "));
+      if (!result.valid) setBaselineError(Object.entries(result.problems).map(([k, m]) => `${k}: ${m}`).join("; "));
+      // The server compares with what is in force now. Someone may have activated another version
+      // since this page read it: then the two sides are two methodologies, never "itself", so the
+      // page reads what is in force again and the person asks again.
+      else if (result.in_force !== data.in_force.name) { setBaselineError(tv(`${V}.baselineMoved`, { name: result.in_force })); reload(); }
+      else setBaseline({ name: data.in_force.name, result });
     } catch (e) {
       setBaselineError(describeError(e));
     } finally {
@@ -207,7 +211,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
               </tr></thead>
               <tbody>
                 <tr data-methodology-version="code">
-                  <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</td>
+                  <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{summary.in_force ?? ""}</span>{inForce.origin === "code" ? <> <InForceChip /></> : null}</th>
                   <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindCode`)}</td>
                   <td className={`${CELL} min-w-[10rem]`}>{t(`${V}.codeChanges`)}</td>
                   <td className={`${CELL} text-ink-faint`}>—</td>
@@ -221,7 +225,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                   const formulas = Object.keys(v.formulas);
                   return (
                     <tr key={v.version_number} data-methodology-version={v.version_number}>
-                      <td className={`${CELL} whitespace-nowrap`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</td>
+                      <th scope="row" className={`${CELL} whitespace-nowrap text-left font-normal`}><span className="font-mono">{v.name}</span>{inForce.version_number === v.version_number ? <> <InForceChip /></> : null}</th>
                       <td className={`${CELL} whitespace-nowrap`}>{t(`${V}.kindStored`)}</td>
                       <td className={`${CELL} min-w-[10rem] break-words`}>
                         {v.note ? <p>{v.note}</p> : null}
@@ -242,7 +246,7 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                           {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                             <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
                           ) : null}
-                          {data.may_edit ? <Button small aria-label={t(`${V}.editFrom`)} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
+                          {data.may_edit ? <Button small aria-label={tv(`${V}.editFromNamed`, { name: v.name })} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
                         </div>
                       </td>
                     </tr>
