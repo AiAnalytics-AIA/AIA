@@ -275,6 +275,8 @@ policy record, tested by the licence gate's own tests.
 proposal, source), `knowledge_index(items, proposals, sources, selected)` in the
 order and budget of §1, `index_page(n)`, each entry's `MaterialRule`. ADR 0042 (Proposed): the
 read round as an amendment of ADR 0026 decision 3, its bounds and its relation to ADR 0040.
+*The owner, 2026-10-25 (ADR-0042 (a), the audit page, relayed by coordinator 3): accept ADR 0042 when LK1 writes it; his note: the
+Lead should retrieve and search relevant documents, "like claude projects / chatgpt folders".*
 Tests: REJECTED never present; no folder or label name in any entry (Q61 (b)); PROPOSED marked unapproved; an internal source C and its item
 marked; summaries cut at a word; a 500-entry client paged with counts and no entry lost across
 pages; the bytes of page 1 within 16 KB. Journey: the scripted greeting names the index's counts

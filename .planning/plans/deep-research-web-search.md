@@ -533,6 +533,9 @@ in parallel unless an order is stated.
 
 ### Phase 0 — decide
 
+*The owner, 2026-10-25 (DR-SIGNOFF (a), the audit page, relayed by coordinator 3): approve the proposed values on Settings → Deep
+Research; he clicks that himself. Not ticked until the approvals are recorded.*
+
 **1. Sign-off (human; no code).** The data owner approves: this design and § 4; the ADR 0017
 amendment (§ 16); Brave on a plan that grants storage and AI use (plan, terms URL and date, price,
 failed-request billing, retention, recorded here); D8 for the key (chunk 4's proposal or Secrets
@@ -701,6 +704,9 @@ captured; the snapshot and dataset retention job.
 preset: exact-value accuracy with the right unit, period and geography; primary-source rate; share
 grounded to a table cell; false acceptances (a wrong number accepted); acquisition gaps. *Proposed
 target for the owner:* zero false acceptances, at least 90 % exact accuracy at Deep.
+
+*The owner, 2026-10-25 (MVPQ-06 rest (a), the audit page, relayed by coordinator 3): the targets proposed in 25, 26 and 39 are
+adopted as written.*
 
 **26. Quality on 20 research questions.** Fictional-client questions (simple, comparison, complex),
 each run three ways (planned queries as today; agent-directed; agent-directed with the lead

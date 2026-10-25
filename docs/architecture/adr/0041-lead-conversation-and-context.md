@@ -4,6 +4,11 @@
 relayed the owner's answers to all six of its questions (PM status page, 2026-10-20 22:39-22:48
 UTC: Q25 a, Q26 a, Q27 a, Q28 a, Q29 a, Q30 a); they are written in as relayed, to be confirmed when
 the owner accepts this ADR.
+**Owner decision, 2026-10-25** (ADR-0041 (b), the audit page, relayed by coordinator 3): accept with amendments. His note: align
+it with Sonnet 5.5's capabilities and give the Lead enough context for all documents and actions;
+"What's a good benchmark? How do we design this?" The Lead design session is drafting the
+amendment. **Still Proposed:** accepted subject to that amendment being written in.
+
 **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 2 (the context's
 layers get budgets and a manifest; the conversation layer's rolling summary is specified and built),
 decision 8 (`study_lead_turns` gains three columns; queued messages are stored) and its
