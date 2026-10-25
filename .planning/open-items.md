@@ -2846,8 +2846,8 @@ Changing the gate changes the shared test fixture as well; that is the point.
 **Test that would have caught it.** Admitting a `CLIENT_FACING` claim from a row with
 `data_origin=None` is refused.
 
-**Status.** Open. Owner: Job 3, with evidence governance, before or together with the aggregate
-adapter. It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
+**Status.** Closed 2026-10-25 (see the dated line below; was: Open. Owner: Job 3, with evidence governance, before or together with the aggregate
+adapter). It is a rule of the research journey's contract (`docs/architecture/research-journey.md`
 §4, §6 rule 6).
 
 *2026-09-27, 18:05 UTC:* Job 3's draft PR #76 @ `7c46e0c` closes the path for native instrument
@@ -5989,8 +5989,8 @@ no Domain), read by the gate and the session routes.
 **Test.** The gate refuses a request whose only session cookie is the unprefixed name, in production
 settings.
 
-**Status.** Open. It gates `report-editor-hosting` chunk 4 (activation on develop), whose precondition
-is this fix.
+**Status.** Closed 2026-10-25 by #831 (was: Open; it gated `report-editor-hosting` chunk 4, activation on develop, whose precondition
+was this fix).
 **2026-10-25:** closed by #831 (merged as `ca14a942`, 2026-10-23): the cookie is `__Host-aia_session` deployed (`apps/api/src/aia_api/routers/session.py:73 @ 5d5ed250`), read by `_session_credential` (`:131`) and `session_cookie` (`:120`), and a name sent twice is no session. Tests: `apps/api/tests/test_session_api.py::test_a_deployed_gate_reads_only_the_host_prefixed_cookie`, `::test_a_session_cookie_sent_twice_is_no_session`. `report-editor-hosting` chunk 4's precondition (F1) is met.
 
 ---
@@ -6158,7 +6158,7 @@ per membership or per account.
 
 **Test.** Organization A's admin deactivating organization B's member is `ScopeDenied`.
 
-**Status.** Open (`security-audit-2026-10` chunk 15).
+**Status.** Closed 2026-10-25 by #830 (was: Open, `security-audit-2026-10` chunk 15).
 **2026-10-25:** closed by #830 (merged as `32475bdc`, 2026-10-23), S15 fixed: the target is resolved through the acting admin's organization (`packages/aia_core/src/aia_core/infrastructure/scope_repository.py:412` `deactivate_user`, `:445` `_member_row` @ `5d5ed250`), and deactivation is per membership. Test: `packages/aia_core/tests/test_member_deactivation.py::test_an_admin_cannot_deactivate_a_user_of_another_organization`.
 
 ---
@@ -6452,7 +6452,7 @@ comment at `:5 @ 6bfe3760`). Plan `artifact-sociomap.md` § Findings ("For the m
 
 **Test.** A journey check that no object label sits under the legend or tool column at 390 px.
 
-**Status.** Open, for the methodology owner.
+**Status.** Closed 2026-10-25 by SOC13, #815 (was: Open, for the methodology owner).
 **2026-10-25:** closed by SOC13 (#815, merged as `a25d2435`, 2026-10-23): at 390 px the legend is a chip until opened, and the view controls moved to a rail bottom right, off the labels (`artifact-sociomap.md:242-243`). Labels near the edge passing under the bar or the chip stay open as OI-240.
 
 ---
@@ -6782,7 +6782,7 @@ prerequisite of moving the Document Server off the develop host, beside RPT8e (O
 
 ---
 
-## OI-234 · Finding · The report editor's api.js is loaded without Subresource Integrity
+## OI-234 · Finding, closed · The report editor's api.js is loaded without Subresource Integrity
 
 **Claim.** Zpráva loads the Document Server's `api.js` into AIA's own page from the origin the API names,
 with no `integrity` attribute, so whatever that origin serves runs with the page's privileges.
@@ -6804,9 +6804,12 @@ with CORS.
 **Test.** A `ReportEditor` test that the script element carries the configured hash and
 `crossorigin`, and that no hash configured loads no script.
 
-**Status.** Open, 2026-10-25. A hard gate of activation (the PM, 2026-10-23; owner: Zpráva):
-`AIA_ONLYOFFICE_URL` stays unset until RPT8e and RPT8f are ticked. The product CSP the editor's origin
-would join is OI-209.
+**Status.** Closed 2026-10-25 by #895 (merged as `1fed2969`): `loadDocsApi(url, integrity)` loads api.js
+only under the integrity the API names, with `crossorigin="use-credentials"`
+(`apps/web/src/components/rehome/research/ReportEditor.tsx:57-63 @ 1fed2969`), and `report_editor_on`
+requires `AIA_ONLYOFFICE_API_INTEGRITY` (`apps/api/src/aia_api/config.py:307-315`). The one check left is
+activation's, against the real Document Server (`artifact-report.md`, RPT8e). The product CSP the editor's
+origin would join is OI-209.
 
 ---
 
