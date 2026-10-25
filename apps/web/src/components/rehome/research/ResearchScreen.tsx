@@ -82,10 +82,19 @@ function stableItemIds(): Promise<boolean> {
 }
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
-export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
+export function ResearchSession({ studyId, initialContent, canEdit, children }: { studyId: string; initialContent?: WorkingContent; canEdit?: boolean; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
+  // The store is built read-only or not from what the study allowed when it loaded. A status changed
+  // on the study (reopened, closed) changes that: the content is read again and the store rebuilt, so
+  // a reopened study takes edits and a closed one refuses them at the field, never silently (#892).
+  const editable = useRef(canEdit);
+  useEffect(() => {
+    if (canEdit === undefined || editable.current === canEdit) return;
+    editable.current = canEdit;
+    setVersion((v) => v + 1);
+  }, [canEdit]);
 
   useEffect(() => {
     let live = true;
@@ -148,8 +157,10 @@ export function ClosedStudyNotice({ closed, studyId, onChanged }: { closed: NonN
 }
 
 /** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
-function StageChrome({ frame, step, state, status, help, children }: {
-  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode; children: ReactNode;
+function StageChrome({ frame, step, state, status, help, flush, children }: {
+  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode;
+  /** Saves what is typed before the study's status changes (the store's flush). */
+  flush?: () => Promise<unknown>; children: ReactNode;
 }) {
   const onTrack = TRACK_STEPS.includes(step);
   // The track carries the order: a stage on it is named without its number.
@@ -169,7 +180,7 @@ function StageChrome({ frame, step, state, status, help, children }: {
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} /></> : help}
+      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} /></> : help}
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
@@ -428,7 +439,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           </Workbench>
         )}</InspectorProvider>
       ) : (
-      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+      <StageChrome frame={frame} step={step} state={state} flush={() => store.flush()} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
           <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
           {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
           <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (

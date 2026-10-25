@@ -75,7 +75,7 @@ function Frame({ w: first, content, children }: { w: StudyWorkspace; content?: W
   );
   return (
     <StudyFrameProvider frame={frame}>
-      <ResearchSession studyId={studyId} initialContent={content}>
+      <ResearchSession studyId={studyId} initialContent={content} canEdit={canEdit}>
         <ResearchStages />
         {children}
       </ResearchSession>

@@ -168,6 +168,60 @@ describe("ResearchScreen", () => {
     expect(calls.filter((c) => c.method === "PUT" && c.url === "/api/v1/studies/STU-1/status").map((c) => c.body)).toEqual([{ status: "ACTIVE" }]);
   });
 
+  it("takes edits once a closed study is reopened: the store follows the study's editability (Codex on #892)", async () => {
+    let editable = false;
+    api(() => content({ can_edit: editable }));
+    const closedFrame = { ...TEST_FRAME, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null }, refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={closedFrame} /></ResearchSession>);
+    expect(((await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true);
+    // Reopened: the study reads as editable again, and the session reads its content again.
+    editable = true;
+    rerender(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={{ ...closedFrame, canEdit: true, status: "ACTIVE", closed: null }} /></ResearchSession>);
+    await vi.waitFor(() => expect(loads().length).toBeGreaterThanOrEqual(2));
+    const goal = await vi.waitFor(() => {
+      const el = screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement;
+      if (el.closest("fieldset")?.disabled) throw new Error("still read-only");
+      return el;
+    });
+    fireEvent.change(goal, { target: { value: "Po znovuotevření" } });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
+    expect(saves()[0].body).toMatchObject({ content: { goal: "Po znovuotevření" } });
+  });
+
+  it("saves a typed change before closing the study, then reads it read-only; a failed save keeps it open", async () => {
+    let editable = true;
+    api(() => content({ can_edit: editable }), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => ({ study_id: "STU-1", status: "DELIVERED" }),
+    });
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Rozepsáno" } });
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    await vi.waitFor(() => expect(calls.some((c) => c.url === "/api/v1/studies/STU-1/status")).toBe(true));
+    // The typed change was saved first, then the status changed: nothing was dropped.
+    const order = calls.filter((c) => c.method === "PUT").map((c) => c.url);
+    expect(order).toEqual([CONTENT_PATH, "/api/v1/studies/STU-1/status"]);
+    expect(saves()[0].body).toMatchObject({ content: { goal: "Rozepsáno" } });
+    // Closed: the session reads the content again, read-only.
+    editable = false;
+    rerender(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={{ ...frame, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null } }} /></ResearchSession>);
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true));
+    cleanup();
+    // A save the server refuses keeps the study as it was: the status is not asked, the reason is said.
+    api(() => content(), () => new Response(JSON.stringify({ code: "internal", message: "Boom" }), { status: 500 }));
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Neuloženo" } });
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect(await vi.waitFor(() => {
+      const alert = document.querySelector("[data-study-status] [role=alert]");
+      if (!alert) throw new Error("no refusal yet");
+      return alert;
+    }, { timeout: 10_000 })).toBeTruthy();
+    expect(calls.filter((c) => c.url === "/api/v1/studies/STU-1/status")).toEqual([]);
+  });
+
   it("says the API's refusal of a status change as given", async () => {
     api(() => content(), undefined, {
       "PUT /api/v1/studies/STU-1/status": () => new Response(JSON.stringify({ code: "forbidden", message: "Delivery needs sign-off" }), { status: 403 }),

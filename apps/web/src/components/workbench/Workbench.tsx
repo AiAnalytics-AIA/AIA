@@ -810,7 +810,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
+      <StudyHeader frame={frame} study={study} flush={() => store.flush()} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
       <StageNav stage={stage} lane={lane} marks={reopened} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
@@ -948,7 +948,7 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
+function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; flush?: () => Promise<unknown>; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
   // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
   // move into the menu (research-lead-workbench 26d).
   const narrow = layout === "sheet";
@@ -989,7 +989,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
     setMenu(false);
     guardedNavigate(url, (u) => router.push(u));
   };
-  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}));
+  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}), flush);
   const budget = study?.budget_usd ?? null;
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
@@ -1012,7 +1012,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
       )}
       {/* The study's status (F7): its own menu beside the header's; under 768 px, items of the header's
           menu, where every target is 44 px (I11). */}
-      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} /> : null}
+      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} /> : null}
       <div ref={menuBox} style={{ position: "relative" }}>
         <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
           onClick={() => (menu ? setMenu(false) : openMenu("first"))}

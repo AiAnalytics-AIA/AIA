@@ -20,13 +20,17 @@ const OPEN_STATUSES = ["DRAFT", "ACTIVE", "IN_REVIEW"] as const;
 /** The statuses a study at `status` may be moved to: every other one. */
 export const otherStatuses = (status: string): string[] => STUDY_STATUSES.filter((s) => s !== status);
 
-/** A status change and what it answered: busy while asked, the API's refusal said as given. */
-export function useStudyStatus(studyId: string, onChanged: () => Promise<void> | void) {
+/**
+ * A status change and what it answered: busy while asked, the API's refusal said as given. A typed
+ * change still owed is saved first (`beforeChange`, the store's flush): a study about to close would
+ * refuse it after, so it is saved or the change of status is refused with the reason, never dropped.
+ */
+export function useStudyStatus(studyId: string, onChanged: () => Promise<void> | void, beforeChange?: () => Promise<unknown>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const change = async (status: string) => {
     setBusy(true); setError(null);
-    try { await admin.setStudyStatus(studyId, status); await onChanged(); }
+    try { await beforeChange?.(); await admin.setStudyStatus(studyId, status); await onChanged(); }
     catch (e) { setError(describeError(e)); }
     finally { setBusy(false); }
   };
@@ -35,8 +39,10 @@ export function useStudyStatus(studyId: string, onChanged: () => Promise<void> |
 }
 
 /** The study header's status: its name on the button, every other status in its menu. */
-export function StudyStatusMenu({ studyId, status, onChanged }: { studyId: string; status: string; onChanged: () => Promise<void> | void }) {
-  const { busy, change, shown } = useStudyStatus(studyId, onChanged);
+export function StudyStatusMenu({ studyId, status, onChanged, beforeChange }: {
+  studyId: string; status: string; onChanged: () => Promise<void> | void; beforeChange?: () => Promise<unknown>;
+}) {
+  const { busy, change, shown } = useStudyStatus(studyId, onChanged, beforeChange);
   return (
     <span data-study-status={status} className="inline-flex flex-col items-end">
       <MenuButton label={tv("aia.study.status.label", { status: t(`aia.status.${status}`) })} align="end" disabled={busy}
