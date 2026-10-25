@@ -1303,23 +1303,21 @@ export const cs = {
       },
       deepResearch: {
         search: "Hledat pravidlo rešerše", searchPlaceholder: "Např. cena, zdroj, délka odpovědi…", noMatch: "Žádné pravidlo neodpovídá hledání.",
-        groupsLabel: "Skupiny pravidel", waitingHelp: "Pravidla, která živý provoz ještě potřebuje schválit",
         draftGuard: "Máte neuložený návrh pravidla. Zavření nebo přepnutí ho zahodí.", discardDraft: "Zahodit návrh a pokračovat", revertDraft: "Vrátit neuložené změny",
         adminNote: "Hodnoty navrhuje a schvaluje vlastník nebo správce; ostatní členové je vidí.",
         catalogue: "Katalog {version}",
         malformed: "API nevrátilo nastavení Deep Research.",
         live: {
-          blocked: "Živý provoz se nespustí:",
-          waiting: "pravidla čekající na schválení: {count}.",
           showWaiting: "Zobrazit jen tato pravidla",
           showAll: "Zobrazit všechna pravidla",
-          ready: "Všechny hodnoty potřebné pro živý provoz jsou schválené.",
+          ready: "Vše potřebné pro živý provoz je schválené",
+          chip: "Živý provoz se nespustí: pravidla čekající na schválení: {count}",
           note: "Offline a nahrané běhy jedou dál na navržených výchozích hodnotách.",
         },
-        col: { setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
+        col: { group: "Skupina", setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
         board: {
           rules: "Pravidla rešerše",
-          rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne. Seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení se potvrzuje a zapisuje do auditu.",
+          rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne; seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení i stažení se potvrzuje a zapisuje do auditu.",
         },
         reach: {
           title: "Dosah",
@@ -1332,7 +1330,14 @@ export const cs = {
           connector: "Konektor {name}",
           priced: "placená",
           zone: { nonEu: "zpracování mimo EU", unknown: "místo zpracování neznámé" },
-          col: { route: "Trasa", kind: "Druh", classes: "Třída dat", state: "Stav" },
+          col: { route: "Trasa", kind: "Druh", approval: "Schválení organizace", classes: "Třída dat", state: "Stav" },
+          approval: {
+            waiting: "čeká: {rules}",
+            rules: { one: "pravidlo", few: "pravidla", many: "pravidel" },
+            missing: "čeká na pravidla",
+            approved: "schváleno",
+            free: "nepotřebuje (bez poplatku)",
+          },
           kind: { search: "Vyhledávání", fetch: "Otevírání stránek", connector: "Konektor", index: "Index URL", archive: "Archiv" },
           state: { waiting: "Čeká na schválení", active: "Aktivní", refused: "Nelze použít", built: "Nezapojeno" },
           reason: {
@@ -1352,9 +1357,11 @@ export const cs = {
         },
         posture: {
           title: "Postoj dat klienta",
-          text: "OPEN nebo CLASSIFIED určuje, zda smí studie klienta na web. Nastavuje se u klienta v Profil → Pravidla; běh si postoj připne při spuštění.",
-          profile: "Klienti",
+          text: "OPEN nebo CLASSIFIED určuje, zda smí studie klienta na web. Nastavuje se u klienta v",
+          profile: "Profil → Pravidla",
+          between: "; přehled všech klientů je v",
           access: "Přístup a schvalování",
+          end: ". Běh si postoj připne při spuštění.",
         },
         protections: {
           title: "Pevné ochrany v kódu",
@@ -1366,6 +1373,7 @@ export const cs = {
           cited: "každé zjištění doložené citací",
         },
         proposeOf: "Návrh: {rule}",
+        helpOf: "K čemu je: {rule}",
         proposeHere: "Napsat návrh",
         noProposal: "žádný návrh",
         waitingVersion: "verze {version} čeká na schválení",
@@ -2818,6 +2826,7 @@ export const cs = {
       setBelow: "Nejmenší počet objektů v sadě: {min}.",
       dockEmpty: "Otázky bez znění: {n}",
       dockSets: "Sady mimo {min}–{max} položek: {n}",
+      dockSetsOnly: "Samotné sledované sady dotazník netvoří: přidejte alespoň jednu běžnou otázku.",
       dockReady: "Dotazník je připravený",
     },
     audience: {

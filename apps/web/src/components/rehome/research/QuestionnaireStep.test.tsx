@@ -100,6 +100,14 @@ describe("Dotazník", () => {
     expect(await screen.findByRole("heading", { name: "Nahrát dotazník" })).toBeTruthy();
   });
 
+  it("says tracked sets alone are no questionnaire yet, and the dock is not ready (OI-52 (b))", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[1]], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const note = await screen.findByText("Samotné sledované sady dotazník netvoří: přidejte alespoň jednu běžnou otázku.");
+    expect(note.className).toContain("text-status-you-ink");
+    expect(screen.queryByText("Dotazník je připravený")).toBeNull();
+  });
+
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

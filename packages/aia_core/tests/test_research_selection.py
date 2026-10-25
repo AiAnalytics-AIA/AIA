@@ -39,6 +39,13 @@ DESIGN: dict[str, Any] = {
 DEVELOP_FINGERPRINT = "bb149341bbdfbe53acf139aa42869e535b5fe2f07ad2e96965ca1d8b086a80f3"
 
 
+def _asked(design: dict[str, Any]) -> dict[str, Any]:
+    """``design`` with a plain question: tracked sets alone are no questionnaire, so a design
+    readiness passes needs one (OI-52 (b)). DESIGN itself stays as pinned above."""
+    plain = {"type": "questions", "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}]}
+    return {**design, "sections": [plain, *design["sections"]]}
+
+
 def _spec(design: dict[str, Any]) -> Any:
     spec, problems = compile_design(design)
     assert spec is not None, problems
@@ -121,7 +128,9 @@ def test_dimensions_keep_the_designs_order_once_each() -> None:
 
 
 def test_readiness_names_the_dimensions_it_will_not_apply() -> None:
-    _, readiness = prepare(_with(dimensions=["finance"]), pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    _, readiness = prepare(
+        _asked(_with(dimensions=["finance"])), pair_n_min=AUDIT_PROVISIONAL_N_MIN
+    )
     (check,) = [c for c in readiness.checks if c.id == "dimensions"]
     assert check.status is CheckStatus.WARN and "finance" in check.message
     assert readiness.ready  # recorded and said, not a reason to refuse the run
@@ -137,7 +146,7 @@ def test_readiness_tells_a_sample_too_small_for_any_pair_from_one_that_can_colle
 ) -> None:
     """Plan § 8.2, I3: 20 respondents can be collected (the policy's floor) but no pair can
     reach the audit's provisional n_min of 30, so the object map would be NOT_MAPPABLE."""
-    _, readiness = prepare({**DESIGN, "n": n}, pair_n_min=AUDIT_PROVISIONAL_N_MIN)
+    _, readiness = prepare(_asked({**DESIGN, "n": n}), pair_n_min=AUDIT_PROVISIONAL_N_MIN)
     (check,) = [c for c in readiness.checks if c.id == "sociomap_support"]
     assert check.status is status
     assert readiness.ready  # said before anything is paid for; not a refusal

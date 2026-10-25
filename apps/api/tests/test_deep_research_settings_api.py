@@ -140,3 +140,19 @@ def test_a_withdrawal_takes_a_reason_and_an_administrator(owner: TestClient, as_
     assert refused.status_code == 403
     missing = owner.post(f"{SETTINGS}/{RETENTION}/versions/9/withdrawal", json={"reason": "x"})
     assert missing.status_code == 404
+
+
+def test_each_version_says_whether_the_caller_may_approve_it(
+    owner: TestClient, as_user: Any
+) -> None:
+    """The page gates Schválit on it; with self-approval off a proposer's own version says no."""
+    assert _propose(owner, RETENTION, 90).json()["may_approve"] is True
+    assert owner.get(f"{SETTINGS}/{RETENTION}").json()["versions"][0]["may_approve"] is True
+    assert owner.put(f"{API}/self-approval", json={"allowed": False}).status_code == 200
+    mine = owner.get(f"{SETTINGS}/{RETENTION}").json()["versions"][0]
+    assert mine["may_approve"] is False
+    refused = owner.put(f"{SETTINGS}/{RETENTION}/approval", json={"version_number": 1})
+    assert refused.status_code == 403 and refused.json()["code"] == "self_approval_not_allowed"
+    # A member is never offered it.
+    member: TestClient = as_user("researcher")
+    assert member.get(f"{SETTINGS}/{RETENTION}").json()["versions"][0]["may_approve"] is False

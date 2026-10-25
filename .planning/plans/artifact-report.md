@@ -573,6 +573,37 @@ no save). The version read takes the page's seen edit (`seen_key`, `seen_page`, 
 as `edits: {saved, reason}`; the doc bar's hold follows it alone, a read from before the page's newest edit counting
 for nothing, and guesses nothing (Codex on #880).
 
+*RPT8e, built (`feature/editor-api-integrity`); its last check is activation's.* `AIA_ONLYOFFICE_API_INTEGRITY`
+(`sha384-` and the digest's 64 base64 characters, refused at start otherwise): without it `report_editor_on` is false,
+so Zpráva opens nothing in the editor and the open route answers 404, whatever else is set. The open route answers it as
+`api_integrity`. The page then asks `POST /session/docs-ticket` for a one-time ticket and spends it first, a credentialed
+CORS request to `<docs>/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js` (`ticketUrl`, `spendTicket`:
+spending it sets the docs gate's cookie; the pane had loaded api.js without one, which the docs gate answers 401), then
+loads api.js at its canonical path with `integrity` and `crossorigin="use-credentials"` (`apiScriptUrl`,
+`scriptIntegrity`; `ReportEditor.tsx` `loadDocsApi`). The canonical path, not the ticket's URL as the script: ONLYOFFICE's
+api.js finds its base, and so its iframes' origin, by matching its script element's src against `api/documents/api.js`
+(getBasePath), which a ticket URL with an encoded `next` does not (Codex on #895). No integrity, no ticket, a ticket not
+spent or a script that does not hash to it: the read-only draft, said (`UNVERIFIED`, `UNREACHABLE`).
+`AIA_ONLYOFFICE_API_INTEGRITY` reaches the develop API through `deploy/develop/docker-compose.yml` from SSM
+`aia_onlyoffice_api_integrity` (`env.example`; `test_develop_host_configuration.py`: off without it, on with it). `deploy/develop/Caddyfile`'s
+docs site answers CORS with credentials for AIA's origin on those two paths alone (`@editor_script`, `defer`, so it
+replaces whatever the Document Server answers), held by `tools/caddy_routes.py`. Tests: `test_report_editor_api.py`
+(the integrity's form; the editor on only with it; the open route answers it), `report-editor.test.ts`,
+`ReportEditor.test.tsx` (the script's attributes, no integrity, no ticket), `test_caddy_routes.py`
+(`test_cors_anywhere_but_the_editors_script_for_aia_is_refused`); `report_editor_journey.mjs`: a ticket is spent before
+the script loads, api.js finds its base on the editor's origin at every width (the stand-in's api.js computes it as
+ONLYOFFICE's getBasePath does), and a swapped api.js runs nothing under Chromium's own integrity check. Left for activation (infra, with the
+owner's word): the integrity of the api.js the Document Server serves, set beside `AIA_ONLYOFFICE_URL`, and the page
+loaded once against the real Document Server; RPT8e is ticked then. The pinned image (9.4.0.1) ships no api.js, only
+`api.js.tpl`: at every container start `documentserver-flush-cache.sh` builds api.js with `{{HASH_POSTFIX}}` set from that
+start's date and minute, so a hash read from one running server fails the next restart (the infra session, 2026-10-25).
+The integrity is therefore taken from the api.js built by the pinned copy of that script, whose HASH_POSTFIX is a constant
+per image version (`e2c7b902106f86a68aabb088d5054ee0` for 9.4.0.1; infra's report-editor-hosting PR records it beside the
+image version and changes both together). For 9.4.0.1 that is
+`sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G`, checked after the deploy against the live file:
+`docker exec <the onlyoffice container> cat /var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js |
+openssl dgst -sha384 -binary | base64`, which must print the digest after `sha384-`, and print it again after a restart.
+
 Every rule fails closed but one (the PM, 2026-10-24, choosing the one rule over a clean-report rule that, bound to the
 snapshot, decided nothing the first did not): a Document Server clock running ahead of AIA's by more than the gap between
 a save's last change and the next edit's report lets that save hold the edit; the clamp to AIA's receipt bounds it.
@@ -681,6 +712,10 @@ through the edit operations:
   report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
   `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
 
+*The owner's answer (AUD-2, 2026-10-25, /pmstatus):* "(a) yes, as proposed versions a person approves". The Lead edits
+the final report directly only as proposed versions through the editor's version store (RPT8c), each approved by a
+person; built after the editor is live; every number stays locked to an admitted claim (ADR 0035).
+
 Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
 accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
 ONLYOFFICE's track-changes mode carries an edit written by AIA under the Lead's author name (the spike's
@@ -732,6 +767,20 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
 ## Findings
+
+- **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
+  `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
+  `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
+  real host every path there passes the docs gate, which needs the cookie only a spent one-time ticket sets
+  (report-editor-hosting.md:288, "the script load is the way in"; `POST /session/docs-ticket`,
+  `GET /session/docs?ticket&next`, both built). Consequence: on activation the docs gate answers api.js
+  401 and Zpráva falls back to read only on day one. The workbench's stand-in served api.js ungated, so no
+  journey showed it. Fix: the page spends the ticket first (`ticketUrl`, a credentialed CORS request), then
+  loads api.js at its canonical path under RPT8e's integrity with credentials; the docs site answers CORS
+  for AIA's origin on those two paths. Tests: `report-editor.test.ts` ("spends the ticket at the named
+  origin's session path…"), `ReportEditor.test.tsx` ("spends the ticket at the editor's origin before the
+  script loads", "keeps the read-only draft when no ticket is given or it is not spent…"),
+  `report_editor_journey.mjs` (a ticket spent before the script loads).
 
 - **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
   internal draft never said what the person asked for: "Návrh studie" printed only how the study

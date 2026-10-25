@@ -9,6 +9,7 @@ production; :mod:`aia_core.domain.deployment` says what each allows).
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
@@ -30,6 +31,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The deployment environment is the domain's, so the API and the worker read one list.
 Environment = DeploymentEnvironment
+#: An integrity attribute's SHA-384 form: the prefix, then 64 base64 characters (48 bytes).
+_SRI_SHA384 = re.compile(r"sha384-[A-Za-z0-9+/]{64}")
 
 
 class Settings(BaseSettings):
@@ -126,6 +129,11 @@ class Settings(BaseSettings):
     # (report-editor-hosting decision 4: the Document Server is not on AIA's network and its
     # request filter refuses private addresses). Unset, the editor's routes answer 404.
     onlyoffice_callback_base: str = ""
+    # The Subresource Integrity of the Document Server's api.js (AIA_ONLYOFFICE_API_INTEGRITY,
+    # ``sha384-<base64>``; artifact-report RPT8e): the page loads that script into AIA's own origin,
+    # so it runs only with the hash of the pinned image's own api.js. Unset, Zpráva does not open in
+    # the editor, whatever else is set: a swapped or compromised Document Server runs nothing here.
+    onlyoffice_api_integrity: str = ""
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
@@ -280,6 +288,16 @@ class Settings(BaseSettings):
             raise ValueError("AIA_ONLYOFFICE_JWT_SECRET must be at least 32 characters")
         return value
 
+    @field_validator("onlyoffice_api_integrity")
+    @classmethod
+    def _check_onlyoffice_integrity(cls, value: str) -> str:
+        """One SHA-384 digest as an integrity attribute takes it, or nothing."""
+        if value and not _SRI_SHA384.fullmatch(value):
+            raise ValueError(
+                "AIA_ONLYOFFICE_API_INTEGRITY must be sha384- and the digest's 64 base64 characters"
+            )
+        return value
+
     @property
     def docs_editor_on(self) -> bool:
         """The report editor is configured: its origin and its secret are both set."""
@@ -288,8 +306,13 @@ class Settings(BaseSettings):
     @property
     def report_editor_on(self) -> bool:
         """Zpráva opens in the editor: the editor is configured and the Document Server has
-        AIA's public origin to fetch from and call back to (RPT8c)."""
-        return self.docs_editor_on and bool(self.onlyoffice_callback_base)
+        AIA's public origin to fetch from and call back to (RPT8c), and the page has the integrity
+        its api.js must match (RPT8e)."""
+        return (
+            self.docs_editor_on
+            and bool(self.onlyoffice_callback_base)
+            and bool(self.onlyoffice_api_integrity)
+        )
 
     @field_validator("build_sha", mode="before")
     @classmethod

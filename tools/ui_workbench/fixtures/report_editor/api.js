@@ -15,12 +15,22 @@
     frame.textContent = "Zástupný editor: " + (config.document && config.document.title) + " (" + (config.editorConfig && config.editorConfig.mode) + ")";
     if (host) host.replaceWith(frame);
     var events = config.events || {};
-    window.__standinEditor = { config: config, events: events, destroyed: false };
+    window.__standinEditor = { config: config, events: events, destroyed: false, basePath: getBasePath() };
     setTimeout(function () { if (events.onAppReady) events.onAppReady(); }, 50);
     this.destroyEditor = function () {
       window.__standinEditor.destroyed = true;
       frame.remove();
     };
+  }
+  // ONLYOFFICE's own way to find where its iframes load from (web-apps apps/api/documents/api.js
+  // getBasePath, 9.4.0.1): the src of the script element that loaded it.
+  function getBasePath() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      var match = scripts[i].src.match(/(.*)api\/documents\/api.js/i);
+      if (match) return match[1];
+    }
+    return "";
   }
   window.DocsAPI = { DocEditor: DocEditor };
 })();
