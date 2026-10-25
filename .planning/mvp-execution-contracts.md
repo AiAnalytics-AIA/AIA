@@ -194,6 +194,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `develop-spend-attribution#7` | W3 | owner, Q40 (2026-10-21): per-researcher spend; after `lead-orchestration#LO1`'s wallet holds, with chunk 6; its actor columns are migration M13; landed in #583 (migration `568761e1c719`, M13) |
 | `production-environment#PE10` | W1 | scope freeze, D-22: before the first production sign-in |
 | `production-environment#PE11` | W4 | scope freeze, D-23: before the release candidate |
+| `production-environment#PE12` | W1 | OI-35 (a), the owner 2026-10-25: before the first production sign-in |
 | `two-roles-human-ai-gates#8` | W2 | scope freeze, D-27 |
 | `study-data-lifecycle#SDL4b` | W4 | scope freeze, D-29: with SDL3 |
 | `architecture-enforcement#12` | W3 | scope freeze, D-24 (a SUPPORT plan) |
