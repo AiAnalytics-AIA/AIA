@@ -86,7 +86,8 @@ apps/
                             AIA_ONLYOFFICE_JWT_SECRET (at least 32 characters): the report editor, both or the editor
                             is off (docs_editor_on) and the docs session routes answer 404 (#785);
                             AIA_ONLYOFFICE_CALLBACK_BASE, AIA's public origin for the Document Server: Zpráva opens
-                            in the editor only with it (report_editor_on)
+                            in the editor only with it and AIA_ONLYOFFICE_API_INTEGRITY, the SRI hash of api.js
+                            (report_editor_on, RPT8e, #895)
     docs_pass.py            Passes to the report editor's origin, pure: a signed one-time ticket (60 s) and the
                             docs cookie it buys (aia_docs, 8 h), HMAC under a key derived from the editor's secret
     editor_tokens.py        ONLYOFFICE's JWT and AIA's URL tokens, under a derived key
@@ -420,7 +421,7 @@ apps/
                             as four tabs: Výpočet, Verze a aktivace, Porovnání, Upravit, all mounted, the draft kept;
                             Verze a aktivace as tables (the code's preset a row; Stav pro klienty for the map), the
                             history always a table; activation one ConfirmDialog with a required reason (four chips
-                            plus a note); Upravit disabled "jen Metodik" without may_administer; for the Metodik the
+                            plus a note); Upravit disabled "jen Metodik" without may_edit (the Metodik mark, D-14); for the Metodik the
                             editor: one list of every parameter in stage order (original value, − / + by the value's
                             precision, no bound the domain does not declare), the formula slots in a closed "Vzorce
                             (pro experty)", draft replacement guards, check/compare and storing under the list, the
@@ -2372,7 +2373,7 @@ worker without the path parks it, never answering with the roster instead
 ([`panel-grounded-respondents.md`](.planning/plans/panel-grounded-respondents.md)).
 A Sociomap's status is the Sociomap register's for the exact method, at its spec fingerprint, that
 computed it (`domain/sociomap_register.py`): `aia-sociomap-3` is approved (the product owner,
-2026-10-13, D6), and `aia-sociomap-5`, what a new run pins (the methodology owner, 2026-10-21); `aia-sociomap-1` and anything not registered is `INTERNAL_ONLY`. A new run pins the organization's methodology in force: `aia-sociomap-5` by default (`default_methods`), or a stored version the organization activated in Metodika, which then wins, pinned under its own name unless it changes nothing of its preset (`domain/methodology/pins.py:85-105`, `application/research.py:1583-1586` @ ffce5c72); a run started before 2026-10-21 keeps the methods it pinned (-1 and -3), and so does its retry. A study may set a spend limit; a start whose cost
+2026-10-13, D6), and `aia-sociomap-5`, what a new run pins (the methodology owner, 2026-10-21); `aia-sociomap-1` and anything not registered is `INTERNAL_ONLY`. A new run pins the organization's methodology in force: `aia-sociomap-5` by default (`default_methods`), or a stored version the organization activated in Metodika, which then wins, pinned under its own name unless it changes nothing of its preset (`domain/methodology/pins.py:85-105`, `application/research.py:1583-1586` @ ffce5c72); a run started before 2026-10-21 keeps the methods it pinned (-1 and -3) and reads as it was; a retry of one on the old default is refused (`ResearchRunOnRetiredMethod`) unless it is an analysis retry over its stored map, which computes nothing (`reuse_only`), and a retry of an edited version drops the reference map (`application/research.py:1146-1150` @ 1fed2969). A study may set a spend limit; a start whose cost
 ceiling reaches it needs the person's confirmation, recorded in the approval ledger
 (ADR 0019 gate 2).
 
