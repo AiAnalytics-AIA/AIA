@@ -111,6 +111,8 @@ scripted Lead prepare an interpretation card. Detail in *Deep Research under the
 
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
+*The owner, 2026-10-25 (AUD-1 (a), the audit page, relayed by coordinator 3):* the Lead reads and acts on the result stages and never
+edits results; LO8's read decision is taken within that.
 **Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
 Deep Research provider carries the study's newest sealed bundle(s) by reference (each accepted
 finding's claim, quote, source title and URL, source class, verifier verdict and injection flag;

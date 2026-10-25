@@ -873,6 +873,7 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **New chunks.** K9 (W3), K10 (W3), K11 (W1, with `lead-orchestration#LO1`;
 the wallet ceiling only: the posture setter and its Profil UI are `deep-research-web-search#53`'s, G37,
 and K11 places the ceiling beside it in the same Pravidla card; both are listed read-only in Settings, I15), K12 (W1; #513 proposed `client-workspace#C10`, which is taken).
+*The owner, 2026-10-25 (AUD-6 (a), the audit page, relayed by coordinator 3): hide the Simulace tab for the MVP; K12 builds it.*
 
 **Existing chunks, changed.** K8 freezes the "Interní dokument" mark on the frozen `KnowledgeSource`
 at enqueue (G64; a bundle-contract change needing ADR 0021's defect note). The fold of

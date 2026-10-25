@@ -311,6 +311,14 @@ try {
   await page.locator("[data-methodology-activate]").getByRole("radio", { name: "Návrat k výchozí metodě", exact: true }).click();
   await page.locator("[data-methodology-activate]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: "z kódu" }).waitFor();
+  // Verze a aktivace lists the code's preset as a version, in force again (fidelity F6b).
+  await page.locator('[data-methodology-version="code"]').getByText("v platnosti", { exact: true }).waitFor();
+  // Porovnání with no edit: what is in force beside itself, computed only when asked.
+  await page.getByRole("tab", { name: "Porovnání", exact: true }).click();
+  await page.getByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech", exact: true }).click();
+  await page.locator("[data-compare-baseline]").waitFor({ timeout: 90000 }); await page.locator("[data-methodology-compare]").waitFor();
+  await widths("methodology comparison without an edit");
+  checks.push("Verze a aktivace lists the code's preset among the versions; Porovnání shows what is in force beside itself when asked, with no edit");
   checks.push("Methodology section edits retain values, invalid fields reject, replacements guard, stale comparisons clear, failed saves retry, saved versions activate separately and survive reload");
   assert.equal(writes.filter((r) => /agent-jobs|research\/runs|deep-research\/runs/.test(r.path)).length, 0); assert.deepEqual(errors, []);
   const report = { status: "PASS", checks, layouts, writes, pageErrors: errors, paidJobs: 0, defaultMethodologyHeight: defaultHeight }; writeFileSync(join(out, "checks.json"), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ ...report, writes: writes.length, layouts: layouts.length, out }, null, 2));
