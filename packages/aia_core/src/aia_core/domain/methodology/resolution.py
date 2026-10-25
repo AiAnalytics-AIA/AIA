@@ -48,6 +48,7 @@ __all__ = [
     "read_constant",
     "read_path",
     "resolve_callable",
+    "takes_whole_numbers",
 ]
 
 #: The only package a catalogue may read from (see :class:`~.catalogue.ConstantRef`).
@@ -210,6 +211,45 @@ def module_problems(module: MethodModule) -> dict[str, str]:
     problems.update(_group_problems(module))
     problems.update(_input_problems(module))
     problems.update(_formula_problems(module))
+    problems.update(_bound_problems(module))
+    return problems
+
+
+def takes_whole_numbers(module: MethodModule, path: str) -> bool:
+    """Whether the field at ``path`` holds a whole number in the module's presets (a strict limit
+    on it then reads as the next whole number: ``> 3`` is ``>= 4``)."""
+    for preset in module.presets:
+        if not _resolves(preset.spec, path):
+            continue
+        value = read_path(preset.spec, path)
+        if isinstance(value, bool) or value is ABSENT or value is None:
+            continue
+        return isinstance(value, int)
+    return False
+
+
+def _bound_problems(module: MethodModule) -> dict[str, str]:
+    """A bound names a field a step shows, once; a limit read from another field names one too;
+    its guard is a function or class of the domain. That each limit is the check's own is the
+    test suite's (``test_methodology_bounds.py``)."""
+    problems: dict[str, str] = {}
+    shown = {p.path for s in module.steps for p in s.parameters}
+    paths = [b.path for b in module.bounds]
+    for duplicate in sorted({p for p in paths if paths.count(p) > 1}):
+        problems[f"bound:{duplicate}"] = "bounded more than once"
+    for bound in module.bounds:
+        where = f"bound:{bound.path}"
+        if bound.path not in shown:
+            problems[f"{where}:path"] = "no step shows this field"
+        if not bound.limits:
+            problems[f"{where}:limits"] = "a bound states at least one limit"
+        for limit in bound.limits:
+            if isinstance(limit.value, str) and limit.value not in shown:
+                problems[f"{where}:{limit.value}"] = "the limit reads a field no step shows"
+        try:
+            resolve_callable(bound.guard)
+        except MethodologyReferenceError as exc:
+            problems[f"{where}:guard"] = str(exc)
     return problems
 
 

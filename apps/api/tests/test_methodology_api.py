@@ -607,6 +607,21 @@ def test_each_limit_says_what_crossing_it_does_and_the_rule_reads_with_its_value
     assert "chybějící n blokuje vždy" in steps["sample_size"]["keeps_cs"]
 
 
+def test_each_bounded_field_carries_its_checks_range_and_an_unbounded_one_none(
+    owner: TestClient,
+) -> None:
+    values = _values(owner.get(READINESS).json())
+    assert values["sample_size.min"]["bound"] == {
+        "limits": [{"side": "low", "value": 1.0, "reference": None, "strict": False}],
+        "whole": True,
+    }
+    # A limit read from another field names it; the draft's value is the limit.
+    assert values["sample_size.max"]["bound"]["limits"] == [
+        {"side": "low", "value": None, "reference": "sample_size.min", "strict": True}
+    ]
+    assert values["methodology_version"]["bound"] is None
+
+
 def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(
     owner: TestClient,
 ) -> None:
