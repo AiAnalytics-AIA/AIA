@@ -38,6 +38,12 @@ describe("designLane", () => {
     expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "2 otázky · 1 sada · 1 bez znění" });
   });
 
+  it("says tracked sets alone are no questionnaire yet (OI-52, the data owner's (b))", () => {
+    const p = project({ sections: [banks] as never });
+    expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "1 sada · bez běžné otázky" });
+    expect(blockers({ project: p, analysis: null })).toContainEqual({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
+  });
+
   it("names a tracked set outside 4-40 in the plan and in the questionnaire", () => {
     const small = { ...banks, objects: ["A", "B", "C"] };
     const p = project({ sections: [block(["Hlavní banka?"]), small] as never });

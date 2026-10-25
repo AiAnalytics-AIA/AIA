@@ -64,6 +64,8 @@ function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): Lane
   const { questions, sets, empty, badSets } = questionnaireIssues(p, l);
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
   const count = [questions ? plural(questions, "otázka", "otázky", "otázek") : "", sets ? plural(sets, "sada", "sady", "sad") : ""].filter(Boolean).join(" · ");
+  // Tracked sets alone are no questionnaire (OI-52; readiness's questionnaire check FAILs it too).
+  if (!questions) return { tone: "you", line: `${count} · bez běžné otázky` };
   if (empty) return { tone: "you", line: `${count} · ${empty} bez znění` };
   if (badSets) return { tone: "you", line: `${count} · ${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` };
   return { tone: "done", line: count };

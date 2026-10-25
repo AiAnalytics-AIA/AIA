@@ -2809,6 +2809,7 @@ export const cs = {
       setBelow: "Nejmenší počet objektů v sadě: {min}.",
       dockEmpty: "Otázky bez znění: {n}",
       dockSets: "Sady mimo {min}–{max} položek: {n}",
+      dockSetsOnly: "Samotné sledované sady dotazník netvoří: přidejte alespoň jednu běžnou otázku.",
       dockReady: "Dotazník je připravený",
     },
     audience: {
