@@ -663,6 +663,9 @@ counts, dates, L-labels and seal; P14), and the audit's values under `run:<run>`
 `test_every_number_the_bundle_writes_is_locked_under_its_review`, `test_report_controls.py`
 `test_the_audits_values_print_locked_and_the_source_audit_keeps_them`.
 
+*The owner, 2026-10-25 (AUD-2 (a), the audit page, relayed by coordinator 3): the Lead edits the report as proposed versions a person
+approves; this chunk builds it.*
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's

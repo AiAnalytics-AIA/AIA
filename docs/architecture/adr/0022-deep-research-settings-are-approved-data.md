@@ -9,6 +9,11 @@ row overriding that guard is a different decision"), for Deep Research's policy 
 between people), [ADR 0021](0021-deep-research-purpose-target-lineage.md) (the frozen engine; a
 method change moves the reuse identity) and [ADR 0010](0010-bedrock-eu-inference-route.md) (the
 model route).
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-07
 
 ## Context

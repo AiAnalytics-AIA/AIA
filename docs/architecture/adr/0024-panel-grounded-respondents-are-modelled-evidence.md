@@ -8,6 +8,11 @@ the population contract ([population.md](../population.md)). **Answers, for one 
 part of decision ANL-1 (`.planning/overview.md`) that asks *whether any instrument evidence may
 ever be client-facing, and on what origin*. **Leaves open** D6 (the Sociomap) and ANL-1 for every
 other origin.
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-12
 
 ## Context
