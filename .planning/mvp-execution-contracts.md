@@ -238,6 +238,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-conversation#LC8` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC9` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC10` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC5b` | W2 | with LC10, whose replaces_turn_id and active path it needs (inferred, planning 25 Oct) |
 | `lead-conversation#LC11` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC12` | W3 | the plan's own: with `lead-orchestration#LO18` |
 | `lead-conversation#LC13` | W3 | the plan's own: with `lead-orchestration#LO18` |

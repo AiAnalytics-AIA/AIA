@@ -6703,3 +6703,75 @@ a population that will not load stays unknown.
 **Test.** `apps/api/tests/test_population_double_api.py::test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start`.
 
 **Status.** Closed by #745 (merged as `c7fbd15a`, 2026-10-22).
+
+---
+
+## OI-247 · Finding · A batch of waiting messages answered by a turn that then fails is never sent again
+
+**Claim.** A queued batch (up to five messages) answered by a Lead turn that then failed, or parked for a reason other than the budget, is marked answered by that turn and not resent.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research_lead.py:744 @ 1fed2969` (`_start_turn`). Plan `lead-conversation.md` F5 (#817).
+
+**Reproduction.** Recorded by the plan from #817's review; no committed test yet.
+
+**Consequence.** The researcher's messages get no answer and must be sent again by hand.
+
+**Smallest fix.** LC10's retry, which regenerates a failed turn.
+
+**Test.** LC10's.
+
+**Status.** Open; owner `lead-conversation#LC10`.
+
+---
+
+## OI-248 · Finding · The Lead's state can return fewer turns than its limit
+
+**Claim.** `ResearchLead.state(limit=100)` counts withdrawal rows within its limit, so it can return fewer than 100 turns.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research_lead.py:554 @ 1fed2969`. Plan `lead-conversation.md` F6 (#817).
+
+**Reproduction.** Recorded by the plan; no committed test yet.
+
+**Consequence.** Harmless at today's sizes; a long conversation shows fewer of its older turns.
+
+**Smallest fix.** Count turns, not rows, against the limit.
+
+**Test.** A conversation with withdrawals returns `limit` turns.
+
+**Status.** Open, low.
+
+---
+
+## OI-249 · Finding · A queued person turn no longer records its design revision
+
+**Claim.** A person turn that waits in the queue no longer stores `design_revision_id`.
+
+**Anchor.** Plan `lead-conversation.md` F7 (#817), `application/research_lead.py` @ 1fed2969.
+
+**Reproduction.** Recorded by the plan.
+
+**Consequence.** None today: nothing reads it on a person turn, and the Lead turn that answers names its revision.
+
+**Smallest fix.** None needed unless a reader appears; then store it at queueing.
+
+**Test.** —
+
+**Status.** Open, informational.
+
+---
+
+## OI-250 · Hypothesis · A retried Lead message is stored twice
+
+**Claim.** `POST …/lead/turns` takes no idempotency key, so a retry after a lost response stores the message twice, and with the queue both copies wait to be answered.
+
+**Anchor.** `apps/api/src/aia_api/routers/lead.py:566 @ 1fed2969` (it predates LC5a). Plan `lead-conversation.md` F8 (#817); the coordinator's review of #817.
+
+**Reproduction.** Not reproduced; a hypothesis until it is.
+
+**Consequence.** A duplicated message, answered twice.
+
+**Smallest fix.** A client-chosen key on the post, unique per researcher and study, answering the stored turn on a repeat.
+
+**Test.** The same key posted twice stores one turn.
+
+**Status.** Open, hypothesis.

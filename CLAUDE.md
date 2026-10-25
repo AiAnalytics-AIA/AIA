@@ -204,6 +204,9 @@ apps/
                             lead (the caller's Research Lead conversation in a study, ADR 0026:
                             GET/POST /studies/{id}/lead[/turns]; POST …/turns/{turn_id}/edits (accept
                             or dismiss under APPROVE_GATE, one transaction, ledger lead_edit);
+                            POST …/lead/turns/queued (the next turn on what waits, once the Lead is free) and
+                            …/turns/{turn_id}/withdraw; a message posted while the Lead works waits, stored (ADR 0041
+                            decision 7);
                             POST …/turns/{turn_id}/request (an agent job behind the spend limit,
                             ledger lead_job_request); POST …/turns/{turn_id}/self-update (what would
                             reach every client, on the researcher's yes; ledger lead_self_update);
@@ -1732,7 +1735,9 @@ packages/aia_core/src/aia_core/
     workspace_edit_repository.py  The ONLY reader/writer of workspace_edit_ops (M1, migration 90dc672445b1):
                             insert-once, a row per (item, field) a write touched, scoped by the three columns;
                             append under EDIT_STUDY, rows(after_revision=)
-    study_lead_repository.py  A researcher's Lead turns in a study (study_lead_turns), scoped in the query
+    study_lead_repository.py  A researcher's Lead turns in a study (study_lead_turns), scoped in the query,
+                            and study_lead_turn_answers: which messages each Lead turn was sent; erase_member_turns
+                            and erase_client_lead_turns delete them with the turns
     researcher_lead_repository.py  The researcher's Lead (researcher_leads), its revisions and notes; a
                             client note only within that client's study; set_preferences
                             (auto_accept_text_edits, default false, migration 57eaa96a5538)
