@@ -233,6 +233,8 @@ def open_report_editor(
     session.commit()
     return {
         "document_server": settings.onlyoffice_url,
+        # What the page's api.js must hash to (RPT8e); it loads nothing that does not.
+        "api_integrity": settings.onlyoffice_api_integrity,
         "config": _config(
             opened,
             scope=scope,
