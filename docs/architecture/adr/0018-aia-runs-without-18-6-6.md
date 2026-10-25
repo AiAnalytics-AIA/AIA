@@ -15,6 +15,14 @@ behavioural reference and parity oracle; it is no longer part of the product dep
 All five increments are implemented, each on its own draft pull request, stacked in order
 (#74, #77, #78, #82 and increment 5's); the migration of decision 2 has not been run on
 develop, which is an operator's step.
+**Status note, 2026-10-23 (the session cookie's name, #831):** wherever AIA is deployed the
+session cookie is `__Host-aia_session`, which no other host can set; `aia_session` is its name only
+in local and test (`apps/api/src/aia_api/routers/session.py:120 @ 5d5ed250`, `session_cookie`). A
+cookie whose name arrives twice is no session (`routers/session.py:131 @ 5d5ed250`,
+`_session_credential`), so a twin planted for the parent domain (by a script defect on
+`docs.<hostname>`, for instance) cannot stand in for it. Tests:
+`test_a_deployed_gate_reads_only_the_host_prefixed_cookie`,
+`test_a_session_cookie_sent_twice_is_no_session`. Decision 3 is otherwise unchanged.
 **Date:** 2026-09-27
 
 ## Context
@@ -107,7 +115,8 @@ prompts -- and as the oracle parity is measured against. Neither needs it in the
 3. **`/app` has AIA's own gate** (increment 3): any active organization member with an AIA
    session; every page's data is authorized per call by `ScopeResolver`, as it always was.
    No legacy flag decides whether AIA can be reached. `/login` turns the Cognito id token
-   into an HttpOnly session cookie (`POST /api/v1/session`, `aia_session`, admission by
+   into an HttpOnly session cookie (`POST /api/v1/session`, `aia_session`; see the status note of
+   2026-10-23 below for its deployed name; admission by
    `ScopeResolver.authorize_session`, recorded in the access audit). Caddy asks
    `GET /api/v1/session/gate` before every request to `/app`: a navigation without a
    session goes to `/login`, a fetch gets 401, and any method but GET and HEAD is refused,

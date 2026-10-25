@@ -14,6 +14,16 @@ model route).
 questions, how they're connected in AIA, and the inputs and outputs. Include an example when
 explaining complex topics. do it for each individually." The status is unchanged until he does.
 
+**Status note, 2026-10-23 (a version's states, #841):** a stored version reads one of five states,
+derived from the append-only logs: `IN_FORCE`, `APPROVED_BEFORE`, `PENDING`, `WITHDRAWN` (its
+proposer took it back) or `DECLINED` (another administrator turned it down)
+(`packages/aia_core/src/aia_core/infrastructure/deep_research_settings_repository.py:104 @ 5d5ed250`).
+A pending proposal is withdrawn or declined with a reason, once, appended to
+`deep_research_setting_declines` and audited (`POST …/deep-research/settings/{key}/versions/{n}/withdrawal`;
+`deep_research_settings_repository.py:748 @ 5d5ed250`, `decline`). A withdrawn or declined version
+is never approved afterwards (`version_declined`): its value is proposed again as a new version.
+The versions stay immutable and the approvals append-only, as decided below. The status is unchanged.
+
 **Date:** 2026-10-07
 
 ## Context
