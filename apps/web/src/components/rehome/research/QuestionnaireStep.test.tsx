@@ -272,6 +272,10 @@ describe("Dotazník", () => {
     expect(within(stored).getByText(/Zobrazí se jen těm, kdo u Q1/)).toBeTruthy();
     await waitFor(() => expect(within(stored).queryByRole("button", { name: "Upravit podmínku" })).toBeNull());
     expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
+    // Removed with nothing left in its box: focus goes to the question's wording, never to a type
+    // chip, where one key would change the question's type (QF-18, the stand-in review).
+    fireEvent.click(within(stored).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(stored).getByRole("textbox", { name: "Znění otázky" })));
   });
 
   it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {

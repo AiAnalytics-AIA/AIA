@@ -52,13 +52,13 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
   const [editing, setEditing] = useState(false);
   const { state, sources } = conditionOf(research.project, si, qi);
   // Each way out (Uložit, Zrušit, Escape, Odebrat) replaces the focused control: focus goes to the
-  // first enabled button left in this box, else into the question's card, never to the page (QF-18).
+  // first enabled button left in this box, else to the question's wording, never to the page and
+  // never to a type chip, where one key would change the question's type (QF-18).
   const box = useRef<HTMLDivElement>(null);
   const [refocus, setRefocus] = useState(0);
   useEffect(() => {
     if (!refocus || !box.current) return;
-    const ready = "button:not([disabled]), textarea, input";
-    (box.current.querySelector<HTMLElement>("button:not([disabled])") ?? box.current.closest("[id]")?.querySelector<HTMLElement>(ready))?.focus();
+    (box.current.querySelector<HTMLElement>("button:not([disabled])") ?? box.current.closest("[id]")?.querySelector<HTMLElement>("textarea"))?.focus();
   }, [refocus]);
   const close = () => {
     setEditing(false);

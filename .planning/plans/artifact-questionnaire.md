@@ -346,7 +346,7 @@ the page: "Podmínka zobrazení" and "Upravit podmínku" unmount as the form rep
 Escape and Odebrat podmínku unmount what had focus in turn (`QuestionCondition.tsx:69 @ ffce5c72`), so a keyboard user starts again
 from the top. Fix (fix/questionnaire-condition-focus): the form opens with focus on the chosen question (or the
 first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts focus on the first enabled button
-left in the condition's box, else into the question's card. Test: `QuestionnaireStep.test.tsx` "moves focus
+left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
 into the condition form and back to its button when it closes" (all four ways out).
 
 ## Doc follow-up
