@@ -131,7 +131,10 @@ try {
   await editor.locator("[data-edit-formulas] summary").click();
   // Výpočet: one stage by its tile.
   await page.getByRole("tab", { name: "Výpočet", exact: true }).click();
-  await timed("Pick one stage on Výpočet", page.getByRole("group", { name: "Etapy", exact: true }).getByRole("button", { name: /^M6\s·\sTerén/ }), "#panel-methodology section[aria-labelledby^='mg-'] h3", "Terén");
+  // Timed to what only the choice makes: a stage tile pressed (every stage's heading shows before
+  // it), then held to its result, one stage left on the page.
+  await timed("Pick one stage on Výpočet", page.getByRole("group", { name: "Etapy", exact: true }).getByRole("button", { name: /^M6\s·\sTerén/ }), '#panel-methodology [data-stage-tile][aria-pressed="true"]:not([data-stage-tile="all"])', "Terén");
+  assert.deepEqual(await page.locator("#panel-methodology section[aria-labelledby^='mg-']:not([data-not-computed] section) h3").allTextContents(), ["Terén"], "Picking a stage left other stages on the page");
   await page.getByRole("tab", { name: "Upravit", exact: true }).click();
   checks.push("Metodika opens on its catalogue of the API's modules, a module opens and returns in budget, the editor lists every parameter by stage, steps a value and opens the formulas, and Výpočet picks a stage");
   await page.screenshot({ path: join(out, "methodology-desktop.png"), animations: "disabled" });
