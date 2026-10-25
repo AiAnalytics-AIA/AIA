@@ -83,9 +83,12 @@ const versionsSection = () =>
 const found = (selector: string, root: ParentNode = document) =>
   waitFor(() => {
     const element = root.querySelector(selector);
-    if (!element) throw new Error(`nothing at ${selector}`);
-    const group = element.closest("fieldset");
-    if (group?.hidden) fireEvent.click(document.querySelector(`[data-edit-step-link="${group.getAttribute("data-edit-step")}"]`)!);
+    if (!element) {
+      // A formula is in the editor's closed "Vzorce (pro experty)" until it is opened.
+      const formulas = root.querySelector<HTMLDetailsElement>("[data-edit-formulas]:not([open])");
+      if (formulas) fireEvent.click(formulas.querySelector("summary")!);
+      throw new Error(`nothing at ${selector}`);
+    }
     const disclosure = element.closest("details");
     if (disclosure && !disclosure.open) fireEvent.click(disclosure.querySelector("summary")!);
     return element as HTMLElement;
@@ -100,8 +103,6 @@ const field = (form: HTMLElement, reference: string) =>
   waitFor(() => {
     const input = form.querySelector(`[data-field="${reference}"]`);
     if (!input) throw new Error(`no field ${reference} among ${[...form.querySelectorAll("[data-field]")].map((n) => n.getAttribute("data-field")).join(",")} in ${form.isConnected}`);
-    const group = input.closest("fieldset")!;
-    if (group.hidden) fireEvent.click(form.querySelector(`[data-edit-step-link="${group.getAttribute("data-edit-step")}"]`)!);
     return input as HTMLInputElement;
   });
 
@@ -148,7 +149,7 @@ describe("the support rules' versions (plan G1d)", () => {
     fireEvent.change(unchecked, { target: { value: "25" } });
     fireEvent.change(await field(form, "results.min_layer_donors"), { target: { value: "10" } });
     fireEvent.change(await field(form, "analysis.min_cell"), { target: { value: "null" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
 
     await waitFor(() => expect(sent.some((s) => s.method === "POST" && s.url.endsWith("/support/versions"))).toBe(true));
     const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/support/versions"));
@@ -186,25 +187,25 @@ describe("the readiness limits (plan V1a2)", () => {
     await openEditor();
     const form = await editor();
     const min = await field(form, "sample_size.min");
-    const step = min.closest("fieldset") as HTMLElement;
-    expect(within(step).getAllByText("zablokuje běh")).toHaveLength(2);
-    const reading = step.querySelector("[data-step-reading]") as HTMLElement;
+    // Each limit says what crossing it does, and its rule reads with the draft's values.
+    const minRow = min.closest("[data-edit-row]") as HTMLElement;
+    expect(within(minRow).getByText("zablokuje běh")).toBeTruthy();
+    expect(within(form).getAllByText("zablokuje běh")).toHaveLength(2);
+    const reading = minRow.querySelector("[data-step-reading]") as HTMLElement;
     expect(reading.textContent).toMatch(/20 ≤ n ≤ 10\s000/);
     fireEvent.change(min, { target: { value: "10" } });
     expect(reading.textContent).toMatch(/10 ≤ n ≤ 10\s000/);
-    // Before a check the preview says what it will show; after, the lines the code wrote.
-    expect(within(step.querySelector("[data-step-preview]") as HTMLElement).getByText(/Po kontrole/)).toBeTruthy();
+    // Before a check there is no preview; after, the lines the code wrote, each under its step.
+    expect(form.querySelector("[data-step-preview]")).toBeNull();
     fireEvent.click(within(form).getByRole("button", { name: /^Zkontrolovat$/ }));
-    await waitFor(() => expect(step.querySelectorAll("[data-preview-status]")).toHaveLength(2));
-    expect(within(step).getByText("n = 12.")).toBeTruthy();
-    expect(within(step.querySelector("[data-step-keeps]") as HTMLElement).getByText("chybějící n blokuje vždy")).toBeTruthy();
+    await waitFor(() => expect(form.querySelectorAll("[data-preview-status]")).toHaveLength(4));
+    expect(within(form).getByText("n = 12.")).toBeTruthy();
+    expect(form.querySelectorAll('[data-preview-step="tracked_set"]')).toHaveLength(2);
 
-    const set = await field(form, "tracked_set.recommended_max");
-    const setStep = set.closest("fieldset") as HTMLElement;
-    expect(within(setStep).getAllByText("zablokuje návrh")).toHaveLength(2);
-    expect(within(setStep).getAllByText("jen upozorní")).toHaveLength(2);
+    expect(within(form).getAllByText("zablokuje návrh")).toHaveLength(2);
+    expect(within(form).getAllByText("jen upozorní")).toHaveLength(2);
 
-    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s platnou" }));
     const impact = await found("[data-compare-readiness]");
     const row = impact.querySelector('[data-readiness-study="S-1"]') as HTMLElement;
     expect(within(row).getByRole("link", { name: "Pilotní vlna" }).getAttribute("href")).toBe("/app/clients/C-1/research/S-1");
@@ -233,7 +234,7 @@ describe("the aggregation's versions (plan G3b)", () => {
     const kept = form.querySelector('[data-edit-slot="agg.top_box"] [data-kept]') as HTMLElement;
     expect(within(kept).getByText(/Podíl top boxu a jeho interval počítá vážený průměr/)).toBeTruthy();
     fireEvent.change(slot, { target: { value: "x >= top - b + 1" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
 
     await waitFor(() => expect(sent.some((s) => s.method === "POST" && s.url.endsWith("/aggregation/versions"))).toBe(true));
     const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/aggregation/versions"));
@@ -266,7 +267,7 @@ describe("the methodology's versions", () => {
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
     fireEvent.change(within(form).getByLabelText("Poznámka k verzi"), { target: { value: "širší kopec" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
 
     await waitFor(() => expect(within(section).getByText("Uloženo jako aia-sociomap-5+e1. V platnosti bude, až ji uvedete.")).toBeTruthy());
     const stored = sent.find((s) => s.method === "POST" && s.url.endsWith("/versions"));
@@ -328,7 +329,7 @@ describe("the methodology's versions", () => {
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "2" } });
     const slot = await found('[data-edit-slot="f12.kernel"]', form);
     fireEvent.change(within(slot).getByRole("textbox"), { target: { value: "h * exp(d2)" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
 
     await waitFor(() => expect(within(form).getByText("must be at least 5")).toBeTruthy());
     expect(within(slot).getByText("non_increasing_in:d2: rises with distance")).toBeTruthy();
@@ -413,7 +414,7 @@ describe("the comparison with what is in force", () => {
     await openEditor();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s platnou" }));
 
     // The comparison is the module's Porovnání (10b): the page moves there.
     await waitFor(() => expect(screen.getByRole("tab", { name: "Porovnání" }).getAttribute("aria-selected")).toBe("true"));
@@ -440,7 +441,7 @@ describe("the comparison with what is in force", () => {
     vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL, init?: RequestInit) => String(url).endsWith("/compare") ? new Promise<Response>((r) => { answer = r; }) : real(url, init)));
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+      fireEvent.click(within(form).getByRole("button", { name: "Porovnat s platnou" }));
       const status = await within(form).findByText("Porovnávám metodiky…");
       const box = status.closest("[data-operation]") as HTMLElement;
       expect(box.querySelector("[data-elapsed]")).toBeNull();
@@ -462,7 +463,7 @@ describe("the comparison with what is in force", () => {
     render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
-    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s platnou" }));
     await waitFor(() => expect(within(form).getByText("must be at least 4")).toBeTruthy());
     expect(document.querySelector("[data-methodology-compare]")).toBeNull();
     expect(screen.getByRole("tab", { name: "Upravit" }).getAttribute("aria-selected")).toBe("true");
@@ -482,17 +483,18 @@ describe("guided methodology editing", () => {
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect((await field(form, "terrain.sigma")).value).toBe("0,35");
-    fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
+    // Zahodit úpravu asks first; Ponechat keeps the draft.
+    fireEvent.click(within(form).getByRole("button", { name: "Zahodit úpravu" }));
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
-    expect(document.querySelector("[data-methodology-editor]")).toBeTruthy();
-    fireEvent.click(within(form).getByRole("button", { name: "Zrušit" }));
+    expect((await field(form, "terrain.sigma")).value).toBe("0,35");
+    fireEvent.click(within(form).getByRole("button", { name: "Zahodit úpravu" }));
     fireEvent.click(screen.getByRole("button", { name: "Zahodit neuložené úpravy" }));
-    expect(document.querySelector("[data-methodology-editor]")).toBeNull();
-    // A cancelled edit returns to the calculation it was made against (settings-redesign 10b).
-    expect(screen.getByRole("tab", { name: "Výpočet" }).getAttribute("aria-selected")).toBe("true");
-    // Upravit starts the next edit from what is in force.
-    fireEvent.click(screen.getByRole("tab", { name: "Upravit" }));
-    expect(await editor()).toBeTruthy();
+    // The edit starts over from what is in force, on Upravit (prototype v51: the list stays).
+    const fresh = await editor();
+    expect(screen.getByRole("tab", { name: "Upravit" }).getAttribute("aria-selected")).toBe("true");
+    expect((await field(fresh, "terrain.sigma")).value).toBe("0,25");
+    expect((await field(fresh, "relation.n_min")).value).toBe("10");
+    expect(fresh.querySelector("[data-draft-chip]")).toBeNull();
   });
 
   it("goes back to the catalogue at once from an untouched editor, and asks first when it holds changes", async () => {
@@ -513,36 +515,65 @@ describe("guided methodology editing", () => {
     expect(await screen.findByRole("heading", { name: "Vážení: která váha patří respondentovi a co s neplatnou" })).toBeTruthy();
   });
 
-  it("shows each step's stage, audit point and place in the computation, and moves along it", async () => {
+  it("lists every parameter once, in the order the computation reads it, each with its stage", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
-    const outline = form.querySelector("[data-methodology-outline]") as HTMLElement;
-    expect(within(outline).getByText("Vztahy mezi objekty")).toBeTruthy();
-    expect(within(outline.querySelector("[data-not-yet]") as HTMLElement).getByText("testy při porovnání oblastí (F14)")).toBeTruthy();
-    fireEvent.click(form.querySelector('[data-edit-step-link="f6_distance"]')!);
-    const step = form.querySelector('[data-edit-step="f6_distance"]') as HTMLElement;
-    // The step's number (its stage's and its place there) leads, as in the outline; the audit point is named.
-    const number = form.querySelector('[data-edit-step-link="f6_distance"] [data-step-number]')!.textContent!;
-    expect(number).toMatch(/^M\d+\.\d+$/);
-    expect(step.querySelector("[data-step-stage]")!.textContent).toBe(`${number} · Rozložení na mapě · Původ: audit F6`);
-    fireEvent.click(step.querySelector('[data-context="to"] [data-context-link="f6_smacof"]')!);
-    expect((form.querySelector('[data-edit-step="f6_smacof"]') as HTMLElement).hidden).toBe(false);
-    expect(step.hidden).toBe(true);
-    // A step with nothing to edit is named, never a link that would empty the pane.
-    fireEvent.click(form.querySelector('[data-edit-step-link="f1_declared_scale"]')!);
-    const first = form.querySelector('[data-edit-step="f1_declared_scale"] [data-context="to"]') as HTMLElement;
-    expect(first.querySelector('[data-context-name="f11_not_placed"]')).not.toBeNull();
-    expect(first.querySelector('[data-context-link="f11_not_placed"]')).toBeNull();
-    expect(first.querySelector('[data-context-link="f2_person_minmax"]')).not.toBeNull();
+    const rows = [...form.querySelectorAll<HTMLElement>("[data-edit-row]")];
+    const references = rows.map((r) => r.getAttribute("data-edit-row"));
+    // Every field the domain lets a version change (71 in aia-sociomap-5), but not the version's
+    // own name, which the store writes; none twice, though several steps read some of them.
+    expect(references.length).toBe(70);
+    expect(new Set(references).size).toBe(references.length);
+    expect(references).not.toContain("methodology_version");
+    // Computation order: the scale's normalisation first, the terrain late.
+    expect(references[0]).toBe("ratings.scale_normalization");
+    expect(references.indexOf("relation.n_min")).toBeLessThan(references.indexOf("terrain.sigma"));
+    // Each row names its stage by the number the calculation gives it.
+    const sigma = form.querySelector('[data-edit-row="terrain.sigma"]') as HTMLElement;
+    expect(within(sigma).getByText(/^M6 Terén/)).toBeTruthy();
+    expect(within(form.querySelector('[data-edit-row="relation.n_min"]') as HTMLElement).getByText(/^M2 Vztahy mezi objekty/)).toBeTruthy();
+    // The value it started from beside it, and no bound the domain does not declare.
+    expect(sigma.querySelector("[data-original]")?.textContent).toBe("0,25");
+    expect(within(sigma).getByText("meze hlídá Zkontrolovat")).toBeTruthy();
+    // A word or a list keeps a text field in the same row.
+    const words = form.querySelector('[data-field="relation.estimator"]') as HTMLInputElement;
+    expect(words.value).toBe("baseline_corrected_pearson");
+    expect(words.closest("[data-edit-row]")?.querySelector("button")).toBeNull();
+  });
+
+  it("steps a number by its own precision, ten at a time with Shift, and never clamps what is typed", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    const nMin = await field(form, "relation.n_min");
+    const row = nMin.closest("[data-edit-row]") as HTMLElement;
+    fireEvent.click(within(row).getByRole("button", { name: "Zvýšit: Nejmenší n páru" }));
+    expect(nMin.value).toBe("11");
+    fireEvent.click(within(row).getByRole("button", { name: "Zvýšit: Nejmenší n páru" }), { shiftKey: true });
+    expect(nMin.value).toBe("21");
+    fireEvent.keyDown(nMin, { key: "ArrowDown" });
+    expect(nMin.value).toBe("20");
+    const sigma = await field(form, "terrain.sigma");
+    fireEvent.click(within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Snížit: Šířka kopce σ" }));
+    expect(sigma.value).toBe("0,24");
+    expect(sigma.closest("[data-edit-row]")?.getAttribute("data-changed")).toBe("true");
+    // A typed value stays as typed: the domain's check decides, nothing here rounds it.
+    fireEvent.change(nMin, { target: { value: "2" } });
+    expect(nMin.value).toBe("2");
+    // A word where a number was cannot be stepped.
+    fireEvent.change(sigma, { target: { value: "široký" } });
+    expect((within(sigma.closest("[data-edit-row]") as HTMLElement).getByRole("button", { name: "Zvýšit: Šířka kopce σ" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(within(form).getByText("Neuloženo: 2 změny")).toBeTruthy();
   });
 
   it("says which part of a step's formula the expression replaces, and what stays code", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     await openEditor();
     const form = await editor();
-    fireEvent.click(form.querySelector('[data-edit-step-link="f3_effective_n"]')!);
-    const slot = form.querySelector('[data-edit-slot="f3.effective_n"]') as HTMLElement;
+    // The formulas are for the expert: closed under the list until opened.
+    expect(form.querySelector('[data-edit-slot="f3.effective_n"]')).toBeNull();
+    const slot = await found('[data-edit-slot="f3.effective_n"]', form);
     expect(within(slot).getByRole("textbox", { name: "Upravitelný výraz · Kishovo efektivní n" })).toBeTruthy();
     const kept = slot.querySelector("[data-kept]") as HTMLElement;
     expect(within(kept).getByText(/Výraz nahrazuje jen Kishovu větev/)).toBeTruthy();
@@ -554,11 +585,10 @@ describe("guided methodology editing", () => {
     await versionsSection();
     await openEditor();
     const form = await editor();
-    const heads = [...form.querySelectorAll("[data-outline-stage] > p")].map((p) => p.textContent);
+    const stages = new Set([...form.querySelectorAll("[data-edit-row] label + span")].map((n) => n.textContent?.split(" · ")[0]));
     // Pravděpodobnosti od modelu (1) and Losování (3) have nothing to edit; counting only what is
     // shown would read 1 and 2.
-    expect(heads).toEqual(expect.arrayContaining(["2Mechanismy odpovědi", "4Styly respondenta"]));
-    expect(heads.some((h) => h?.endsWith("Pravděpodobnosti od modelu"))).toBe(false);
+    expect([...stages]).toEqual(["M2 Mechanismy odpovědi", "M4 Styly respondenta"]);
   });
 
   it("invalidates a previous successful check when the parameter changes", async () => {
@@ -577,22 +607,25 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
   it("opens on the editor, with no extra click", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
-    // It edits what is in force, aia-sociomap-5, and says so; it saves over that preset itself, not
-    // over the first one listed, so no note says it saves over another.
-    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-5)" })).toBeTruthy();
-    expect(form.querySelector("[data-start-note]")).toBeNull();
+    // It edits what is in force, aia-sociomap-5, says what a stored edit will be called and that
+    // it will be internal until the register approves it.
+    const start = form.querySelector("[data-start-note]") as HTMLElement;
+    expect(start.textContent).toMatch(/^Úprava začíná z verze v platnosti: aia-sociomap-5\. Uložená úprava se bude jmenovat aia-sociomap-5\+e1 a je jen interní, dokud ji vlastník metody nezapíše do registru\./);
     expect((within(form).getByLabelText("Začít od metodiky z kódu") as HTMLSelectElement).selectedOptions[0].textContent).toBe("Metodika v platnosti");
     expect(screen.queryByRole("button", { name: "Upravit metodiku" })).toBeNull();
-    // The outline is the calculation in order, every editable step one click away.
-    const outline = within(form).getByRole("navigation", { name: "Kroky výpočtu" });
-    expect(within(outline).getAllByRole("button").length).toBeGreaterThan(3);
+    expect(within(form).getByRole("heading", { name: "Parametry" })).toBeTruthy();
+    // Nothing changed yet: nothing to store.
+    expect((within(form).getByRole("button", { name: "Uložit verzi" }) as HTMLButtonElement).disabled).toBe(true);
+    // The tabs sit under the module's head; no box repeats what is in force around them.
+    const parts = screen.getByRole("tablist", { name: "Části modulu" });
+    expect(parts.closest("[data-methodology-versions]")?.className).not.toMatch(/border/);
   });
 
-  it("opens the next edit on the stored version in force, with its values", async () => {
+  it("opens the next edit on the stored version in force, with its values, and Výpočet shows them in force", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     let form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,3" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
     const section = await versionsSection();
     fireEvent.click(await within(section).findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
     const dialog = await found("[data-methodology-activate]", section);
@@ -602,40 +635,41 @@ describe("the editor a methodologist opens on (product owner, 2026-10-13)", () =
     cleanup();
     render(<MethodologyPanel />); await openMap();
     form = await editor();
-    expect(within(form).getByRole("heading", { name: "Úprava metodiky v platnosti (aia-sociomap-5+e1)" })).toBeTruthy();
-    expect((await field(form, "terrain.sigma")).value).toBe("0.3"); // stored values are shown as stored
-    // A stored version is edited as it is: no note about another preset.
-    expect(form.querySelector("[data-start-note]")).toBeNull();
+    expect(form.querySelector("[data-start-note]")?.textContent).toMatch(/^Úprava začíná z verze v platnosti: aia-sociomap-5\+e1\. Uložená úprava se bude jmenovat aia-sociomap-5\+e2/);
+    expect((await field(form, "terrain.sigma")).value).toBe("0,3");
+    expect(form.querySelector('[data-edit-row="terrain.sigma"] [data-original]')?.textContent).toBe("0,3");
+    // Výpočet documents the code's preset; a parameter the version in force changes says so.
+    fireEvent.click(screen.getByRole("tab", { name: "Výpočet" }));
+    const live = await waitFor(() => {
+      const chip = document.querySelector("[data-step-value][data-live]");
+      if (!chip) throw new Error("no value in force");
+      return chip as HTMLElement;
+    });
+    expect(live.textContent).toMatch(/Šířka kopce σ: 0,3.*v platné verzi/);
   });
 
-  it("shows the change's place in the safe sequence, and what the draft changes in words", async () => {
+  it("marks what the draft changes, and passes the check before storing", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
-    const flow = within(form).getByRole("list", { name: "Postup změny" });
-    const state = (key: string) => flow.querySelector(`[data-flow-step="${key}"]`)?.getAttribute("data-state");
-    expect(state("edit")).toBe("now");
-    expect(state("check")).toBe("todo");
-    const decision = within(form).getByRole("complementary", { name: "Dopad a rozhodnutí" });
-    expect(within(decision).getByText("Zatím beze změny.")).toBeTruthy();
-
+    expect(form.querySelector("[data-draft-chip]")).toBeNull();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
-    expect(within(flow).getByText("· 1 změn")).toBeTruthy();
-    expect(within(decision).getByText("0,35")).toBeTruthy();
-    // The step that holds the change is marked in the outline.
-    const link = form.querySelector('[data-edit-step-link] [aria-label="1 změn"]');
-    expect(link).not.toBeNull();
-
+    expect(within(form).getByText("Neuloženo: 1 změna")).toBeTruthy();
+    expect(form.querySelector('[data-edit-row="terrain.sigma"]')?.getAttribute("data-changed")).toBe("true");
+    expect(form.querySelector('[data-edit-row="relation.n_min"]')?.hasAttribute("data-changed")).toBe(false);
+    expect((within(form).getByRole("button", { name: "Uložit verzi" }) as HTMLButtonElement).disabled).toBe(false);
+    // Back to the original value is no change.
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,250" } });
+    expect(form.querySelector("[data-draft-chip]")).toBeNull();
+    fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat" }));
-    await waitFor(() => expect(state("check")).toBe("done"));
-    expect(within(flow).getByText("· prošla")).toBeTruthy();
-    expect(state("compare")).toBe("now");
+    expect(await within(form).findByText("Kontrola prošla.")).toBeTruthy();
   });
 
   it("offers to put a just-saved version in force, with a reason, without hunting for it", async () => {
     const { sent } = fakeApi(); render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "terrain.sigma"), { target: { value: "0,35" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
     const section = await versionsSection();
     const offer = await within(section).findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" });
     // Once the list holds the saved version, it still offers one button for it: the confirmation's.
@@ -703,7 +737,7 @@ describe("a module's view (settings-redesign 10b)", () => {
     render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
     // e1 is stored, not in force: an edit from it differs from what is in force before a key is pressed.
     fireEvent.click(tab("Verze a aktivace"));
     const version = await found('[data-methodology-version="1"]');
@@ -722,7 +756,7 @@ describe("a module's view (settings-redesign 10b)", () => {
     expect(screen.getByText(/Bez úpravy jsou obě strany stejné/)).toBeTruthy();
     fireEvent.click(tab("Upravit"));
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s metodikou v platnosti" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Porovnat s platnou" }));
     await waitFor(() => expect(tab("Porovnání").getAttribute("aria-selected")).toBe("true"));
     expect(screen.getByText("Porovnává se vaše neuložená úprava.")).toBeTruthy();
   });
@@ -732,7 +766,7 @@ describe("a module's view (settings-redesign 10b)", () => {
     render(<MethodologyPanel />); await openMap();
     const form = await editor();
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zkontrolovat a uložit" }));
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
     fireEvent.click(await screen.findByRole("button", { name: "Uvést aia-sociomap-5+e1 v platnost" }));
     const dialog = await found("[data-methodology-activate]");
     // An edited Sociomap is internal until the register approves it: the act says so.

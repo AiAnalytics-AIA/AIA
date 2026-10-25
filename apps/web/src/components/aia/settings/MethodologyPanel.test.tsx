@@ -237,6 +237,9 @@ describe("the Metodika tab", () => {
     expect(screen.getAllByText(/Počet položek v sadě/).length).toBeGreaterThan(0);
     // Where a limit shows is the module's own, not the map reader's.
     expect(screen.queryByText("výsledek běhu, který čte čtenář mapy")).toBeNull();
+    // What every version keeps is part of the step's explanation (the editor lists only parameters).
+    const sample = await card("Velikost vzorku");
+    expect(within(sample.querySelector("[data-step-keeps]") as HTMLElement).getByText("chybějící n blokuje vždy")).toBeTruthy();
     await waitFor(() => expect(calls).toContain("/api/v1/methodology/readiness/versions")); // its versions, so its editor
   });
 

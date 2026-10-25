@@ -11,7 +11,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodVersions, methodology } from "@/lib/api";
+import { type MethodFormula, type MethodModuleDetail, type MethodModuleSummary, type MethodStepOut, type MethodValue, type MethodVersions, methodology } from "@/lib/api";
+import { readPath } from "@/lib/methodology-edit";
 import { type GroupedSteps, groupSteps, isParameter, methodologyCount, showValue, stageNumbers, stepNumbers, stepOrigin } from "@/lib/methodology";
 import { Tag } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
@@ -197,6 +198,21 @@ function InForceFact({ summary, res }: { summary: MethodModuleSummary; res: Reso
   return <span data-current-name>{f.origin === "stored" ? f.name : `${f.name} · ${t(`${M}.codeDefault`)}`}</span>;
 }
 
+/** A version the organization stored and put in force: the steps below show the code's preset,
+ *  and a parameter this version changes is shown with its value in force beside it. */
+type LiveVersion = { name: string; spec: Record<string, unknown> } | null;
+function liveVersion(res: Resource<MethodVersions | null>): LiveVersion {
+  if (res.state !== "ready" || !res.data || res.data.in_force.origin !== "stored") return null;
+  const found = res.data.versions.find((v) => v.version_number === res.data!.in_force.version_number);
+  return found ? { name: found.name, spec: found.spec } : null;
+}
+/** A parameter's value in the version in force, where that version changes it; undefined otherwise. */
+function liveValue(v: MethodValue, live: LiveVersion): MethodValue | undefined {
+  if (!live || !isParameter(v)) return undefined;
+  const value = readPath(live.spec, v.reference);
+  return value === undefined || JSON.stringify(value) === JSON.stringify(v.value) ? undefined : { ...v, value };
+}
+
 function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: MethodModuleSummary; people: People; onDirty: (value: boolean) => void; onOpen: (open: boolean) => void; versions: ModuleVersions }) {
   const [preset, setPreset] = useState(summary.in_force ?? undefined);
   const [res, retry] = useResource(() => methodology.get(summary.id, preset), [summary.id, preset]);
@@ -213,7 +229,7 @@ function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: M
         </button>)}
       </div>
     </div> : null}
-    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} />}</Loaded>
+    <Loaded res={res} retry={retry}>{(detail) => <Steps key={detail.preset ?? detail.id} detail={detail} live={liveVersion(versions.res)} />}</Loaded>
   </>;
   // An editable module is its parts as tabs (settings-redesign 10b); a read-only one is its calculation.
   if (summary.editable) return <MethodologyVersions summary={summary} people={people} calc={calc} onEditing={onOpen} onDirty={onDirty} versions={{ res: versions.res as Resource<MethodVersions>, reload: versions.reload }} />;
@@ -226,7 +242,7 @@ function ModuleView({ summary, people, onDirty, onOpen, versions }: { summary: M
  * its values and where they come from. A stage AIA does not compute yet is listed apart, never as a
  * tile with nothing behind it.
  */
-function Steps({ detail }: { detail: MethodModuleDetail }) {
+function Steps({ detail, live: running }: { detail: MethodModuleDetail; live: LiveVersion }) {
   const groups = groupSteps(detail);
   const numbers = stepNumbers(detail.groups);
   const stages = stageNumbers(detail.groups);
@@ -289,7 +305,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
           <span className="text-xs text-ink-muted">{methodologyCount(g.steps.length, "step")}</span>
         </div>
         {g.group?.note_cs ? <p className="mt-2 break-words text-xs leading-5 text-ink-muted">{g.group.note_cs}</p> : null}
-        {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}
+        {g.steps.map((step) => <StepRow key={step.id} step={step} number={numbers.get(step.id)} live={running} editable={detail.editable} titles={titles} open={open.has(step.id)} onToggle={() => toggle(step.id)} onPick={pick} />)}
       </section>
     ))}
     {withValues && !shown.length ? <p role="status" className="text-sm text-ink-muted">{t(`${M}.noValues`)}</p> : null}
@@ -306,7 +322,7 @@ function Steps({ detail }: { detail: MethodModuleDetail }) {
 
 /** A step as a row: its number, title, what it is for and its values; open, its formula, values,
  *  where they come from and what holds it. The heading names the step, so it can be found. */
-function StepRow({ step, number, editable, titles, open, onToggle, onPick }: { step: MethodStepOut; number?: string; editable: boolean; titles: Record<string, string>; open: boolean; onToggle: () => void; onPick: (id: string) => void }) {
+function StepRow({ step, number, live, editable, titles, open, onToggle, onPick }: { step: MethodStepOut; number?: string; live: LiveVersion; editable: boolean; titles: Record<string, string>; open: boolean; onToggle: () => void; onPick: (id: string) => void }) {
   const line = step.role_cs || step.note_cs.split(/(?<=\.)\s/)[0] || "";
   return <article aria-labelledby={`ms-${step.id}`} data-step={step.id} className="border-b border-border last:border-b-0">
     <h4 id={`ms-${step.id}`} aria-labelledby={`mst-${step.id}`} className="scroll-mt-4">
@@ -316,25 +332,33 @@ function StepRow({ step, number, editable, titles, open, onToggle, onPick }: { s
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span id={`mst-${step.id}`} className="text-sm font-medium">{step.title_cs}</span>
           {line ? <span id={`msl-${step.id}`} className="text-xs leading-5 text-ink-muted">{line}</span> : null}
-          {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => (
-            <span key={v.reference} data-step-value className="inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border border-border px-2 text-xs font-normal text-ink-muted">{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</b></span>
-          ))}</span> : null}
+          {step.values.length ? <span className="flex flex-wrap gap-1.5">{step.values.map((v) => {
+            // A value the version in force changes is shown as it runs, marked so (prototype v51).
+            const now = liveValue(v, live) ?? v;
+            return <span key={v.reference} data-step-value data-live={now !== v || undefined} className={`inline-flex min-h-[22px] max-w-full flex-wrap items-center rounded-[11px] border px-2 text-xs font-normal text-ink-muted ${now !== v ? "border-signal-edge bg-signal-tint" : "border-border"}`}>{v.label_cs}: <b className="ml-1 break-all font-mono font-medium text-ink">{showValue(now, WORDS)}{v.unit && !now.absent && now.value !== null ? ` ${v.unit}` : ""}</b>{now !== v ? <span className="ml-1">· {t(`${M}.inForceVersion`)}</span> : null}</span>;
+          })}</span> : null}
         </span>
         <span aria-hidden="true" className="pt-0.5 text-ink-faint">{open ? "▾" : "▸"}</span>
       </button>
     </h4>
-    {open ? <div data-step-body className="flex min-w-0 flex-col gap-3 pb-4 pl-1 sm:pl-[3.625rem]"><StepBody step={step} editable={editable} titles={titles} onPick={onPick} /></div> : null}
+    {open ? <div data-step-body className="flex min-w-0 flex-col gap-3 pb-4 pl-1 sm:pl-[3.625rem]"><StepBody step={step} live={live} editable={editable} titles={titles} onPick={onPick} /></div> : null}
   </article>;
 }
 
 /** An open step's detail: its formula, note, context, symbols, values, formulas, evidence and code. */
-function StepBody({ step, editable, titles, onPick }: { step: MethodStepOut; editable: boolean; titles: Record<string, string>; onPick: (id: string) => void }) {
+function StepBody({ step, live, editable, titles, onPick }: { step: MethodStepOut; live: LiveVersion; editable: boolean; titles: Record<string, string>; onPick: (id: string) => void }) {
   return (
     <>
       {step.audit ? <p data-step-origin className="text-xs text-ink-faint">{stepOrigin(step.audit)}</p> : null}
       <div className="min-w-0 overflow-x-auto text-ink"><Formula latex={step.formula_latex} /></div>
       {step.note_cs ? <p className="max-w-3xl break-words text-sm text-ink-muted">{step.note_cs}</p> : null}
       <StepContext step={step} titles={titles} onPick={onPick} />
+      {step.keeps_cs.length ? (
+        <div data-step-keeps className="text-sm">
+          <p className="text-xs font-medium text-ink-muted">{t(`${M}.stepKeeps`)}</p>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5">{step.keeps_cs.map((k) => <li key={k}>{k}</li>)}</ul>
+        </div>
+      ) : null}
       {step.symbols.length ? (
         <dl aria-label={t(`${M}.symbols`)} className="grid grid-cols-[minmax(0,6rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
           {step.symbols.map((y) => (
@@ -355,7 +379,14 @@ function StepBody({ step, editable, titles, onPick }: { step: MethodStepOut; edi
                   {v.label_cs}
                   <details className="mt-1 text-xs text-ink-faint"><summary className="cursor-pointer">{t(`${M}.fieldReference`)}</summary><code className="break-all">{v.reference}</code></details>
                 </th>
-                <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</td>
+                <td className="break-words py-1.5 pr-3 font-mono tabular-nums">{(() => {
+                  const now = liveValue(v, live);
+                  const code = <>{showValue(v, WORDS)}{v.unit && !v.absent && v.value !== null ? ` ${v.unit}` : ""}</>;
+                  return now ? <span data-live-value className="flex flex-col">
+                    <span>{showValue(now, WORDS)}{v.unit && now.value !== null ? ` ${v.unit}` : ""} <span className="font-sans text-xs text-signal">{tv(`${M}.inForceVersionNamed`, { name: live!.name })}</span></span>
+                    <span className="font-sans text-xs text-ink-faint">{t(`${M}.inCode`)} {code}</span>
+                  </span> : code;
+                })()}</td>
                 <td className="py-1.5 text-right" title={t(`${M}.originHelp.${v.origin}`)}><Tag>{t(`${M}.origin.${v.origin}`)}</Tag></td>
               </tr>
             ))}

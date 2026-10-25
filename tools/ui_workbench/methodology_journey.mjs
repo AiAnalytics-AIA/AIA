@@ -10,9 +10,9 @@
  *
  *   * every module opens: an editable one on its editor, a read-only one on its catalogue,
  *     every stage either with its steps or saying none is computed;
- *   * in each editor, every step of the outline shows exactly that step, and every link of
- *     a step's place in the computation moves to a step the editor shows (never an empty
- *     pane: the defect found in review on #400);
+ *   * in each editor, the one list of parameters (settings-redesign F6) holds every field the
+ *     module lets a version change, once each, every row naming its stage, and the formulas for
+ *     the expert open under it, every slot there;
  *   * each editable module takes one edit, compares it with what is in force, stores it as a
  *     version and puts it in force; the API agrees;
  *   * with --run, one research run (research_journey.mjs) pins every stored version, and the
@@ -78,27 +78,26 @@ const openModule = async (title) => {
   await page.getByRole("navigation", { name: "Oblasti metodiky" }).getByRole("button", { name: title, exact: true }).click();
   await heading.waitFor();
 };
-const visibleSteps = () => page.locator("[data-methodology-editor] fieldset[data-edit-step]:not([hidden])");
-
-/** Every outline step shows itself alone; every context link lands on a step the editor shows. */
-const walkEditor = async (moduleId) => {
-  const links = await page.locator("[data-edit-step-link]").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-edit-step-link")));
-  assert(links.length > 0, `${moduleId}: the editor outline is empty`);
-  let moves = 0;
-  for (const id of links) {
-    await page.locator(`[data-edit-step-link="${id}"]`).click();
-    assert.equal(await visibleSteps().count(), 1, `${moduleId}/${id}: not exactly one step shown`);
-    assert.equal(await visibleSteps().getAttribute("data-edit-step"), id, `${moduleId}/${id}: another step shown`);
-    const targets = await visibleSteps().locator("[data-context-link]").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-context-link")));
-    for (const target of targets) {
-      await visibleSteps().locator(`[data-context-link="${target}"]`).first().click();
-      assert.equal(await visibleSteps().count(), 1, `${moduleId}: the link ${id} -> ${target} left ${await visibleSteps().count()} steps shown`);
-      assert.equal(await visibleSteps().getAttribute("data-edit-step"), target, `${moduleId}: the link ${id} -> ${target} landed elsewhere`);
-      moves += 1;
-      await page.locator(`[data-edit-step-link="${id}"]`).click();
-    }
+/** The list holds every parameter the API says a version can change, once; the formulas open. */
+const walkEditor = async (moduleId, summary) => {
+  const versions = await get(`/api/v1/methodology/${moduleId}/versions`);
+  const live = versions.in_force.origin === "stored" ? versions.versions.find((v) => v.version_number === versions.in_force.version_number) : null;
+  const base = live ? live.base_preset : summary.in_force;
+  const detail = await get(`/api/v1/methodology/${moduleId}?preset=${encodeURIComponent(base)}`);
+  const expected = [...new Set(detail.step_details.flatMap((s) => s.values.filter((v) => v.origin === "specification" && !v.absent && v.reference !== "methodology_version").map((v) => v.reference)))];
+  const slots = detail.step_details.flatMap((s) => s.formulas.map((f) => f.slot_id));
+  const form = page.locator("[data-methodology-editor]");
+  const rows = await form.locator("[data-edit-row]").evaluateAll((nodes) => nodes.map((n) => ({ ref: n.getAttribute("data-edit-row"), stage: n.querySelector("label + span")?.textContent ?? "" })));
+  assert.deepEqual(rows.map((r) => r.ref).sort(), [...expected].sort(), `${moduleId}: the list is not every parameter once`);
+  if (detail.groups.length) for (const row of rows) assert(row.stage.trim(), `${moduleId}/${row.ref}: no stage named`);
+  if (slots.length) {
+    await form.locator("[data-edit-formulas] summary").click();
+    await form.locator("[data-edit-slot]").first().waitFor();
+    const shown = await form.locator("[data-edit-slot]").evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-edit-slot")));
+    assert.deepEqual(shown.sort(), [...slots].sort(), `${moduleId}: the formulas are not every slot`);
+    await form.locator("[data-edit-formulas] summary").click();
   }
-  return { steps: links.length, moves };
+  return { params: rows.length, slots: slots.length };
 };
 
 /** Every stage of a read-only catalogue holds its steps, or says none is computed. */
@@ -117,9 +116,7 @@ const walkCatalogue = async (moduleId) => {
 };
 
 const chooseField = async (reference) => {
-  const field = page.locator(`[data-methodology-editor] [data-field="${reference}"]`).first(); await field.waitFor({ state: "attached" });
-  const step = await field.locator("xpath=ancestor::fieldset").getAttribute("data-edit-step");
-  await page.locator(`[data-edit-step-link="${step}"]`).click(); await field.waitFor(); return field;
+  const field = page.locator(`[data-methodology-editor] [data-field="${reference}"]`).first(); await field.waitFor(); return field;
 };
 
 /** One edit, compared, stored and put in force through the page; the API agrees. */
@@ -129,11 +126,11 @@ const storeAndActivate = async (moduleId) => {
   previous[moduleId] = before.in_force.origin === "code" ? null : before.in_force.version_number;
   const form = page.locator("[data-methodology-editor]");
   await (await chooseField(edit.reference)).fill(edit.typed);
-  await form.getByRole("button", { name: "Porovnat s metodikou v platnosti", exact: true }).click();
+  await form.getByRole("button", { name: "Porovnat s platnou", exact: true }).click();
   await page.locator("[data-methodology-compare]").waitFor({ timeout: 60000 });
   // The comparison shows on the module's Porovnání (settings-redesign 10b); storing is on Upravit.
   await page.getByRole("tab", { name: "Upravit", exact: true }).click();
-  await form.getByRole("button", { name: "Zkontrolovat a uložit", exact: true }).click();
+  await form.getByRole("button", { name: "Uložit verzi", exact: true }).click();
   await form.waitFor({ state: "detached", timeout: 60000 });
   const after = await get(`/api/v1/methodology/${moduleId}/versions`);
   const created = after.versions.find((v) => !before.versions.some((old) => old.version_number === v.version_number));
@@ -168,11 +165,11 @@ try {
     const editor = page.locator("[data-methodology-editor]");
     if (module.editable) {
       await editor.waitFor({ timeout: 60000 }).catch(() => { throw new Error(`${module.id}: an administrator does not open on the editor`); });
-      const walked = await walkEditor(module.id);
+      const walked = await walkEditor(module.id, module);
       assert(EDITS[module.id], `${module.id}: editable, but the journey has no edit for it`);
       const name = await storeAndActivate(module.id);
       await shot(`${module.id}-in-force`);
-      ok(`${module.id}: ${walked.steps} steps each shown alone, ${walked.moves} context links each landing on a shown step; stored and in force as ${name}`);
+      ok(`${module.id}: ${walked.params} parameters listed once each, ${walked.slots} formula slots under them; stored and in force as ${name}`);
     } else {
       assert.equal(await editor.count(), 0, `${module.id}: read-only, yet an editor opened`);
       const stages = await walkCatalogue(module.id);
