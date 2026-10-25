@@ -855,6 +855,7 @@ field for client measured claims, and `layer_check` green with no exemption.
 fields) is the one authority." Open until the evidence claim gate and admission consume the
 population's `FieldPolicy` and `JointStatus` (the smallest fix above) and the `companions.py`
 exemption is dropped; no plan chunk builds it yet. No owner yet; the coordinator is finding one.
+**2026-10-25:** owned by `evidence-integrity#5` (S2, W0; "One field-policy authority per evidence source"), agreed by the coordinator 2026-10-25.
 
 ---
 
@@ -1136,6 +1137,7 @@ token at all. The `IdentityProvider` seam is unchanged by that move.
 **Decided 2026-10-25 (the owner, OI-35 (a), the audit page, relayed by coordinator 3):** "HttpOnly cookie session before
 production." Open until it is built before the first production release; no chunk of
 `production-environment.md` builds it yet. No owner yet; the coordinator is finding one.
+**2026-10-25:** to be built by `production-environment#PE12` (S3, W1; "The browser holds no token"), added to the plan by #896 (merged as `5d5ed250`).
 
 ---
 
@@ -2854,6 +2856,7 @@ names none (`domain/evidence/instrument.py:132-139`). The gate's default is unch
 (`admission.py:91, 244`), so this stays open for any other builder of an `EvidenceRow`. Its
 number follows the contract's rule for concurrent entries (§5). It was OI-72 on this entry's branch
 until #83 put OI-76 on `develop` (`48bf3e2`, 22:45 UTC). #84 merged OI-77 at 23:09 UTC (`8c13a11`), and #75 still claims OI-72 to OI-75.
+**2026-10-25:** closed. `packages/aia_core/src/aia_core/domain/evidence/admission.py:241 @ 5d5ed250` admits a `CLIENT_FACING` claim only from a row whose origin is in `CLIENT_ADMISSIBLE_ORIGINS`, so a row naming no origin is refused; test `packages/aia_core/tests/test_evidence_instrument.py::test_a_row_with_no_origin_no_longer_slips_the_origin_gate` (on develop since #729's merge, `4c142761`, 2026-10-22).
 
 ---
 
@@ -3005,6 +3008,7 @@ closed Study.
 only once" (option 2). The owner's note, verbatim: "lets delete old studies"; the coordinator is
 asking what it means, and it is recorded here unapplied until clarified. Open until
 `delivered_at` is stamped on the first delivery only, with a test; no chunk builds it yet. The gate stays where it is; deleting old studies is the plan `study-deletion.md`.
+**2026-10-25:** "Smazat studii" is planned in `study-deletion.md` (#894, merged as `b2606edc`), with ADR 0043 (`docs/architecture/adr/0043-study-deletion.md`) Proposed; nothing built until the owner answers its SD0. The `delivered_at` fix above is unchanged.
 
 ## OI-82 · Requirement · A Knowledge change an AI writes will need its own approval-ledger row
 
@@ -5987,6 +5991,7 @@ settings.
 
 **Status.** Open. It gates `report-editor-hosting` chunk 4 (activation on develop), whose precondition
 is this fix.
+**2026-10-25:** closed by #831 (merged as `ca14a942`, 2026-10-23): the cookie is `__Host-aia_session` deployed (`apps/api/src/aia_api/routers/session.py:73 @ 5d5ed250`), read by `_session_credential` (`:131`) and `session_cookie` (`:120`), and a name sent twice is no session. Tests: `apps/api/tests/test_session_api.py::test_a_deployed_gate_reads_only_the_host_prefixed_cookie`, `::test_a_session_cookie_sent_twice_is_no_session`. `report-editor-hosting` chunk 4's precondition (F1) is met.
 
 ---
 
@@ -6154,6 +6159,7 @@ per membership or per account.
 **Test.** Organization A's admin deactivating organization B's member is `ScopeDenied`.
 
 **Status.** Open (`security-audit-2026-10` chunk 15).
+**2026-10-25:** closed by #830 (merged as `32475bdc`, 2026-10-23), S15 fixed: the target is resolved through the acting admin's organization (`packages/aia_core/src/aia_core/infrastructure/scope_repository.py:412` `deactivate_user`, `:445` `_member_row` @ `5d5ed250`), and deactivation is per membership. Test: `packages/aia_core/tests/test_member_deactivation.py::test_an_admin_cannot_deactivate_a_user_of_another_organization`.
 
 ---
 
@@ -6198,6 +6204,7 @@ them.
 **Test.** `tools/caddy_routes.py` asserts the header on the product hostname.
 
 **Status.** Open (`security-audit-2026-10` chunk 16).
+**2026-10-25:** #875 (merged as `0d2c07a4`) re-found this from the report editor's side: the product's pages send no CSP, so there is no policy for the editor's origin to join (`deploy/develop/Caddyfile:45-52 @ 5d5ed250`, still none; only `docs.` sets one, at `:160`). Filed here, not again. The editor's own script gate is OI-234.
 
 ---
 
@@ -6402,6 +6409,7 @@ terén, otáčet…") above every battery, also when every battery is an older m
 **Test.** The `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`.
 
 **Status.** Open (`artifact-sociomap` SOC2; `ExecutionSteps` is Výsledky's).
+**2026-10-25:** fixed on the workbench's Sociomapa stage by #815 (merged as `a25d2435`): the stage prints no map hint above an older method's notice (`ExecutionSteps.test.tsx` › "says a set stored under an older method draws no map, with no map hint above the notice"). Still open on Výsledky's Sociomapy tab, which prints `mapToolNotInAia` above that notice (`apps/web/src/components/rehome/research/ExecutionSteps.tsx:1702 @ 5d5ed250`): Výsledky's to fix.
 
 ---
 
@@ -6445,6 +6453,7 @@ comment at `:5 @ 6bfe3760`). Plan `artifact-sociomap.md` § Findings ("For the m
 **Test.** A journey check that no object label sits under the legend or tool column at 390 px.
 
 **Status.** Open, for the methodology owner.
+**2026-10-25:** closed by SOC13 (#815, merged as `a25d2435`, 2026-10-23): at 390 px the legend is a chip until opened, and the view controls moved to a rail bottom right, off the labels (`artifact-sociomap.md:242-243`). Labels near the edge passing under the bar or the chip stay open as OI-240.
 
 ---
 
@@ -6703,3 +6712,378 @@ a population that will not load stays unknown.
 **Test.** `apps/api/tests/test_population_double_api.py::test_a_sample_the_sampler_refuses_fails_readiness_and_refuses_the_start`.
 
 **Status.** Closed by #745 (merged as `c7fbd15a`, 2026-10-22).
+
+---
+
+## OI-232 · Finding · Deleting a client frees its respondent system's once-per-organization holdout confirmation
+
+**Claim.** `erase_client_holdouts` deletes the deleted client's `holdout_confirmations` rows, the only
+thing holding `holdout_confirmation_once_per_system`, so another study of the organization may then
+start a second confirmation of the same respondent system.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/holdout_repository.py:264-272 @ 5d5ed250`
+(the delete), called from `packages/aia_core/src/aia_core/application/client_deletion.py:194`; the
+constraint `infrastructure/tables.py:1064-1096` (`holdout_confirmation_once_per_system` at `:1095`); the
+refusals it feeds, `holdout_repository.py:217-221` and `application/validation.py:181-185`. Plan
+`study-deletion.md` Finding F1 (recorded `@ f7762d72`), on the owner's review page as REV-SD-F1-NOW.
+
+**Reproduction.** Run 2026-10-25 on SQLite with the real table and helper (plan F1, item 3): a
+confirmation of fingerprint X for client A; a second for client B is refused; after
+`erase_client_holdouts(session, client_id="client-a")` the second is accepted (`before delete: second
+confirmation refused (once per system)` / `after client-a deleted: second confirmation ACCEPTED`). Not yet
+a committed test.
+
+**Consequence.** A failed holdout confirmation can be erased by deleting its client and run again until
+one passes; a passing confirmation is what lifts a modelled number's `INTERNAL_ONLY`
+(`domain/evidence/validation.py:151` `lifts_internal_only`), so evidence could reach a client report on a
+validation that was chosen, not preregistered.
+
+**Smallest fix.** Keep the confirmation row (content-free: fingerprint, sha, run id, who, when) under the
+tombstone and erase only the preregistration's content; drop its foreign key to the preregistration, or
+keep the preregistration row content-free.
+
+**Test.** `test_client_deletion.py::test_a_deleted_clients_confirmation_still_holds_its_system`: delete a
+client whose validation study started a confirmation; a second study's start of the same fingerprint is
+refused `holdout_system_confirmation_started`.
+
+**Status.** Open, 2026-10-25. Owner: `study-deletion` SD7 (with `settings-backends` SB5, which built the
+client deletion).
+
+---
+
+## OI-233 · Finding · The report editor's edit hold fails open when the Document Server's clock runs ahead
+
+**Claim.** The edit hold counts an edit as held when AIA received its report no later than the version's
+`content_at`, the save's `lastsave` on the Document Server's clock capped at AIA's receipt; a Document
+Server clock running ahead of AIA's by more than the gap between a save's last change and the next edit's
+report lets that save hold the edit.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/report/editor.py:152-171 @ 5d5ed250`
+(`unsaved_edits`, the comparison at `:169`); `apps/api/src/aia_api/routers/report_editor.py:491-501`
+(`_held_through`, the cap to receipt), applied at `:463`. Plan `artifact-report.md:576-583` (RPT8f, "Every
+rule fails closed but one"); #880 (merged as `ee20550f`), #877's clock note (`fb949290`).
+
+**Reproduction.** `apps/api/tests/test_report_editor_api.py::test_a_lastsave_ahead_of_aias_clock_counts_as_aias_receipt_and_never_holds_a_later_edit`
+shows the cap (a `lastsave` five minutes ahead is kept as the receipt, and an edit reported after it is
+held off); it does not close the window below the cap: a skew smaller than the time to receipt is kept as
+sent.
+
+**Consequence.** An edited report version approved without an edit the person typed just after its save.
+
+**Smallest fix.** NTP time on both hosts, or a skew check: the Document Server's `Date` header on each
+callback beside AIA's receipt, refusing a save beyond a bound. #877 named the bound it assumes: the two
+clocks within 1 s.
+
+**Test.** A callback dated ahead of AIA's receipt beyond the bound is refused, and stores no koncept.
+
+**Status.** Open, 2026-10-25. Not reachable on develop: the Document Server and the API share one host,
+and the editor is off (`AIA_ONLYOFFICE_URL` unset, `deploy/develop/docker-compose.yml:206`). A
+prerequisite of moving the Document Server off the develop host, beside RPT8e (OI-234).
+
+---
+
+## OI-234 · Finding · The report editor's api.js is loaded without Subresource Integrity
+
+**Claim.** Zpráva loads the Document Server's `api.js` into AIA's own page from the origin the API names,
+with no `integrity` attribute, so whatever that origin serves runs with the page's privileges.
+
+**Anchor.** `apps/web/src/components/rehome/research/ReportEditor.tsx:50-62 @ 5d5ed250` (`loadDocsApi`:
+`script.src = url`, no `integrity`); `apps/web/src/lib/report-editor.ts:42-52` (the URL, https origin
+only). Plan `artifact-report.md:18` (RPT8e); #875 (merged as `0d2c07a4`).
+
+**Reproduction.** `grep -n integrity apps/web/src/components/rehome/research/ReportEditor.tsx` prints
+nothing.
+
+**Consequence.** A defect or compromise on `docs.<hostname>` would run script in AIA's pages, where the id
+and refresh tokens sit in sessionStorage (OI-35).
+
+**Smallest fix.** RPT8e: the script loaded with SRI, its hash taken from the pinned Document Server
+image's own `api.js` and configured beside `AIA_ONLYOFFICE_URL`, verified against the real Document Server
+with CORS.
+
+**Test.** A `ReportEditor` test that the script element carries the configured hash and
+`crossorigin`, and that no hash configured loads no script.
+
+**Status.** Open, 2026-10-25. A hard gate of activation (the PM, 2026-10-23; owner: Zpráva):
+`AIA_ONLYOFFICE_URL` stays unset until RPT8e and RPT8f are ticked. The product CSP the editor's origin
+would join is OI-209.
+
+---
+
+## OI-235 · Follow-up · A multi-tenant deployment needs an operator gate for Stav systému and error tracking
+
+**Claim.** Smoke results and GlitchTip's issues belong to the whole deployment, so an organization's
+OWNER or ADMIN reads them only while the deployment holds that one organization; with more, both routes
+refuse 409 `deployment_shared`, and no operator gate exists to serve them.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/system_status.py:40-54 @ 5d5ed250`
+(`_single_tenant`); `apps/api/src/aia_api/routers/system_status.py:11,43-47`. Plan `settings-backends.md`
+SB4; #839 (merged as `f392c1e9`).
+
+**Reproduction.** `apps/api/tests/test_system_status_api.py::test_with_a_second_organization_both_are_refused_as_the_deployments`.
+
+**Consequence.** On a deployment with a second organization, Settings → Stav systému and the error card
+say an operator reads them, and nobody in AIA can.
+
+**Smallest fix.** An operator role apart from organization membership (as `AIA_POPULATION_OPERATORS` is
+for the population), checked by both routes in place of the tenant count.
+
+**Test.** With two organizations, an operator reads both routes and each organization's ADMIN is still
+refused `deployment_shared`.
+
+**Status.** Open, 2026-10-25. Develop holds one organization (the smoke seed not counted), so nothing is
+refused there; needed before a deployment serves a second tenant.
+
+---
+
+## OI-236 · Question · The report's sentence-check word lists are provisional
+
+**Claim.** The RD7 sentence check marks a comparison stated in words with no ledger number; which words
+make a comparison is AIA's starting reading of Czech, PROVISIONAL until the methodology owner reviews it.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/report/sentence_check.py:12,38 @ 5d5ed250` (the
+PROVISIONAL marks); cases in `packages/aia_core/tests/fixtures/report_sentences/cases.json`. #884 (merged
+as `156d339c`), `report-delivery` RD7.
+
+**Reproduction.** `pytest packages/aia_core/tests/test_sentence_check.py`: the cases the lists decide.
+
+**Consequence.** A sentence is marked `unsupported_comparison`, or left unmarked, by a list nobody
+responsible for the methodology has read; it marks and never refuses (RD0's rule), so the cost is a wrong
+warning or a missing one.
+
+**Smallest fix.** The methodology owner reviews `COMPARISON_WORDS` and the exceptions; the fixture records
+the answer.
+
+**Test.** `cases.json` holds a case for each word the owner adds or removes.
+
+**Status.** Open, 2026-10-25, for the methodology owner.
+
+---
+
+## OI-237 · Finding · The approval ledger's `map_snapshot` subject has no writer
+
+**Claim.** `ApprovalSubject.MAP_SNAPSHOT` was admitted by LO16 for RD4, but RD4 approves a map snapshot as
+an artifact (subject `artifact`), so nothing writes the subject.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/approval_ledger.py:58,94,110 @ 5d5ed250`;
+`application/map_snapshots.py` (the snapshot, approved as an artifact). Plan `report-delivery.md:184-185`
+(Finding RD4a, for LO16); #886 (merged as `5f089474`).
+
+**Reproduction.** `git grep -n "MAP_SNAPSHOT\b" origin/develop -- packages apps` lists only the
+declaration in `approval_ledger.py`.
+
+**Consequence.** A reader of the ledger looking for snapshot approvals under `map_snapshot` finds none;
+they are under `artifact`. A dead value in a closed set.
+
+**Smallest fix.** LO16's owner decides: drop the subject (a migration narrowing the check constraint), or
+record it as reserved.
+
+**Test.** A test that every `ApprovalSubject` has a writer or is listed as reserved.
+
+**Status.** Open, 2026-10-25. Owner: `lead-orchestration` LO16 (`domain/approval_ledger.py` is LO16's, the
+PM on #886).
+
+---
+
+## OI-238 · Hypothesis · A warm methodology comparison takes 8-9 s
+
+**Claim.** With the numba kernels compiled, Metodika's "Porovnat s metodikou v platnosti" still takes
+8-9 s: six `aia-sociomap-5` maps at about 1.4 s each, with the noise rule's 100 permutations and the
+layout's restarts; unprofiled, so it may be what `-5` costs or a defect of its own.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/methodology/sociomap_check.py:304 @ 5d5ed250`
+(`compare_with_in_force`). Plan `settings-redesign.md:75`; #871 (merged as `effa698e`), which measured
+8,116-9,173 ms over five warm runs.
+
+**Reproduction.** A hypothesis until profiled; the timing is the settings journey's
+(`tools/ui_workbench/settings_journey.mjs`, five runs on a warm cache, #871).
+
+**Consequence.** An administrator waits about 10 s on each comparison; the editor says so after 10 s.
+
+**Smallest fix.** Profile one comparison first; nothing is changed before that.
+
+**Test.** A timing bound on one comparison of the three check panels, sized generously (§7), once the
+profile says what it should be.
+
+**Status.** Open, 2026-10-25 (a hypothesis).
+
+---
+
+## OI-239 · Question · The Sociomapa stage's method text is new wording
+
+**Claim.** The Sociomapa stage's "Jak byla spočtena" and the gauges' sentences restate the signed-off
+method in new plain-language words, and "± N %" reads `credibility.uncertainty_radius` as a share of the
+typical distance between objects; the methodology owner has not confirmed either.
+
+**Anchor.** `apps/web/src/i18n/cs.ts:3721 @ 5d5ed250` (`research.exec.mapStage`);
+`apps/web/src/lib/map-explained.ts:89` (`uncertainty_radius`). Plan `artifact-sociomap.md:230-236`
+(Findings, "For the methodology owner"); #815 (merged as `a25d2435`).
+
+**Reproduction.** `node tools/ui_workbench/sociomap_journey.mjs` (after `--prepare`): the stage's text
+under the `-5` map.
+
+**Consequence.** A researcher reads the method in words its owner has not checked.
+
+**Smallest fix.** The methodology owner reads and confirms or corrects the `mapStage` copy.
+
+**Test.** None beyond the copy; the owner's answer is recorded in the plan.
+
+**Status.** Open, 2026-10-25, for the methodology owner.
+
+---
+
+## OI-240 · Hypothesis · Object labels near the map's edge pass under the bar or the legend chip
+
+**Claim.** `drawObjectMap` places object labels without insets, so a label near the map's edge can pass
+under the overlay bar (top left) or the legend chip.
+
+**Anchor.** `apps/web/src/lib/object-map-panel.ts:423 @ 5d5ed250` (`drawObjectMap`). Plan
+`artifact-sociomap.md:244-246` (Findings, "Open"); #815 (merged as `a25d2435`, SOC13).
+
+**Reproduction.** A hypothesis: no case is recorded; the plan names it from SOC13's layout.
+
+**Consequence.** An object's name hidden on the map.
+
+**Smallest fix.** An `insets` parameter to the map's projection (centre shifted, scale reduced).
+
+**Test.** A label's box never meets the bar's or the legend chip's.
+
+**Status.** Open, 2026-10-25 (`artifact-sociomap`).
+
+---
+
+## OI-241 · Finding · ADR 0026 promises `403 human_gate_required`, and no code raises it
+
+**Claim.** ADR 0026 says a human-only command is refused `403 human_gate_required` unless a person's
+request invokes it directly, but the code has no such refusal.
+
+**Anchor.** `docs/architecture/adr/0026-research-lead-proposes-a-person-decides.md:177 @ 5d5ed250`; the
+typed command registry is `packages/aia_core/src/aia_core/domain/lead_commands.py` (#574). Recorded as
+MISSING in `.planning/evidence/mvp-master-traces/trace-4-lead-governance.md:102`.
+
+**Reproduction.** `git grep -n human_gate_required origin/develop` lists only the ADR and the trace.
+
+**Consequence.** The ADR is believed: a reader expects a refusal code no route sends. What holds today is
+that a Lead turn only prepares a card, and a person approves it through `…/turns/{turn_id}/request` under
+`APPROVE_GATE`; nothing names that as the ADR's gate.
+
+**Smallest fix.** A decision first: amend ADR 0026 to name the mechanism that exists (a card a person
+approves), or raise `human_gate_required` where a human-only command is reached without a person's
+request.
+
+**Test.** For each human-only command in the ADR's table, a test that a Lead turn alone cannot start it,
+asserting the refusal the decision names.
+
+**Status.** Open, 2026-10-25. Owner: `lead-orchestration` (the command registry; ADR 0026 decision 4).
+
+---
+
+## OI-242 · Finding, closed · A questionnaire file replaced the questionnaire with no way back
+
+**Claim.** Loading a questionnaire file replaced every block, question and set already there, with no word
+before and no way back.
+
+**Anchor.** `QuestionnaireStep.tsx:456-458 @ 382b418a`. Plan `artifact-questionnaire.md` Finding QF-15
+(browser audit 3, 2026-10-22).
+
+**Reproduction.** On Dotazník with a questionnaire, load the template: it is gone.
+
+**Consequence.** A person with a questionnaire who tried the template lost it on the first file.
+
+**Smallest fix.** Done: the upload card says a file replaces the questionnaire there is, and an import over
+one is offered back with Vrátit (input standard I6): the sections and the plan's status as they were.
+
+**Test.** `QuestionnaireStep.test.tsx`.
+
+**Status.** Closed by #826 (merged as `1fb7b176`, 2026-10-23).
+
+---
+
+## OI-243 · Finding, closed · A questionnaire file that failed to import was said in English
+
+**Claim.** A questionnaire file that failed to import for any reason but the import's own rules was said in
+the API's English ("The request body or parameters are invalid.", "Failed to fetch"); the template's
+download too.
+
+**Anchor.** `QuestionnaireStep.tsx:461,470 @ 82541803` (the raw `e.message`). Plan
+`artifact-questionnaire.md` Finding QF-16 (audit 3, 2026-10-22).
+
+**Reproduction.** Import an empty file on Dotazník.
+
+**Consequence.** A Czech researcher read an English sentence that did not say what to do.
+
+**Smallest fix.** Done: an empty or too large file is refused before it is sent; a 422 keeps its Czech
+words, anything else is said in the Brief's upload words (`research/brief-upload.ts`).
+
+**Test.** `QuestionnaireStep.test.tsx` "says an empty file, a refusal without words of its own and a lost
+connection in Czech" and "says a template the API would not give in Czech".
+
+**Status.** Closed by #833 (merged as `7294ceda`, 2026-10-23).
+
+---
+
+## OI-244 · Finding, closed · Every stage change drew the Lead's pane anew and read the whole study again
+
+**Claim.** Each stage was the page of its own route segment, and Next.js remounts a page when its dynamic
+segment changes, so the Lead's pane, its draft and scroll, and every study read were made again.
+
+**Anchor.** `apps/web/src/components/aia/ResearchStudy.tsx:131-137 @ 82541803`. Plan
+`research-lead-workbench.md:1839` (F23).
+
+**Reproduction.** `apps/web/src/components/aia/ResearchStudy.stages.test.tsx` "keeps the Lead's pane, its
+draft and the study's reads when the stage changes" fails with the screen keyed by its step; in a browser,
+297-381 ms and 22-26 API reads per stage change.
+
+**Consequence.** A lag and a flash of the conversation on every stage click.
+
+**Smallest fix.** Done: the study's layout draws the stages (`ResearchStages`, `useSelectedLayoutSegment`,
+`ResearchStudy.tsx:140 @ 5d5ed250`); the stage page only answers an unknown stage with 404.
+
+**Test.** The reproduction above.
+
+**Status.** Closed by #835 (merged as `8e4b0913`, 2026-10-23).
+
+---
+
+## OI-245 · Finding, closed · Two first reads of the client report could store two drafts
+
+**Claim.** The client report's store-on-first-read looked up and stored without a lock, so two first reads
+of the same sources could store two drafts, and an approval of the first was then not the one read next.
+
+**Anchor.** `application/client_report.py` `_client_report` (before the fix). Plan
+`report-delivery.md:172-182` (Finding, RD4a review).
+
+**Reproduction.** `apps/api/tests/test_research_api.py::test_two_first_reads_of_the_client_report_store_one_draft`
+(PostgreSQL; fails without the lock).
+
+**Consequence.** A client report approved that was not the one handed over next.
+
+**Smallest fix.** Done: `_client_report` takes the run's row (`WorkflowRepository.lock_run`) before it looks
+for a stored draft (`packages/aia_core/src/aia_core/application/client_report.py:371 @ 5d5ed250`).
+
+**Test.** The reproduction above.
+
+**Status.** Closed by #888 (merged as `0e868b75`, 2026-10-25).
+
+---
+
+## OI-246 · Finding, closed · Two approvals of one report at once recorded two decisions
+
+**Claim.** `approve_report` read a report's review and approved it without a lock, so two approvals at once
+recorded two decisions.
+
+**Anchor.** `application/report_approval.py` `approve_report` (before the fix). Plan
+`report-delivery.md:174-182` (Finding, RD4a review).
+
+**Reproduction.** `apps/api/tests/test_research_api.py::test_two_approvals_of_one_report_at_once_record_one_decision`
+(PostgreSQL; fails without the lock).
+
+**Consequence.** Two ledger rows for one report's approval.
+
+**Smallest fix.** Done: `approve_report` takes the run's row before it reads the review, before any line
+lock, as a snapshot's approval does
+(`packages/aia_core/src/aia_core/application/report_approval.py:134 @ 5d5ed250`).
+
+**Test.** The reproduction above.
+
+**Status.** Closed by #888 (merged as `0e868b75`, 2026-10-25).
