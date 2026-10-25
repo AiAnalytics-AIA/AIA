@@ -39,6 +39,8 @@ DESIGN = {
     "title": "Ranní nápoj",
     "n": 40,
     "sections": [
+        # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+        {"type": "questions", "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}]},
         {
             "type": "object_battery",
             "title": "Nápoje",
