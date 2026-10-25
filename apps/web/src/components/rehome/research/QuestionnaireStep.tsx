@@ -262,7 +262,7 @@ export function QuestionnaireStep() {
           ? t("research.questionnaire.nextHint")
           : !has
             // Tracked sets alone are no questionnaire (OI-52 (b)); readiness fails it too.
-            ? t(xs.some((s) => s.type === "object_battery") ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
+            ? t(questionnaireCounts(p).sets ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
             : emptyQuestions
             ? tv("research.questionnaire.dockEmpty", { n: emptyQuestions })
             : badSets

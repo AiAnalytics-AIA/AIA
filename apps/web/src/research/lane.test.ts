@@ -42,6 +42,9 @@ describe("designLane", () => {
     const p = project({ sections: [banks] as never });
     expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "1 sada · bez běžné otázky" });
     expect(blockers({ project: p, analysis: null })).toContainEqual({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
+    // A set outside the limits is still named beside it.
+    const small = project({ sections: [{ ...banks, objects: ["A", "B", "C"] }] as never });
+    expect(designLane({ project: small, analysis: null }).questionnaire.line).toBe("1 sada · bez běžné otázky · 1 sada mimo 4–40");
   });
 
   it("names a tracked set outside 4-40 in the plan and in the questionnaire", () => {

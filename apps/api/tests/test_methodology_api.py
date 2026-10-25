@@ -574,6 +574,8 @@ def _readiness_draft(n: int, items: int) -> dict[str, Any]:
             "title": "Fiktivní nápoje",
             "n": n,
             "sections": [
+                # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+                {"type": "questions", "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}]},
                 {
                     "type": "object_battery",
                     "title": "Nápoje",
