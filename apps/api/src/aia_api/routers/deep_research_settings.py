@@ -142,6 +142,10 @@ class VersionResponse(BaseModel):
     created_at: datetime
     state: Literal["IN_FORCE", "APPROVED_BEFORE", "PENDING", "WITHDRAWN", "DECLINED"]
     decline: DeclineResponse | None = None
+    #: Whether the caller may approve this version now: an administrator, not withdrawn or
+    #: declined, and not their own proposal while independent review is required (the same rule
+    #: the approval checks). What the page offers, never a grant.
+    may_approve: bool = False
 
 
 class ApprovalResponse(BaseModel):
@@ -215,8 +219,11 @@ def _from_overview(o: SettingOverview) -> SettingSummary:
     return _summary(o.definition, o.effective, o.version_count, o.latest_number)
 
 
-def _version(v: StoredSettingVersion) -> VersionResponse:
+def _version(
+    v: StoredSettingVersion, reader: DeepResearchSettingsReader | None = None
+) -> VersionResponse:
     return VersionResponse(
+        may_approve=reader.may_approve(v) if reader is not None else False,
         version_number=v.version_number,
         value=_wire(v.value),
         value_sha256=v.value_sha256,
@@ -300,7 +307,7 @@ def read_setting(key: SettingKey, org: OrganizationDep, session: SessionDep) -> 
         item = _one(reader, key)
         return SettingDetail(
             **_from_overview(item).model_dump(),
-            versions=[_version(v) for v in reader.versions(key)],
+            versions=[_version(v, reader) for v in reader.versions(key)],
             history=[_approval(a) for a in reader.history(key)],
         )
     except SettingRefused as exc:
@@ -322,7 +329,7 @@ def propose(
         )
     except (ScopeDenied, SettingRefused) as exc:
         raise _refused(exc) from exc
-    return _version(stored)
+    return _version(stored, DeepResearchSettingsReader(session, org))
 
 
 @router.put(

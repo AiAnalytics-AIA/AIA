@@ -22,11 +22,13 @@ from aia_core.domain.research_lead import (
     EXTERNAL_LAYER,
     HISTORY_TURNS,
     LEAD_PROMPT_ID,
+    MESSAGES_MAX_BYTES,
     context_bytes,
     context_classification,
     context_sha256,
     freeze_context,
     layer,
+    take_queued,
 )
 from aia_core.domain.residency import DataClass
 
@@ -380,3 +382,40 @@ def test_a_layer_counts_only_what_it_counted() -> None:
     assert _row(view, "runs")["omitted_count"] is None
     assert _row(view, "lead")["omitted_count"] is None
     assert _row(view, "knowledge")["omitted_count"] == 0
+
+
+def test_a_turn_takes_queued_messages_while_layer_nine_fits_and_always_the_first() -> None:
+    eight_kb = "ž" * 4000  # 8,000 bytes
+    assert take_queued([]) == 0
+    assert take_queued([eight_kb]) == 1
+    assert take_queued([eight_kb, eight_kb]) == 1  # 16,000 bytes: the second waits
+    assert take_queued(["ž" * 2048] * 3) == 3  # 12,288 bytes, exactly the bound: all three
+    assert take_queued(["ž" * 2048] * 3 + ["a"]) == 3  # one byte over: it waits
+    assert take_queued(["x" * (MESSAGES_MAX_BYTES + 1)]) == 1  # the first is never cut
+
+
+def test_each_queued_message_and_its_focus_are_classed_as_the_researchers() -> None:
+    messages = [
+        {"turn_id": "LDT-1", "stage": "brief", "text": "První", "focus": None},
+        {
+            "turn_id": "LDT-2",
+            "stage": "brief",
+            "text": "Druhá",
+            "focus": {"id": "brief:goal", "label": "Cíl"},
+        },
+    ]
+    view = {
+        "kind": "message",
+        "stage": "brief",
+        "focus": None,
+        "message": None,
+        "messages": messages,
+    }
+    context = _context(view=view)
+    parts = [
+        p
+        for p in context_classification(context, (), _pin())
+        if p["part"] in ("message", "focus_label")
+    ]
+    assert [p["part"] for p in parts] == ["message", "message", "focus_label"]
+    assert {p["data_class"] for p in parts} == {DataClass.CLASS_B_DERIVED_CLIENT.value}
