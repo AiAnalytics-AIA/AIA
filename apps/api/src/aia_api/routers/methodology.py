@@ -27,6 +27,7 @@ validated by the domain and stored only by
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Final
@@ -262,6 +263,9 @@ class VersionOut(_Strict):
     note: str
     created_by: str
     created_at: datetime
+    #: The object map only: the Sociomap register's status for the method this version pins
+    #: (an edit is another method, internal until registered). None for every other module.
+    register_status: str | None = None
 
 
 class ActivationOut(_Strict):
@@ -297,6 +301,9 @@ class VersionsOut(_Strict):
     presets: dict[str, dict[str, Any]]
     versions: list[VersionOut]
     history: list[ActivationOut]
+    #: The object map only: the register's status for the code's preset, whatever is in force
+    #: (Verze a aktivace lists the preset beside the stored versions). None for other modules.
+    code_register_status: str | None = None
 
 
 class EditIn(_Strict):
@@ -607,6 +614,7 @@ def _not_found(code: str, message: str) -> HTTPException:
 
 def _version(v: StoredVersion) -> VersionOut:
     return VersionOut(
+        register_status=_register(v.module_id, v.payload),
         version_number=v.version_number,
         name=v.name,
         base_preset=v.base_preset,
@@ -644,14 +652,19 @@ def _in_force(found: InForce) -> InForceOut:
     )
 
 
+def _register(module_id: str, payload: Mapping[str, Any] | None) -> str | None:
+    """The Sociomap register's status of the method a run under ``payload`` pins (``None``: the
+    code's preset); ``None`` for every module no register covers."""
+    if module_id != "sociomap":
+        return None
+    method = sociomap_methods_for(payload)[-1]
+    return method_status(method.method_id, method.spec_fingerprint, method.formulas).value
+
+
 def _with_register(module_id: str, found: InForce) -> InForceOut:
     """:func:`_in_force` with the Sociomap register's status of the method it pins."""
-    out = _in_force(found)
-    if module_id != "sociomap":
-        return out
-    method = sociomap_methods_for(None if found.version is None else found.version.payload)[-1]
-    status = method_status(method.method_id, method.spec_fingerprint, method.formulas)
-    return out.model_copy(update={"register_status": status.value})
+    status = _register(module_id, None if found.version is None else found.version.payload)
+    return _in_force(found).model_copy(update={"register_status": status})
 
 
 def _panel(c: PanelComparison) -> PanelOut:
@@ -942,6 +955,7 @@ def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep
             presets=_presets(module_id),
             versions=[_version(v) for v in reader.versions(module_id)],
             history=[_activation(a) for a in reader.history(module_id)],
+            code_register_status=_register(module_id, None),
         )
     except MethodologyRefused as exc:
         raise _refused(exc) from exc

@@ -256,6 +256,8 @@ ahead of the host-only cookie. That is a login CSRF, and a lockout `DELETE /sess
 deletes only the host-only cookie (review of #785, 2026-10-22). Nothing is served while the editor is off,
 so this PR does not wait on it; activation does.
 
+*The owner, 2026-10-25 (RD-EDITOR-ACTIVATION (a), the audit page, relayed by coordinator 3): go once OI-200's cookie fix is merged.*
+
 Each step needs the owner's word and the coordinator's approval:
 
 1. Resize to `t3a.large`: `instance_type` in the SSM tfvars, `terraform apply`, about 2 minutes down.

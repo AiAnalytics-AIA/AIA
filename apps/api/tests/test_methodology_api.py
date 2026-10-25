@@ -232,6 +232,7 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> 
         "register_status": "CLIENT_FACING",
     }
     assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
+    assert body["code_register_status"] == "CLIENT_FACING"
 
 
 def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_preset(
@@ -265,6 +266,10 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
     assert back.json()["register_status"] == "CLIENT_FACING"
     body = owner.get(f"{SOCIOMAP}/versions").json()
     assert [v["version_number"] for v in body["versions"]] == [1]
+    # Verze a aktivace lists each version with the register's answer for it, and the code's
+    # preset beside them with its own.
+    assert body["versions"][0]["register_status"] == "INTERNAL_ONLY"
+    assert body["code_register_status"] == "CLIENT_FACING"
     assert [(a["version_number"], a["reason"]) for a in body["history"]] == [
         (None, "zpět"),
         (1, "ověřeno"),
@@ -396,6 +401,7 @@ def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None
     support = owner.get(f"{SUPPORT}/versions").json()
     # No register covers the support rules: the field says nothing rather than "approved".
     assert support["in_force"]["register_status"] is None
+    assert support["code_register_status"] is None
     presets = support["presets"]
     assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
     looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
@@ -406,6 +412,7 @@ def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None
     assert (looser.status_code, stricter.status_code) == (201, 201)
     assert stricter.json()["spec"]["results"]["min_cell"] == 80
     assert stricter.json()["spec"]["analysis"]["n_guard"] is None
+    assert stricter.json()["register_status"] is None  # no register covers the support rules
     put = owner.put(f"{SUPPORT}/activation", json={"version_number": 2, "reason": "přísněji"})
     assert put.json()["name"] == "aia-support-1+e2"
 

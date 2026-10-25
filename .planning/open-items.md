@@ -661,6 +661,9 @@ block (then it is re-issued and bound to the panel hash as usual), or the
 refusal is correct. Not an engineering judgement.
 
 **Status.** Open, with the data owner.
+**Decided 2026-10-25 (the owner, OI-19 (b), the audit page, relayed by coordinator 3):** "re-issue the certificate naming the block
+(religion)." Open until the certificate is re-issued naming `RELIGION`, bound to the panel hash as
+usual, and the parity test's expected narrowing (`{"RELIGION"}`) moves with it.
 
 ---
 
@@ -745,7 +748,7 @@ closes the path for every executor that follows it.
 
 ---
 
-## OI-22 · Question · Should revoking a researcher stop the runs they started?
+## OI-22 · Question, closed · Should revoking a researcher stop the runs they started?
 
 **Claim.** A worker executes a claimed attempt under a scope issued from the lease
 (`ScopeResolver.execution_context`), with the run's `triggered_by` as actor. It
@@ -769,7 +772,9 @@ at the cost of stranding a leaver's in-flight studies until someone re-triggers
 them. (c) (b), but reassign rather than refuse, which needs a product rule for
 who inherits.
 
-**Status.** Open. A product/security decision, not an engineering one.
+**Status.** Closed 2026-10-25 by decision: the owner chose (a), "runs keep going when a researcher
+leaves" (OI-22 (a), the audit page, relayed by coordinator 3). Authority stays fixed at run creation; nothing to build. Earlier:
+Open. A product/security decision, not an engineering one.
 **2026-10-05:** since ADR 0019 there are no client or study grants (dropped by #120), so the
 only re-check left to decide is that the triggerer is still active and still a member of the
 organization; and any Researcher, not only a LEAD, can cancel the run.
@@ -846,6 +851,10 @@ retargeted. Then drop the `companions.py` exemption.
 field for client measured claims, and `layer_check` green with no exemption.
 
 **Status.** Open, needs a decision from the owner of both.
+**Decided 2026-10-25 (the owner, OI-24 (a), the audit page, relayed by coordinator 3):** "the population's policy (stricter, 115
+fields) is the one authority." Open until the evidence claim gate and admission consume the
+population's `FieldPolicy` and `JointStatus` (the smallest fix above) and the `companions.py`
+exemption is dropped; no plan chunk builds it yet. No owner yet; the coordinator is finding one.
 
 ---
 
@@ -1124,6 +1133,9 @@ session minted by the API after verifying the id token once (a `POST
 token at all. The `IdentityProvider` seam is unchanged by that move.
 
 **Status.** Open by decision. Trigger: the production environment.
+**Decided 2026-10-25 (the owner, OI-35 (a), the audit page, relayed by coordinator 3):** "HttpOnly cookie session before
+production." Open until it is built before the first production release; no chunk of
+`production-environment.md` builds it yet. No owner yet; the coordinator is finding one.
 
 ---
 
@@ -1752,6 +1764,9 @@ is a decision.
 the cleared state.
 
 **Status.** Open; ported as the classic behaves; **decision for the data owner**.
+**Decided 2026-10-25 (the owner, OI-51 (a), the audit page, relayed by coordinator 3):** "clear the subpanel and filters on every
+preset change." Open until the audience step clears them (the smallest fix above) and the
+characterization test asserts the cleared state; no chunk builds it yet. To be built by the audience session's fix PR (`fix/audience-preset-clears-filters`).
 
 ## OI-52 · Question · Is a questionnaire of tracked sets only a questionnaire?
 
@@ -1774,6 +1789,9 @@ questionnaire is ready.
 to both buttons. The rebuild keeps both as they are.
 
 **Status.** Open; **question for the data owner**.
+**Decided 2026-10-25 (the owner, OI-52 (b), the audit page, relayed by coordinator 3):** "a questionnaire needs at least one plain
+question." A tracked set alone does not count. Open until both buttons apply the rule; no chunk
+builds it yet. To be built by the questionnaire session's fix PR (`fix/questionnaire-plain-question`, QF-17).
 
 ## OI-53 · Finding · "AI doporučí" approves dimensions that are not in the catalogue
 
@@ -1799,6 +1817,10 @@ different dimension (same test).
 earlier binding did. A methodology decision.
 
 **Status.** Open; ported as the classic behaves; **decision for the data owner**.
+**Decided 2026-10-25 (the owner, OI-53 (a), the audit page, relayed by coordinator 3):** "filter to the catalogue." The owner's
+note: "the buttons should not be part of the UI but a card in the Lead researcher." Open until the
+suggestion is filtered to the catalogue (the rest listed as requests) and offered as a Lead card
+instead of the stage's buttons; no chunk builds it yet. To be built by `lead-orchestration` LO22; the classic button is removed as DIM5.
 
 ## OI-54 · Finding · The optional dimensions can never all be removed
 
@@ -2271,6 +2293,8 @@ with `AIA_AI_FIELDWORK_CHECKPOINT` on, each answered respondent block is kept in
 The switch is off by default and off on develop (`deploy/develop/docker-compose.yml:282 @ 6bfe3760`,
 `${AIA_AI_FIELDWORK_CHECKPOINT:-false}`), so this stays open until it is on where runs are paid
 for.
+*2026-10-25 (the owner, AUD-8 (a), the audit page, relayed by coordinator 3):* turn the fieldwork checkpoint on, an operator
+change through SSM; the infra session is preparing it. Open until it is on for develop.
 
 ---
 
@@ -2604,6 +2628,11 @@ every client's studies.
 study identifiers, owners and admins only) an acceptable second cross-study read, or does
 evidence stay on each Study's runs? Until decided, Settings says *Neověřeno* and points at the
 runs. Data owner + integration-architecture.
+
+**Status.** Decided 2026-10-25 (the owner, OI-75 (a), the audit page, relayed by coordinator 3): "allow the aggregate" (last
+success time, model and build per activity, no client or study identifiers, owners and admins
+only). Open until Settings reads it, as a named second cross-study read in `ARCHITECTURE.md` §3;
+no chunk builds it yet. To be built by `settings-redesign` F14.
 
 ---
 
@@ -2972,6 +3001,10 @@ The data owner decides; nothing changes until then.
 
 **Status.** Open. It needs an answer before the cutover only if the host's dry run lists a
 closed Study.
+**Decided 2026-10-25 (the owner, OI-81 (b), the audit page, relayed by coordinator 3):** "keep the gate; stamp the delivery date
+only once" (option 2). The owner's note, verbatim: "lets delete old studies"; the coordinator is
+asking what it means, and it is recorded here unapplied until clarified. Open until
+`delivered_at` is stamped on the first delivery only, with a test; no chunk builds it yet. The gate stays where it is; deleting old studies is the plan `study-deletion.md`.
 
 ## OI-82 · Requirement · A Knowledge change an AI writes will need its own approval-ledger row
 
@@ -3424,6 +3457,9 @@ unit's comment describes: redraw under derived seeds and keep the first that pas
 the sample.
 
 **Status.** Open; needed before `plans/panel-grounded-respondents.md` chunk 5.
+**2026-10-25 (the owner, OI-99 (c), the audit page, relayed by coordinator 3):** "redraw with new seeds and keep the first that
+passes." The owner's note, verbatim: "lets create an individual artifact to explore and decide
+this". **Still open:** the coordinator is building that artifact, and the decision is taken there.
 
 ---
 
@@ -4908,7 +4944,7 @@ pinned run limit.
 
 ---
 
-## OI-159 · Finding · The acceptance study cannot use a scoped Deep Research test policy
+## OI-159 · Finding, closed · The acceptance study cannot use a scoped Deep Research test policy
 
 **Claim.** A study test policy requires the study's budget to be at most USD 20, and the representative
 acceptance study's is USD 25.
@@ -4927,7 +4963,12 @@ USD 20 study.
 
 **Test.** The existing guard, `test_deep_research_sandbox_policy.py`.
 
-**Status.** Open; the owner's choice.
+**Status.** Closed 2026-10-25 by decision: the owner chose (a), "use the organisation's live
+approvals for the acceptance organisation" (OI-159 (a), the audit page, relayed by coordinator 3). The owner's note, verbatim:
+"deep research uses budget of the study it pertains to." Nothing to build: the acceptance study
+stays at USD 25 and its priced Deep Research calls are held against that study's budget; the
+approvals themselves are the owner's clicks on Settings → Deep Research (DR-SIGNOFF (a), the same
+day).
 
 ---
 

@@ -9,6 +9,11 @@ before any command reaches *respondent replacement*. **Builds on** [ADR 0016](00
 [ADR 0019](0019-two-roles-and-human-ai-gates.md) gates 1 and 2, and
 [ADR 0028](0028-orchestration-scope-wallet-and-plan-card.md) (the typed start). **Leaves unchanged**
 the original run, its dataset, its results and its report.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
 **Date:** 2026-10-20. **Amended 2026-10-20** with the product owner's recorded answer D-36
 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, #523 @ `ee21982`); still Proposed.
 **Plan:** [run-qc-and-checkpoint](../../../.planning/plans/run-qc-and-checkpoint.md) RQC4, RQC4a, RQC5

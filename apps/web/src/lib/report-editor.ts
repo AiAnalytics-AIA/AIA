@@ -17,7 +17,12 @@ export type EditorOpened = {
   lines: EditorLine[];
   /** Why the line's last save was not stored, as the server keeps it; null when none failed. */
   problem?: string | null;
+  /** The Subresource Integrity api.js must match (RPT8e); absent from an API before it, so nothing loads. */
+  api_integrity?: string;
 };
+
+/** What `POST /session/docs-ticket` answers: where the one-time ticket is spent, on the editor's origin. */
+export type DocsTicket = { session_url: string; expires_at: string };
 
 export type EditorLine = {
   line_id: string;
@@ -39,18 +44,48 @@ export function editorMode(widthPx: number): EditorMode {
   return widthPx >= EDIT_FROM_PX ? "edit" : "view";
 }
 
-/** The Document Server's api.js on the origin the API named, or null for anything but an https
- *  origin: the page never loads a script from elsewhere, nor from a path the answer chose. */
-export function apiScriptUrl(documentServer: string): string | null {
-  let url: URL;
+const API_JS = "/web-apps/apps/api/documents/api.js";
+const DOCS_SESSION = "/__aia/session";
+
+const httpsOrigin = (value: string): URL | null => {
   try {
-    url = new URL(documentServer);
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password ? url : null;
   } catch {
     return null;
   }
-  if (url.protocol !== "https:" || url.username || url.password) return null;
-  return `${url.origin}/web-apps/apps/api/documents/api.js`;
+};
+
+/** The Document Server's api.js on the origin the API named, or null for anything but an https origin:
+ *  the page never loads a script from elsewhere, nor from a path an answer chose. The canonical path,
+ *  because ONLYOFFICE's api.js finds its own base (and so its iframes' origin) by matching its script
+ *  element's src against `api/documents/api.js` (getBasePath; Codex on #895). */
+export function apiScriptUrl(documentServer: string): string | null {
+  const origin = httpsOrigin(documentServer);
+  return origin ? `${origin.origin}${API_JS}` : null;
 }
+
+/** Where the page spends the one-time ticket that opens the editor's origin to this person
+ *  (report-editor-hosting: the docs gate needs its cookie, which spending the ticket sets), before
+ *  api.js is loaded: the ticket's URL, `next` the script's path. Null unless the ticket is spent on the
+ *  origin the API named, at its session path, over https, and names no `next` of its own. */
+export function ticketUrl(documentServer: string, sessionUrl: string): string | null {
+  const origin = httpsOrigin(documentServer);
+  const ticket = httpsOrigin(sessionUrl);
+  if (!origin || !ticket || ticket.origin !== origin.origin || ticket.pathname !== DOCS_SESSION) return null;
+  if (!ticket.searchParams.get("ticket") || ticket.searchParams.has("next")) return null;
+  ticket.searchParams.set("next", API_JS);
+  return ticket.href;
+}
+
+/** The api.js integrity as the API answered it, when it is one SHA-384 digest (RPT8e), else null:
+ *  without one the page loads no script into AIA's origin. */
+export function scriptIntegrity(value: string | undefined): string | null {
+  return value && /^sha384-[A-Za-z0-9+/]{64}$/.test(value) ? value : null;
+}
+
+/** The editor's script was not loaded because nothing proves it is the pinned one (RPT8e). */
+export const UNVERIFIED = "Skript editoru zprávy nelze ověřit; zobrazuje se koncept jen ke čtení.";
 
 /** What opening the editor answered, for the pane: `off` (no editor configured: the read-only
  *  draft as before, nothing said), or a refusal or failure, said in words beside the read-only draft. */

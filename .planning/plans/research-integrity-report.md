@@ -732,6 +732,11 @@ What follows from them:
 - D4 is the evaluation finding ADR 0021 decision 7 asks for (F1), and the owner's call on it: the
   engine changes, by a small set of deterministic rules, each with a test.
 
+### The owner's answer of 2026-10-25
+
+RIR-5 (a), the audit page, relayed by coordinator 3: go. Chunk 5 (develop acceptance on the
+existing fictional Fio run, USD 0) may run on the deploy; it is not ticked until it has.
+
 ## Relation to other plans
 
 - run-recovery-and-truth: chunk 1 builds on 3a-3e (the trace) without editing them; chunk 2 covers
