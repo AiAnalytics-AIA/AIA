@@ -76,7 +76,7 @@ holds the values above against both processes' startup checks; nothing reads the
 | `aia_bedrock_input_usd_per_mtok` / `_output_` | `2.20` / `11.00` | read 2026-10-25 |
 | `aia_bedrock_cache_read_usd_per_mtok` / `_cache_write_` | `0.11` / `2.75` | **set the write price**: unset, writes are charged at the input rate, below Bedrock's (see Findings) |
 | `aia_bedrock_max_output_tokens` | `128000` | the model's ceiling |
-| `aia_bedrock_context_window_tokens` | `200000` for the first switch, or `1000000` with a larger research reservation | see below |
+| `aia_bedrock_context_window_tokens` | `200000` | the product owner's decision, 2026-10-25; see below |
 | `aia_bedrock_structured_output` / `_thinking` / `_accepts_sampling` | `auto_tool` / `adaptive` / `false` | |
 | `aia_bedrock_effort` | unset (the model's default, `high`) | |
 | `aia_ai_fieldwork_effort` | `low` | to be measured in chunk 5 |
@@ -88,7 +88,7 @@ Computed by the code's own `reservation_usd` at the prices above and a 4,096 res
 at a 200,000 window, 5.5901 USD at 1,000,000 (Sonnet 4.5 today: 1.3229 at 200,000). The Lead's
 default 1.02 covers its 0.6893 minimum. Configuring 200,000 keeps every reservation at today's
 scale, as the 2026-09-26 activation configured a conservative output ceiling
-(`docs/architecture/bedrock-develop-activation-2026-09-26.md:13`). Raising it is a later decision.
+(`docs/architecture/bedrock-develop-activation-2026-09-26.md:13`). **Decided:** the product owner chose 200,000 on 2026-10-25, and the infra session was told. Raising it is a later decision.
 
 ## Chunk 5: what the probe measures (no number here is a guess)
 
