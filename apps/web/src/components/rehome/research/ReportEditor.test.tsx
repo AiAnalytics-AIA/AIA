@@ -16,7 +16,12 @@ const OPENED: EditorOpened = {
   version_artifact_id: "ART-2",
   lines: [],
   problem: null,
+  api_integrity: `sha384-${"a".repeat(64)}`,
 };
+/** The one-time ticket the page spends by loading api.js through it (report-editor-hosting). */
+const TICKET = { session_url: "https://docs.aia.example.test/__aia/session?ticket=t.k", expires_at: "2026-10-25T21:00:00Z" };
+const SCRIPT = "https://docs.aia.example.test/__aia/session?ticket=t.k&next=%2Fweb-apps%2Fapps%2Fapi%2Fdocuments%2Fapi.js";
+const ticket = () => vi.fn().mockResolvedValue(TICKET);
 
 /** A stand-in DocsAPI: records each editor made and what it was configured with. */
 function docsApi() {
@@ -39,7 +44,7 @@ const events = (config: Record<string, unknown>) =>
 
 const show = (props: Partial<Parameters<typeof ReportEditor>[0]> = {}) =>
   render(
-    <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} {...props}>
+    <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} {...props}>
       <article>Koncept jen ke čtení</article>
     </ReportEditor>,
   );
@@ -61,14 +66,14 @@ describe("the draft in the report editor", () => {
     expect(load).not.toHaveBeenCalled();
   });
 
-  it("opens the version the API named, with the config it signed, from its own origin's api.js", async () => {
+  it("opens the version the API named, with the config it signed, from its own origin's api.js through the ticket, under its integrity", async () => {
     const { api, made } = docsApi();
     const open = vi.fn().mockResolvedValue(OPENED);
     const load = vi.fn().mockResolvedValue(api);
     show({ open, load });
     await vi.waitFor(() => expect(made).toHaveLength(1));
     expect(open).toHaveBeenCalledWith("STU-1", "RUN-1", { variant: "internal", deep_research_run_id: null, line: null, mode: "edit" });
-    expect(load).toHaveBeenCalledWith("https://docs.aia.example.test/web-apps/apps/api/documents/api.js");
+    expect(load).toHaveBeenCalledWith(SCRIPT, OPENED.api_integrity);
     expect(made[0].config).toMatchObject({ token: "signed", document: { key: "ART-1.aaaa.1" } });
     expect(document.getElementById(made[0].id)).not.toBeNull();
     act(() => events(made[0].config).onAppReady());
@@ -103,7 +108,7 @@ describe("the draft in the report editor", () => {
     const open = vi.fn(async (_s: string, _r: string, body: { line?: string | null }) => (body.line === "ART-9" ? B : OPENED));
     const props = { open, load: vi.fn().mockResolvedValue(api), onShown, report: vi.fn().mockResolvedValue(undefined) };
     const view = render(
-      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} {...props}><article /></ReportEditor>,
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} ticket={ticket()} {...props}><article /></ReportEditor>,
     );
     await vi.waitFor(() => expect(made).toHaveLength(1));
     act(() => events(made[0].config).onAppReady());
@@ -111,7 +116,7 @@ describe("the draft in the report editor", () => {
     const seen = () => (onShown.mock.lastCall?.[0] as { seen: () => unknown } | null)?.seen();
     expect(seen()).toMatchObject({ document_key: "ART-1.aaaa.1", seq: 1 });
     view.rerender(
-      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line="ART-9" {...props}><article /></ReportEditor>,
+      <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line="ART-9" ticket={ticket()} {...props}><article /></ReportEditor>,
     );
     await vi.waitFor(() => expect(made).toHaveLength(2));
     act(() => events(made[1].config).onAppReady());
@@ -192,6 +197,36 @@ describe("the draft in the report editor", () => {
     show({ open: vi.fn().mockResolvedValue({ ...OPENED, document_server: "http://docs.aia.example.test" }), load });
     expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
     expect(load).not.toHaveBeenCalled();
+  });
+
+  it("loads no script without an integrity to check it against, and says so (RPT8e)", async () => {
+    for (const api_integrity of [undefined, "", "sha256-abc"]) {
+      const load = vi.fn();
+      const spend = ticket();
+      const { unmount } = show({ open: vi.fn().mockResolvedValue({ ...OPENED, api_integrity }), load, ticket: spend });
+      expect(await screen.findByText("Skript editoru zprávy nelze ověřit; zobrazuje se koncept jen ke čtení.")).toBeTruthy();
+      expect(screen.getByText("Koncept jen ke čtení")).toBeTruthy();
+      expect(load).not.toHaveBeenCalled();
+      expect(spend).not.toHaveBeenCalled(); // no ticket spent for a script that will not load
+      unmount();
+    }
+  });
+
+  it("keeps the read-only draft when no ticket is given, and loads nothing", async () => {
+    const load = vi.fn();
+    show({ open: vi.fn().mockResolvedValue(OPENED), ticket: vi.fn().mockRejectedValue(new ApiError(403, "not_a_member", "", null)), load });
+    expect(await screen.findByText(/Editor zprávy neodpovídá/)).toBeTruthy();
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("puts api.js on the page under its integrity, with credentials, through the ticket", async () => {
+    show({ open: vi.fn().mockResolvedValue(OPENED) });
+    await vi.waitFor(() => expect(document.head.querySelector("script[integrity]")).not.toBeNull());
+    const script = document.head.querySelector<HTMLScriptElement>("script[integrity]")!;
+    expect(script.src).toBe(SCRIPT);
+    expect(script.getAttribute("integrity")).toBe(OPENED.api_integrity);
+    expect(script.getAttribute("crossorigin")).toBe("use-credentials");
+    script.remove();
   });
 
   it("says a refusal in words beside the read-only draft", async () => {

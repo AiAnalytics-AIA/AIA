@@ -4,20 +4,47 @@ import { ApiError } from "./api";
 import {
   documentKeyOf, newPageId, unsavedWords, UNSTORED,
   apiScriptUrl, changesListed, changeWords, editedApprovalQuestion, editedWords, editorMode, type EditorVersionRead,
-  openFailure, problemWords, type SavedChange, savedWords,
+  openFailure, problemWords, type SavedChange, savedWords, scriptIntegrity,
 } from "./report-editor";
 
 describe("where the editor's script is loaded from", () => {
-  it("is the named origin's api.js, whatever path the answer carried", () => {
-    expect(apiScriptUrl("https://docs.aia.example.test")).toBe("https://docs.aia.example.test/web-apps/apps/api/documents/api.js");
-    expect(apiScriptUrl("https://docs.aia.example.test:8443/elsewhere/?x=1")).toBe(
-      "https://docs.aia.example.test:8443/web-apps/apps/api/documents/api.js",
-    );
+  const DOCS = "https://docs.aia.example.test";
+  const ticket = `${DOCS}/__aia/session?ticket=t.k`;
+
+  it("is api.js through the ticket's session path on the named origin, whatever path the answer carried", () => {
+    const url = new URL(apiScriptUrl(DOCS, ticket)!);
+    expect(url.origin).toBe(DOCS);
+    expect(url.pathname).toBe("/__aia/session");
+    expect(url.searchParams.get("ticket")).toBe("t.k");
+    expect(url.searchParams.get("next")).toBe("/web-apps/apps/api/documents/api.js");
+    expect(apiScriptUrl(`${DOCS}/elsewhere/?x=1`, ticket)).toBe(url.href);
   });
 
   it("is nothing for an origin that is not https, carries credentials or is not a URL", () => {
     for (const bad of ["http://docs.aia.example.test", "https://u:p@docs.aia.example.test", "javascript:alert(1)", "", "docs"]) {
-      expect(apiScriptUrl(bad)).toBeNull();
+      expect(apiScriptUrl(bad, ticket)).toBeNull();
+    }
+  });
+
+  it("is nothing for a ticket spent anywhere but the named origin's session path, or naming its own next", () => {
+    for (const bad of [
+      "https://evil.example.test/__aia/session?ticket=t.k",
+      `${DOCS}/web-apps/apps/api/documents/api.js?ticket=t.k`,
+      `${DOCS}/__aia/session`,
+      `${DOCS}/__aia/session?ticket=t.k&next=/elsewhere.js`,
+      "http://docs.aia.example.test/__aia/session?ticket=t.k",
+    ]) {
+      expect(apiScriptUrl(DOCS, bad)).toBeNull();
+    }
+  });
+});
+
+describe("the integrity api.js must match (RPT8e)", () => {
+  it("is one SHA-384 digest or nothing", () => {
+    const good = `sha384-${"A".repeat(64)}`; // 48 bytes are 64 base64 characters, no padding
+    expect(scriptIntegrity(good)).toBe(good);
+    for (const bad of [undefined, "", `sha256-${"A".repeat(43)}=`, `sha384-${"A".repeat(63)}`, `${good}=`, `${good} ${good}`]) {
+      expect(scriptIntegrity(bad)).toBeNull();
     }
   });
 });

@@ -573,6 +573,25 @@ no save). The version read takes the page's seen edit (`seen_key`, `seen_page`, 
 as `edits: {saved, reason}`; the doc bar's hold follows it alone, a read from before the page's newest edit counting
 for nothing, and guesses nothing (Codex on #880).
 
+*RPT8e, built (`feature/editor-api-integrity`); its last check is activation's.* `AIA_ONLYOFFICE_API_INTEGRITY`
+(`sha384-` and the digest's 64 base64 characters, refused at start otherwise): without it `report_editor_on` is false,
+so Zpráva opens nothing in the editor and the open route answers 404, whatever else is set. The open route answers it as
+`api_integrity`. The page then asks `POST /session/docs-ticket` for a one-time ticket and loads api.js through it,
+`<docs>/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js` (report-editor-hosting's "the script load is
+the way in": spending the ticket sets the docs gate's cookie, and the redirect to api.js carries it; the pane had loaded
+api.js directly, which the docs gate answers 401), with `integrity` and `crossorigin="use-credentials"`
+(`lib/report-editor.ts` `apiScriptUrl`, `scriptIntegrity`; `ReportEditor.tsx` `loadDocsApi`). No integrity, no ticket or a
+script that does not hash to it: the read-only draft, said (`UNVERIFIED`, `UNREACHABLE`). `deploy/develop/Caddyfile`'s
+docs site answers CORS with credentials for AIA's origin on those two paths alone (`@editor_script`, `defer`, so it
+replaces whatever the Document Server answers), held by `tools/caddy_routes.py`. Tests: `test_report_editor_api.py`
+(the integrity's form; the editor on only with it; the open route answers it), `report-editor.test.ts`,
+`ReportEditor.test.tsx` (the script's attributes, no integrity, no ticket), `test_caddy_routes.py`
+(`test_cors_anywhere_but_the_editors_script_for_aia_is_refused`); `report_editor_journey.mjs`: every script load spends
+a ticket, and a swapped api.js runs nothing under Chromium's own integrity check. Left for activation (infra, with the
+owner's word): the hash taken from the pinned image's own api.js (`docker run --rm <image@digest> cat
+/var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js | openssl dgst -sha384 -binary | base64`), set
+beside `AIA_ONLYOFFICE_URL`, and the page loaded once against the real Document Server; RPT8e is ticked then.
+
 Every rule fails closed but one (the PM, 2026-10-24, choosing the one rule over a clean-report rule that, bound to the
 snapshot, decided nothing the first did not): a Document Server clock running ahead of AIA's by more than the gap between
 a save's last change and the next edit's report lets that save hold the edit; the clamp to AIA's receipt bounds it.
@@ -677,6 +696,10 @@ through the edit operations:
   that path in `domain/edit_ops` and the report modules' own apply step, so the import contract "no
   report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
   `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
+
+*The owner's answer (AUD-2, 2026-10-25, /pmstatus):* "(a) yes, as proposed versions a person approves". The Lead edits
+the final report directly only as proposed versions through the editor's version store (RPT8c), each approved by a
+person; built after the editor is live; every number stays locked to an admitted claim (ADR 0035).
 
 Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
 accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
