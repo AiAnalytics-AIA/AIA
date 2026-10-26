@@ -3959,12 +3959,18 @@ def start_agent_job(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
+    """With ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`` on, a questionnaire job's context carries the
+    Study's newest Design Research findings as external context, never evidence (QST13)."""
     with _agent_errors(session):
         # What one job can cost at most, for the study's confirmation threshold (LO15).
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
@@ -4113,6 +4119,7 @@ def rebuild_agent_result(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
@@ -4121,7 +4128,10 @@ def rebuild_agent_result(
     threshold as a start does (LO15)."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.rebuild(
             run_id,
