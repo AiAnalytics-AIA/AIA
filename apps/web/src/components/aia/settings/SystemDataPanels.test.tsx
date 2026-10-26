@@ -120,6 +120,10 @@ const PREVIEW = {
   confirm_token: "tok-1", expires_at: new Date(Date.now() + 600_000).toISOString(),
 };
 
+/** The client's name typed into the deletion's confirmation field (F22). */
+const typeName = (dialog: HTMLElement, name: string) =>
+  fireEvent.change(within(dialog).getByRole("textbox", { name: /napište název klienta/ }), { target: { value: name } });
+
 describe("Správa dat", () => {
   const openDialog = async () => {
     // The client is one segmented bar (prototype v51); nothing is chosen at first.
@@ -154,7 +158,7 @@ describe("Správa dat", () => {
     expect(screen.getByRole("button", { name: "Smazat klienta Klient 17…" })).toBeTruthy();
   });
 
-  it("shows what is deleted and what stays, unknown as nezjištěno, and deletes only once acknowledged, with the server's token", async () => {
+  it("shows what is deleted and what stays, unknown as nezjištěno, and deletes only on the typed name, with the server's token", async () => {
     fake({
       "POST /api/v1/clients/CLI-a/deletion": () => PREVIEW,
       "DELETE /api/v1/clients/CLI-a": () => ({ client_id: "CLI-a", already_deleted: false, deleted: {}, objects_deleted: 9, objects_failed: 0 }),
@@ -166,15 +170,43 @@ describe("Správa dat", () => {
     expect(within(dialog.querySelector("[data-will-delete]") as HTMLElement).getByText("12")).toBeTruthy();
     expect(within(dialog.querySelector("[data-will-stay]") as HTMLElement).getByText("400")).toBeTruthy();
     expect(within(dialog.querySelector("[data-until-sdl2]") as HTMLElement).getByText("nezjištěno")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
-    expect(within(dialog).getByRole("alert").textContent).toMatch(/nelze vrátit/);
+    // The act opens only on the client's exact name (F22): not before it, not on another.
+    const act = within(dialog).getByRole("button", { name: "Smazat natrvalo" }) as HTMLButtonElement;
+    expect(act.disabled).toBe(true);
+    expect(within(dialog).getByText(/Smazání nelze vrátit. Pro potvrzení napište název klienta: Kavárny Lípa/)).toBeTruthy();
+    typeName(dialog, "Kavárny");
+    expect(act.disabled).toBe(true);
+    typeName(dialog, "kavárny lípa");
+    expect(act.disabled).toBe(true);
+    fireEvent.click(act);
     expect(calls.filter((c) => c.method === "DELETE")).toEqual([]);
-    fireEvent.click(within(dialog).getByRole("switch", { name: "Rozumím, že smazání nelze vrátit." }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
+    // Nothing of the client runs, or the preview did not say: no block.
+    expect(dialog.querySelector("[data-active-work]")).toBeNull();
+    typeName(dialog, "Kavárny Lípa");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat natrvalo" }));
     await waitFor(() => expect(calls.filter((c) => c.method === "DELETE")).toHaveLength(1));
     expect(calls.find((c) => c.method === "DELETE")?.body).toEqual({ confirm_token: "tok-1" });
     expect(await screen.findByText(/Klient Kavárny Lípa je smazán/)).toBeTruthy();
     expect(reload).toHaveBeenCalled();
+  });
+
+  it("names the client's runs that have not ended before the name is typed, and holds the act back (F22)", async () => {
+    fake({
+      "POST /api/v1/clients/CLI-a/deletion": () => ({ ...PREVIEW, active_run_ids: ["RUN-7", "RUN-9"] }),
+      "GET /api/v1/settings/kept-records": () => [],
+    });
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+    const dialog = await openDialog();
+    const block = dialog.querySelector("[data-active-work]") as HTMLElement;
+    expect(block.textContent).toBe("Klientovi právě běží 2 běhů (RUN-7, RUN-9). Smazat ho lze, až skončí, nebo je nejdřív zrušte.");
+    // A person awaited, not a fault: never fault-red.
+    expect(block.className).not.toMatch(/status-fault/);
+    const field = within(dialog).getByRole("textbox", { name: /napište název klienta/ }) as HTMLInputElement;
+    expect(field.disabled).toBe(true);
+    const act = within(dialog).getByRole("button", { name: "Smazat natrvalo" }) as HTMLButtonElement;
+    expect(act.disabled).toBe(true);
+    fireEvent.click(act);
+    expect(calls.filter((c) => c.method === "DELETE")).toEqual([]);
   });
 
   it("names the runs that still run, and says files still waiting are retried by a repeat", async () => {
@@ -189,10 +221,10 @@ describe("Správa dat", () => {
     });
     render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
     const dialog = await openDialog();
-    fireEvent.click(within(dialog).getByRole("switch", { name: "Rozumím, že smazání nelze vrátit." }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
+    typeName(dialog, "Kavárny Lípa");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat natrvalo" }));
     expect(await within(dialog).findByText(/RUN-1, RUN-2/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat natrvalo" }));
     expect(await screen.findByText(/2 souborů ještě čeká na smazání/)).toBeTruthy();
     // The client has left the list: the retry is offered here, with the same token.
     fireEvent.click(screen.getByRole("button", { name: "Zkusit smazat soubory znovu" }));
@@ -227,8 +259,8 @@ describe("Správa dat", () => {
     const count = () => (document.querySelector('[data-kept="deleted_clients"] td:nth-child(2)') as HTMLElement | null)?.textContent;
     await waitFor(() => expect(count()).toBe("0"));
     const dialog = await openDialog();
-    fireEvent.click(within(dialog).getByRole("switch", { name: "Rozumím, že smazání nelze vrátit." }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat klienta" }));
+    typeName(dialog, "Kavárny Lípa");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Smazat natrvalo" }));
     await waitFor(() => expect(count()).toBe("1"));
   });
 

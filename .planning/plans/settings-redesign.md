@@ -42,7 +42,7 @@ chunks:
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
   - "[ ] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
-  - "[ ] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
+  - "[x] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
 ---
 # Settings redesign (Nastavení)
 
@@ -225,6 +225,21 @@ follow-up chunk below.
 **F21. Prostředí a verze** (W1, lane B). From the build identity and `GET /population`; no secret in the copied text. Fronta práce is post-MVP (`fronta-prace.md`).
 
 **F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
+
+Done (F22): `POST /clients/{id}/deletion` answers `active_run_ids`, the client's runs that have not ended
+(`application/client_deletion.py` `DeletionPreview.active_run_ids`, from `active_client_runs`, the list the
+deletion's own 409 names); the dialog names them in a needs-you block ("Klientovi právě běží …") and holds the
+act back while any is listed. The acknowledgement switch is replaced by the client's name typed exactly
+(spaces around it ignored, case kept) before "Smazat natrvalo". Absent from an older API, the list is
+unknown and no block is drawn; DELETE still refuses. Tests: `test_client_deletion_api.py`
+(`test_the_preview_names_the_runs_that_hold_the_deletion_back`), `SystemDataPanels.test.tsx`.
+
+Not done (F22): the kept records' lhůta still reads "bez lhůty". The 365 days of MVPQ-07 (closed 26 Oct
+2026) is decided, but nothing erases a usage, approval or audit row after 365 days
+(`packages/aia_core/src/aia_core/application/client_deletion.py:252-282`, every `kept_for` "indefinite";
+no job reads a retention for them), so "365 dní" would say what AIA does not do. **Finding:** the decided
+retention of the kept AI spend and audit rows is not enforced; the smallest fix is an operator command beside
+`lead_retention.py` that erases them past 365 days, after which `kept_for` and the lhůta read 365 days.
 
 **Notes.**
 - Audit's eight categories, Dnes / 7 / 30 dní and search are chunk 8 (done); F10 finishes the Důvod / změna column.

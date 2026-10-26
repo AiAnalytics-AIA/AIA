@@ -3,7 +3,8 @@
 // Správa dat (settings-redesign chunk 11, Data board): deleting a client, and the records AIA
 // keeps after it (settings-backends SB5, #850). OWNER or ADMIN. The deletion is one I7 modal: what
 // is deleted and what stays, with the server's counts, a one-time confirmation the server issued
-// for this person, an acknowledgement switch, and the act named, "Smazat klienta". A count the
+// for this person, the client's name typed to confirm, and the act named, "Smazat natrvalo"; runs
+// of the client that have not ended are named in it and hold the act back (F22). A count the
 // server did not establish reads "nezjištěno", never 0. Until the routes are deployed (a 404 no
 // route answers, http_404, or the 405 of the old GET preview), both parts read "V AIA zatím
 // není"; a 404 not_found is a client that no longer exists.
@@ -13,10 +14,10 @@ import { useEffect, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type AdminClient, ApiError, type ClientDeletionPreview, type KeptRecord, clientDeletion } from "@/lib/api";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
-import { Switch } from "../../ui/Switch";
 import { Button, Select } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
+import { FOCUS } from "../../ui/parts";
 
 const D = "aia.settings.panel.data";
 const CARD = "rounded-md border border-border bg-surface-raised px-6 py-5";
@@ -40,12 +41,13 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
   const [preview, setPreview] = useState<ClientDeletionPreview | null>(null);
   const [notYet, setNotYet] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [ack, setAck] = useState(false);
+  // The client's name as the person typed it: the act opens only on the exact name (F22).
+  const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const list = clients.ok ? clients.data : [];
   const open = async (clientId: string) => {
-    setError(null); setDone(null); setAck(false); setBusy(true);
+    setError(null); setDone(null); setTyped(""); setBusy(true);
     try { setPreview(await clientDeletion.preview(clientId)); }
     catch (e) {
       if (notBuilt(e)) setNotYet(true);
@@ -86,6 +88,9 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
       } else setError(describeError(e));
     } finally { setBusy(false); }
   };
+  const running = preview?.active_run_ids ?? [];
+  // The exact name, as the server named the client; spaces around it are not part of it.
+  const nameMatches = preview !== null && typed.trim() === preview.name.trim();
   return (
     <section data-client-delete aria-labelledby="data-del-h" className={CARD}>
       <div className="flex flex-wrap items-center gap-2">
@@ -131,10 +136,22 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
               <li className="contents"><span>{t(`${D}.sdl2.population_children`)}</span><span className="text-right font-mono tabular-nums">{count(preview.remains_until_sdl2.population_children)}</span></li>
               <li className="contents"><span>{t(`${D}.sdl2.replaced_source_readings`)}</span><span className="text-right font-mono tabular-nums">{count(preview.remains_until_sdl2.replaced_source_readings)}</span></li>
             </ul>
-            <div className="mt-3 flex items-center gap-2"><Switch on={ack} onChange={setAck} label={t(`${D}.ack`)} showLabel /></div>
+            {running.length ? (
+              // Runs that have not ended hold the deletion back: said before the name is typed.
+              <p data-active-work className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash px-3 py-2 text-[13px] leading-5">
+                {tv(`${D}.runningNow`, { n: running.length, runs: running.join(", ") })}
+              </p>
+            ) : null}
+            <label className="mt-3 block text-[13px] leading-5">
+              <span className="block">{tv(`${D}.typeName`, { name: preview.name })}</span>
+              <input data-type-name type="text" autoComplete="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)}
+                disabled={running.length > 0}
+                className={`mt-1 min-h-9 w-full rounded-sm border border-border-strong bg-surface-raised px-2 text-sm disabled:opacity-50 ${FOCUS}`} />
+            </label>
           </>}
           confirmLabel={t(`${D}.confirm`)} cancelLabel={t(`${D}.cancel`)}
-          onConfirm={() => { if (ack) void remove(); else setError(t(`${D}.ackNeeded`)); }}
+          confirmDisabled={!nameMatches || running.length > 0}
+          onConfirm={() => { if (nameMatches && !running.length) void remove(); }}
           onCancel={() => { setPreview(null); setError(null); }} />
       ) : null}
     </section>

@@ -2046,6 +2046,9 @@ export type ClientDeletionPreview = {
   kept: Partial<Record<"usage_rows" | "approval_rows" | "audit_rows", number>>;
   /** Not deleted until SDL2; null: not counted, never 0. */
   remains_until_sdl2: { population_children?: number | null; replaced_source_readings?: number | null };
+  /** The client's runs that have not ended, read as the preview was made: while any is listed the
+   *  deletion is refused (409 client_has_active_work). Absent from an older API: not known. */
+  active_run_ids?: string[];
   confirm_token: string; expires_at: string;
 };
 export type KeptRecord = { record: string; count: number; kept_for: string; why: string };
