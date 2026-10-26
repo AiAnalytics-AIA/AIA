@@ -2826,6 +2826,9 @@ class ReportVariantResponse(BaseModel):
     #: footers; false for a draft stored before that layout (or whose bytes the stamp refused),
     #: which keeps its draft footer and downloads as "…-schvaleno-v-aia" once approved.
     stamped: bool | None = None
+    #: When the draft was stored, with its offset, which the approval question names it by
+    #: (RPT3d); null while none is stored.
+    stored_at: str | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
     #: Whether approving the draft now gives its approved version a PDF too: approving asks for
@@ -2860,6 +2863,7 @@ def _variant_response(
         review_state=mark.state.value,
         approved_on=mark.approved_on,
         stamped=stampable(docx),
+        stored_at=_utc_iso(docx.created_at),
         pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
         approval_renders_pdf=status_.approval_renders_pdf,
         contract=docx.metadata.get("report_contract"),

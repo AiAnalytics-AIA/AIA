@@ -448,7 +448,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
       .mockRejectedValueOnce(new ApiError(409, "context_report_not_prepared", "", null))
       .mockResolvedValue(WITH);
     vi.mocked(deepResearch.prepareContextReport).mockResolvedValue({} as never);
-    vi.mocked(deepResearch.contextReport).mockResolvedValue({ artifact_id: "ART-context", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
+    vi.mocked(deepResearch.contextReport).mockResolvedValue({ artifact_id: "ART-context", stored_at: "2026-10-21T13:12:00Z", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
     vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-context", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22", stamped: true, approval: null } as never);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
@@ -461,7 +461,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
     await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
     const dialog = container.querySelector("dialog[open]") as HTMLElement;
-    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Zpráva s rešerší · Fiktivní rešerše (DOCX i jeho PDF).");
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Zpráva s rešerší · Fiktivní rešerše, vytvořenou 21. 10. 2026 15:12 (DOCX i jeho PDF).");
     expect(dialog.textContent).not.toContain("RUN-deep");
     expect(deepResearch.contextReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "RUN-deep");
     // The safe choice holds the focus (B22); Esc answers the dialog alone, nothing beneath it sees
