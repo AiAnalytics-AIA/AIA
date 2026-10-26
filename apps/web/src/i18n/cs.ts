@@ -3335,10 +3335,24 @@ export const cs = {
         respondents: "{done} z {of} respondentů",
         modelSummary: "{answered} odpovědí modelu · {tokens} tokenů · {cost}",
         toolSummary: "{calls} volání webu",
-        claimed: "Worker krok převzal",
+        claimed: "Krok začal",
         succeeded: "Krok dokončen",
-        deferred: "Krok odložen: {reason}",
-        recovery: "Krok se zotavuje: {reason}",
+        // artifact-fieldwork FLD11: what the engine decided for a step, by its action (domain/workflow.py
+        // RecoveryAction, tests/fixtures/step_feed/actions.json); a reason with words of its own wins.
+        action: {
+          RETRY: "Krok se zopakuje",
+          PARK_PROVIDER: "Krok čeká na poskytovatele modelu",
+          PARK_CAPACITY: "Krok čeká, až bude mít poskytovatel modelu volnou kapacitu",
+          PARK_BUDGET: "Krok čeká, protože by překročil rozpočet studie.",
+          PARK_GATE: "Krok čeká na rozhodnutí člověka.",
+          RECOVERY_REQUIRED: "Krok se zastavil a sám se neopakuje.",
+          FAIL: "Krok selhal",
+          CANCEL: "Krok zrušen",
+          DEFER: "Krok čeká na své dílčí kroky",
+        },
+        // A resume, and a person's lift of the study's budget with its two amounts.
+        resumed: "Krok pokračuje",
+        budgetLifted: `${money.studyBudget} navýšen z {before} na {after}`,
         abandoned: "Pokus ukončen: {reason}",
         module: "modul {module}, kolo {turn}",
         aiSent: "Dotaz odeslán modelu",
@@ -3629,6 +3643,9 @@ export const cs = {
           "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
         attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
         recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
+        // Routine engine decisions a feed shows (FLD11): said, not shown as a code.
+        waiting_for_child_steps: "Krok čeká na dokončení svých dílčích kroků.",
+        released_by_worker: "Pracovní proces krok uvolnil; spustí se znovu.",
       },
       report: {
         status: {

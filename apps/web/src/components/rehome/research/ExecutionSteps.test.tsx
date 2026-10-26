@@ -1426,7 +1426,7 @@ describe("Progress", () => {
     expect(items[0].hasAttribute("data-day")).toBe(true);
     expect(items[0].textContent).toBe("25. září 2026");
     expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
-      "Worker krok převzal",
+      "Krok začal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
     ]);
