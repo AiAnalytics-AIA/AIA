@@ -121,7 +121,8 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   const link = page.getByRole("region", { name: "Připravenost ke spuštění" }).locator('[data-aia^="sample:ready:"] button').first();
   await link.waitFor({ timeout: 30000 });
-  const stage = (await link.innerText()).trim();
+  // "Opravit v Dimenzích" names the stage in the locative; the button carries the stage it opens.
+  const stage = await link.getAttribute("data-opens");
   await link.click();
   await page.locator("[data-sample-view]").waitFor({ state: "detached", timeout: 30000 });
   assert.equal((await page.locator(".art .arthead__title").innerText()).trim(), stage, "the check opened its stage");
