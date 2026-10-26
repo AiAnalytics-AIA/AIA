@@ -298,6 +298,11 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     const set = (await screen.findByText(/Sada má uložené ověřování znalosti objektů/)).closest("[id^=qset_]") as HTMLElement;
     expect(within(set).queryByRole("switch", { name: /znalost/ })).toBeNull();
+    // Every animation frame runs at once, before React commits: the losing order for a frame guess.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
     fireEvent.click(within(set).getByRole("button", { name: "Vypnout" }));
     await saved();
     await waitFor(() => expect((lastSave().content as unknown as { sections: { familiarity_required?: boolean }[] }).sections[1].familiarity_required).toBe(false));

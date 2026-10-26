@@ -1143,6 +1143,16 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const [confirming, setConfirming] = useState(false);
   const { canEdit } = useFrame();
   const familiarityBox = useRef<HTMLDivElement>(null);
+  // Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement.
+  const familiarityStored = pyTrue(sec.familiarity_required);
+  // "Vypnout" takes its button away: focus is owed to the line that replaces it, given once that line
+  // is rendered (AGENTS.md: after the render that mounts it, never on a frame guess).
+  const familiarityFocusOwed = useRef(false);
+  useEffect(() => {
+    if (familiarityStored || !familiarityFocusOwed.current) return;
+    familiarityFocusOwed.current = false;
+    familiarityBox.current?.querySelector<HTMLElement>("p")?.focus();
+  }, [familiarityStored]);
   const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
@@ -1247,17 +1257,15 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
       {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
           with it says so and can drop it. */}
       <div ref={familiarityBox}>
-        {/* Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement. */}
-        {pyTrue(sec.familiarity_required) ? (
+        {familiarityStored ? (
           <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
             <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
             <Button
               small
               disabled={!canEdit}
               onClick={() => {
+                familiarityFocusOwed.current = true;
                 update((p) => setSectionField(p, si, "familiarity_required", false), "familiarity");
-                // The button goes with the note it stood in; focus the line that replaces it, never the page.
-                window.requestAnimationFrame(() => familiarityBox.current?.querySelector<HTMLElement>("p")?.focus());
               }}
             >
               {t("research.questionnaire.familiarityOff")}
