@@ -35,13 +35,13 @@ export function spendRows(
   if (!spend) return null;
   const rows: SpendRow[] = [
     { key: "spent", label: t("research.exec.spend.spent"), value: usd(spend.spent_usd) },
-    // Holds belong to steps that run; once the run has ended there are none to speak of, so neither
-    // the label nor a note says any step runs.
+    // Holds belong to steps that run; once the run has ended the label drops "pro běžící kroky". Any
+    // hold, a leftover one on an ended run too, says it is not spent; a zero needs no note.
     {
       key: "held",
       label: t(ended ? "research.exec.spend.heldEnded" : "research.exec.spend.held"),
       value: usd(spend.reserved_usd),
-      note: ended ? undefined : t("research.exec.spend.heldNote"),
+      note: spend.reserved_usd > 0 ? t("research.exec.spend.heldNote") : undefined,
     },
   ];
   rows.push(ceilingRow(ceiling));

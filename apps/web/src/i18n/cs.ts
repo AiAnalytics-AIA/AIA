@@ -38,6 +38,11 @@ export const cs = {
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",
     navSettings: "Nastavení",
+    // The researcher's own Lead on the rail (PBA2): grown when there is none (LI9), else theirs.
+    navLead: "Můj Vedoucí",
+    navLeadGrow: "Vypěstovat Vedoucího",
+    menuOpen: "Menu",
+    menuClose: "Zavřít menu",
     signOut: "Odhlásit se",
     loading: "Načítám…",
     loadFailed: "Nepodařilo se načíst data.",
@@ -1327,6 +1332,7 @@ export const cs = {
         col: { group: "Skupina", setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
         board: {
           rules: "Pravidla rešerše",
+          rulesInfo: "Jak se pravidlo navrhuje a schvaluje",
           rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne; seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení i stažení se potvrzuje a zapisuje do auditu.",
         },
         reach: {
@@ -1336,6 +1342,7 @@ export const cs = {
           source: "z posledního záznamu workeru · {when}",
           build: "sestava {sha}",
           advisory: "kontrola tříd dat jen upozorňuje (vývojové prostředí)",
+          info: "Jak číst Dosah",
           help: "Nahoře, co čeká na schválení, pak aktivní trasy, pak ty, které nasazení nezapojilo. Nic z toho se tu nepřepíná: trasy a klíče zapíná nasazení, placenou trasu pustí schválení pravidel níže.",
           connector: "Konektor {name}",
           priced: "placená",
@@ -1376,6 +1383,7 @@ export const cs = {
         protections: {
           title: "Pevné ochrany v kódu",
           note: "Nejdou vypnout žádným pravidlem.",
+          info: "Co znamenají pevné ochrany",
           robots: "respektuje robots.txt",
           noLogin: "žádné přihlášení ani paywall",
           noPersonal: "žádné osobní údaje",
@@ -1629,7 +1637,7 @@ export const cs = {
         lede: {
           methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
-          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel. Trasy a klíče zapíná nasazení; organizace schvaluje pravidla, bez kterých placená trasa neběží.",
+          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",
@@ -1655,6 +1663,18 @@ export const cs = {
         },
         notYet: "V AIA zatím není",
         system: {
+          env: {
+            title: "Prostředí a verze",
+            info: "Co je Prostředí a verze",
+            help: "Co toto nasazení běží: prostředí, sestava webu a API, databáze, přihlášení, populace a pravidla polí. Čteno z nastavení, registru populace a konfigurace webu; co se přečíst nepodařilo, je nezjištěno. Kopírovat diagnostiku zkopíruje jen tyto řádky a počet připravených kontrol, žádný klíč, adresu ani e-mail.",
+            copy: "Kopírovat diagnostiku",
+            copied: "Zkopírováno.",
+            copyFailed: "Prohlížeč kopírování nedovolil. Text je níže označený, zkopírujte ho ručně.",
+            copyField: "Diagnostika ke zkopírování",
+            unknown: "nezjištěno",
+            ready: "Připravenost",
+            row: { environment: "Prostředí", build: "Sestava webu", api_build: "Sestava API", database: "Databáze", sign_in: "Přihlášení", live: "Populace LIVE", static: "Populace STATIC", field_rules: "Pravidla polí" },
+          },
           readiness: "Připravenost po nasazení",
           readinessHolds: "Výsledek kontrol po každém nasazení: co je připravené, co ne a proč, nepřipravené nahoře.",
           errors: "Hlášení chyb",
@@ -1905,11 +1925,16 @@ export const cs = {
           setNever: "Nikdy",
           ofBudgetRest: "rozpočtu",
           remaining: "zbývá {usd}",
+          remainingUnknown: "zbývá: nezjištěno",
           nearLimit: "téměř vyčerpáno",
           profileRules: "Profil → Pravidla klienta",
           rules: "Pravidla",
           rulesOf: "Pravidla klienta {client}",
           moneyNames: "Co znamenají částky",
+          tableInfo: "Co znamenají částky a kdo je mění",
+          moneyInfo: "Co je {name}",
+          clientFilter: "Klient",
+          allClients: "Všichni klienti ({n})",
           thresholdBounds: "Od {min} USD, nejvýš rozpočet studie.",
           money: {
             studyBudget: "Strop, který útratu studie zastaví. Nastavuje se zde.",
@@ -2469,7 +2494,6 @@ export const cs = {
       backToBrief: "Zadání",
       understood: "Jak jsem zadání pochopil",
       objectives: "Co má výzkum zjistit",
-      hypotheses: "Co stojí za ověření",
       changed: "Upraveno podle vašich komentářů",
       principle: "Princip objektů",
       principleIntro: "Objekt je cokoli, co dává smysl porovnávat s ostatními položkami ve stejné sadě.",
@@ -2508,6 +2532,7 @@ export const cs = {
       commentsProcess: "Zpracovat komentáře",
       commentAdd: "Přidat komentář",
       commentRemove: "Odebrat komentář",
+      commentsLeadNote: "Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.",
       commentsDone: "Komentáře zapracovány",
       // artifact-design DSN2, DSN2b: each research question with its coverage on its row, as the server traces it.
       coverage: {
@@ -2534,6 +2559,7 @@ export const cs = {
       jumpScope: "Rozsah",
       jumpUnderstanding: "Porozumění",
       jumpSets: "Sady · {n}",
+      jumpHypotheses: "Hypotézy · {n}",
       jumpQuestions: "Otázky AI · {a}/{b}",
       jumpComments: "Komentáře · {n}",
       openBrief: "Otevřít zadání",
@@ -2545,6 +2571,8 @@ export const cs = {
       variantTradeoffLabel: "Trade-off",
       understoodTitle: "Zkontrolujte, jak AI pochopila zadání",
       understoodHint: "Upravte text přímo; ke každé položce můžete přidat komentář pro AI.",
+      hypothesesTitle: "Hypotézy",
+      hypothesesHint: "Co má výzkum potvrdit nebo vyvrátit. Které měření hypotézu testuje, AIA zatím neurčuje.",
       principleSummary: "Princip objektů · co patří do jedné sady",
       setsHint: "Každá sada má položky stejného typu hodnocené na stejné škále; doporučeno {rmin}–{rmax}, nejvýše {max}.",
       setName: "Název sady",
@@ -2562,7 +2590,8 @@ export const cs = {
       followHint: "Odpovězte jen na to, co víte. Nezodpovězené otázky AI vyřeší předpokladem.",
       followAnswered: "{a} z {b} zodpovězeno",
       followAnswer: "Odpověď na otázku {n}",
-      commentsHint: "Označte text v části Porozumění nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHint: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHintLead: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Komentáře uložíte pro Vedoucího výzkumu.",
       commentDraft: "Co změnit? Enter uloží komentář",
       dockSetSize: "Sada „{name}“ má {count}, potřebuje {min}–{max}",
       dockComments: "Komentáře čekající na zpracování: {n}",
@@ -2672,6 +2701,12 @@ export const cs = {
       previewEmpty: "Jakmile vzniknou otázky, uvidíte je zde očima respondenta.",
       previewQuestion: "Otázka {n}",
       previewSet: "Sledovaná sada {n} · {title}",
+      // What the preview leaves out, said (artifact-questionnaire QST11): 18.6.6 cut silently.
+      previewMoreOptions: { label: "+ {count}", one: "další možnost", few: "další možnosti", many: "dalších možností" },
+      previewMoreObjects: { label: "a stejně pro {count}", one: "další položku", few: "další položky", many: "dalších položek" },
+      previewLeftOut: { label: "+ {count} dotazníku, náhled ukazuje prvních {max}", one: "další položka", few: "další položky", many: "dalších položek" },
+      previewCondition: "Má podmínku zobrazení; zda ji běh přijme, rozhodne Kontrola.",
+      previewRangeUnread: "Rozsah škály nejde přečíst; opravte ho v režimu Upravit.",
       scale: "1–10",
       editorTag: "Osnova dotazníku",
       editorCounts: "{questions} · {sets}",
@@ -2809,7 +2844,7 @@ export const cs = {
       deepTitle: "Veřejný hloubkový výzkum",
       addBlockV3: "Nový blok",
       addQuestionV3: "Otázka do tohoto bloku",
-      blockHead: "Blok {n} · {q}",
+      blockHead: "B{n}",
       untitledBlock: "Blok {n}",
       untitledSet: "Sada {n}",
       removeBlockConfirm: "Smazat blok i otázky?",
@@ -2874,7 +2909,7 @@ export const cs = {
       optionN: "Možnost {n}",
       optionRemove: "Odebrat možnost {n}",
       optionAdd: "Přidat možnost",
-      setBadge: "SADA {n}",
+      setBadge: "S{n}",
       setCount: "{n} / doporučeno {rmin}–{rmax}",
       setQuestionMissing: "Otázka musí obsahovat {object}, jinak se položky do otázky nepromítnou.",
       setObjectsV3: "Objekty",
@@ -3322,10 +3357,24 @@ export const cs = {
         respondents: "{done} z {of} respondentů",
         modelSummary: "{answered} odpovědí modelu · {tokens} tokenů · {cost}",
         toolSummary: "{calls} volání webu",
-        claimed: "Worker krok převzal",
+        claimed: "Krok začal",
         succeeded: "Krok dokončen",
-        deferred: "Krok odložen: {reason}",
-        recovery: "Krok se zotavuje: {reason}",
+        // artifact-fieldwork FLD11: what the engine decided for a step, by its action (domain/workflow.py
+        // RecoveryAction, tests/fixtures/step_feed/actions.json); a reason with words of its own wins.
+        action: {
+          RETRY: "Krok se zopakuje",
+          PARK_PROVIDER: "Krok čeká na poskytovatele modelu",
+          PARK_CAPACITY: "Krok čeká, až bude mít poskytovatel modelu volnou kapacitu",
+          PARK_BUDGET: "Krok čeká, protože by překročil rozpočet studie.",
+          PARK_GATE: "Krok čeká na rozhodnutí člověka.",
+          RECOVERY_REQUIRED: "Krok se zastavil a sám se neopakuje.",
+          FAIL: "Krok selhal",
+          CANCEL: "Krok zrušen",
+          DEFER: "Krok čeká na své dílčí kroky",
+        },
+        // A resume, and a person's lift of the study's budget with its two amounts.
+        resumed: "Krok pokračuje",
+        budgetLifted: `${money.studyBudget} navýšen z {before} na {after}`,
         abandoned: "Pokus ukončen: {reason}",
         module: "modul {module}, kolo {turn}",
         aiSent: "Dotaz odeslán modelu",
@@ -3567,6 +3616,8 @@ export const cs = {
       },
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",
+      // artifact-fieldwork FLD2c: the run's steps, one ordered list.
+      stepsTitle: "Kroky běhu",
       stepWork: {
         ai: "AI model",
         running: "kód",
@@ -3616,6 +3667,9 @@ export const cs = {
           "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
         attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
         recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
+        // Routine engine decisions a feed shows (FLD11): said, not shown as a code.
+        waiting_for_child_steps: "Krok čeká na dokončení svých dílčích kroků.",
+        released_by_worker: "Pracovní proces krok uvolnil; spustí se znovu.",
       },
       report: {
         status: {
@@ -3631,12 +3685,13 @@ export const cs = {
         // The question before an approval (input-interactions B22, Q33): the document, its variant,
         // the stored version and its format, and that it cannot be undone.
         approveAsk: {
-          internal: "interní zprávu",
-          with_review: "interní zprávu s rešerší {review}",
-          client: "klientskou zprávu",
           docx: "DOCX",
           docxPdf: "DOCX i jeho PDF",
-          question: "Schválit {what}, uloženou verzi {version} ({format})? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          // By name and time, never the version's id (RPT3d, spec Z4).
+          question: "Schvalujete tuto verzi: {what}{when} ({format}).",
+          storedAt: ", vytvořenou {at}",
+          final: "Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          modelled: "Čísla jsou modelovaná; zpráva to u každého uvádí.",
           yes: "Schválit",
         },
         // A stored version's review as its file states it (research-integrity-report D2): only
@@ -3644,6 +3699,9 @@ export const cs = {
         review: {
           draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
+          // The same in the approval question, which names the version by its time (RPT3d).
+          fileDraft: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
+          fileDraftDocx: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
           approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
           approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
@@ -3681,7 +3739,7 @@ export const cs = {
         remaining: "Zbývá v rozpočtu studie",
         remainingUnknown: "neznámé",
         remainingLoading: "zjišťuji…",
-        remainingNote: "bez částek, které drží běžící kroky",
+        remainingNote: "bez částek, které běh drží",
       },
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
@@ -3860,6 +3918,7 @@ export const cs = {
         segLikes: "hodnotí výš než ostatní: {objects}",
         segDislikes: "níž: {objects}",
         segColour: "Barvu na mapě respondentů má jen ten, kdo do své skupiny patří aspoň z {share}; ostatní jsou šedí.",
+        segDescriptive: "Skupiny jen popisují, jak se respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.",
         segBorderline: "Náznak skupin je na hranici; barvy nejsou.",
         segNone: "Respondenti netvoří zřetelné chuťové skupiny.",
         relyTitle: "Jak spolehlivá je mapa",

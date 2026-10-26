@@ -26,7 +26,7 @@ chunks:
   - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
   - "[x] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
-  - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
+  - "[x] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
@@ -36,12 +36,12 @@ chunks:
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
   - "[x] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
-  - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
+  - "[x] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
   - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
   - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
-  - "[ ] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
+  - "[x] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
   - "[ ] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
 ---
 # Settings redesign (Nastavení)
@@ -200,6 +200,21 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
+**F8b. Deep Research compacted** (built). As prototype v55: the tab's lede one line; Dosah and Pravidla
+rešerše the section's h2s, the posture and the code's protections h3s under them; each card's caption
+(how to read Dosah, how a rule is proposed and approved, what the protections mean) behind its ⓘ, a real
+button (settings/InfoButton.tsx); what still waits for approval said in the open while it holds, as a
+state, not an explanation. Each rule's own ⓘ is F8's. No amber anywhere: a waiting rule is coral for who
+can approve it (#897).
+
+**F16. Studie a rozpočty compacted** (built). The studies card as prototype v52 draws it: its title the
+tab's h2 with the count and an ⓘ; each money column's ⓘ a real button (it was an aria-hidden title,
+#892's rule for every ⓘ) that opens the one explanation -- who may change a budget, then the four
+D-01 names with where each is set -- which replaces the paragraph and the "Co znamenají částky" button
+under the table; a client filter ("Všichni klienti (n)", each client with its count) beside the search
+when the studies span more than one client, a filtered row hidden, never unmounted. The spend card
+(#892) is already compact: its ⓘ, legend and bars stay.
+
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 
 **F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.
@@ -223,6 +238,17 @@ follow-up chunk below.
 **F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
 
 **F21. Prostředí a verze** (W1, lane B). From the build identity and `GET /population`; no secret in the copied text. Fronta práce is post-MVP (`fronta-prace.md`).
+
+Done (F21): `SystemPanel.tsx` draws Prostředí a verze between Připravenost and Hlášení chyb, from the
+settings document's `deployment` and `population` groups, `GET /population` (each kind's current version by
+its label), `/config`'s `build.sha` (Sestava webu) and `GET /health`'s `build.sha` (Sestava API);
+`lib/system-environment.ts` holds the rows and the copied text (`environmentRows`, `healthBuild`,
+`diagnosticsText`). A read that fails, or answers another shape, leaves its rows "nezjištěno". No version
+row: `AIA_VERSION` is set by no deployment, so the document's `version` is the code's default 0.1.0, a
+stamped guess (review of #975). The copy carries only those eight rows and the readiness count of the smoke
+run Připravenost read (one read, shared), offered once that run is read; one live region stays mounted and
+is cleared on each click; a copy the browser refuses selects the text in a read-only field, never
+"Zkopírováno". Tests: `system-environment.test.ts`, `SystemDataPanels.test.tsx` (F21 cases).
 
 **F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
 
