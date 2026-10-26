@@ -108,6 +108,11 @@ describe("Stav systému", () => {
     fake({ "GET /api/v1/settings/system-status": shared, "GET /api/v1/settings/error-tracking": shared });
     render(<SystemPanel mayAdminister />);
     expect((await screen.findAllByText("Stav nasazení a chyby z GlitchTipu patří celému nasazení.")).length).toBe(2);
+    // A shared deployment is a fact, not a fault (F12): no alert, nothing red.
+    expect(screen.queryByRole("alert")).toBeNull();
+    const sharedNotes = document.querySelectorAll("[data-deployment-shared]");
+    expect(sharedNotes.length).toBe(2);
+    for (const n of sharedNotes) expect(n.className).not.toMatch(/status-fault/);
   });
 });
 
@@ -138,6 +143,38 @@ describe("Správa dat", () => {
       return d;
     });
   };
+
+  it("draws the deletion as prototype v99: a danger button, Smaže se / Zůstane in the open, help behind ⓘ (F12)", async () => {
+    fake({ "GET /api/v1/settings/kept-records": () => [] });
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+    const pick = await screen.findByRole("radiogroup", { name: "Klient" });
+    // Nothing chosen: no inline lists yet.
+    expect(document.querySelector("[data-delete-inline]")).toBeNull();
+    fireEvent.click(within(pick).getByRole("radio", { name: "Kavárny Lípa" }));
+    const inline = document.querySelector("[data-delete-inline]") as HTMLElement;
+    expect(within(inline).getByRole("heading", { name: /Smaže se/ })).toBeTruthy();
+    expect(within(inline).getByRole("heading", { name: /Zůstane/ })).toBeTruthy();
+    expect(inline.textContent).toContain("Studie");
+    expect(inline.textContent).toContain("Záznamy útraty AI");
+    // What stays until SDL2 is listed in the open too, not only in the confirmation.
+    expect(within(inline).getByRole("heading", { name: "Zůstává do SDL2" })).toBeTruthy();
+    expect(inline.querySelector("[data-inline-until-sdl2]")?.querySelectorAll("li").length).toBe(2);
+    // No emoji anywhere (design brief §5): the danger button and Smaže se draw the set's trash icon.
+    expect(document.body.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+    // The one destructive action is fault-toned, apart from every other button; so is "Nelze vrátit".
+    const del = screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" });
+    expect(del.hasAttribute("data-danger")).toBe(true);
+    expect(del.className).toContain("text-status-fault");
+    expect(document.querySelector("[data-irreversible]")?.className).toContain("status-fault");
+    // Each card's help behind its ⓘ; the cards are h2s.
+    for (const [label, id] of [["Jak se klient maže", "data-del-about"], ["Co jsou uchovávané záznamy", "data-kept-about"]] as const) {
+      const info = screen.getByRole("button", { name: label });
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(true);
+      fireEvent.click(info);
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(false);
+    }
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Smazat klienta", "Uchovávané záznamy"]);
+  });
 
   it("offers a few clients as a segmented bar and more as a select, never a bar of every client (review of #870)", async () => {
     fake({ "GET /api/v1/settings/kept-records": () => [] });

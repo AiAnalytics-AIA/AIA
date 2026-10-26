@@ -148,8 +148,9 @@ describe("a saved version in words", () => {
   });
 
   it("asks an edited version's approval by name with its changes, the rest counted", () => {
-    expect(editedApprovalQuestion(version(), "interní zprávu")).toBe(
-      "Schválit interní zprávu, koncept 2 (ART-2)? Upraveno ručně: 1 číslo. Číslo t: 1 → 2. Neuložené úpravy v editoru schválení nezahrnuje.",
+    expect(editedApprovalQuestion(version(), "Interní zpráva")).toBe(
+      "Schvalujete tuto verzi: Interní zpráva, koncept 2, uloženou 23. 10. 2026 22:10. Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi. " +
+        "Upraveno ručně: 1 číslo. Číslo t: 1 → 2. Neuložené úpravy v editoru schválení nezahrnuje.",
     );
     const many = Array.from({ length: 10 }, (_, i) => change({ tag: `n${i}` }));
     expect(changesListed(many, 2)).toBe("Číslo n0: 1 → 2; Číslo n1: 1 → 2; a 8 dalších");

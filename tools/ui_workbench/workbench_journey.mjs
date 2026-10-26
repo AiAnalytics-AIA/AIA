@@ -321,6 +321,9 @@ try {
     await elsewhere.waitFor({ timeout: 30000 });
     assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
     await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
+    // DSN12: the hypotheses are a section of their own, each a Lead target, with no verdict said.
+    const hypotheses = page.getByRole("region", { name: "Hypotézy" });
+    assert.equal(await hypotheses.locator('[data-aia^="hypothesis:"]').count(), 2, `plan @${width}: the hypotheses' section`);
     await noOverflow(`plan @${width}`);
     assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
     assert.equal(writes.filter((w) => w.path.endsWith("/workspace/content")).length, planSavesBefore, `plan @${width}: reading Návrh's coverage saved the working copy`);
@@ -331,8 +334,9 @@ try {
       .map(([name, r]) => `${name} ${Math.round(r.width)}×${Math.round(r.height)}`));
     assert.deepEqual(small, [], `plan @${width}: remove targets under 24 px`);
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
+    await hypotheses.screenshot({ path: join(out, `${width}-plan-hypotheses.png`) });
   }
-  check("Návrh shows the coverage of every research question the server reads at 1440, 1100, 768 and 390, nothing saved, no overflow");
+  check("Návrh shows the coverage of every research question the server reads and the hypotheses as their own section at 1440, 1100, 768 and 390, nothing saved, no overflow");
 
   // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
   // the description, the filters, each factor by its catalogue id and the preview, at every width.

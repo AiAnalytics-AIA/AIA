@@ -26,6 +26,13 @@ from typing import Any, Final
 from .ai_contracts import canonical_json
 from .ai_material import most_restrictive_material
 from .lead_digest import DIGEST_SHARE_MAX_BYTES
+from .lead_research_targets import (
+    DEEP_RESEARCH_MAX_BYTES,
+    DEEP_RESEARCH_RUNS,
+    RUNS_FOR_TARGETS,
+    TARGETS_MAX,
+    TARGETS_MAX_BYTES,
+)
 from .research_agents import KNOWLEDGE_MAX_BYTES
 from .research_lead import (
     CONTEXT_MAX_BYTES,
@@ -93,6 +100,20 @@ LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
         "runs", None, f"the newest {RUNS_IN_CONTEXT} research runs", "older runs are left out"
     ),
     LeadLayer(
+        "deep_research",
+        DEEP_RESEARCH_MAX_BYTES,
+        f"the newest {DEEP_RESEARCH_RUNS} Deep Research runs within {DEEP_RESEARCH_MAX_BYTES} "
+        "bytes",
+        "runs past the byte bound are counted; older runs are left out",
+    ),
+    LeadLayer(
+        "targets",
+        TARGETS_MAX_BYTES,
+        f"at most {TARGETS_MAX} results of the newest {RUNS_FOR_TARGETS} completed runs, "
+        f"within {TARGETS_MAX_BYTES} bytes",
+        "results past the bound are counted; a run that does not read is named",
+    ),
+    LeadLayer(
         EXTERNAL_LAYER,
         None,
         "the newest Design Research findings, pinned; context, never evidence",
@@ -117,7 +138,13 @@ _BY_NAME: Final = {spec.name: spec for spec in LEAD_LAYERS}
 
 #: The part of a layer its ``ceiling_bytes`` bounds, measured as ``notes_layer`` and
 #: ``knowledge_entries`` measure it.
-_BOUNDED: Final = {"lead": "notes", "knowledge": "items", "memory": "digest"}
+_BOUNDED: Final = {
+    "lead": "notes",
+    "knowledge": "items",
+    "memory": "digest",
+    "deep_research": "runs",
+    "targets": "candidates",
+}
 
 
 def _bytes(value: Any) -> int:
@@ -137,9 +164,12 @@ PART_LAYERS: Final[Mapping[str, str]] = {
     "study_name": "study",
     "design": "design",
     "design_analysis": "design",
+    "design_research_questions": "design",
     "message": "view",
     "focus_label": "view",
     "external_context": EXTERNAL_LAYER,
+    "deep_research": "deep_research",
+    "targets": "targets",
     "decision_digest": "memory",
     "earlier_message": "conversation",
     "earlier_reply": "conversation",
@@ -159,6 +189,17 @@ def _ids(entry: Mapping[str, Any]) -> tuple[list[str], list[dict[str, str]], int
         return included, omitted, 0
     if name == "runs":
         return [str(r["run_id"]) for r in entry.get("runs") or ()], [], None
+    if name == "deep_research":
+        runs = [str(r["run_id"]) for r in entry.get("runs") or ()]
+        return runs, [], int(entry.get("omitted") or 0)
+    if name == "targets":
+        # A candidate by its turn-local id; a completed run whose specification did not read
+        # is named with its reason, the candidates past the bound counted.
+        included = [str(c["id"]) for c in entry.get("candidates") or ()]
+        unreadable = [
+            {"id": str(r), "reason": "unreadable"} for r in entry.get("unreadable_runs") or ()
+        ]
+        return included, unreadable, int(entry.get("omitted") or 0)
     if name == "view":
         focus = entry.get("focus")
         if isinstance(focus, Mapping) and focus.get("id"):
