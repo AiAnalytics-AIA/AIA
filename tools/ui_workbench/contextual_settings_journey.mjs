@@ -72,16 +72,16 @@ const targets = {
   studies: '#panel-studies [data-study]',
   audit: '#panel-audit input[type="search"]',
   system: '#panel-system [data-system-readiness]',
-  reference: '#panel-reference input[type="search"]',
   data: '#panel-data [data-kept-records]',
 };
 try {
   await page.goto(`${base}/app/settings`);
   await page.waitForFunction(() => window.uxCold !== null);
   latencies.push({ name: "Cold browser document to Metodika's catalogue (no cache)", milliseconds: await page.evaluate(() => window.uxCold) });
-  // The ten sections in the section menu's three groups (prototype v54), each opened from its link,
+  // The nine sections in the section menu's three groups (prototype v54; Reference folded into
+  // Stav systému, F17), each opened from its link,
   // its address kept, its lede shown; the time is the link's press to the section's content.
-  const expected = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data"];
+  const expected = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "data"];
   const menuButton = page.locator("[data-section-menu] > button");
   const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
   const open = async (id) => {

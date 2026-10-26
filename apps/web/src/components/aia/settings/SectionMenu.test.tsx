@@ -60,7 +60,7 @@ describe("the settings section menu", () => {
     const menu = dialog();
     expect(within(menu).getAllByRole("group").map((g) => g.getAttribute("aria-label"))).toEqual(["Nastavení výzkumu", "Tým a peníze", "Provoz"]);
     expect(within(menu).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
-      "#methodology", "#prompts", "#deep_research", "#ai", "#access", "#studies", "#audit", "#system", "#reference", "#data",
+      "#methodology", "#prompts", "#deep_research", "#ai", "#access", "#studies", "#audit", "#system", "#data",
     ]);
     const here = within(menu).getByRole("link", { name: /Deep Research/ });
     expect(here.getAttribute("aria-current")).toBe("true");
@@ -130,7 +130,7 @@ describe("the settings section menu", () => {
     render(<><SectionMenu mayAdminister={false} /><button type="button">jinde</button></>);
     fireEvent.click(trigger());
     const status = within(dialog()).getByRole("status");
-    expect(status.textContent).toBe("10 oddílů");
+    expect(status.textContent).toBe("9 oddílů");
     fireEvent.change(within(dialog()).getByRole("searchbox"), { target: { value: "Brave" } });
     expect(status.textContent).toBe("1 oddíl");
     fireEvent.change(within(dialog()).getByRole("searchbox"), { target: { value: "práh" } });
@@ -193,7 +193,8 @@ describe("the settings section menu", () => {
       window.history.replaceState(null, "", "/app/settings#reference");
       window.dispatchEvent(new HashChangeEvent("hashchange"));
     });
-    expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Reference");
+    // An old link to Reference names Stav systému, where its content went (F17).
+    expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Stav systému");
   });
 
   it("counts for an administrator what waits on them, from the API: rules live needs, prompts not switched on", async () => {

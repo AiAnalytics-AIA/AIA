@@ -981,10 +981,18 @@ export const cs = {
       },
       methodology: {
         // The catalogue the tab opens on (prototype v51, fidelity F4).
-        mvpNote: "MVP počítá Sociomapu jedinou metodou: aia-sociomap-5. Starší metody (-1 až -4), experimentální Sociomapping (H-Model) a referenční mapa 18.6.6 se zde nenabízejí; staré běhy je dál ukazují ve svých výsledcích.",
+        mvpNote: "MVP počítá Sociomapu jedinou metodou, aia-sociomap-5; starší běhy si své mapy ponechávají.",
         catalogue: "Moduly",
         catalogueCount: "{n} modulů · klikněte na modul pro jeho výpočet, verze a porovnání",
         back: "Metodika",
+        name: {
+          sociomap: "Sociomapa",
+          support: "Práh zobrazení",
+          aggregation: "Odhady a intervaly",
+          weighting: "Vážení vzorku",
+          response: "Losování odpovědí",
+          readiness: "Kontrola před spuštěním",
+        },
         oneLine: {
           sociomap: "Z hodnocení respondentů spočítá vztahy mezi objekty, rozloží je do mapy a ukáže, jak věrohodná mapa je, kde stojí respondenti a jaké má segmenty vkusu.",
           support: "Kishovo efektivní n, prahy pro potlačení a orientační hodnoty.",
@@ -1608,8 +1616,7 @@ export const cs = {
             access: "člen role pozvat správce vlastník samoschválení metodik",
             studies: "rozpočet útrata práh potvrzení peněženka usd",
             audit: "historie změna kdo kdy záznam",
-            system: "zdraví chyby smoke nasazení připravenost",
-            reference: "invariant konstanta nasazení třída dat pevná pravidla",
+            system: "zdraví chyby smoke nasazení připravenost reference invariant konstanta třída dat pevná pravidla populace prostředí databáze pracovník",
             data: "smazat klient uchovávání retence záznamy",
           },
         },
@@ -1623,7 +1630,6 @@ export const cs = {
           studies: "Studie a rozpočty",
           audit: "Audit",
           system: "Stav systému",
-          reference: "Reference",
           data: "Správa dat",
         },
         tabSubtitles: {
@@ -1634,21 +1640,19 @@ export const cs = {
           access: "Členové, role, samoschválení",
           studies: "Rozpočty studií, útrata",
           audit: "Kdo co změnil a kdy",
-          system: "Připravenost, chyby",
-          reference: "Technické hodnoty, pevná pravidla",
+          system: "Připravenost, chyby, technické hodnoty",
           data: "Smazání klienta, uchovávané záznamy",
         },
         // Each tab's head as the prototype draws it (v51): one paragraph, who may change it in chips.
         lede: {
-          methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
+          methodology: "Jak AIA počítá, od odpovědí přes odhady až po mapu. Každý běh si metodu v platnosti připne, pozdější změna ho nepřepočítá.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
           deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",
           audit: "Kdo co změnil a kdy. Jen ke čtení. Každá událost má český název, i ty nové: postoj dat, strop peněženky, štítek Metodik, zapečetění Vedoucího.",
-          system: "Je produkt opravdu zapnutý? Každý řádek ověřuje smoke test po nasazení, bez placeného volání. Jen ke čtení.",
-          reference: "Technické hodnoty a pevná pravidla. Nejsou to uživatelské volby; u každé je, kdo ji mění.",
+          system: "Je produkt opravdu zapnutý? Co je připravené, kam se hlásí chyby a s jakými technickými hodnotami a pevnými pravidly AIA běží. Jen ke čtení.",
           data: "Smazání klienta a záznamy, které zůstávají i po smazání, mezi nimi útrata AI a audit.",
         },
         chips: {
@@ -2243,6 +2247,8 @@ export const cs = {
         stages: { research: "Fáze výzkumu", simulation: "Fáze simulace" },
         roles: { permission: "Oprávnění" },
         reference: {
+          title: "Technické hodnoty a pevná pravidla",
+          intro: "S čím nasazení běží a co je dané kódem. Nejsou to uživatelské volby; u každé je, kdo ji mění. Prahy podpory jsou v Metodice → {support}.",
           categories: "Kategorie",
           all: "Vše",
           shown: "Zobrazeno {shown} z {total} hodnot",
@@ -2771,7 +2777,8 @@ export const cs = {
       blockEmpty: "Blok zatím nemá otázku.",
       addQuestion: "otázka",
       questionText: "Znění otázky",
-      questionType: "Typ",
+      typeOf: "{type}, typ otázky",
+      typeUnset: "Typ nevybrán",
       typeChoice: "Jedna odpověď",
       typeMulti: "Více odpovědí",
       typeScale: "Škála",
@@ -2827,8 +2834,10 @@ export const cs = {
       setObjects: "Objekty — jeden na řádek (doporučeno 4–15)",
       setLow: "Levý konec škály",
       setHigh: "Pravý konec škály",
-      familiarity: "Před hodnocením ověřovat znalost každého objektu",
-      familiarityHelp: "Zapínejte jen když to dává věcný smysl — typicky u značek, produktů či konceptů. U médií, emocí nebo vztahových výroků obvykle ne.",
+      // The board's R9: what a run cannot do is not offered (spec navrh/Q4).
+      familiarityUnavailable: "Ověřování znalosti objektů před hodnocením zatím AIA neumí položit: běh by sadu odmítl, proto tu přepínač chybí.",
+      familiarityStored: "Sada má uložené ověřování znalosti objektů, které AIA zatím neumí položit: běh ji odmítne.",
+      familiarityOff: "Vypnout",
       conceptTest: "Porovnat položky jako koncepty (A/B test)",
       conceptTestHelp: "Sada se vyhodnotí jako test konceptů místo poziční mapy; výzkumnou otázku zodpovídanou A/B testem lze zodpovědět jen takovou sadou.",
       priceBands: "Cenová pásma pro test konceptu",
@@ -2891,6 +2900,8 @@ export const cs = {
         shown: "Zobrazí se jen těm, kdo u {n} („{text}“) odpověděli {answers}.",
         notRouted: "Sběr dat zatím podmínky nepoužívá, takže běh s podmínkou zatím neproběhne.",
         refused: "Podmínka neplatí: {reason}",
+        unavailable: "Běh s podmínkou zatím AIA neumí odeslat, proto ji nelze zapnout.",
+        turnOn: "Zapnout",
       },
       // productization PC6: what accepting a questionnaire proposal replaces.
       replacement: {
@@ -3629,6 +3640,8 @@ export const cs = {
       stepsFinished: "{done} z {total} kroků hotovo",
       // artifact-fieldwork FLD2c: the run's steps, one ordered list.
       stepsTitle: "Kroky běhu",
+      // A step this client has no name for: its code, never shown as if it were a name.
+      stepUnnamed: "krok bez názvu ({code})",
       stepWork: {
         ai: "AI model",
         running: "kód",
@@ -3872,6 +3885,12 @@ export const cs = {
         sociomapping: "Sociomapping · experimentální metoda AIA",
       },
       // The Sociomapa stage (artifact-sociomap SOC9-SOC11): the map first, below it what explains it, in plain words.
+      mapInspect: {
+        missing: "Tato položka na mapě tohoto běhu není.",
+        loading: "Mapa se ještě načítá.",
+        unread: "Mapu tohoto běhu se nepodařilo načíst.",
+        frozen: "Ze zmrazené mapy běhu; nic se nepřepočítává.",
+      },
       mapStage: {
         info: "Co mapa ukazuje, jak spolehlivá je a jak byla spočtena, najdete pod mapou.",
         approved: "Metodika schválena pro zprávy",

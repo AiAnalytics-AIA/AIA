@@ -625,7 +625,7 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
 // The page is split into tabs by what a person came to do. Every tab's panel stays
 // mounted once drawn and only the open one is shown, so an unsaved edit in one tab is
 // never lost by looking at another. A group the API adds later still renders -- in
-// Reference -- so a new control is never hidden. What powers AIA comes first: every
+// Stav systému, among the technical values -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
 const TABS = SECTIONS;
 type TabId = SectionId;
@@ -660,7 +660,9 @@ const NO_ITEMS: SettingItem[] = [];
 
 // Tabs that read their own route and are drawn on the first visit only: opening Settings reads
 // nothing of a tab not yet opened (Stav systému's error read reaches GlitchTip; review of #854).
-const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology", "system", "data"]);
+// Stav systému is drawn at once for its technical values, which come with the settings document;
+// its readiness and error reporting, which read their own routes, wait for its first visit.
+const OWN_TABS = new Set<TabId>(["prompts", "deep_research", "methodology", "data"]);
 
 // The settings-document groups each tab shows, in order. "roles", "audit" and
 // "invariants" are not API groups; the panel draws them itself.
@@ -669,8 +671,16 @@ const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodo
   access: ["access", "approvals", "roles"],
   studies: ["studies"],
   audit: ["audit"],
-  reference: ["deployment", "residency", "workflow", "population", "evidence", "simulation"],
 };
+// Reference is folded into Stav systému (settings-redesign F17, Nigel 25 Oct 2026 23:13-23:15 UTC:
+// "merge Reference into it, drop what is irrelevant"): what the deployment runs and the rules in
+// code, under the readiness and error reporting. A group the API adds later lands there too.
+const SYSTEM_REFERENCE = ["deployment", "residency", "workflow", "population"];
+// Dropped with it, as not the system's state: the evidence thresholds are the code's reference
+// values, while what a run applies is the support module in force, shown in Metodika -> Práh
+// zobrazení (the decision log: the thresholds live only in Metodika); the simulation constants
+// belong to Simulace, hidden for the MVP (AUD-6). Their invariants stay, under Invarianty.
+const NOT_DRAWN = ["evidence", "simulation"];
 // Groups whose panel draws their rows itself (inside it), so they are not drawn twice.
 const OWN_ROWS = new Set(["ai_history"]);
 
@@ -723,14 +733,14 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   // A group is drawn when the API sent it; the AI section and audit always are. The role
   // matrix and the prototype's AI history are reference material: technical details only.
   const present = (k: string) => (byKey.has(k) || k === "ai" || k === "roles" || k === "audit") && (technical || (k !== "roles" && k !== "ai_history"));
-  const known = new Set([...Object.values(TAB_SECTIONS).flat(), "deep_research"]);
+  const known = new Set([...Object.values(TAB_SECTIONS).flat(), ...SYSTEM_REFERENCE, ...NOT_DRAWN, "deep_research"]);
   const unknown = doc.groups.map((g) => g.key).filter((k) => !known.has(k));
   const referenceMatch = (item: SettingItem) => (referenceOwner === "all" || ownerOf(item.control) === referenceOwner)
     && `${itemName(item.key)} ${SETTING_HELP[item.key] ?? ""} ${item.key} ${item.source} ${String(item.value)}`.toLocaleLowerCase("cs").includes(referenceQuery.trim().toLocaleLowerCase("cs"));
   // A reference group's own values: its invariants are listed once, under Invarianty.
   const groupItems = (key: string) => (key === "invariants" ? invariants : (byKey.get(key)?.items ?? []).filter((i) => i.control !== "INVARIANT"));
   const section = (key: string, tab: TabId) => {
-    const reference = TAB_SECTIONS.reference.includes(key) || unknown.includes(key);
+    const reference = SYSTEM_REFERENCE.includes(key) || unknown.includes(key);
     const query = referenceQuery.trim().toLocaleLowerCase("cs");
     // An invariant is listed once, under Invarianty, not again in its group (review of #851).
     const items = (byKey.get(key)?.items ?? []).filter((item) => !reference || (item.control !== "INVARIANT" && referenceMatch(item)));
@@ -749,7 +759,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     if (tab === "prompts") return <SystemPromptsSection doc={doc} members={members} />;
     if (tab === "deep_research") return <DeepResearchSection items={byKey.get("deep_research")?.items ?? NO_ITEMS} members={members} />;
     if (tab === "methodology") return <MethodologySection members={members} />;
-    if (tab === "system") return <SystemPanel mayAdminister={doc.may_administer} />;
+    if (tab === "system") return <>{drawn.has("system") ? <SystemPanel mayAdminister={doc.may_administer} /> : null}{systemReference()}</>;
     if (tab === "data") return <DataPanel mayAdminister={doc.may_administer} clients={clients} reload={reload} />;
     // Studie a rozpočty as prototype v51 draws it: the figures, the spend by researcher and the
     // studies straight under the tab's head, in no further card; the settings document's own rows
@@ -778,37 +788,44 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
         {present("roles") ? section("roles", tab) : null}
       </div>;
     }
-    const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
+    return <>{TAB_SECTIONS[tab].filter(present).map((key) => section(key, tab))}</>;
+  };
+  // Stav systému's technical values and the rules in code (once Reference, F17): searchable, by
+  // category and by who changes them, every invariant once under Invarianty. Read by every member.
+  const systemReference = (): ReactNode => {
+    const keys = [...SYSTEM_REFERENCE.filter(present), ...unknown];
+    const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
+    const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
+    const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
     return (
       <>
-        {tab === "reference" ? (() => {
-          const total = [...keys, "invariants"].reduce((n, key) => n + groupItems(key).length, 0);
-          const shown = [...keys, "invariants"].filter((key) => referenceCategory === "all" || referenceCategory === key).reduce((n, key) => n + groupItems(key).filter(referenceMatch).length, 0);
-          const owners = (["all", "deployment", "fixed", "app"] as const).filter((o) => o === "all" || [...keys, "invariants"].some((key) => groupItems(key).some((i) => ownerOf(i.control) === o)));
-          return <div data-reference-filters className={`${CARD} flex flex-col gap-3`}>
-            <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="text-xs text-ink-faint">{t(`${P}.reference.categories`)}</span>
-              <span role="status" className="text-xs text-ink-muted">{tv(`${P}.reference.shown`, { shown, total })}</span>
-            </div>
-            <div data-reference-categories className="flex flex-wrap gap-1.5">
-              {["all", ...keys, "invariants"].map((key) => {
-                const on = referenceCategory === key;
-                // A chip counts what its group shows under the search and Kdo mění, as the tables do.
-                const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
-                const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
-                return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
-                  className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
-                  {label}<span className="font-mono tabular-nums text-ink-faint">{n}</span>
-                </button>;
-              })}
-            </div>
-            <ChoiceChips look="segmented" small label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
-          </div>;
-        })() : null}
-        {keys.map((key) => section(key, tab))}
-        {tab === "reference" && (referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
-        {tab === "reference" && ![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
+        <section data-reference-filters aria-labelledby="sys-reference-h" className={`${CARD} flex flex-col gap-3`}>
+          <div>
+            <h2 id="sys-reference-h" className="text-base font-semibold">{t(`${P}.reference.title`)}</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{tv(`${P}.reference.intro`, { support: t("aia.settings.methodology.name.support") })}</p>
+          </div>
+          <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs text-ink-faint">{t(`${P}.reference.categories`)}</span>
+            <span role="status" className="text-xs text-ink-muted">{tv(`${P}.reference.shown`, { shown, total })}</span>
+          </div>
+          <div data-reference-categories className="flex flex-wrap gap-1.5">
+            {["all", ...keys, "invariants"].map((key) => {
+              const on = referenceCategory === key;
+              // A chip counts what its group shows under the search and Kdo mění, as the tables do.
+              const n = (key === "all" ? [...keys, "invariants"] : [key]).reduce((sum, k) => sum + groupItems(k).filter(referenceMatch).length, 0);
+              const label = key === "all" ? t(`${P}.reference.all`) : t(`${P}.groups.${key}.title`).startsWith(P) ? key.replaceAll("_", " ") : t(`${P}.groups.${key}.title`);
+              return <button key={key} type="button" data-reference-category={key} aria-pressed={on} onClick={() => setReferenceCategory(key)}
+                className={`inline-flex min-h-8 items-center gap-1.5 rounded-pill border px-2.5 text-xs ${on ? "border-signal bg-signal-wash font-medium text-ink" : "border-border text-ink-muted hover:bg-surface-sunken"} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring`}>
+                {label}<span className="font-mono tabular-nums text-ink-faint">{n}</span>
+              </button>;
+            })}
+          </div>
+          <ChoiceChips look="segmented" small label={t(`${P}.reference.owner`)} value={referenceOwner} options={owners.map((o) => ({ key: o, label: t(`${P}.reference.owners.${o}`) }))} onChange={setReferenceOwner} />
+        </section>
+        {keys.map((key) => section(key, "system"))}
+        {(referenceCategory === "all" || referenceCategory === "invariants") && invariants.some(referenceMatch) ? <Section id="invariants"><ReferenceTable items={invariants.filter(referenceMatch)} /></Section> : null}
+        {![...keys, "invariants"].filter((k) => referenceCategory === "all" || referenceCategory === k).some((k) => groupItems(k).some(referenceMatch)) ? <p role="status" className="text-sm text-ink-muted">{t(`${P}.reference.none`)}</p> : null}
       </>
     );
   };
