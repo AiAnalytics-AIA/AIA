@@ -153,7 +153,10 @@ try {
   assert.equal(unexpected.length, 0, JSON.stringify(unexpected));
   const riskyWrites = writes.filter(r => r.method !== "PUT" || !r.path.endsWith("/workspace/stage"));
   // Opening Run freezes the existing design through the normal API; it never starts paid work.
-  assert.equal(riskyWrites.filter(r => !(r.method === "POST" && r.path.endsWith("/design/revisions"))).length, 0, JSON.stringify(riskyWrites));
+  // Opening Zpráva asks for the report editor's session (RPT8d): the same line answers the same
+  // session, writes no research and costs nothing; next dev's Strict Mode asks twice.
+  const expected = (r) => r.method === "POST" && (r.path.endsWith("/design/revisions") || /\/research\/runs\/[^/]+\/report\/editor$/.test(r.path));
+  assert.equal(riskyWrites.filter(r => !expected(r)).length, 0, JSON.stringify(riskyWrites));
   writeFileSync(join(out, "journey.json"), JSON.stringify({ result: "PASS", checks, records, errors, httpErrors, writes, consoleErrors, failedRequests, abortedStageMarkers }, null, 2));
   console.log(`UX journey: PASS (${records.length} layout checks; ${checks.length} interaction checks; ${out})`);
 } catch (error) {
