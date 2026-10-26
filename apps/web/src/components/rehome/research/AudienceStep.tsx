@@ -18,6 +18,7 @@
 // audience store, and still say they are not in AIA. Whether a run applies the
 // filters is the run's pin, and readiness says it ("audience").
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 
@@ -593,7 +594,8 @@ function Preview({ catalog }: { catalog: Catalog }) {
                 <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySample")}</dt>
                 <dd className="mt-1 text-lg font-semibold tabular-nums">{n != null ? `N ${n.toLocaleString("cs-CZ")}` : t("research.audience.unset")}</dd>
                 <dd className="text-xs">
-                  <a className="text-signal underline" href={stageHref("sample", stepHref)}>{t("research.audience.feasibilitySampleEdit")}</a>
+                  {/* Client-side, as every stage link: a document load would drop an edit still waiting to save and the Lead's pane. */}
+                  <Link className="text-signal underline" href={stageHref("sample", stepHref)}>{t("research.audience.feasibilitySampleEdit")}</Link>
                 </dd>
               </div>
               <div className="rounded-control border border-border bg-surface p-3">

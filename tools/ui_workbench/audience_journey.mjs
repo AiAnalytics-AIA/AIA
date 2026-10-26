@@ -159,6 +159,21 @@ if (await page.getByRole("button", { name: "Ověřit proveditelnost" }).count())
 ok(`Proveditelnost: ${previews} previews asked as the filters changed, no button; the sampler's verdict for N=300 is ${drawable[1]}`);
 await shot("2-preview");
 
+// 2c. "upravit na Vzorku" right after a filter edit: followed in the app, so the edit still waiting to
+// save is kept and nothing reloads (Codex on #1002).
+await page.evaluate(() => { window.__aiaSameDocument = true; });
+const second = catalogue.factors.find((f) => f.id === "kraj")?.values?.[1]?.value;
+if (!second) fail("the catalogue has a single region");
+await page.getByRole("button", { name: new RegExp(second.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).first().click();
+await page.getByRole("link", { name: "upravit na Vzorku" }).click();
+await page.waitForURL(/#sample$/, { timeout: 60000 });
+if (!(await page.evaluate(() => window.__aiaSameDocument === true))) fail("upravit na Vzorku reloaded the document");
+const keptSave = async () => ((await content()).content.audience.filters.kraj || []).includes(second);
+for (let i = 0; i < 40 && !(await keptSave()); i += 1) await page.waitForTimeout(250);
+if (!(await keptSave())) fail(`the region chosen just before leaving was not saved: ${JSON.stringify((await content()).content.audience.filters)}`);
+ok("upravit na Vzorku: followed in the app right after a filter edit; the edit is saved, nothing reloaded");
+await page.goto(stage("audience"), { waitUntil: "load", timeout: 180000 });
+
 // 2b. The factor groups and values chosen, never typed (input-interactions I3, audit B7, B8), at four widths.
 const regionChip = page.getByRole("button", { name: regionName }).first();
 if ((await regionChip.getAttribute("aria-pressed")) !== "true") fail(`${region} is not shown as chosen`);

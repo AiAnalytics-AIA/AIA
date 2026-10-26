@@ -392,6 +392,7 @@ describe("Audience", () => {
       expect(figures.textContent).toContain("lidí z 18\u00a0766");
       expect(figures.textContent).toContain("N 500");
       // n is set on Vzorek (#945): the figure links there.
+      // Followed in the app (next/link), never as a document load: audience_journey.mjs step 2c.
       expect(within(figures).getByRole("link", { name: "upravit na Vzorku" }).getAttribute("href")).toMatch(/#sample$/);
       expect(within(figures).getByText("Ne")).toBeTruthy();
       expect(figures.textContent).toMatch(/nebyl reprezentativní/);
