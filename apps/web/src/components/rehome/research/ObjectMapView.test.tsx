@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The audit's object map on the Results page, redesigned (plan object-map-3d-redesign): it says
 // it is internal and fictional first, opens from above, draws the stored terrain as ten display
-// terraces, the selected object's drawn relations and every object, labels the fit by Stress-1,
+// terraces, the selected object's drawn relations and every object, labels the fit in words,
 // counts who is not placed, and explains one pair from its stored evidence. Fixture from the
 // real builder; nothing here recomputes a methodological number.
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
@@ -136,11 +136,13 @@ describe("ObjectMapView", () => {
     expect(drawnPairs("object-map-links")).not.toContain("altair|borealis");
   });
 
-  it("labels the fit by its stored Stress-1 and quality, and counts who is not placed", () => {
+  it("labels the fit in words by its stored quality, and counts who is not placed", () => {
     render(<ObjectMapView battery={battery} dataOrigin={null} />);
     const fit = screen.getByTestId("object-map-fit").textContent!;
-    expect(fit).toContain("Stress-1 = 0,158");
     expect(fit).toContain("slabá shoda");
+    // No statistic's name on the stage (the spec's copy pass, SOC11b): the quality says it in words.
+    expect(document.body.textContent).not.toContain("Stress-1");
+    expect(document.body.innerHTML).not.toContain("PROGRESS");
     expect(fit).not.toContain("Spearman");
     expect(screen.getByTestId("object-map-not-placed").textContent).toContain("Nezařazení respondenti: 1");
     const support = screen.getByTestId("object-map-support").textContent!;
