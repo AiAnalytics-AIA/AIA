@@ -2823,7 +2823,7 @@ export const cs = {
       deepTitle: "Veřejný hloubkový výzkum",
       addBlockV3: "Nový blok",
       addQuestionV3: "Otázka do tohoto bloku",
-      blockHead: "Blok {n} · {q}",
+      blockHead: "B{n}",
       untitledBlock: "Blok {n}",
       untitledSet: "Sada {n}",
       removeBlockConfirm: "Smazat blok i otázky?",
@@ -2888,7 +2888,7 @@ export const cs = {
       optionN: "Možnost {n}",
       optionRemove: "Odebrat možnost {n}",
       optionAdd: "Přidat možnost",
-      setBadge: "SADA {n}",
+      setBadge: "S{n}",
       setCount: "{n} / doporučeno {rmin}–{rmax}",
       setQuestionMissing: "Otázka musí obsahovat {object}, jinak se položky do otázky nepromítnou.",
       setObjectsV3: "Objekty",
@@ -3595,6 +3595,8 @@ export const cs = {
       },
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",
+      // artifact-fieldwork FLD2c: the run's steps, one ordered list.
+      stepsTitle: "Kroky běhu",
       stepWork: {
         ai: "AI model",
         running: "kód",

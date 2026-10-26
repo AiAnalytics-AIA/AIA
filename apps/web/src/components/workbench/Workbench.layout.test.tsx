@@ -49,7 +49,12 @@ function Stage() {
   useEffect(() => {
     mounts += 1;
   }, []);
-  return <div><div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div></div>;
+  return (
+    <div>
+      <div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div>
+      <details><summary>Další</summary><details><summary>Ještě další</summary><span data-aia="sample:respondents:panel">Panel</span></details></details>
+    </div>
+  );
 }
 
 beforeEach(() => {
@@ -284,6 +289,16 @@ describe("the launcher and the drawer (26c)", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("a focus on a target folded in a closed <details> unfolds it, every level", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "sample:respondents:panel" }])] })];
+    Element.prototype.scrollIntoView = vi.fn();
+    bench();
+    setWidth(1440);
+    const target = document.querySelector('[data-aia="sample:respondents:panel"]')!;
+    await waitFor(() => expect(target.classList.contains("just")).toBe(true), { timeout: 4000 });
+    expect([...document.querySelectorAll("details")].map((d) => d.open)).toEqual([true, true]);
   });
 
   it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
