@@ -210,6 +210,18 @@ export function PersonaStep() {
   const recommendedRows = visible.filter((d) => suggested.has(d.id));
   const catalogRows = visible.filter((d) => !suggested.has(d.id));
   const chosenList = useRef<HTMLUListElement>(null);
+  // Focus owed to the selection after the render that changes it (AGENTS.md: never on a frame guess):
+  // a dimension's remove by its id, or the remove at a position, else the list itself.
+  const owedFocus = useRef<{ id: string } | { at: number } | null>(null);
+  const shown = approved.join("\u0000");
+  useEffect(() => {
+    const owed = owedFocus.current;
+    if (!owed) return;
+    owedFocus.current = null;
+    const removes = [...(chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]") ?? [])];
+    const target = "id" in owed ? removes.find((b) => b.dataset.remove === owed.id) : removes[Math.min(owed.at, removes.length - 1)];
+    (target ?? chosenList.current)?.focus();
+  }, [shown]);
   // A change that takes dimensions away, or replaces them, offers "Vrátit" (I6): it takes back that
   // change alone (undoChosen), and focus lands on the first dimension it put back.
   const undo = useUndo();
@@ -220,22 +232,20 @@ export function PersonaStep() {
     undo.offer({
       message,
       undo: () => {
-        apply(undoChosen(store.get().project, before, after));
+        const now = store.get().project;
+        const restored = undoChosen(now, before, after);
         const back = before.find((id) => !after.includes(id));
-        if (back !== undefined)
-          requestAnimationFrame(() => [...(chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]") ?? [])].find((b) => b.dataset.remove === back)?.focus());
+        // Owed only when the selection will render differently, so a later change never spends it.
+        if (back !== undefined && chosenDimensions(restored.project).join("\u0000") !== chosenDimensions(now).join("\u0000")) owedFocus.current = { id: back };
+        apply(restored);
       },
     });
   };
   // A removed row takes its button with it: focus goes to the next row's remove, else the previous
   // one's, else the list, never to the page's top.
   const removeChosen = (id: string) => {
-    const at = approved.indexOf(id);
+    owedFocus.current = { at: approved.indexOf(id) };
     applyUndoable(removeDimension(store.get().project, id), tv("research.persona.removed", { label: labels[id] || id }));
-    requestAnimationFrame(() => {
-      const left = chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]");
-      (left?.[Math.min(at, left.length - 1)] ?? chosenList.current)?.focus();
-    });
   };
   // The classic's autofill replaces the selection; whatever it changes can be taken back, and what it
   // dropped is named.

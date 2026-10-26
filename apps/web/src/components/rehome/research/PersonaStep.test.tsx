@@ -238,6 +238,20 @@ describe("Dimenze", () => {
     expect(within(chosen).getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
   }, 20_000);
 
+  it("focuses after the render that changes the selection, even when every animation frame runs at once (AGENTS.md)", async () => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const chosen = await screen.findByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Média a informační chování"));
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Cena / value for money"));
+  }, 20_000);
+
   it("after a remove, focus goes to the next row's remove, then the previous one's, then the list (DIM-F7)", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
