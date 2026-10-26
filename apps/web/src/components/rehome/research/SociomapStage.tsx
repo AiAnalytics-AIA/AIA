@@ -10,7 +10,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type Artifact, type ResearchRun, research } from "@/lib/api";
 import { isRefusal, readMapOp, readTarget } from "@/lib/artifacts/sociomap";
-import { LEAD_MAP_VIEW, type LeadMapView, mapViewWords, sendLeadMapView, takeLeadMapView } from "@/lib/lead";
+import { LEAD_MAP_VIEW, type LeadMapView, mapViewWords, sendLeadMapView, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { explainMap } from "@/lib/map-explained";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
 import { densityGrid } from "@/lib/object-map-panel";
@@ -115,8 +115,8 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
       if (!note) for (const b of to) routeToMap(b.battery_id, view);
     };
     window.addEventListener(LEAD_MAP_VIEW, onView);
-    const waiting = takeLeadMapView();
-    if (waiting) sendLeadMapView(waiting);
+    // Every view sent before the maps were drawn, in order: all taken first, then each sent again.
+    for (const waiting of takeLeadMapViews()) sendLeadMapView(waiting);
     return () => window.removeEventListener(LEAD_MAP_VIEW, onView);
   }, [drawn, artifactId]);
   return (

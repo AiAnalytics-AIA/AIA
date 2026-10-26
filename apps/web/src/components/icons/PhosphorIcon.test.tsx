@@ -66,11 +66,11 @@ describe("PhosphorIcon", () => {
       const p = join(dir, n);
       return statSync(p).isDirectory() ? walk(p) : /\.tsx$/.test(n) && !/\.test\.tsx$/.test(n) ? [p] : [];
     });
-    // Drawings that are not icons: the AIA mark and wordmark, the status glyphs, the object maps and
+    // Drawings that are not icons: the AIA wordmark, the status glyphs, the object maps and
     // the Metodika illustrations; and the rail's four places, which UI-2 keeps as drawn.
     const KEPT = new Set([
       "components/icons/PhosphorIcon.tsx", "components/aia/rail-icons.tsx", "components/workbench/Icons.tsx", "components/workbench/Glyph.tsx",
-      "components/brand/AiaMark.tsx", "components/brand/Wordmark.tsx", "components/aia/settings/MethodologyArt.tsx",
+      "components/brand/Wordmark.tsx", "components/aia/settings/MethodologyArt.tsx",
       "components/rehome/research/ObjectMapPanel.tsx", "components/rehome/research/ObjectMapTerrain.tsx",
       "components/rehome/research/ObjectMapView.tsx", "components/rehome/research/SociomappingView.tsx",
     ]);

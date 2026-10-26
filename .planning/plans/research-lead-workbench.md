@@ -1999,10 +1999,21 @@ the first, rebuilt on develop (the held branch predates #809 and conflicted in 1
 - **Next, the server half** (after the listener lands): `research_lead.MapFilter` / `SelectItem` with
   `filter_refusal` / `select_refusal`, `filter_values` in `contract.json`, both sides' `LIVE_VIEW_OPS`,
   the scripted Lead; `labels` and `hide_weak` left out of the server's values until the panel offers those
-  controls; harness `aia-research-lead-6`.
+  controls; harness `aia-research-lead-7` (6 went to LO5a.1 first).
 - **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
   `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
   sent at once on Sociomapa). Each fails without the change.
+- **The server half, prepared** (`feature/lead-map-view-server`, on the web half; local until the
+  listener lands). `MapFilter` / `SelectItem` join `ViewOp` under harness `aia-research-lead-7`;
+  `select_refusal` (the person's own pointing only, `not_selectable` where the contract has no select)
+  and `filter_refusal` (`unknown_value`; a battery `not_in_context`); the executor passes the turn's
+  focus to `ground_view`; `filter_values` in `contract.json`, `FILTER_VALUES` on the server held to it
+  and to SOC1's; `select` and `filter` live on both sides; the scripted Lead runs both. The Lead
+  is offered only what the panel applies (Sociomapa (2), 2026-10-26): `select`, `view`, `mode` and
+  `battery`; `labels` and `hide_weak` have no control on it and leave `MapFilter`, while the map's
+  own `FILTER_VALUES` (SOC1, the contract) keep them. A `battery` stays refused (`not_in_context`):
+  the Lead's context names no battery.
+
 
 ## From the research build spec (2026-10-26)
 
@@ -2134,6 +2145,17 @@ Relayed from the Sběr dat session (#974).
 Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
 to the steps it owns).
 
+### A stage's "Požádat Vedoucího" opens the conversation, asks only when the Lead answers, and once (2026-10-26, `fix/lead-ask-from-stage`)
+
+From the Zadání owner's `/code-review` on #986, three defects in `LeadPane.tsx` `fromStage` and
+`Workbench.tsx` `askLead` (every stage's ask through `useAskLead`):
+- below 1100 px the ask was sent with the conversation closed, so its answer and approval card went unseen; the
+  ask now opens the drawer or the sheet (and, in the split, brings the pane back from the artifact's focus mode);
+- it was sent while the composer was shut (Lead not hatched, unavailable, or read only); now nothing is sent,
+  and the open pane shows the composer's reason;
+- each click queued another copy; the same ask on its way, queued here or waiting on the server is dropped.
+Tests: `Workbench.layout.test.tsx` "a stage's 'Požádat Vedoucího'…" (three cases), each failing without the change.
+
 ### The Vidí chip is a 44 px target at a phone's width (2026-10-26, `fix/lead-pane-sees-chip`)
 
 Reported by the Zadání owner: `workbench_journey.mjs` failed on develop 01babfb2 with "frame targets under
@@ -2151,3 +2173,9 @@ stays first in one fragment, with the card beside it only when it has something 
 `step.test.tsx` "ActionDock keeps its moved action, and the focus on it, when its note comes and goes",
 which fails without the change. The review's other P3, a comment beside the journey's `navStage`, fell
 away: #840's helper, taken in #936's merge, matches a stage's label exactly.
+- **Codex on #992 (P2, fixed).** A turn carrying several map views, answered on another stage, kept only the last:
+  `sendLeadMapView` held one waiting view, and `Workbench.onView` moved to Sociomapa once per view. The views now
+  wait in order (`lib/lead.ts`, `takeLeadMapViews` drains them), Sociomapa replays all of them when it mounts
+  (`SociomapStage.tsx`, two lines, agreed with Sociomapa), and a turn moves to the map once. Tests:
+  `ExecutionSteps.test.tsx` "applies every view sent before the stage drew its maps, in order…",
+  `Workbench.layout.test.tsx` "keeps every map view of one turn for the map, in order", each failing without it.
