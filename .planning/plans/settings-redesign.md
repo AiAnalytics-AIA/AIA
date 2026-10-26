@@ -200,6 +200,16 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
+**F12, part 1** (built; the chunk stays open). Stav systému's shared deployment (409 deployment_shared)
+reads as a fact, muted, never an alert in fault red. Správa dat as prototype v99: the cards the section's
+h2s with their help behind an ⓘ; "Nelze vrátit" the one fault-toned chip; the client deletion's one
+action a danger button (local to DataPanel: the shared Button primitive is lane A's); what a deletion takes
+and keeps (Smaže se / Zůstane) listed in the open once a client is chosen, the counts still the
+confirmation's, from the server. Left open: the kept records' rows as v99 draws them (each record's line
+under its name; their lhůta is F22's, MVPQ-07), and Systémové prompty's head chips and buttons, which wait
+for the Metodik-only rule (Nigel, 26 Oct ~00:35 UTC: "metodik edits the prompts") to reach the API, since a
+chip saying who may edit must say what the server enforces.
+
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 
 **F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.

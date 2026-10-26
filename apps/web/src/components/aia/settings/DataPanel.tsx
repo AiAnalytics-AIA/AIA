@@ -17,6 +17,8 @@ import { Switch } from "../../ui/Switch";
 import { Button, Select } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
+import { InfoButton } from "./InfoButton";
+import { FOCUS } from "../../ui/parts";
 
 const D = "aia.settings.panel.data";
 const CARD = "rounded-md border border-border bg-surface-raised px-6 py-5";
@@ -28,6 +30,17 @@ const KEPT = ["usage_rows", "approval_rows", "audit_rows"] as const;
 const KNOWN_RECORDS = new Set(["usage_rows", "budget_holds", "approval_rows", "audit_rows", "deleted_clients"]);
 
 /** The route is not deployed: no route answered (http_404), or the old GET preview's 405. */
+/** The one destructive action on Settings, drawn as the prototype's danger button: fault-red, so it
+ *  reads apart from every other action (F12). Local, not a shared variant: lane A owns the primitives. */
+function DangerButton({ disabled, onClick, children }: { disabled?: boolean; onClick: () => void; children: string }) {
+  return (
+    <button type="button" data-danger disabled={disabled} onClick={onClick}
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-status-fault bg-surface-raised px-3 text-sm font-medium whitespace-nowrap text-status-fault transition-colors duration-[var(--duration-confirm)] hover:bg-status-fault-wash disabled:opacity-50 ${FOCUS}`}>
+      <span aria-hidden="true">🗑</span>{children}
+    </button>
+  );
+}
+
 const notBuilt = (e: unknown) => e instanceof ApiError && ((e.status === 404 && e.code === "http_404") || e.status === 405);
 const gone = (e: unknown) => e instanceof ApiError && e.status === 404 && e.code === "not_found";
 
@@ -86,13 +99,18 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
       } else setError(describeError(e));
     } finally { setBusy(false); }
   };
+  const [about, setAbout] = useState(false);
   return (
     <section data-client-delete aria-labelledby="data-del-h" className={CARD}>
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 id="data-del-h" className="text-base font-semibold">{t(`${D}.clientDelete`)}</h3>
-        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${D}.irreversible`)}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <h2 id="data-del-h" className="text-base font-semibold">{t(`${D}.clientDelete`)}</h2>
+          <InfoButton label={t(`${D}.deleteInfo`)} controls="data-del-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.clientDeleteHelp`)} />
+        </div>
+        {/* Irreversible is the one fault-toned chip here (prototype v99's "chip bad"). */}
+        <span data-irreversible className="inline-flex min-h-[22px] items-center gap-1 rounded-pill border border-status-fault/50 bg-status-fault-wash px-2 text-xs text-status-fault"><span aria-hidden="true">⚠</span>{t(`${D}.irreversible`)}</span>
       </div>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.clientDeleteHelp`)}</p>
+      <p id="data-del-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.clientDeleteHelp`)}</p>
       {notYet ? <NotYetChip /> : <>
         {!clients.ok ? <p role="alert" className="mt-2 text-sm text-status-fault">{clients.message}</p> : !list.length ? <p className="mt-2 text-sm text-ink-muted">{t(`${D}.noClients`)}</p> : (
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -107,9 +125,27 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
                 {list.map((c) => <option key={c.client_id} value={c.client_id}>{c.name}</option>)}
               </Select>
             )}
-            <Button disabled={!chosen || busy} onClick={() => chosen && void open(chosen)}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</Button>
           </div>
         )}
+        {/* What a deletion takes and what it keeps, in the open before the confirmation counts them
+            (prototype v99's Smaže se / Zůstane); the counts are the confirmation's, from the server. */}
+        {chosen ? (
+          <div data-delete-inline className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <h3 className="text-sm font-semibold"><span aria-hidden="true">🗑 </span>{t(`${D}.willDelete`)}</h3>
+              <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{DELETED.map((k) => <li key={k}>{t(`${D}.deletedKind.${k}`)}</li>)}</ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold"><span aria-hidden="true">🛡 </span>{t(`${D}.willStay`)}</h3>
+              <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{KEPT.map((k) => <li key={k}>{t(`${D}.keptKind.${k}`)}</li>)}</ul>
+            </div>
+          </div>
+        ) : null}
+        {list.length ? (
+          <div className="mt-3">
+            <DangerButton disabled={!chosen || busy} onClick={() => { if (chosen) void open(chosen); }}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</DangerButton>
+          </div>
+        ) : null}
         {done ? <p role="status" data-deleted className="mt-3 text-sm">{done}</p> : null}
         {waiting ? <Button className="mt-2" disabled={busy} onClick={() => void retryFiles()}>{t(`${D}.retryFiles`)}</Button> : null}
         {error && !preview ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
@@ -155,10 +191,14 @@ function KeptRecords({ version }: { version: number }) {
   }, [version]);
   const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
   const cell = "border-t border-border px-2 py-2 align-top text-sm";
+  const [about, setAbout] = useState(false);
   return (
     <section data-kept-records aria-labelledby="data-kept-h" className={CARD}>
-      <h3 id="data-kept-h" className="text-base font-semibold">{t(`${D}.keptRecords`)}</h3>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.keptRecordsHelp`)}</p>
+      <div className="flex items-center gap-1">
+        <h2 id="data-kept-h" className="text-base font-semibold">{t(`${D}.keptRecords`)}</h2>
+        <InfoButton label={t(`${D}.keptInfo`)} controls="data-kept-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.keptRecordsHelp`)} />
+      </div>
+      <p id="data-kept-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.keptRecordsHelp`)}</p>
       {read.state === "loading" ? null : read.state === "not_yet" ? <NotYetChip /> : read.state === "refused" ? <p role="alert" className="mt-2 text-sm text-status-fault">{read.message}</p> : (
         <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[32rem] border-collapse">
           <thead><tr><th scope="col" className={head}>{t(`${D}.col.record`)}</th><th scope="col" className={head}>{t(`${D}.col.count`)}</th><th scope="col" className={head}>{t(`${D}.col.keptFor`)}</th><th scope="col" className={head}>{t(`${D}.col.why`)}</th></tr></thead>
