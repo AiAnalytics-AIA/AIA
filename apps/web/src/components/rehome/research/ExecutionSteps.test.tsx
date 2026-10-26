@@ -2798,6 +2798,8 @@ describe("Results", () => {
     expect(report.getByText("není součástí")).toBeTruthy();
     const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
     await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    // A review is named by its date, never its run id (RPT12).
+    expect(variant.textContent).not.toContain("RUN-");
     fireEvent.change(variant, { target: { value: "RUN-deep" } });
     const prepare = await report.findByRole("button", { name: /Připravit zprávu s rešerší/ });
     // A PDF is promised only where one will be made (review 2, F35), never as "DOCX i PDF".
@@ -3757,6 +3759,13 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "unpriced", "remaining"]));
     expect(labels()[1]).toBe(t("research.exec.spend.heldEnded"));
     expect(document.querySelector('[data-spend="held"] [data-spend-note]')).toBeNull();
+    cleanup();
+
+    // An ended run whose hold was not released yet: the amount still says it is not spent.
+    const leftover = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0.5, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(leftover), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(() => expect(document.querySelector('[data-spend="held"] [data-spend-note]')?.textContent).toBe(t("research.exec.spend.heldNote")));
   });
 
   it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {

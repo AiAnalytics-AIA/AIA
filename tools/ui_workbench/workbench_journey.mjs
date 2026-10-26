@@ -346,6 +346,8 @@ try {
     await elsewhere.waitFor({ timeout: 30000 });
     assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
     await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
+    // DSN14: in the workbench a comment is saved for the Lead, and the section says it changes nothing.
+    await page.locator("#plan-comments").getByText("Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.").waitFor({ timeout: 30000 });
     // DSN12: the hypotheses are a section of their own, each a Lead target, with no verdict said.
     const hypotheses = page.getByRole("region", { name: "Hypotézy" });
     assert.equal(await hypotheses.locator('[data-aia^="hypothesis:"]').count(), 2, `plan @${width}: the hypotheses' section`);
@@ -408,7 +410,7 @@ try {
     assert.equal((await outsideN(editable)).length, 0, `Vzorek has no editable control but n @${width}`);
     assert.equal(await sample.locator('[data-aia="sample:n"] [role=spinbutton]').count(), 1, `Vzorek sets n @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
+    const NAVIGATION = new Set(["Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník", "Opravit v Dimenzích", "Opravit v Cílové skupině", "Opravit v Dotazníku"]);
     // A link card reads its title, then what is set there: the title names where it goes.
     const buttons = (await outsideN("button, [role=button]")).map((b) => b.split("\n")[0].trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);

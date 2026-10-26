@@ -5,6 +5,7 @@
 import { verdictWords } from "@/research/audience";
 
 import type { CheckStatus, OutlookVerdict, PersonaSourceOption, ReadinessBody } from "./api";
+import { plural } from "./format";
 import { outlookCounts } from "./research-execution";
 import type { WorkbenchStage } from "./workbench-stages";
 
@@ -146,6 +147,22 @@ export function readinessSummary(readiness: ReadinessBody): ReadinessSummary {
   const checks = readiness.checks.map((c, i) => [c, i] as const).sort((a, b) => rank(a[0].status) - rank(b[0].status) || a[1] - b[1]).map(([c]) => c);
   const count = (s: string) => checks.filter((c) => c.status === s).length;
   return { ready: readiness.ready, checks, blocking: count("FAIL"), warnings: count("WARN"), unknown: checks.filter((c) => !known(c.status)).length };
+}
+
+/**
+ * The readiness in one line, as the v73 board's pill reads it (spec vzorek V5): whether a run can
+ * start and what holds it. The server's `ready` decides; a status this client does not know is
+ * said, never read as passed.
+ */
+export type ReadinessLine = { tone: "done" | "done-warn" | "fault" | "inert"; words: string };
+
+export function readinessLine(s: ReadinessSummary): ReadinessLine {
+  if (!s.ready) {
+    return { tone: "fault", words: s.blocking ? `Nelze spustit · ${plural(s.blocking, "kontrola brání", "kontroly brání", "kontrol brání")}` : "Nelze spustit: server spuštění nepovolí" };
+  }
+  if (s.unknown) return { tone: "inert", words: "Stav některých kontrol je neznámý" };
+  if (s.warnings) return { tone: "done-warn", words: `Lze spustit · ${s.warnings} upozornění` };
+  return { tone: "done", words: "Lze spustit · nic nebrání" };
 }
 
 /** The sampler's quota fields in words; a field this client does not know keeps its name. */

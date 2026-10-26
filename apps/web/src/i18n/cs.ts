@@ -38,6 +38,11 @@ export const cs = {
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",
     navSettings: "Nastavení",
+    // The researcher's own Lead on the rail (PBA2): grown when there is none (LI9), else theirs.
+    navLead: "Můj Vedoucí",
+    navLeadGrow: "Vypěstovat Vedoucího",
+    menuOpen: "Menu",
+    menuClose: "Zavřít menu",
     signOut: "Odhlásit se",
     loading: "Načítám…",
     loadFailed: "Nepodařilo se načíst data.",
@@ -1327,6 +1332,7 @@ export const cs = {
         col: { group: "Skupina", setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
         board: {
           rules: "Pravidla rešerše",
+          rulesInfo: "Jak se pravidlo navrhuje a schvaluje",
           rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne; seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení i stažení se potvrzuje a zapisuje do auditu.",
         },
         reach: {
@@ -1336,6 +1342,7 @@ export const cs = {
           source: "z posledního záznamu workeru · {when}",
           build: "sestava {sha}",
           advisory: "kontrola tříd dat jen upozorňuje (vývojové prostředí)",
+          info: "Jak číst Dosah",
           help: "Nahoře, co čeká na schválení, pak aktivní trasy, pak ty, které nasazení nezapojilo. Nic z toho se tu nepřepíná: trasy a klíče zapíná nasazení, placenou trasu pustí schválení pravidel níže.",
           connector: "Konektor {name}",
           priced: "placená",
@@ -1376,6 +1383,7 @@ export const cs = {
         protections: {
           title: "Pevné ochrany v kódu",
           note: "Nejdou vypnout žádným pravidlem.",
+          info: "Co znamenají pevné ochrany",
           robots: "respektuje robots.txt",
           noLogin: "žádné přihlášení ani paywall",
           noPersonal: "žádné osobní údaje",
@@ -1629,7 +1637,7 @@ export const cs = {
         lede: {
           methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
-          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel. Trasy a klíče zapíná nasazení; organizace schvaluje pravidla, bez kterých placená trasa neběží.",
+          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",
@@ -1655,6 +1663,18 @@ export const cs = {
         },
         notYet: "V AIA zatím není",
         system: {
+          env: {
+            title: "Prostředí a verze",
+            info: "Co je Prostředí a verze",
+            help: "Co toto nasazení běží: prostředí, sestava webu a API, databáze, přihlášení, populace a pravidla polí. Čteno z nastavení, registru populace a konfigurace webu; co se přečíst nepodařilo, je nezjištěno. Kopírovat diagnostiku zkopíruje jen tyto řádky a počet připravených kontrol, žádný klíč, adresu ani e-mail.",
+            copy: "Kopírovat diagnostiku",
+            copied: "Zkopírováno.",
+            copyFailed: "Prohlížeč kopírování nedovolil. Text je níže označený, zkopírujte ho ručně.",
+            copyField: "Diagnostika ke zkopírování",
+            unknown: "nezjištěno",
+            ready: "Připravenost",
+            row: { environment: "Prostředí", build: "Sestava webu", api_build: "Sestava API", database: "Databáze", sign_in: "Přihlášení", live: "Populace LIVE", static: "Populace STATIC", field_rules: "Pravidla polí" },
+          },
           readiness: "Připravenost po nasazení",
           readinessHolds: "Výsledek kontrol po každém nasazení: co je připravené, co ne a proč, nepřipravené nahoře.",
           errors: "Hlášení chyb",
@@ -2512,6 +2532,7 @@ export const cs = {
       commentsProcess: "Zpracovat komentáře",
       commentAdd: "Přidat komentář",
       commentRemove: "Odebrat komentář",
+      commentsLeadNote: "Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.",
       commentsDone: "Komentáře zapracovány",
       // artifact-design DSN2, DSN2b: each research question with its coverage on its row, as the server traces it.
       coverage: {
@@ -2569,7 +2590,8 @@ export const cs = {
       followHint: "Odpovězte jen na to, co víte. Nezodpovězené otázky AI vyřeší předpokladem.",
       followAnswered: "{a} z {b} zodpovězeno",
       followAnswer: "Odpověď na otázku {n}",
-      commentsHint: "Označte text v části Porozumění nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHint: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHintLead: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Komentáře uložíte pro Vedoucího výzkumu.",
       commentDraft: "Co změnit? Enter uloží komentář",
       dockSetSize: "Sada „{name}“ má {count}, potřebuje {min}–{max}",
       dockComments: "Komentáře čekající na zpracování: {n}",
@@ -3720,7 +3742,7 @@ export const cs = {
         remaining: "Zbývá v rozpočtu studie",
         remainingUnknown: "neznámé",
         remainingLoading: "zjišťuji…",
-        remainingNote: "bez částek, které drží běžící kroky",
+        remainingNote: "bez částek, které běh drží",
       },
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
@@ -3893,6 +3915,7 @@ export const cs = {
         segLikes: "hodnotí výš než ostatní: {objects}",
         segDislikes: "níž: {objects}",
         segColour: "Barvu na mapě respondentů má jen ten, kdo do své skupiny patří aspoň z {share}; ostatní jsou šedí.",
+        segDescriptive: "Skupiny jen popisují, jak se respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.",
         segBorderline: "Náznak skupin je na hranici; barvy nejsou.",
         segNone: "Respondenti netvoří zřetelné chuťové skupiny.",
         relyTitle: "Jak spolehlivá je mapa",

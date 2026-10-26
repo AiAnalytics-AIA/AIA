@@ -150,7 +150,8 @@ describe("the workbench: the Lead owns the AI starts", () => {
     await waitFor(() => {
       const saved = bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { briefing?: { review_comments?: string }; ui_state?: { plan_changed26?: boolean } } | undefined;
       expect(saved?.briefing?.review_comments).toBe("1. K textu „cíl“: zúžit na Prahu");
-      expect(saved?.ui_state?.plan_changed26).toBe(true);
+      // Saved for the Lead, nothing reworked: the plan is not marked "upraveno" (spec navrh D8).
+      expect(saved?.ui_state?.plan_changed26).toBeUndefined();
     });
     fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
     await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Aktualizuj návrh podle mých komentářů.")).toBe(true));
@@ -182,6 +183,32 @@ describe("the workbench: the Lead owns the AI starts", () => {
       window.location.hash = "";
     }
   }, 30_000);
+
+  it("a removed comment comes back with Vrátit; saving comments marks nothing changed", async () => {
+    api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", ui_state: { plan_comments26: [{ quote: "cíl", comment: "zúžit na Prahu" }, { quote: "test", comment: "upřesnit" }] } }, { problem_summary: "Jde o test.", objectives: ["Změřit zájem"], hypotheses: [], research_questions: [], tracked_sets: [] });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: /Označte text a přidejte komentář/ });
+    expect(within(section).getByText(t("research.plan.commentsLeadNote"))).toBeTruthy();
+    // The section's hint says where comments go in the workbench, never that AI processes them from here.
+    expect(within(section).queryByText(/AI zapracuje/)).toBeNull();
+    fireEvent.click(within(section).getAllByRole("button", { name: t("research.plan.commentRemove") })[0]);
+    expect(within(section).queryByText("zúžit na Prahu")).toBeNull();
+    expect(await screen.findByText("Odebráno: „zúžit na Prahu“")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    // Back where it stood, before the second.
+    await waitFor(() => expect([...section.querySelectorAll("li")].map((li) => ["zúžit na Prahu", "upřesnit"].find((c) => li.textContent?.includes(c)))).toEqual(["zúžit na Prahu", "upřesnit"]));
+    // A removal left before a save is not taken back after it: the batch went without it.
+    fireEvent.click(within(section).getAllByRole("button", { name: t("research.plan.commentRemove") })[1]);
+    expect(await screen.findByRole("button", { name: "Vrátit" })).toBeTruthy();
+    fireEvent.click(within(section).getByRole("button", { name: "Uložit komentáře" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Vrátit" })).toBeNull());
+    await waitFor(() => {
+      const saved = bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { briefing?: { review_comments?: string }; ui_state?: { plan_changed26?: boolean } } | undefined;
+      expect(saved?.briefing?.review_comments).toBe("1. K textu „cíl“: zúžit na Prahu");
+      expect(saved?.ui_state?.plan_changed26).toBeUndefined();
+    });
+    expect(screen.queryByText(t("research.plan.changed"))).toBeNull();
+  });
 
   it("keeps Spuštění's own Start: a research run is not a worker start", async () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);

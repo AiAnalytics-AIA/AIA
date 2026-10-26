@@ -38,3 +38,21 @@ describe("how reliable the map is, in words", () => {
     expect(halves()).toContain("Shodu nelze změřit: mapa nemá spolehlivý pár.");
   });
 });
+
+// The map's taste segments describe how respondents differ on this map; readiness says AIA cannot yet
+// compare segments (spec szz S2, artifact-sociomap SOC14). One sentence keeps the two from contradicting.
+describe("the taste segments, as what they are", () => {
+  const descriptive = "Skupiny jen popisují, jak se respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.";
+
+  it("says under the segments that they are descriptive", () => {
+    render(<MapExplained x={explainMap(hudba, map)} approved={false} tech={tech} />);
+    expect(screen.getByText(descriptive)).toBeTruthy();
+  });
+
+  it("says nothing of segments a map did not find", () => {
+    const [, sum] = signedOff.batteries as unknown as BatteryWithMaps[];
+    const other = sum.maps!["aia-sociomap-5"].artifact;
+    render(<MapExplained x={explainMap(sum, other)} approved={false} tech={tech} />);
+    expect(screen.queryByText(descriptive)).toBeNull();
+  });
+});

@@ -25,7 +25,7 @@ chunks:
   - "[x] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
   - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
   - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
-  - "[ ] RPT12. No ids on the stage (spec szz Z3; W3)"
+  - "[x] RPT12. No ids on the stage (spec szz Z3; W3)"
   - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
   - "[x] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
   - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
@@ -778,6 +778,15 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## Findings
 
+- **Výsledky opened the report editor from a hidden tab (from the stand-in review of #939, 2026-10-26): fixed on
+  `fix/report-editor-on-action`.** `ResultsWorkspace` keeps every panel mounted (hidden), and `ReportEditor`
+  POSTed `…/report/editor` in its mount effect (`ReportEditor.tsx:148 @ 25ce6493`), so opening any Výsledky view,
+  the Sociomapa stage included, opened an editor session no one asked for, and sociomap_journey's "nothing
+  written but the stage opened" failed. Now `ResultsWorkspace` says which panel is on screen (`panel-shown.ts`
+  `PanelShown`), and the editor opens only once its panel is first shown, staying open after. Test:
+  `ReportEditor.test.tsx` "asks for nothing from a hidden results panel, opens once it is shown, and stays open
+  when it is hidden again" (fails before: `open` called once while hidden).
+
 - **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
   `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
   `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
@@ -892,7 +901,16 @@ accepted-findings count on Pro klienta, after ANL11; the chunk stays open until 
 
 **RPT11. Its own stage** (spec `szz/Z1`; W3, lane G).
 
-**RPT12. No ids** (spec `szz/Z3`; W3, lane G).
+**RPT12. No ids** (spec `szz/Z3`; W3, lane G). *Built (`feature/report-no-ids`):* the doc bar no longer prints the
+DOCX's artifact id and the draft's footer reads the review in words and the revision (`reviewWords`), with no review code,
+run id or artifact id (`ReportDocumentView.tsx`); a review in the doc picker and Výsledky' Varianta list is named by its
+title, else its start time, else its place in the list, never its run id, by one rule for both lists
+(`report-variant.ts reviewLabel`); the Záznam pokrytí names an output in words, never by its id or raw type
+(`report-coverage.ts`). The version shown stays readable to tests and journeys as
+`data-report-version` on the doc bar, never as text. Tests: `ReportDocumentView.test.tsx` "shows no run id, artifact id
+or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Varianta list carries no `RUN-`. Left as
+is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
+card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with the card in RPT3c / RPT11.
 
 **RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
 
