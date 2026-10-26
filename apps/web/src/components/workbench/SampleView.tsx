@@ -14,7 +14,7 @@ import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
-import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow, type ReadinessLine } from "@/lib/sample-view";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
@@ -208,16 +208,15 @@ const FIX_IN: Partial<Record<WorkbenchStage, string>> = { dimensions: "v Dimenz�
 
 function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
   const summary = readiness.kind === "ready" ? readinessSummary(readiness.readiness) : null;
-  const line = summary ? readinessLine(summary) : null;
   const forecast = readiness.kind === "ready" ? supportForecastOf(readiness.readiness) : null;
   return (
     <Sec n={3} title="Připravenost ke spuštění" aia={sampleAia.section("ready")}>
       {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám kontroly ze serveru…</p>
         : readiness.kind === "failed" ? <p className="text-sm text-status-fault" role="alert">Kontroly se nepodařilo načíst: {readiness.message}</p>
-        : readiness.kind === "none" || !summary || !line ? <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže kontroly neproběhly.</p>
+        : readiness.kind === "none" || !summary ? <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže kontroly neproběhly.</p>
         : (
           <>
-            <p className="flex items-center gap-2 text-sm font-semibold" role="status"><Glyph tone={line.tone} size={12} />{line.words}</p>
+            <ReadyLine line={readinessLine(summary)} />
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted" aria-label="Vysvětlivky">
               {(["PASS", "WARN", "FAIL"] as const).map((s) => <li key={s} className="flex items-center gap-1.5"><Glyph tone={STATUS_TONE[s]} size={10} />{STATUS_WORDS[s]}</li>)}
             </ul>
@@ -257,6 +256,10 @@ const TILE: Record<OutlookVerdict, string> = {
   UNKNOWN: "Nelze říct předem",
   UNANSWERABLE: "Bez odpovědi",
 };
+
+function ReadyLine({ line }: { line: ReadinessLine }) {
+  return <p className="flex items-center gap-2 text-sm font-semibold" role="status"><Glyph tone={line.tone} size={12} />{line.words}</p>;
+}
 
 function shortReason(code: string): string {
   const key = `research.exec.outlook.short.${code}`;

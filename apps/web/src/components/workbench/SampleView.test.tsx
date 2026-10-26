@@ -133,7 +133,9 @@ describe("Připravenost ke spuštění", () => {
   });
 
   it("reads every check in words, with the legend, and shows no status code", () => {
-    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ ready: false, checks })} />);
+    // The support forecast's check too, which §02 shows and §03 leaves out.
+    const forecast = { id: "support_forecast", status: "WARN" as const, message: "Opora bude jen indikativní." };
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ ready: false, checks: [...checks, forecast] })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
     expect(screen.getByRole("list", { name: "Vysvětlivky" }).textContent).toBe("V pořádkuUpozornění: běh poběžíBrání spuštění");
     const titles = [...section.querySelectorAll("[data-aia^='sample:ready:'] [aria-label]")].map((g) => g.getAttribute("aria-label"));
