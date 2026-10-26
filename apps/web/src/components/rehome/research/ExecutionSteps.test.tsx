@@ -3676,7 +3676,7 @@ describe("Interpretation research", () => {
   });
 });
 
-describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
+describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
   const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 50, spent_usd: 10, remaining_usd: 40, spend_confirm_usd: null };
   const rowsOf = async () => {
     const card = await screen.findByText(t("research.exec.spend.title"));
@@ -3685,7 +3685,10 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
       if (!found) throw new Error("no spend yet");
       return found;
     });
-    return [...dl.querySelectorAll("[data-spend]")].map((r) => [r.getAttribute("data-spend"), r.querySelector("dd")!.textContent]);
+    return [...dl.querySelectorAll("[data-spend]")].map((r) => {
+      const note = r.querySelector("[data-spend-note]")?.textContent;
+      return [r.getAttribute("data-spend"), r.querySelector("[data-spend-value]")!.textContent + (note ? ` · ${note}` : "")];
+    });
   };
 
   it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
@@ -3701,6 +3704,27 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
         ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
       ]),
     );
+  });
+
+  it("shows the spend as tiles in the prototype's words, the unpriced calls a fifth tile only when there are any (FLD4e)", async () => {
+    const labels = () => [...document.querySelectorAll("[data-run-spend] [data-spend] dt")].map((dt) => dt.textContent);
+    const running = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(running), "GET /api/v1/studies/STU-1": () => STUDY });
+    const { unmount } = render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "remaining"]));
+    // The v73 board's tiles (Fieldwork.dc.html), the held ones plural: holds are summed across steps.
+    expect(labels()).toEqual(["Utraceno", "Drženo pro běžící kroky", "Strop běhu", "Zbývá v rozpočtu studie"]);
+    // Each tile its value first, as a figure; a note beneath it, never run into it.
+    for (const tile of document.querySelectorAll("[data-run-spend] [data-spend]")) expect(tile.querySelector("dd > [data-spend-value]")).not.toBeNull();
+    unmount();
+
+    // An ended run with unpriced calls: a fifth tile, and no tile says a step still runs.
+    const ended = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 2 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(ended), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "unpriced", "remaining"]));
+    expect(labels()[1]).toBe(t("research.exec.spend.heldEnded"));
+    expect(document.querySelector('[data-spend="held"] [data-spend-note]')).toBeNull();
   });
 
   it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {
