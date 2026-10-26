@@ -42,7 +42,7 @@ import {
   audienceReady,
   boundOf,
   endUnreadable,
-  chooseAudience,
+  chooseStrategy,
   factorRefusal,
   filterCategories,
   filterChips,
@@ -52,7 +52,6 @@ import {
   humanSummary,
   keptPaths,
   normalizeEntry,
-  presetReset,
   setAudienceDescription,
   strategyOf,
   liveCatalog,
@@ -139,14 +138,12 @@ export function AudienceStep() {
   const live = useLiveAudience();
   const isLive = live.state === "ready";
 
-  // R4: one choice of three, written as ČR 18+ (normalizeEntry). Choosing what is already chosen
-  // changes nothing; a choice that drops a stored subpanel, filters or segment makes the check stale.
+  // R4: one choice of three (chooseStrategy), written as ČR 18+.
   const pickStrategy = (k: Strategy) => {
-    const current = store.get().project;
-    if (k === "discover" || strategyOf(current) === k) return;
-    const c = chooseAudience(normalizeEntry(current), k);
-    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck || presetReset(current.audience).cleared });
+    const c = chooseStrategy(store.get().project, k);
+    if (c) store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
   };
+
 
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">

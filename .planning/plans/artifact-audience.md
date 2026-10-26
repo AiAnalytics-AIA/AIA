@@ -121,7 +121,10 @@ AUD2, part 1 (research stages v73, spec `vzorek/A1`, R4): one choice, "Koho maj�
 reprezentovat?", of Celá ČR 18+, Zúžit and Najít ve výsledcích, the last disabled with its reason. The
 source and population questions are gone; a choice writes `analytics` / `cz18` (`normalizeEntry`), so
 `audienceReady` is unchanged. A study stored as an own dataset, a special group or a Discover opens
-readable and says what is kept (`keptPaths`); a stored subpanel reads as Zúžit (`strategyOf`). The
+readable and says what is kept (`keptPaths`); a stored subpanel reads as Zúžit (`strategyOf`). A
+choice starts afresh as a preset change does (`chooseStrategy` over `presetReset`, OI-51 (a), "Clear
+both"), so leaving a subpanel for Celá ČR 18+ no longer keeps its support figures, and keeps a
+description the person wrote. The
 description is written in place (§01, `setAudienceDescription`) and the AI proposal asks about it.
 The built-in subpanels move under Zúžit as they are (radio cards; "Hotové skupiny" chips are AUD10).
 The strategy stays three radio cards, not the spec's segmented chips: a chips group chooses as the

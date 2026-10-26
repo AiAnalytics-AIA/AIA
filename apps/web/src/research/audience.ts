@@ -75,6 +75,23 @@ export function strategyOf(p: ResearchProject): Strategy | null {
   return u.analytics_choice === "special" && aud(p).builtin_subpanel ? "filters" : null;
 }
 
+/**
+ * A choice on the one question (R4). It starts afresh as a preset change does (OI-51 (a), "Clear
+ * both"): the previous subpanel, filters, strategy and support figures go, and the run check is made
+ * stale only when who is sampled changed. The description stays as written (the product owner,
+ * 2026-10-25); only where none is written, or the classic's own "Zúžená cílová populace" would
+ * describe the whole population, does Celá ČR 18+ write the classic's "ČR 18+". Choosing what is
+ * already chosen, or Najít ve výsledcích, changes nothing.
+ */
+export function chooseStrategy(p: ResearchProject, x: Strategy): Change | null {
+  if (x === "discover" || strategyOf(p) === x) return null;
+  const { audience, cleared } = presetReset(aud(p));
+  const c = chooseAudience(normalizeEntry(withAudience(p, audience)), x);
+  const written = aud(p).description;
+  const keep = x === "population" && written && written !== "Zúžená cílová populace";
+  return { ...c, project: keep ? withAudience(c.project, { ...aud(c.project), description: written }) : c.project, invalidateCheck: c.invalidateCheck || cleared };
+}
+
 /** What a study stored on a path the screen no longer offers: kept in the design, unused by a run. */
 export type Kept = { kind: "dataset" | "special"; name: string } | { kind: "discover" };
 

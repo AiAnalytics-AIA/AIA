@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription, chooseStrategy } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -268,6 +268,23 @@ describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
     // A subpanel's filters are read as Zúžit, not kept apart.
     expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "special" }, { builtin_subpanel: "young_18_29", special_catalog_key: "young" }))).toEqual([]);
     expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "discover" }))).toEqual([{ kind: "discover" }]);
+  });
+
+  it("a choice starts afresh as a preset change does, and keeps a description the person wrote (OI-51 (a))", () => {
+    const young = study({ audience_entry: "analytics", analytics_choice: "special" }, { strategy: "filters", builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, support_tier: "ROBUST", description: "Mladí 18–29" });
+    const whole = chooseStrategy(young, "population")!;
+    expect(whole.project.ui_state).toMatchObject({ audience_entry: "analytics", analytics_choice: "cz18" });
+    expect(whole.project.audience).toMatchObject({ strategy: "population", builtin_subpanel: "", filters: {}, support_tier: "", description: "Mladí 18–29" });
+    expect(whole.invalidateCheck).toBe(true);
+    // A new study, or the classic's own narrowed wording, reads "ČR 18+" under the whole population.
+    expect(chooseStrategy(study({}), "population")!.project.audience.description).toBe("ČR 18+");
+    expect(chooseStrategy(study({}), "population")!.invalidateCheck).toBe(false);
+    const narrowed = study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "filters", description: "Zúžená cílová populace" });
+    expect(chooseStrategy(narrowed, "population")!.project.audience.description).toBe("ČR 18+");
+    expect(chooseStrategy(study({}), "filters")!.project.audience).toMatchObject({ strategy: "filters", description: "Zúžená cílová populace" });
+    // Nothing to do: the same choice, or the path AIA cannot run.
+    expect(chooseStrategy(narrowed, "filters")).toBeNull();
+    expect(chooseStrategy(study({}), "discover")).toBeNull();
   });
 
   it("writes the description as typed, nothing else", () => {
