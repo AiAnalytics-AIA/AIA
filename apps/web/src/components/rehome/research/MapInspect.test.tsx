@@ -12,7 +12,7 @@ const [hudba] = signedOff.batteries as unknown as BatteryWithMaps[];
 const map = hudba.maps!["aia-sociomap-5"].artifact as unknown as ObjectMapArtifact;
 const [a, b] = map.object_ids;
 const pair = `pair:hudba/${[a, b].sort().join("~")}`;
-const show = (m: ObjectMapArtifact) => act(() => { setShownMaps([{ battery: hudba, map: m }]); });
+const show = (m: ObjectMapArtifact, approved = true) => act(() => { setShownMaps([{ battery: hudba, map: m, approved }]); });
 
 afterEach(() => { cleanup(); act(() => { setShownMaps(null); }); });
 
@@ -51,6 +51,20 @@ describe("a relation in the inspector", () => {
     show(map);
     render(<MapInspect target="pair:jina/x~y" />);
     expect(screen.getByText("Tato položka na mapě tohoto běhu není.")).toBeTruthy();
+  });
+});
+
+describe("the map's standing in the inspector", () => {
+  it("says a map the register does not approve is for the study's researchers only, as the stage does", () => {
+    show(map, false);
+    render(<MapInspect target={pair} />);
+    expect(screen.getByTestId("map-inspect-approval").textContent).toBe("Jen pro výzkumníky studie");
+  });
+
+  it("says an approved map is approved for reports", () => {
+    show(map, true);
+    render(<MapInspect target={`object:hudba/${a}`} />);
+    expect(screen.getByTestId("map-inspect-approval").textContent).toBe("Metodika schválena pro zprávy");
   });
 });
 

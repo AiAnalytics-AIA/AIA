@@ -191,7 +191,9 @@ Depends on `research-lead-workbench#14`, `#16`.
   object: its rating, connectedness and strongest reliable relations, each opening its pair in the drawer.
   The maps are the ones `SociomapStage` draws (`setShownMaps`, from the same reading that decides which
   maps take the Lead's views), "Mapa se ještě načítá." until the stage has read them, and none once it
-  leaves, so the drawer never opens another run's map. The Lead's "Vybrat"
+  leaves, so the drawer never opens another run's map. Each shown map carries the register's approval of its
+  method, so the drawer, read on its own, says "Jen pro výzkumníky studie" or "Metodika schválena pro
+  zprávy" as `MapExplained` does (stand-in review P2, #979). The Lead's "Vybrat"
   is #939's listener. Tests: `MapInspect.test.tsx` (the plan's test: "reads a pair with an undefined r as
   unknown, never as 0"); `ExecutionSteps.test.tsx` › "lets the item inspector open a relation of the map it
   draws, until it leaves". Still open: a respondent's detail in the inspector (no `respondent:` target yet,

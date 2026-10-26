@@ -2457,6 +2457,8 @@ describe("Results", () => {
       const pair = `pair:${battery.battery_id}/${[ids[0], ids[1]].sort().join("~")}`;
       const drawer = render(<ItemInspectBody entry={{ id: pair, title: "Dvojice" }} />);
       expect(drawer.getByTestId("map-inspect-pair")).toBeTruthy();
+      // The register is not read here, so the map is internal, in the drawer as on the stage.
+      expect(drawer.getByTestId("map-inspect-approval").textContent).toBe(t("research.exec.mapStage.internal"));
       shown.unmount();
       expect(drawer.getByText("Tato položka na mapě tohoto běhu není.")).toBeTruthy();
     });

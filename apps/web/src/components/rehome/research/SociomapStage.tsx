@@ -72,14 +72,15 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   // may name (each with the objects it places) and what the item inspector may open. Null until the
   // artifact is read.
   const panels = useMemo(() => {
-    const read = ((artifact?.payload ?? null) as Payload)?.sociomap?.batteries;
+    const sociomap = ((artifact?.payload ?? null) as Payload)?.sociomap;
+    const read = sociomap?.batteries, methods = sociomap?.methods;
     if (!read) return null;
     return read.flatMap((battery) => {
       const o = olderMethodOnly(battery) ? null : readObjectMap(battery);
       if (!o?.ok || o.map.outcome !== "MAPPED" || !o.map.layout || !isSignedOffMap(o.map) || !storedFrame(o.map) || o.map.terrain.status !== "computed") return [];
-      return [{ battery, map: o.map }];
+      return [{ battery, map: o.map, approved: mapApproval(methods, register, o.methodId) !== null }];
     });
-  }, [artifact]);
+  }, [artifact, register]);
   const drawn = useMemo(() => panels?.map(({ battery: b, map }) => {
     const placed = new Set(map.object_ids);
     return { battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)), respondents: densityGrid(map) !== null };

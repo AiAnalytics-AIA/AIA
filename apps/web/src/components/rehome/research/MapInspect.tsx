@@ -12,9 +12,11 @@ import { t } from "@/i18n/t";
 import { pairTarget, readTarget } from "@/lib/artifacts/sociomap";
 import { relationDetail } from "@/lib/object-map-signed-off";
 import type { BatteryWithMaps, ObjectMapArtifact } from "@/lib/object-map-view";
+import "./map-explained.css";
 import { ObjectCard, RelationBlock } from "./ObjectMapPanel";
 
-type Shown = readonly { battery: BatteryWithMaps; map: ObjectMapArtifact }[];
+/** Each map the stage draws, with whether the Sociomap register approves its method for reports (as MapExplained says it). */
+type Shown = readonly { battery: BatteryWithMaps; map: ObjectMapArtifact; approved: boolean }[];
 
 // Null: no stage has read its artifact yet, so whether an item is on the map is not known.
 let shown: Shown | null = null;
@@ -48,7 +50,15 @@ export function MapInspect({ target }: { target: string }): ReactNode {
   const index = (id: string) => found?.map.object_ids.indexOf(id) ?? -1;
   const missing = <p className="muted">{t("research.exec.mapInspect.missing")}</p>;
   if (!at || !found) return missing;
-  const frozen = <p className="mt-2 text-xs text-ink-muted">{t("research.exec.mapInspect.frozen")}</p>;
+  // The map's standing travels with its numbers: the drawer is read on its own, so it says what the stage says.
+  const frozen = (
+    <div className="mt-2 flex flex-col gap-2">
+      <span className={`fx-badge self-start${found.approved ? " is-ok" : ""}`} data-testid="map-inspect-approval">
+        {t(found.approved ? "research.exec.mapStage.approved" : "research.exec.mapStage.internal")}
+      </span>
+      <p className="text-xs text-ink-muted">{t("research.exec.mapInspect.frozen")}</p>
+    </div>
+  );
   if (at.kind === "pair") {
     const i = index(at.a), j = index(at.b);
     if (i < 0 || j < 0) return missing;
