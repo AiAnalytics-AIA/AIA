@@ -18,11 +18,14 @@ Two properties the rest of the report relies on:
 from __future__ import annotations
 
 import hashlib
+import io
 import uuid
+import zipfile
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Final, Literal
 
+import docx
 from docx.document import Document
 from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from docx.opc.packuri import PackURI
@@ -190,3 +193,66 @@ def embed_fonts(document: Document, names: Iterable[str]) -> list[str]:
     if settings.find(qn("w:embedTrueTypeFonts")) is None:
         _insert_in_order(settings, OxmlElement("w:embedTrueTypeFonts"), _AFTER_EMBED_TRUETYPE)
     return written
+
+
+#: The children of a ``w:font`` that carry an embedded face.
+_EMBED_TAGS: Final = frozenset(
+    qn(f"w:embed{slot}") for slot in ("Regular", "Bold", "Italic", "BoldItalic")
+)
+
+
+#: The parts embedding writes. Every other part of a re-embedded package is the saved one's,
+#: byte for byte, so its text, controls and tags are exactly what the editor stored.
+_EMBEDDING_PARTS: Final = frozenset(
+    {
+        "word/fontTable.xml",
+        "word/_rels/fontTable.xml.rels",
+        "word/settings.xml",
+        "[Content_Types].xml",
+    }
+)
+
+
+def reembed_fonts(package: bytes) -> bytes | None:
+    """``package`` (a DOCX) with every report face (the renderer's ``FONTS``) it does not carry
+    embedded embedded again, or ``None`` when it carries them all (the bytes then stay exactly
+    as they are).
+
+    An editor that writes the package anew (ONLYOFFICE) drops the embedded parts, so a report
+    saved there would fall back to Calibri or Times on a machine without the brand fonts
+    (artifact-report RPT15, spec szz T7). The faces are embedded as the renderer embeds them;
+    only the font table, its relationships, the settings and the content types change, every
+    other part stays the saved one's, and the package is written at the fixed timestamp, so
+    the same saved version always downloads as the same bytes. ``ValueError`` for a package it
+    cannot read."""
+    from aia_core.infrastructure.report_docx.renderer import write_package
+
+    try:
+        saved = zipfile.ZipFile(io.BytesIO(package))
+        document = docx.Document(io.BytesIO(package))
+        table = etree.fromstring(_font_table_part(document).blob)
+    except (KeyError, zipfile.BadZipFile, etree.LxmlError) as exc:
+        raise ValueError(f"not a readable DOCX package: {exc}") from exc
+    except ValueError:
+        return None  # no font table: not a report package
+    carried = {
+        font.get(qn("w:name"))
+        for font in table.iterfind(qn("w:font"))
+        if any(child.tag in _EMBED_TAGS for child in font)
+    }
+    missing = [name for name in FACES if name not in carried]
+    if not missing:
+        return None
+    embed_fonts(document, missing)
+    out = io.BytesIO()
+    document.save(out)
+    embedded = zipfile.ZipFile(io.BytesIO(out.getvalue()))
+    kept = saved.namelist()
+    added = [name for name in embedded.namelist() if name not in kept]
+    return write_package(
+        [
+            (name, embedded.read(name) if name in _EMBEDDING_PARTS else saved.read(name))
+            for name in kept
+        ]
+        + [(name, embedded.read(name)) for name in added]
+    )

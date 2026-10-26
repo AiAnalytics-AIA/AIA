@@ -7,7 +7,7 @@ chunks:
   - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[x] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
-  - "[ ] SMP2b. Složení: the composition table renamed and folded after six rows, link cards, the own dimension by name (reopens SMP2; spec vzorek V6; W1)"
+  - "[x] SMP2b. Složení: the composition table renamed and folded after six rows, link cards, the own dimension by name (reopens SMP2; spec vzorek V6; W1)"
   - "[ ] SMP3b. §02 'Kolik dat bude za čísly': KPI tiles from the outlook; pair support disabled with its reason, 'ověří se až z dat' (reopens SMP3; spec vzorek V4; W1)"
   - "[ ] SMP4b. §03 readiness in words, one fix per check, the header pill, the budget row as a warning (reopens SMP4; spec vzorek V5; W1)"
   - "[x] SMP5b. §04 one line for the default source; 'Sběr dat' as the stage's one name (reopens SMP5; spec vzorek V7; W1)"

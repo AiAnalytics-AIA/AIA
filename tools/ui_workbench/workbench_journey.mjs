@@ -366,7 +366,8 @@ try {
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
     const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
-    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
+    // A link card reads its title, then what is set there: the title names where it goes.
+    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim().split("\n")[0].trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
