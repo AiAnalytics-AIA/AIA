@@ -23,6 +23,7 @@ import { Button } from "../../rehome/ui";
 import type { SaveState } from "@/lib/inline-edit";
 import { clientAccent } from "../AppShell";
 import { describeMemberError } from "./errors";
+import { InfoButton } from "./InfoButton";
 
 const P = "aia.settings.panel";
 const S = `${P}.studiesTab`;
@@ -115,22 +116,52 @@ export function StudiesTable({ studies, clients, reload }: {
   studies: Part<StudyRow[]>; clients: Part<AdminClient[]>; reload: () => void;
 }) {
   const [query, setQuery] = useState("");
+  const [clientFilter, setClientFilter] = useState("");
   const [named, setNamed] = useState(false);
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   const q = query.trim().toLocaleLowerCase("cs");
   const count = studies.ok ? studies.data.length : 0;
-  // What each of the money columns is: the header's ⓘ on hover, and the four D-01 names, each with
-  // where it is set, in the disclosure under the table, which a keyboard and a touch reach too.
-  const info = (key: "studyBudget" | "confirmThreshold" | "wallet") => <span aria-hidden="true" title={t(`${S}.money.${key}`)} className="ml-1 cursor-help text-ink-faint">ⓘ</span>;
+  // The clients the studies belong to, for the filter (prototype v52): each once, by name, with its count.
+  const byClient = new Map<string, number>();
+  for (const { study } of studies.ok ? studies.data : []) byClient.set(study.client_id, (byClient.get(study.client_id) ?? 0) + 1);
+  const clientOptions = [...byClient.entries()].map(([id, n]) => ({ id, n, name: clientName.get(id) ?? id })).sort((a, b) => a.name.localeCompare(b.name, "cs"));
+  // What each money column is (F16): the header's ⓘ, a real button a keyboard and a touch open
+  // (#892), opens the four D-01 names with where each is set; the pointer also reads it on hover.
+  const info = (key: "studyBudget" | "confirmThreshold" | "wallet") => (
+    <InfoButton label={tv(`${S}.moneyInfo`, { name: money[key] })} controls="set-studies-money" expanded={named} onToggle={() => setNamed((v) => !v)} title={t(`${S}.money.${key}`)} />
+  );
   return (
     <section id="set-studies-table" aria-labelledby="set-studies-table-title" className="rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="set-studies-table-title" className="flex items-center gap-2 text-base font-semibold">
+        <h2 id="set-studies-table-title" className="flex items-center gap-2 text-base font-semibold">
           {t(`${P}.studies.title`)}
           {studies.ok ? <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs font-normal text-ink-muted" aria-label={tv(`${S}.count`, { n: count })}>{count}</span> : null}
-        </h3>
-        <input type="search" aria-label={t(`${P}.studySearch`)} placeholder={`⌕ ${t(`${P}.studySearch`)}`} value={query} onChange={(e) => setQuery(e.target.value)}
-          className={`min-h-9 w-full rounded-sm border border-border-strong bg-surface-raised px-2 text-sm sm:w-72 ${FOCUS}`} />
+          <InfoButton label={t(`${S}.tableInfo`)} controls="set-studies-money" expanded={named} onToggle={() => setNamed((v) => !v)} title={t(`${P}.studies.permissionNote`)} />
+        </h2>
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {clientOptions.length > 1 ? (
+            <select data-client-filter aria-label={t(`${S}.clientFilter`)} value={clientFilter} onChange={(e) => setClientFilter(e.target.value)}
+              className={`min-h-9 rounded-sm border border-border-strong bg-surface-raised px-2 text-sm ${FOCUS}`}>
+              <option value="">{tv(`${S}.allClients`, { n: count })}</option>
+              {clientOptions.map((c) => <option key={c.id} value={c.id}>{`${c.name} (${c.n})`}</option>)}
+            </select>
+          ) : null}
+          <input type="search" aria-label={t(`${P}.studySearch`)} placeholder={`⌕ ${t(`${P}.studySearch`)}`} value={query} onChange={(e) => setQuery(e.target.value)}
+            className={`min-h-9 w-full rounded-sm border border-border-strong bg-surface-raised px-2 text-sm sm:w-72 ${FOCUS}`} />
+        </div>
+      </div>
+      {/* What the table's money is, behind the title's and each column's ⓘ (F16, prototype v52): who may
+          change a budget, then the four D-01 names, each with where it is set. */}
+      <div id="set-studies-money" data-money-names hidden={!named} className="mt-2 rounded-sm bg-surface-sunken px-3 py-2 text-xs leading-5 text-ink-muted">
+        <p>{t(`${P}.studies.permissionNote`)}</p>
+        <dl className="mt-1 grid gap-x-3 gap-y-1 sm:grid-cols-[max-content_1fr]">
+          {(["clientBudget", "studyBudget", "wallet", "confirmThreshold"] as const).map((k) => (
+            <div key={k} className="contents">
+              <dt className="font-medium text-ink">{money[k]}</dt>
+              <dd>{t(`${S}.money.${k}`)}{k === "confirmThreshold" ? ` ${tv(`${S}.thresholdBounds`, { min: formatNumber(MIN_THRESHOLD_USD, 0) })}` : ""}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
       {!studies.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{studies.message}</p>
         : !studies.data.length ? <p className="mt-3 text-sm text-ink-muted">{t(`${P}.studies.none`)}</p>
@@ -153,7 +184,7 @@ export function StudiesTable({ studies, clients, reload }: {
                   // Both known, or neither drawn: an unknown spend never reads as 0 (A6).
                   const costs = detail.ok && detail.data.budget_usd !== null && detail.data.spent_usd !== null ? detail.data : null;
                   const client = clientName.get(study.client_id) ?? study.client_id;
-                  const shown = `${study.name} ${client}`.toLocaleLowerCase("cs").includes(q);
+                  const shown = (!clientFilter || study.client_id === clientFilter) && `${study.name} ${client}`.toLocaleLowerCase("cs").includes(q);
                   const near = costs ? nearLimit(costs) : false;
                   // Filtered out, a row is hidden, never unmounted: a typed value survives the search.
                   return (
@@ -183,21 +214,6 @@ export function StudiesTable({ studies, clients, reload }: {
             </table>
           </div>
         )}
-      <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${P}.studies.permissionNote`)}</p>
-      {/* A button, not a <details>: a settings tab carries no disclosure element (F2), and this one
-          opens by keyboard and touch alike. */}
-      <button type="button" aria-expanded={named} aria-controls="set-studies-money" onClick={() => setNamed((v) => !v)}
-        className={`mt-1 inline-flex min-h-11 items-center gap-1 text-xs text-signal hover:underline sm:min-h-0 ${FOCUS}`}>
-        <span aria-hidden="true">{named ? "▾" : "▸"}</span>{t(`${S}.moneyNames`)}
-      </button>
-      <dl id="set-studies-money" data-money-names hidden={!named} className="mt-1 grid gap-x-3 gap-y-1 text-xs leading-5 text-ink-muted sm:grid-cols-[max-content_1fr]">
-        {(["clientBudget", "studyBudget", "wallet", "confirmThreshold"] as const).map((k) => (
-          <div key={k} className="contents">
-            <dt className="font-medium text-ink">{money[k]}</dt>
-            <dd>{t(`${S}.money.${k}`)}{k === "confirmThreshold" ? ` ${tv(`${S}.thresholdBounds`, { min: formatNumber(MIN_THRESHOLD_USD, 0) })}` : ""}</dd>
-          </div>
-        ))}
-      </dl>
     </section>
   );
 }

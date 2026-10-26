@@ -1910,6 +1910,10 @@ export const cs = {
           rules: "Pravidla",
           rulesOf: "Pravidla klienta {client}",
           moneyNames: "Co znamenají částky",
+          tableInfo: "Co znamenají částky a kdo je mění",
+          moneyInfo: "Co je {name}",
+          clientFilter: "Klient",
+          allClients: "Všichni klienti ({n})",
           thresholdBounds: "Od {min} USD, nejvýš rozpočet studie.",
           money: {
             studyBudget: "Strop, který útratu studie zastaví. Nastavuje se zde.",
