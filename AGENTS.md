@@ -661,6 +661,18 @@ alembic merge -m "merge the budget-lift and prompt-declaration heads" 8c2f4a6d1b
 alembic heads   # exactly one
 ```
 
+**A constraint name must fit PostgreSQL's 63 characters, prefix included.** The naming
+convention prepends `ck_<table>_` to a CHECK constraint's name; past 63 characters PostgreSQL
+truncates it with a hash suffix, and a later `op.f(...)` drop names a constraint that does not
+exist (lead-conversation LC5a, #817).
+
+```python
+# WRONG -- the stored name is ck_<table>_<name> cut to 63 characters with a hash; the drop misses it
+sa.CheckConstraint("...", name="<a name that with ck_<table>_ passes 63 characters>")
+op.drop_constraint(op.f("ck_<table>_<that name>"), "<table>")
+# RIGHT -- check len("ck_<table>_<name>") <= 63 before the migration is written
+```
+
 ## mypy --strict
 
 **An untyped third party leaks `Any` straight through a declared return type.**

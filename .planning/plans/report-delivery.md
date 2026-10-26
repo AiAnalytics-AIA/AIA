@@ -186,11 +186,18 @@ its write and its commit; each fails without its lock): `test_two_first_reads_of
 
 **RD5. Report draft revisions: a separate draft counter, tracked changes per paragraph; a report edit never reopens fieldwork**  
 The prototype's D6. The counter against ADR 0016's revision semantics is an owner clarification below.
+A Lead's edit is one more version of the draft (AUD-2, below RD6): it moves the draft counter and its tracked changes like
+a person's save, and is approved like one.
 
 **RD6. The accept destinations for the report writer, the map interpreter and the straight-liner flags: an artifact type, the composer input and its fingerprint**  
 S3 defines the type, S1 writes the worker against it (`lead-orchestration#LO9b`). Interfaces I14.
 
 **Prerequisite (ADR 0026 decision 4, Accepted):** semantic report edits get no command until their own ADR and a deterministic admission rule exist (a report is composed from admitted claims and frozen on approval). That the feature is wanted is settled (MVP-12); writing the ADR and the rule is this chunk's first step, and a wording edit never reopens completed fieldwork (an invariant, `RD5`).
+
+*The owner's answer (AUD-2, 2026-10-25, /pmstatus):* "(a) yes, as proposed versions a person approves". The Lead edits the
+final report directly only as proposed versions in the report editor's version store (artifact-report RPT8c), each
+approved by a person, never an edit applied on its own; built after the editor is live (artifact-report RPT9); every
+number stays locked to an admitted claim (ADR 0035).
 
 **RD7. A sentence-level claim check: a sentence that claims a comparison with no admitted claim (marks it since 2026-10-22, below)**  
 The prototype shows it (scenario M); the evidence validation checks numbers only. A new rule; its strictness is the owner's (MVPQ-09, 2026-10-20): it **blocks approval**, never a flag the reviewer may approve past, and the refusal names the sentence.

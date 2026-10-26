@@ -264,10 +264,43 @@ describe("the settings control panel", () => {
     render(<ControlPanel />);
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     await waitFor(() => expect(row.getAttribute("data-near")).toBe("true"));
-    expect(within(row).getByText(/92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno/)).toBeTruthy();
-    const link = within(row).getByRole("link", { name: "Profil → Pravidla", hidden: true });
+    // "92 % · ⚠" to the eye, the whole sentence to a screen reader; grey, never the fault's colour.
+    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · ⚠ · téměř vyčerpáno");
+    expect(row.className).toContain("bg-surface-sunken");
+    expect(row.className).not.toMatch(/status-(you|fault)/);
+    // Named with its client, so a list of links never reads "Pravidla" six times.
+    const link = within(row).getByRole("link", { name: "Pravidla klienta Klient A", hidden: true });
+    expect(link.getAttribute("title")).toBe("Profil → Pravidla klienta");
+    expect(link.className).toContain("min-h-11");
+    // The status is read here, not chosen (fidelity F7): its word and glyph, no picker.
+    expect(within(row).getByText("Aktivní")).toBeTruthy();
+    expect(within(row).queryByRole("radiogroup", { hidden: true })).toBeNull();
+    // The table's six columns, the money ones by their D-01 names.
+    const table = row.closest("table") as HTMLElement;
+    expect(within(table).getAllByRole("columnheader", { hidden: true }).map((h) => h.textContent)).toEqual(["Studie", "Stav", "Utraceno", "Rozpočet studie (USD)ⓘ", "Práh potvrzení (USD)ⓘ", "Peněženkaⓘ"]);
     expect(link.getAttribute("href")).toContain("/app/clients/CLI-a/profile");
     expect(screen.getByText("Cizí studie").closest("[data-study]")?.getAttribute("data-near")).toBeNull();
+  });
+
+  it("explains the four money names under the table, opened by a button, the client's budget included", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByText("Vnímání značky");
+    const names = document.querySelector("[data-money-names]") as HTMLElement;
+    const open = screen.getByRole("button", { name: /Co znamenají částky/, hidden: true });
+    expect(names.hidden).toBe(true);
+    fireEvent.click(open);
+    expect(open.getAttribute("aria-expanded")).toBe("true");
+    expect([...names.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["Rozpočet klienta", "Rozpočet studie", "Peněženka", "Práh potvrzení"]);
+    expect(names.textContent).toContain("Od 10 USD, nejvýš rozpočet studie.");
+  });
+
+  it("draws no spend for a study whose spend is unknown, never a 0 beside its budget", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: null, remaining_usd: null }) });
+    render(<ControlPanel />);
+    const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
+    await waitFor(() => expect(within(row).getByText(/náklady nevidíte/)).toBeTruthy());
+    expect(row.querySelector("[data-spend-line]")).toBeNull();
   });
 
   it("changes the organization's self-approval where it is shown, then re-reads", async () => {
@@ -590,7 +623,7 @@ describe("the settings control panel", () => {
     api({ "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: true, currency: "USD", people: [] }) });
     render(<ControlPanel />);
     await openSection("Studie a rozpočty");
-    const tile = (await within(panelOf("Studie a rozpočty")).findByText("Téměř vyčerpané rozpočty")).parentElement as HTMLElement;
+    const tile = (await within(panelOf("Studie a rozpočty")).findByText("Téměř vyčerpané")).parentElement as HTMLElement;
     await waitFor(() => expect(tile.textContent).toContain("neznámo"));
     expect(tile.textContent).toContain("u 1 nevíme");
     expect(tile.textContent).not.toMatch(/rozpočty0/);

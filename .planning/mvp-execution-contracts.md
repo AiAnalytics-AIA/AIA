@@ -239,6 +239,15 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-conversation#LC9` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC10` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
 | `lead-conversation#LC11` | W2 | the plan's own: with `lead-orchestration#LO19`, after LC1 |
+| `lead-conversation#LC5b` | W2 | split from LC5 (#817, 2026-10-22): edit-as-replacement and requeue need LC10's `replaces_turn_id`, so it is in LC10's wave |
+| `lead-identity#LI0` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI1` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI2` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI3` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI4` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI5` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI6` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
+| `lead-identity#LI7` | W3 | Nigel, 2026-10-25: core MVP, W3, after LC5b/LC10 |
 | `lead-conversation#LC12` | W3 | the plan's own: with `lead-orchestration#LO18` |
 | `lead-conversation#LC13` | W3 | the plan's own: with `lead-orchestration#LO18` |
 | `lead-conversation#LC14` | POST | the plan's own: after the MVP |

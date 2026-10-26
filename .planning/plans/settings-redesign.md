@@ -24,7 +24,7 @@ chunks:
   - "[x] F5. Metodika → Výpočet: stage tiles, 'S parametry' filter, step rows with the formula on opening"
   - "[x] F6a. Metodika → Upravit as one parameter list (original, stepper; no bound the domain does not declare, AUD-10) over the existing guards, every editable field in stage order with the formulas in a closed expert disclosure (AUD-9), check/compare and activation with a reason; the module's tabs unboxed; Výpočet marks a parameter the version in force changes; the Metodik rule kept"
   - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
-  - "[ ] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
+  - "[x] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
@@ -137,6 +137,16 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   decision for the product owner, recorded for 10b.
 - 10a's accents are wayfinding tints only; readiness takes hue-slate, not the design's green, which is
   "in force" alone. The support drawing's n = 30 line is ink, not fault red.
+- F7 (#892): the "Téměř vyčerpané" tile and each row's ⚠ read spent alone against the budget
+  (`lib/researcher-spend.ts` nearLimit, >= 0.9; closed studies left out of the tile). The server's
+  own rule, `GET /settings/organization-spend` `near_limit` (`domain/spend_attribution.py`
+  NEAR_LIMIT_SHARE), counts open studies by spent plus held; the Study response carries no held
+  amount, so a study whose budget is taken by open holds is near to the server and not here.
+  Follow-up: read `near_limit` from that route for an OWNER or ADMIN (it refuses a member 403), and
+  keep the client rule for a member's own rows. Test: a held-heavy study near on the tile.
+- F7 (#892): a study's status moved from the Settings table to the study (StudyStatusMenu in the
+  stage header and the workbench's study header; "Znovu otevřít" on a closed study's notice reopens
+  it in place), so the capability the picker held is not lost.
 
 - F8: the catalogue holds 52 rules where the design's flat table drew 8. The table is the design's --
   one flat table, the group a column -- with the search and "only what live needs" kept above it; a
