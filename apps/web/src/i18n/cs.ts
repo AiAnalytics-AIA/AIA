@@ -2004,6 +2004,14 @@ export const cs = {
           adminOnly: "Samoschválení nastavuje a vidí jen vlastník nebo správce.",
         },
         runtime: {
+          answered: {
+            at: "Naposledy odpověděl {when}",
+            on: "model {model}",
+            build: "build {build}",
+            none: "Zatím žádné zaznamenané odpovězené volání.",
+            unread: "Poslední odpověď se nepodařilo načíst.",
+            help: "Z účetní knihy volání celé organizace: kdy činnost naposledy dostala odpověď, ne zda odpoví teď.",
+          },
           powers:
             "AIA volá jazykové modely přes {provider}: vždy z workeru, přes jedinou řízenou bránu a proti rozpočtu studie. Prohlížeč ani API model nevolají.",
           credential: {
@@ -3055,7 +3063,7 @@ export const cs = {
       sampleStored: "Uloženo N={n}.",
       sampleStoredOutside: "Uložené N={n} je mimo platný rozsah {range}; spuštění ho odmítne. Zvolte jiné N.",
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
-      dockNote: "{d} dimenzí · N={n}",
+      dockNote: "{d} · N={n}",
     },
     deep: {
       searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",

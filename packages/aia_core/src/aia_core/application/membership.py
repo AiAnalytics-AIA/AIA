@@ -23,7 +23,12 @@ from sqlalchemy.orm import Session
 
 from ..domain.scope import OrganizationContext
 from ..infrastructure.artifact_repository import erase_artifacts_of_attempts
-from ..infrastructure.researcher_lead_repository import ErasedLead, LeadSeal, LeadSeals
+from ..infrastructure.researcher_lead_repository import (
+    ErasedLead,
+    LeadSeal,
+    LeadSeals,
+    erase_member_hatches,
+)
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore, ObjectNotFound
 from ..infrastructure.study_lead_repository import erase_member_turns
@@ -66,6 +71,8 @@ def deactivate_member(
 ) -> Deactivation:
     """Deactivate the member in the admin's own organization and seal their Lead."""
     changed = ScopeRepository(session).deactivate_member(admin, user_id=user_id, now=now)
+    # A hatch is no Lead yet, so no seal covers it: what they wrote goes with the membership.
+    erase_member_hatches(session, organization_id=admin.organization_id, user_id=user_id)
     return Deactivation(changed, LeadSeals(session, admin).seal(user_id, now=now))
 
 

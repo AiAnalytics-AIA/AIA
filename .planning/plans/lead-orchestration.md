@@ -14,7 +14,7 @@ chunks:
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
-  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
+  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
@@ -38,6 +38,14 @@ chunks:
   - "[ ] LO21d. The four request types (agent_job, research_run, design_research, interpretation_research) migrated to actions; a stored request still reads"
   - "[ ] LO21e. The plan kind: one action whose steps reference registered actions, LO4's card (steps shown, one approval, live state per step)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
+  - "[ ] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
+  - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
+  - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
+  - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
+  - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
+  - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
+  - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
+  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the newest Design Research run (artifact-questionnaire#QST13) (Nigel, 26 Oct; W1)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -168,8 +176,10 @@ The three workers (map interpreter, report writer, straight-liner check) have no
     - `tools/ui_workbench/lead_stale_journey.mjs`: "a card whose design moved asks before it
       starts, and on a yes starts on the current revision".
 
-**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
+**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
+
+**LO11 amended: seal-only on departure** (Nigel, 26 Oct 2026 ~00:35 UTC, in the Settings session: "lets seal it, a new user gets a new vedouci, lets do 365 days"). A departing member's Lead is sealed, never handed over; a new member grows their own. A sealed Lead is deleted 365 days after sealing, not 30: today `SEAL_DAYS = 30` (`packages/aia_core/src/aia_core/infrastructure/researcher_lead_repository.py:396 @ 40b16d58`), and the deactivate route's docstring says "erased after 30 days" (`apps/api/src/aia_api/routers/scope.py:710-714 @ 40b16d58`); LO11 changes both, with a test that a Lead sealed 364 days ago is kept and one sealed 366 days ago is erased. The sealing itself shipped in #830 (`two-roles-human-ai-gates#8`). The signals, approved updates and file-history half of LO11 is unchanged.
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
@@ -358,7 +368,7 @@ the chunks named below.
   server, alpha), and whether AIA adopts it is being asked; nothing here depends on that choice.
 - **LO11 (page Q14: (a)).** A departed member's Lead is **sealed** when the member is deactivated
   (`two-roles-human-ai-gates#8`): no turn runs, nothing is read by anyone, its files and notes stay
-  as they were. It is deleted at the end of MVPQ-07's retention (30 days), through
+  as they were. It is deleted at the end of MVPQ-07's retention (30 days; **amended 26 Oct 2026: 365 days after sealing**, see LO11 above), through
   `study-data-lifecycle`'s delete path, with the content-free usage and audit rows kept. Still no
   handover and no admin read (D-32 to D-34). Test: a deactivated member's Lead refuses a turn and an
   admin read, and is gone after the retention end.
@@ -1454,3 +1464,32 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, `application/deep_research.py`: `freeze_design(…, focus=)`, `focused_subjects`,
   `FocusUnknown`; a run's `focus` in its metadata, kept by its retry.
 - `CLAUDE.md` map, `workflow_repository.py`: `list_runs(statuses=)`, filtered in the query.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**LO23. The ceiling before a start** (spec `lead/LP-4`, also `szz/A6` and `lead/LP-13`, one API; W1, a money API moved into W1 by the register §6.3). A prepared request and an analysis retry answer the most they can cost, with LO15's threshold. Test: a prepared run request answers its ceiling; an unknown ceiling reads unknown.
+
+**LO24. A job's open hold** (spec `lead/LP-5`, no backend; W2).
+
+**LO25. Request dismiss** (spec `lead/LP-7`, no backend; W1). After LO10.
+
+**Notes.**
+- LO22 is left free: OI-53's record names an `LO22` that no plan file holds yet.
+- LO21b is the prompt's action section only; the composer's "+" menu is `research-lead-workbench#41`.
+- LO11 amended to seal-only on departure (Nigel, 26 Oct 2026), in place above.
+
+**LO18a-d. Files to the Lead** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"). LO18's "take a file from the composer", split as the Lead worker proposed (26 Oct, anchors at `2e7fc1dd`). Nigel settled D-a: a file given to the Lead is the client's source and shows under the client's Data. The file's class drops out for the MVP under `prototype-build#PB6` (computed and recorded, never refused); the per-turn class stays the design for when enforcement returns.
+
+- **LO18a. The file in a turn** (W1). Kept as a client source (`infrastructure/client_source_repository.py`, with the study occurrence); the turn carries its ref (source id + SHA-256), never the bytes. Read with `infrastructure/source_reading.py` `read_source`: segments with locators for PDF, DOCX, ODT, PPTX, TXT, MD, DOC, CSV, XLSX, XLS and ODS, a dataset as its preview with personal columns masked. A `files` layer of the 96 KB context with its own share (about 16 KB): the outline, every locator, the segments in order until the share is spent, the rest named. Labelled the client's document, not evidence. Prompt and harness bumps; the web attach in the composer. Its outputs only through what exists: edits through the gate, an agent-job request, LO18b's proposal, LO18c's request. A file never writes the design, knowledge or a Lead file by itself, never starts paid work, never leaves its client, never becomes respondent evidence or Sociomap input, is never marked internal by the model, and is never read whole into one turn. Test: a PDF given on Zadání reaches the turn as its bounded segments with locators and is listed under the client's Data; a turn's manifest names the file and what was left out.
+- **LO18b. A questionnaire table becomes a proposal** (W1, with `artifact-questionnaire#QST12`; Nigel's questionnaire decision of 01:41 UTC, quoted in `prototype-build.md`). `import_questionnaire` (`infrastructure/questionnaire_file.py:187 @ 2e7fc1dd`) reads it with no model call; the result is a no-model questionnaire proposal reviewed in ProposalReview and accepted through `accept_into_working_copy` (`application/proposal_accept.py:113`), not as Lead edits (no applied section operation; at most 12 edits a turn, `domain/research_lead.py:370`). Amending a questionnaire section by section would need the section operations (WCE3b). Test: an XLSX given in a turn files one proposal whose sections match the import; accepting it writes them; no model call is ledgered for the read.
+- **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
+- **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.
+
+**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13`, every verified finding of the newest Design Research run (Nigel, 01:47 UTC: "All verified findings"). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.
