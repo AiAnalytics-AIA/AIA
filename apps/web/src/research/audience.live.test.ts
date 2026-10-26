@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -228,5 +228,39 @@ describe("what a preset change clears (OI-51 (a))", () => {
     expect(presetReset({ builtin_subpanel: "", filters: {}, segment: { mode: "none" } } as never).cleared).toBe(false);
     expect(presetReset({ builtin_subpanel: null, filters: null, segment: null } as never).cleared).toBe(false);
     expect(presetReset({ segment: { mode: "top" } } as never).cleared).toBe(true);
+  });
+});
+
+describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
+  const study = (ui_state: Record<string, unknown>, audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state }) as unknown as ResearchProject;
+
+  it("writes the one entry AIA has on a choice, and leaves a study already there as it is", () => {
+    const fresh = study({ audience_entry: "own", other: 1 });
+    expect(normalizeEntry(fresh).ui_state).toEqual({ audience_entry: "analytics", analytics_choice: "cz18", other: 1 });
+    const there = study({ audience_entry: "analytics", analytics_choice: "cz18" });
+    expect(normalizeEntry(there)).toBe(there);
+  });
+
+  it("shows a strategy only where one was chosen: ČR 18+, or a subpanel's filters", () => {
+    expect(strategyOf(study({}))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "own" }, { strategy: "filters" }))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "analytics" }))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "cz18" }))).toBe("population");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "discover" }))).toBe("discover");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "special" }, { builtin_subpanel: "young_18_29" }))).toBe("filters");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "special" }, { special_catalog_key: "health" }))).toBeNull();
+  });
+
+  it("names what a study stored on a path the screen no longer offers", () => {
+    expect(keptPaths(study({ audience_entry: "own" }, { dataset_id: "A1", dataset_name: "Lékaři ČR" }))).toEqual([{ kind: "dataset", name: "Lékaři ČR" }]);
+    expect(keptPaths(study({ audience_entry: "own" }, { dataset_id: "" }))).toEqual([]);
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "special" }, { special_catalog_key: "health", dataset_name: "Zdravotníci" }))).toEqual([{ kind: "special", name: "Zdravotníci" }]);
+    // A subpanel's filters are read as Zúžit, not kept apart.
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "special" }, { builtin_subpanel: "young_18_29", special_catalog_key: "young" }))).toEqual([]);
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "discover" }))).toEqual([{ kind: "discover" }]);
+  });
+
+  it("writes the description as typed, nothing else", () => {
+    expect(setAudienceDescription(study({}, { description: "ČR 18+", filters: { kraj: ["A"] } }), "Sportovci").audience).toEqual({ description: "Sportovci", filters: { kraj: ["A"] } });
   });
 });

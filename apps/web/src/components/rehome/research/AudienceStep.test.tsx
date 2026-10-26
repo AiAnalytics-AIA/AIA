@@ -60,66 +60,80 @@ afterEach(() => {
 });
 
 describe("Audience", () => {
-  it("starts at the two sources, and waits for one before going on", async () => {
+  it("offers three strategies; Najít ve výsledcích is disabled with its reason and cannot be chosen (R4)", async () => {
     aiaStub({});
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Odkud mají respondenti pocházet?" })).toBeTruthy();
+    const group = await screen.findByRole("radiogroup", { name: "Koho mají výsledky reprezentovat?" });
+    // Without a population Zúžit carries its "V AIA zatím není" tag beside the name.
+    expect(within(group).getAllByRole("radio").map((r) => r.querySelector(".font-semibold")!.textContent!.replace("V AIA zatím není", "").trim())).toEqual(["Celá ČR 18+", "Zúžit", "Najít ve výsledcích"]);
+    // Nothing is chosen on a new study, and the step waits for a choice.
+    expect(within(group).queryByRole("radio", { checked: true })).toBeNull();
     expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Nejdřív vyberte zdroj audience.")).toBeTruthy();
-    expect(screen.getByText(/Zatím není nastaven žádný filtr/)).toBeTruthy();
+    expect(screen.getByText("Nejdřív vyberte, koho mají výsledky reprezentovat.")).toBeTruthy();
+    // The two questions before it are gone.
+    expect(screen.queryByText("Odkud mají respondenti pocházet?")).toBeNull();
+    expect(screen.queryByRole("radio", { name: /Speciální skupiny/ })).toBeNull();
+    const discover = within(group).getByRole("radio", { name: /Najít ve výsledcích/ }) as HTMLButtonElement;
+    expect(discover.disabled).toBe(true);
+    expect(discover.textContent).toContain("dnes AIA tuto cestu neumí");
+    fireEvent.click(discover);
+    expect(saves).toHaveLength(0);
     noUnitCalls();
   });
 
-  it("own audience says it is not in AIA, and the step waits for another source", async () => {
+  it("a choice writes ČR 18+ as the entry and is ready at once", async () => {
     aiaStub({});
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("radio", { name: /Vlastní audience/ }));
-    expect(await screen.findByText(/Nahrání a kontrolu vlastního datasetu dělala 18.6.6/)).toBeTruthy();
-    expect(screen.getAllByText("V AIA zatím není").length).toBeGreaterThan(0);
-    expect(screen.queryByLabelText("Soubor")).toBeNull();
-    expect(screen.queryByText("Stáhnout XLSX šablonu")).toBeNull();
-    expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(await screen.findByRole("radio", { name: /Celá ČR 18\+/ }));
+    await saved();
+    expect(lastSave()).toMatchObject({ reason: "audience_strategy", content: { ui_state: ANALYTICS, audience: { strategy: "population", filters: {}, description: "ČR 18+" } } });
+    expect(await screen.findByRole("radio", { name: /Celá ČR 18\+/, checked: true })).toBeTruthy();
+    expect(screen.getByRole("complementary", { name: "Souhrn cílové skupiny" }).textContent).toContain("Celá ČR 18+");
+    await waitFor(() => expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(false));
+    // No preview without a population: the screen says so.
+    expect(screen.getAllByText(/Kontrolu proveditelnosti počítala 18.6.6/).length).toBeGreaterThan(0);
     noUnitCalls();
   });
 
-  it("a dataset a study already chose stays visible, and says the run will not use it", async () => {
-    aiaStub({ ui_state: { audience_entry: "own" }, audience: { source_mode: "customer", dataset_id: "A1", dataset_name: "Lékaři ČR" } });
+  it("a study stored as own, special or discover opens readable and says what is kept", async () => {
+    aiaStub({ ui_state: { audience_entry: "own" }, audience: { source_mode: "customer", dataset_id: "A1", dataset_name: "Lékaři ČR", strategy: "discover", success_definition: "Koupí za 220 Kč" } });
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
     expect((await screen.findByText("Uložený dataset:")).parentElement?.textContent).toBe("Uložený dataset: Lékaři ČR");
     expect(screen.getAllByText("Zůstává v návrhu studie, ale běh v AIA ho nepoužije.").length).toBe(1);
+    expect(screen.getByText(/Studie má uložené hledání ideální skupiny ve výsledcích/)).toBeTruthy();
+    // The stored Discover is read, never edited.
+    expect(screen.getByText("Koupí za 220 Kč").closest("dd")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Koupí za 220 Kč/ })).toBeNull();
+    expect(screen.queryByRole("radio", { checked: true })).toBeNull();
+    cleanup();
+    aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" }, audience: { special_catalog_key: "health", dataset_name: "Zdravotníci" } });
+    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    expect((await screen.findByText("Uložená speciální skupina:")).parentElement?.textContent).toBe("Uložená speciální skupina: Zdravotníci");
+    noUnitCalls();
+  });
+
+  it("the description is written in place and saved as typed", async () => {
+    aiaStub({ ui_state: ANALYTICS, audience: { strategy: "population", description: "ČR 18+" } });
+    const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: /Popis vlastními slovy.*ČR 18\+/ }));
+    const field = screen.getByRole("textbox", { name: "Popis vlastními slovy" });
+    fireEvent.change(field, { target: { value: "Dospělí, kteří sportují" } });
+    fireEvent.blur(field);
+    await saved();
+    expect(lastSave()).toMatchObject({ reason: "audience_description", content: { audience: { strategy: "population", description: "Dospělí, kteří sportují" } } });
+    expect(container.querySelectorAll(focusSelector("audience:definition"))).toHaveLength(1);
     noUnitCalls();
   });
 
   it("inside the workbench goes on to Dimenze through the frame's next stage", async () => {
-    aiaStub({ ui_state: { audience_entry: "analytics" } });
+    aiaStub({ ui_state: ANALYTICS });
     const go = vi.fn();
     render(<FrameNavigation.Provider value={{ next: { label: "Dimenze", go } }}><ResearchScreen step="audience" frame={TEST_FRAME} /></FrameNavigation.Provider>);
-    fireEvent.click(await screen.findByRole("radio", { name: /Česká populace \(\+18\)/ }));
     const next = await screen.findByRole("button", { name: /Další · dimenze/ });
     await waitFor(() => expect((next as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(next);
     expect(go).toHaveBeenCalledTimes(1);
     expect(push).not.toHaveBeenCalled();
-  });
-
-  it("AI Analytics: ČR 18+ is ready at once; Speciální skupiny say they are not in AIA", async () => {
-    aiaStub({ ui_state: { audience_entry: "analytics" } });
-    render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    expect(await screen.findByText(/= výsledky reprezentují celou dospělou populaci/)).toBeTruthy();
-    // Studio v3: one page; the population is the second question, its three choices side by side.
-    fireEvent.click(await screen.findByRole("radio", { name: /Speciální skupiny/ }));
-    expect(await screen.findByText(/Profesní a speciální subpanely počítala 18.6.6/)).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Lékaři/ })).toBeNull();
-    fireEvent.click(screen.getByRole("radio", { name: /Česká populace \(\+18\)/ }));
-    // The third question appears with the whole population chosen, and the summary says so.
-    expect(await screen.findByRole("radio", { name: /Celá ČR 18\+/, checked: true })).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Souhrn cílové skupiny" }).textContent).toContain("Česká populace (+18)");
-    await saved();
-    expect(lastSave()).toMatchObject({ reason: "audience_strategy", content: { audience: { strategy: "population", filters: {}, description: "ČR 18+" } } });
-    // No preview: 18.6.6 counted the audience in its panel; the screen says so.
-    expect(screen.queryByRole("button", { name: "Zkontrolovat audience" })).toBeNull();
-    expect(screen.getAllByText(/Kontrolu proveditelnosti počítala 18.6.6/).length).toBeGreaterThan(0);
-    noUnitCalls();
   });
 
   it("filters: not in AIA; the ones a study stores stay visible and removable", async () => {
@@ -138,8 +152,12 @@ describe("Audience", () => {
   it("reviews an audience proposal while preserving researcher-controlled filters", async () => {
     aiaStub({ ui_state: ANALYTICS, audience: { strategy: "filters", source_mode: "population", filters: { kraj: ["A"] }, description: "Zúžená cílová populace" } });
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    const input = await screen.findByPlaceholderText(/např. 25–44/);
-    fireEvent.change(input, { target: { value: "Mladí sportovci" } });
+    // The job is asked about the description written in §01.
+    fireEvent.click(await screen.findByRole("button", { name: /Popis vlastními slovy/ }));
+    const field = screen.getByRole("textbox", { name: "Popis vlastními slovy" });
+    fireEvent.change(field, { target: { value: "Mladí sportovci" } });
+    fireEvent.blur(field);
+    await waitFor(() => expect(lastSave().content.audience.description).toBe("Mladí sportovci"));
     fireEvent.click(screen.getByRole("button", { name: "AI: navrhnout cílovou skupinu" }));
     await findProposalDialog();
     expect(lastSave().content.audience.filters).toEqual({ kraj: ["A"] });
@@ -270,33 +288,6 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
-    it("Discover's product and success criterion are edited in place: leaving saves, Esc restores (audit B11)", async () => {
-      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "discover", source_mode: "population", success_definition: "Koupí za 220 Kč" } }, live());
-      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-      const SUCCESS = "Co má ideální člověk udělat / jak poznáme úspěch?";
-      fireEvent.click(await screen.findByRole("button", { name: new RegExp(`${SUCCESS.replace(/[?/]/g, "\\$&")}.*Koupí za 220 Kč`) }));
-      const field = screen.getByRole("textbox", { name: SUCCESS });
-      fireEvent.change(field, { target: { value: "Zahodí to" } });
-      fireEvent.keyDown(field, { key: "Escape" });
-      // Esc restores: the field closes on the stored value, the typed one gone.
-      expect(screen.queryByRole("textbox", { name: SUCCESS })).toBeNull();
-      expect(screen.queryByText("Zahodí to")).toBeNull();
-      fireEvent.click(screen.getByRole("button", { name: new RegExp("Koupí za 220 Kč") }));
-      const again = screen.getByRole("textbox", { name: SUCCESS });
-      fireEvent.change(again, { target: { value: "Koupí a doporučí" } });
-      fireEvent.blur(again);
-      await saved();
-      expect(lastSave().content.audience).toMatchObject({ success_definition: "Koupí a doporučí" });
-      expect(saves.some((x) => JSON.stringify(x.content).includes("Zahodí to"))).toBe(false);
-      // Optional, as it was: emptied, it is saved empty rather than refused.
-      fireEvent.click(screen.getByRole("button", { name: new RegExp("Koupí a doporučí") }));
-      const third = screen.getByRole("textbox", { name: SUCCESS });
-      fireEvent.change(third, { target: { value: "" } });
-      fireEvent.blur(third);
-      await waitFor(() => expect(lastSave().content.audience).toMatchObject({ success_definition: "" }));
-      noUnitCalls();
-    });
-
     it("announces how many values a long factor's filter shows, as the person types", async () => {
       const many = { ...CATALOGUE.factors[1]!, id: "obec", column: "obec", label: "Obec", values: Array.from({ length: 20 }, (_, i) => ({ value: `Obec ${i + 1}`, count: 100 - i })) };
       aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: {} } }, { [CAT]: () => ({ ...CATALOGUE, factors: [...CATALOGUE.factors, many] }) });
@@ -306,10 +297,10 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
-    it("switching preset clears the previous subpanel and filters (OI-51 (a))", async () => {
+    it("choosing Celá ČR 18+ clears the previous subpanel and filters (OI-51 (a))", async () => {
       aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29], kraj: ["Zlínský kraj"] } } }, live());
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-      fireEvent.click(await screen.findByRole("radio", { name: /Speciální skupiny/ }));
+      fireEvent.click(await screen.findByRole("radio", { name: /Celá ČR 18\+/ }));
       await saved();
       const audience = lastSave().content.audience;
       expect(audience.builtin_subpanel).toBe("");
@@ -332,9 +323,9 @@ describe("Audience", () => {
       }
       expect(container.querySelector(focusSelector("audience:filter:kraj"))!.textContent).toContain("Zlínský kraj");
       expect(container.querySelector(focusSelector("audience:filter:prijem"))!.textContent).toContain("Příjem domácnosti");
-      // The screen marks exactly what the contract names (subpanels are drawn on their own path).
+      // The screen marks exactly what the contract names, the subpanels under Zúžit included.
       const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
-      expect(marks.sort()).toEqual(audienceTargets({ audience: { filters } } as unknown as ResearchProject, { preview: true, subpanels: [] }).sort());
+      expect(marks.sort()).toEqual(audienceTargets({ audience: { filters } } as unknown as ResearchProject, { preview: true, subpanels: catalogue.subpanels.map((sp) => sp.key) }).sort());
       expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
     });
 
@@ -431,20 +422,21 @@ describe("Audience", () => {
     });
 
     it("a built-in subpanel is chosen as its filter; one the policy refuses cannot be", async () => {
-      aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" } }, live());
+      aiaStub({}, live());
       const { container } = render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      // The subpanels sit under Zúžit (R4), the only way to them.
+      fireEvent.click(await screen.findByRole("radio", { name: /Zúžit/ }));
       const young = await screen.findByRole("radio", { name: /Mladí 18–29/ });
       expect((screen.getByRole("radio", { name: /Studenti/ }) as HTMLButtonElement).disabled).toBe(true);
       expect(screen.getByText(/Nelze použít: audit_only/)).toBeTruthy();
-      expect(screen.getByText(/speciální panely a vlastní publikum stavěla 18.6.6/i)).toBeTruthy();
       expect(container.querySelector(focusSelector("audience:subpanel:young_18_29"))!.textContent).toContain("Mladí 18–29");
-      // In the Speciální skupiny view the screen marks exactly the contract's targets, subpanels included.
-      const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
+      // Under Zúžit the screen marks the contract's subpanel targets, one per subpanel.
+      const marks = [...container.querySelectorAll("[data-aia^='audience:subpanel:']")].map((e) => e.getAttribute("data-aia"));
       const keys = CATALOGUE.subpanels.map((sp) => sp.key);
       expect(marks.sort()).toEqual(audienceTargets({ audience: {} } as unknown as ResearchProject, { preview: false, subpanels: keys }).filter((x) => x.startsWith("audience:subpanel:")).sort());
       fireEvent.click(young);
       await saved();
-      expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { audience: { builtin_subpanel: "young_18_29", source_mode: "population", filters: { vek: [18, 29] } } } });
+      expect(lastSave()).toMatchObject({ reason: "population_subpanel", content: { ui_state: ANALYTICS, audience: { builtin_subpanel: "young_18_29", source_mode: "population", strategy: "filters", filters: { vek: [18, 29] } } } });
       await waitFor(() => expect((screen.getByRole("button", { name: /Další · dimenze/ }) as HTMLButtonElement).disabled).toBe(false));
       noUnitCalls();
     });

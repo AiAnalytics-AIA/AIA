@@ -112,6 +112,19 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 **AUD2. Body.** Tests: `AudienceStep.test.tsx`: the table lists the saved filters with the catalogue
 version; a missing preview says why. Depends on `input-interactions#5`.
 
+AUD2, part 1 (research stages v73, spec `vzorek/A1`, R4): one choice, "Koho mají výsledky
+reprezentovat?", of Celá ČR 18+, Zúžit and Najít ve výsledcích, the last disabled with its reason. The
+source and population questions are gone; a choice writes `analytics` / `cz18` (`normalizeEntry`), so
+`audienceReady` is unchanged. A study stored as an own dataset, a special group or a Discover opens
+readable and says what is kept (`keptPaths`); a stored subpanel reads as Zúžit (`strategyOf`). The
+description is written in place (§01, `setAudienceDescription`) and the AI proposal asks about it.
+The built-in subpanels move under Zúžit as they are (radio cards; "Hotové skupiny" chips are AUD10).
+The strategy stays three radio cards, not the spec's segmented chips: a chips group chooses as the
+arrows move (I3), and an arrow from Zúžit to Celá ČR 18+ would clear the filters (the reason B9 kept
+cards). Tests: `AudienceStep.test.tsx` ("offers three strategies…", "a study stored as own, special or
+discover opens readable…"), `audience.live.test.ts` ("one strategy choice"), the audience and
+workspace journeys. Part 2 is the filter rows (`vzorek/A3`).
+
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
   population, counts only.
