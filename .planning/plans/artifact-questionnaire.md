@@ -13,7 +13,7 @@ chunks:
   - "[ ] QST10. One comparison set shared by Návrh and Dotazník ('Objekty', data-aia set:<id>), seen from both stages (spec navrh D6 + Q8; W2, after working-copy-edit-ops WCE8b)"
   - "[x] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
   - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
-  - "[ ] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
+  - "[x] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
 ---
 # Artifact: Dotazník (Questionnaire)
 
@@ -446,11 +446,13 @@ follow-up chunk below.
 - Departure from "All verified findings": the shared reader shows at most `MAX_EXTERNAL_ITEMS` (24)
   findings, each claim cut at 400 characters (`domain/analysis/external.py:33-35`). One reader means
   the same cap Analýza's modules and the Lead see.
-- Open until the integration coordinator passes the Lead's store: the Lead's card approval of a
-  model-prepared job (`application/research_lead.py:1196`) builds its jobs without it.
+- The Lead's card approval of a model-prepared job (`application/research_lead.py`
+  `approve_request`) passes the Lead's own `external_store`. That is one line in the coordinator's
+  file, with the integration coordinator's agreement.
 - Tests:
   - `test_research_agents.py::test_external_context_frames_the_findings_and_trims_them_to_the_bound`
   - `test_research_agents.py::test_the_external_rail_rides_the_system_prompt_whenever_the_layer_does`
   - `test_research_agents.py::test_questionnaire_jobs_freeze_the_pinned_findings_only_when_given_a_store`
   - `test_research_agent_jobs_api.py::test_a_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
   - `test_lead_chat_start_api.py::test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
+  - `test_research_lead_application.py::test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store`

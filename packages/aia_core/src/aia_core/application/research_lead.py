@@ -1193,7 +1193,12 @@ class ResearchLead:
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
         # job's spend row; this turn's approval row carries the same figures.
-        jobs = ResearchAgentJobs(self.session, self.scope, reservation_usd=reservation_usd)
+        jobs = ResearchAgentJobs(
+            self.session,
+            self.scope,
+            reservation_usd=reservation_usd,
+            external_store=self.external_store,
+        )
         confirmed = jobs.spend_gate(confirm_cost_usd)
         spend: dict[str, float] | None = None
         if confirmed is not None:

@@ -1059,6 +1059,38 @@ JOB = {
 }
 
 
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch, switched_on: bool
+) -> None:
+    """artifact-questionnaire QST13: the Lead's store (set only with
+    AIA_AI_ANALYSIS_EXTERNAL_CONTEXT) reaches the questionnaire job its card approves."""
+    from aia_core.application.research import ResearchAgentJobs
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    build = {
+        "reply": "Připravil jsem dotazník.",
+        "request": {
+            "kind": "agent_job",
+            "action": "build_questionnaire",
+            "why": "Návrh je hotový.",
+        },
+    }
+    scope, turn_id = _ready(scoped, session, build)
+    store = InMemoryArtifactStore() if switched_on else None
+    _lead(scope, session, external_store=store).approve_request(
+        turn_id, confirm_cost_usd=None, reservation_usd=None
+    )
+    assert given == ([store] if switched_on else [])
+
+
 def test_approving_a_prepared_job_starts_it_once_and_records_it(scoped: Any, session: Any) -> None:
     scope, turn_id = _ready(scoped, session, JOB)
     started = _lead(scope, session).approve_request(
