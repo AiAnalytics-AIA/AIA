@@ -50,6 +50,7 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
         <div class="cfh"><span class="cfava" aria-hidden="true"><sc-if value="{{cfBusy}}" hint-placeholder-val="{{ false }}"><thinking-orb size="36" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{cfIdle}}" hint-placeholder-val="{{ true }}"><span class="cfmk"></span></sc-if></span><div class="grow"><b style="font-size: 15px">Ada</b><div class="{{cfStatusCls}}">{{cfStatus}}</div></div><a class="cfib" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener" aria-label="Můj Vedoucí: značka a nastavení" title="Můj Vedoucí"><i class="ph ph-sliders-horizontal"></i></a></div>
         <div class="conv">
           <div class="day">Dnes</div>
+          <sc-if value="{{sFull}}" hint-placeholder-val="{{ true }}">
           <div class="me">Uprav dotazník: přidej měření pro VO3.</div>
           <div class="lc ai you">
             <div class="ch"><span class="ico"><i class="ph ph-sparkle"></i></span><div class="grow"><div class="ey">Návrhová úloha · hotovo</div><div class="ttl">Úprava dotazníku</div></div><span class="pill you"><span class="stg sm you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>Návrh čeká na vás</span></div>
@@ -68,8 +69,40 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
               <sc-if value="{{dr.done}}" hint-placeholder-val="{{ false }}"><span class="cap grow">4 výroky se zdrojem čekají v návrhu nahoře.</span></sc-if>
             </div>
           </div>
+          </sc-if>
+
+          <sc-if value="{{sNotFull}}" hint-placeholder-val="{{ false }}">
+          <div class="reply">
+            <span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span>
+            <div class="body"><div class="who"><b>Vedoucí výzkumu</b>10:02</div><p>Dotazník je zatím prázdný. Otázky můžete psát rovnou vpravo. Máte-li dotazník v Excelu, přiložte ho sem a převedu ho na návrh, který přijmete po položkách. Bez souboru navrhnu dotazník ze Zadání, z Návrhu (3 výzkumné otázky, 2 hypotézy, sada S1), ze schválených znalostí klienta a z rešerše.</p>
+              <sc-if value="{{sEmpty}}" hint-placeholder-val="{{ false }}"><div class="follow"><button type="button" onClick="{{goExcel}}"><i class="ph ph-upload-simple s"></i>Přiložit Excel</button><button type="button" onClick="{{goLead}}"><i class="ph ph-sparkle s"></i>Navrhni dotazník</button></div></sc-if></div>
+          </div>
+          </sc-if>
+
+          <sc-if value="{{sExcel}}" hint-placeholder-val="{{ false }}">
+          <div class="me"><span class="mfile"><i class="ph ph-file-text s"></i>dotaznik_ZH_2026.xlsx</span>Tady je náš loňský dotazník, převeď ho prosím.</div>
+          <div class="{{xl.cls}}">
+            <div class="ch"><span class="ico"><i class="ph ph-file-text"></i></span><div class="grow"><div class="ey">Dotazník ze souboru · šablona AIA · zdarma</div><div class="ttl">dotaznik_ZH_2026.xlsx</div></div><span class="{{xl.pill}}"><span class="{{xl.gl}}" aria-hidden="true"><i class="{{xl.ic}}"></i></span>{{xl.word}}</span></div>
+            <dl class="facts"><dt>Návrh</dt><dd class="key">23 otázek, 1 sada<span class="cap">ve 3 blocích · přijmete je po položkách vpravo</span></dd><dt>Soubor</dt><dd>šablona dotazníku AIA · všech 25 řádků přečteno</dd><dt>Vazby</dt><dd>na výzkumné otázky je navrhnu, až bloky přijmete</dd></dl>
+            <div class="acts"><sc-if value="{{xl.open}}" hint-placeholder-val="{{ true }}"><span class="grow"></span><a class="btn sm" href="#q-proposal">Posoudit</a></sc-if></div>
+          </div>
+          <div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><p>Soubor odpovídá šabloně, takže ho AIA přečetla celý a nic to nestálo. Kdyby některý řádek šabloně neodpovídal, vrátím celý soubor s číslem řádku a důvodem; nic nepřevezmu napůl.</p></div></div>
+          </sc-if>
+
+          <sc-if value="{{sLead}}" hint-placeholder-val="{{ false }}">
+          <div class="me">Navrhni dotazník</div>
+          <div class="{{lj.cls}}">
+            <div class="ch"><span class="ico"><i class="ph ph-sparkle"></i></span><div class="grow"><div class="ey">{{lj.ey}}</div><div class="ttl">Návrh dotazníku</div></div><span class="{{lj.pill}}"><span class="{{lj.gl}}" aria-hidden="true"><i class="{{lj.ic}}"></i></span>{{lj.word}}</span></div>
+            <dl class="facts"><dt>{{lj.k}}</dt><dd class="key">{{lj.v}}<span class="cap">{{lj.vc}}</span></dd><dt>Vychází z</dt><dd>Zadání · Návrh (3 VO, 2 hypotézy, sada S1) · 12 schválených znalostí klienta · ověřená zjištění rešerše k návrhu (6), jako externí kontext, ne jako data respondentů</dd></dl>
+            <div class="acts">
+              <sc-if value="{{lj.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{toEmpty}}">Teď ne</button><span class="grow"></span><button class="btn ai sm" type="button" onClick="{{lj.go}}"><i class="ph ph-sparkle s"></i><span class="vb">Spustit úlohu</span><b class="amt">0,60 USD</b></button></sc-if>
+              <sc-if value="{{lj.running}}" hint-placeholder-val="{{ false }}"><thinking-orb size="22" state="working" aria-hidden="true"></thinking-orb><span class="cap grow">Dotaz modelu odeslán · 10:04</span></sc-if>
+              <sc-if value="{{lj.done}}" hint-placeholder-val="{{ false }}"><span class="grow"></span><a class="btn sm" href="#q-proposal">Posoudit</a></sc-if>
+            </div>
+          </div>
+          </sc-if>
         
-          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me">{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
+          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me"><sc-if value="{{m.hasFile}}" hint-placeholder-val="{{ false }}"><span class="mfile"><i class="ph ph-file-text s"></i>{{m.file}}</span></sc-if>{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
           <sc-if value="{{cfThinking}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav cforb" aria-hidden="true"><thinking-orb size="22" state="breathing" aria-hidden="true"></thinking-orb></span><div class="shim" aria-label="Ada přemýšlí"><i></i><i></i></div></div></sc-if>
         </div>
         <div class="cfdock">
@@ -77,13 +110,13 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
             <div class="cfmenu" role="menu" aria-label="Akce, podklady a kontext">
               <div class="cfseg" role="tablist" aria-label="Skupina"><sc-for list="{{cfTabs}}" as="g" hint-placeholder-count="3"><button class="{{g.cls}}" type="button" role="tab" aria-selected="{{g.on}}" onClick="{{g.pick}}">{{g.l}}</button></sc-for></div>
               <sc-if value="{{cfTAct}}" hint-placeholder-val="{{ true }}"><div class="grp">Pro tento krok</div><sc-for list="{{cfActs}}" as="a" hint-placeholder-count="3"><button class="mi" type="button" role="menuitem" onClick="{{a.pick}}"><span class="{{a.ico}}"><i class="{{a.ic}}"></i></span><span>{{a.l}}<span class="d">{{a.d}}</span></span></button></sc-for></sc-if>
-              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přidat podklad<span class="d">soubor nebo odkaz ke klientovi</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
+              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem" onClick="{{cfAttach}}"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přiložit soubor<span class="d">Vedoucí s ním pracuje v této studii · docx, pdf, csv, xlsx…</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
               <sc-if value="{{cfTCtx}}" hint-placeholder-val="{{ false }}"><sc-for list="{{cfCtx}}" as="c" hint-placeholder-count="3"><button class="mi" type="button" role="menuitemcheckbox" aria-checked="{{c.on}}" onClick="{{c.toggle}}"><span class="mico"><i class="{{c.ic}}"></i></span><span>{{c.l}}<span class="d">{{c.d}}</span></span><span class="{{c.tg}}" aria-hidden="true"></span></button></sc-for></sc-if>
             </div>
           </sc-if>
           <div class="cfcomp">
-            <sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
-            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
+            <sc-if value="{{cfHasFile}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span class="cffile"><i class="ph ph-file-text s"></i>{{cfFile}}<button type="button" aria-label="Odebrat soubor" onClick="{{cfClearFile}}"><i class="ph ph-x s"></i></button></span></div></sc-if><sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
+            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…" onClick="{{cfAttach}}"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
           </div>
           <div class="cfctx"><i class="ph ph-eye s"></i>{{cfCtxLine}}</div>
         </div>
@@ -93,11 +126,36 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
         <div class="ahd">
           <h1>Dotazník</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span>
           <span class="grow"></span>
-          <span class="cap">22 otázek · 1 sada · 3 bloky</span>
+          <span class="cap">{{headCap}}</span>
           <span class="seg" role="group" aria-label="Zobrazení"><button class="{{editCls}}" type="button" aria-pressed="{{editing}}" onClick="{{toEdit}}"><i class="ph ph-pencil-simple s"></i> Upravit</button><button class="{{prevCls}}" type="button" aria-pressed="{{previewing}}" onClick="{{toPreview}}"><i class="ph ph-eye s"></i> Náhled respondenta</button></span>
           <a class="btn primary sm" href="Audience.dc.html">Cílová skupina<i class="ph ph-caret-right s"></i></a>
         </div>
         <div class="abody">
+          <div class="proto" role="group" aria-label="Stav prototypu"><b>Prototyp · stav</b><span class="seg sm"><sc-for list="{{states}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" type="button" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span><span class="cap">Jedno rozhraní: otázky píšete sami, nebo je připraví Vedoucí ze souboru či z předchozích kroků.</span></div>
+
+          <sc-if value="{{newProp}}" hint-placeholder-val="{{ false }}">
+            <div class="edits" id="q-proposal" role="region" aria-label="Návrh dotazníku">
+              <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>{{np.title}}</b> <span class="muted">· {{np.sub}}</span></div>
+                <button class="btn quiet sm" type="button" onClick="{{toEmpty}}">Zahodit</button><button class="btn primary sm" type="button" onClick="{{npAccept}}"><i class="ph ph-check s"></i><span>Přijmout vybrané ({{npSel}})</span></button></div>
+              <sc-for list="{{np.items}}" as="p" hint-placeholder-count="4">
+                <div class="chg"><label class="row" style="align-items: flex-start"><input type="checkbox" checked="{{p.on}}" onChange="{{p.toggle}}" style="margin-top: 3px"><span class="grow"><b>{{p.where}}</b><span style="display: block">{{p.t}}</span><span class="why">{{p.why}}</span></span><span class="tag">{{p.kind}}</span></label></div>
+              </sc-for>
+              <sc-for list="{{np.skipped}}" as="x" hint-placeholder-count="0">
+                <div class="chg"><div class="row" style="align-items: flex-start"><span class="stg sm dash" aria-hidden="true"></span><span class="grow"><b>{{x.where}}</b><span class="why" style="display: block">{{x.why}}</span></span><span class="tag">nepřečteno</span></div></div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{showEmpty}}" hint-placeholder-val="{{ false }}">
+            <section class="sec"><div class="sh"><h2>Zatím bez otázek</h2><span class="grow"></span><span class="cap">pište přímo sem</span></div>
+              <div class="sb">
+                <div class="row" style="flex-wrap: wrap"><button class="btn sm" type="button"><i class="ph ph-plus s"></i>Otázka</button><button class="btn sm" type="button"><i class="ph ph-plus s"></i>Blok</button><button class="btn sm" type="button"><i class="ph ph-plus s"></i>Sada</button></div>
+                <div class="li"><span class="tag">S1</span><div class="tx">Sada: Značky ležáků · 7 značek<span class="cap" style="display: block">už je v dotazníku, protože ji drží Návrh; otázky kolem ní doplníte vy nebo Vedoucí</span></div><a class="cap" href="Design.dc.html">Návrh</a></div>
+                <p class="cap">Excel s dotazníkem přiložte Vedoucímu vlevo; převede ho na návrh po položkách. Bez souboru vám dotazník navrhne ze Zadání, Návrhu, znalostí klienta a rešerše.</p>
+              </div>
+            </section>
+          </sc-if>
+
           <sc-if value="{{showProposal}}" hint-placeholder-val="{{ true }}">
             <div class="edits" id="q-proposal" role="region" aria-label="Návrh úpravy dotazníku">
               <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>Úprava dotazníku: {{propCount}}</b> <span class="muted">· vyberte, co přijmout; vaše bloky zůstanou</span></div>
@@ -109,7 +167,7 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
           </sc-if>
           <sc-if value="{{accepted}}" hint-placeholder-val="{{ false }}"><div class="sn ok"><span class="stg done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="grow">Přijato {{propSel}} z 3 změn. Ostatní zůstávají v návrhu, dokud je nezahodíte.</div><button class="btn quiet sm" type="button" onClick="{{propReset}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></div></sc-if>
 
-          <sc-if value="{{editing}}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{editingFull}}" hint-placeholder-val="{{ true }}">
             <section class="sec"><div class="sh"><span class="num">B1</span><h2>Znalost a pití značek</h2><span class="grow"></span><span class="cap">3 otázky</span></div>
               <div class="sb">
                 <div class="qcard"><div class="qh"><span class="qid">Q1</span><span class="tag">Více odpovědí</span><span class="grow"></span><span class="cap">měří VO1</span></div>
@@ -133,7 +191,7 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
             </section>
           </sc-if>
 
-          <sc-if value="{{previewing}}" hint-placeholder-val="{{ false }}">
+          <sc-if value="{{previewingFull}}" hint-placeholder-val="{{ false }}">
             <section class="sec"><div class="sh"><h2>Náhled respondenta</h2><span class="grow"></span><span class="cap">tak, jak otázku uvidí; škály v jejich rozsahu</span></div>
               <div class="sb" style="max-width: 640px">
                 <div><b>Q1. Které značky ležáků znáte, alespoň podle jména?</b><div class="cap">více odpovědí · 8 možností</div></div>
@@ -167,9 +225,9 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { mode: 'edit', sel: { a: true, b: true, c: false }, prop: 'open', q3: 2, vo: ['VO1', 'VO2'], dr: 'ask' };
+    this.state = { stav: 'full', lj: 'ask', npsel: {}, mode: 'edit', sel: { a: true, b: true, c: false }, prop: 'open', q3: 2, vo: ['VO1', 'VO2'], dr: 'ask' };
   }
-  componentWillUnmount() { clearTimeout(this._cf); clearTimeout(this._d); }
+  componentWillUnmount() { clearTimeout(this._cf); clearTimeout(this._d); clearTimeout(this._lj); }
   shell(cur) {
     const T = { done: ['stg sm done', 'ph ph-check', 'Hotovo', 'done'], you: ['stg sm youq', 'ph ph-pause', 'Čeká na vás', 'you'], park: ['stg sm youq', 'ph ph-pause', 'Čeká na vás', 'you'], fault: ['stg sm fault', 'ph ph-x', 'Chyba', 'fault'], run: ['stg sm run', '', 'Běží', 'run'], inert: ['stg sm dash', '', '', 'none'], muted: ['stg sm dash', '', '', 'none'] };
     const P = [
@@ -199,16 +257,18 @@ class Component extends DCLogic {
       cfPoint: () => set({ menu: false, tok: 'Ukázat na prvek' }),
       cfCtx: CX.map(([k, ic, l, d]) => ({ ic, l, d, on: !!cf.ctx[k], tg: cf.ctx[k] ? 'tg on' : 'tg', toggle: () => set({ ctx: { ...cf.ctx, [k]: !cf.ctx[k] } }) })),
       cfCtxLine: 'Vidí: ' + (seen.length ? seen.join(', ') : 'nic navíc'),
+      cfHasFile: !!cf.file, cfFile: cf.file || '', cfClearFile: () => set({ file: null }), cfAttach: () => set({ menu: false, file: 'dotaznik_ZH_2026.xlsx' }),
       cfHasTok: !!cf.tok, cfTok: cf.tok || '', cfClearTok: () => set({ tok: null }),
-      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok, cfSetDraft: (e) => set({ draft: e.target.value }),
+      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok && !cf.file, cfSetDraft: (e) => set({ draft: e.target.value }),
       cfSend: () => {
         const t = (cf.tok ? cf.tok + (cf.draft.trim() ? ': ' : '') : '') + cf.draft.trim();
-        if (!t) return;
-        set({ draft: '', tok: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t }] });
+        const f = cf.file;
+        if (!t && !f) return;
+        set({ draft: '', tok: null, file: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t, file: f }] });
         clearTimeout(this._cf);
-        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
+        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: f ? 'Soubor ' + f + ' mám v kontextu této studie, ať jste na kterémkoli kroku. Co z něj má něco změnit, ukážu jako návrh; sama nic nezapíšu.' : 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
       },
-      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text }))
+      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text, hasFile: !!m.file, file: m.file || '' }))
     };
   }
   renderVals() {
@@ -223,13 +283,44 @@ class Component extends DCLogic {
     const LB = ['1–5', '1–7', '1–10', '0–10', 'Vlastní'];
     const q3max = s.q3 === 3 ? 10 : SC[s.q3];
     const D = { ask: ['lc ai you', 'pill you', 'Čeká na vás', 'stg sm you', 'ph ph-exclamation-mark', 'Data', 'jen veřejné části návrhu'], run: ['lc ai run', 'pill run', 'Běží', 'stg sm run', '', 'Poslední hlášení', 'Ověřeno: 9 přijato, 3 odmítnuto · 14 volání webu'], done: ['lc ai', 'pill done', 'Hotovo', 'stg sm done', 'ph ph-check', 'Stálo', '0,74 USD · 6 zjištění, 2 odmítnutá'] }[s.dr];
+    const ST = s.stav, full = ST === 'full';
+    const go = (stav, extra) => this.setState({ stav, npsel: {}, ...(extra || {}) });
+    const XL = [
+      ['b1', 'B1 · Znalost a pití značek', '6 otázek: známost, nejčastěji pitá značka, frekvence…', 'ze souboru, list „Dotazník“, ř. 2–8', 'přidat'],
+      ['b2', 'B2 · Vnímání značek', '9 otázek, z toho sada „Hodnocení značek“ (7 značek, škála 1–10)', 'sadu sloučí se sadou S1 z Návrhu: stejné značky', 'přidat'],
+      ['b3', 'B3 · Nákup a cena', '8 otázek: místo nákupu, cena za lahev, úmysl…', 'ze souboru, ř. 17–25', 'přidat']
+    ];
+    const LJ = [
+      ['l1', 'B1 · Znalost a pití značek', 'Q1 spontánní znalost · Q2 podpořená znalost · Q3 nejčastěji pitá značka', 'měří VO1 · cíl 01 ze Zadání · znalost „Tracking 2025“ (stejné znění pro srovnání)', 'přidat'],
+      ['l2', 'S1 · Značky ležáků: 2 výroky', '„Působí moderně“ · „Je to značka pro mě“', 'měří VO3 a ověří H2 · externí kontext: ověřená zjištění rešerše EV-2 a EV-5', 'přidat'],
+      ['l3', 'B2 · Vnímání podle věku a regionu', 'Q8–Q10 asociace se značkou (výběr z 12 vlastností)', 'měří VO2 · věk a kraj nese Vzorek, ptát se na ně netřeba', 'přidat'],
+      ['l4', 'B3 · Nákupní úmysl', 'Q12 úmysl koupit Zlatou Horu 12° (1–7)', 'neměří žádnou VO; navrženo kvůli rozhodnutí v Zadání „zda zvednout cenu“', 'přidat']
+    ];
+    const items = ST === 'excel' ? XL : ST === 'lead' && s.lj === 'done' ? LJ : [];
+    const npOn = (k) => s.npsel[k] !== false;
+    const npSel = items.filter(([k]) => npOn(k)).length;
+    const LJS = { ask: ['lc ai you', 'pill you', 'Čeká na vás', 'stg sm you', 'ph ph-exclamation-mark', 'Návrhová úloha · AI', 'Cena nejvýše', '0,60 USD', 'pod prahem potvrzení 10,00 USD'], run: ['lc ai run', 'pill run', 'Běží', 'stg sm run', '', 'Návrhová úloha · AI', 'Cena nejvýše', '0,60 USD', 'převzato 10:04'], done: ['lc ai you', 'pill you', 'Návrh čeká na vás', 'stg sm you', 'ph ph-exclamation-mark', 'Návrhová úloha · hotovo', 'Návrh', '4 položky', 'stálo 0,41 USD · každá se zdrojem'] }[s.lj];
     return {
       ...this.chatF(),
       ...this.shell('Questionnaire'),
+      sFull: full, sNotFull: !full, sEmpty: ST === 'empty', sExcel: ST === 'excel', sLead: ST === 'lead',
+      states: [['full', 'Rozpracovaný'], ['empty', 'Prázdný'], ['excel', 'Z Excelu'], ['lead', 'S Vedoucím']].map(([k, l]) => ({ l, on: ST === k, cls: ST === k ? 'on' : '', pick: () => go(k, { lj: 'ask', mode: 'edit' }) })),
+      goExcel: () => go('excel'), goLead: () => go('lead', { lj: 'ask' }), toEmpty: () => go('empty'),
+      headCap: full ? '22 otázek · 1 sada · 3 bloky' : 'zatím bez otázek · 1 sada z Návrhu',
+      showEmpty: !full,
+      newProp: items.length > 0,
+      np: { title: ST === 'excel' ? 'Dotazník ze souboru dotaznik_ZH_2026.xlsx' : 'Návrh dotazníku od Vedoucího', sub: ST === 'excel' ? '23 otázek a 1 sada; vyberte, co přijmout' : 'každá položka říká, z čeho vychází',
+        items: items.map(([k, where, tx, why, kind]) => ({ where, t: tx, why, kind, on: npOn(k), toggle: () => this.setState({ npsel: { ...s.npsel, [k]: !npOn(k) } }) })),
+        skipped: [] },
+      npSel, npAccept: () => { if (npSel) go('full', { prop: 'closed', mode: 'edit' }); },
+      xl: { cls: 'lc you', pill: 'pill you', word: 'Návrh čeká na vás', gl: 'stg sm you', ic: 'ph ph-exclamation-mark', open: true },
+      lj: { cls: LJS[0], pill: LJS[1], word: LJS[2], gl: LJS[3], ic: LJS[4], ey: LJS[5], k: LJS[6], v: LJS[7], vc: LJS[8], ask: s.lj === 'ask', running: s.lj === 'run', done: s.lj === 'done',
+        go: () => { this.setState({ lj: 'run' }); clearTimeout(this._lj); this._lj = setTimeout(() => this.setState({ lj: 'done', npsel: {} }), 2200); } },
+      editingFull: full && s.mode === 'edit', previewingFull: full && s.mode === 'preview',
       editing: s.mode === 'edit', previewing: s.mode === 'preview',
       editCls: s.mode === 'edit' ? 'on' : '', prevCls: s.mode === 'preview' ? 'on' : '',
       toEdit: () => this.setState({ mode: 'edit' }), toPreview: () => this.setState({ mode: 'preview' }),
-      showProposal: s.prop === 'open', accepted: s.prop === 'accepted',
+      showProposal: full && s.prop === 'open', accepted: full && s.prop === 'accepted',
       propCount: '3 změny', propSel: selN,
       props: PR.map(([k, where, t, why, kind]) => ({ where, t, why, kind, on: !!s.sel[k], toggle: () => this.setState({ sel: { ...s.sel, [k]: !s.sel[k] } }) })),
       propAccept: () => { if (selN) { this.setState({ prop: 'accepted', q3: s.sel.b ? 1 : s.q3, vo: s.sel.a && !s.vo.includes('VO3') ? [...s.vo, 'VO3'] : s.vo }); } },
@@ -257,6 +348,7 @@ class Component extends DCLogic {
           { t: 'Návrh AI jen celý a nahradí vaše bloky; „Ponechat“ vs „Zahodit“ nejasné; „{size} položek“ bez české množné řeči.', a: 'R/ProposalReview.tsx:7-8, 105, 185-187' },
           { t: 'Přepnutí Způsobu na Nahrát nahradí sekce bez potvrzení; objekty sady bez kontroly duplicit; ID otázky v tooltipu; „převzatou z 18.6.6“.', a: 'R/QuestionnaireStep.tsx:441-457, 875, 1153 · i18n/cs.ts:2241, 2281' } ] },
         { l: 'e', t: 'Co prototyp mění', cls: 'cb e', items: [
+          { t: 'Žádná volba Nahrát / Ručně / AI (Nigel, 26. 10.). Jedno rozhraní: otázky píšete přímo; Excel přiložíte Vedoucímu a ten z něj udělá návrh po položkách; bez souboru navrhne dotazník ze Zadání, Návrhu, znalostí klienta a rešerše. Přepněte „Prototyp · stav“.', a: 'stavy Prázdný, Z Excelu, S Vedoucím' },
           { t: 'Návrh AI po položkách: zaškrtnete, co přijmout; „Odložit“ místo dvou nejasných tlačítek; vaše bloky zůstanou.', a: 'lišta Úprava dotazníku' },
           { t: 'Náhled kreslí skutečný rozsah škály (přepněte Q3 a otevřete Náhled) a říká, kolik otázek nezobrazil.', a: 'Náhled respondenta' },
           { t: 'Funkce, které běh neumí, jsou vypnuté s důvodem, ne nabízené.', a: 'Q2 podmínka, S1 známost' },

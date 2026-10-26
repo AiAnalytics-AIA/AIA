@@ -8,7 +8,7 @@ Source: the coordinator's page <https://claude.ai/artifact/1iuneZ5EAYJTfr854VRHP
 owner's account), summarised here on 26 Oct 2026. Every value comes from the product owner's words in
 either prototype chat, or from the product's own tokens (`apps/web/src/design/tokens.json` on
 `develop` at `bd0d1ad6`). Quotes in italics are the product owner's. The page was re-read on 26 Oct
-2026 after Settings v99 and research v71 were published; it was unchanged (artifact version
+2026 after Settings v99 and research v73 were published; it was unchanged (artifact version
 `1792976899-803a`).
 
 ## How each difference was settled
@@ -188,7 +188,7 @@ Czech, sentence case, the product's own words.
   classes (inline SVG masks) and scopes the serif titles to `.hero-h` (40/46) and `h1.title` (24/30).
 - **`aia-study.css`**, owned by the research session, built only on core's tokens: the stage
   navigator, study header, split, Lead pane, Lead cards and stage sections. Kept as
-  [`research-stages-v71/assets/aia-study.css`](research-stages-v71/assets/aia-study.css).
+  [`research-stages-v73/assets/aia-study.css`](research-stages-v73/assets/aia-study.css).
 - Both canvases load core; the research boards add study. A change to core is made once, by its
   owner, and the other canvas copies the new version in. Page-specific CSS stays only for
   page-specific parts.

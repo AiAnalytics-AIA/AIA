@@ -185,9 +185,8 @@ Rendered by `BriefStep` (`R/BriefStep.tsx:94-274`).
 - **Types.**
   - Ten `PROBLEM_TYPES` from 18.6.6 (`apps/web/src/research/model.ts:127-138`). Toggling one fills an
     empty goal with that type's default (`R/BriefStep.tsx:248-253`).
-  - The board shows six other labels (Image značky, Srovnání konkurence, …). **Owner question:** the
-    board's labels look illustrative. Keep `PROBLEM_TYPES` (parity-tested) unless the owner wants the
-    taxonomy changed.
+  - **Settled (B5, Nigel, 26 Oct): keep the ten.** The board now shows the ten labels word for word
+    (prototype v70); no taxonomy change.
 - **Podklady.**
   - Today: a drop zone, a file button, a link input (`:618-657`), rows with download and remove plus
     undo (`:687-705`), and a class chip `classLabel` such as "A · důvěrné…" (`:678-686`,
@@ -195,8 +194,11 @@ Rendered by `BriefStep` (`R/BriefStep.tsx:94-274`).
   - The leaks the critique names: the aside "třída dat určuje, kam smí" and the tooltip "rule:design …
     operátor" (`cs.ts:2356-2357`).
   - The server classes a brief file **and** a link as Class B, `rule:design`
-    (`packages/aia_core/src/aia_core/domain/brief_material_classes.py:55-69`). So the board's
-    "Důvěrné" (A) for the xlsx and "Veřejné" for the link do not match the server (see 1.4).
+    (`packages/aia_core/src/aia_core/domain/brief_material_classes.py:55-69`).
+  - **Settled (B4, Nigel, 26 Oct):** a brief file is **Class A by rule**, like a client's source; a
+    person may mark one "Veřejné", which makes it Class B. The board shows this (v70): "Důvěrné" with
+    "Označit jako veřejné", and a link marked Veřejné with "Vrátit na důvěrné". This is a backend
+    change (see 1.4, gap 2).
 - **Requiredness.** The only server-side gate on analysing is a goal or product description
   (`apps/web/src/research/brief.ts:133-135`). "povinné" on objectives, decision and type is a new
   UI rule; nothing refuses without them.
@@ -295,6 +297,14 @@ Rendered by `BriefStep` (`R/BriefStep.tsx:94-274`).
 - Plan: `artifact-brief#BRF4`.
 - Test: `lead_journey.mjs`: a scripted reply view on Rozhodnutí focuses section 03 at 1440 and 390 px.
 
+**B9. A brief file's class: Důvěrné by rule, Veřejné by a person.**
+- What changes: each Podklady row prints its served class; a file shows "Důvěrné" with "Označit jako
+  veřejné", a marked one "Veřejné" with who marked it and "Vrátit na důvěrné".
+- Backend: **NO BACKEND.** The rule (A for a brief file), the mark and its audit, and the per-attachment
+  class from `GET …/workspace/materials` (gap 2).
+- Plan: new (B4, Nigel, 26 Oct); ADR 0008 amendment.
+- Test: `test_brief_material_classes.py` › "a brief file is Class A; marked public it is Class B, and the mark names its author".
+
 ### 1.4 Backend gaps (Zadání)
 
 1. **Objective-to-research-question link.** It does not exist (`packages/aia_core/src/aia_core/domain/item_ids.py:76-80`). See B4.
@@ -306,8 +316,11 @@ Rendered by `BriefStep` (`R/BriefStep.tsx:94-274`).
    - "smí jen k modelu v EU" needs a served answer for where a class may go. No route serves this;
      that it can be read from `residency` is a **hypothesis**.
    - "Vedoucí z něj cituje jen to, co přijmete" is unbacked copy. **Hypothesis.**
-   - Fix: print the served class. Ask the owner whether a brief file should rule as A (a change to
-     `material_rules.py`, ADR 0008 territory).
+   - **Settled (B4):** a brief file rules as Class A; a person's "Veřejné" mark makes it Class B.
+     Needs: a brief-file rule in `material_rules.py` (ADR 0008 amendment), a per-attachment mark on
+     the brief's record with who and when (as `InternalMark` does for a client source,
+     `domain/client_sources.py`), the class served per attachment by
+     `GET …/workspace/materials`, and the class sentence printed from it. New chunk **B9**.
 3. **Requiredness.** No server rule for objectives, decision or type (`apps/web/src/research/brief.ts:133-135`). This is advisory UI only, unless the owner wants `analyze_brief` gated.
 
 ---
@@ -504,11 +517,24 @@ Rendered by `PlanStep` (`R/PlanStep.tsx:88-296`).
 
 ## 3. Dotazník (Questionnaire)
 
+### 3.0 Decision (Nigel, 26 Oct)
+
+> "its important that in the questionnaire there is no nahrat excel, sestavit rucne, sestavit with ai, becuse we
+> only need one interface to create the question, and the user can create it manually, but can also upload an
+> excel to the lead researcehr and the lead researcehr will create the questionnaire, if no excel is used the user
+> can still use the lead researcher to help create it based on the previous stage inputs, client knowledgebase and
+> deep research."
+
+So: no Nahrát / Ručně / AI choice and no "Způsob" control, ever. One interface, where the person writes
+questions directly (Q9); an Excel goes to the Lead (Q10); without a file the Lead drafts from the earlier
+stages, client knowledge and Deep Research (Q11). The board shows all three ("Prototyp · stav": Prázdný,
+Z Excelu, S Vedoucím; prototype v72).
+
 ### 3.1 What the prototype shows (artifact pane, in order)
 
 1. **Header.** "Dotazník", "Uloženo", the cap "22 otázek · 1 sada · 3 bloky", segmented "Upravit /
    Náhled respondenta", and the primary "Cílová skupina ›". There is no "Způsob" (Nahrát / Ručně / AI)
-   control.
+   control (decided: see 3.0).
 2. **Proposal block "Úprava dotazníku: 3 změny · vyberte, co přijmout; vaše bloky zůstanou"**
    (`#q-proposal`).
    - Header actions: "Odložit", "Přijmout vybrané (n)".
@@ -550,8 +576,8 @@ Rendered by `QuestionnaireStep` (`R/QuestionnaireStep.tsx:171-374`).
 
 - **Toolbar.** "Způsob" segmented Nahrát / Ručně / AI, a view segmented, and "Upravit dotazník"
   outside the workbench (`:296-328`). Before a method is picked, a chooser (`:282`, `:415-446`). The
-  board shows no method control. **Owner check:** keep the chooser for an empty questionnaire and move
-  "Nahrát" into a header menu.
+  board shows no method control. **Decided (3.0): remove the chooser and "Způsob" entirely**, also
+  for an empty questionnaire; "Nahrát" moves to the Lead's composer (Q10).
 - **Extra pieces the board drops:** `Outline` (`:356`, `:661-752`), `QuestionnaireStrip` (`:763`),
   "Jak výzkumné otázky zodpovíme" (`:765`, `:794-822`), Závislosti (`:781`, done as QST8), and the
   final "Rešerše" section with `DeepResearchPanel` (`:358-363`). The panel has its own start button
@@ -589,7 +615,8 @@ Rendered by `QuestionnaireStep` (`R/QuestionnaireStep.tsx:171-374`).
   - "Upravit / Náhled respondenta" in the X1 header slot;
   - "Cílová skupina ›" calls `toAudienceStep` (`:189-192`);
   - remove the toolbar row (`:296-328`) and the workbench dock;
-  - the method chooser stays only for an empty questionnaire.
+  - remove the method chooser (`:282`, `:415-446`) and the "Způsob" control, for every questionnaire,
+    empty included (3.0).
 - Backend: none.
 - Plan: `artifact-questionnaire#QST2`.
 - Test: `QuestionnaireStep.test.tsx` › "the header counts questions, sets and blocks and switches to the preview".
@@ -677,6 +704,62 @@ Rendered by `QuestionnaireStep` (`R/QuestionnaireStep.tsx:171-374`).
 **Q8. Set: shared with Návrh (R7).** This is D6 seen from Dotazník: the "sdílená s Návrhem" cap and
 the same section id. The test is shared with D6.
 
+**Q9. The empty questionnaire: one interface.**
+- What changes: with no questions, the stage shows the board's "Zatím bez otázek" sheet: "+ Otázka",
+  "+ Blok", "+ Sada" (the existing inline adds, `apps/web/src/research/questionnaire.ts`
+  `addNamedSection`, `addQuestionTo`, `addNamedTrackedSet`), the set already held by Návrh, and one
+  line pointing to the Lead. No method chooser.
+- Backend: none.
+- Plan: new (decision 3.0).
+- Test: `QuestionnaireStep.test.tsx` › "an empty questionnaire offers the inline adds and no method chooser".
+
+**Q10. An Excel file through the Lead.**
+- What changes:
+  - The composer takes a file. An XLSX or CSV is read by the existing import
+    (`POST …/workspace/questionnaire-import`, `apps/api/src/aia_api/routers/workspace.py:2311-2330`),
+    which stores nothing and answers sections.
+  - Its answer is shown as the Lead's card "Dotazník ze souboru · šablona AIA · zdarma" and as a
+    per-block proposal over the artifact; only the ticked blocks are written, as a person's edit, through
+    the store.
+  - A file that breaks a template rule is refused whole, with its row and reason
+    (`domain/questionnaire_import.py:194`, `227`); the Lead says so. Nothing is taken half.
+  - A set in the file with the same objects as Návrh's set is offered as a merge into it (R7).
+- Backend:
+  - The template import is **backed**, and the per-block choice is UI-only (the import answers without
+    storing).
+  - **NO BACKEND** for the file being the Lead's: a Lead message has no attachment
+    (`apps/api/src/aia_api/routers/lead.py:99-106`, `TurnPost`). This is now Lead-wide: **lead.md LP-20**
+    (decided 26 Oct: any standard document, on any stage). Until LP-20, a template file dropped in the
+    composer goes straight to the import and the card is shown locally.
+  - An Excel that is not the template: with LP-20 the Lead reads it (its document layer) and proposes a
+    questionnaire through the `build_questionnaire` job; that job then needs the file in its context too
+    (`context_snapshot`, `domain/research_agents.py:611-624`, carries the design and knowledge only).
+  - The research-question links after the import come from the existing "Uprav dotazník" job
+    (`optimize_questionnaire`).
+- Plan: new (decision 3.0).
+- Test:
+  - `QuestionnaireStep.test.tsx` › "a template dropped in the composer becomes a per-block proposal; only ticked blocks are saved";
+  - "a refused file names its row and saves nothing".
+
+**Q11. Without a file: the Lead drafts the questionnaire.**
+- What changes: "Navrhni dotazník" (typed, or from the empty state) starts the existing
+  `build_questionnaire` job as an approval card with its ceiling; its proposal is reviewed per item
+  (Q6), each item naming what it rests on: a research question, a brief objective, a knowledge item,
+  a Design Research finding.
+- Backend:
+  - The typed command exists (`packages/aia_core/tests/fixtures/lead_commands/commands.json:5`).
+  - Approved client knowledge is in the job's context (`domain/research_agents.py:611-624`).
+  - **Decided (Nigel, 26 Oct): the draft uses all verified Design Research findings, labelled external
+    context**, never respondent evidence.
+  - **NO BACKEND:** they are not in the job's context today (`context_snapshot`,
+    `research_agents.py:611-624`, carries the design and knowledge only). Add the study's verified
+    (accepted, sealed-bundle) Design Research findings as an external-context part of the snapshot, as
+    `EXTERNAL_LAYER` does for the Lead (`domain/research_lead.py:443`, `1103`), Class C, with each proposed
+    item free to cite a finding id; the snapshot's 64 KB bound applies (`AgentContextTooLarge`).
+  - Per-item sources: gap 2 below.
+- Plan: `artifact-questionnaire#QST6` (the starts), new (sources).
+- Test: `lead_cards_journey.mjs` › "Navrhni dotazník on an empty questionnaire shows an approval card, then a per-item proposal".
+
 ### 3.4 Backend gaps (Dotazník)
 
 1. **Per-change accept of an agent proposal.** None exists (`apps/api/src/aia_api/routers/research.py:3719-3725`, `packages/aia_core/src/aia_core/application/research.py:2069`). Plans: WCE6 and WCE8b.
@@ -685,12 +768,15 @@ the same section id. The test is shared with D6.
 4. **Lead edits for a set or scale.** `set_edit` and `scale_set` are declared only (`packages/aia_core/src/aia_core/domain/edit_ops.py:837`, `845`).
 5. **Questionnaire length.** Not served (`apps/web/src/components/rehome/research/QuestionnaireStrip.tsx:44`; `artifact-questionnaire#QST7`). The board does not show it, so no blocker.
 6. **Routing.** Fieldwork does not route yet (`AIA_ROUTING_ENABLED`, RQC11), so the disabled state in Q4 is the build target.
+7. **A file in a Lead message.** `TurnPost` has no attachment (`apps/api/src/aia_api/routers/lead.py:99-106`). Blocks Q10's Lead turn; v1 routes the file to the import.
+8. **A non-template Excel.** No questionnaire job reads a client source. Blocks Q10's free-form case.
+9. **Design Research in the questionnaire job.** Not in `context_snapshot` (`packages/aia_core/src/aia_core/domain/research_agents.py:611-624`). Decided 26 Oct: all verified findings, as external context. Blocks Q11's "rešerše" source.
 
 ---
 
 ## 4. Chunk count and order
 
-X1, then B1–B8 (B4 blocked), D1–D10 (D4, D5, D7 partly blocked; D10 not built), and Q1–Q8 (Q6 blocked;
-Q7 partly blocked). That is 27 chunks.
+X1, then B1–B9 (B4 blocked; B9 needs the class rule), D1–D10 (D4, D5, D7 partly blocked; D10 not built),
+and Q1–Q11 (Q6 blocked; Q7, Q10 and Q11 partly blocked). That is 31 chunks.
 
-Unblocked UI-only first: X1, B1, B2, B3, B5, B6, B7, B8, D1, D3, D8, Q1–Q5.
+Unblocked UI-only first: X1, B1, B2, B3, B5, B6, B7, B8, D1, D3, D8, Q1–Q5, Q9 and Q10's template path.

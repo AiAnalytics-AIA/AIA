@@ -13,8 +13,8 @@ out this exact UX design."*
 | Folder | What | Live canvas (private to the owner's account) | Exported version |
 |---|---|---|---|
 | [`settings-v99/`](settings-v99/) | "AIA Nastavení – prototyp": 11 pages: Metodika, Systémové prompty, Deep Research, AI běh, Přístup a schvalování, Studie a rozpočty, Audit, Stav systému, Správa dat, Vypěstovat Vedoucího, Můj Vedoucí | <https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7> | v99 (artifact version `1792978087-0038`) |
-| [`research-stages-v71/`](research-stages-v71/) | "AIA Výzkumné kroky – prototyp": 22 boards: the eleven stages (Zadání … Zpráva), the respondent disc, the overview, the Lead's cards, six chat variants, the Lead's mark | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | v71 (artifact version `1792978217-5542`) |
-| [`research-stages-v71/spec/`](research-stages-v71/spec/) | The research build spec: the prototype mapped onto `develop` at `bd0d1ad6`, stage by stage, with build chunks, backend gaps and owner questions | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> | spec v2 (artifact version `1792975993-afd3`; written against prototype v65) |
+| [`research-stages-v73/`](research-stages-v73/) | "AIA Výzkumné kroky – prototyp": 22 boards: the eleven stages (Zadání … Zpráva), the respondent disc, the overview, the Lead's cards, six chat variants, the Lead's mark | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | v73 (artifact version `1792979634-5793`) |
+| [`research-stages-v73/spec/`](research-stages-v73/spec/) | The research build spec: the prototype mapped onto `develop` at `bd0d1ad6`, stage by stage, with build chunks, backend gaps and owner questions | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> | spec v4 (artifact version `1792979639-7523`; written against prototype v73, with the owner's decisions of 26 Oct) |
 | [`LOOK.md`](LOOK.md) | The look contract both prototypes follow: colour, status, type, radii, icons, frame, components, copy; the three questions it raised and their answers | <https://claude.ai/artifact/1iuneZ5EAYJTfr854VRHPM> | artifact version `1792976899-803a` |
 | [`shared/aia-core.css`](shared/aia-core.css) | Core v3, the one shared stylesheet: tokens from `tokens.json` @ `bd0d1ad6`, the shell, the shared components and the Phosphor icons. Owned by the Settings canvas | Settings asset `c4e14f481d7c21ea1bf1a75f25894eea`; research's copy `32eed12bf6d8fbe65a8c1b56d49b11e9` | SHA-256 `bedd953f6e8d77433f0bd69be873eb9da6c2afede59b6922a29a31333f2e6b70`; the two canvases' copies are byte-identical |
 
@@ -57,13 +57,13 @@ Every `/_blob/<id>` URL whose file was exported has been rewritten to a relative
 | `assets/aia-settings.css` | asset `299c2616168d3335f9bc59cbb708478c` | every page but Hatch and LeadSettings |
 | `assets/889c3d28bc209704c3ef7887107cb48d.webp` | asset of that id | Main (Metodika): the Sociomap sample image |
 
-**Research stages (`research-stages-v71/`)**
+**Research stages (`research-stages-v73/`)**
 
 | File | From | Used by |
 |---|---|---|
 | `canvas.json`, 22 `*.dc.html` | `project/` | |
 | `../shared/aia-core.css` | asset `32eed12bf6d8fbe65a8c1b56d49b11e9` (byte-identical to Settings') | every board |
-| `assets/aia-study.css` | asset `43159e567b892311fbe94678395ac959` (SHA-256 `8ca2f60a…`) | every board: the study layer on top of core (stage navigator, study header, split, Lead pane and cards, stage sections) |
+| `assets/aia-study.css` | asset `49420235f65095ba317683657e5dddbb` (SHA-256 `d1a2d23b…`) | every board: the study layer on top of core (stage navigator, study header, split, Lead pane and cards, stage sections) |
 | `assets/<id>.jpg` (12) | assets of those ids | "Dnes v AIA" screenshots of today's workbench at 1440 px, one per stage board (Fieldwork has two) |
 | `assets/<id>.png` (12) | assets of those ids | Sociomap: the approved 3D map (`03a69632…`, 0.9 MB); Report: the report editor's toolbar in ONLYOFFICE's default and AIA's theme, the 232-icon grid and the editor states |
 

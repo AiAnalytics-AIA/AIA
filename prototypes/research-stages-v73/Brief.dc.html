@@ -62,6 +62,8 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
               </sc-if>
             </div>
           </div>
+          <div class="me"><span class="mfile"><i class="ph ph-file-text s"></i>brief_ZlataHora_2026.pdf · 6 stran</span>Posílám brief od klienta.</div>
+          <div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Vedoucí výzkumu</b>9:13 · četl PDF, 6 stran</div><p>Přečetla jsem ho. Na straně 3 klient píše, že rozhoduje, zda zvednout cenu Zlaté Hory 12° o 3 Kč: to je rozhodnutí, které Zadání chybí. Strana 4 cituje brand tracking 2025. Soubor zůstává ve studii jako důvěrný podklad; nic jsem nezapsala.</p><div class="views"><button class="view" type="button" onClick="{{markDecision}}"><i class="ph ph-target s"></i>Ukázat: Rozhodnutí</button></div><div class="follow"><button type="button"><i class="ph ph-caret-right s"></i>Doplň rozhodnutí z PDF</button></div></div></div>
           <sc-if value="{{missingAsked}}" hint-placeholder-val="{{ false }}">
             <div class="me">Co ještě chybí?</div>
             <div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Vedoucí výzkumu</b>9:14</div><p>Povinné části máte. Kontext „Co už víme“ je prázdný; pokud máte brand tracking 2025, přidejte ho do Podkladů a analýza z něj vyjde.</p><div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Podklady</button></div></div></div>
@@ -80,7 +82,7 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
             </div>
           </sc-if>
         
-          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me">{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
+          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me"><sc-if value="{{m.hasFile}}" hint-placeholder-val="{{ false }}"><span class="mfile"><i class="ph ph-file-text s"></i>{{m.file}}</span></sc-if>{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
           <sc-if value="{{cfThinking}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav cforb" aria-hidden="true"><thinking-orb size="22" state="breathing" aria-hidden="true"></thinking-orb></span><div class="shim" aria-label="Ada přemýšlí"><i></i><i></i></div></div></sc-if>
         </div>
         <div class="cfdock">
@@ -88,13 +90,13 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
             <div class="cfmenu" role="menu" aria-label="Akce, podklady a kontext">
               <div class="cfseg" role="tablist" aria-label="Skupina"><sc-for list="{{cfTabs}}" as="g" hint-placeholder-count="3"><button class="{{g.cls}}" type="button" role="tab" aria-selected="{{g.on}}" onClick="{{g.pick}}">{{g.l}}</button></sc-for></div>
               <sc-if value="{{cfTAct}}" hint-placeholder-val="{{ true }}"><div class="grp">Pro tento krok</div><sc-for list="{{cfActs}}" as="a" hint-placeholder-count="3"><button class="mi" type="button" role="menuitem" onClick="{{a.pick}}"><span class="{{a.ico}}"><i class="{{a.ic}}"></i></span><span>{{a.l}}<span class="d">{{a.d}}</span></span></button></sc-for></sc-if>
-              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přidat podklad<span class="d">soubor nebo odkaz ke klientovi</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
+              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem" onClick="{{cfAttach}}"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přiložit soubor<span class="d">Vedoucí s ním pracuje v této studii · docx, pdf, csv, xlsx…</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
               <sc-if value="{{cfTCtx}}" hint-placeholder-val="{{ false }}"><sc-for list="{{cfCtx}}" as="c" hint-placeholder-count="3"><button class="mi" type="button" role="menuitemcheckbox" aria-checked="{{c.on}}" onClick="{{c.toggle}}"><span class="mico"><i class="{{c.ic}}"></i></span><span>{{c.l}}<span class="d">{{c.d}}</span></span><span class="{{c.tg}}" aria-hidden="true"></span></button></sc-for></sc-if>
             </div>
           </sc-if>
           <div class="cfcomp">
-            <sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
-            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
+            <sc-if value="{{cfHasFile}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span class="cffile"><i class="ph ph-file-text s"></i>{{cfFile}}<button type="button" aria-label="Odebrat soubor" onClick="{{cfClearFile}}"><i class="ph ph-x s"></i></button></span></div></sc-if><sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
+            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…" onClick="{{cfAttach}}"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
           </div>
           <div class="cfctx"><i class="ph ph-eye s"></i>{{cfCtxLine}}</div>
         </div>
@@ -203,16 +205,18 @@ class Component extends DCLogic {
       cfPoint: () => set({ menu: false, tok: 'Ukázat na prvek' }),
       cfCtx: CX.map(([k, ic, l, d]) => ({ ic, l, d, on: !!cf.ctx[k], tg: cf.ctx[k] ? 'tg on' : 'tg', toggle: () => set({ ctx: { ...cf.ctx, [k]: !cf.ctx[k] } }) })),
       cfCtxLine: 'Vidí: ' + (seen.length ? seen.join(', ') : 'nic navíc'),
+      cfHasFile: !!cf.file, cfFile: cf.file || '', cfClearFile: () => set({ file: null }), cfAttach: () => set({ menu: false, file: 'brief_ZlataHora_2026.pdf' }),
       cfHasTok: !!cf.tok, cfTok: cf.tok || '', cfClearTok: () => set({ tok: null }),
-      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok, cfSetDraft: (e) => set({ draft: e.target.value }),
+      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok && !cf.file, cfSetDraft: (e) => set({ draft: e.target.value }),
       cfSend: () => {
         const t = (cf.tok ? cf.tok + (cf.draft.trim() ? ': ' : '') : '') + cf.draft.trim();
-        if (!t) return;
-        set({ draft: '', tok: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t }] });
+        const f = cf.file;
+        if (!t && !f) return;
+        set({ draft: '', tok: null, file: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t, file: f }] });
         clearTimeout(this._cf);
-        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
+        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: f ? 'Soubor ' + f + ' mám v kontextu této studie, ať jste na kterémkoli kroku. Co z něj má něco změnit, ukážu jako návrh; sama nic nezapíšu.' : 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
       },
-      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text }))
+      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text, hasFile: !!m.file, file: m.file || '' }))
     };
   }
   renderVals() {

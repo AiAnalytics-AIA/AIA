@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
 <meta charset="utf-8">
-<title>Dimenze – výzkumná studie</title>
+<title>Vzorek – výzkumná studie</title>
 <script src="./support.js"></script>
 <script src="/_blob/1aa4f92cccca03849efce6807a4b7c3c"></script>
 <link rel="stylesheet" href="../shared/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
@@ -14,6 +14,10 @@
 <style>
 body{margin:0}
 a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:underline}
+.btn .vb{font-weight:500}.btn .amt{font-weight:600;font-variant-numeric:tabular-nums}.btn .vb+.amt{padding-left:8px;margin-left:2px;border-left:1px solid rgba(255,255,255,.45)}.btn:not(.primary) .vb+.amt{border-left-color:var(--border)}.btn .amt.big{font-size:15px}
+.stg.warn{border:2px solid var(--strong);background:transparent;color:var(--ink)}
+.sn.warn{background:var(--raised);border-color:var(--strong)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.legend span{display:inline-flex;gap:6px;align-items:center}
 </style>
 </helmet>
 <div class="aia wb" data-theme="{{theme}}" data-phase="vzorek">
@@ -50,18 +54,17 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
         <div class="cfh"><span class="cfava" aria-hidden="true"><sc-if value="{{cfBusy}}" hint-placeholder-val="{{ false }}"><thinking-orb size="36" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{cfIdle}}" hint-placeholder-val="{{ true }}"><span class="cfmk"></span></sc-if></span><div class="grow"><b style="font-size: 15px">Ada</b><div class="{{cfStatusCls}}">{{cfStatus}}</div></div><a class="cfib" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener" aria-label="Můj Vedoucí: značka a nastavení" title="Můj Vedoucí"><i class="ph ph-sliders-horizontal"></i></a></div>
         <div class="conv">
           <div class="day">Dnes</div>
-          <div class="me">Která dimenze nám chybí pro VO3?</div>
+          <div class="me">Stačí 400 respondentů?</div>
           <div class="reply">
             <span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span>
             <div class="body">
-              <div class="who"><b>Vedoucí výzkumu</b>11:48 · četl revizi 7</div>
-              <p>Pro atributy prémiových ležáků pomůže „Reakce na reklamu“: respondenti pak odpovídají i podle toho, jak vnímají reklamní sdělení. Navrhuji ji přidat; je v liště nad krokem.</p>
-              <div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Reakce na reklamu</button></div>
-              <div class="follow"><button type="button"><i class="ph ph-caret-right s"></i>Navrhni dimenze z celého návrhu</button></div>
+              <div class="who"><b>Vedoucí výzkumu</b>12:02 · četl revizi 7</div>
+              <p>Na celkové výsledky ano. Na mapu značek je 400 těsně: dvě dvojice značek budou mít méně než 30 lidí, kteří znají obě. Při 500 to zmizí a cena běhu stoupne zhruba o čtvrtinu.</p>
+              <div class="views"><button class="view" type="button" onClick="{{markForecast}}"><i class="ph ph-target s"></i>Ukázat: Odhad dat</button><button class="view" type="button" onClick="{{markN}}"><i class="ph ph-target s"></i>Ukázat: Velikost vzorku</button></div>
             </div>
           </div>
         
-          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me">{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
+          <sc-for list="{{cfExtra}}" as="m" hint-placeholder-count="0"><sc-if value="{{m.me}}" hint-placeholder-val="{{ true }}"><div class="me"><sc-if value="{{m.hasFile}}" hint-placeholder-val="{{ false }}"><span class="mfile"><i class="ph ph-file-text s"></i>{{m.file}}</span></sc-if>{{m.text}}</div></sc-if><sc-if value="{{m.lead}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav" aria-hidden="true"></span><div class="body"><p>{{m.text}}</p></div></div></sc-if></sc-for>
           <sc-if value="{{cfThinking}}" hint-placeholder-val="{{ false }}"><div class="reply"><span class="lav cforb" aria-hidden="true"><thinking-orb size="22" state="breathing" aria-hidden="true"></thinking-orb></span><div class="shim" aria-label="Ada přemýšlí"><i></i><i></i></div></div></sc-if>
         </div>
         <div class="cfdock">
@@ -69,81 +72,72 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
             <div class="cfmenu" role="menu" aria-label="Akce, podklady a kontext">
               <div class="cfseg" role="tablist" aria-label="Skupina"><sc-for list="{{cfTabs}}" as="g" hint-placeholder-count="3"><button class="{{g.cls}}" type="button" role="tab" aria-selected="{{g.on}}" onClick="{{g.pick}}">{{g.l}}</button></sc-for></div>
               <sc-if value="{{cfTAct}}" hint-placeholder-val="{{ true }}"><div class="grp">Pro tento krok</div><sc-for list="{{cfActs}}" as="a" hint-placeholder-count="3"><button class="mi" type="button" role="menuitem" onClick="{{a.pick}}"><span class="{{a.ico}}"><i class="{{a.ic}}"></i></span><span>{{a.l}}<span class="d">{{a.d}}</span></span></button></sc-for></sc-if>
-              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přidat podklad<span class="d">soubor nebo odkaz ke klientovi</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
+              <sc-if value="{{cfTAdd}}" hint-placeholder-val="{{ false }}"><button class="mi" type="button" role="menuitem" onClick="{{cfPoint}}"><span class="mico"><i class="ph ph-at"></i></span><span>Ukázat na prvek<span class="d">klikněte na prvek v kroku vpravo</span></span></button><button class="mi" type="button" role="menuitem" onClick="{{cfAttach}}"><span class="mico"><i class="ph ph-upload-simple"></i></span><span>Přiložit soubor<span class="d">Vedoucí s ním pracuje v této studii · docx, pdf, csv, xlsx…</span></span></button><button class="mi" type="button" role="menuitem" disabled><span class="mico"><i class="ph ph-globe"></i></span><span>Hledat na webu<span class="d">připravujeme</span></span></button></sc-if>
               <sc-if value="{{cfTCtx}}" hint-placeholder-val="{{ false }}"><sc-for list="{{cfCtx}}" as="c" hint-placeholder-count="3"><button class="mi" type="button" role="menuitemcheckbox" aria-checked="{{c.on}}" onClick="{{c.toggle}}"><span class="mico"><i class="{{c.ic}}"></i></span><span>{{c.l}}<span class="d">{{c.d}}</span></span><span class="{{c.tg}}" aria-hidden="true"></span></button></sc-for></sc-if>
             </div>
           </sc-if>
           <div class="cfcomp">
-            <sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
-            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
+            <sc-if value="{{cfHasFile}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span class="cffile"><i class="ph ph-file-text s"></i>{{cfFile}}<button type="button" aria-label="Odebrat soubor" onClick="{{cfClearFile}}"><i class="ph ph-x s"></i></button></span></div></sc-if><sc-if value="{{cfHasTok}}" hint-placeholder-val="{{ false }}"><div class="cftok"><span><i class="ph ph-sparkle s"></i>{{cfTok}}<button type="button" aria-label="Odebrat" onClick="{{cfClearTok}}"><i class="ph ph-x s"></i></button></span></div></sc-if>
+            <div class="cfrow"><button class="{{cfPlusCls}}" type="button" aria-label="Akce, podklady a kontext" aria-expanded="{{cfMenu}}" onClick="{{cfToggle}}"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…" onClick="{{cfAttach}}"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…" value="{{cfDraft}}" onChange="{{cfSetDraft}}"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled="{{cfEmpty}}" onClick="{{cfSend}}"><i class="ph ph-paper-plane-right"></i></button></div>
           </div>
           <div class="cfctx"><i class="ph ph-eye s"></i>{{cfCtxLine}}</div>
         </div>
       </aside>
 
-      <main class="art" aria-label="Dimenze">
+      <main class="art" aria-label="Vzorek">
         <div class="ahd">
-          <h1>Dimenze</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span>
+          <h1>Vzorek</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span>
           <span class="grow"></span>
-          <span class="cap">{{dimCount}}</span>
-          <a class="btn primary sm" href="Sample.dc.html">Vzorek<i class="ph ph-caret-right s"></i></a>
+          <span class="{{readyPill}}"><span class="{{readyGl}}" aria-hidden="true"><i class="{{readyIc}}"></i></span>{{readyWord}}</span>
+          <a class="btn primary sm" href="Fieldwork.dc.html">Sběr dat<i class="ph ph-caret-right s"></i></a>
         </div>
         <div class="abody">
-          <sc-if value="{{editOpen}}" hint-placeholder-val="{{ true }}">
-            <div class="edits" role="region" aria-label="Návrhy Vedoucího">
-              <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>Vedoucí navrhuje 1 změnu</b> <span class="muted">· nic se nezmění, dokud ji nepřijmete</span></div><button class="btn quiet sm" type="button" onClick="{{dismissEdit}}">Zahodit vše</button><button class="btn primary sm" type="button" onClick="{{acceptEdit}}"><i class="ph ph-checks s"></i>Přijmout vše</button></div>
-              <div class="chg"><b>Přidat dimenzi Reakce na reklamu</b><span class="why">Proč: VO3 se ptá na atributy, které lidé znají hlavně z reklamy.</span></div>
-            </div>
-          </sc-if>
-          <p class="muted">Dimenze říkají, podle čeho AI respondenti odpovídají: kromě sociodemografie jejich postoje a zvyky. Velikost vzorku je teď na <a href="Sample.dc.html">Vzorku</a>.</p>
-
-          <section class="sec"><div class="sh"><span class="num">01</span><h2>Co dimenze podpoří</h2><span class="grow"></span><span class="cap">výzkumné otázky z Návrhu</span></div>
+          <section class="sec"><div class="sh"><span class="num">01</span><h2>Velikost a složení</h2></div>
             <div class="sb">
-              <sc-for list="{{vos}}" as="v" hint-placeholder-count="3">
-                <div class="row" style="align-items: flex-start; gap: 10px"><span class="{{v.gl}}" aria-hidden="true" style="margin-top: 2px"><i class="{{v.ic}}"></i></span><div class="grow"><b style="font-weight: 500">{{v.id}}</b> <span>{{v.t}}</span><span class="cap" style="display: block">{{v.by}}</span></div></div>
-              </sc-for>
+              <div class="{{nCls}}" style="flex-wrap: wrap; align-items: center">
+                <div class="tx"><b>Velikost vzorku</b><span class="cap" style="display: block">meze 300–2 000 po 50 · doporučeno 500, aby mapa měla dost dat u všech dvojic</span><span class="cap" style="display: block">Strop běhu při N {{n}}: <b style="color: var(--ink)">{{cost}}</b> (horní mez, ne odhad) · ve studii zbývá 38,80 USD</span></div>
+                <span class="stepper" role="group" aria-label="Velikost vzorku"><button type="button" aria-label="Méně o 50" onClick="{{nDown}}" disabled="{{nMin}}"><i class="ph ph-minus s"></i></button><span class="v">N {{n}}</span><button type="button" aria-label="Více o 50" onClick="{{nUp}}" disabled="{{nMax}}"><i class="ph ph-plus s"></i></button></span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px">
+                <a class="li" href="Audience.dc.html" style="color: var(--ink); text-decoration: none"><i class="ph ph-funnel-simple" style="margin-top: 2px"></i><div class="tx"><b>Cílová skupina</b><span class="cap" style="display: block">Pijáci ležáku 18–65 · 2 faktory</span></div><i class="ph ph-caret-right s"></i></a>
+                <a class="li" href="Dimensions.dc.html" style="color: var(--ink); text-decoration: none"><i class="ph ph-stack" style="margin-top: 2px"></i><div class="tx"><b>Dimenze</b><span class="cap" style="display: block">Vztah ke značkám, Nákupní chování, Cenová citlivost</span></div><i class="ph ph-caret-right s"></i></a>
+              </div>
+              <div><span class="lbl">Složení podle kvót · pohlaví × věk × kraj</span>
+                <table class="stbl"><thead><tr><th>Skupina</th><th class="r">Podíl</th><th class="r">Respondentů</th></tr></thead>
+                  <tbody><sc-for list="{{quota}}" as="q" hint-placeholder-count="6"><tr><td>{{q.l}}</td><td class="r">{{q.p}}</td><td class="r">{{q.n}}</td></tr></sc-for></tbody></table>
+                <p class="cap" style="margin-top: 6px">Dalších 34 skupin. Kvóta říká, kolik lidí každé skupiny vytáhneme; neříká, že odpoví na každou otázku.</p></div>
             </div>
           </section>
 
-          <section class="sec"><div class="sh"><span class="num">02</span><h2>Dimenze respondentů</h2><span class="grow"></span><span class="cap">{{dimCount}}</span></div>
+          <section class="sec" id="forecast"><div class="sh"><span class="num">02</span><h2>Kolik dat bude za čísly</h2><span class="grow"></span><span class="cap">odhad před během, ne výsledek</span></div>
             <div class="sb">
-              <div class="li"><i class="ph ph-lock-simple" style="margin-top: 2px"></i><div class="tx"><b>Sociodemografie</b><span class="cap" style="display: block">vždy zapnuto: věk, pohlaví, kraj, vzdělání · podpoří VO2</span></div></div>
-              <sc-for list="{{chosen}}" as="d" hint-placeholder-count="3">
-                <div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx"><b>{{d.l}}</b><span class="muted"> · {{d.src}}</span><span class="cap" style="display: block">{{d.feeds}}</span></div><button class="btn quiet ic sm" type="button" aria-label="{{d.aria}}" onClick="{{d.remove}}"><i class="ph ph-x s"></i></button></div>
-              </sc-for>
-              <sc-for list="{{reqs}}" as="r" hint-placeholder-count="1">
-                <div class="li"><span class="stg sm park" aria-hidden="true"><i class="ph ph-pause"></i></span><div class="tx"><b>{{r.l}}</b><span class="cap" style="display: block">vaše žádost · čeká na schválení ve Znalostech klienta</span></div></div>
-              </sc-for>
-              <div class="row" style="flex-wrap: wrap; gap: 8px"><span class="lbl" style="margin: 0">Přidat dimenzi</span><sc-for list="{{addable}}" as="c" hint-placeholder-count="3"><button class="chip" type="button" onClick="{{c.add}}" title="{{c.feeds}}"><i class="ph ph-plus s"></i>{{c.l}}</button></sc-for></div>
-              <div class="row"><i class="ph ph-magnifying-glass" style="color: var(--faint)"></i><label class="sr" for="dsearch">Hledat v katalogu dimenzí</label><input class="inp" id="dsearch" type="search" placeholder="{{qPh}}" value="{{q}}" onChange="{{setQ}}"></div>
-              <sc-if value="{{searching}}" hint-placeholder-val="{{ false }}">
-                <div style="display: flex; flex-direction: column; gap: 6px">
-                  <sc-for list="{{found}}" as="c" hint-placeholder-count="2">
-                    <div class="li"><div class="tx"><b>{{c.l}}</b><span class="cap" style="display: block">{{c.feeds}}</span></div><button class="btn sm" type="button" onClick="{{c.add}}"><i class="ph ph-plus s"></i>Přidat</button></div>
-                  </sc-for>
-                  <sc-if value="{{noneFound}}" hint-placeholder-val="{{ false }}">
-                    <div class="li"><div class="tx"><b>V katalogu není „{{q}}“</b><span class="cap" style="display: block">Můžete o ni požádat. Žádost jde do Znalostí klienta ke schválení a dimenze se dá použít, až ji schválí.</span></div><button class="btn sm" type="button" onClick="{{request}}">Požádat o dimenzi</button></div>
-                  </sc-if>
-                </div>
-              </sc-if>
+              <div class="{{fcCls}}" style="align-items: center"><span class="{{fcGl}}" aria-hidden="true"><i class="{{fcIc}}"></i></span><div class="grow"><b>Mapa značek:</b> {{fcText}}<span class="cap" style="display: block">Dvojici značek mapa ukáže spolehlivě, když ji zná aspoň 30 lidí. Běh poběží i tak; slabé dvojice mapa označí.</span></div><sc-if value="{{fcFix}}" hint-placeholder-val="{{ true }}"><button class="btn sm" type="button" onClick="{{toRec}}"><span class="vb">Zvýšit na</span><b class="amt big" style="margin-left: 5px">N 500</b><span class="cap" style="margin-left: 8px">strop +3,45 USD</span></button></sc-if></div>
+              <div class="kpis">
+                <div class="kpi"><div class="cap">Zodpověditelné otázky</div><div class="v">18</div></div>
+                <div class="kpi"><div class="cap">Ohrožené</div><div class="v">3</div><div class="cap">málo lidí zná značku</div></div>
+                <div class="kpi"><div class="cap">Nelze říct předem</div><div class="v">1</div><div class="cap">otevřená otázka</div></div>
+              </div>
             </div>
           </section>
 
-          <section class="sec"><div class="sh"><span class="num">03</span><h2>Vlastní dimenze klienta</h2></div>
+          <section class="sec"><div class="sh"><span class="num">03</span><h2>Připravenost ke spuštění</h2><span class="grow"></span><span class="legend" aria-label="Vysvětlivky"><span><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span>V pořádku</span><span><span class="stg sm warn" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>Upozornění: běh poběží</span><span><span class="stg sm fault" aria-hidden="true"><i class="ph ph-x"></i></span>Brání spuštění</span></span></div>
             <div class="sb">
-              <div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx"><b>Preference nefiltrovaných piv</b><span class="cap" style="display: block">cíl 0,32 · dosaženo 0,31 · v toleranci</span></div><button class="{{ownCls}}" type="button" aria-pressed="{{ownOn}}" onClick="{{toggleOwn}}">{{ownWord}}</button></div>
-              <p class="cap">{{ownNote}}</p>
+              <sc-for list="{{checks}}" as="c" hint-placeholder-count="5"><div class="li"><span class="{{c.gl}}" aria-hidden="true"><i class="{{c.ic}}"></i></span><div class="tx">{{c.t}}<span class="cap" style="display: block">{{c.w}}</span></div><sc-if value="{{c.fix}}" hint-placeholder-val="{{ false }}"><a class="btn sm" href="{{c.href}}">{{c.fixL}}</a></sc-if><sc-if value="{{c.act}}" hint-placeholder-val="{{ false }}"><button class="btn sm" type="button" onClick="{{c.run}}">{{c.actL}}</button></sc-if></div></sc-for>
             </div>
+          </section>
+
+          <section class="sec"><div class="sh"><span class="num">04</span><h2>Kdo bude odpovídat</h2></div>
+            <div class="sb"><div class="li"><i class="ph ph-users" style="margin-top: 2px"></i><div class="tx"><b>AI respondenti z populace</b> <span class="tag">výchozí</span><span class="cap" style="display: block">Česko 18+, živá verze. Fiktivní respondenti jsou jen pro zkoušku.</span></div><a class="btn sm" href="Fieldwork.dc.html">Změnit ve Sběru dat</a></div></div>
           </section>
         </div>
       </main>
     </div>
 
     <section class="crit" aria-labelledby="crit-h">
-      <h2 id="crit-h">UX kritika · Dimenze</h2>
-      <p class="lede">Krok volí, podle čeho AI respondenti odpovídají. Dnes v něm sedí i velikost vzorku, kterou čte až Vzorek, s doporučením spočteným v prohlížeči. Kód d5d36b25; R/ = apps/web/src/components/rehome/research/.</p>
+      <h2 id="crit-h">UX kritika · Vzorek</h2>
+      <p class="lede">Vzorek shrnuje, koho a kolik se zeptáme a co z toho půjde říct. Dnes je jen ke čtení a pěti odkazy posílá jinam; nejčastější úpravu (N) udělat nejde. Kód d5d36b25; WB/ = apps/web/src/components/workbench/.</p>
       <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); gap: 18px; margin-top: 18px">
-        <figure class="cb" style="align-self: start"><h3><i class="ph ph-eye"></i>Dnes v AIA (workbench, 1440 px)</h3><img src="assets/81c5b8cbed37fab7ce4aab831a646596.jpg" alt="Dnešní krok Dimenze ve workbenchi" style="width: 100%; display: block; border: 1px solid var(--border)"></figure>
+        <figure class="cb" style="align-self: start"><h3><i class="ph ph-eye"></i>Dnes v AIA (workbench, 1440 px)</h3><img src="assets/cfbfd3a29126b0a8d805a74e2b9178ed.jpg" alt="Dnešní krok Vzorek ve workbenchi" style="width: 100%; display: block; border: 1px solid var(--border)"></figure>
         <div class="cgrid" style="margin-top: 0">
           <sc-for list="{{crit}}" as="c" hint-placeholder-count="5">
             <div class="{{c.cls}}"><h3><span class="lt">{{c.l}}</span>{{c.t}}</h3><ul><sc-for list="{{c.items}}" as="x" hint-placeholder-count="3"><li>{{x.t}}<span class="anc">{{x.a}}</span></li></sc-for></ul></div>
@@ -152,16 +146,14 @@ a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:under
       </div>
     </section>
   </div>
-  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status">{{toast}}<button type="button" onClick="{{undo}}">Vrátit</button></div></sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2400}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { on: ['brand', 'buy', 'price'], q: '', edit: 'open', own: false, toast: null, last: null, reqs: ['Loajalita k regionálním pivovarům'] };
+    this.state = { n: 400, mark: null };
   }
-  componentWillUnmount() { clearTimeout(this._cf); clearTimeout(this._t); }
   shell(cur) {
     const T = { done: ['stg sm done', 'ph ph-check', 'Hotovo', 'done'], you: ['stg sm youq', 'ph ph-pause', 'Čeká na vás', 'you'], park: ['stg sm youq', 'ph ph-pause', 'Čeká na vás', 'you'], fault: ['stg sm fault', 'ph ph-x', 'Chyba', 'fault'], run: ['stg sm run', '', 'Běží', 'run'], inert: ['stg sm dash', '', '', 'none'], muted: ['stg sm dash', '', '', 'none'] };
     const P = [
@@ -178,8 +170,8 @@ class Component extends DCLogic {
   chatF() {
     const cf = this.state.cf || { menu: false, tab: 0, tok: null, draft: '', extra: [], thinking: false, ctx: { stage: true, know: true, notes: false } };
     const set = (p) => this.setState({ cf: { ...cf, ...p } });
-    const A = [["Navrhni dimenze", "návrh dimenzí · do 0,30 USD", null], ["Zeptej se na klientské znalosti", "odpověď se zdroji · do 0,20 USD", null]];
-    const CX = [['stage', 'ph ph-eye', 'Aktuální krok', 'Dimenze · revize 7'], ['know', 'ph ph-book-open', 'Znalosti klienta', 'schválené položky Pivovaru Zlatá Hora'], ['notes', 'ph ph-bookmark-simple', 'Moje poznámky', 'co si Ada pamatuje o vás']];
+    const A = [["Zeptej se na klientské znalosti", "odpověď se zdroji · do 0,20 USD", null]];
+    const CX = [['stage', 'ph ph-eye', 'Aktuální krok', 'Vzorek · revize 7'], ['know', 'ph ph-book-open', 'Znalosti klienta', 'schválené položky Pivovaru Zlatá Hora'], ['notes', 'ph ph-bookmark-simple', 'Moje poznámky', 'co si Ada pamatuje o vás']];
     const seen = CX.filter((c) => cf.ctx[c[0]]).map((c) => c[0] === 'stage' ? c[3] : c[2].toLowerCase());
     return {
       cfBusy: cf.thinking, cfIdle: !cf.thinking, cfThinking: cf.thinking,
@@ -191,79 +183,69 @@ class Component extends DCLogic {
       cfPoint: () => set({ menu: false, tok: 'Ukázat na prvek' }),
       cfCtx: CX.map(([k, ic, l, d]) => ({ ic, l, d, on: !!cf.ctx[k], tg: cf.ctx[k] ? 'tg on' : 'tg', toggle: () => set({ ctx: { ...cf.ctx, [k]: !cf.ctx[k] } }) })),
       cfCtxLine: 'Vidí: ' + (seen.length ? seen.join(', ') : 'nic navíc'),
+      cfHasFile: !!cf.file, cfFile: cf.file || '', cfClearFile: () => set({ file: null }), cfAttach: () => set({ menu: false, file: 'panel_kvoty.xlsx' }),
       cfHasTok: !!cf.tok, cfTok: cf.tok || '', cfClearTok: () => set({ tok: null }),
-      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok, cfSetDraft: (e) => set({ draft: e.target.value }),
+      cfDraft: cf.draft, cfEmpty: !cf.draft.trim() && !cf.tok && !cf.file, cfSetDraft: (e) => set({ draft: e.target.value }),
       cfSend: () => {
         const t = (cf.tok ? cf.tok + (cf.draft.trim() ? ': ' : '') : '') + cf.draft.trim();
-        if (!t) return;
-        set({ draft: '', tok: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t }] });
+        const f = cf.file;
+        if (!t && !f) return;
+        set({ draft: '', tok: null, file: null, menu: false, thinking: true, extra: [...cf.extra, { me: true, text: t, file: f }] });
         clearTimeout(this._cf);
-        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
+        this._cf = setTimeout(() => { const c = this.state.cf; this.setState({ cf: { ...c, thinking: false, extra: [...c.extra, { me: false, text: f ? 'Soubor ' + f + ' mám v kontextu této studie, ať jste na kterémkoli kroku. Co z něj má něco změnit, ukážu jako návrh; sama nic nezapíšu.' : 'Rozumím. Návrh ukážu v liště nad krokem; nic se nezmění, dokud ho nepřijmete.' }] } }); }, 1800);
       },
-      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text }))
+      cfExtra: cf.extra.map((m) => ({ me: m.me, lead: !m.me, text: m.text, hasFile: !!m.file, file: m.file || '' }))
     };
   }
   renderVals() {
-    const s = this.state;
-    const D = {
-      brand: ['Vztah ke značkám', 'doporučeno', 'podpoří VO1 a hodnocení 7 značek (sada S1)', 'VO1'],
-      buy: ['Nákupní chování', 'doporučeno', 'podpoří frekvenci a místo nákupu (Q5–Q7)', ''],
-      price: ['Cenová citlivost', 'doporučeno', 'podpoří otázku na cenu (Q9)', ''],
-      ad: ['Reakce na reklamu', 'z katalogu', 'podpoří VO3: atributy, které lidé znají z reklamy', 'VO3'],
-      eco: ['Ekologie', 'z katalogu', 'v tomto dotazníku nic nepodpoří', ''],
-      media: ['Média a zprávy', 'z katalogu', 'podpoří VO3 jen nepřímo', ''],
-      health: ['Zdraví a životní styl', 'z katalogu', 'v tomto dotazníku nic nepodpoří', ''],
-      tech: ['Technologie', 'z katalogu', 'v tomto dotazníku nic nepodpoří', '']
-    };
-    const n = s.on.length + 1;
-    const plural = (k) => k < 5 ? 'dimenze' : 'dimenzí';
-    const fold = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const q = fold(s.q.trim());
-    const off = Object.keys(D).filter((k) => !s.on.includes(k));
-    const rank = (k) => (D[k][3] ? 0 : D[k][2].startsWith('v tomto') ? 2 : 1);
-    const found = q ? off.filter((k) => fold(D[k][0]).includes(q)) : [];
-    const add = (k) => () => this.setState({ on: [...s.on, k], q: '' });
-    const has = (vo) => s.on.some((k) => D[k][3] === vo);
-    const VO = [['VO1', 'Jak silná je znalost Zlaté Hory 12° proti konkurenci?', has('VO1'), 'Vztah ke značkám'], ['VO2', 'Liší se vnímání podle věku a regionu?', true, 'Sociodemografie'], ['VO3', 'Které atributy odlišují prémiové ležáky?', has('VO3'), 'Reakce na reklamu']];
+    const s = this.state, n = s.n;
+    const ok = n >= 500;
+    const Q = [['Muž · 35–44 · Praha', 0.042], ['Muž · 25–34 · Středočeský', 0.038], ['Žena · 35–44 · Praha', 0.031], ['Muž · 45–54 · Ústecký', 0.029], ['Žena · 18–24 · Středočeský', 0.027], ['Muž · 55–65 · Praha', 0.024]];
+    const G = { done: ['stg sm done', 'ph ph-check'], warn: ['stg sm warn', 'ph ph-exclamation-mark'], block: ['stg sm fault', 'ph ph-x'] };
+    const usd = (x) => x.toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD';
+    const cost = 0.0345 * n, fits = cost <= 38.8;
+    const toRec = () => this.setState({ n: 500 });
+    const C = [
+      ['done', 'Dotazník: 22 otázek, 1 sada o 7 značkách', 'V pořádku', false],
+      ['done', 'Cílová skupina vytáhne N ' + n + ' s rezervou', 'V pořádku', false],
+      [ok ? 'done' : 'warn', ok ? 'Mapa značek má dost dat u všech dvojic' : 'Mapa značek: 2 dvojice pod 30 lidmi', ok ? 'V pořádku' : 'Upozornění · mapa je ukáže jako slabé (podrobnosti v sekci 02)', false, '', '', !ok, 'Zvýšit na N 500'],
+      ['warn', 'VO3 zatím nic neměří', 'Upozornění · analýza ji uvede mezi omezeními', true, 'Questionnaire.dc.html', 'Opravit v Dotazníku'],
+      [fits ? 'done' : 'block', fits ? 'Rozpočet studie stačí na strop běhu (' + usd(cost) + ')' : 'Strop běhu ' + usd(cost) + ' je víc, než ve studii zbývá', fits ? 'V pořádku' : 'Brání spuštění · snižte N, nebo navyšte rozpočet studie', false]
+    ];
     return {
       ...this.chatF(),
-      ...this.shell('Dimensions'),
-      vos: VO.map(([id, t, ok, dim]) => ({ id, t, gl: ok ? 'stg sm done' : 'stg sm youq', ic: ok ? 'ph ph-check' : 'ph ph-exclamation-mark', by: ok ? 'opírá se o: ' + dim : 'žádná vybraná dimenze ji nepodpoří; v katalogu: ' + dim })),
-      dimCount: n + ' ' + plural(n) + ' včetně sociodemografie',
-      chosen: s.on.map((k) => ({ l: D[k][0], src: D[k][1], feeds: D[k][2], aria: 'Odebrat dimenzi ' + D[k][0], remove: () => { this.setState({ on: s.on.filter((x) => x !== k), last: k, lastReq: null, toast: D[k][0] + ' odebrána.' }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 5000); } })),
-      reqs: s.reqs.map((l) => ({ l })),
-      addable: off.slice().sort((x, y) => rank(x) - rank(y)).slice(0, 3).map((k) => ({ l: D[k][0], feeds: D[k][2], add: add(k) })),
-      qPh: 'nebo hledat v katalogu (' + off.length + ' dalších)…',
-      searching: !!q, found: found.map((k) => ({ l: D[k][0], feeds: D[k][2], add: add(k) })), noneFound: !!q && !found.length,
-      request: () => { const t = s.q.trim(); if (t) this.setState({ reqs: [...s.reqs, t], q: '', last: null, lastReq: t, toast: 'Žádost o „' + t + '“ odeslána ke schválení.' }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 5000); },
-      toast: s.toast, undo: () => { if (s.last) this.setState({ on: [...s.on, s.last], last: null, toast: null }); else if (s.lastReq) this.setState({ reqs: s.reqs.filter((r) => r !== s.lastReq), lastReq: null, toast: null }); },
-      q: s.q, setQ: (e) => this.setState({ q: e.target.value }),
-      editOpen: s.edit === 'open',
-      acceptEdit: () => this.setState({ edit: 'done', on: s.on.includes('ad') ? s.on : [...s.on, 'ad'] }),
-      dismissEdit: () => this.setState({ edit: 'done' }),
-      ownOn: s.own, ownCls: s.own ? 'btn sm primary' : 'btn sm', ownWord: s.own ? 'Použije se' : 'Použít v běhu', toggleOwn: () => this.setState({ own: !s.own }),
-      ownNote: s.own ? 'Běh vezme respondenty z populace s touto dimenzí místo živé populace. Odvolat jde kdykoli před spuštěním.' : 'Když ji použijete, běh vezme respondenty z populace s touto dimenzí místo živé populace.',
+      ...this.shell('Sample'),
+      n, nMin: n <= 300, nMax: n >= 2000,
+      nDown: () => this.setState({ n: Math.max(300, n - 50) }), nUp: () => this.setState({ n: Math.min(2000, n + 50) }),
+      nCls: s.mark === 'n' ? 'li mark' : 'li',
+      markN: () => this.setState({ mark: 'n' }), markForecast: () => this.setState({ mark: 'f' }),
+      quota: Q.map(([l, p]) => ({ l, p: (p * 100).toFixed(1).replace('.', ',') + ' %', n: Math.round(p * n) })),
+      fcCls: (ok ? 'sn ok' : 'sn warn') + (s.mark === 'f' ? ' mark' : ''), fcGl: ok ? 'stg done' : 'stg warn', fcIc: ok ? 'ph ph-check' : 'ph ph-exclamation-mark',
+      fcText: ok ? 'všech 21 dvojic značek bude mít dost lidí.' : '2 z 21 dvojic budou mít méně než 30 lidí (Zlatá Hora × Radegast, Bernard × Radegast).',
+      readyPill: fits ? 'pill done' : 'pill', readyGl: fits ? 'stg sm done' : 'stg sm fault', readyIc: fits ? 'ph ph-check' : 'ph ph-x', readyWord: fits ? 'Lze spustit · ' + (ok ? '1 upozornění' : '2 upozornění') : 'Nelze spustit: rozpočet',
+      cost: usd(cost), fcFix: !ok, toRec,
+      checks: C.map(([t, txt, w, fix, href, fixL, act, actL]) => ({ gl: G[t][0], ic: G[t][1], t: txt, w, fix, href, fixL, act: !!act, actL: actL || '', run: toRec })),
       crit: [
         { l: 'a', t: 'Co krok ukazuje', cls: 'cb', items: [
-          { t: 'Vybrané dimenze (sociodemografie připnutá, zdroj, téma, žádosti „čeká na schválení“), vlastní dimenze klienta, katalog s doporučenými, karta AI, Vzorek se stepperem N, žádost o novou dimenzi, dok „{d} dimenzí · N={n}“.', a: 'R/PersonaStep.tsx:207-375 · R/OwnDimensions.tsx:22-56 · i18n/cs.ts:2532' } ] },
+          { t: '„Přehled vzorku jen ke čtení“: velikost a složení (N, cílová skupina, dimenze, kvóty), odhad podpory, připravenost se všemi kontrolami, kdo bude odpovídat.', a: 'WB/SampleView.tsx:66-155, 162-274' } ] },
         { l: 'b', t: 'Co sbírá', cls: 'cb', items: [
-          { t: 'Přepínače dimenzí, × k odebrání, „Použít doporučené“, N po 50 v mezích serveru (mimo meze odmítne, neořízne), název nové dimenze.', a: 'R/PersonaStep.tsx:143-147, 178-180, 223-230, 272, 311-319, 403-406' } ] },
+          { t: 'Nic. Stránka je jen ke čtení záměrně.', a: 'WB/SampleView.tsx:3-7' } ] },
         { l: 'c', t: 'Interakce', cls: 'cb', items: [
-          { t: 'Ukládá se samo; odebrání dimenze nejde vrátit; Vedoucí tu upravovat smí (dimension:, own_dimension:, sample:n).', a: 'R/PersonaStep.tsx:141, 217, 309 · lib/workbench-artifacts.ts:95-97' } ] },
+          { t: 'Pět odkazů jinam: Upravit v Dimenzích, Upravit cílovou skupinu, tlačítka kontrol, Sociomapa, Změnit ve Spuštění; připravenost se načte znovu s každou revizí; Vedoucí smí ukázat, ne upravit.', a: 'WB/SampleView.tsx:131, 136, 148, 184, 269 · WB/useSampleReadiness.ts:53-65 · lib/artifacts/sample.ts:24-35' } ] },
         { l: 'd', t: 'Co chybí nebo mate', cls: 'cb d', items: [
-          { t: 'Velikost vzorku je tady, Vzorek posílá zpět „Upravit v Dimenzích“.', a: 'R/PersonaStep.tsx:307-345 · SampleView.tsx:131' },
-          { t: 'Doporučené N (300 / 400 / 500) počítá prohlížeč z počtu otázek a délky cíle, vedle mezí serveru.', a: 'research/persona.ts:160-169' },
-          { t: '„Predictory“, „evidence:“, „value for money“, natvrdo „Systém“; kódy vlastních dimenzí přes CodedWords.', a: 'i18n/cs.ts:2496-2497 · persona.ts:24 · R/PersonaStep.tsx:219 · R/OwnDimensions.tsx:34' },
-          { t: 'Mrtvá karta „Faktory společnosti v AIA zatím nejsou“; vlastní dimenzi lze použít jen ve Sběru dat; „1 dimenzí“.', a: 'R/PersonaStep.tsx:359-362 · R/OwnDimensions.tsx:49-51 · i18n/cs.ts:2532' } ] },
+          { t: 'Nejčastější úpravu, N, tu udělat nejde.', a: 'WB/SampleView.tsx:126-132' },
+          { t: 'Vlastní dimenze klienta tu má syrové ID, na Dimenzích jméno.', a: 'WB/SampleView.tsx:140 · R/PersonaStep.tsx:132, 215' },
+          { t: 'Stejný krok dvěma jmény: „Pokračovat na Sběr dat“ a „Změnit ve Spuštění“.', a: 'WB/SampleView.tsx:195, 268' },
+          { t: 'PASS / WARN / FAIL v nápovědě ikon; „n 300“ i „N = 300“; „Opora výsledků“, „dárce“ bez vysvětlení.', a: 'WB/SampleView.tsx:94, 126-129, 149, 182, 214' },
+          { t: 'Doporučení z prohlížeče soutěží s odhadem serveru.', a: 'WB/SampleView.tsx:130' } ] },
         { l: 'e', t: 'Co prototyp mění', cls: 'cb e', items: [
-          { t: 'Krok je jen o dimenzích; N se upravuje na Vzorku.', a: 'odkaz v úvodu' },
-          { t: 'Odebrání dimenze jde vrátit; počet má správný tvar.', a: 'sekce 01, toast' },
-          { t: 'Vlastní dimenzi klienta zvolíte tady.', a: 'sekce 03' },
-          { t: 'Žádost o novou dimenzi se ukazuje jako zaparkovaná (čeká na člověka).', a: 'sekce 01' },
-          { t: 'Návrh Vedoucího jako změna v liště s „Přijmout vše“.', a: 'lišta' },
-          { t: 'Druhé kolo: dimenze jen jednou. Vybrané jako řádky, „Přidat dimenzi“ a hledání jako u Cílové skupiny; katalog bez duplicit.', a: 'sekce 02' },
-          { t: 'Každá dimenze říká, co v tomto dotazníku podpoří; nahoře, které výzkumné otázky nemají oporu.', a: 'sekce 01, 02' },
-          { t: 'Žádost o novou dimenzi vychází z hledání, když ji katalog nemá.', a: 'sekce 02' } ] }
+          { t: 'N je stepper přímo tady (meze a doporučení ze serveru); odhad dat i kvóty se přepočítají.', a: 'sekce 01 a 02 (zkuste N 500)' },
+          { t: 'Kontroly česky (V pořádku / Upozornění / Brání) s jedním tlačítkem opravy tam, kde je co opravit.', a: 'sekce 03' },
+          { t: '„Opora výsledků“ jako „Kolik dat bude za čísly“ s větou, co znamená.', a: 'sekce 02' },
+          { t: 'Jeden název dalšího kroku: Sběr dat.', a: 'hlavička, sekce 04' },
+          { t: 'Druhé kolo: upozornění (běh poběží) má vlastní neutrální značku; korálová zůstává pro rozhodnutí, červená pro to, co brání. Vysvětlivka nad seznamem.', a: 'sekce 02, 03' },
+          { t: 'Varování mapy nese opravu na místě: „Zvýšit na N 500“, i s novým stropem běhu.', a: 'sekce 02, 03' },
+          { t: 'U N je strop běhu a kolik ve studii zbývá; když strop nestačí, kontrola rozpočtu brání spuštění.', a: 'sekce 01, 03 (zkuste N 1 150)' } ] }
       ]
     };
   }

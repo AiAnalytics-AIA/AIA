@@ -431,3 +431,10 @@ thinking-orb{vertical-align:middle}
 .top .crumb .sep{margin:0 6px;color:var(--faint)}
 
 .stg.fault{color:var(--onfault)}
+
+/* files in the Lead's chat: attach on every stage, a chip in the composer and in the message (Nigel, 26 Oct) */
+.cfz .cfatt{width:38px;height:38px;border-radius:50%;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;flex:none}
+.cfz .cfatt:hover{background:var(--well);color:var(--ink)}
+.cfz .cftok .cffile{background:var(--sunken);color:var(--ink)}
+.mfile{display:flex;align-items:center;gap:6px;width:fit-content;max-width:100%;margin-bottom:6px;padding:3px 8px;border-radius:6px;background:color-mix(in srgb,var(--onsig) 16%,transparent);font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.me:not(.cfz .me) .mfile{background:var(--raised);color:var(--ink)}

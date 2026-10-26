@@ -3,7 +3,7 @@
 **Scope.** Nigel, 26 Oct: "i am super happy with the design of the research steps, we need to aim to build out this exact UX design."
 
 This spec maps the prototype onto develop:
-- **Prototype:** https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ, version 65.
+- **Prototype:** https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ, version 73 (decisions of 26 Oct folded in).
 - **Develop:** bd0d1ad6, 26 Oct 01:19.
 
 It covers the eleven stages, the respondent disc and the Lead pane with its cards.
@@ -18,11 +18,11 @@ It covers the eleven stages, the respondent disc and the Lead pane with its card
 
 | File | Stages | Chunks |
 |---|---|---|
-| `navrh.md` | Zadání, Návrh, Dotazník | 27: X1, B1–B8, D1–D10, Q1–Q8 |
+| `navrh.md` | Zadání, Návrh, Dotazník | 31: X1, B1–B9, D1–D10, Q1–Q11 |
 | `vzorek.md` | Cílová skupina, Dimenze, Vzorek | 25: A1–A9, D1–D7, V1–V8, H1 |
 | `sber-vysledky.md` | Sběr dat (Kontrola and Průběh), the respondent disc, Výsledky | 29: F1–F7, P1–P6, D1–D6, V1–V10 |
 | `sociomapa-analyza-zprava.md` | Sociomapa, Analýza, Zpráva, plus the editor theme in production | 35: S1–S6, A1–A10, Z1–Z11, T1–T8 |
-| `lead.md` | The Lead pane, the composer's "+" menu, every card type, streaming | 19: LP-1 to LP-19 (B1–B16 are the backend gaps) |
+| `lead.md` | The Lead pane, the composer's "+" menu, every card type, streaming, files in the chat | 20: LP-1 to LP-20 (B1–B17 are the backend gaps) |
 
 Each stage has four parts: what the prototype shows, today on develop, build chunks, and backend gaps. Each chunk lists its files, whether it is backed (or "NO BACKEND"), its plan or chunk id (or "new"), and the test that proves it.
 
@@ -85,29 +85,41 @@ Much of the work is laying out and wording what is already served.
 
 ## Prototype against backend: other contradictions left as owner questions
 
-- **The study budget as a blocker on Vzorek** ("Brání spuštění"). The start never checks it (`domain/money.py:333-336`). See Q-V2.
+- **The study budget as a blocker on Vzorek** ("Brání spuštění"). The start never checks it (`domain/money.py:333-336`). **Settled B1:** it will block.
 - **"Efektivní n" on Výsledky.** There are two different numbers (Kish, and the smaller support n); the proposal is Kish.
-- **Editing the client report.** The board opens it in the editor, but the server refuses (`report_editor.py:136-137`).
-- **Brief file classes.** The server classes every brief file as Class B, but the board shows "Důvěrné" and "Veřejné" pills.
+- **Editing the client report.** The board opens it in the editor, but the server refuses (`report_editor.py:136-137`). **Settled B2:** editable (Z8).
+- **Brief file classes.** The server classes every brief file as Class B, but the board shows "Důvěrné" and "Veřejné" pills. **Settled B4:** Class A by rule, "Veřejné" by a person (B9).
 - **The set's scale range.** The two boards disagree: presets on Návrh, fixed 1–10 on Dotazník.
 - **R3:** applying a scope variant writes `n` today (`plan.ts:171`), while the board only recommends it to Vzorek.
 - **The Design Research start.** Its own button on the panel has no Lead gate (`DeepResearchPanel.tsx:125`). Two plans (QST6, DSN5) move it to Návrh, while R12 makes it a Lead card.
+
+## Owner decisions, 26 Oct (Nigel)
+
+- **B1:** the study budget stops a run before it starts (Q-V2; vzorek.md).
+- **B2:** the client report is editable in the editor; it carries only accepted findings; the client gate runs again on every saved version (Z8; sociomapa-analyza-zprava.md).
+- **B3:** `AIA_AI_STEP_EVENTS` on for develop (lead.md 4.2).
+- **B4:** a brief file is Class A by rule; a person may mark it "Veřejné", which makes it Class B (B9; navrh.md 1.4).
+- **B5:** keep the ten problem types (18.6.6's `PROBLEM_TYPES`).
+- **B6:** fonts are re-embedded on download (T7).
+- **Deep Research in the questionnaire draft:** all verified Design Research findings, labelled external context (navrh.md Q11).
+- **Files in the Lead's chat:** any standard document (docx, pdf, csv, xlsx…), on any stage; the Lead works with it in the study's context, by its own reasoning and instructions (lead.md 3.4, LP-20).
+- **Dotazník:** no Nahrát / Ručně / AI choice; one interface; an Excel goes to the Lead; without a file the Lead drafts from the earlier stages, client knowledge and Deep Research (navrh.md 3.0, Q9–Q11).
 
 ## Owner questions (all, deduplicated)
 
 1. ~~Signal colour~~ **Settled.** Develop's `tokens.json` already has signal `#4b48ce` (commit 1d7eae81, "Move the interface palette to Indigo"); `#3557e0` is only the `hue-blue` wayfinding tint. The editor theme and its icons were corrected to develop's tokens on 26 Oct, and the audit is still clean.
 2. **R6:** should Sběr dat have two views? Today Kontrola also creates a design revision on every visit (`ExecutionSteps.tsx:710`).
-3. **Q-V2:** should the study budget become a FAIL readiness check?
+3. ~~**Q-V2:** should the study budget become a FAIL readiness check?~~ **Settled B1: yes.**
 4. **Q-V1:** should the brand-pair note be a disabled-with-reason line under R9, or wait for familiarity?
 5. **Q-A1:** the audience description vs filters check: provable only, or drop it? **Q-A2:** Předpoklady (AUD4) are not on the board.
 6. **Q-D1:** ship the client's own dimension toggle before master plan G28 is closed?
 7. **Efektivní n:** Kish (proposed) or the support n? This is a methodology owner's call.
 8. **The set's scale:** presets or fixed 1–10?
-9. **Client report:** may it be edited in the editor, and does it also require accepted findings?
+9. ~~**Client report:** may it be edited in the editor, and does it also require accepted findings?~~ **Settled B2: editable, only accepted findings, the client gate on every saved version.**
 10. **Lead Kontext:** can "Aktuální krok" be switched off? Should "Moje poznámky" be off or on by default?
-11. **`AIA_AI_STEP_EVENTS` on develop.** Without it, a running design job shows nothing between "převzato" and "dokončeno".
+11. ~~**`AIA_AI_STEP_EVENTS` on develop.**~~ **Settled B3: on for develop** (the repo default is still `false`; see lead.md 4.2).
 12. **Editor theme licensing.** The AIA icon sprites are redrawn from ONLYOFFICE's own AGPL sprites. That is a modified covered work: the NOTICE must say so, and the AGPL source offer probably applies. Owner or legal decision before mounting.
-13. **Editor fonts:** re-embed when a saved version is downloaded (`report_export.py:151`, where the approval stamp already rewrites the file), or accept DOCX without embedded fonts?
+13. ~~**Editor fonts:**~~ **Settled B6: re-embed at download (T7).** re-embed when a saved version is downloaded (`report_export.py:151`, where the approval stamp already rewrites the file), or accept DOCX without embedded fonts?
 
 ## Suggested order
 

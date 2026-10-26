@@ -289,7 +289,7 @@ until LO5a.3), and that `Spusť výzkum` + extra text is not sendable.
 | Item | Prototype | Today | Chunk |
 |---|---|---|---|
 | Ukázat na prvek | "klikněte na prvek v kroku vpravo"; sets a token | `@` button arms picking (LeadPane.tsx:663; `picking`/`onPick`, 74-76); focus sent with the message (191); 23 target kinds (lead_artifacts.py:87-115) | move into the menu; keep `@` keyboard shortcut. research-lead-workbench#16 (open). Test: lead_journey "@ on an objective" still passes from the menu. |
-| Přidat podklad | "soubor nebo odkaz ke klientovi" | IntakeSheet via `openIntake` (components/aia/clients/ClientContext.tsx:30, 48-56), provided on every client page by the client layout (app/app/clients/[clientId]/layout.tsx:9), so reachable from the study | **LP-18 (new):** menu item calls `openIntake()`. "odkaz" (link) is "V AIA zatím není" in the intake (CLAUDE.md §2 IntakeSheet). A file *to the Lead's turn* is a different thing: LO18 / #30. Test: component test that the item opens the intake sheet. |
+| Přiložit soubor | "Vedoucí s ním pracuje v této studii · docx, pdf, csv, xlsx…"; also a button beside "+" in the composer, a file chip in the composer and in the sent message (prototype v73, every stage) | nothing: a Lead message carries no file (`apps/api/src/aia_api/routers/lead.py:99-106`); the intake sheet (`ClientContext.tsx:30, 48-56`) files to the client, not to a turn | **LP-20 (new), decided 26 Oct (3.4).** The client intake stays reachable from Znalosti; it is not this item. Test: see LP-20. |
 | Hledat na webu | disabled, "připravujeme" | not built: LO20, ADR 0040 Accepted 2026-10-20 (docs/architecture/adr/0040-the-leads-web-lookup.md:3); UI is research-lead-workbench#32 | ship disabled with that subtitle; LO20 + #32 enable it. Test: menu renders it disabled with `aria-disabled`. |
 
 ### 3.3 Kontext toggles vs LC2 and the manifest
@@ -318,6 +318,35 @@ LC2 panel of the last turn (keep `LeadSees`).
 
 ---
 
+### 3.4 Files in the Lead's chat (decision, Nigel, 26 Oct)
+
+> "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"
+
+**LP-20 (new; core + API + web): a file in a Lead message, on every stage.**
+- What changes:
+  - The composer takes a file (button beside "+", the "+" menu's "Přiložit soubor", and a drop on the
+    pane); a chip shows it before sending and in the sent message.
+  - The API keeps the file once per study and SHA-256, reads it with the existing reader
+    (`infrastructure/source_reading.py` `read_source`: PDF, DOCX, ODT, PPTX, TXT/MD, DOC, CSV, XLSX, XLS, ODS,
+    each with locators), and the turn names it.
+  - The Lead's context gets a declared **document layer**: the turn's files, and the study's earlier ones, as
+    read segments with their locators, bounded like the other layers and listed in the manifest (LC2).
+  - What the Lead does with a file is its reasoning and instructions: answer from it, propose edits (through
+    the gate, as any edit), or prepare a job. On Dotazník an AIA-template questionnaire also goes through the
+    deterministic import (navrh.md Q10).
+- Backend: **NO BACKEND.**
+  - `TurnPost` has no attachment (`apps/api/src/aia_api/routers/lead.py:99-106`).
+  - `LEAD_LAYERS` has no document layer (`packages/aia_core/src/aia_core/domain/lead_context.py:75-113`).
+  - Class: **hypothesis, needs a ruling** in `material_rules.py` (ADR 0008): a file a person gives the Lead
+    rules Class A, like a brief file (B4) and a client's source, unless marked otherwise.
+  - The frozen context's bound (`research_lead.py` `freeze_context`, 96 KB) decides how much of a long
+    document a turn carries; what was left out is said in the manifest, never silently cut.
+- Plan: new (`lead-orchestration`).
+- Tests:
+  - `test_lead_api.py` › "a message with a PDF stores the file once and the turn names it";
+  - `test_lead_context.py` › "the document layer carries read segments with locators and records what it left out";
+  - `LeadPane.test.tsx` › "a dropped file shows as a chip and is sent with the message".
+
 ## 4. Streaming
 
 ### 4.1 Events that exist (the run event feed, folded by step-activity.ts:81-145, 173-227)
@@ -344,7 +373,10 @@ analysis modules (analysis.py:594), the study Lead (research_lead.py:188) and cl
 (client_source_proposals.py:198). Cost: two lease-fenced writes per request (ai_runtime.py:500-501; CLAUDE.md
 quotes ~1.3 ms). **Consequence for the cards:** with it off, a design job's card shows `Worker krok převzal`
 and then nothing until `Krok dokončen` (CardsF §"Největší výtka"); the card must say events are not reported
-and show elapsed time (LP-9). Decision for the owner: switch it on for develop (it is a kill switch, measured).
+and show elapsed time (LP-9). **Settled (B3, Nigel, 26 Oct): on for develop.** The coordinator reports the
+develop host has had it on since 14 Oct through its environment; the repository's Compose default is still
+`false` (`deploy/develop/docker-compose.yml:294` @ 2e7fc1dd), so that is unverified here. LP-9's "not
+reported" line stays for any environment with it off.
 
 ### 4.3 What an in-chat Deep Research card needs (none exists today)
 
@@ -379,13 +411,14 @@ Chunks: research-lead-workbench#23b, #23c; LO5a.1-3; LP-14.
 | B7 | One request per Lead turn | domain/research_lead.py:371 | LO21 (several actions per turn) |
 | B8 | No per-turn context choices | lead.py:101-108; lead_context.py:74-113 | LP-19 (new) |
 | B9 | DR tool events carry no host or refusal reason | tooling.py:157-182 | LP-14 (new) |
-| B10 | Model-request events off by default; DR agents not announced (**hypothesis**) | ai_runtime.py:498-502, 682; docker-compose.yml:294 | owner decision; LP-9 |
+| B10 | Model-request events off by default; DR agents not announced (**hypothesis**) | ai_runtime.py:498-502, 682; docker-compose.yml:294 | settled B3 (on for develop); LP-9 |
 | B11 | No plan backend | approval_ledger.py:54-55; tables.py:1912 | LO2, LO3, LO4, LO21e |
 | B12 | No cost per Lead turn | LeadTurn has status, reason, request_decision, command; no cost (lead.py:202-234) | LC6 |
 | B13 | No stop of a running Lead turn | — (no cancel route among lead.py:560-805) | LO17 |
 | B14 | Lead turn text not streamed | LeadPane.tsx:156-161 (polling) | LO18, research-lead-workbench#30 |
 | B15 | `GET /lead commands` served but unread by the web | lead.py:536-544; no reader in apps/web/src | LP-15 (new) |
 | B16 | SpendDialog has no consumer; money confirmations are plain `confirm` text | SpendDialog.tsx:60; Workbench.tsx:536-540 | LP-8 |
+| B17 | No file in a Lead message; no document layer in the Lead's context | lead.py:99-106; lead_context.py:75-113 | LP-20 (decided 26 Oct) |
 
 Suggested order: LP-3 + LP-17 (composer and Akce, no backend) → #23 job/run card restructure + LP-1/LP-2/LP-9
 → LP-4/LP-5/LP-7 (API) → LP-6/LP-8/LP-11/LP-12/LP-13/LP-16 → LP-19 (context) → LO5a.1-3 + #23b/#23c (Deep

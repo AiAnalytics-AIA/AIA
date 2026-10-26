@@ -705,8 +705,10 @@ The study's `remaining_usd` is on the Study (`apps/web/src/lib/budget-line.ts:9`
   - Proposal: WARN, "Strop běhu je víc, než ve studii zbývá: běh se zastaví a počká na navýšení
     rozpočtu", with a link to the budget lift. When the wallet is on, a start can be refused
     `outside_wallet` (`D/money.py:357-358`); show that as blocking only from a server field.
-  - **Owner question Q-V2:** should the study budget become a FAIL readiness check? That would be
-    a backend change: a new check in readiness.
+  - **Settled Q-V2 (B1, Nigel, 26 Oct): yes.** The study budget stops a run before it starts: a FAIL
+    readiness check "Brání spuštění" when the run's ceiling exceeds what remains in the study, and
+    the start refuses the same way. Backend change: a new readiness check and the start's own check
+    (`D/money.py:333-336` today consults no budget).
 - **Test.**
   - "checks read in words, never PASS/WARN/FAIL";
   - "a check with a stage has one Opravit button that opens it";
@@ -749,7 +751,7 @@ The study's `remaining_usd` is on the Study (`apps/web/src/lib/budget-line.ts:9`
 | V-gap 1 | No brand-pair support forecast; familiarity cannot be asked | `D/question_outlook.py:57-58`; `D/research_design.py:1524-1537` | new, after R9 is lifted (Q-V1) |
 | V-gap 2 | `reportable_n` only inside a message | `D/support_forecast.py:87, 198, 226` | new field (V3) |
 | V-gap 3 | Ceiling at a hypothetical n | `API/research.py:1465-1473` | new query (V3) |
-| V-gap 4 | The budget is not a readiness check; the start does not consult it | `D/money.py:333-336` | Q-V2 |
+| V-gap 4 | The budget is not a readiness check; the start does not consult it | `D/money.py:333-336` | Settled (B1): make it one |
 | V-gap 5 | The contract row `sample.edits=False` vs R3 | `D/lead_artifacts.py:322-333` | V1 (fixture plus mirror) |
 
 ---
@@ -771,4 +773,4 @@ The study's `remaining_usd` is on the Study (`apps/web/src/lib/budget-line.ts:9`
 - **Q-A2:** Předpoklady (AUD4) are absent from the board.
 - **Q-D1:** the own-dimension toggle before G28.
 - **Q-V1:** the brand-pair note under R9.
-- **Q-V2:** the budget as a blocking check.
+- ~~Q-V2~~ settled (B1, 26 Oct): the budget blocks a start.
