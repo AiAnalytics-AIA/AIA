@@ -62,8 +62,8 @@ const shot = (name) => page.screenshot({ path: join(out, `${name}.png`), fullPag
 const ok = (what) => { checks.push(what); console.log(`methodology journey: ok   ${what}`); };
 
 const openTab = async () => {
-  await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  await page.locator("#tab-methodology").click();
+  // A deep link opens the section (prototype v54: no tab column, the top bar's section menu).
+  await page.goto(base + "/app/settings#methodology"); await page.locator("#panel-methodology").waitFor({ state: "visible" });
   await page.locator("#panel-methodology :is([data-module-card], [data-module-header])").first().waitFor();
 };
 /** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika. */
