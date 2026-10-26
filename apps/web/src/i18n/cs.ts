@@ -3723,26 +3723,19 @@ export const cs = {
         // A stored version's review as its file states it (research-integrity-report D2): only
         // in its footers, KONCEPT while a draft, SCHVÁLENO with the date once approved.
         review: {
-          draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
-          draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
           // The same in the approval question, which names the version by its time (RPT3d).
           fileDraft: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           fileDraftDocx: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
-          approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
-          approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
+          // An approved version's file, as the doc bar says it (RPT3c): the date is beside it.
+          fileApproved: "DOCX i PDF této verze nesou v zápatí „SCHVÁLENO“ s datem.",
+          fileApprovedDocx: "DOCX této verze nese v zápatí „SCHVÁLENO“ s datem.",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
           olderApproved: "Schválení je zaznamenané v AIA u tohoto uloženého souboru. Soubor se tím nezměnil a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
-          // The client report is the file the client receives: approving it signs it off for them.
-          clientDraft: "Koncept čeká na schválení k předání klientovi.",
-          clientApproved: "Schváleno k předání klientovi.",
-          approvedOn: "schváleno {date}",
-          approvedInAia: "schváleno v AIA",
-          notApproved: "neschváleno",
           pdfRendering: "PDF schválené verze se právě vytváří; zpráva je zatím k dispozici jako DOCX.",
           pdfNotRequested: "PDF schválené verze zatím nebylo vyžádáno.",
           pdfNotRequestedDisabled: "PDF schválené verze nebylo vyžádáno: PDF jejího konceptu se nevytvořilo, protože toto nasazení PDF tehdy nevytvářelo; zpráva je k dispozici jako DOCX.",
-          otherVersion: "Stažený soubor není verze, kterou karta ukazuje (mezitím vznikla jiná). Obnovte stránku a stáhněte ho znovu.",
-          otherState: "Stažený soubor nese jiný stav schválení, než karta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
+          otherVersion: "Stažený soubor není verze, kterou lišta ukazuje (mezitím vznikla jiná). Obnovte stránku a stáhněte ho znovu.",
+          otherState: "Stažený soubor nese jiný stav schválení, než lišta ukazuje (mezitím se změnil). Obnovte stránku a stáhněte ho znovu.",
         },
       },
       // artifact-fieldwork FLD4b: the run's spend on Průběh, totals only (Q76 (c)).
@@ -3867,16 +3860,14 @@ export const cs = {
         reportDownload: "Stáhnout interní DOCX",
         reportDownloading: "Stahuji…",
         reportDownloadPdf: "Stáhnout PDF",
-        reportDownloadClient: "Stáhnout klientskou zprávu",
         reportClientHint: "Klientská zpráva obsahuje jen čísla, která prošla pravidly pro klienta, každé označené jako modelované, a jen schválené mapy.",
-        // Said only of a client report the card knows is a draft (its last download said so).
-        reportClientHintDraft: "Je to koncept: před předáním ji schvalte v panelu Zpráva, na verzi, kterou tam čtete.",
+        // Said only of a client report the doc bar shows as a draft (RPT3c).
+        reportClientHintDraft: "Je to koncept: před předáním ji schvalte zde, na verzi, kterou čtete.",
         reportPdfFailed: "PDF se nepodařilo vytvořit; zpráva je k dispozici jako DOCX.",
         reportApprove: "Schválit pro interní použití",
-        reportApproveWhere: "Schvaluje se v panelu Zpráva, na verzi, kterou tam čtete.",
         reportApproveClient: "Schválit k předání klientovi",
         reportApproving: "Schvaluji…",
-        reportActionsAbove: "Zprávu stáhnete v kartě Kompletní zpráva studie nahoře; schválíte ji v panelu Zpráva, na verzi, kterou tam čtete.",
+        reportActionsAbove: "Zprávu stáhnete i schválíte v liště panelu Zpráva výše, na verzi, kterou tam čtete.",
         reportApproveHint: "Schválením potvrzujete, že jste zprávu přečetli. Klientovi tím neodchází.",
         reportApproveIndependent: "Tuto zprávu musí schválit někdo jiný než ten, kdo ji vytvořil.",
         reportWaiting: "Report čeká na dokončení AI analýzy.",
