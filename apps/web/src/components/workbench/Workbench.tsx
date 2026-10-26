@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -460,10 +460,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.target }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.op === "filter" ? "sociomap" : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
-      else if (v.op === "inspect") {
+      else if (v.op === "select" || v.op === "filter") {
+        // Sociomapa's picture: on another stage the map takes it once shown, if the move was not stopped.
+        if (stage === "sociomap" || go("sociomap")) sendLeadMapView(v);
+      } else if (v.op === "inspect") {
         // The item drawer over the target's own stage, the one a person's click opens; on another
         // stage it opens once that stage is shown (the move remounts on a route change).
         const t = parseAiaId(v.target);
