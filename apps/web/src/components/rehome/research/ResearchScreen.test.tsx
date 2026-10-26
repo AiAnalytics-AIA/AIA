@@ -438,7 +438,8 @@ describe("ResearchScreen", () => {
     is_terminal: status === "COMPLETED", needs_attention: status === "AWAITING_BUDGET", context_sha256: "x", harness_version: "2",
     created_at: "2026-10-20T09:00:00Z", actual_cost_usd: null, proposal_state: status === "COMPLETED" ? "pending" : null,
     steps: [{ step_id: "STEP-agent", node_key: "agent", status: stepStatus, waiting_reason: stepStatus === "AWAITING_BUDGET" ? "budget_exceeded" : null, error_message: null }] });
-  const AUDIENCE = { content: { title: "Alfa", audience: { strategy: "filters" }, ui_state: { audience_entry: "analytics", analytics_choice: "cz18" } } };
+  // The job asks about the description written in Cílová skupina's §01.
+  const AUDIENCE = { content: { title: "Alfa", audience: { strategy: "filters", description: "Ženy 30-45 let" }, ui_state: { audience_entry: "analytics", analytics_choice: "cz18" } } };
   /** The study's AI job, waiting for budget until lifted; `listed` puts it in the screen's list of jobs too. */
   /** `runningPolls`: how many reads of the job after the lift still find it running (a slow job). */
   const waitingJob = (listed: boolean, runningPolls = 0) => {
@@ -472,8 +473,7 @@ describe("ResearchScreen", () => {
   it("offers one lift for a wait the stage shows in place, never a second in the job list, and opens the proposal from it (Codex on #533)", async () => {
     waitingJob(true);
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
-    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.audience.propose") }));
     await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
     // The list was read again with the job in it (the start refreshes it), and still one form.
     await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === JOBS).length).toBeGreaterThanOrEqual(2));
@@ -487,8 +487,7 @@ describe("ResearchScreen", () => {
   it("offers no second lift while a lifted job still runs, though the list was last read while it waited (review P2-1)", async () => {
     const state = waitingJob(true, 2);
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
-    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.audience.propose") }));
     await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });
     await vi.waitFor(() => expect(calls.filter((c) => c.method === "GET" && c.url === JOBS).length).toBeGreaterThanOrEqual(2));
     await lift(screen.getByRole("form", { name: t("research.exec.budget.title") }), "8");
@@ -516,8 +515,7 @@ describe("ResearchScreen", () => {
   it("shows a stage's AI job stopped at the budget as waiting, lifts it in place and goes on with the same job (CR-2)", async () => {
     waitingJob(false);
     render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-    fireEvent.change(await screen.findByPlaceholderText(t("research.audience.describePlaceholder")), { target: { value: "Ženy 30-45 let" } });
-    fireEvent.click(screen.getByRole("button", { name: t("research.audience.propose") }));
+    fireEvent.click(await screen.findByRole("button", { name: t("research.audience.propose") }));
 
     // Waiting in words, with the study's budget lift where the failure was: no retry, no fault.
     const card = await screen.findByRole("status", { name: t("research.aiBudget.waitingTitle") });

@@ -1,22 +1,18 @@
 "use client";
 
-// 4. Audience / Cílová skupina, rebuilt (research-flow-rehome.md, chunk 5) and drawn
-// as Studio v3 (studio-v3.md, chunk 6): the classic renderAudience (:374) under its
-// three wrappers -- the branch banner (1785), the wizard's way on (1789) and the
-// readable summary (1795) -- as one page of three questions that appear in turn
-// (source, population, strategy) instead of screens with back buttons. What each
-// control does to the project is src/research/audience.ts, parity-tested
-// against the original; this file only draws it.
+// 4. Audience / Cílová skupina, rebuilt (research-flow-rehome.md, chunk 5) and drawn toward the
+// research stages v73 board (R4, spec vzorek/A1): one question, "Koho mají výsledky reprezentovat?",
+// with three answers -- Celá ČR 18+, Zúžit, and Najít ve výsledcích, shown disabled because AIA
+// cannot run it -- and the description in the person's own words. The source and population
+// questions of the classic renderAudience (:374) are gone: AIA has one population, so a choice writes
+// it (normalizeEntry). A study stored on a path the screen no longer offers (an own dataset, a
+// special group, a Discover) opens readable and says what is kept. What each control does to the
+// project is src/research/audience.ts, parity-tested against the original; this file only draws it.
 //
-// In AIA (ADR 0018) the step keeps what it can decide without 18.6.6: the source,
-// the whole population, the outcome-based definition, the AI's proposed
-// description, and the summary. Since panel-grounded-respondents 6e the factor
-// catalogue and its filters, the feasibility preview and the built-in subpanels
-// are AIA's own, from its population (GET /population/audience-catalogue, POST
-// /population/audience-preview); where this deployment has none, the step says
-// why, as before. Special panels and customer audience upload were 18.6.6's
-// audience store, and still say they are not in AIA. Whether a run applies the
-// filters is the run's pin, and readiness says it ("audience").
+// The factor catalogue and its filters, the feasibility preview and the built-in subpanels (under
+// Zúžit) are AIA's own, from its population (GET /population/audience-catalogue, POST
+// /population/audience-preview); where this deployment has none, the step says why. Whether a run
+// applies the filters is the run's pin, and readiness says it ("audience").
 
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
@@ -44,11 +40,10 @@ import {
   applyPopulationSubpanel,
   applyProposal,
   audienceReady,
-  audienceView,
   boundOf,
   endUnreadable,
-  chooseAudience,
-  discoverText,
+  chooseStrategy,
+  detachSubpanel,
   factorRefusal,
   filterCategories,
   filterChips,
@@ -56,6 +51,10 @@ import {
   filterableFactors,
   humanFilters,
   humanSummary,
+  keptPaths,
+  normalizeEntry,
+  setAudienceDescription,
+  strategyOf,
   liveCatalog,
   liveSubpanels,
   matchingSubpanels,
@@ -65,10 +64,7 @@ import {
   rangeBounds,
   removeAudienceFactor,
   searchKey,
-  setAnalyticsChoice,
   setAudienceCategory,
-  setAudienceEntry,
-  setDiscoverField,
   setRange,
   storedRange,
   storedValues,
@@ -137,114 +133,64 @@ export function AudienceStep() {
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
   const p = state.project;
-  const view = audienceView(p);
   const ready = audienceReady(p);
-  const entry = String(ui(p).audience_entry || "choose");
-  const choice = String(ui(p).analytics_choice || "");
-  const strategy = (p.audience.strategy || "population") as Strategy;
+  const strategy = strategyOf(p);
+  const kept = keptPaths(p);
   const live = useLiveAudience();
   const isLive = live.state === "ready";
 
-  const apply = (c: Change | null) => {
-    if (!c) return;
-    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  // R4: one choice of three (chooseStrategy), written as ČR 18+.
+  const pickStrategy = (k: Strategy) => {
+    const c = chooseStrategy(store.get().project, k);
+    if (c) store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
   };
-  // Choosing what is already chosen changes nothing: the classic tiles were not shown then.
-  const pickSource = (k: "own" | "analytics") => entry !== k && apply(setAudienceEntry(store.get().project, k));
-  const pickPopulation = (k: "cz18" | "cz_coming" | "special") => choice !== k && apply(setAnalyticsChoice(store.get().project, k));
-  const pickStrategy = (k: Strategy) => (p.audience.strategy || "population") !== k && apply(chooseAudience(store.get().project, k));
+
 
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       <InspectorSlot>
-        <Summary project={p} entry={entry} choice={choice} strategy={view === "cz18" ? strategy : null} />
+        <Summary project={p} strategy={strategy} />
       </InspectorSlot>
 
       <div className="flex min-w-0 flex-col gap-4">
-        {entry === "analytics" ? (
-          <p className="rounded-card border border-signal-edge bg-signal-tint p-3 text-[13px] leading-5">
-            <b>{t("research.audience.bannerPopulation")}</b> {t("research.audience.bannerPopulationText")} <b>{t("research.audience.bannerIdeal")}</b>{" "}
-            {t("research.audience.bannerIdealText")}
-          </p>
-        ) : null}
-
-        <StepSection n={1} lead done={entry !== "choose"} title={t("research.audience.chooseTitle")}>
-          <div role="radiogroup" aria-label={t("research.audience.chooseTitle")} className="grid gap-3 md:grid-cols-2">
-            <RadioCard checked={entry === "own"} onSelect={() => pickSource("own")} title={t("research.audience.own")}>
-              {t("research.audience.ownText")}
-            </RadioCard>
-            <RadioCard checked={entry === "analytics"} onSelect={() => pickSource("analytics")} title={t("research.audience.analytics")}>
-              {t("research.audience.analyticsText")}
-            </RadioCard>
+        <StepSection n={1} lead done={strategy !== null} title={t("research.audience.strategyTitle")}>
+          <div role="radiogroup" aria-label={t("research.audience.strategyTitle")} className="grid gap-2 md:grid-cols-3">
+            {([["population", "strategyPopulation"], ["filters", "strategyFilters"], ["discover", "strategyDiscover"]] as const).map(([k, key]) => (
+              <RadioCard
+                key={k}
+                checked={strategy === k}
+                // Najít ve výsledcích is not executable in AIA (R9: disabled, its reason in its caption).
+                disabled={k === "discover"}
+                onSelect={() => pickStrategy(k)}
+                title={<>{t(`research.audience.${key}`)} {k === "filters" && !isLive ? <Tagged>{t("research.audience.notInAiaChip")}</Tagged> : null}</>}
+              >
+                {t(`research.audience.${key}Text`)}
+              </RadioCard>
+            ))}
           </div>
-          {view === "own" ? (
-            <div className="mt-3 flex flex-col gap-3">
-              <NotInAia title={t("research.audience.own")}>{t("research.audience.ownNotInAia")}</NotInAia>
-              {p.audience.dataset_id ? (
-                <div className="rounded-control border border-border bg-surface p-3">
-                  <p className="text-sm">
-                    <b>{t("research.audience.storedDataset")}</b> {String(p.audience.dataset_name || p.audience.dataset_id)}
-                  </p>
-                  <p className="mt-1 text-xs text-ink-muted">{t("research.audience.storedNotUsed")}</p>
-                </div>
-              ) : null}
-            </div>
-          ) : null}
-        </StepSection>
-
-        {entry === "analytics" ? (
-          <StepSection n={2} done={Boolean(choice)} title={t("research.audience.populationTitle")} hint={t("research.audience.populationHint")}>
-            <div role="radiogroup" aria-label={t("research.audience.populationTitle")} className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-              <RadioCard checked={choice === "cz18"} onSelect={() => pickPopulation("cz18")} title={<>{t("research.audience.cz18")} <Tagged tone="done">{t("research.audience.ready")}</Tagged></>}>
-                {t("research.audience.cz18Text")}
-              </RadioCard>
-              <RadioCard checked={choice === "cz_coming"} onSelect={() => pickPopulation("cz_coming")} title={<>{t("research.audience.czComing")} <Tagged tone="you">{t("research.audience.comingSoon")}</Tagged></>}>
-                {t("research.audience.czComingText")}
-              </RadioCard>
-              <RadioCard checked={choice === "special"} onSelect={() => pickPopulation("special")} title={<>{t("research.audience.special")} {isLive ? null : <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged>}</>}>
-                {isLive ? t("research.audience.liveSpecialText") : t("research.audience.specialText")}
-              </RadioCard>
-            </div>
-            {view === "cz_coming" ? (
-              <p className="mt-3 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
-                <b>{t("research.audience.czComingTitle")}</b> · {t("research.audience.czComingNote")}
+          {kept.map((k) => (
+            <div key={k.kind} className="mt-3 rounded-control border border-border bg-surface p-3">
+              <p className="text-sm">
+                {k.kind === "discover" ? t("research.audience.keptDiscover") : <><b>{t(k.kind === "dataset" ? "research.audience.storedDataset" : "research.audience.keptSpecial")}</b> {k.name}</>}
               </p>
-            ) : null}
-            {view === "special" && live.state === "ready" ? <Subpanels live={live} /> : null}
-            {view === "special" && live.state !== "ready" ? (
-              <div className="mt-3 flex flex-col gap-3">
-                <NotInAia title={t("research.audience.special")}>{t("research.audience.specialNotInAia")}</NotInAia>
-                {p.audience.special_catalog_key ? (
-                  <div className="rounded-control border border-border bg-surface p-3">
-                    <p className="text-sm">
-                      <b>{t("research.audience.selected")}</b> {String(p.audience.dataset_name || p.audience.description || p.audience.special_catalog_key)}
-                    </p>
-                    <p className="mt-1 text-xs text-ink-muted">{t("research.audience.storedNotUsed")}</p>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </StepSection>
-        ) : null}
-
-        {view === "cz18" ? (
-          <StepSection n={3} done title={t("research.audience.strategyTitle")} hint={t("research.audience.czIntroBefore")}>
-            <div role="radiogroup" aria-label={t("research.audience.strategyTitle")} className="grid gap-2 md:grid-cols-3">
-              {([["population", "strategyPopulation"], ["filters", "strategyFilters"], ["discover", "strategyDiscover"]] as const).map(([k, key]) => (
-                <RadioCard
-                  key={k}
-                  checked={strategy === k}
-                  onSelect={() => pickStrategy(k)}
-                  title={<>{t(`research.audience.${key}`)} {k === "filters" && !isLive ? <Tagged tone="you">{t("research.audience.notInAiaChip")}</Tagged> : null}</>}
-                >
-                  {t(`research.audience.${key}Text`)}
-                </RadioCard>
-              ))}
+              {k.kind === "discover" ? null : <p className="mt-1 text-xs text-ink-muted">{t("research.audience.storedNotUsed")}</p>}
             </div>
-            {p.audience.strategy === "filters" ? <FilterEditor live={live} /> : null}
-            {p.audience.strategy === "discover" ? <DiscoverEditor /> : null}
-          </StepSection>
-        ) : null}
+          ))}
+          <div data-aia={audiencePartAia("definition")} className="mt-4">
+            <p aria-hidden className="text-sm font-medium">{t("research.audience.describe")}</p>
+            <InlineText
+              value={String(p.audience.description || "")}
+              label={t("research.audience.describe")}
+              placeholder={t("research.audience.describePlaceholder")}
+              className="mt-1"
+              rules={{ required: false }}
+              disabled={state.save.kind === "readonly"}
+              onCommit={(v) => store.update(({ project }) => ({ project: setAudienceDescription(project, v) }), { reason: "audience_description" })}
+            />
+          </div>
+          {strategy === "filters" ? <FilterEditor live={live} /> : null}
+          {p.audience.strategy === "discover" ? <DiscoverKept /> : null}
+        </StepSection>
 
         <ActionDock
           back={{ href: stepHref("questionnaire"), label: `3. ${t("aia.stages.questionnaire")}` }}
@@ -262,15 +208,9 @@ export function AudienceStep() {
 }
 
 /** A small status tag beside a choice's title. */
-function Tagged({ tone, children }: { tone: "done" | "you"; children: string }) {
-  return (
-    <span className={`ml-1 whitespace-nowrap rounded-md px-1.5 py-px align-middle font-mono text-[10px] font-semibold tracking-[0.04em] ${tone === "done" ? "bg-status-done/14 text-status-done" : "bg-status-you-wash text-status-you-ink"}`}>
-      {children}
-    </span>
-  );
+function Tagged({ children }: { children: string }) {
+  return <span className="ml-1 whitespace-nowrap rounded-md bg-status-you-wash px-1.5 py-px align-middle font-mono text-[10px] font-semibold tracking-[0.04em] text-status-you-ink">{children}</span>;
 }
-
-const ui = (p: ResearchProject) => (p.ui_state || {}) as Record<string, unknown>;
 
 /**
  * filterEditor. With AIA's catalogue: the factors of its population, their values and
@@ -286,18 +226,22 @@ function FilterEditor({ live }: { live: Live }) {
   const { store, state, runJob, toast } = useResearch();
   const step = useAiStep();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
-  const [text, setText] = useState(String(state.project.audience.description || ""));
   const chips = filterChips(state.project, live.state === "ready" ? live.catalog : null);
   // What the population cannot honour as stored, said now rather than at the preview or the run.
   const version = live.state === "ready" ? live.api.version_label : null;
   const problems = live.state === "ready" ? filterProblems(state.project, live.catalog) : [];
   const problemOf = new Map(problems.map((x) => [x.id, x]));
-  const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  // Every filter edit here, the AI proposal's too, leaves a chosen subpanel behind (detachSubpanel).
+  const change = (raw: Change) => {
+    const c = detachSubpanel(raw);
+    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  };
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
   const propose = () =>
     step.run(async () => {
-      const typed = proposeText(text, store.get().project);
+      // The description written in §01 is what the job is asked to turn into an audience.
+      const typed = proposeText("", store.get().project);
       if (!typed) throw new Error(PROPOSE_EMPTY);
       await step.saved();
       const r = (await runJob("audiencePropose", proposePayload(store.get().project, typed), { title: PROPOSE_TITLE, warnMs: PROPOSE_WARN_MS })) as Parameters<typeof applyProposal>[2];
@@ -316,21 +260,13 @@ function FilterEditor({ live }: { live: Live }) {
           )}
         </div>
       )}
-      <section data-aia={audiencePartAia("definition")} className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-filters">
+      <div className="rounded-control border border-border bg-surface p-4">
         {step.failure ? (
           <div className="mb-4">
             <AiFailureCard failure={step.failure} title={t("research.audience.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, () => toast(PROPOSE_SAVED))} />
           </div>
         ) : null}
-        <div className={EYEBROW}>{t("research.audience.filterTag")}</div>
-        <h2 id="aud-filters" className="mt-1 text-base font-semibold">{t("research.audience.describeTitle")}</h2>
-        <Field label={t("research.audience.describe")} className="mt-3">
-          <div className="flex flex-wrap gap-2">
-            <TextInput className="min-w-64 flex-1" value={text} placeholder={t("research.audience.describePlaceholder")} onChange={(e) => setText(e.target.value)} />
-            {!leadOwnsAiStarts ? <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton> : null}
-          </div>
-        </Field>
-        {leadOwnsAiStarts ? <AskLead className="mt-2" what="Návrh cílové skupiny z popisu" /> : null}
+        {leadOwnsAiStarts ? <AskLead what="Návrh cílové skupiny z popisu" /> : <AiButton disabled={step.busy} onClick={() => void propose()}>{t("research.audience.propose")}</AiButton>}
         {chips.length ? (
           <>
             <p className="mt-3 text-xs text-ink-muted">{live.state === "ready" ? t("research.audience.selectedFilters") : t("research.audience.storedFilters")}</p>
@@ -369,7 +305,8 @@ function FilterEditor({ live }: { live: Live }) {
             ) : null}
           </>
         ) : null}
-      </section>
+      </div>
+      {live.state === "ready" ? <Subpanels live={live} /> : null}
     </div>
   );
 }
@@ -381,7 +318,11 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
   const [query, setQuery] = useState("");
   const { categories, sensitive } = filterCategories(live.catalog);
   const { shown, total } = filterableFactors(live.catalog, category, searchKey(query));
-  const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  // Every filter edit here, the AI proposal's too, leaves a chosen subpanel behind (detachSubpanel).
+  const change = (raw: Change) => {
+    const c = detachSubpanel(raw);
+    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  };
   return (
     <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-live-filters">
       <div className={EYEBROW}>{t("research.audience.filterTag")}</div>
@@ -587,7 +528,7 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
   const [query, setQuery] = useState("");
   const current = String(state.project.audience.builtin_subpanel || "");
   const pick = (key: string) =>
-    store.update(({ project }) => ({ project: applyPopulationSubpanel(project, key, live.subpanels) }), { reason: "population_subpanel", invalidateCheck: true });
+    store.update(({ project }) => ({ project: applyPopulationSubpanel(normalizeEntry(project), key, live.subpanels) }), { reason: "population_subpanel", invalidateCheck: true });
   const all = live.api.subpanels;
   const matched = matchingSubpanels(all, query);
   const shown = all.filter((sp) => sp.key === current || matched.includes(sp));
@@ -613,43 +554,25 @@ function Subpanels({ live }: { live: Extract<Live, { state: "ready" }> }) {
           ))}
         </div>
       </section>
-      <NotInAia title={t("research.audience.special")}>{t("research.audience.specialPanelsNotInAia")}</NotInAia>
     </div>
   );
 }
 
-/** discoverEditor: what the product is and what "ideal" means, for the outcome-based segment. */
-function DiscoverEditor() {
-  const { store, state } = useResearch();
-  const d = discoverText(state.project);
-  // I1 (audit B11): each value edited where it is shown; Ctrl/Cmd+Enter or leaving saves, Esc
-  // restores, and the study store saves it as it saves any change to the working copy.
-  const field = (key: "product" | "success", name: "product_description" | "success_definition", labelKey: string, placeholderKey: string) => (
-    <div className="mt-3">
-      <p aria-hidden className="text-sm font-medium">{t(labelKey)}</p>
-      <InlineText
-        multiline
-        value={d[key]}
-        label={t(labelKey)}
-        placeholder={t(placeholderKey)}
-        className="mt-1"
-        // Optional, as they were: emptied, the product falls back to the brief's (discoverText).
-        rules={{ required: false }}
-        // A study the person may not edit takes no edit here, rather than dropping it on commit.
-        disabled={state.save.kind === "readonly"}
-        onCommit={(v) => store.update(({ project }) => ({ project: setDiscoverField(project, name, v) }))}
-      />
-    </div>
-  );
+/** A stored Discover's product and success criterion, read only: AIA cannot run the path (R4), so nothing here takes an edit. */
+function DiscoverKept() {
+  const { state } = useResearch();
+  const a = state.project.audience;
+  const rows = ([["discoverProduct", a.product_description], ["discoverSuccess", a.success_definition]] as const).filter(([, v]) => v);
+  if (!rows.length) return null;
   return (
-    <section className="mt-4 rounded-control border border-border bg-surface p-4" aria-labelledby="aud-discover">
-      <h2 id="aud-discover" className="text-base font-semibold">{t("research.audience.discoverTitle")}</h2>
-      {field("product", "product_description", "research.audience.discoverProduct", "research.audience.discoverProductPlaceholder")}
-      {field("success", "success_definition", "research.audience.discoverSuccess", "research.audience.discoverSuccessPlaceholder")}
-      <p className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">
-        <strong>{t("research.audience.discoverAdviceBold")}</strong> {t("research.audience.discoverAdvice")}
-      </p>
-    </section>
+    <dl className="mt-2 grid gap-1 rounded-control border border-border bg-surface p-3 text-sm">
+      {rows.map(([k, v]) => (
+        <div key={k}>
+          <dt className="text-xs text-ink-muted">{t(`research.audience.${k}`)}</dt>
+          <dd className="whitespace-pre-wrap">{String(v)}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -657,23 +580,16 @@ function DiscoverEditor() {
  * "Souhrn cílové skupiny": what is chosen so far, and the readable summary (1795)
  * -- the same settings the preflight and the sampling use.
  */
-function Summary({ project, entry, choice, strategy }: { project: ResearchProject; entry: string; choice: string; strategy: Strategy | null }) {
+function Summary({ project, strategy }: { project: ResearchProject; strategy: Strategy | null }) {
   const pairs = humanSummary(project.audience);
   const filters = humanFilters(project);
-  const none = t("research.audience.unset");
-  const source = entry === "own" ? t("research.audience.own") : entry === "analytics" ? t("research.audience.analytics") : null;
-  const population = entry !== "analytics" ? null : choice === "cz18" ? t("research.audience.cz18") : choice === "cz_coming" ? t("research.audience.czComing") : choice === "special" ? t("research.audience.special") : null;
   const strat = strategy ? t(`research.audience.strategy${strategy[0]!.toUpperCase()}${strategy.slice(1)}`) : null;
   return (
     <aside aria-labelledby="aud-summary" className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
       <h2 id="aud-summary" className="text-sm font-semibold">{t("research.audience.summaryTitleV3")}</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-        {([["summarySource", source], ["summaryPopulation", population], ["summaryStrategy", strat]] as const).map(([k, v]) => (
-          <div key={k} className="contents">
-            <dt className="text-ink-muted">{t(`research.audience.${k}`)}</dt>
-            <dd className={v ? "font-medium" : "text-status-you-ink"}>{v || none}</dd>
-          </div>
-        ))}
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 text-[13px]">
+        <dt className="text-ink-muted">{t("research.audience.summaryStrategy")}</dt>
+        <dd className={strat ? "font-medium" : "text-status-you-ink"}>{strat || t("research.audience.unset")}</dd>
       </dl>
       <div className="border-t border-border pt-3">
         <p className="text-xs text-ink-muted">{t("research.audience.summaryIntro")}</p>
