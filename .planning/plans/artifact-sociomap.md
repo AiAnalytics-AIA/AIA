@@ -158,6 +158,17 @@ Depends on `research-lead-workbench#14`, `#16`.
   `ObjectMapPanel.test.tsx` › "opens a relation from the object's card, a focusable button named by what it shows, and
   closes it again". The card lists the object's 5 strongest reliable relations, as the panel does; a drawn link beyond
   those still opens only on the canvas.
+- Delivered (2026-10-26, spec `szz/S3`): the item inspector draws a map's object and relation
+  (`MapInspect.tsx`, registered for the `object` and `pair` kinds in `ItemInspectBody.tsx`), so the Lead's
+  "Detail dvojice" (`inspect` on a `pair:` target) and any opened map item read the stored pair: r with its
+  interval, N and the verdict, an undefined r "neznámý" with its reason, never 0; an object: its rating,
+  connectedness and strongest reliable relations. The maps are the ones `SociomapStage` draws
+  (`setShownMaps`), cleared when it leaves, so the drawer never opens another run's map. The Lead's "Vybrat"
+  is #939's listener. Tests: `MapInspect.test.tsx` (the plan's test: "reads a pair with an undefined r as
+  unknown, never as 0"); `ExecutionSteps.test.tsx` › "lets the item inspector open a relation of the map it
+  draws, until it leaves". Still open: a respondent's detail in the inspector (no `respondent:` target yet,
+  SOC6), and a person's way into the drawer from the map itself (inside the panel's drawing, the
+  methodology owner's).
 
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,

@@ -15,6 +15,7 @@ import { isSignedOffMap } from "@/lib/object-map-signed-off";
 import { stageOf } from "@/lib/workbench-stages";
 import { useFrame } from "./frame-hook";
 import { MapExplained } from "./MapExplained";
+import { setShownMaps } from "./MapInspect";
 import { ObjectMapPanel } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
@@ -57,6 +58,15 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   }, [frame.studyId]);
   const payload = (artifact?.payload ?? null) as Payload;
   const batteries = payload?.sociomap?.batteries ?? [];
+  // The maps the item inspector may open an object or a relation of (MapInspect): the ones drawn here.
+  useEffect(() => {
+    const drawn = ((artifact?.payload ?? null) as Payload)?.sociomap?.batteries ?? [];
+    setShownMaps(drawn.flatMap((battery) => {
+      const read = readObjectMap(battery);
+      return read.ok && read.map.outcome === "MAPPED" && isSignedOffMap(read.map) ? [{ battery, map: read.map }] : [];
+    }));
+    return () => setShownMaps([]);
+  }, [artifact]);
   return (
     <div className="fx-stage flex min-w-0 flex-col gap-4" data-testid="sociomap-stage">
       {notice}

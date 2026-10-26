@@ -3767,6 +3767,11 @@ export const cs = {
         sociomapping: "Sociomapping · experimentální metoda AIA",
       },
       // The Sociomapa stage (artifact-sociomap SOC9-SOC11): the map first, below it what explains it, in plain words.
+      mapInspect: {
+        missing: "Tato položka na mapě tohoto běhu není.",
+        unknown: "neznámý",
+        frozen: "Ze zmrazené mapy běhu; nic se nepřepočítává.",
+      },
       mapStage: {
         info: "Co mapa ukazuje, jak spolehlivá je a jak byla spočtena, najdete pod mapou.",
         approved: "Metodika schválena pro zprávy",
