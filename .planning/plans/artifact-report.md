@@ -778,6 +778,15 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 
 ## Findings
 
+- **Výsledky opened the report editor from a hidden tab (from the stand-in review of #939, 2026-10-26): fixed on
+  `fix/report-editor-on-action`.** `ResultsWorkspace` keeps every panel mounted (hidden), and `ReportEditor`
+  POSTed `…/report/editor` in its mount effect (`ReportEditor.tsx:148 @ 25ce6493`), so opening any Výsledky view,
+  the Sociomapa stage included, opened an editor session no one asked for, and sociomap_journey's "nothing
+  written but the stage opened" failed. Now `ResultsWorkspace` says which panel is on screen (`panel-shown.ts`
+  `PanelShown`), and the editor opens only once its panel is first shown, staying open after. Test:
+  `ReportEditor.test.tsx` "asks for nothing from a hidden results panel, opens once it is shown, and stays open
+  when it is hidden again" (fails before: `open` called once while hidden).
+
 - **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
   `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
   `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
