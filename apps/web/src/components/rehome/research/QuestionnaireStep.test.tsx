@@ -380,7 +380,8 @@ describe("Dotazník", () => {
     fireEvent.keyDown(within(options).getByLabelText("Možnost 2"), { key: "Enter" });
     fireEvent.change(within(options).getByLabelText("Možnost 3"), { target: { value: "Nikdy " } });
     fireEvent.blur(within(options).getByLabelText("Možnost 3"), { relatedTarget: null });
-    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Typ" })).getByRole("radio", { name: "Škála" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Jedna odpověď, typ otázky" }));
+    fireEvent.click(within(card).getByRole("menuitem", { name: "Škála" }));
     expect(await within(card).findByRole("radiogroup", { name: "Rozsah škály Q1" })).toBeTruthy();
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];

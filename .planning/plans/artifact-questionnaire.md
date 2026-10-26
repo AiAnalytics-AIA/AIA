@@ -391,7 +391,7 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 `QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
 1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
-*QST2, spec navrh/Q2 (part: section numbers and the card's "měří"):* the editor headed a block "Blok n · k
+*QST2, spec navrh/Q2 (part: section numbers):* the editor headed a block "Blok n · k
 otázek" and a set "SADA n", while its own outline (and the board) number them B n and S n
 (`QuestionnaireStep.tsx:863`, `:1159` @ 25ce6493). Change (feature/questionnaire-sheets): a block is headed "B n"
 with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". Not in this change: the card header
@@ -399,6 +399,18 @@ with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". No
 control's tests and journeys move once (a "měří" line alone would repeat the list under the VO chips). Tests:
 `QuestionnaireStep.test.tsx` "numbers blocks B n and sets S n as the outline does…"; `questionnaire_journey.mjs` at
 1440/1100/768/390.
+
+*QST2, spec navrh/Q2 (part: the type as a tag):* a question's type was four chips across its card's header
+(`QuestionnaireStep.tsx:929-934` @ 59f3c7c6), where the board draws one tag. Change (feature/questionnaire-type-tag):
+the type is a tag ("Jedna odpověď ⌄") that opens its choices in a MenuButton, named "<type>, typ otázky", the
+stored type not offered again. The type is read in the compiler's order (none is vyber, then trimmed,
+`research_design.py:952`): blanks alone say "Typ nevybrán", and an untyped question is offered the type it reads as,
+which stores it with its editor (the stand-in's two P2s). MenuButton gains an optional `name` (the accessible name when the visible
+label alone would not say what the menu does; additive, the default unchanged), added here with the PM's go-ahead
+while lane A is on PBA5. Tests: `MenuButton.test.tsx` "names the button and the menu by `name`…",
+`QuestionnaireChoices.test.tsx` "chooses a question's type from its tag's menu…", "reads a question with no type as
+a single choice and offers that choice…", "says a type of blanks alone is not chosen…"; `questionnaire_journey.mjs` (the
+menu inside the page at 1440/1100/768/390) and `workspace_journey.mjs`.
 
 ## Doc follow-up
 
