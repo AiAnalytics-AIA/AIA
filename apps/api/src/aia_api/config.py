@@ -214,6 +214,9 @@ class Settings(BaseSettings):
     bedrock_context_window_tokens: int | None = None
     ai_research_max_output_tokens: int | None = None
     deep_research_thinking_budget_tokens: int | None = None
+    # The route model's thinking (``AIA_BEDROCK_THINKING``, sonnet-5-5-switch): an adaptive one
+    # takes no budget, so the worker sends none and the ceiling is priced without it.
+    bedrock_thinking: Literal["", "budget", "adaptive"] = ""
     deep_research_wikipedia_enabled: bool = False
     # The search route by name (``AIA_DEEP_RESEARCH_WEB_SEARCH``, chunk 23d): off, wikipedia or
     # brave; empty, the Wikipedia switch decides, as the worker reads it. Brave is priced per
@@ -349,6 +352,12 @@ class Settings(BaseSettings):
             return None
         return value
 
+    @field_validator("bedrock_thinking", mode="before")
+    @classmethod
+    def _read_thinking_as_the_worker_does(cls, value: object) -> object:
+        """The worker reads ``AIA_BEDROCK_THINKING`` stripped and in any case; so does this."""
+        return value.strip().lower() if isinstance(value, str) else value
+
     @field_validator("data_class_gates", mode="before")
     @classmethod
     def _parse_class_gates(cls, value: object) -> object:
@@ -374,7 +383,11 @@ class Settings(BaseSettings):
             cache_write_usd_per_mtok=self.bedrock_cache_write_usd_per_mtok,
             context_window_tokens=self.bedrock_context_window_tokens,
             max_output_tokens=self.ai_research_max_output_tokens,
-            thinking_budget_tokens=self.deep_research_thinking_budget_tokens,
+            thinking_budget_tokens=(
+                None
+                if self.bedrock_thinking == "adaptive"
+                else self.deep_research_thinking_budget_tokens
+            ),
             web_search=self.deep_research_web_search,
             wikipedia_enabled=self.deep_research_wikipedia_enabled,
             brave_usd_per_1000=self.deep_research_brave_usd_per_1000,
