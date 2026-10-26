@@ -128,6 +128,12 @@ export type PersonEdit = WithoutWhy<WorkingEdit>;
 /** The reason every edit of a person carries: the vocabulary asks one of each edit, the log keeps none. */
 const BY_HAND = "person";
 
+/** `after` with its item ids read against `before` and a reworded research question's links followed (WCE1). */
+function settledAgainst(before: Copy, after: Copy): Copy {
+  const [project, analysis] = settleItemIds([before.project, before.analysis], [after.project, after.analysis]);
+  return { project, analysis };
+}
+
 /** The most operations one batch carries (the API's OPS_PER_BATCH); a store holding more saves the copy whole. */
 const OPS_PER_BATCH = 100;
 
@@ -470,11 +476,11 @@ export class ResearchStore {
         this.goWhole();
         return null;
       }
-      copy = r.content;
+      // Settled after each edit, as `update` and AIA settle them: over several, a reword beside an
+      // add would read as a new item and drop its links.
+      copy = this.opts.itemIds ? settledAgainst(copy, r.content) : r.content;
     }
-    if (!this.opts.itemIds) return copy;
-    const [project, analysis] = settleItemIds([held.project, held.analysis], [copy.project, copy.analysis]);
-    return { project, analysis };
+    return copy;
   }
 
   /** Replace the project and analysis with what an AI step returned (no autosave of its own). */

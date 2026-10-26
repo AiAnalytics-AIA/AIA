@@ -74,7 +74,9 @@ def apply_edit_ops(
         dict(current.content) if current.content is not None else research_template()
     )
     analysis = current.analysis
-    loaded = (content, analysis)
+    # Settled after each edit, as the web's store settles each change: over a whole batch, a list
+    # going from one item to two reads a reword beside an add as a new item and drops its links.
+    settles = stores_item_ids(content, analysis)
     refused: dict[int, str] = {}
     ops: list[tuple[Mapping[str, Any], frozenset[Touch]]] = []
     for position, edit in enumerate(edits):
@@ -94,11 +96,9 @@ def apply_edit_ops(
             continue
         touched = touches(edit, content, new_id=_replaying(made))
         ops.append((edit.model_dump(mode="json", exclude={"why"}), touched))
-        content, analysis = applied
+        content, analysis = settle_item_ids((content, analysis), applied) if settles else applied
     if not ops or (whole_batch and refused):
         return AppliedOps(refused=refused, saved=None)
-    if stores_item_ids(*loaded):
-        content, analysis = settle_item_ids(loaded, (content, analysis))
     saved = StudyWorkspaceRepository(session).save(
         scope,
         content=content,

@@ -625,6 +625,30 @@ describe("edits saved as the vocabulary's operations (working-copy-edit-ops WCE3
     expect(bodies).toHaveLength(1);
   });
 
+  it("settles ids after each edit made during a flight, so a reword beside an add keeps its links", async () => {
+    const linked = {
+      ...newResearch(TEMPLATE).project,
+      research_plan: { ...newResearch(TEMPLATE).project.research_plan, research_questions: ["Kdo kupuje?"] },
+      sections: [{ id: "s", type: "questions", questions: [{ id: "q1", text: "Jak často?", typ: "skala", skala: [1, 5], research_questions: ["Kdo kupuje?"] }] }],
+    } as unknown as Record<string, Json>;
+    const [project] = withItemIds(linked, null);
+    const start: ResearchState = { ...atRevision(), project: project as unknown as ResearchProject };
+    let release: () => void = () => {};
+    const held = vi.fn(async () => {
+      await new Promise<void>((r) => (release = r));
+      return { ...saved(3), content: { ...(start.project as unknown as Record<string, unknown>), title: "A" }, analysis: null };
+    });
+    const store = new ResearchStore(start, "STU-1", { save: aia(() => saved(9)).save, applyOps: held, editOps: true, itemIds: true });
+    store.apply([title("A")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    store.apply([{ op: "list_replace", list: "plan.research_questions", old: "Kdo kupuje?", value: "Kdo kupuje kávu?" }]);
+    store.apply([{ op: "list_add", list: "plan.research_questions", value: "Kde?" }]);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    const q = (store.get().project.sections as unknown as { questions: { research_questions: string[] }[] }[])[0]!.questions[0]!;
+    expect(q.research_questions).toEqual(["Kdo kupuje kávu?"]);
+  });
+
   it("keeps a failed batch owed and sends it again, before anything made since", async () => {
     let fail = true;
     const start = atRevision();
