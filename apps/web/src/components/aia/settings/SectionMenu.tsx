@@ -29,7 +29,7 @@ const M = `${P}.menu`;
 /** Each section's icon, from the interface's one set. */
 const ICON: Record<SectionId, IconName> = {
   methodology: "intelligence", prompts: "comment", deep_research: "world", ai: "assistant",
-  access: "client", studies: "projects", audit: "library", system: "running", reference: "knowledge", data: "archive",
+  access: "client", studies: "projects", audit: "library", system: "running", data: "archive",
 };
 
 /** What waits on the person, per section, as the API said it; absent: not read, or nothing. */
