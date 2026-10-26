@@ -1330,7 +1330,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   );
 }
 
-/** Náklady (artifact-fieldwork FLD4b): what the run has spent and holds, the calls it could not price
+/** Náklady (artifact-fieldwork FLD4b; as tiles, FLD4e): what the run has spent and holds, the calls it could not price
  *  and what remains in the study; totals only (Q76 (c)). The remainder is read again whenever the spend
  *  shown changes, so the two never disagree for long; with no spend to show, nothing is read. */
 function SpendCard({ run }: { run: ResearchRun }) {
@@ -1350,11 +1350,15 @@ function SpendCard({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
-        <dl data-run-spend className="@container divide-y divide-border rounded-control border border-border">
+        // The prototype's KPI tiles (FLD4e): four, the unpriced calls a fifth only when there are any.
+        <dl data-run-spend className="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-2">
           {rows.map((r) => (
-            <div key={r.key} data-spend={r.key} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
-              <dt className="text-ink-muted">{r.label}</dt>
-              <dd className="min-w-0"><span className="font-mono">{r.value}</span>{r.note ? <span className="text-ink-muted"> · {r.note}</span> : null}</dd>
+            <div key={r.key} data-spend={r.key} className="flex min-w-0 flex-col gap-1 rounded-control border border-border px-3 py-2">
+              <dt className="text-xs text-ink-muted">{r.label}</dt>
+              <dd className="min-w-0">
+                <span data-spend-value className="block font-mono text-lg tabular-nums text-ink">{r.value}</span>
+                {r.note ? <span data-spend-note className="mt-0.5 block text-xs text-ink-muted">{r.note}</span> : null}
+              </dd>
             </div>
           ))}
         </dl>
