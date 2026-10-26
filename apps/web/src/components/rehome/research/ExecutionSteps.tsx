@@ -1398,7 +1398,10 @@ export function ProgressStep() {
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
-  const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after,
+  // none the run does not have. Parallel steps (the analysis modules) keep the pipeline's order.
+  const order = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
+  const listed = inOrder(run.steps.map((s) => s.node_key), order).map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
   const state = runState(run);
@@ -1419,14 +1422,6 @@ export function ProgressStep() {
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {listed.length ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
-              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
-            </span>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
-          </div>
-        ) : null}
         {parked ? (
           <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
             <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
@@ -1458,15 +1453,24 @@ export function ProgressStep() {
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
-      <Card title={t("aia.stages.progress")}>
+      <Card title={t("research.exec.stepsTitle")}>
+        {listed.length ? (
+          <div className="mb-3 flex items-center gap-3">
+            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
+              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
+            </span>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
+          </div>
+        ) : null}
         <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => {
+          {listed.map((s, index) => {
             const stepActivity = activityOf(activity, s.step_id);
             const last = lastReported(stepActivity, s.status, run.is_terminal);
             return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
             <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
+                <span data-step-number className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {researchStepWork(run, s.node_key) ? (

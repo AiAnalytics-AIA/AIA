@@ -1195,6 +1195,30 @@ describe("Progress", () => {
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
   });
 
+  it("lists the run's own steps, numbered, in the pipeline's order, with the count in their header (FLD2c)", async () => {
+    // Steps as the run holds them: out of order, one this client has no place for, no report step.
+    const own = run({
+      ...COMPLETED,
+      steps: [
+        step("aggregate", "SUCCEEDED"),
+        step("run", "SUCCEEDED"),
+        step("future_step", "RUNNABLE"),
+        step("compile", "SUCCEEDED"),
+        step("analysis_objects", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" }),
+      ],
+    });
+    api(listed(own));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
+    // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
+    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
+    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5"]);
+    // The count belongs to the steps: their section says it, of the steps listed.
+    const section = list.closest("section")!;
+    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
+  });
+
   it("says an analysis retry of an old-method run was refused, and starts the new run it names", async () => {
     const blocked = run({
       ...COMPLETED,
