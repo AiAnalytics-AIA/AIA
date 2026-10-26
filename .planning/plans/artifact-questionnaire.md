@@ -372,6 +372,16 @@ condition line, "a stejně pro dalších n položek" under a set, and "+ n dalš
 fields stay as ported (parity unchanged). Tests: `questionnaire-preview.test.ts` "a 1–7 scale previews at 1–7…",
 "a cut list says how many it left out…"; `QuestionnaireStep.test.tsx` "previews a scale at its own range and
 says what the preview leaves out (QST11)"; `questionnaire_journey.mjs` at 1440/1100/768/390.
+
+*QST4, spec navrh/Q4 (R9: what a run cannot do shown disabled, with the reason):* with routing off a
+question's display condition was simply absent (`QuestionCondition.tsx:72-75` @ 25ce6493), and a tracked set
+offered a familiarity switch that readiness then FAILs (`QuestionnaireStep.tsx:1225` @ f7b2f381, readiness
+battery_familiarity at `research_design.py:1501` @ f7b2f381). Change (feature/questionnaire-unavailable-disabled): with `/config` routing known to be off,
+a question that has an earlier choice question shows "Podmínka zobrazení", why, and an aria-disabled "Zapnout"
+described by it, still focusable (nothing while the switch is unread or cannot be read); a stored condition still shows and can be removed. The
+familiarity switch is gone: a set says why, and one stored with it says the run will refuse it, with
+"Vypnout". Tests: `QuestionnaireStep.test.tsx` "offers no condition to set without the routing switch…"
+(extended), "offers no familiarity switch a run would refuse…"; `questionnaire_journey.mjs` at 1440/1100/768/390.
 *QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
 full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
 (feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
@@ -380,6 +390,15 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 (before that, coverage is unknown for every item, coverageOf, never a gap on each card). Dangling links stay coral. Tests:
 `QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
 1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
+
+*QST2, spec navrh/Q2 (part: section numbers and the card's "měří"):* the editor headed a block "Blok n · k
+otázek" and a set "SADA n", while its own outline (and the board) number them B n and S n
+(`QuestionnaireStep.tsx:863`, `:1159` @ 25ce6493). Change (feature/questionnaire-sheets): a block is headed "B n"
+with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". Not in this change: the card header
+"Q n · type tag · měří VO n" with the type chips behind the tag in a menu, left for its own chunk so the type
+control's tests and journeys move once (a "měří" line alone would repeat the list under the VO chips). Tests:
+`QuestionnaireStep.test.tsx` "numbers blocks B n and sets S n as the outline does…"; `questionnaire_journey.mjs` at
+1440/1100/768/390.
 
 ## Doc follow-up
 
@@ -392,6 +411,7 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 - open-items.md: number QF-18 (the condition editor drops keyboard focus), closed by fix/questionnaire-condition-focus.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
+- CLAUDE.md § 2 map, QuestionCondition.tsx: with routing known off, a question that could take a condition shows it disabled with the reason (QST4, R9). Tracked sets: no familiarity switch; a stored one says the run refuses it, with Vypnout.
 - CLAUDE.md § map, domain/research_agents.py: "build and optimize read external_context_not_evidence (with_external_context, EXTERNAL_ACTIONS; trimmed to the 64 KB bound, a bundle that does not read named), the newest Design Research findings, never evidence, with EXTERNAL_RAIL on the system prompt whenever the layer is there (QST13)"; application/research.py: "ResearchAgentJobs(external_store=): with the API's AIA_AI_ANALYSIS_EXTERNAL_CONTEXT a questionnaire job freezes the study's pinned Design Research findings, read by analysis_results._external_context".
 
 ## From the research build spec (2026-10-26)

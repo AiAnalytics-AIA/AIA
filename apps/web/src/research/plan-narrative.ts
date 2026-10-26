@@ -16,7 +16,7 @@ import { type Narrative, applyNarrative, proposalAnalysis } from "./plan-edit";
 import { MAX_RESEARCH_QUESTIONS } from "./trace";
 
 export type NarrativeList = "research_questions" | "objectives" | "hypotheses";
-export const NARRATIVE_LISTS: readonly NarrativeList[] = ["research_questions", "objectives", "hypotheses"];
+const NARRATIVE_LISTS: readonly NarrativeList[] = ["research_questions", "objectives", "hypotheses"];
 
 const strings = (raw: unknown): string[] => (Array.isArray(raw) ? raw.map(String) : []);
 

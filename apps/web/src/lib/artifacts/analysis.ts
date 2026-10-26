@@ -55,18 +55,18 @@ type AnalysisModules = Readonly<Record<string, {
   research_question_answers: readonly { claim_ids: readonly string[] }[];
 }>>;
 
-/** Where a cited-number chip is drawn on Analýza: in a key finding of the cross-module list, or in
- *  the selected module's own answers or findings. */
-export type ChipPlace = { list: "key" | "answer" | "finding"; module: string; index: number };
+/** Where a cited-number chip is drawn on Analýza: in a key finding of the one findings list, or in
+ *  the chosen module's own answers (ANL3b). */
+export type ChipPlace = { list: "key" | "answer"; module: string; index: number };
 
 export const chipKey = (place: ChipPlace, claimId: string): string => `${place.list}:${place.module}:${place.index}:${claimId}`;
 
 /**
- * Which chips carry their claim's target: the first one in the page's order, so a target names one
- * element whatever cites it twice (the cross-module list first, then the selected module's answers,
- * then its findings, which repeat the list's). A completed module only; a blocked one shows no chips.
+ * Which chips carry their claim's target, so a target names one element whatever cites it twice: a
+ * key finding's chip first, then the chosen module's answers (`selected`; none on "Vše", where no
+ * answers are drawn). A completed module only; a blocked one shows no chips.
  */
-export function claimMarks(modules: AnalysisModules, selected: AnalysisModuleKind): Set<string> {
+export function claimMarks(modules: AnalysisModules, selected: AnalysisModuleKind | null): Set<string> {
   const marked = new Set<string>();
   const seen = new Set<string>();
   const visit = (place: ChipPlace, ids: readonly string[]) => {
@@ -82,10 +82,9 @@ export function claimMarks(modules: AnalysisModules, selected: AnalysisModuleKin
     if (outcome?.outcome !== "COMPLETED") continue;
     outcome.key_findings.forEach((f, index) => visit({ list: "key", module: kind, index }, f.claim_ids));
   }
-  const own = modules[selected];
-  if (own?.outcome === "COMPLETED") {
+  const own = selected ? modules[selected] : undefined;
+  if (selected && own?.outcome === "COMPLETED") {
     own.research_question_answers.forEach((a, index) => visit({ list: "answer", module: selected, index }, a.claim_ids));
-    own.key_findings.forEach((f, index) => visit({ list: "finding", module: selected, index }, f.claim_ids));
   }
   return marked;
 }

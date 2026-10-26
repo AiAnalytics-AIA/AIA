@@ -81,6 +81,7 @@ import {
 import type { ResearchProject } from "@/research/model";
 import { DESCRIBED_POINTS_MAX } from "@/research/scale-labels";
 import { plural } from "@/lib/format";
+import { pyTrue } from "@/research/readers";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, coverageOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
@@ -885,7 +886,14 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
+          {/* B n, as the outline and the board number it (spec navrh/Q2), and its count. */}
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap rounded-md border border-border-strong px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-muted">
+              <span aria-hidden="true">{tv("research.questionnaire.blockHead", { n })}</span>
+              <span className="sr-only">{tv("research.questionnaire.untitledBlock", { n })}</span>
+            </span>
+            <span className="text-xs text-ink-muted">{countWords("questions", qs.length)}</span>
+          </div>
           {/* The block as a heading: navigable by a screen reader, and the title the Lead names it by (lead.ts titleOf). */}
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledBlock", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
@@ -1165,6 +1173,18 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
+  const { canEdit } = useFrame();
+  const familiarityBox = useRef<HTMLDivElement>(null);
+  // Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement.
+  const familiarityStored = pyTrue(sec.familiarity_required);
+  // "Vypnout" takes its button away: focus is owed to the line that replaces it, given once that line
+  // is rendered (AGENTS.md: after the render that mounts it, never on a frame guess).
+  const familiarityFocusOwed = useRef(false);
+  useEffect(() => {
+    if (familiarityStored || !familiarityFocusOwed.current) return;
+    familiarityFocusOwed.current = false;
+    familiarityBox.current?.querySelector<HTMLElement>("p")?.focus();
+  }, [familiarityStored]);
   const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
@@ -1181,7 +1201,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
       <div className="flex flex-wrap items-start gap-3">
-        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
+        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet"><span aria-hidden="true">{tv("research.questionnaire.setBadge", { n })}</span><span className="sr-only">{tv("research.questionnaire.untitledSet", { n })}</span></span>
         <div className="min-w-[12rem] flex-1">
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
@@ -1266,9 +1286,26 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         perPoint={false}
         onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
       />
-      <div className="flex flex-col gap-1">
-        <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
-        <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
+      {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
+          with it says so and can drop it. */}
+      <div ref={familiarityBox}>
+        {familiarityStored ? (
+          <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+            <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
+            <Button
+              small
+              disabled={!canEdit}
+              onClick={() => {
+                familiarityFocusOwed.current = true;
+                update((p) => setSectionField(p, si, "familiarity_required", false), "familiarity");
+              }}
+            >
+              {t("research.questionnaire.familiarityOff")}
+            </Button>
+          </div>
+        ) : (
+          <p tabIndex={-1} className={`text-xs text-ink-muted ${FOCUS}`}>{t("research.questionnaire.familiarityUnavailable")}</p>
+        )}
       </div>
       {togglesConceptTest(sec) ? (
         <div className="flex flex-col gap-1">
