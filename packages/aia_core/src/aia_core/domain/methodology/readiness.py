@@ -33,6 +33,7 @@ from ..research_design import (
     readiness_problems,
 )
 from .catalogue import (
+    Bound,
     Evidence,
     EvidenceKind,
     MethodModule,
@@ -43,6 +44,9 @@ from .catalogue import (
     PreviewLine,
     StepGroup,
     Symbol,
+    above,
+    at_least,
+    at_most,
 )
 
 __all__ = ["READINESS", "ReadinessRuleRefused"]
@@ -255,6 +259,24 @@ _GROUPS: Final = (
     StepGroup("S", "Sledovaná sada", ("tracked_set",)),
 )
 
+_CHECK: Final = f"{_R}:readiness_problems"
+#: The range each check holds a limit to (F13), read where the check reports it: a maximum not
+#: above its minimum is refused at the maximum, so the minimum's range is its floor alone. A limit
+#: another one always tightens is left out (every value is at least 1: a minimum's floor holds
+#: it).
+_BOUNDS: Final = (
+    Bound("sample_size.min", (at_least(1),), _CHECK),
+    Bound("sample_size.max", (above("sample_size.min"),), _CHECK),
+    Bound("tracked_set.min", (at_least(3),), _CHECK),
+    Bound("tracked_set.max", (above("tracked_set.min"),), _CHECK),
+    Bound("tracked_set.recommended_min", (at_least("tracked_set.min"),), _CHECK),
+    Bound(
+        "tracked_set.recommended_max",
+        (at_least("tracked_set.recommended_min"), at_most("tracked_set.max")),
+        _CHECK,
+    ),
+)
+
 READINESS: Final = MethodModule(
     id="readiness",
     title_cs="Připravenost studie: kdy lze běh spustit",
@@ -262,6 +284,7 @@ READINESS: Final = MethodModule(
     presets=(Preset("aia-readiness-1", AIA_READINESS_V1, _validate),),
     in_force="aia-readiness-1",
     editable=True,
+    bounds=_BOUNDS,
     groups=_GROUPS,
     preview=_preview,
     preview_title_cs="Jak to uvidí výzkumník v Kontrole a spuštění",

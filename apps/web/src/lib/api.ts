@@ -2077,7 +2077,13 @@ export type MethodValue = {
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
   effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
+  /** The range the module's check holds the field to, each limit proved against the check; null
+   *  (or absent, from an older API) where no check holds it. A limit with a `reference` is that
+   *  field's value in the draft. */
+  bound?: MethodBound | null;
 };
+export type MethodLimit = { side: "low" | "high"; value: number | null; reference: string | null; strict: boolean };
+export type MethodBound = { limits: MethodLimit[]; whole: boolean };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {

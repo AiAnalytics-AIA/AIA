@@ -87,9 +87,16 @@ const walkEditor = async (moduleId, summary) => {
   const expected = [...new Set(detail.step_details.flatMap((s) => s.values.filter((v) => v.origin === "specification" && !v.absent && v.reference !== "methodology_version").map((v) => v.reference)))];
   const slots = detail.step_details.flatMap((s) => s.formulas.map((f) => f.slot_id));
   const form = page.locator("[data-methodology-editor]");
-  const rows = await form.locator("[data-edit-row]").evaluateAll((nodes) => nodes.map((n) => ({ ref: n.getAttribute("data-edit-row"), stage: n.querySelector("label + span")?.textContent ?? "" })));
+  const rows = await form.locator("[data-edit-row]").evaluateAll((nodes) => nodes.map((n) => ({ ref: n.getAttribute("data-edit-row"), stage: n.querySelector("label + span")?.textContent ?? "", bound: n.querySelector("[data-bound]")?.getAttribute("data-bound") ?? null })));
   assert.deepEqual(rows.map((r) => r.ref).sort(), [...expected].sort(), `${moduleId}: the list is not every parameter once`);
   if (detail.groups.length) for (const row of rows) assert(row.stage.trim(), `${moduleId}/${row.ref}: no stage named`);
+  // Each number the domain bounds says its range beside it ("mez …", F13); no other field claims one.
+  const declared = new Map(detail.step_details.flatMap((s) => s.values).filter((v) => v.origin === "specification").map((v) => [v.reference, v]));
+  for (const row of rows) {
+    const value = declared.get(row.ref);
+    if (value?.bound && typeof value.value === "number") assert.match(row.bound ?? "", /^mez /, `${moduleId}/${row.ref}: its bound is not said`);
+    else assert.equal(row.bound, null, `${moduleId}/${row.ref}: a bound the domain does not declare`);
+  }
   if (slots.length) {
     await form.locator("[data-edit-formulas] summary").click();
     await form.locator("[data-edit-slot]").first().waitFor();
@@ -97,7 +104,7 @@ const walkEditor = async (moduleId, summary) => {
     assert.deepEqual(shown.sort(), [...slots].sort(), `${moduleId}: the formulas are not every slot`);
     await form.locator("[data-edit-formulas] summary").click();
   }
-  return { params: rows.length, slots: slots.length };
+  return { params: rows.length, bounded: rows.filter((r) => r.bound).length, slots: slots.length };
 };
 
 /** Every stage of a read-only catalogue holds its steps, or says none is computed. */

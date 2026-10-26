@@ -306,6 +306,17 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("switching preset clears the previous subpanel and filters (OI-51 (a))", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29], kraj: ["Zlínský kraj"] } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("radio", { name: /Speciální skupiny/ }));
+      await saved();
+      const audience = lastSave().content.audience;
+      expect(audience.builtin_subpanel).toBe("");
+      expect(audience.filters).toEqual({}); // exactly empty: toMatchObject would take any object
+      noUnitCalls();
+    });
+
     it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
       // prijem is outside the category the editor opens on, so its editor is not drawn: its
       // target is the chip every stored filter has.
