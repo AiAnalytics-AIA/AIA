@@ -349,7 +349,8 @@ export function AppShell({
             </div>
           </header>
         ) : (
-        <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+        // A hero scrolls with its page, as the prototype draws it; the plain header stays pinned.
+        <header data-shell-header="" className={`z-20 border-b border-border bg-surface-raised px-4 lg:px-6 xl:px-8 ${hero ? "" : "lg:sticky lg:top-0"}`}>
           <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (

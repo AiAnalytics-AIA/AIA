@@ -3,7 +3,8 @@
 // The hero of a top-level page (the look contract, UI-1; prototype-build PBA4): an eyebrow, the
 // title in the serif at 40/46, a one-line lede, an optional edit chip, and a row of figures whose
 // values the page passes in. Only top-level pages carry it (Klienti and a client's workspace,
-// Společenská inteligence, Projektová paměť, Můj Vedoucí, Settings' sections); inside a study the
+// Společenská inteligence, Projektová paměť, Můj Vedoucí; Settings' sections when lane B moves
+// them onto it, settings-redesign F18); inside a study the
 // compact stage header stays (sans 20/26). A figure the page could not read says "neznámé", never 0.
 
 import type { ReactNode } from "react";
@@ -71,7 +72,7 @@ export function Hero({ eyebrow, title, lede, edit, figures, action, aside }: {
                 <dd
                   data-hero-figure={known ? "known" : "unknown"}
                   title={known ? undefined : t("aia.hero.unknownTitle")}
-                  className={`m-0 flex items-center gap-1.5 tabular-nums ${known ? (f.mono ? "font-mono text-base font-medium leading-6" : "text-xl font-semibold leading-[26px]") : "text-base font-medium leading-[26px] text-ink-faint"} ${known && f.you ? "text-status-you-ink" : ""}`}
+                  className={`m-0 flex items-center gap-1.5 tabular-nums ${known ? (f.mono ? "font-mono text-base font-medium leading-[26px]" : "text-xl font-semibold leading-[26px]") : "text-base font-medium leading-[26px] text-ink-faint"} ${known && f.you ? "text-status-you-ink" : ""}`}
                 >
                   {known ? f.value : t("aia.hero.unknown")}
                 </dd>

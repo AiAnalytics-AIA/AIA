@@ -48,6 +48,14 @@ describe("AppShell's hero", () => {
     expect(document.querySelector("[data-hero]")).toBeNull();
   });
 
+  it("lets the hero scroll with its page, and keeps the plain header pinned", () => {
+    render(<AppShell hero title="Klienti"><p>obsah</p></AppShell>);
+    expect(document.querySelector("[data-shell-header]")?.className).not.toContain("lg:sticky");
+    cleanup();
+    render(<AppShell title="Klienti"><p>obsah</p></AppShell>);
+    expect(document.querySelector("[data-shell-header]")?.className).toContain("lg:sticky");
+  });
+
   it("never draws it in a study: the stage keeps its compact header even when asked", () => {
     render(<AppShell hero track={<nav>stages</nav>} title="Dotazník"><p>obsah</p></AppShell>);
     expect(document.querySelector("[data-hero]")).toBeNull();
