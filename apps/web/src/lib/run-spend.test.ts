@@ -19,9 +19,11 @@ describe("spendRows", () => {
       ["remaining", "98,50 USD"],
     ]);
     expect(rows.find((r) => r.key === "remaining")!.note).toBe(t("research.exec.spend.remainingNote"));
-    // Holds are spoken of as the running steps' only while the run goes on.
-    expect(rows.find((r) => r.key === "held")!.note).toBeUndefined();
+    // A hold is never read as spent: an ended run's unreleased hold still says so; a zero needs no note.
+    expect(rows.find((r) => r.key === "held")!.note).toBe(t("research.exec.spend.heldNote"));
+    expect(spendRows({ ...SPEND, reserved_usd: 0 }, true, 98.5, null)!.find((r) => r.key === "held")!.note).toBeUndefined();
     expect(spendRows(SPEND, false, 98.5, null)!.find((r) => r.key === "held")!.note).toBe(t("research.exec.spend.heldNote"));
+    expect(spendRows({ ...SPEND, reserved_usd: 0 }, false, 98.5, null)!.find((r) => r.key === "held")!.note).toBeUndefined();
   });
 
   it("says the study's remainder is being read, or unknown when it could not be, never zero", () => {

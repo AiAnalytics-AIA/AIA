@@ -3722,7 +3722,7 @@ export const cs = {
         remaining: "Zbývá v rozpočtu studie",
         remainingUnknown: "neznámé",
         remainingLoading: "zjišťuji…",
-        remainingNote: "bez částek, které drží běžící kroky",
+        remainingNote: "bez částek, které běh drží",
       },
       budgetLine: {
         unknown: "Kolik z rozpočtu studie zbývá, AIA nyní neví.",
