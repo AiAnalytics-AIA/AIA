@@ -887,6 +887,9 @@ class DeletionPreviewResponse(BaseModel):
     #: Not deleted yet, until the stores can (SDL2): population_children (a count) and
     #: replaced_source_readings (``null``: not counted).
     remains_until_sdl2: dict[str, int | None]
+    #: The client's runs that have not ended (queued, running, waiting), by id: while any is
+    #: listed, DELETE answers 409 client_has_active_work. Read as the preview is made.
+    active_run_ids: list[str]
     #: One-time, for this person and this client, valid ten minutes: DELETE sends it back.
     confirm_token: str
     expires_at: datetime
@@ -964,6 +967,7 @@ def client_deletion_preview(
         deleted=preview.deleted,
         kept=preview.kept,
         remains_until_sdl2=preview.remains_until_sdl2,
+        active_run_ids=preview.active_run_ids,
         confirm_token=preview.confirm_token,
         expires_at=preview.expires_at,
     )
