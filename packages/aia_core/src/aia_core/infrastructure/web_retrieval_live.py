@@ -116,14 +116,31 @@ class UrllibWire:
     ``assert_hostname`` make TLS verify the URL's host. A pool keeps no cookies,
     reads no proxy from the environment and, with ``retries=False`` and
     ``redirect=False``, neither retries nor follows. A compressed answer is refused.
+
+    The read timeout bounds one read, not the answer: a server that sends a byte inside every
+    timeout would hold the fetch, and its host's pacing turn, until ``max_bytes``. So the whole
+    request has a deadline, ``deadline_s`` (security-audit-2026-10 S13), past which the fetch
+    fails ``timeout``. The body is read with ``read1``, one socket read at a time, so the cut
+    comes at most one read timeout after the deadline; ``read`` would wait to fill its amount.
     """
 
-    def __init__(self, *, connect_timeout_s: float = 8.0, read_timeout_s: float = 20.0) -> None:
+    def __init__(
+        self,
+        *,
+        connect_timeout_s: float = 8.0,
+        read_timeout_s: float = 20.0,
+        deadline_s: float = 120.0,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
         import urllib3
 
+        if deadline_s <= 0:
+            raise ValueError("deadline_s must be positive")
         self._urllib3 = urllib3
         self._connect_timeout_s = connect_timeout_s
         self._read_timeout_s = read_timeout_s
+        self._deadline_s = deadline_s
+        self._clock = clock
 
     def get(
         self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
@@ -142,6 +159,7 @@ class UrllibWire:
             block=True,
         )
         response: Any = None
+        started = self._clock()
         try:
             response = pool.request(
                 "GET",
@@ -161,9 +179,17 @@ class UrllibWire:
                     reason="content_encoding",
                     delivery=Delivery.RESPONDED,
                 )
+            # read1 where the response has it (urllib3 2): one socket read, whatever it brings.
+            read = getattr(response, "read1", None) or response.read
             body = bytearray()
             while len(body) <= max_bytes:
-                chunk = response.read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
+                if self._clock() - started > self._deadline_s:
+                    raise ToolCallFailed(
+                        "the answer did not arrive within the fetch's deadline",
+                        reason="timeout",
+                        delivery=Delivery.RESPONDED,
+                    )
+                chunk = read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
                 if not chunk:
                     break
                 body.extend(chunk)

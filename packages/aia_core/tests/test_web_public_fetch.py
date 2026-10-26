@@ -597,3 +597,51 @@ def test_the_sitemaps_robots_txt_declares_are_known_once_it_was_read(scoped: Any
     assert transport.known_sitemaps("STATS.example.") == ("https://stats.example/sitemap.xml",)
     assert gate.known_sitemaps("news.example") is None
     assert wire.targets() == ["stats.example/robots.txt", "stats.example/a"]
+
+
+class _TricklePool(_FakePool):
+    """A server that answers its headers, then one byte every 19 s: inside the read timeout
+    each time, never finishing."""
+
+    clock: ClassVar[list[float]] = [0.0]
+    reads: ClassVar[int] = 0
+
+    def request(self, method: str, target: str, **kwargs: Any) -> Any:
+        return _TrickleResponse()
+
+
+class _TrickleResponse:
+    status = 200
+    headers: ClassVar[dict[str, str]] = {"Content-Type": "text/html"}
+
+    def read1(self, amount: int, decode_content: bool) -> bytes:
+        assert decode_content is False
+        _TricklePool.clock[0] += 19.0
+        _TricklePool.reads += 1
+        return b"x"
+
+    def read(self, amount: int, decode_content: bool) -> bytes:  # pragma: no cover
+        # http.client fills the whole amount before it returns: a trickle holds it for
+        # amount x 19 s, so the wire must not read this way.
+        raise AssertionError("read() blocks until the amount is filled; read1() is the one")
+
+    def release_conn(self) -> None:
+        pass
+
+
+def test_a_trickling_answer_is_cut_at_the_fetchs_overall_deadline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib3
+
+    _TricklePool.clock[0], _TricklePool.reads = 0.0, 0
+    monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _TricklePool)
+    wire = UrllibWire(deadline_s=60.0, clock=lambda: _TricklePool.clock[0])
+    with pytest.raises(ToolCallFailed) as failed:
+        wire.get(
+            address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10_000_000
+        )
+    assert failed.value.reason == "timeout"
+    assert failed.value.delivery is Delivery.RESPONDED
+    # Cut at the first read past 60 s, not after 10 MB at a byte per 19 s.
+    assert _TricklePool.reads == 4

@@ -13,7 +13,7 @@ chunks:
   - "[ ] 10. DOCX table rows read one cell per w:tc, never repeated by gridSpan or vMerge past a bound (S10)"
   - "[x] 11. No entity expands in an XLSX source or attachment (S11; #709: refuse_dtd over every workbook member before openpyxl, not defusedxml)"
   - "[ ] 12. AIA_MAX_REQUEST_BYTES is enforced by the API, per route, or removed from Settings (S12)"
-  - "[ ] 13. A web fetch has an overall deadline, not only a per-read timeout (S13)"
+  - "[x] 13. A web fetch has an overall deadline, not only a per-read timeout (S13; UrllibWire deadline_s 120 s, the body read with read1)"
   - "[x] 14. Only an OWNER grants or removes OWNER, and the last OWNER is never demoted (S14; the product owner chose option (b) on 2026-10-22; #782, merged 2026-10-22)"
   - "[ ] 15. ScopeRepository.deactivate_user acts only on a member of the admin's organization (S15)"
   - "[ ] 16. Hardening: email_verified, a CSP, worker log fields redacted, URL userinfo and AWS key shapes redacted, workflow inputs through env, GlitchTip on its own network (S16-S21)"
@@ -275,6 +275,13 @@ what a bound on one path misses.
   5. Fix: an overall deadline in the read loop, after which the fetch raises
      `ToolCallFailed(reason="timeout")`.
   6. Test: a stub wire that trickles bytes is cut at the deadline.
+  Fixed: `UrllibWire` takes `deadline_s` (120 s) and reads the body with `read1`, one socket
+  read at a time; a measured local check (urllib3 2.8, a byte every 0.3 s) had `read(10)` wait
+  3.0 s to fill while `read1` returned each byte as it came. Test:
+  `test_web_public_fetch.py::test_a_trickling_answer_is_cut_at_the_fetchs_overall_deadline`.
+  Not covered: a server that trickles its *headers* (http.client reads them before the body
+  loop starts), each line inside the read timeout. Bounded by http.client's 100 headers of
+  64 KiB; closing it needs a watchdog that shuts the socket, left for chunk 16.
 - **S14. An ADMIN can promote anyone to OWNER, and can demote every OWNER.**
   1. Claim: `add_member` overwrites an existing membership's role after
      `require_administer()` alone. There is no "only an OWNER sets OWNER" rule and no
