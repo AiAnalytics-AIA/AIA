@@ -7,7 +7,7 @@
  *   node tools/ui_workbench/sample_panel_journey.mjs [--facade http://127.0.0.1:8780] [--out DIR]
  * Local fictional identity only. At 1440, 1100, 768 and 390 px: "Složení podle kvót" shows the
  * sample readiness drew, each cell its sample:quota:<key> target with the server's n, the largest
- * ten first and the rest folded; the support forecast is known; nothing is editable, nothing
+ * six first and the rest folded; the support forecast is known; nothing is editable, nothing
  * overflows. Then a readiness check opens the stage that fixes it; nothing is written but the
  * stage visit, so nothing paid starts.
  */
@@ -64,7 +64,7 @@ const noOverflow = async (label) => {
   const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
   assert(r.d <= r.w + 2, `${label}: page overflow ${r.d} > ${r.w}`);
 };
-const SHOWN = 10;
+const SHOWN = 6;
 
 try {
   for (const width of [1440, 1100, 768, 390]) {
@@ -85,9 +85,9 @@ try {
     await sample.getByRole("heading", { name: "Složení podle kvót" }).waitFor({ timeout: 30000 });
     const rows = sample.locator('[data-aia^="sample:quota:"]');
     assert.equal(await rows.count(), cells.length, `a target per cell @${width}`);
-    // The largest ten in view, in the server's order of size, each with the server's n.
+    // The largest six in view, in the server's order of size, each with the server's n.
     const visible = await rows.evaluateAll((trs) => trs.filter((tr) => tr.checkVisibility()).map((tr) => ({ aia: tr.dataset.aia, n: Number(tr.lastElementChild.textContent) })));
-    assert.equal(visible.length, Math.min(SHOWN, cells.length), `ten cells shown @${width}`);
+    assert.equal(visible.length, Math.min(SHOWN, cells.length), `six cells shown @${width}`);
     assert.deepEqual(visible.map((v) => v.n), cells.slice(0, SHOWN).map((c) => c.n), `largest first @${width}`);
     for (const c of cells) assert.equal(await sample.locator(`[data-aia="sample:quota:${c.key}"]`).count(), 1, `sample:quota:${c.key} @${width}`);
     if (cells.length > SHOWN) {
@@ -96,7 +96,7 @@ try {
       assert.equal(opened, cells.length, `the fold opens to every cell @${width}`);
     }
     // §2 reads the drawn sample: the support forecast is known, no longer "neznámé".
-    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
+    const forecast = page.getByRole("region", { name: "Kolik dat bude za čísly" });
     await forecast.getByRole("heading", { name: /^Opora výsledků/ }).waitFor({ timeout: 30000 });
     assert.equal(await forecast.getByRole("heading", { name: "Opora výsledků: neznámé" }).count(), 0, `the panel's forecast is known @${width}`);
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
@@ -113,7 +113,7 @@ try {
     await noOverflow(`sample @${width}`);
     await sample.screenshot({ path: join(out, `${width}-sample-panel.png`) });
   }
-  check("Složení podle kvót: every drawn cell a sample:quota target with the server's n, the largest ten shown, the rest folded, at 1440, 1100, 768 and 390, no overflow");
+  check("Složení podle kvót: every drawn cell a sample:quota target with the server's n, the largest six shown, the rest folded, at 1440, 1100, 768 and 390, no overflow");
   check("the support forecast reads the drawn sample: known, at every width");
   check("every control that stands on its own is a touch target: 44 px on a phone, 32 px from 640 px");
 

@@ -19,7 +19,7 @@
  *     run or method id outside Technické údaje (artifact-sociomap SOC9-SOC11);
  *   * Objekty / Respondenti opens each map with nothing selected (#562); a pick's detail opens in the
  *     side sheet beside the map, the canvas ending where the sheet begins (SOC13);
- *   * full screen draws Top vztahy as the page does: the selected object's five, else the map's;
+ *   * full screen draws Nejsilnější vztahy as the page does: the selected object's five, else the map's;
  *   * a display change (Vše in Nástroje, Absolutní in Nastavení mapy) raises the filter chip, which
  *     says the computation is unchanged, and "Zrušit filtr" goes back to the opening (SOC3); the
  *     listed numbers do not move;
@@ -286,7 +286,7 @@ try {
   await shot("1440-fullscreen-top");
   await page.evaluate(() => document.exitFullscreen());
   await page.waitForFunction(() => document.fullscreenElement === null);
-  check("full screen: Top vztahy follows the selection, as on the page");
+  check("full screen: Nejsilnější vztahy follows the selection, as on the page");
 
   const values = () => list.evaluateAll((bs) => bs.map((b) => b.textContent));
   await showList();

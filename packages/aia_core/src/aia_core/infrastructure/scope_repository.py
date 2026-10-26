@@ -167,8 +167,15 @@ class ScopeRepository:
         email: str,
         display_name: str = "",
         external_subject: str | None = None,
+        seen: bool = False,
     ) -> dict[str, Any]:
         """Find or create a user by identity-provider subject, else by email.
+
+        ``seen`` is the person's own request (the API's identity path): only then is
+        ``last_seen_at`` stamped. An administrator adding a member or changing their role
+        upserts the same row, and that is not the member being seen: a stamp there would
+        show the time of someone else's change as their last activity (Settings ->
+        Přístup's Naposledy, settings-redesign F19).
 
         Matching on ``external_subject`` first matters: it is the identity
         provider's immutable claim, so a user who changes their email address
@@ -202,6 +209,7 @@ class ScopeRepository:
                 email=email.strip().lower(),
                 display_name=display_name or email.split("@")[0],
                 external_subject=external_subject,
+                last_seen_at=utcnow() if seen else None,
             )
             self._session.add(row)
         else:
@@ -211,7 +219,8 @@ class ScopeRepository:
                 row.external_subject = external_subject
             if display_name:
                 row.display_name = display_name
-            row.last_seen_at = utcnow()
+            if seen:
+                row.last_seen_at = utcnow()
 
         self._session.flush()
         return {
@@ -1484,6 +1493,7 @@ class ScopeRepository:
                 "organization_role": member.role,
                 "methodologist": bool(member.methodologist),
                 "deactivated_at": member.deactivated_at,
+                "last_seen_at": user.last_seen_at,
             }
             for member, user in rows
         ]

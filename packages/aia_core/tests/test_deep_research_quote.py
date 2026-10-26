@@ -213,3 +213,109 @@ def test_ceiling_metadata_never_writes_zero_for_unknown() -> None:
         "cost_ceiling_usd": None,
         "cost_ceiling_unknown": "deep_research_price_missing",
     }
+
+
+# --------------------------------------------------------------------------- a focused run
+
+#: Two research questions and a tracked set: the whole design researches all three kinds.
+FOCUS_DESIGN: dict[str, Any] = {
+    "title": "Rostlinné nápoje",
+    "goal": "Zjistit, kdo v Česku pije rostlinné nápoje a proč.",
+    "research_plan": {
+        "research_questions": [
+            "Jak roste trh rostlinných nápojů v Česku?",
+            "Proč lidé rostlinné nápoje nekupují?",
+        ],
+        "tracked_sets": [{"objects": ["Alpro", "Oatly"]}],
+    },
+    "sections": [],
+}
+
+
+def _focus_revision(session: Any, scoped: Any) -> tuple[str, list[str]]:
+    from aia_core.domain.item_ids import list_ids, with_item_ids
+
+    repo = StudyDesignRepository(session, scoped.scope(user="lead"))
+    made, _ = repo.submit_as_working_copy(content=FOCUS_DESIGN, source_stage="brief")
+    plan = with_item_ids(repo.content(made.revision_id))[0]["research_plan"]
+    ids = list_ids(plan, "research_questions", "research_question_ids")
+    assert ids is not None and len(ids) == 2
+    return made.revision_id, ids
+
+
+def test_a_focused_quote_equals_the_focused_start_and_both_are_smaller_than_the_design(
+    session: Any, scoped: Any, runs: DeepResearchRuns
+) -> None:
+    """LO5a.1 (Q45; Codex on #553): a focused card used to quote and run the whole design."""
+    revision, ids = _focus_revision(session, scoped)
+    whole = runs.quote(
+        runs.freeze_design(design_revision_id=revision, preset_name="STANDARD"),
+        prices=FREE,
+        modes=LEAD,
+    )
+    spec = runs.freeze_design(design_revision_id=revision, preset_name="STANDARD", focus=[ids[1]])
+    focused = runs.quote(spec, prices=FREE, modes=LEAD)
+    assert focused.ceiling.total_usd < whole.ceiling.total_usd
+    started = _start(runs, revision, FREE, focus=[ids[1]])
+    meta = runs.get(started.run_id)["metadata"]
+    assert meta["cost_ceiling_usd"] == focused.ceiling.total_usd
+    assert meta["subjects"] == 1
+    # Its own request and spec: the whole design's start is a run of its own, never this one.
+    assert meta["run_spec_fingerprint"] == spec.fingerprint()
+    assert _start(runs, revision, FREE).run_id != started.run_id
+
+
+def test_a_focused_request_holds_only_the_selected_research_questions(
+    session: Any, scoped: Any, runs: DeepResearchRuns
+) -> None:
+    from aia_core.domain.deep_research.contracts import SubjectKind
+
+    revision, ids = _focus_revision(session, scoped)
+    whole = runs.freeze(design_revision_id=revision, preset_name="QUICK")
+    assert {s.kind for s in whole.subjects} == {SubjectKind.QUESTION, SubjectKind.OBJECT}
+    focused = runs.freeze(design_revision_id=revision, preset_name="QUICK", focus=[ids[1]])
+    assert [(s.kind, s.text) for s in focused.subjects] == [
+        (SubjectKind.QUESTION, "Proč lidé rostlinné nápoje nekupují?")
+    ]
+    # The subject is the whole design's own, so its tracks reuse what was researched before.
+    assert focused.subjects[0] in whole.subjects
+    both = runs.freeze(design_revision_id=revision, preset_name="QUICK", focus=[ids[1], ids[0]])
+    assert len(both.subjects) == 2
+
+
+def test_an_unknown_focus_is_refused_by_name_before_anything_is_priced(
+    session: Any, scoped: Any, runs: DeepResearchRuns
+) -> None:
+    from aia_core.application.deep_research import FocusUnknown
+
+    revision, ids = _focus_revision(session, scoped)
+    before = _counts(session)
+    with pytest.raises(FocusUnknown) as refused:
+        runs.freeze_design(
+            design_revision_id=revision, preset_name="STANDARD", focus=[ids[0], "rq_nope"]
+        )
+    assert refused.value.unknown == ("rq_nope",) and refused.value.reason == "focus_unknown"
+    with pytest.raises(FocusUnknown):
+        _start(runs, revision, FREE, focus=["rq_nope"])
+    session.flush()
+    assert _counts(session) == before
+
+
+def test_a_focused_run_retries_on_the_same_research_questions(
+    session: Any, scoped: Any, runs: DeepResearchRuns
+) -> None:
+    """Review of #925 (Codex): a retry froze the whole design again, broadening the work and
+    its ceiling past what the person approved."""
+    revision, ids = _focus_revision(session, scoped)
+    started = _start(runs, revision, FREE, focus=[ids[1]])
+    original = runs.get(started.run_id)["metadata"]
+    assert original["focus"] == [ids[1]]
+    runs.cancel(started.run_id)
+    retried = runs.retry(started.run_id, prices=FREE, modes=LEAD)
+    meta = runs.get(retried.run_id)["metadata"]
+    assert meta["retry_of"] == started.run_id
+    assert (meta["focus"], meta["subjects"]) == ([ids[1]], 1)
+    assert meta["cost_ceiling_usd"] == original["cost_ceiling_usd"]
+    # A whole-design run records no focus, and retries as the whole design.
+    whole = _start(runs, revision, FREE)
+    assert "focus" not in runs.get(whole.run_id)["metadata"]

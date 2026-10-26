@@ -5,7 +5,8 @@
  * step, a value outside the limits is refused at the field and nothing is saved.
  * A chosen dimension is removed from the selection itself by keyboard (each remove at least 24 px,
  * focus kept in the selection) and put back by Vrátit (DIM-F5, DIM-F7, DIM-F10). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
- * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
+ * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4). The search finds a name typed without
+ * diacritics (DIM-F13), and a request the catalogue already names is refused at the field (DIM-F14).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end; "Další"
  * leaves its Dimenze marked done (persona_mode calibrated): `make ui-fixtures` writes it afresh.
@@ -90,7 +91,10 @@ try {
   const own = page.locator("section", { has: page.getByRole("heading", { name: "Vlastní dimenze klienta" }) });
   await own.getByRole("link", { name: /Populace běhu/ }).waitFor();
   assert.equal(await own.getByRole("link", { name: /Populace běhu/ }).getAttribute("href"), `/app/clients/${client}/research/${study}/run`);
-  check("Vlastní dimenze klienta: read, with the way to Populace běhu");
+  // Still at 390 px from the loop above: the stand-alone link is a touch target (TOUCH_LINK, 44 px).
+  const linkBox = await own.getByRole("link", { name: /Populace běhu/ }).boundingBox();
+  assert(linkBox && linkBox.height >= 44, `the Populace běhu link is ${linkBox?.height} px tall at 390`);
+  check("Vlastní dimenze klienta: read, with the way to Populace běhu, a 44 px target at 390");
 
   // The last chosen one, so even the fallback in `finally` (the catalogue, which appends) keeps the order.
   const chosen = page.getByRole("list", { name: "Vybrané dimenze" });
@@ -120,8 +124,23 @@ try {
   assert.notEqual(await live.evaluate((e) => getComputedStyle(e).display), "none", "the no-match status is rendered while empty");
   await page.getByLabel("Hledat dimenzi").fill("zzz");
   await live.getByText("Hledání nic nenašlo").waitFor();
+  // DIM-F13: typed without diacritics, with spaces around it, the dimension is found.
+  await page.getByLabel("Hledat dimenzi").fill(" duvera ");
+  await catalogue.getByRole("button", { name: /^Důvěra/ }).waitFor();
+  assert.equal(await live.textContent(), "");
   await page.getByLabel("Hledat dimenzi").fill("");
-  check("a search that matches nothing is said in a status that was rendered before it");
+  check("a search that matches nothing is said in a status that was rendered before it; one without diacritics finds");
+
+  // DIM-F14: a name the catalogue has already is refused at the field, and nothing is sent.
+  const requests = writes.length;
+  const name = page.getByLabel("Název dimenze");
+  await name.fill("DUVERA");
+  await page.getByRole("button", { name: "Přidat jako požadavek" }).click();
+  await page.getByRole("alert").filter({ hasText: "už v katalogu je" }).waitFor();
+  assert.equal(await name.getAttribute("aria-invalid"), "true");
+  assert.equal(writes.length, requests, "a refused request sends nothing");
+  await name.fill("");
+  check("a request the catalogue already names is refused at the field, nothing sent");
 
   const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
   const max = Number(await n().getAttribute("aria-valuemax"));

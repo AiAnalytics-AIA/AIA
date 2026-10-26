@@ -1632,10 +1632,17 @@ class ResearchRuns:
         )
         return run_spend(usage, holds)
 
-    def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
+    def runs(
+        self,
+        *,
+        limit: int = 20,
+        steps: bool = False,
+        statuses: Sequence[WorkflowRunStatus] | None = None,
+    ) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.
 
         ``steps``: each with its steps, without their attempt history (one more query).
+        ``statuses``: only runs in those states, filtered before the limit.
         """
         project_id = self._designs().project_id()
         if project_id is None:
@@ -1643,7 +1650,11 @@ class ResearchRuns:
         runs = [
             r
             for r in self._workflows().list_runs(
-                project_id=project_id, limit=limit, workflow_type=RESEARCH, steps=steps
+                project_id=project_id,
+                limit=limit,
+                workflow_type=RESEARCH,
+                steps=steps,
+                statuses=statuses,
             )
             if r["workflow_type"] == RESEARCH
         ]

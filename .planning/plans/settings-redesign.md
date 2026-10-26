@@ -27,19 +27,19 @@ chunks:
   - "[x] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
-  - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
+  - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
   - "[x] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
-  - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
+  - "[x] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
-  - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
+  - "[x] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
   - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
   - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
-  - "[ ] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
+  - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
   - "[ ] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
   - "[ ] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
@@ -170,6 +170,13 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   iterations and tolerance, held to one value under the signed-off layout; `layout.min_objects`, two
   or three by layout), and pairs checked as one (quantiles, stress bands). A null line in a preset
   (support's results.min_cell) has no bound shown: no preset lets the test prove it.
+- F14: the activity of a ledger row is read from the agent id its code sends (`domain/ai_activity.py`;
+  Deep Research's lead researcher by its capability); a call no listed activity makes (AI proposals
+  from a client's document, an operator's calibration) is left out. The read asks each known agent's
+  newest `SUCCEEDED` row, one lookup each on the partial index `ix_usage_org_answered`: a grouped
+  maximum read the organization's whole ledger (a parallel scan, 42 ms at 600,000 rows and growing),
+  the lookups 0.03 ms each, 11 ms for all 22 agents whatever the ledger's size. "Last answered" is the
+  past: a newer failure is not hidden by it and the page never says an activity works.
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
@@ -193,11 +200,33 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
+**F16. Studie a rozpočty compacted** (built). The studies card as prototype v52 draws it: its title the
+tab's h2 with the count and an ⓘ; each money column's ⓘ a real button (it was an aria-hidden title,
+#892's rule for every ⓘ) that opens the one explanation -- who may change a budget, then the four
+D-01 names with where each is set -- which replaces the paragraph and the "Co znamenají částky" button
+under the table; a client filter ("Všichni klienti (n)", each client with its count) beside the search
+when the studies span more than one client, a filtered row hidden, never unmounted. The spend card
+(#892) is already compact: its ⓘ, legend and bars stay.
+
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 
 **F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.
 
 **F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
+  Built: `last_seen_at` on `MemberResponse`, for an OWNER or ADMIN (null otherwise, as the Lead's seal
+  is), in UTC whichever database stored it. **Finding (fixed here):** `ScopeRepository.upsert_user`
+  stamped `last_seen_at` on every upsert of an existing user, and `add_member` upserts the member, so
+  an administrator's role change or re-add wrote their own moment as the member's last activity
+  (`packages/aia_core/src/aia_core/infrastructure/scope_repository.py:214 @ 25ce6493`); it now
+  stamps only with `seen=True`, which the API's identity path alone passes, and a first sign-in
+  stamps the row it creates. Test: `apps/api/tests/test_member_last_seen_api.py`.
+- F9: Přístup as prototype v58 draws it: Členové, Samoschválení and Klienti as three flat cards under
+  the tab's head (no group card around them; each card's title the h2), their explanations behind an ⓘ
+  that a keyboard or touch opens (`settings/InfoButton.tsx`, shared with later compaction chunks), the
+  role boxes behind the Role column's ⓘ. Naposledy for an administrator: a time with the exact moment on
+  hover, "nikdy" for null, "nezjištěno" for an API that does not serve it; a member sees no column. The
+  organization's self-approval in the card's one row beside the precedence; "Výchozí" kept (the code's
+  third option) and the study rules kept in the card, against v58's two options and "ve studii".
 
 **F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
 
