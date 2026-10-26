@@ -50,6 +50,8 @@ await context.addInitScript(() =>
   ),
 );
 const page = await context.newPage();
+// A stage on the navigator by its own label: the text it starts with. A substring would also match
+// another stage's reopened mark ("ověřit znovu: změna dříve v návrhu", lib/working-impact.ts).
 const errors = [], writes = [], checks = [], requests = [], switches = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => {
@@ -346,6 +348,8 @@ try {
     await elsewhere.waitFor({ timeout: 30000 });
     assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
     await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
+    // DSN14: in the workbench a comment is saved for the Lead, and the section says it changes nothing.
+    await page.locator("#plan-comments").getByText("Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.").waitFor({ timeout: 30000 });
     // DSN12: the hypotheses are a section of their own, each a Lead target, with no verdict said.
     const hypotheses = page.getByRole("region", { name: "Hypotézy" });
     assert.equal(await hypotheses.locator('[data-aia^="hypothesis:"]').count(), 2, `plan @${width}: the hypotheses' section`);
@@ -405,7 +409,7 @@ try {
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník", "Opravit v Dimenzích", "Opravit v Cílové skupině", "Opravit v Dotazníku"]);
     // A link card reads its title, then what is set there: the title names where it goes.
     const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim().split("\n")[0].trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
@@ -461,7 +465,8 @@ try {
   for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
     await page.goto(base + stagePath(slug));
     await page.locator("[data-workbench]").waitFor();
-    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    // The stage has drawn: its first heading (its dock's action is the header's now, research-lead-workbench 36).
+    await page.locator("#artbody").getByRole("heading").first().waitFor({ timeout: 60000 });
     const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
     assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
   }

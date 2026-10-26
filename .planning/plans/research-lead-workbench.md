@@ -48,6 +48,9 @@ chunks:
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
   - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
+  - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
+  - "[x] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
+
   - "[x] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
   - "[ ] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
   - "[ ] 37. The Lead's run card agrees with Průběh: done steps, spend and ceiling from the single-run read (spec sber F7; W1)"
@@ -2049,6 +2052,50 @@ follow-up chunk below.
 - `sber/F7`, `lead/LP-10` stand on #23, re-waved to W1 (register §6.4; the contracts' second table).
 - `navrh/Q7` and `szz/S4` stand on #23b and #26f.1.
 
+### The stage header's slots and its next stage (2026-10-26, `feature/stage-header-slot`; chunk 36 of #923, v73 X1 + H1)
+
+Chunk 36 is ticked in the front matter (it arrived with #923).
+- **`step.tsx`.** `StepSection` prints `n` as two mono digits ("03"), or `num` ("B1", "S1"); `cap` is the
+  right-hand caption; `need` draws the coral edge and a "chybí" pill, in words. `optional` keeps its
+  title suffix, since stage tests read section names with it. `StageHeader` (context) and
+  `StageHeaderSlot` (`actions` | `status`) put a stage's header parts into the workbench's header, and
+  leave them where they stand outside it. `ActionDock` inside the workbench claims the header's primary
+  slot and puts its action there: the stage's own forward action (its label, its conditions, what it
+  saves on the way: Návrh's questionnaire path, Dotazník's run-check reset) rather than a plain next.
+- **`ui.tsx`.** `WellItem`: one row of a section, mono id at the left, actions at the right.
+- **`Workbench.tsx`.** Three slot elements: actions beside the inspector toggle, the primary at the
+  right, a status row under the header (hidden when empty). With no dock claiming the primary, the
+  header shows the frame's next stage ("Cílová skupina ›"), opened through `FrameNavigation.next`
+  (the leave guard, the heading's focus). Vzorek keeps Dimenze's screen mounted but hidden, so it gets no
+  header context: Dimenze's dock would otherwise claim Vzorek's primary.
+- **In a browser** (`workbench_journey.mjs` on a fresh UI workbench built from the branch, fictional
+  studies, nothing paid): every check passes at 1440, 1280, 1100, 1099, 768 and 390 px. It found two
+  defects the unit tests could not: at 390 px the title column fell to 126 px beside the new primary, so
+  the header now wraps, the title keeping 240 px; and the stage's own forward button was 36 px high
+  there, so the header's buttons join the sheet's 44 px rule. The journey waited for a button in the
+  artifact body as its sign that a stage had drawn, and Cílová skupina's only one was its dock action,
+  now in the header; it waits for the stage's first heading instead.
+- **Stand-in review (P2, fixed).** Every dock's action had moved to the header, Sběr dat's paid
+  "Spustit výzkum" with it; v73 keeps it in "Co spustíte" beside its conditions, with "Výsledky ›" in the
+  header. `ActionDock inHeader={false}` keeps an action that is not a way on in its place, and
+  `ExecutionSteps` passes it. Also from the review: the claim is a layout effect (no frame of the plain
+  next before the dock's action), and a dock left with nothing to show draws no empty card. Left: the
+  classic layout now numbers the sections that pass `n` (Dimenze mixes "01" and unnumbered ones), which
+  the stage chunks set per their boards. The journey's navigator clicks match a stage by its `.nav__label`
+  exactly (#840's helper, taken in the merge): since #680 a reopened stage's mark ("ověřit znovu: změna
+  dříve v návrhu") made "Návrh" match eight buttons.
+- **Reversed rule.** `step.test.tsx` had held that sections are not numbered (research-lane-redesign);
+  v73 numbers every section, so that assertion moved to the new test.
+- **For the stage owners.** Zadání's readiness chips go in `StageHeaderSlot slot="status"`, header
+  actions in `slot="actions"`; Dimenze's "N dimenzí…" and Vzorek's readiness pill in `status` (H1).
+- **Tests.** `step.test.tsx` "StepSection prints its number and cap, and the need state names what is
+  missing", "WellItem is one row…", "a stage's header parts stay where they stand outside the
+  workbench…", "ActionDock in the workbench puts its action in the header's primary slot…";
+  `Workbench.layout.test.tsx` "the stage header's slots and its next stage" (actions in the header with
+  no remount across 1100 px; the frame's next when no dock claims it; the dock's action instead, one
+  copy); `ResearchScreen.workbench.test.tsx` "the header's next is the stage's own forward action; no
+  dock button inside the workbench". Each fails without the change.
+
 ### Návrh's hypotheses as a plan part (2026-10-26, `feature/plan-hypotheses-anchor`; for artifact-design DSN12)
 
 Návrh draws its hypotheses in their own section (`plan-hypotheses`, between Porozumění and Sady). Each
@@ -2069,3 +2116,20 @@ dimensions alone, done once one is chosen) and `sample` (`N=…`, else "N nezad�
 them for the two stages. The classic track's `persona` line is unchanged. Tests: `lane.test.ts` "gives
 the workbench's Dimenze its dimensions alone and Vzorek its N…"; `workbench-stages.test.ts` "read their
 state from the lane…". Each fails without the change.
+
+### A parked Lead turn's hold that is not a number stays parked (2026-10-26, `fix/lead-budget-hold-unknown`)
+
+Relayed from the Sběr dat session (#974).
+1. Claim: `release_lead_budget_waits` sent a parked turn whose recorded hold was NaN, `True` or
+   negative, as if it fit the raised budget.
+2. Anchor: `application/research_lead.py:482 @ 8fb1e2ce`. `isinstance(True, int)` holds, and
+   `nan > remaining` is false.
+3. Reproduction: `test_research_lead_application.py::test_a_parked_turn_whose_hold_is_unknown_stays_parked`
+   `[nan]`, `[True]` and `[-1.0]`.
+4. Consequence: a turn whose hold is unknown was sent on a budget raise and counted against nothing.
+5. Fix: `_recorded_hold` reads a hold only as a finite, non-negative number of USD; anything else is
+   unknown and stays parked.
+6. Test: that parametrised test; the three cases fail without the change.
+
+Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
+to the steps it owns).

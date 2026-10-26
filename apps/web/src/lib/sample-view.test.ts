@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -199,5 +199,19 @@ describe("compositionOf", () => {
     expect(compositionOf(readiness({ persona_source: "panel", sample_composition: null }))).toEqual({ kind: "unknown" });
     expect(compositionOf(readiness({ persona_source: "panel" }))).toEqual({ kind: "unknown" });
     expect(compositionOf(readiness({ persona_source: "fictional_roster", sample_composition: drawn() }))).toEqual({ kind: "roster" });
+  });
+});
+
+describe("readinessLine", () => {
+  const c = (status: string) => ({ id: status, status, message: "" }) as never;
+  it("says whether a run can start and what holds it, in the board's words", () => {
+    expect(readinessLine(readinessSummary(readiness({ ready: false, checks: [c("FAIL"), c("FAIL"), c("WARN")] })))).toEqual({ tone: "fault", words: "Nelze spustit · 2 kontroly brání" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("WARN"), c("PASS")] })))).toEqual({ tone: "done-warn", words: "Lze spustit · 1 upozornění" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("PASS")] })))).toEqual({ tone: "done", words: "Lze spustit · nic nebrání" });
+  });
+
+  it("takes the server's verdict, and never reads an unknown status as passed", () => {
+    expect(readinessLine(readinessSummary(readiness({ ready: false, checks: [c("PASS")] })))).toEqual({ tone: "fault", words: "Nelze spustit: server spuštění nepovolí" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("SKIPPED")] }))).tone).toBe("inert");
   });
 });
