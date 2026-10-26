@@ -50,6 +50,9 @@ await context.addInitScript(() =>
   ),
 );
 const page = await context.newPage();
+// A stage on the navigator by its own label: the text it starts with. A substring would also match
+// another stage's reopened mark ("ověřit znovu: změna dříve v návrhu", lib/working-impact.ts).
+const navStage = (label, state = "") => page.locator(`.nav__stage${state}`, { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) });
 const errors = [], writes = [], checks = [], requests = [], switches = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => {
@@ -147,11 +150,11 @@ try {
   const leadBefore = leadReads();
   for (const [label, slug, title] of [["Návrh", "plan", "Návrh"], ["Dotazník", "questionnaire", "Dotazník"], ["Cíl. skupina", "audience", "Cílová skupina"], ["Dimenze", "dimensions", "Dimenze"]]) {
     const started = Date.now();
-    await page.locator(".nav__stage", { hasText: label }).click();
+    await navStage(label).click();
     await page.waitForURL(`**${stagePath(slug)}`);
     await page.waitForFunction((t) => document.querySelector(".art .arthead__title")?.textContent === t, title);
     switches.push({ stage: slug, ms: Date.now() - started });
-    await page.locator(".nav__stage.is-current", { hasText: label }).waitFor();
+    await navStage(label, ".is-current").waitFor();
     assert.equal(await page.evaluate(() => document.getElementById("composer") === window.__aiaComposer), true, `${slug}: the Lead's pane was drawn again`);
     assert.equal(await page.evaluate(() => document.querySelector(".conv") === window.__aiaPane), true, `${slug}: the conversation was drawn again`);
     if (draft) assert.equal(await page.locator("#composer").inputValue(), draft, `${slug}: the draft was lost`);
@@ -165,22 +168,22 @@ try {
   check(`navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes, the Lead's pane${draft ? " and draft" : ""} kept (${switches.map((s) => `${s.stage} ${s.ms} ms`).join(", ")})`);
 
   // Vzorek is a read-only view over Dimenze and Kontrola, on Dimenze's route.
-  await page.locator(".nav__stage", { hasText: "Vzorek" }).click();
+  await navStage("Vzorek").click();
   await page.waitForFunction(() => location.hash === "#sample");
   await page.locator("[data-sample-view]").waitFor();
   await shot("1440-sample");
-  await page.locator(".nav__stage", { hasText: "Dimenze" }).click();
-  await page.locator(".nav__stage.is-current", { hasText: "Dimenze" }).waitFor();
+  await navStage("Dimenze").click();
+  await navStage("Dimenze", ".is-current").waitFor();
   assert.equal(await page.locator("[data-sample-view]").count(), 0, "back on Dimenze, not Vzorek");
   check("Vzorek shows the sample read only, and Dimenze is one click back");
 
   // Výsledky's views are the hash ResultsWorkspace reads.
-  await page.locator(".nav__stage", { hasText: "Sociomapa" }).click();
+  await navStage("Sociomapa").click();
   await page.waitForURL(`**${stagePath("results")}#maps`);
-  await page.locator(".nav__stage.is-current", { hasText: "Sociomapa" }).waitFor();
-  await page.locator(".nav__stage", { hasText: "Zpráva" }).click();
+  await navStage("Sociomapa", ".is-current").waitFor();
+  await navStage("Zpráva").click();
   await page.waitForFunction(() => location.hash === "#report");
-  await page.locator(".nav__stage.is-current", { hasText: "Zpráva" }).waitFor();
+  await navStage("Zpráva", ".is-current").waitFor();
   await shot("1440-report");
   check("Sociomapa and Zpráva open Výsledky's views by hash");
 
@@ -383,7 +386,7 @@ try {
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
-  await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
+  await navStage("Sběr dat", ".is-current").waitFor();
   check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
   // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input

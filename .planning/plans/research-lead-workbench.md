@@ -1968,6 +1968,15 @@ The front-matter line for chunk 36 arrives with #923 (the plans PR); this record
   there, so the header's buttons join the sheet's 44 px rule. The journey waited for a button in the
   artifact body as its sign that a stage had drawn, and Cílová skupina's only one was its dock action,
   now in the header; it waits for the stage's first heading instead.
+- **Stand-in review (P2, fixed).** Every dock's action had moved to the header, Sběr dat's paid
+  "Spustit výzkum" with it; v73 keeps it in "Co spustíte" beside its conditions, with "Výsledky ›" in the
+  header. `ActionDock inHeader={false}` keeps an action that is not a way on in its place, and
+  `ExecutionSteps` passes it. Also from the review: the claim is a layout effect (no frame of the plain
+  next before the dock's action), and a dock left with nothing to show draws no empty card. Left: the
+  classic layout now numbers the sections that pass `n` (Dimenze mixes "01" and unnumbered ones), which
+  the stage chunks set per their boards. The journey's navigator clicks match a stage by the label it
+  starts with: since #680 a reopened stage's mark ("ověřit znovu: změna dříve v návrhu") made "Návrh"
+  match eight buttons.
 - **Reversed rule.** `step.test.tsx` had held that sections are not numbered (research-lane-redesign);
   v73 numbers every section, so that assertion moved to the new test.
 - **For the stage owners.** Zadání's readiness chips go in `StageHeaderSlot slot="status"`, header

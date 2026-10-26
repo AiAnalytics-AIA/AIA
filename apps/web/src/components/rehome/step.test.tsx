@@ -64,6 +64,24 @@ describe("Studio v3 step pieces", () => {
     }
   });
 
+  it("ActionDock keeps an action that is not a way on (a paid start) in its own place, and claims nothing", () => {
+    const primary = document.createElement("div");
+    document.body.appendChild(primary);
+    const claimPrimary = vi.fn(() => () => {});
+    try {
+      render(
+        <StageHeader.Provider value={{ actions: null, status: null, primary, claimPrimary }}>
+          <ActionDock note="Strop 2 USD" inHeader={false}><button type="button">Spustit výzkum</button></ActionDock>
+        </StageHeader.Provider>,
+      );
+      expect(primary.querySelector("button")).toBeNull();
+      expect(screen.getByRole("button", { name: "Spustit výzkum" })).toBeTruthy();
+      expect(claimPrimary).not.toHaveBeenCalled();
+    } finally {
+      primary.remove();
+    }
+  });
+
   it("ActionDock in the workbench puts its action in the header's primary slot, and claims it while mounted", () => {
     const primary = document.createElement("div");
     document.body.appendChild(primary);

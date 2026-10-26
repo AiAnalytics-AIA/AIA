@@ -896,6 +896,7 @@ export function RunStep() {
       ) : null}
       <RunList runs={runs} />
       <ActionDock
+        inHeader={false}
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
         // Not while a new choice of respondents is being checked: Start would send the old one.
         ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}

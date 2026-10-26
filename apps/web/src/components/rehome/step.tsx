@@ -6,7 +6,7 @@
 // step and src/research. Token utilities only, as in ui.tsx.
 
 import Link from "next/link";
-import { createContext, type KeyboardEvent, type ReactNode, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { FOCUS, TOUCH } from "@/components/ui/parts";
@@ -117,19 +117,27 @@ export function StageHeaderSlot({ slot, children }: { slot: "actions" | "status"
   return target ? createPortal(children, target) : null;
 }
 
-export function ActionDock({ back, note, ready = true, children }: {
+export function ActionDock({ back, note, ready = true, inHeader = true, children }: {
   back?: { href: string; label: string };
   note?: ReactNode;
   /** false: the note is a reason the step is not ready yet. */
   ready?: boolean;
+  /** false: the action is not the stage's way on (Sběr dat's paid start) and stays here, with its
+   *  conditions and its money, in the workbench too (v73 Fieldwork; stand-in review on #936). */
+  inHeader?: boolean;
   children: ReactNode;
 }) {
   const framed = useContext(FrameNavigation) !== null;
   // In the workbench the dock's action is the header's primary (H1); the dock keeps its note.
-  const header = useContext(StageHeader);
+  // Claimed before paint, so the frame's own next stage never shows for a frame first.
+  const slots = useContext(StageHeader);
+  const header = inHeader ? slots : null;
   const claim = header?.claimPrimary;
-  useEffect(() => claim?.(), [claim]);
+  useLayoutEffect(() => claim?.(), [claim]);
   const action = <div className="flex shrink-0 items-center gap-2">{children}</div>;
+  const moved = header ? (header.primary ? createPortal(action, header.primary) : null) : null;
+  // With its action in the header and nothing else to say, the dock draws no empty card.
+  if (header && !note && !(back && !framed)) return moved;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
       {back && !framed ? (
@@ -141,7 +149,7 @@ export function ActionDock({ back, note, ready = true, children }: {
       <span aria-live="polite" className={`ml-auto min-w-0 flex-[1_1_160px] text-right text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>
         {note}
       </span>
-      {header ? (header.primary ? createPortal(action, header.primary) : null) : action}
+      {header ? moved : action}
     </div>
   );
 }

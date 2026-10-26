@@ -144,6 +144,14 @@ describe("the workbench: the Lead owns the AI starts", () => {
     expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
   });
 
+  it("keeps Sběr dat's paid start in its section, with its conditions, never in the header (stand-in review on #936)", async () => {
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const start = await screen.findByRole("button", { name: new RegExp(t("research.exec.start")) });
+    expect(start.closest("#artbody")).not.toBeNull();
+    expect(start.closest(".arthead")).toBeNull();
+  });
+
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const hint = await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/);
