@@ -152,6 +152,23 @@ describe("Stav systému", () => {
     expect(copied).not.toContain("secret.example");
   });
 
+  it("draws Prostředí a verze from answers of another shape as unknown, never a crash (review of #975)", async () => {
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+      // An answer without its lists, as a fake or an older API may give it.
+      "GET /api/v1/settings": () => ({}),
+      "GET /api/v1/population": () => ({}),
+    });
+    render(<SystemPanel mayAdminister />);
+    const card = await waitFor(() => {
+      const c = document.querySelector("[data-system-environment]") as HTMLElement | null;
+      if (!c?.querySelector('[data-env-row="live"]')) throw new Error("not read yet");
+      return c;
+    });
+    expect([...card.querySelectorAll("[data-env-row] dd")].every((n) => n.textContent === "nezjištěno")).toBe(true);
+  });
+
   it("shows the diagnostics to select by hand when the browser refuses the copy, never 'Zkopírováno'", async () => {
     fake({
       "GET /api/v1/settings/system-status": () => ({ latest: null }),

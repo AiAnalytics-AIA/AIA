@@ -35,6 +35,17 @@ describe("Prostředí a verze (F21)", () => {
     expect(environmentRows(DOC, partial, null).find((r) => r.key === "live")?.value).toBe("cz@sha256:aa");
   });
 
+  it("reads an answer of another shape as unread, never throwing (review of #975)", () => {
+    // A /population or /settings answer without its lists (an error body, an older shape).
+    const shapeless = { detail: "nope" } as unknown as PopulationRegistry;
+    const docless = { groups: [{ key: "deployment" }] } as unknown as SettingsDocument;
+    const rows = environmentRows(docless, shapeless, null);
+    expect(rows.every((r) => r.value === null)).toBe(true);
+    const noVersions = { populations: [{ kind: "LIVE", current_version_id: "cz@sha256:aa" }] } as unknown as PopulationRegistry;
+    expect(environmentRows(null, noVersions, null).find((r) => r.key === "live")?.value).toBe("cz@sha256:aa");
+    expect(() => environmentRows({} as SettingsDocument, {} as PopulationRegistry, null)).not.toThrow();
+  });
+
   it("copies only the rows and the readiness count, unknown in words, nothing else", () => {
     const rows = environmentRows(DOC, null, null);
     const text = diagnosticsText(rows, (k) => k, "nezjištěno", { ready: 7, total: 9 }, "Připraveno");

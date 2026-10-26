@@ -13,9 +13,13 @@ export type EnvKey = "environment" | "build" | "api_version" | "database" | "sig
 /** The rows in v99's order. */
 export const ENV_KEYS: readonly EnvKey[] = ["environment", "build", "api_version", "database", "sign_in", "live", "static", "field_rules"];
 
+/** A list the answer carries, or none: an answer of another shape is read as unread, never thrown on. */
+const list = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
+
 /** A settings document item's value as text; a value that is not a plain one is not shown. */
 function item(doc: SettingsDocument | null, group: string, key: string): string | null {
-  const found = doc?.groups.find((g) => g.key === group)?.items.find((i) => i.key === key);
+  const groups = list<SettingsDocument["groups"][number]>(doc?.groups);
+  const found = list<{ key: string; value: unknown }>(groups.find((g) => g?.key === group)?.items).find((i) => i?.key === key);
   const v = found?.value;
   if (v === null || v === undefined) return null;
   if (typeof v === "string") return v.trim() || null;
@@ -25,10 +29,10 @@ function item(doc: SettingsDocument | null, group: string, key: string): string 
 
 /** The current version of the population of this kind, by its registry label; null when unread. */
 function current(registry: PopulationRegistry | null, kind: "LIVE" | "STATIC"): string | null {
-  const record = registry?.populations.find((p) => p.kind === kind);
-  if (!record) return null;
-  const version = registry?.versions.find((v) => v.version_id === record.current_version_id);
-  return version?.label || record.current_version_id;
+  const record = list<PopulationRegistry["populations"][number]>(registry?.populations).find((p) => p?.kind === kind);
+  if (!record || typeof record.current_version_id !== "string") return null;
+  const version = list<PopulationRegistry["versions"][number]>(registry?.versions).find((v) => v?.version_id === record.current_version_id);
+  return (typeof version?.label === "string" && version.label) || record.current_version_id;
 }
 
 /**
