@@ -1,6 +1,6 @@
 # settings-prototype (AIA design: Settings prototype)
 
-Updated 2026-10-20. Design prototype only: no product code, no product PR (scope freeze, MP16).
+Updated 2026-10-26. Design prototype only: no product code, no product PR (scope freeze, MP16).
 
 ## Done (published, verified only as noted)
 - Design artifact "AIA Nastavení – prototyp": https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (private to Nigel until he shares it).
@@ -26,7 +26,7 @@ Updated 2026-10-20. Design prototype only: no product code, no product PR (scope
 - 2026-10-21 (Nigel, in this session): accept all four recommendations. (1) Metodika hides the experimental Sociomapping (H-Model)
   and the 18.6.6 reference map, beside -1..-4; (2) a Settings tab "Správa dat" holds client delete (owner/admin, irreversible-action
   modal) and the kept records (N6, N12); (3) "Stav systému" is its own tab under Provoz (smoke rows + GlitchTip); (4) system prompts
-  stay edited by OWNER/ADMIN, no new mark. Plans to carry it: study-data-lifecycle#SDL3 (delete entry point), mvp-acceptance-harness/MP6
+  stay edited by OWNER/ADMIN, no new mark (superseded 2026-10-26: the Metodik mark edits them, see below). Plans to carry it: study-data-lifecycle#SDL3 (delete entry point), mvp-acceptance-harness/MP6
   (Stav systému as the smoke's reader), system-prompts-settings, methodology-tab.
 - Fix (2026-10-21): Přístup and other screens rendered broken because sc-for/sc-if inside <table> are foster-parented out by the HTML
   parser. Every dynamic table is now an ARIA grid of divs (role=table/row/cell).
@@ -56,6 +56,24 @@ develop has no separate "parked" token, so each old amber was mapped by meaning 
 - Fixed the still Lissajous and Gauss marks, which had no position.
 - Nigel: no emoji at all, Phosphor icons only (from @phosphor-icons/core 2.1.1, MIT, inlined); no menu or filter as a row of pill buttons. Audit and Reference categories are now dropdowns.
 - Nigel: the real Sociomap screenshot waits until aia-sociomap-5 renders in the web app. A local run today draws aia-sociomap-3, so the Metodika card keeps its drawing.
+
+## Since Version 64 (2026-10-25 to 26, up to Version 94)
+
+All published to the artifact. Each page was checked by me rendering it in headless Chromium with the artifact's runtime, at 1440 px only.
+- Reference is merged into Stav systému (Nigel, 25 Oct 23:15): Připravenost, Fronta práce, Prostředí a verze with "Kopírovat diagnostiku", Hlášení chyb. The Reference artboard is removed.
+- Správa dat has a searchable client picker; delete requires typing the client's name, and is blocked while the client has running work.
+- The real thinking-orbs 0.3.2 (MIT) component shows running work (Stav systému, the Lead's preview).
+- The real AppShell rail from develop (AppShell.tsx) on every artboard (Nigel, 25 Oct). It is a 64 px icon rail that expands to 240 px on hover or focus, like the macOS Dock (Nigel, 25 Oct 23:53 and 23:59). The motion is my choice.
+- Every artboard has the same hero (Nigel, from 25 Oct 23:36): eyebrow, 40 px Source Serif title, lede and 3-5 key figures. Count chips that duplicated a figure were removed.
+- Systémové prompty: the +/- line diff between versions, view Text / Změny (Nigel, 25 Oct 23:41).
+
+## Owner decisions, 2026-10-26 (Nigel, in this session)
+- "metodik edits the prompts": only the Metodik mark edits and switches on system prompts. Owners and admins without the mark read them.
+- "lets seal it, a new user gets a new vedouci": a departing member's Lead is sealed, never handed over; a new member grows their own.
+- "lets do 365 days": AI spend and audit are kept 365 days; a sealed Lead is deleted after 365 days.
+- "no narrower screens right now": 1440 px only.
+- Fronta práce: "lets table this idea as a plan in the future". It is post-MVP, and it needs an organisation-level read of the work queue. It is still drawn in the prototype, marked "Plán po MVP" with a dashed border.
+- The coordinator (session_01MycSLqSRMw4g32SZwa9s7G) holds the visual inventory, the per-artboard functional decisions and these answers, all sent 26 Oct.
 
 ## Open, with Nigel
 None.
