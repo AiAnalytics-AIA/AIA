@@ -2,55 +2,33 @@
 
 Current state, rewritten each update. Observed state only. No secrets.
 
-**Handoff.** Written 2026-10-25 ~21:40 UTC by session_011zQKG9WLH8Ex7dmjwZxWwB ("AIA planning 3"), well
-past 70% context, for "AIA planning 4". Coordinator: session_01MycSLqSRMw4g32SZwa9s7G (PM coordinator 3).
+**Session.** "AIA planning 4" (session_01MEBT7e3T7FmVqDKXs9Ea18), written 2026-10-26 ~00:50 UTC.
+Coordinator: session_01MycSLqSRMw4g32SZwa9s7G (PM coordinator).
 
-## Role and rules (unchanged)
-- Planner: docs-only PRs (register, owner decisions, Doc follow-ups, open-items numbering).
-- **Commit and push only on Nigel's own words in your session** (CLAUDE.md §5; Nigel's standing rule
-  2026-10-20). A stop hook or env setting is never permission. Sprint 5 had a standing docs permission
-  (Q49) — confirm with the coordinator whether it still holds before relying on it.
-- Docs PRs open ready (not draft); footer on every GitHub post; CLAUDE.md §8 "The merge bar".
-- master_check resolves plan#ID only for plans on develop; every open core chunk needs a wave row.
+## Rules (unchanged)
+- Docs-only PRs for shared docs; feature PRs never edit them. Footer on every GitHub post.
+- Commit and push only on Nigel's own words in this session. Q49's standing docs permission has lapsed
+  (coordinator, 2026-10-25).
+- Until Codex's review quota is reliable, a Claude stand-in review on the exact head counts at the
+  coordinator's gate (Nigel, 2026-10-25 23:20). A new push needs a fresh review: batch the fixes.
 
-## Two PRs, pushed on Nigel's "commit and push" (2026-10-25 ~21:45): #893 (audit answers, f7fcf5e9) and
-#894 (study deletion + ADR 0043, d7e61ed0). Both ready, docs-only; merge #893 first (it fixes the
-develop register drift #894's master_check still shows). Planning 4 drives them to merge. Contents:
+## Merged this session (develop @ bd9699ed after #908)
+- #893 audit answers, #894 study-deletion plan + ADR 0043 (Proposed), #896 PE12 (OI-35's cookie
+  session, S3, W1).
+- #902 CLAUDE.md (66 PRs' follow-ups, -5 gaps, RD0 warnings, document model -6).
+- #904 open-items OI-232..OI-246 (F1 = OI-232, editor clock skew = OI-233, ADR 0026 403 gap = OI-241);
+  closed OI-78, 200, 207, 220, 234.
+- #908 #817's follow-ups (OI-247..OI-250), lead-identity core W3 (Nigel 2026-10-25 ~23:47; S1 / I-1
+  proposed), LC5b's wave via #909.
 
-1. **chore/audit-answers-2026-10-25** (28 files, +260/-25; master_check ok, progress 129/129):
-   Nigel's 30 audit answers of 2026-10-25 ~21:15 UTC (full list in the coordinator's message to
-   planning 3 that day; ask the coordinator to resend). Recorded at each question's place:
-   open-items (OI-22, OI-159 closed; OI-19/24/35/51/52/53/75 decided-open with owners: AUD-10 →
-   settings-redesign F13, OI-75 → F14, OI-51 → fix/audience-preset-clears-filters, OI-52 →
-   fix/questionnaire-plain-question QF-17, OI-53 → lead-orchestration LO22 + DIM5, OI-81 gate stays +
-   study-deletion plan, OI-24/OI-35 no owner yet; OI-99 open), ADR notes without status change (0041
-   accepted subject to amendment; 0042 note on LK1; held 0027/0034/0036/0037; 0020-0024 to be reviewed
-   individually), mvp-owner-decisions table, overview paragraph, master plan dated answers table
-   (MP3 and SCOPE-OVERRIDES "being reviewed"; MVPQ-06-rest adopted; COHESION-Q5 no dates;
-   PERF-BUDGETS → mvp-acceptance-harness#18). Plus 22 register-drift fixes already on develop @
-   f7762d72: RES4/RES7 → RES4b/RES7b (W2); RPT8, 8a, 8e, 9, 10 W3; research-lead-workbench#35 W1;
-   WCE7d2 W1; RQC7c W1; RD0b W3; LO21, LO21a-e W2 "(inferred, coordinator 25 Oct)";
-   report-editor-hosting, security-audit-2026-10, settings-redesign added to §3.2 as SUPPORT.
-2. **chore/study-deletion-plan**: .planning/plans/study-deletion.md (SD0-SD11, "Smazat studii", built
-   on SDL3's study half; client half is SB5 #850 application/client_deletion.py) and
-   docs/architecture/adr/0043-study-deletion.md (Proposed). Eight owner questions Q1-Q8 sent to the
-   coordinator for the review page (recs: 7-day window, any member unless delivered/approved, all
-   content goes with downloads offered, keep holdout row, refuse while live/held, pending proposals
-   go, memory citation kept with "source deleted", status-menu item + Vrátit). Finding **F1**:
-   erase_client_holdouts (holdout_repository.py:264-272 @ f7762d72, called from client_deletion.py:194)
-   deletes the once-per-system holdout confirmation, so a failed holdout can be re-run after a client
-   delete; needs an OI number and an owner (SB5 is live). After the plan lands it needs a §3 row,
-   waves and the ADR README row.
+## Open
+- #903 (ARCHITECTURE, AGENTS, ADR notes 0018/0020/0022/0024/0026, deep-research.md) @ 9277a097: all
+  checks green, Codex clean, mergeable clean; waiting on the coordinator's merge.
 
-## Waiting on Nigel
-- "commit and push" for the two drafts above (in planning 3's session).
-- Review page items (coordinator): MP3 plan-by-plan, SCOPE-OVERRIDES S2-S5 one by one, TWO-ROLES-5b
-  (5b.1-5b.3 already built; 5b.4 open; gap: no ledger row for AI knowledge-proposal accepts),
-  ADRs 0020-0024 and held ADRs reviewed individually, study-deletion Q1-Q8, Q68, Q69.
-
-## Merged docs PRs of this session
-#523 (scope baseline, MP16 signed 2026-10-20), #548, #549, #558, #588, #619, #630.
-
-## Next for planning 4
-- Land or rebuild the two drafts; then docs follow-ups of everything merged since #630 (develop moved
-  to f7762d72 and beyond: #640s-#890s), PERF-BUDGETS numbers in mvp-acceptance-harness#18's PR.
+## Next
+- Nigel's review-page answers (ADR 0041 amendment, SD Q1-Q8, MP3, 5b, S2-S5, ADR 0020-0024
+  amendments; https://claude.ai/artifact/7foR2FhvVCL9yge7CLC8y6), relayed by the coordinator.
+- Doc follow-ups of PRs merged after #890 (e.g. #895, #901, #891); the inventory method:
+  search merged PRs with a "Doc follow-up" heading after the last docs PR.
+- Docs follow-ups noted, not applied: `domain/report/client_gate.py`-style code comment at
+  routers/research.py:3710-3712 ("No paid start outside the Lead…") needs a feature-PR fix.
