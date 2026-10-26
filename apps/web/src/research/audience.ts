@@ -705,7 +705,6 @@ export function verdictWords(v: { reason?: string | null; reasons?: string[] | n
 
 const cs = (n: number) => n.toLocaleString("cs-CZ");
 
-/** The preview's answer in words: what the filters select, and whether a run could draw n. */
 /**
  * Each filter alone (AUD3, the API's `per_filter`), in the order the filters were applied, named
  * by the catalogue's label: which filter narrows the audience. Said only for two filters or more;
@@ -719,15 +718,21 @@ export function filterCountLines(r: AudiencePreview, cat: Catalog | null): strin
   return ids.map((id) => `Samotný filtr ${label.get(id) ?? id}: ${cs(counts[id]!)} lidí.`);
 }
 
-export function liveVerdict(r: AudiencePreview, cat: Catalog | null = null): { ok: boolean; lines: string[] } {
-  if (!r.audience.ok) return { ok: false, lines: [verdictWords(r.audience)] };
-  const lines = [
-    `Filtry vyberou ${cs(r.selected_rows ?? 0)} z ${cs(r.population_rows)} lidí populace ${r.version_label}` +
-      (r.selected_donors != null ? ` (${cs(r.selected_donors)} různých dárců).` : "."),
-    ...filterCountLines(r, cat),
-  ];
-  if (!r.sample) return { ok: true, lines };
-  if (!r.sample.ok) return { ok: false, lines: [...lines, verdictWords(r.sample)] };
-  const weighted = r.sample.status === "PASS_WEIGHTED" ? " Reprezentativní až po kalibraci vah." : "";
-  return { ok: true, lines: [...lines, `Vzorek N=${r.n} z tohoto publika lze vybrat.${weighted}`] };
+
+export type Feasibility = { verdict: "yes" | "tight" | "no" | "unknown"; text: string };
+
+/**
+ * Proveditelnost's "Lze vytáhnout" (AUD9, spec vzorek/A5), in the server's terms: PASS draws n as it
+ * stands; PASS_WEIGHTED draws it representative only once its weights are calibrated (sampling.py's
+ * raw deviation over tolerance, calibrated within it), so "Těsně"; a refusal says why. No answer, no
+ * n, or a status this code does not know is unknown, never "Ano".
+ */
+export function feasibility(r: AudiencePreview | null): Feasibility {
+  if (!r) return { verdict: "unknown", text: "Zatím nespočítáno." };
+  if (!r.audience.ok) return { verdict: "no", text: verdictWords(r.audience) };
+  if (!r.sample || r.n == null) return { verdict: "unknown", text: "Velikost vzorku není nastavená." };
+  if (!r.sample.ok) return { verdict: "no", text: verdictWords(r.sample) };
+  if (r.sample.status === "PASS") return { verdict: "yes", text: `N ${cs(r.n)} z tohoto publika vybereme.` };
+  if (r.sample.status === "PASS_WEIGHTED") return { verdict: "tight", text: "Reprezentativní až po kalibraci vah." };
+  return { verdict: "unknown", text: `Stav výběru ${r.sample.status ?? "bez stavu"} AIA nezná.` };
 }

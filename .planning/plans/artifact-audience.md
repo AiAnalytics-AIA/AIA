@@ -112,6 +112,20 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 **AUD2. Body.** Tests: `AudienceStep.test.tsx`: the table lists the saved filters with the catalogue
 version; a missing preview says why. Depends on `input-interactions#5`.
 
+**AUD9, as delivered (research stages v73, spec `vzorek/A5`; chunk added by the build plan).**
+Proveditelnost is asked again 400 ms after the last change of the filters or n
+(`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
+answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
+rows of the population's), "Vzorek" (the stored n; it is set on Dimenze until SMP7 moves it) and
+"Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
+(representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
+"kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the
+code knows. A count not answered reads "nezjištěno", never 0. Cost: one POST per settled change; the
+journey prints each preview's time on the machine it runs on. Open before merge: the p95 on develop
+(build plan). Tests: `useAudiencePreview.test.ts`, `audience.live.test.ts` ("Lze vytáhnout…"),
+`AudienceStep.test.tsx` ("Proveditelnost counts the audience in AIA without a click…"), the audience
+journey.
+
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
   population, counts only.

@@ -12,8 +12,8 @@
  *     editor lists the population's factors; choosing a region and an age range saves
  *     exactly those filters (an empty upper bound is left out, OI-50), read back after a
  *     reload;
- *   * Ověřit proveditelnost: the API counts the fictional population and the step says how
- *     many people the filters select and that N=300 can be drawn;
+ *   * Proveditelnost: asked again after every change, no button; the API counts the fictional
+ *     population and the step says how many people the filters select and that N=300 can be drawn;
  *   * Speciální skupiny: the built-in subpanels; one is chosen and saved as its filter, one
  *     the population's policy refuses cannot be; special panels still say they are not in AIA.
  *
@@ -90,6 +90,9 @@ page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => requests.push({ method: r.method(), url: r.url() }));
 const bad = [];
 page.on("response", (r) => { if (r.status() === 502) bad.push(r.url()); });
+// Each preview's time to its answer (AUD9 asks one per change): measured here, on develop before merge.
+const previewMs = [];
+page.on("requestfinished", (r) => { if (r.url().endsWith("/population/audience-preview")) previewMs.push(r.timing().responseEnd); });
 const shot = (name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
 const saved = () => page.waitForResponse((r) => r.url().endsWith(`/studies/${study.study_id}/workspace/content`) && r.request().method() === "PUT" && r.ok(), { timeout: 30000 });
 const text = async (t, what) => page.getByText(t).first().waitFor({ timeout: 60000 }).catch(async () => { await shot(`missing-${what}`); fail(`${what}: "${t}" not shown`); });
@@ -144,13 +147,16 @@ ok("Cílová skupina: the age range is two steppers at 1440/1100/768/390 without
 await shot("1b-range-390");
 await page.setViewportSize({ width: 1440, height: 1100 });
 
-// 2. The preview: counted by the API, through the run's own sampler.
-const previewed = page.waitForResponse((r) => r.url().endsWith("/population/audience-preview") && r.ok(), { timeout: 120000 });
-await page.getByRole("button", { name: "Ověřit proveditelnost" }).click();
-await previewed;
-await text("Filtry vyberou", "the preview's count");
-await text("Vzorek N=300", "the sampler's verdict");
-ok("Ověřit proveditelnost: the API counted the audience and the sampler can draw N=300");
+// 2. Proveditelnost: counted by the API, through the run's own sampler, without a click (AUD9).
+const previews = requests.filter((r) => r.method === "POST" && r.url.endsWith("/population/audience-preview")).length;
+if (!previews) fail("Proveditelnost was not asked as the filters changed");
+const figures = page.locator('[data-aia="audience:preview"] [aria-live="polite"]');
+await figures.and(page.locator('[aria-busy="false"]')).waitFor({ timeout: 120000 });
+await text("lidí z", "the preview's count");
+const drawable = (await figures.innerText()).match(/Lze vytáhnout\s+(Ano|Těsně)/);
+if (!drawable) fail(`the sampler should draw N=300 from the audience: ${await figures.innerText()}`);
+if (await page.getByRole("button", { name: "Ověřit proveditelnost" }).count()) fail("Proveditelnost still waits for a button");
+ok(`Proveditelnost: ${previews} previews asked as the filters changed, no button; the sampler's verdict for N=300 is ${drawable[1]}`);
 await shot("2-preview");
 
 // 2b. The factor groups and values chosen, never typed (input-interactions I3, audit B7, B8), at four widths.
@@ -244,4 +250,9 @@ if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.map((r) => `${r.
 if (bad.length) fail(`502 responses: ${bad.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
 ok(`${requests.length} requests, none to a path of the unit, no 502`);
+if (previewMs.length) {
+  const sorted = [...previewMs].sort((a, b) => a - b);
+  const p95 = sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+  ok(`${previewMs.length} previews; median ${Math.round(sorted[Math.floor(sorted.length / 2)])} ms, p95 ${Math.round(p95)} ms on this machine`);
+}
 console.log(`audience journey: PASS (screenshots and requests.json in ${OUT})`);

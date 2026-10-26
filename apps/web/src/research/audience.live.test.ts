@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, feasibility, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -120,29 +120,29 @@ describe("the preview in words", () => {
   it("names each filter's own count beside the combined one, by the catalogue's label (AUD3)", () => {
     const two: AudiencePreview = { ...PREVIEW, selected_rows: 900, filters_applied: { vek: { min: 30, max: 59 }, kraj: { values: ["Zlínský kraj"] } }, per_filter: { vek: 5120, kraj: 1200 } };
     const cat = { factors: [{ id: "vek", label: "Věk" }, { id: "kraj", label: "Kraj" }] } as Catalog;
-    expect(liveVerdict(two, cat).lines.slice(0, 3)).toEqual([
-      "Filtry vyberou 900 z 18\u00a0766 lidí populace v17_4_0 (1\u00a0400 různých dárců).",
-      "Samotný filtr Věk: 5\u00a0120 lidí.",
-      "Samotný filtr Kraj: 1\u00a0200 lidí.",
-    ]);
+    expect(filterCountLines(two, cat)).toEqual(["Samotný filtr Věk: 5\u00a0120 lidí.", "Samotný filtr Kraj: 1\u00a0200 lidí."]);
     // Without the catalogue, the id; one filter alone is the combined count and is not repeated.
     expect(filterCountLines(two, null)[1]).toBe("Samotný filtr kraj: 1\u00a0200 lidí.");
     expect(filterCountLines(PREVIEW, cat)).toEqual([]);
     expect(filterCountLines({ ...two, per_filter: null }, cat)).toEqual([]);
   });
 
-  it("says what the filters select and whether n can be drawn", () => {
-    expect(liveVerdict(PREVIEW)).toEqual({ ok: true, lines: ["Filtry vyberou 5 120 z 18 766 lidí populace v17_4_0 (1 400 různých dárců).", "Vzorek N=500 z tohoto publika lze vybrat."] });
-    expect(liveVerdict({ ...PREVIEW, sample: { ok: true, status: "PASS_WEIGHTED" } }).lines[1]).toContain("až po kalibraci");
+  it("Lze vytáhnout: Ano only on the server's PASS, Těsně on PASS_WEIGHTED, unknown never Ano (AUD9)", () => {
+    expect(feasibility(PREVIEW)).toEqual({ verdict: "yes", text: "N 500 z tohoto publika vybereme." });
+    expect(feasibility({ ...PREVIEW, sample: { ok: true, status: "PASS_WEIGHTED" } })).toEqual({ verdict: "tight", text: "Reprezentativní až po kalibraci vah." });
+    expect(feasibility(null).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, n: null, sample: null }).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, sample: { ok: true } }).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, sample: { ok: true, status: "PASS_SOMEHOW" } })).toEqual({ verdict: "unknown", text: "Stav výběru PASS_SOMEHOW AIA nezná." });
   });
 
-  it("says each refusal in Czech, with the unit's own reasons", () => {
-    const small = liveVerdict({ ...PREVIEW, n: 8, sample: { ok: false, reason: "sampling_unrepresentative", message: "a sample of 8 ..." } });
-    expect(small.ok).toBe(false);
-    expect(small.lines[1]).toMatch(/nebyl reprezentativní/);
-    const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
-    expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
-    expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  it("Ne says each refusal in Czech, with the unit's own reasons", () => {
+    const small = feasibility({ ...PREVIEW, n: 8, sample: { ok: false, reason: "sampling_unrepresentative", message: "a sample of 8 ..." } });
+    expect(small.verdict).toBe("no");
+    expect(small.text).toMatch(/nebyl reprezentativní/);
+    const bad = feasibility({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
+    expect(bad).toEqual({ verdict: "no", text: "Některý filtr nelze použít: vek: očekáván interval min/max." });
+    expect(feasibility({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).text).toContain("something_new");
   });
 });
 
