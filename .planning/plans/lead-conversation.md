@@ -24,6 +24,7 @@ chunks:
   - "[ ] LC17. After the MVP, own ADR: semantic retrieval (an EU embedding route, pgvector), or a Lead-requested recall on ADR 0040's continuation pattern"
   - "[ ] LC18. After the MVP: personal prompt templates in the / list beside the command registry"
   - "[x] LC19. Day dividers in every time-only feed: Dnes, Včera, the weekday and date within the past week, else the date; the viewer's local day; an unknown moment shows none"
+  - "[ ] LC20. Per-turn context choices (TurnPost.context), each omission named in the manifest: 'Aktuální krok' always sent, 'Moje poznámky' on by default, client knowledge chosen per message (spec lead LP-19; W2)"
 ---
 # The Lead's conversation and context
 
@@ -541,3 +542,14 @@ The recall numbers go in the PR.
 - The UI standard (`docs/design/aia-design-system-brief.md` § 6, Implementation constraints):
   the LC19 rule as written above, under a heading "Day dividers in a time-only feed", naming
   `lib/day-label.ts` as the one implementation.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**LC20. Per-turn context** (spec `lead/LP-19`, lead B8; W2, lane C). After LC1 and LC2. Decided by default (planning, 26 Oct 2026, open to Nigel's override; OQ11): "Aktuální krok" always goes to the Lead; "Moje poznámky" is on by default; client knowledge is chosen per message. Test: a turn sent without its notes records the omission by name in its manifest.

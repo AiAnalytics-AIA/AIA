@@ -16,7 +16,7 @@ chunks:
   - "[x] WCE7d1. The stage track reads it: a stage the working copy reopened says so, measured against the newest run's design, so a run whose design is older than the copy says so on every stage it reopened"
   - "[ ] WCE7d2. The working copy accepted as a revision, explicitly, from the workbench"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
-  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
+  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W1 from 2026-10-26, was W2; with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
   - "[ ] WCE10. The Lead's edit vocabulary widened (Audience, Dimensions, Sample), with a prompt and harness version and an `is_text_edit` ruling per operation"
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
@@ -569,3 +569,7 @@ exactly as the old text keys did (`" ".join(split()).casefold()`, one function; 
 - `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
   WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
   switch-on prerequisites).
+
+## Re-waved (2026-10-26)
+
+**WCE8b moves from W2 to W1.** `artifact-questionnaire#QST5` (W1) accepts a proposal item by item (spec `navrh/Q6`), which needs proposed items to keep their baseline ids; the plan draft promises that accept in W1 (research chunk register, contradiction 2; `.planning/mvp-execution-contracts.md`). WCE8 stays in E15 (W2): WCE8b's copy of the declared batteries, sets and rating questions works on today's declarations and tightens when WCE8 makes them settable.
