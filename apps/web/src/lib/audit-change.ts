@@ -148,6 +148,11 @@ export function changeOf(e: Entry): AuditChange {
       return { change: "value" in p ? `${ruleVersion(p.version)}: ${scalar(p.value)}` : null, why: null };
     case "CLIENT_KNOWLEDGE_DECIDED":
       return { change: reason ? named(`${C}.decision`, reason) : null, why: null };
+    case "MEMBER_ROLE_DENIED":
+      // A refused deactivation or reactivation of an OWNER names itself in payload.change
+      // (scope_repository.record_role_denied); a refused role change carries none. The reason is
+      // the refusal's own code, in words.
+      return { change: typeof p.change === "string" ? named(`${C}.denied`, p.change) : null, why: reasonWords(reason) };
     default:
       return { change: null, why: why ?? reasonWords(reason) };
   }
@@ -158,7 +163,9 @@ export function changeOf(e: Entry): AuditChange {
 export function concernsOf(e: Entry): string | null {
   const p = e.payload ?? {};
   if (e.action.startsWith("METHODOLOGY_") && typeof p.module === "string") {
-    return known("aia.settings.panel.methodology.name", p.module) ?? p.module;
+    // The name Metodika's catalogue gives the module (MethodologyPanel nameOf); the stored id where
+    // the copy names none, never blank.
+    return known("aia.settings.methodology.name", p.module) ?? p.module;
   }
   if (e.action.startsWith("PROMPT_") && typeof p.prompt_id === "string") {
     return known("aia.settings.prompts.names", p.prompt_id.replaceAll(".", "_")) ?? p.prompt_id.split(".").at(-1)!.replaceAll("_", " ");

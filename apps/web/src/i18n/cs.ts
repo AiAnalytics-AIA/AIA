@@ -2236,6 +2236,8 @@ export const cs = {
           change: {
             noThreshold: "bez prahu",
             joinedAs: "nový člen: {role}",
+            // A refused change of an OWNER's membership (MEMBER_ROLE_DENIED payload.change).
+            denied: { deactivate: "deaktivace vlastníka", reactivate: "obnovení vlastníka" },
             level: { organization: "Organizace", client: "Klient", study: "Studie" },
             allowed: "povoleno",
             forbidden: "zakázáno",

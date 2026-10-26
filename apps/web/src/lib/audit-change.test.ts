@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { t } from "@/i18n/t";
 import { changeOf, concernsOf } from "./audit-change";
 
 const rec = (action: string, reason = "", payload: Record<string, unknown> = {}) => ({ action, reason, payload });
@@ -61,6 +62,10 @@ describe("an audit record's change, in words (F10)", () => {
   it("says a writer's reason code in Czech, never raw (review of #955)", () => {
     expect(changeOf(rec("MEMBER_ROLE_DENIED", "owner_only")).why).toBe("Roli vlastníka mění jen vlastník.");
     expect(changeOf(rec("MEMBER_ROLE_DENIED", "last_owner")).why).toBe("Jediný aktivní vlastník organizace o roli přijít nemůže.");
+    // A refused deactivation or reactivation keeps what was refused (review of #955).
+    expect(changeOf(rec("MEMBER_ROLE_DENIED", "owner_only", { change: "deactivate" }))).toEqual({ change: "deaktivace vlastníka", why: "Roli vlastníka mění jen vlastník." });
+    expect(changeOf(rec("MEMBER_ROLE_DENIED", "last_owner", { change: "reactivate" })).change).toBe("obnovení vlastníka");
+    expect(changeOf(rec("MEMBER_ROLE_DENIED", "owner_only")).change).toBeNull();
     expect(changeOf(rec("AIA_SESSION_DENIED", "identity_mismatch")).why).toBe("přihlášení neodpovídá účtu, ke kterému e-mail patří");
     expect(changeOf(rec("CLIENT_KNOWLEDGE_DECIDED", "APPROVED", { decision: "REVIEWED" }))).toEqual({ change: "schváleno", why: null });
     expect(changeOf(rec("CLIENT_KNOWLEDGE_DECIDED", "REJECTED")).change).toBe("zamítnuto");
@@ -74,6 +79,11 @@ describe("an audit record's change, in words (F10)", () => {
 
   it("names what an organization's record concerns: the module, the prompt, the rule (review of #955)", () => {
     expect(concernsOf(rec("METHODOLOGY_ACTIVATED", "", { module: "sociomap" }))).toBeTruthy();
+    // The module by the name Metodika's catalogue gives it, under that page's own copy key
+    // (review of #955: a wrong key showed "sociomap"); the stored id only where the copy has none.
+    const named = t("aia.settings.methodology.name.sociomap");
+    expect(concernsOf(rec("METHODOLOGY_ACTIVATED", "", { module: "sociomap" }))).toBe(named === "aia.settings.methodology.name.sociomap" ? "sociomap" : named);
+    expect(concernsOf(rec("METHODOLOGY_ACTIVATED", "", { module: "no_such_module" }))).toBe("no_such_module");
     expect(concernsOf(rec("PROMPT_ACTIVATED", "", { prompt_id: "aia.research.lead" }))).toBeTruthy();
     expect(concernsOf(rec("DR_SETTING_APPROVED", "", { key: "retention.snapshots" }))).toBeTruthy();
     expect(concernsOf(rec("DR_SETTING_APPROVED", "", { key: "retention.snapshots" }))).not.toBe("retention.snapshots");
