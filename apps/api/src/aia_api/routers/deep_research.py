@@ -41,6 +41,7 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
+    FocusUnknown,
     InterpretationMissionMismatch,
     LineageChanged,
     LiveNotApproved,
@@ -122,6 +123,10 @@ RunId = Annotated[str, Path(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
 SnapshotId = Annotated[str, Path(max_length=64, pattern=r"^SNP-[0-9a-f]{1,32}$")]
 
 
+#: A research question's id as the design gives it (``item_ids``), the Lead's focus grammar.
+FocusId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_.\-]{1,80}$")]
+
+
 class DeepResearchStart(BaseModel):
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
@@ -132,6 +137,8 @@ class DeepResearchStart(BaseModel):
     purpose: Literal["DESIGN_RESEARCH"] | None = None
     #: A person's name for the run: shown, never part of its identity.
     title: str | None = Field(default=None, max_length=200)
+    #: The research questions the run is limited to, by their ids (Q45); empty: the design.
+    focus: list[FocusId] = Field(default_factory=list, max_length=12)
     #: What the person confirms the run can cost at most. Read only when the study has a
     #: limit the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
@@ -184,6 +191,8 @@ class DeepResearchQuoteRequest(BaseModel):
     )
     #: Interpretation Research: the exact result it would interpret.
     target: ResearchTargetRef | None = None
+    #: Design Research: the research questions it would be limited to, by id (Q45).
+    focus: list[FocusId] = Field(default_factory=list, max_length=12)
     preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
     channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
 
@@ -199,7 +208,7 @@ class DeepResearchQuoteRequest(BaseModel):
         if self.purpose == "DESIGN_RESEARCH":
             if self.design_revision_id is None or self.target is not None:
                 raise ValueError("Design Research is quoted over a design_revision_id alone")
-        elif self.target is None or self.design_revision_id is not None:
+        elif self.target is None or self.design_revision_id is not None or self.focus:
             raise ValueError("Interpretation Research is quoted over a target alone")
         return self
 
@@ -397,6 +406,15 @@ def _errors(session: SessionDep) -> Iterator[None]:
         ) from exc
     except (DeepResearchRunNotFound, DesignRevisionNotFound, ResearchTargetNotFound) as exc:
         raise _not_found() from exc
+    except FocusUnknown as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": exc.reason,
+                "message": str(exc),
+                "details": {"unknown": list(exc.unknown)},
+            },
+        ) from exc
     except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
@@ -577,6 +595,7 @@ def quote(
                     design_revision_id=body.design_revision_id,
                     preset_name=body.preset_name,
                     channels=body.channels,
+                    focus=body.focus,
                 )
             else:
                 assert body.target is not None
@@ -630,6 +649,7 @@ def start(
                 PurposeSource.EXPLICIT if body.purpose is not None else PurposeSource.LEGACY_DEFAULT
             ),
             title=body.title,
+            focus=body.focus,
         )
         if not started.created:
             response.status_code = 200

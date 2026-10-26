@@ -13,7 +13,7 @@ chunks:
   - "[x] PBA4. Lane A, the hero component (eyebrow, serif title, lede, edit chip, figures), on top-level pages only (UI-1; W1)"
   - "[ ] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
   - "[x] PBA6. Lane A, the primitives to the look contract: radii 6/8/10, chips 24/6, switch 40x24, dialog 560/10, toast, table header on sunken, no font weight 700 (W1)"
-  - "[ ] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
+  - "[x] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
 ---
 # Prototype build: from the approved prototypes to the product
 
