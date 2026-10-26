@@ -244,6 +244,15 @@ when the studies span more than one client, a filtered row hidden, never unmount
 
 **F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
 
+**Notes.**
+- Audit's eight categories, Dnes / 7 / 30 dní and search are chunk 8 (done); F10 finishes the Důvod / změna column.
+- The global shell (gap 22, "not now" above) is now lane A's, built by "the second account": the Dock rail, Můj Vedoucí on the rail, the flyout from the rail item and the hero component (`prototype-build#PBA1` to `#PBA4`). F12b (#900) lands first; PBA3 then opens its menu from the rail item.
+- **Proposed (26 Oct 2026): this plan becomes core with waves** (master §3.1), every open chunk W1: the frame work with lane A in step 2 and the remaining pages in step 3 (`prototype-build.md`). Nigel may change it.
+- Nigel, 26 Oct 2026 ~00:35 UTC: "no narrower screens right now": the Settings pages are drawn at 1440 only; the product keeps the workbench's existing narrower layouts.
+- Decided by default (planning, open to Nigel's override): a study budget may go to 1,000,000 USD (the prototype's 10 000 is not adopted).
+
+## F22, as built
+
 Done (F22): `POST /clients/{id}/deletion` answers `active_run_ids`, the client's runs that have not ended
 (`application/client_deletion.py` `DeletionPreview.active_run_ids`, from `active_client_runs`, the list the
 deletion's own 409 names); the dialog names them in a needs-you block ("Klientovi právě běží …") and holds the
@@ -258,10 +267,3 @@ Not done (F22): the kept records' lhůta still reads "bez lhůty". The 365 days 
 no job reads a retention for them), so "365 dní" would say what AIA does not do. **Finding:** the decided
 retention of the kept AI spend and audit rows is not enforced; the smallest fix is an operator command beside
 `lead_retention.py` that erases them past 365 days, after which `kept_for` and the lhůta read 365 days.
-
-**Notes.**
-- Audit's eight categories, Dnes / 7 / 30 dní and search are chunk 8 (done); F10 finishes the Důvod / změna column.
-- The global shell (gap 22, "not now" above) is now lane A's, built by "the second account": the Dock rail, Můj Vedoucí on the rail, the flyout from the rail item and the hero component (`prototype-build#PBA1` to `#PBA4`). F12b (#900) lands first; PBA3 then opens its menu from the rail item.
-- **Proposed (26 Oct 2026): this plan becomes core with waves** (master §3.1), every open chunk W1: the frame work with lane A in step 2 and the remaining pages in step 3 (`prototype-build.md`). Nigel may change it.
-- Nigel, 26 Oct 2026 ~00:35 UTC: "no narrower screens right now": the Settings pages are drawn at 1440 only; the product keeps the workbench's existing narrower layouts.
-- Decided by default (planning, open to Nigel's override): a study budget may go to 1,000,000 USD (the prototype's 10 000 is not adopted).
