@@ -132,6 +132,26 @@ describe("the workbench: the Lead owns the AI starts", () => {
     expect(container.querySelector("[data-workbench], [data-research-workspace]")).toBeNull();
   });
 
+  it("the header's next is the stage's own forward action; no dock button inside the workbench (v73 H1)", async () => {
+    push.mockClear();
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
+    // Dotazník's own forward action ("Další · cílová skupina"), with its conditions: one copy, in the header.
+    await within(header).findByRole("button", { name: /Další · cílová skupina/ });
+    expect(screen.getAllByRole("button", { name: /Další · cílová skupina/ })).toHaveLength(1);
+    // The frame's plain next stage is not shown beside it.
+    expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
+  });
+
+  it("keeps Sběr dat's paid start in its section, with its conditions, never in the header (stand-in review on #936)", async () => {
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const start = await screen.findByRole("button", { name: new RegExp(t("research.exec.start")) });
+    expect(start.closest("#artbody")).not.toBeNull();
+    expect(start.closest(".arthead")).toBeNull();
+  });
+
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const hint = await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/);

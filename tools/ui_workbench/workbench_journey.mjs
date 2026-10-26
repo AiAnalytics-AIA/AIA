@@ -50,6 +50,8 @@ await context.addInitScript(() =>
   ),
 );
 const page = await context.newPage();
+// A stage on the navigator by its own label: the text it starts with. A substring would also match
+// another stage's reopened mark ("ověřit znovu: změna dříve v návrhu", lib/working-impact.ts).
 const errors = [], writes = [], checks = [], requests = [], switches = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => {
@@ -463,7 +465,8 @@ try {
   for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
     await page.goto(base + stagePath(slug));
     await page.locator("[data-workbench]").waitFor();
-    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    // The stage has drawn: its first heading (its dock's action is the header's now, research-lead-workbench 36).
+    await page.locator("#artbody").getByRole("heading").first().waitFor({ timeout: 60000 });
     const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
     assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
   }

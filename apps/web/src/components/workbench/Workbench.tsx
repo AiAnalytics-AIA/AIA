@@ -43,7 +43,7 @@ import type { StudyFrame } from "../rehome/research/frame";
 import { readySetLimits, useSampleLimits } from "../rehome/research/useSampleLimits";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
-import { FrameNavigation } from "@/components/rehome/step";
+import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -429,6 +429,22 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       },
     } : null,
   }), [nextStage, go, frame.studyId]);
+  // The stage's header parts (research-lead-workbench 36, v73 X1 + H1): the elements its actions,
+  // its status line and its forward action go into. A mounted ActionDock claims the primary, so the
+  // header shows the stage's own forward action; with none, the frame's next stage. Vzorek keeps
+  // Dimenze's screen mounted but hidden: no header for it, or its dock would claim Vzorek's.
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
+  const [headerStatus, setHeaderStatus] = useState<HTMLElement | null>(null);
+  const [headerPrimary, setHeaderPrimary] = useState<HTMLElement | null>(null);
+  const [primaryClaims, setPrimaryClaims] = useState(0);
+  const claimPrimary = useCallback(() => {
+    setPrimaryClaims((n) => n + 1);
+    return () => setPrimaryClaims((n) => n - 1);
+  }, []);
+  const stageHeader = useMemo<StageHeaderSlots | null>(
+    () => (stage === "sample" ? null : { actions: headerActions, status: headerStatus, primary: headerPrimary, claimPrimary }),
+    [stage, headerActions, headerStatus, headerPrimary, claimPrimary],
+  );
   useEffect(() => {
     // Consumed on every stage change, matched or not, and only for this study.
     const want = headingFocus.pending;
@@ -829,11 +845,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
+                  <span ref={setHeaderActions} className="arthead__slot" />
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
                     {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
                     <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
@@ -841,8 +858,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />
                   </button>
+                  <span ref={setHeaderPrimary} className="arthead__slot" />
+                  {(stageHeader === null || primaryClaims === 0) && frameNav.next ? (
+                    <button type="button" className="btn btn--sm btn--primary" onClick={frameNav.next.go}>
+                      {frameNav.next.label}<Icon name="next" size={14} />
+                    </button>
+                  ) : null}
                 </div>
               </div>
+              <div ref={setHeaderStatus} className="artstatus" data-stage-status />
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
@@ -857,7 +881,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div ref={artBody} className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}><StageHeader.Provider value={stageHeader}>{children}</StageHeader.Provider></FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>

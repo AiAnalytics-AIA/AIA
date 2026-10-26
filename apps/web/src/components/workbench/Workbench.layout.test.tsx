@@ -16,7 +16,7 @@ import { ResearchStore } from "@/research/store";
 import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
-import { FrameNavigation } from "@/components/rehome/step";
+import { ActionDock, FrameNavigation, StageHeaderSlot } from "@/components/rehome/step";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
@@ -950,6 +950,53 @@ describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
     } finally {
       window.removeEventListener(LEAD_MAP_VIEW, on);
     }
+  });
+});
+
+describe("the stage header's slots and its next stage (research-lead-workbench 36, v73 X1 + H1)", () => {
+  let headerMounts = 0;
+  function HeaderStage({ dock = false }: { dock?: boolean }) {
+    useEffect(() => {
+      headerMounts += 1;
+    }, []);
+    return (
+      <div>
+        <StageHeaderSlot slot="actions"><button type="button">Požádat o analýzu</button></StageHeaderSlot>
+        <StageHeaderSlot slot="status"><span>Připravenost 3 ze 6</span></StageHeaderSlot>
+        {dock ? <ActionDock note="Připraveno"><button type="button">Pokračovat dál</button></ActionDock> : null}
+      </div>
+    );
+  }
+
+  it("a stage's header actions render in the artifact header and remount nothing across 1100 px", async () => {
+    headerMounts = 0;
+    bench(<HeaderStage />);
+    const header = document.querySelector(".arthead")!;
+    await waitFor(() => expect(header.querySelector("button")?.textContent).toBeTruthy());
+    expect(within(header as HTMLElement).getByRole("button", { name: "Požádat o analýzu" })).toBeTruthy();
+    expect(document.querySelector("[data-stage-status]")?.textContent).toBe("Připravenost 3 ze 6");
+    setWidth(1099);
+    setWidth(390);
+    expect(within(document.querySelector(".arthead") as HTMLElement).getByRole("button", { name: "Požádat o analýzu" })).toBeTruthy();
+    expect(headerMounts).toBe(1);
+  });
+
+  it("names the next stage in the header and opens it through the frame when no dock claims it", async () => {
+    push.mockClear();
+    bench(<HeaderStage />);
+    const next = await within(document.querySelector(".arthead") as HTMLElement).findByRole("button", { name: /^Cílová skupina/ });
+    fireEvent.click(next);
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/audience$/);
+  });
+
+  it("puts the stage's own dock action in the header instead, and no copy of it stays in the dock", async () => {
+    bench(<HeaderStage dock />);
+    const header = document.querySelector(".arthead") as HTMLElement;
+    await within(header).findByRole("button", { name: "Pokračovat dál" });
+    expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Pokračovat dál" })).toHaveLength(1);
+    expect(screen.getByText("Připraveno")).toBeTruthy();
   });
 });
 
