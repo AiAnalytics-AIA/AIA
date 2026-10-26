@@ -1412,6 +1412,19 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   turn's context"; `test_research_lead_workbench.py` "a scripted message about research prepares deep
   research".
 
+- **Review of #925 (Codex), three fixes.**
+  - *Completed runs before the limit.* `_targets` read the five newest runs and filtered after,
+    so five newer unfinished runs hid an older completed one and every Interpretation request
+    was refused. `WorkflowRepository.list_runs(statuses=)` / `ResearchRuns.runs(statuses=)`
+    select in the query; test: "every lead target candidate…" queues five newer runs.
+  - *The manifest.* `lead_context.LEAD_LAYERS`, `PART_LAYERS`, `_BOUNDED` and `_ids` declare
+    `deep_research` (runs, the rest counted) and `targets` (candidate ids, an unreadable run
+    named `unreadable`), so "Co Vedoucí vidí" shows both (`lead-manifest.ts` words); test:
+    `test_lead_context.py` "the deep research and targets layers name what the lead was shown".
+  - *A focused retry.* A run's focus is recorded in its metadata (only when given) and
+    `retry` freezes the same focus; test: `test_deep_research_quote.py` "a focused run retries
+    on the same research questions".
+
 ### Doc follow-up (LO5a.1)
 
 - `CLAUDE.md` map, `domain/`: `lead_research_targets.py` — the Interpretation candidates
@@ -1422,4 +1435,5 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   `deep_research_retry`, grounded by `request_ids` / `request_refusal`; harness 6, prompt 2.
 - `CLAUDE.md` map, routers `deep research`: the quote and the start take `focus` (422 `focus_unknown`).
 - `CLAUDE.md` map, `application/deep_research.py`: `freeze_design(…, focus=)`, `focused_subjects`,
-  `FocusUnknown`.
+  `FocusUnknown`; a run's `focus` in its metadata, kept by its retry.
+- `CLAUDE.md` map, `workflow_repository.py`: `list_runs(statuses=)`, filtered in the query.
