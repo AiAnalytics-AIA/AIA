@@ -15,6 +15,8 @@ chunks:
   - "[x] 12. Doc follow-up written (below)"
   - "[ ] 13. The analysis and Deep Research executors take a prompt pin, so the slots `prompt_slots.py:121-140` marks "not run by any composition" are run; queued work keeps the pin it was queued with after an activation, and new work gets a new identity"
   - "[ ] 14. Remove the draft test from Settings (W1; the owner, 2026-10-20): no paid AI start outside the Lead; a draft is compared and activated, never run from Settings"
+  - "[ ] 15. A researcher reads the system prompts 'Jen ke čtení': a member read route, an ADR 0020 amendment (Nigel, 26 Oct 2026; W1)"
+  - "[ ] 16. System prompts edited and switched on only with the Metodik mark; owners and admins without it read (Nigel, 26 Oct 2026; W1)"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -336,3 +338,16 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **Existing chunk, changed.** 14 (D-15) also removes `prompt_version` and its two refusals from
 `POST …/agent-jobs` (`apps/api/src/aia_api/routers/research.py:2588-2595 @ 854c209`): no paid start
 outside the Lead stays reachable over HTTP.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**15. Researchers read the prompts** (W1, lane B). Today every route refuses a member who may not administer the organization and "the prompt text is never returned to an ordinary member" (`apps/api/src/aia_api/routers/system_prompts.py:1-6 @ 40b16d58`). The prototype shows the prompts read-only to researchers; this needs an ADR 0020 amendment in its PR.
+
+**16. Metodik mark gates prompts** (W1, lane B). Nigel, 26 Oct 2026 ~00:35 UTC: "metodik edits the prompts". Storing and activating a prompt version need the mark, as methodology versions already do (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:237 @ 40b16d58`, `require_methodologist`); owners and admins without it read only. Test: an admin without the mark is refused a save and an activation, by name.

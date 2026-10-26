@@ -7,6 +7,7 @@ chunks:
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
   - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
+  - "[ ] BRF7. A brief's files are Class A by rule, like a client's sources; a person marks one Veřejné to make it Class B: material_rules.py and the class pill, an ADR 0008 amendment note (B4 (a), Nigel 2026-10-26; spec navrh B6, OQ18; W1)"
 ---
 # Artifact: Zadání (Brief)
 
@@ -300,3 +301,22 @@ drafted, so removing the last one stays allowed there; only Návrh requires an o
 - `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a), not reproduced in 5 fresh runs after #678; cause unconfirmed.
 - `open-items.md`: F-BRF-3, an empty new objective said as a name (§ 7a), fixed.
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**Notes.**
+**BRF7. A brief's files are Class A by rule** (spec `navrh/B6`, OQ18; W1, lane E). B4 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: a brief's files are Class A by rule, like a client's sources; a person may mark one Veřejné, which makes it Class B. A material-rule change in `domain/material_rules.py` (today a brief's file and link take `MaterialRule.DESIGN`, Class B, `packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 40b16d58`) with BRF3's pill. An ADR 0008 implication: the amendment note goes under Doc follow-up in its PR. Test: an unmarked brief file classes A, a file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one.
+
+Every other Zadání row of the spec maps to an open chunk.
+- BRF2 carries `navrh/B1`, `navrh/B2`, `navrh/B3`, `navrh/B5`, on `research-lead-workbench#36`.
+- BRF3 carries `navrh/B6` (the class sentence and pill, from the class BRF7 gives).
+- BRF4 carries `navrh/B7` and `navrh/B8`.
+- Decided by default (planning, 26 Oct 2026, open to Nigel's override): the brief's "povinné" is advisory, never a gate on analyze_brief.
+- B5 decided (b) (Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator): **keep the ten problem types** (18.6.6's, parity-tested); the board changes to the ten, not the code (spec `navrh/B1`, OQ15).

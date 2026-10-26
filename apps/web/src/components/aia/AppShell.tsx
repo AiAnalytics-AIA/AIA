@@ -64,13 +64,15 @@ function initials(name: string): string {
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
-function Breadcrumbs({ crumbs, strong = false }: { crumbs: Crumb[]; strong?: boolean }) {
-  if (!crumbs.length) return null;
+/** The trail. `end`, a control that names the current page (Settings: the section menu), is its
+ *  last step inside the list; no crumb is then the current page, the control is. */
+function Breadcrumbs({ crumbs, strong = false, end }: { crumbs: Crumb[]; strong?: boolean; end?: ReactNode }) {
+  if (!crumbs.length && !end) return null;
   return (
     <nav aria-label={t("aia.breadcrumbs")}>
       <ol className={`flex flex-wrap items-center gap-1 text-ink-muted ${strong ? "text-[13px] leading-5" : "text-sm"}`}>
         {crumbs.map((c, i) => {
-          const last = i === crumbs.length - 1;
+          const last = i === crumbs.length - 1 && !end;
           return (
             <li key={`${c.label}-${i}`} className="flex items-center gap-1">
               {i > 0 ? <span aria-hidden="true" className={strong ? "" : "text-ink-faint"}>/</span> : null}
@@ -87,6 +89,12 @@ function Breadcrumbs({ crumbs, strong = false }: { crumbs: Crumb[]; strong?: boo
             </li>
           );
         })}
+        {end ? (
+          <li className="flex items-center gap-1">
+            {crumbs.length ? <span aria-hidden="true" className={strong ? "" : "text-ink-faint"}>/</span> : null}
+            {end}
+          </li>
+        ) : null}
       </ol>
     </nav>
   );
@@ -232,6 +240,7 @@ export function AppShell({
   aside,
   track,
   topbar = false,
+  crumbEnd,
   bleed = false,
   children,
 }: {
@@ -261,6 +270,8 @@ export function AppShell({
   track?: ReactNode;
   /** The header is the breadcrumb alone; the page draws its own heading (Settings: each tab's h1). */
   topbar?: boolean;
+  /** With `topbar`: a control after the breadcrumb, as its last step (Settings: the section menu). */
+  crumbEnd?: ReactNode;
   /** The page lays out its own columns and gutters, edge to edge under the header (Settings). */
   bleed?: boolean;
   children: ReactNode;
@@ -316,8 +327,11 @@ export function AppShell({
         {topbar ? (
           <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
             <div aria-hidden="true" className={`h-[3px] ${accent}`} />
-            <div className="flex min-h-11 flex-wrap items-center gap-3 px-4 py-2.5 md:px-6">
-              <Breadcrumbs crumbs={crumbs.length ? crumbs : [{ label: title }]} strong />
+            {/* relative: a control in the trail anchors its panel to this row (the section menu). */}
+            <div className="relative flex min-h-11 flex-wrap items-center gap-3 px-4 py-2.5 md:px-6">
+              <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
+                <Breadcrumbs crumbs={crumbs.length || crumbEnd ? crumbs : [{ label: title }]} strong end={crumbEnd} />
+              </div>
               {status || action ? <div className="ml-auto flex flex-wrap items-center gap-3">{status}{action}</div> : null}
             </div>
           </header>
