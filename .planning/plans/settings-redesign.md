@@ -41,7 +41,7 @@ chunks:
   - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
-  - "[ ] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
+  - "[x] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
   - "[x] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
 ---
 # Settings redesign (Nastavení)
@@ -241,6 +241,17 @@ when the studies span more than one client, a filtered row hidden, never unmount
 **F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
 
 **F21. Prostředí a verze** (W1, lane B). From the build identity and `GET /population`; no secret in the copied text. Fronta práce is post-MVP (`fronta-prace.md`).
+
+Done (F21): `SystemPanel.tsx` draws Prostředí a verze between Připravenost and Hlášení chyb, from the
+settings document's `deployment` and `population` groups, `GET /population` (each kind's current version by
+its label), `/config`'s `build.sha` (Sestava webu) and `GET /health`'s `build.sha` (Sestava API);
+`lib/system-environment.ts` holds the rows and the copied text (`environmentRows`, `healthBuild`,
+`diagnosticsText`). A read that fails, or answers another shape, leaves its rows "nezjištěno". No version
+row: `AIA_VERSION` is set by no deployment, so the document's `version` is the code's default 0.1.0, a
+stamped guess (review of #975). The copy carries only those eight rows and the readiness count of the smoke
+run Připravenost read (one read, shared), offered once that run is read; one live region stays mounted and
+is cleared on each click; a copy the browser refuses selects the text in a read-only field, never
+"Zkopírováno". Tests: `system-environment.test.ts`, `SystemDataPanels.test.tsx` (F21 cases).
 
 **F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
 

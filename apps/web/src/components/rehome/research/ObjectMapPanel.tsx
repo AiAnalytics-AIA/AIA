@@ -41,6 +41,7 @@ import {
   REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
+import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 /** The canvas's size before it is measured (and in tests): the panel's own fallback. */
 const DEFAULT_SIZE = { width: 900, height: 700 };
@@ -520,15 +521,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                 </div>
               ) : null}
               <span className="omx-sep" aria-hidden />
-              {narrow ? iconBtn(t(`${p}.more`), <Ic d="M5 12h.01M12 12h.01M19 12h.01" bold />, () => openMenu("more"), menu === "more") : (
+              {narrow ? iconBtn(t(`${p}.more`), <PhosphorIcon name="dots-three" size={18} />, () => openMenu("more"), menu === "more") : (
                 <>
-                  {iconBtn(t(`${p}.settings`), <Ic d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4" />, () => openWork("settings"), menu === "settings", "settings")}
-                  {people ? null : iconBtn(t(`${p}.toolsButton`), <Ic d="M5 19c4-9 10-9 14-14M5 19l3-1M5 19l1-3M19 5l-3 1M19 5l-1 3" />, () => openWork("tools"), menu === "tools", "tools")}
+                  {iconBtn(t(`${p}.settings`), <PhosphorIcon name="sliders-horizontal" size={18} />, () => openWork("settings"), menu === "settings", "settings")}
+                  {people ? null : iconBtn(t(`${p}.toolsButton`), <PhosphorIcon name="magic-wand" size={18} />, () => openWork("tools"), menu === "tools", "tools")}
                 </>
               )}
               <button type="button" className={`omx-icon${pill?.warn ? " is-warn" : ""}`} aria-expanded={info} aria-controls={info ? `${described}-info` : undefined}
                 aria-label={pill ? tv(`${p}.infoPill`, { pill: pill.text }) : t(`${p}.info`)} title={`${t(`${p}.info`)} (I)`} onClick={toggleInfo}>
-                <Ic d="M12 8h.01M11 12h1v5h1M12 3a9 9 0 100 18 9 9 0 000-18z" />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
+                <PhosphorIcon name="info" size={18} />{quality ? <span className="omx-badge" aria-hidden>{quality}</span> : null}
               </button>
               {/* One live region, always there, so the chip's first appearance is announced too. */}
               <span role="status" data-testid="object-map-filter-status">
@@ -562,17 +563,17 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
 
             {/* 2. The view rail, bottom right: zoom, fit, 2D / 3D, full screen. */}
             <div className="omx-rail omx-glass" role="group" aria-label={t(`${p}.tools`)}>
-              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><Ic d="M12 5v14M5 12h14" /></button>
-              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><Ic d="M5 12h14" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomIn`)} (+)`} aria-label={t(`${p}.zoomIn`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_IN))}><PhosphorIcon name="plus" size={18} /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.zoomOut`)} (−)`} aria-label={t(`${p}.zoomOut`)} onClick={() => setCamera((c) => zoomCamera(c, ZOOM_OUT))}><PhosphorIcon name="minus" size={18} /></button>
               <span className="omx-hair" aria-hidden />
-              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><Ic d="M12 12h.01M12 5a7 7 0 100 14 7 7 0 000-14zM12 2v3M12 19v3M2 12h3M19 12h3" /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.center`)} (0)`} aria-label={t(`${p}.center`)} onClick={() => setCamera(INITIAL_CAMERA)}><PhosphorIcon name="crosshair" size={18} /></button>
               <span className="omx-hair" aria-hidden />
               <div className="omx-dim" role="group" aria-label={t(`${p}.dimension`)}>
                 <button type="button" aria-pressed={fromAbove} title={t(`${p}.top`)} aria-label={t(`${p}.top`)} onClick={() => setCamera((c) => topCamera(c, size.width, size.height))}>2D</button>
                 <button type="button" aria-pressed={!fromAbove} title={t(`${p}.three`)} aria-label={t(`${p}.three`)} onClick={() => setCamera(camera3d)}>3D</button>
               </div>
               <span className="omx-hair" aria-hidden />
-              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><Ic d={full ? "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" : "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"} /></button>
+              <button type="button" className="omx-icon" title={`${t(`${p}.fullscreen`)} (F)`} aria-label={t(`${p}.fullscreen`)} aria-pressed={full} onClick={toggleFull}><PhosphorIcon name={full ? "corners-in" : "corners-out"} size={18} /></button>
             </div>
 
             {/* 3. The legend: a chip, opened on demand; closed again when a sheet or a popover opens. */}
@@ -625,11 +626,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       </div>
     </div>
   );
-}
-
-/** A line icon on a 24 px grid. */
-function Ic({ d, bold = false }: { d: string; bold?: boolean }) {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={bold ? 3 : 1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={d} /></svg>;
 }
 
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
