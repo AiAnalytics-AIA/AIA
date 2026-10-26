@@ -117,10 +117,13 @@ export function isDeepResearchCard(r: LeadRequest): r is DeepResearchCard {
   return r.kind === "design_research" || r.kind === "interpretation_research" || r.kind === "deep_research_retry";
 }
 
-/** The stage a started Deep Research card's run is followed on: Návrh for a design's, Zpráva for
- *  an Interpretation's or a retry's (the stages the card used to open). */
-export function deepResearchStage(r: DeepResearchCard): "design" | "report" {
-  return r.kind === "design_research" ? "design" : "report";
+/** The stage a started Deep Research card's run is followed on, by the purpose the server
+ *  answered: a design checkpoint's on Dotazník (its DeepResearchPanel), an Interpretation's on
+ *  Zpráva (InterpretationResearch). A retry card does not say which it retries, so without a
+ *  purpose it stays where it is (null); the other two fall back on their kind. */
+export function deepResearchStage(r: DeepResearchCard, purpose: string | null | undefined): "questionnaire" | "report" | null {
+  const p = purpose ?? (r.kind === "design_research" ? "DESIGN_RESEARCH" : r.kind === "interpretation_research" ? "INTERPRETATION_RESEARCH" : null);
+  return p === "DESIGN_RESEARCH" ? "questionnaire" : p === "INTERPRETATION_RESEARCH" ? "report" : null;
 }
 
 const PRESET_WORDS = { QUICK: "Rychlý", STANDARD: "Standardní" } as const;
@@ -130,7 +133,7 @@ const PRESET_WORDS = { QUICK: "Rychlý", STANDARD: "Standardní" } as const;
  *  it did not name is the turn's default candidate, never guessed here. */
 export function deepResearchFacts(r: DeepResearchCard, s: { walletOn: boolean; decided: boolean }): { label: string; value: string; sub?: string }[] {
   const what = r.kind === "design_research"
-    ? { label: "Co se stane", value: "Spustí se hloubkový výzkum nad návrhem, jak je teď", sub: "Návrh se uloží jako nová verze; kontroluje se jako spuštění v kroku Návrh." }
+    ? { label: "Co se stane", value: "Spustí se hloubkový výzkum nad návrhem, jak je teď", sub: "Návrh se uloží jako nová verze; kontroluje se jako spuštění u Dotazníku." }
     : r.kind === "interpretation_research"
     ? { label: "Co se stane", value: "Spustí se literární rešerše k výsledku běhu", sub: "Nad zmrazeným výsledkem; data respondentů ani výpočty nemění." }
     : { label: "Co se stane", value: `Zopakuje se hloubkový výzkum ${r.run_id}`, sub: "Se stejným zadáním; co už proběhlo, se neplatí znovu." };
@@ -258,7 +261,8 @@ export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { no
 }
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
-export type RequestApproval = { run_id: string; design_revision_id: string; status: string };
+/** `purpose`: a Deep Research card's run (LO5a.2), DESIGN_RESEARCH or INTERPRETATION_RESEARCH. */
+export type RequestApproval = { run_id: string; design_revision_id: string; status: string; purpose?: string | null };
 
 export type LeadState = {
   available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[];

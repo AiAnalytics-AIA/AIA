@@ -23,6 +23,7 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
+import { announceDeepResearchStarted } from "@/lib/deep-research-started";
 import { useDismiss } from "../ui/parts";
 import {
   LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, deepResearchStage, isDeepResearchCard, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
@@ -555,8 +556,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
-        // Its run is followed where the stage's own start shows it.
-        if (deep) go(deepResearchStage(r));
+        // Its run is followed where the stage's own start shows it, and a panel already open
+        // there reads it now rather than on its next mount.
+        if (deep) {
+          announceDeepResearchStarted({ runId: started.run_id, purpose: started.purpose ?? null });
+          const at = deepResearchStage(r, started.purpose);
+          if (at) go(at);
+        }
         return;
       } catch (e) {
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {

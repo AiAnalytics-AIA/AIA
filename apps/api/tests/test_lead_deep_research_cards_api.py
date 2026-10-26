@@ -232,6 +232,7 @@ def test_a_design_card_starts_one_run_on_its_focus_and_a_second_approval_returns
     # Approved once: asked again, the same run, nothing written.
     again = _approve(researcher, world, turn_id)
     assert again.json()["run_id"] == body["run_id"]
+    assert body["purpose"] == again.json()["purpose"] == "DESIGN_RESEARCH"
     assert _written(app)["runs"] == 1 and _written(app)["cards"] == 1
     # The card's run is the stage's run: the same spec, found by idempotency.
     stage = researcher.post(
@@ -464,6 +465,7 @@ def test_an_interpretation_card_starts_on_the_candidate_its_turn_was_shown(
     )
     approved = _approve(researcher, world, turn_id)
     assert approved.status_code == 200, approved.text
+    assert approved.json()["purpose"] == "INTERPRETATION_RESEARCH"
     run = researcher.get(f"{_study(world)}/deep-research/runs/{approved.json()['run_id']}").json()
     assert run["purpose"] == "INTERPRETATION_RESEARCH"
     assert run["target"] == candidate["ref"] and run["target"]["research_run_id"] == run_id
@@ -521,6 +523,8 @@ def test_a_retry_card_retries_the_run_it_names_once(
     retried = _approve(researcher, world, turn_id)
     assert retried.status_code == 200, retried.text
     assert retried.json()["run_id"] != started["run_id"]
+    # The client follows a retry by its run's purpose: the card does not name it.
+    assert retried.json()["purpose"] == "DESIGN_RESEARCH"
     with create_session_factory(app.state.engine)() as session:
         run = WorkflowRepository(session, _scope(world, session)).get_run(retried.json()["run_id"])
         assert run["metadata"]["retry_of"] == started["run_id"]

@@ -321,6 +321,9 @@ class ApprovedRequest(BaseModel):
     run_id: str
     design_revision_id: str
     status: str
+    #: A Deep Research card's run: ``DESIGN_RESEARCH`` or ``INTERPRETATION_RESEARCH`` (LO5a.2),
+    #: so the client follows it where it is shown; ``None`` for any other approval.
+    purpose: str | None = None
 
 
 class OmittedId(BaseModel):

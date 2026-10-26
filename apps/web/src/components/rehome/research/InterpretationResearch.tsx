@@ -12,6 +12,7 @@ import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from 
 import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
 import { olderRulesWords } from "@/lib/review-rules";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { holdingWords } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
@@ -73,6 +74,14 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     const timer = running ? setInterval(() => { void load(); }, 2500) : null;
     return () => { live = false; if (timer) clearInterval(timer); };
   }, [frame.studyId, run.run_id, refresh, running]);
+
+  // A run a Lead card started while this panel is open is read now, and shown once it is this
+  // run's (the load keeps the selection only among this run's own Interpretation runs).
+  useEffect(() => onDeepResearchStarted(({ runId, purpose }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH") return;
+    setSelected(runId);
+    setRefresh(n => n + 1);
+  }), []);
 
   useEffect(() => {
     let live = true;

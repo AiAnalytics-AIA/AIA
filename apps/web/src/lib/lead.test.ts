@@ -404,10 +404,16 @@ describe("Deep Research cards (LO5a.2)", () => {
     expect(isDeepResearchCard({ kind: "agent_job", action: "build_questionnaire", why: "w" })).toBe(false);
   });
 
-  it("are followed on the stage the card used to open", () => {
-    expect(deepResearchStage({ kind: "design_research", why: "w" })).toBe("design");
-    expect(deepResearchStage({ kind: "interpretation_research", why: "w" })).toBe("report");
-    expect(deepResearchStage({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" })).toBe("report");
+  it("are followed where their run's panel is, by the purpose the server answered", () => {
+    // The design checkpoint's panel is on Dotazník, not Návrh (review of #1006).
+    expect(deepResearchStage({ kind: "design_research", why: "w" }, "DESIGN_RESEARCH")).toBe("questionnaire");
+    expect(deepResearchStage({ kind: "interpretation_research", why: "w" }, "INTERPRETATION_RESEARCH")).toBe("report");
+    const retry = { kind: "deep_research_retry" as const, why: "w", run_id: "DRR-1" };
+    expect(deepResearchStage(retry, "DESIGN_RESEARCH")).toBe("questionnaire");
+    expect(deepResearchStage(retry, "INTERPRETATION_RESEARCH")).toBe("report");
+    // No purpose answered: a design or Interpretation card by its kind, a retry stays put.
+    expect(deepResearchStage({ kind: "design_research", why: "w" }, undefined)).toBe("questionnaire");
+    expect(deepResearchStage(retry, null)).toBeNull();
   });
 
   it("say an unnamed preset and target are the defaults, never guessed, and the wallet only when it is on", () => {

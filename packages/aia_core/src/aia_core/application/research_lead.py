@@ -1228,6 +1228,7 @@ class ResearchLead:
                 "run_id": run["run_id"],
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
+                **({"purpose": run["metadata"].get("purpose")} if card else {}),
             }
         # Q42: only an approval that would create a job is held by the switch, before anything
         # is submitted, created, written or held.

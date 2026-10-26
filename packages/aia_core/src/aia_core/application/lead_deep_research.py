@@ -236,4 +236,6 @@ def approve_deep_research_card(
         "run_id": started.run_id,
         "design_revision_id": design_revision_id,
         "status": started.run["status"].value,
+        # Where its run is followed: a retry card does not say which checkpoint it retries.
+        "purpose": spec.purpose.value,
     }
