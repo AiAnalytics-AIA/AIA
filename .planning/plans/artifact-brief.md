@@ -181,6 +181,16 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   Tests: `BriefStep.test.tsx` "sections render in the board's order…", "a readiness chip per
   section…", "an empty decision shows chybí…", "context fields render in a two-column grid", and
   `brief-readiness.test.ts`.
+- *Landed, the header* (spec navrh B1, B7; BRF2, BRF4; on `research-lead-workbench#36`, #936):
+  - in the workbench the readiness chips stand in the stage header's status slot;
+  - "Požádat Vedoucího o analýzu" sits in its action slot and sends the typed command "Analyzuj
+    zadání", which the Lead answers with its analysis card. Nothing starts until the person
+    approves that card;
+  - the header's primary is the frame's "Návrh", and the inspector's workbench block is gone;
+  - the sections take StepSection's number, cap and need ("chybí" on an empty decision);
+  - outside the workbench the stage keeps its own analysis button, and the chips stand in place.
+  Tests: `ResearchScreen.workbench.test.tsx` "goes on from Zadání to Návrh through the header's frame
+  button…", "asks the Lead for the brief's analysis from the header…".
 
 - *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
   arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
