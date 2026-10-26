@@ -52,7 +52,6 @@ await context.addInitScript(() =>
 const page = await context.newPage();
 // A stage on the navigator by its own label: the text it starts with. A substring would also match
 // another stage's reopened mark ("ověřit znovu: změna dříve v návrhu", lib/working-impact.ts).
-const navStage = (label, state = "") => page.locator(`.nav__stage${state}`, { hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) });
 const errors = [], writes = [], checks = [], requests = [], switches = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => {
@@ -65,6 +64,10 @@ const check = (name) => checks.push(name);
 const fixtures = JSON.parse(readFileSync(join(repo, "tmp/ui-workbench/studies.json"), "utf8"));
 const { client, study } = fixtures.questionnaire;
 const stagePath = (slug) => `/app/clients/${client}/research/${study}/${slug}`;
+// A stage by its own name: its button also says its status and what reopened it, which can name
+// another stage ("změna dříve v návrhu"), so a text match on the button finds several.
+const navStage = (label, current = false) =>
+  page.locator(`.nav__stage${current ? ".is-current" : ""}`).filter({ has: page.locator(".nav__label", { hasText: new RegExp(`^${label}$`) }) });
 const shot = (name) => page.screenshot({ path: join(out, `${name}.png`) });
 const noOverflow = async (label) => {
   const r = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
@@ -82,6 +85,27 @@ try {
   assert.equal(await page.locator("nav[aria-label='Kroky studie'] [role=group]").count(), 6, "six phases");
   assert.equal((await page.locator(".nav__stage.is-current").innerText()).split("\n")[0], "Zadání");
   check("eleven stages in six phases, Zadání current");
+
+  // The navigator is one steady bar (research-lead-workbench 35): across the whole width, and every
+  // stage's slot where it was whichever stage is current, at 1440, 1280 and 1100 px.
+  for (const width of [1440, 1280, 1100]) {
+    await page.setViewportSize({ width, height: 900 });
+    const slots = [];
+    for (const slug of ["brief", "questionnaire", "audience", "results"]) {
+      await page.goto(base + stagePath(slug));
+      await page.locator(".nav__stage.is-current").waitFor();
+      slots.push(await stages.evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return `${Math.round(r.x)}:${Math.round(r.width)}:${Math.round(r.height)}`; })));
+    }
+    for (const other of slots.slice(1)) assert.deepEqual(other, slots[0], `the navigator shifted with the current stage @${width}`);
+    const last = await stages.last().evaluate((e) => e.getBoundingClientRect().right);
+    assert(last >= width - 24, `the navigator ends at ${last} of ${width} px`);
+    await noOverflow(`navigator @${width}`);
+    await page.locator("nav[aria-label='Kroky studie']").screenshot({ path: join(out, `${width}-navigator.png`) });
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("brief"));
+  await page.locator(".conv").waitFor();
+  check("the navigator spans the width, and no slot moves or grows with the current stage at 1440, 1280 and 1100");
 
   await page.locator(".conv").waitFor();
   assert(await page.locator(".art .arthead__title").innerText() === "Zadání");
@@ -154,7 +178,7 @@ try {
     await page.waitForURL(`**${stagePath(slug)}`);
     await page.waitForFunction((t) => document.querySelector(".art .arthead__title")?.textContent === t, title);
     switches.push({ stage: slug, ms: Date.now() - started });
-    await navStage(label, ".is-current").waitFor();
+    await navStage(label, true).waitFor();
     assert.equal(await page.evaluate(() => document.getElementById("composer") === window.__aiaComposer), true, `${slug}: the Lead's pane was drawn again`);
     assert.equal(await page.evaluate(() => document.querySelector(".conv") === window.__aiaPane), true, `${slug}: the conversation was drawn again`);
     if (draft) assert.equal(await page.locator("#composer").inputValue(), draft, `${slug}: the draft was lost`);
@@ -173,17 +197,17 @@ try {
   await page.locator("[data-sample-view]").waitFor();
   await shot("1440-sample");
   await navStage("Dimenze").click();
-  await navStage("Dimenze", ".is-current").waitFor();
+  await navStage("Dimenze", true).waitFor();
   assert.equal(await page.locator("[data-sample-view]").count(), 0, "back on Dimenze, not Vzorek");
   check("Vzorek shows the sample read only, and Dimenze is one click back");
 
   // Výsledky's views are the hash ResultsWorkspace reads.
   await navStage("Sociomapa").click();
   await page.waitForURL(`**${stagePath("results")}#maps`);
-  await navStage("Sociomapa", ".is-current").waitFor();
+  await navStage("Sociomapa", true).waitFor();
   await navStage("Zpráva").click();
   await page.waitForFunction(() => location.hash === "#report");
-  await navStage("Zpráva", ".is-current").waitFor();
+  await navStage("Zpráva", true).waitFor();
   await shot("1440-report");
   check("Sociomapa and Zpráva open Výsledky's views by hash");
 
@@ -324,6 +348,9 @@ try {
     await elsewhere.waitFor({ timeout: 30000 });
     assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
     await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
+    // DSN12: the hypotheses are a section of their own, each a Lead target, with no verdict said.
+    const hypotheses = page.getByRole("region", { name: "Hypotézy" });
+    assert.equal(await hypotheses.locator('[data-aia^="hypothesis:"]').count(), 2, `plan @${width}: the hypotheses' section`);
     await noOverflow(`plan @${width}`);
     assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
     assert.equal(writes.filter((w) => w.path.endsWith("/workspace/content")).length, planSavesBefore, `plan @${width}: reading Návrh's coverage saved the working copy`);
@@ -334,8 +361,9 @@ try {
       .map(([name, r]) => `${name} ${Math.round(r.width)}×${Math.round(r.height)}`));
     assert.deepEqual(small, [], `plan @${width}: remove targets under 24 px`);
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
+    await hypotheses.screenshot({ path: join(out, `${width}-plan-hypotheses.png`) });
   }
-  check("Návrh shows the coverage of every research question the server reads at 1440, 1100, 768 and 390, nothing saved, no overflow");
+  check("Návrh shows the coverage of every research question the server reads and the hypotheses as their own section at 1440, 1100, 768 and 390, nothing saved, no overflow");
 
   // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
   // the description, the filters, each factor by its catalogue id and the preview, at every width.
@@ -379,7 +407,7 @@ try {
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
     // A link card reads its title, then what is set there: the title names where it goes.
     const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim().split("\n")[0].trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
@@ -398,7 +426,7 @@ try {
   // Its links open the stages where things are set.
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
-  await navStage("Sběr dat", ".is-current").waitFor();
+  await navStage("Sběr dat", true).waitFor();
   check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
 
   // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input

@@ -7,9 +7,11 @@
 // each with the original under Node. Two classic behaviours are kept and
 // characterised, not fixed: the model's dimensions are approved without the
 // catalogue check (OI-53), and an empty approval is refilled with the
-// recommended set (OI-54). One is deliberately not kept: the sample input
+// recommended set (OI-54). Two are deliberately not kept: the sample input
 // clamped to 50–5 000; it now refuses a value outside the server's valid n
-// (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1).
+// (setSampleSize; plan run-qc-and-checkpoint RQC9, audit IA-1); and the
+// catalogue's search matched only the query as typed; it now folds diacritics
+// and spaces (matchesDimensionSearch, artifact-dimensions DIM-F13).
 
 import { type Json, PROVIDER_FORCED, type ResearchProject } from "./model";
 
@@ -72,10 +74,22 @@ export function catalogEntries(active: ActiveDimensions, libraryLabel = "Data Li
 export function dimensionSearchText(d: { id: string; label: string; source: string }): string {
   return `${d.id} ${d.label} ${d.source}`.toLocaleLowerCase("cs");
 }
+/**
+ * filterDimPicker1789's match, which AIA widens on purpose: case and diacritics fold on both sides
+ * and the query's outer spaces drop, so "duvera" finds Důvěra (artifact-dimensions DIM-F13).
+ */
 export function matchesDimensionSearch(d: { id: string; label: string; source: string }, q: string): boolean {
-  const k = String(q || "").toLocaleLowerCase("cs");
-  return !k || dimensionSearchText(d).includes(k);
+  const k = searchFold(String(q || ""));
+  return !k || searchFold(dimensionSearchText(d)).includes(k);
 }
+
+/** Text as the catalogue's search compares it: lower case, no diacritics, spaces single. */
+export function searchFold(s: string): string {
+  return nameKey(s).normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+/** A name as the request check compares it: lower case, spaces single; diacritics kept (Řada is not Rada). */
+const nameKey = (s: string): string => s.toLocaleLowerCase("cs").replace(/\s+/g, " ").trim();
 
 /** canonicalPersonaDim: a topic or a model's word as a dimension id. */
 export function canonicalPersonaDim(x: unknown): string {
@@ -279,6 +293,19 @@ export const REQUEST_AI_DONE = "AI návrh uložen do Data Library jako evidence-
 /** requestDimension1793 trims the label; an empty one is refused with REQUEST_EMPTY. */
 export function requestLabel(raw: unknown): string {
   return String(raw || "").trim();
+}
+
+export const REQUEST_IN_CATALOGUE = "Dimenze „{label}“ už v katalogu je: vyberte ji v seznamu nahoře.";
+
+/**
+ * Why a dimension request is not sent: its name is a catalogue dimension's, by label or by id, case
+ * and spaces aside (DIM-F14); null when it may go. A request the project records is not refused:
+ * whether its proposal still waits is not read here, and a rejected one may be asked for again.
+ */
+export function requestProblem(label: string, entries: readonly { id: string; label: string }[]): string | null {
+  const k = nameKey(label);
+  const hit = entries.find((d) => nameKey(d.label) === k || nameKey(d.id.replace(/_/g, " ")) === k);
+  return hit ? REQUEST_IN_CATALOGUE.replace("{label}", hit.label) : null;
 }
 
 export type NewDimension = NonNullable<Suggestion["new_dimension_suggestions"]>[number];
