@@ -532,13 +532,13 @@ function Legend({ map, scale }: { map: ObjectMapArtifact; scale?: [number, numbe
       <div className="flex flex-col gap-1" aria-label={legendLabel(scale)} role="img">
         <span className="text-xs font-semibold">{t("research.exec.objectMap.legendTitle")}</span>
         <span className="flex items-end gap-0.5" aria-hidden>
-          {Array.from({ length: TERRACE_BANDS }, (_, k) => <span key={k} className="inline-block w-[18px] rounded-t-sm" style={{ height: 6 + Math.round((22 * (k + 1)) / TERRACE_BANDS), background: TERRACE(k) }} />)}
+          {Array.from({ length: TERRACE_BANDS }, (_, k) => <span key={k} className="inline-block w-[18px] rounded-t-mark" style={{ height: 6 + Math.round((22 * (k + 1)) / TERRACE_BANDS), background: TERRACE(k) }} />)}
         </span>
         <span className="flex justify-between gap-3 text-[var(--viz-stage-muted)]" aria-hidden><span>0</span><span>{num(0.5, 1)}</span><span>1</span></span>
       </div>
       <div className="flex flex-wrap gap-3">
-        <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-sm bg-[var(--viz-ground)]" />{t("research.exec.objectMap.legendGround")}</span>
-        <span className="flex items-center gap-1.5"><span aria-hidden className="h-[3px] w-[18px] rounded-sm bg-[var(--viz-link-positive)]" />{t("research.exec.objectMap.legendPositive")}</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-mark bg-[var(--viz-ground)]" />{t("research.exec.objectMap.legendGround")}</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden className="h-[3px] w-[18px] rounded-mark bg-[var(--viz-link-positive)]" />{t("research.exec.objectMap.legendPositive")}</span>
         <span className="flex items-center gap-1.5"><span aria-hidden className="w-[18px] border-t-[3px] border-dashed border-[var(--viz-link-negative)]" />{t("research.exec.objectMap.legendNegative")}</span>
       </div>
       <div className="flex flex-wrap gap-3 text-[var(--viz-stage-muted)]">

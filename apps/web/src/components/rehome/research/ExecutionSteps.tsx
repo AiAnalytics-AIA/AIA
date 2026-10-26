@@ -400,7 +400,7 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
+          <i aria-hidden="true" className={`block size-2.5 rounded-mark ${asks ? "bg-status-you" : "bg-signal"}`} />
           {t("research.exec.cost.legendCeiling")}
         </span>
         {limit !== null ? (
