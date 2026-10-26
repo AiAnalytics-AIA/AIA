@@ -77,6 +77,7 @@ import {
   type SetLimits,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
+import { pyTrue } from "@/research/readers";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
@@ -1226,7 +1227,8 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
       {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
           with it says so and can drop it. */}
       <div ref={familiarityBox}>
-        {sec.familiarity_required ? (
+        {/* Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement. */}
+        {pyTrue(sec.familiarity_required) ? (
           <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
             <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
             <Button

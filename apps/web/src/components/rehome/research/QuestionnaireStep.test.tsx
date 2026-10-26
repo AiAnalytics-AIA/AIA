@@ -306,6 +306,13 @@ describe("Dotazník", () => {
     await waitFor(() => expect(document.activeElement).toBe(note));
   });
 
+  it("reads a stored familiarity flag as the compiler does: an empty {} is no requirement", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[0], { ...SECTIONS[1], familiarity_required: {} }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = (await screen.findByText(/proto tu přepínač chybí/)).closest("[id^=qset_]") as HTMLElement;
+    expect(within(set).queryByRole("button", { name: "Vypnout" })).toBeNull();
+  });
+
   it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
