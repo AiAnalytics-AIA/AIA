@@ -737,6 +737,10 @@ What follows from them:
 RIR-5 (a), the audit page, relayed by coordinator 3: go. Chunk 5 (develop acceptance on the
 existing fictional Fio run, USD 0) may run on the deploy; it is not ticked until it has.
 
+### The owner's answer of 2026-10-26
+
+RIR-5, Nigel, 26 Oct 2026 (relayed by the PM coordinator; `prototype-build.md`): the literature check is **paid, capped by the study budget**. Chunk 5's own acceptance run stays USD 0 as written; a literature check a person starts in a study is held against that study's budget like any other paid work, never free and never above it.
+
 ## Relation to other plans
 
 - run-recovery-and-truth: chunk 1 builds on 3a-3e (the trace) without editing them; chunk 2 covers
