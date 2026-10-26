@@ -81,10 +81,12 @@ import {
 import type { ResearchProject } from "@/research/model";
 import { DESCRIBED_POINTS_MAX } from "@/research/scale-labels";
 import { plural } from "@/lib/format";
+import { pyTrue } from "@/research/readers";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, coverageOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { MenuButton } from "@/components/ui/MenuButton";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
 import { InlineText } from "@/components/ui/InlineText";
 import { TOUCH } from "@/components/ui/parts";
@@ -935,15 +937,18 @@ const TYPES = [
   ["skala", "typeScale"],
   ["otevrena", "typeOpen"],
 ] as const;
-type TypeKey = (typeof TYPES)[number][0];
-const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === typ)?.[0] ?? null;
 
-/** questionCard: the type as pills, the text, and below it what the type needs. */
+/** questionCard: the type as a tag, the text, and below it what the type needs. */
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const wording = useRef<WordingEdit | null>(null);
   const typ = String(q.typ || "");
+  // Read as the compiler reads it: none is a single choice, then the value is trimmed
+  // (research_design.py:952, _text(raw.get("typ") or "vyber")), so blanks alone name no type.
+  const read = typ ? typ.replace(/\s+/g, " ").trim() : "vyber";
+  const current = TYPES.find(([key]) => key === read);
+  const typeLabel = current ? t(`research.questionnaire.${current[1]}`) : t("research.questionnaire.typeUnset");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
   // A question without wording stops the run: marked where it is, not only in the dock.
@@ -951,19 +956,26 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const hint = `${questionElementId(q)}_missing`;
   return (
     <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--status-you-wash)]" : "border-border"}`}>
-      {/* The number and the × keep the row's ends; the type chips wrap between them, so on a phone
-          the × stays beside its question's number instead of falling to a row of its own. Both ends
-          take a chip's height (TOUCH), so they sit level with the chips' first row. */}
+      {/* The number and the × keep the row's ends and the type tag sits between them, so on a phone
+          the × stays beside its question's number. All three take a touch target's height (TOUCH). */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
         <span className={`flex items-center ${TOUCH}`}>
           <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         </span>
-        <ChoiceChips
-          label={t("research.questionnaire.questionType")}
-          value={typeKey(typ)}
-          options={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
-          onChange={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
-        />
+        {/* The type as a tag that opens its choices (spec navrh/Q2; the board draws a tag, not chips):
+            named "<type>, typ otázky", the current one shown and not offered again. The trigger takes
+            a touch target's height, 44 px on a phone (MenuButton's own small size is 28). */}
+        <span className={`flex items-center ${TOUCH}`}>
+          <MenuButton
+            label={typeLabel}
+            name={tv("research.questionnaire.typeOf", { type: typeLabel })}
+            // Only the type as stored is not offered again: an untyped or padded one is offered the
+            // type it reads as, which writes it and draws its editor (options, scale) as stored.
+            items={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`), disabled: key === typ }))}
+            onSelect={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
+            className="[&>button]:min-h-11 sm:[&>button]:min-h-8"
+          />
+        </span>
         <Button
           small
           variant="quiet"
@@ -1172,6 +1184,18 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
+  const { canEdit } = useFrame();
+  const familiarityBox = useRef<HTMLDivElement>(null);
+  // Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement.
+  const familiarityStored = pyTrue(sec.familiarity_required);
+  // "Vypnout" takes its button away: focus is owed to the line that replaces it, given once that line
+  // is rendered (AGENTS.md: after the render that mounts it, never on a frame guess).
+  const familiarityFocusOwed = useRef(false);
+  useEffect(() => {
+    if (familiarityStored || !familiarityFocusOwed.current) return;
+    familiarityFocusOwed.current = false;
+    familiarityBox.current?.querySelector<HTMLElement>("p")?.focus();
+  }, [familiarityStored]);
   const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
@@ -1273,9 +1297,26 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         perPoint={false}
         onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
       />
-      <div className="flex flex-col gap-1">
-        <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
-        <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
+      {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
+          with it says so and can drop it. */}
+      <div ref={familiarityBox}>
+        {familiarityStored ? (
+          <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+            <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
+            <Button
+              small
+              disabled={!canEdit}
+              onClick={() => {
+                familiarityFocusOwed.current = true;
+                update((p) => setSectionField(p, si, "familiarity_required", false), "familiarity");
+              }}
+            >
+              {t("research.questionnaire.familiarityOff")}
+            </Button>
+          </div>
+        ) : (
+          <p tabIndex={-1} className={`text-xs text-ink-muted ${FOCUS}`}>{t("research.questionnaire.familiarityUnavailable")}</p>
+        )}
       </div>
       {togglesConceptTest(sec) ? (
         <div className="flex flex-col gap-1">
