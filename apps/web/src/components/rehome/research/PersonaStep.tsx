@@ -53,6 +53,7 @@ import {
   undoChosen,
   requestLabel,
   requestedLabels,
+  requestProblem,
   sampleRefusalMessage,
   setSampleSize,
   suggestPayload,
@@ -178,16 +179,18 @@ export function PersonaStep() {
       setRequesting(false);
     }
   };
-  // An empty name is the field's own error, apart from a failed request (the suggestions share that one);
-  // `tried` remounts the message, so a second empty try is announced again.
-  const [emptyTried, setEmptyTried] = useState(0);
+  // An empty name, or one the catalogue has already, is the field's own error, apart
+  // from a failed request (the suggestions share that one); `n` remounts the message, so a second try is
+  // announced again.
+  const [fieldError, setFieldError] = useState<{ text: string; n: number } | null>(null);
   const customField = useRef<HTMLInputElement>(null);
   const customErrorId = useId();
   const requestCustom = async () => {
     const label = requestLabel(custom);
-    if (!label) {
+    const problem = label ? requestProblem(label, entries) : REQUEST_EMPTY;
+    if (problem) {
       setRequestError(null); // nothing is sent, so an earlier request's failure is no longer the news
-      setEmptyTried((n) => n + 1);
+      setFieldError((e) => ({ text: problem, n: (e?.n ?? 0) + 1 }));
       customField.current?.focus();
       return;
     }
@@ -423,18 +426,18 @@ export function PersonaStep() {
                 className="w-full !rounded-control"
                 value={custom}
                 placeholder={t("research.persona.customPlaceholder")}
-                aria-invalid={emptyTried ? true : undefined}
-                aria-describedby={emptyTried ? customErrorId : undefined}
+                aria-invalid={fieldError ? true : undefined}
+                aria-describedby={fieldError ? customErrorId : undefined}
                 onChange={(e) => {
                   setCustom(e.target.value);
-                  setEmptyTried(0);
+                  setFieldError(null);
                 }}
               />
             </Field>
             <Button type="submit" className="!rounded-control" disabled={requesting}>{t("research.persona.customAdd")}</Button>
           </form>
-          {emptyTried ? (
-            <p key={emptyTried} id={customErrorId} role="alert" className="mt-2 text-sm text-status-fault">{REQUEST_EMPTY}</p>
+          {fieldError ? (
+            <p key={fieldError.n} id={customErrorId} role="alert" className="mt-2 text-sm text-status-fault">{fieldError.text}</p>
           ) : null}
           {requestError ? (
             <p role="alert" className="mt-3 rounded-control border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">

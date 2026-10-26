@@ -22,12 +22,12 @@ chunks:
   - "[ ] RPT3c. One document bar: document, status, Připravit, approve, DOCX and PDF; every download moves into it, and 'Zpráva s rešerší' leaves the pane (follows RPT3 and RPT3a, with RPT5; spec szz Z2; Nigel P3, 26 Oct 2026; W3)"
   - "[ ] RPT3d. The approval dialog: name, saved time, 'stáhnete přesně tuto verzi', the accepted-findings count (follows RPT3a; spec szz Z4; W3)"
   - "[ ] RPT8b.1. A prose number's change shown inline as 'Upraveno ručně'; no 'Vrátit' inside the open editor (follows RPT8b; spec szz Z6; W3)"
-  - "[ ] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
+  - "[x] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
   - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
   - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
   - "[ ] RPT12. No ids on the stage (spec szz Z3; W3)"
   - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
-  - "[ ] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
+  - "[x] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
   - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
 ---
 # Artifact: Zpráva (Report)
@@ -883,7 +883,10 @@ accepted-findings count on Pro klienta, after ANL11; the chunk stays open until 
 
 **RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
 
-**RPT8c.1. Editor config** (spec `szz/Z5`; follows RPT8c; W3, lane G). With RPT14.
+**RPT8c.1. Editor config** (spec `szz/Z5`; follows RPT8c; W3, lane G). With RPT14. *Built with RPT14 (`feature/editor-config`):* `_config` (`routers/report_editor.py`) signs
+`permissions.download` and `print` false, `editorConfig.region` `cs-CZ` and the board's `customization` (`uiTheme`
+`theme-aia`, compact header and toolbar, no file name, cm, zoom 90, no plugins, chat or help, `forcesave` kept);
+`modifyContentControl` is never sent. Test: `test_the_config_is_signed_names_no_e_mail_and_fetches_its_version`.
 
 **RPT8d.1. Number detail** (spec `szz/Z7`; follows RPT8d, partly new; W3, lane G). After RPT8a part 3.
 
@@ -893,7 +896,8 @@ accepted-findings count on Pro klienta, after ANL11; the chunk stays open until 
 
 **RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
 
-**RPT14. uiTheme** (spec `szz/T5`; W3, lane G).
+**RPT14. uiTheme** (spec `szz/T5`; W3, lane G). *Built with RPT8c.1:* the config asks for `theme-aia`; the theme itself
+is served by `report-editor-hosting` 6, and until it is the Document Server shows its default theme.
 
 **RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded. *Built (`feature/editor-docx-fonts`):* `report_docx/embed.py` `reembed_fonts` puts back every face `FACES` names that
 the package lacks, changing only the font table, its relationships, settings and content types (every other part byte for

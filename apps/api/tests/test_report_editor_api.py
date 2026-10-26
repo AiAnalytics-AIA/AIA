@@ -181,7 +181,28 @@ def test_the_config_is_signed_names_no_e_mail_and_fetches_its_version(
     user = config["editorConfig"]["user"]
     assert user["id"] == world.users["researcher"] and "@" not in user["name"]
     assert "@" not in response.text  # no e-mail anywhere in what the browser gets
-    assert config["editorConfig"]["customization"]["forcesave"] is True
+    # The board's editor (Z5, T5): the doc bar the only way out, Czech, the AIA theme, compact.
+    assert config["document"]["permissions"] == {
+        "edit": True,
+        "download": False,
+        "print": False,
+        "comment": True,
+    }
+    assert config["editorConfig"]["region"] == "cs-CZ"
+    assert config["editorConfig"]["customization"] == {
+        "uiTheme": "theme-aia",
+        "compactHeader": True,
+        "compactToolbar": True,
+        "toolbarHideFileName": True,
+        "unit": "cm",
+        "zoom": 90,
+        "plugins": False,
+        "chat": False,
+        "help": False,
+        "forcesave": True,
+    }
+    # Unlocking a control stays allowed (amended ADR 0035): the key is never sent.
+    assert "modifyContentControl" not in response.text
     # The Document Server's routes, outside any study: the token's session names it.
     assert config["editorConfig"]["callbackUrl"].startswith(f"{PUBLIC}{API}/report-editor/")
     assert config["document"]["url"].startswith(f"{PUBLIC}{API}/report-editor/document?")
