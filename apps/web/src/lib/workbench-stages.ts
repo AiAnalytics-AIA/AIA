@@ -72,7 +72,8 @@ const TONE: Record<LaneTone, Tone> = { done: "done", you: "you", running: "runni
 const WORD: Record<Tone, string> = { done: "Hotovo", running: "Běží", you: "Čeká na vás", fault: "Chyba", ready: "Připraveno", inert: "" };
 
 /**
- * A stage's tone, line and word from the lane, keyed by step. Sample reads Dimenze's; the result
+ * A stage's tone, line and word from the lane, keyed by step. Dimenze and Vzorek read their own
+ * entries (`dimensions`, `sample`), not the classic track's shared persona step (#945); the result
  * data reads Výsledky's. Unknown says nothing: an empty word and the inert tone, never a guess, and
  * a stage is done only where the lane says that stage is:
  * - Sběr dat is done when the newest run's results are ready, moving, waiting or at fault as that
@@ -81,9 +82,9 @@ const WORD: Record<Tone, string> = { done: "Hotovo", running: "Běží", you: "�
  * - Sociomapa, Analýza and Zpráva are Výsledky's views; the lane knows no map, module or report of
  *   their own (research-lead-workbench F25), so they are inert, with Výsledky's line.
  */
-export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, LaneStage>>): { tone: Tone; line: string; word: string } {
+export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey | "dimensions" | "sample", LaneStage>>): { tone: Tone; line: string; word: string } {
   const said = (tone: Tone, line: string) => ({ tone, line, word: WORD[tone] });
-  const from = (step: StepKey) => {
+  const from = (step: StepKey | "dimensions" | "sample") => {
     const s = lane[step];
     return s ? said(TONE[s.tone], s.line) : said("inert", "");
   };
@@ -94,5 +95,6 @@ export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, 
     return lane.run?.tone === "done" && p ? said("inert", p.line) : said("inert", lane.run?.line ?? "");
   }
   if (stage === "sociomap" || stage === "analysis" || stage === "report") return said("inert", lane.results?.line ?? "");
+  if (stage === "dimensions" || stage === "sample") return from(stage);
   return from(STAGES[stage].step);
 }

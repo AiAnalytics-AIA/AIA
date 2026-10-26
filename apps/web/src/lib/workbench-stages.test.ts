@@ -35,11 +35,15 @@ describe("workbench stages", () => {
   it("read their state from the lane and say nothing for a stage the lane does not know", () => {
     const lane = {
       persona: { tone: "done" as const, line: "2 dimenze · N=600" },
+      dimensions: { tone: "done" as const, line: "2 dimenze" },
+      sample: { tone: "done" as const, line: "N=600" },
       run: { tone: "done" as const, line: "Spuštěno 1×" },
       progress: { tone: "running" as const, line: "Běh 1: běží" },
       results: { tone: "idle" as const, line: "Zatím nic" },
     };
-    expect(stageState("sample", lane)).toEqual({ tone: "done", line: "2 dimenze · N=600", word: "Hotovo" });
+    // Dimenze and Vzorek each read their own line, not the classic track's shared one (#945).
+    expect(stageState("dimensions", lane)).toEqual({ tone: "done", line: "2 dimenze", word: "Hotovo" });
+    expect(stageState("sample", lane)).toEqual({ tone: "done", line: "N=600", word: "Hotovo" });
     expect(stageState("fieldwork", lane)).toEqual({ tone: "running", line: "Běh 1: běží", word: "Běží" });
     expect(stageState("analysis", lane)).toEqual({ tone: "inert", line: "Zatím nic", word: "" });
     expect(stageState("brief", lane)).toEqual({ tone: "inert", line: "", word: "" });
