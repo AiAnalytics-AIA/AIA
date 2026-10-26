@@ -127,7 +127,8 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}, mayAdmi
         "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: mayAdminister, currency: "USD", people: [] }),
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
+      // A route may answer with a promise, so a test can hold one read open.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -1607,14 +1608,59 @@ describe("each page's hero (F18)", () => {
     expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
   });
 
+  const SMOKE = () => ({ latest: { run_id: "r1", build_sha: "abc", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
+    { check: "Sign-in", status: "ok" }, { check: "Bedrock", status: "FAIL" },
+  ] } });
+  const WEB_BUILD = () => ({ ...CONFIG(), build: { sha: "a1c4e9f2b7d3" } });
+
   it("heads Stav systému with the figures its own panel hands up", async () => {
-    api({ "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
-      { check: "Sign-in", status: "ok" }, { check: "Bedrock", status: "FAIL" },
-    ] } }) });
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=1 / 2", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+  });
+
+  it("hands Stav systému's figures up only once the Environment card has read, never unknown above Načítám", async () => {
+    // Review of #1009 (P2): the smoke run answered, /api/v1/health not yet.
+    let release: (v: unknown) => void = () => {};
+    const health = new Promise((resolve) => { release = resolve; });
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD, "GET /api/v1/health": () => health });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    const panel = panelOf("Stav systému");
+    await waitFor(() => expect(called("GET", "/api/v1/settings/system-status")).toHaveLength(1));
+    await waitFor(() => expect(panel.querySelector("[data-copy-diagnostics]")).toBeTruthy());
+    expect(within(panel.querySelector("[data-system-environment]") as HTMLElement).getByText("Načítám…")).toBeTruthy();
+    expect(panel.querySelector("[data-hero] dl")).toBeNull();
+    await act(async () => { release({ status: "ok", build: { sha: null } }); });
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=1 / 2", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+  });
+
+  it("says Připraveno unknown when no smoke run is stored, never 0", async () => {
+    api({ "GET /api/v1/settings/system-status": () => new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }), "GET /config": WEB_BUILD });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=neznámé", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+    expect(panelOf("Stav systému").querySelector('[data-hero-figure="unknown"]')).toBeTruthy();
+  });
+
+  it("keeps Stav systému's figures on its own page: another page draws none of them", async () => {
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD });
     render(<ControlPanel />);
     await openSection("Stav systému");
     await waitFor(() => expect(figures("Stav systému")[0]).toBe("Připraveno=1 / 2"));
-    expect(figures("Stav systému").map((f) => f.split("=")[0])).toEqual(["Připraveno", "Prostředí", "Sestava webu"]);
+    await openSection("Metodika");
+    expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
+    expect(panelOf("Správa dat").querySelector("[data-hero] dl")).toBeNull();
+  });
+
+  it("draws no Stav systému figures for someone who is not an administrator", async () => {
+    api({ "GET /api/v1/settings/system-status": SMOKE }, false);
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    expect(await within(panelOf("Stav systému")).findByText("Stav systému vidí vlastník nebo správce.")).toBeTruthy();
+    expect(panelOf("Stav systému").querySelector("[data-hero] dl")).toBeNull();
+    expect(called("GET", "/api/v1/settings/system-status")).toHaveLength(0);
   });
 
   it("counts the audit's week only when the page read it whole", async () => {

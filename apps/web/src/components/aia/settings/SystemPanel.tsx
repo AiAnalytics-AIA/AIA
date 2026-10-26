@@ -127,8 +127,9 @@ function Environment({ system }: { system: Read<SystemStatus> }) {
   // A refused copy: the text selected where it can be copied by hand.
   useEffect(() => { if (copy === "failed") { field.current?.focus(); field.current?.select(); } }, [copy]);
   const label = (k: EnvKey) => t(`${E}.row.${k}`);
-  // The page's hero figures (F18): ready checks, environment and build, from this card's reads.
-  useHeroFigures("system", system.state === "loading" ? undefined : systemFigures(readyOf(system), rows, {
+  // The page's hero figures (F18): ready checks, environment and build, from this card's reads; none
+  // while any of them is still being read, so the hero never says unknown above "Načítám…" (review of #1009).
+  useHeroFigures("system", system.state === "loading" || rows === null ? undefined : systemFigures(readyOf(system), rows, {
     ready: t("aia.settings.panel.hero.system.ready"), environment: t(`${E}.row.environment`), build: t(`${E}.row.build`),
   }));
   const text = rows ? diagnosticsText(rows, label, t(`${E}.unknown`), readyOf(system), t(`${E}.ready`)) : "";
