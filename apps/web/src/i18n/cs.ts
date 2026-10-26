@@ -3818,6 +3818,7 @@ export const cs = {
         segLikes: "hodnotí výš než ostatní: {objects}",
         segDislikes: "níž: {objects}",
         segColour: "Barvu na mapě respondentů má jen ten, kdo do své skupiny patří aspoň z {share}; ostatní jsou šedí.",
+        segDescriptive: "Skupiny jen popisují, jak se respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.",
         segBorderline: "Náznak skupin je na hranici; barvy nejsou.",
         segNone: "Respondenti netvoří zřetelné chuťové skupiny.",
         relyTitle: "Jak spolehlivá je mapa",
