@@ -273,7 +273,7 @@ const lineClearance = (selected: boolean) => nodeRadius(selected) + 4.5;
 
 // ---------------------------------------------------------------- relations
 
-/** Which relations the map draws: the panel's default "Top vztahy" (5 strongest), the selected object's, or all. */
+/** Which relations the map draws: the panel's default "Nejsilnější vztahy" (its Top: 5 strongest), the selected object's, or all. */
 export type RelationMode = "top" | "selected" | "all";
 export type PanelPair = { i: number; j: number; r: number; v: number };
 
