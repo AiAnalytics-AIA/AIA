@@ -699,3 +699,32 @@ def test_a_charge_refused_after_the_create_leaves_no_run_no_row_and_no_charge(
     refused = _approve(researcher, world, turn_id)
     assert refused.status_code == 409 and refused.json()["code"] == "outside_wallet", refused.text
     assert _written(app) == {"runs": 0, "chat_start": 0, "charges": 0}
+
+
+def test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """QST13: the typed "Navrhni dotazník" reads the pinned Design Research findings as the
+    stage's start does, under AIA_AI_ANALYSIS_EXTERNAL_CONTEXT alone."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    _save(app, world)
+    off = _type(researcher, world, "Navrhni dotazník: krátce").json()["turns"][0]["turn_id"]
+    assert _approve(researcher, world, off).status_code == 200
+    assert given == []
+    monkeypatch.setattr(
+        app.state,
+        "settings",
+        app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+    )
+    turns = _type(researcher, world, "Navrhni dotazník: delší").json()["turns"]
+    on = turns[-1]["turn_id"]
+    assert _approve(researcher, world, on).status_code == 200
+    assert given and all(store is not None for store in given)

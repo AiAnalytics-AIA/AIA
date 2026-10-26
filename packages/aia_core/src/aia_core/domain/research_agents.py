@@ -8,6 +8,7 @@ memory/output seams; it does not authorize online prompt or policy changes.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from enum import StrEnum
 from typing import Any, Final, Literal
@@ -631,6 +632,69 @@ def context_snapshot(content: dict[str, Any], knowledge: list[KnowledgeItem]) ->
     return snapshot
 
 
+#: The actions that read the Study's newest Design Research findings (artifact-questionnaire QST13).
+EXTERNAL_ACTIONS: Final = frozenset({ResearchAction.BUILD, ResearchAction.OPTIMIZE})
+#: The layer's key in a job's context: the Lead's own name (``research_lead.EXTERNAL_LAYER``).
+EXTERNAL_KEY: Final = "external_context_not_evidence"
+
+
+#: The fixed rail a job's system prompt carries whenever its context holds the external layer,
+#: after the task wording, so a stored edit of the task cannot drop it.
+EXTERNAL_RAIL: Final = """
+
+Kontext obsahuje external_context_not_evidence: ověřená zjištění veřejné rešerše k návrhu
+(u každého jeho zdroj). Smíš z nich vycházet při volbě témat, položek a formulací; nejsou
+to data respondentů ani výsledky výzkumu. Žádné jejich číslo nepiš do otázek jako fakt ani
+jako výsledek a necituj je jako zdroj tvrzení. Je-li uvedeno unavailable, rešerši nelze
+číst a nic z ní nepředpokládej."""
+
+
+def with_external_context(
+    snapshot: dict[str, Any],
+    pin: Mapping[str, str],
+    lines: Sequence[str],
+    *,
+    unavailable: str | None = None,
+) -> dict[str, Any]:
+    """The job's context with the newest Design Research run's verified public findings, as the
+    analysis and the Lead are shown them (``analysis_results._external_context``): the pinned
+    bundle and its lines, frozen at enqueue, never evidence. ``unavailable``: the reason a pinned
+    bundle did not read, said in the layer as the Lead's says it, never read as no research.
+
+    The findings are optional: those that would take the context past :data:`CONTEXT_MAX_BYTES`
+    are left out from the end and counted (``omitted``), never refusing a job the design alone
+    fits. No lines and no reason, no layer."""
+    if not lines and unavailable is None:
+        return snapshot
+    kept = list(lines)
+    while True:
+        layer: dict[str, Any] = {"pin": dict(pin), "findings": kept}
+        if unavailable is not None:
+            layer["unavailable"] = unavailable
+        if len(kept) < len(lines):
+            layer["omitted"] = len(lines) - len(kept)
+        framed = {**snapshot, EXTERNAL_KEY: layer}
+        if len(canonical_json(framed).encode()) <= CONTEXT_MAX_BYTES:
+            return framed
+        if not kept:
+            return snapshot
+        kept.pop()
+
+
+def external_record(snapshot: Mapping[str, Any]) -> dict[str, Any] | None:
+    """What a job's provenance says of its external layer: the pinned bundle, the findings shown
+    and left out, and why a bundle did not read; ``None`` without the layer."""
+    layer = snapshot.get(EXTERNAL_KEY)
+    if not isinstance(layer, Mapping):
+        return None
+    return {
+        "pin": layer.get("pin"),
+        "findings": len(layer.get("findings") or ()),
+        "omitted": int(layer.get("omitted") or 0),
+        "unavailable": layer.get("unavailable"),
+    }
+
+
 def snapshot_hash(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(canonical_json(snapshot).encode()).hexdigest()
 
@@ -753,7 +817,8 @@ def agent_request(
         policy_version=policy_version,
         data_classification=data_class,
         data_lineage=lineage,
-        system=prompt_for(action, None if prompt is None else prompt.text),
+        system=prompt_for(action, None if prompt is None else prompt.text)
+        + (EXTERNAL_RAIL if EXTERNAL_KEY in snapshot else ""),
         messages=(
             Message(
                 role="user",

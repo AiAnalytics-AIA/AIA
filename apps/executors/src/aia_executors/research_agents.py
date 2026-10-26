@@ -32,6 +32,7 @@ from aia_core.domain.research_agents import (
     ResearchAction,
     agent_request,
     design_classification,
+    external_record,
     instruction_classification,
     prompt_class_source,
     prompt_data_class,
@@ -277,6 +278,9 @@ class ResearchAgentExecutor:
                 {"item_id": k["item_id"], "revision": k["revision"]} for k in snapshot["knowledge"]
             ],
             "omitted_knowledge_ids": snapshot["omitted_knowledge_ids"],
+            # The Design Research findings the job was shown (artifact-questionnaire QST13): the
+            # pinned bundle and how many, or null without the layer; never evidence.
+            "external_context": external_record(snapshot),
             "call_id": result.call_id,
             "provider_request_id": result.provider_request_id,
             "model": result.resolved_model,
