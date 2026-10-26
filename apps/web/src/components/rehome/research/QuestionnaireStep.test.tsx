@@ -308,6 +308,35 @@ describe("Dotazník", () => {
     expect(within(preview).queryByText("Otázka 3")).toBeNull();
   });
 
+  it("previews a scale at its own range and says what the preview leaves out (QST11)", async () => {
+    const seven = { id: "Q7", text: "Jak moc souhlasíte?", typ: "skala", skala: [1, 7], popisky_skaly: ["vůbec", "zcela"] };
+    const wide = { id: "Q8", text: "Kolik bodů dáte?", typ: "skala", skala: [0, 100], popisky_skaly: ["nic", "vše"] };
+    const many = Array.from({ length: 13 }, (_, i) => ({ id: `QX${i}`, text: `Doplňková ${i}?`, typ: "otevrena" }));
+    const set = { ...SECTIONS[1], scale: [1, 5] };
+    unitStub({ ...BRIEF, sections: [{ id: "sec_s", type: "questions", title: "Škály", questions: [seven, wide, ...many] }, set], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    const item = (text: string) => within(preview).getByText(text).closest("li") as HTMLElement;
+    expect(item("Jak moc souhlasíte?").querySelector("[data-scale-points]")?.getAttribute("data-scale-points")).toBe("7");
+    // 0–100 is drawn as its ends either side of "…", never 101 boxes.
+    const wideScale = item("Kolik bodů dáte?").querySelector("[data-scale-points]") as HTMLElement;
+    expect(wideScale.getAttribute("data-scale-points")).toBe("101");
+    expect([...wideScale.querySelectorAll("i")].map((b) => b.textContent)).toEqual(["0", "1", "…", "99", "100"]);
+    // Fifteen questions and one set: the fourteen shown leave two out.
+    expect(within(preview).getByText("+ 2 další položky dotazníku, náhled ukazuje prvních 14")).toBeTruthy();
+  });
+
+  it("previews a tracked set at its stored range and names the objects it does not draw (QST11)", async () => {
+    unitStub({ ...BRIEF, sections: [{ ...SECTIONS[1], scale: [1, 5] }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    // One row drawn, the board's; the other three named.
+    expect([...preview.querySelectorAll("[data-scale-points]")].map((n) => n.getAttribute("data-scale-points"))).toEqual(["5"]);
+    expect(within(preview).getByText("a stejně pro 3 další položky")).toBeTruthy();
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -369,6 +398,19 @@ describe("Dotazník", () => {
     // Q1's link is written out for touch, and Q2, now beside a linked item, says it measures none.
     expect(within(q1).getByText("VO1 · Jak často lidé pijí kávu?")).toBeTruthy();
     expect(within(linksOfItem("qedit_Q2")).getByText(/^Neměří žádnou výzkumnou otázku/)).toBeTruthy();
+  });
+
+  it("numbers blocks B n and sets S n as the outline does, spoken as Blok n and Sada n (Q2)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    const b1 = within(block).getByText("B1");
+    expect(b1.getAttribute("aria-hidden")).toBe("true");
+    expect(b1.parentElement?.textContent).toBe("B1Blok 1");
+    expect(within(block).getByText("2 otázky")).toBeTruthy();
+    const s1 = within(document.getElementById("qset_sec_b") as HTMLElement).getByText("S1");
+    expect(s1.parentElement?.textContent).toBe("S1Sada 1");
   });
 
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {

@@ -5,13 +5,14 @@
  *
  * Needs `make ui-workbench` with AIA_WEB_RESEARCH_WORKBENCH=true, `make ui-fixtures` and `make ui-research`
  * (a finished run on the `persona` fixture). Checks, at every width:
- *   - the coverage table, the milestones and Hlavní zjištění are shown, with no page overflow;
+ *   - the coverage table, the milestones and one findings list with a module filter are shown, with no page overflow;
  *   - every Analýza target (module:, finding:, claim:) names exactly one element (focus takes the first);
  *   - in the workbench a coverage chip, a key finding's button and a cited number open in the item
  *     inspector (ANL3), and a cited number links on to its measure on Výsledky (#measure-<id>);
  *   - the stage opens on its analysis, not ~1,800 px down the pane, and nothing in the coverage table is
  *     clipped (at 390 px each row is a card);
  *   - a finished run's milestones read "Sběr dokončen" done;
+ *   - every coverage row shows the answer's text and one state word (ANL2b);
  *   - the header reads "Běh z … · interní · <origin>", and no run or claim id is printed (ANL10);
  *   - a coverage finding chip keeps the analysis view (no hash that sends the workspace to Přehled);
  *   - a module stored BLOCKED reads "Potřebuje opravu", never "Hotovo".
@@ -103,9 +104,25 @@ try {
     const clipped = await coverage.evaluate((el) => { const t = el.querySelector("table"); return !!t && t.getBoundingClientRect().width > el.getBoundingClientRect().width + 1; });
     assert.equal(clipped, false, `@${width}: the coverage table is clipped`);
     // Below md each cell shows its column's name; on the full table the header row says it.
-    const names = await coverage.evaluate((el) => [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length);
-    if (width < 768) assert(names >= 3, `@${width}: the stacked cells show their column names`);
+    const { names, rowCount, verdicts, cells } = await coverage.evaluate((el) => ({
+      names: [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length,
+      rowCount: el.querySelectorAll("tr[data-rq]").length,
+      verdicts: [...el.querySelectorAll("tr[data-rq]")].map((r) => r.getAttribute("data-verdict")),
+      // Each row: its Odpověď cell's text without its column name, and its Stav cell's word.
+      cells: [...el.querySelectorAll("tr[data-rq]")].map((r) => [...r.querySelectorAll("td")].map((td) => {
+        const c = td.cloneNode(true); c.querySelector("span[aria-hidden]")?.remove(); return (c.textContent ?? "").trim();
+      })),
+    }));
+    // Odpověď and Stav carry their names on a phone; the question needs none.
+    if (width < 768) assert.equal(names, rowCount * 2, `@${width}: the stacked cells show their column names`);
     else assert.equal(names, 0, `@${width}: the column names repeat beside the header row`);
+    // Each row's state is one of the stage's words (ANL2b).
+    const WORDS = { answered: "Odpovězeno", indicative: "Orientačně", no_data: "Bez dat", pending: "Čeká", unknown: "Neznámé" };
+    verdicts.forEach((v, i) => {
+      assert.equal(cells[i][2], WORDS[v ?? ""], `@${width}: row ${i + 1}'s Stav reads "${cells[i][2]}" for ${v}`);
+      // A stored analysis answers in words; the cell shows that text, never just a state.
+      if (v === "answered" || v === "indicative") assert(cells[i][1].length > 0 && cells[i][1] !== "—", `@${width}: row ${i + 1} shows no answer text`);
+    });
     // What waits on the person (blocked modules, modules without a finding) comes before the milestones (ANL4).
     const waysFirst = await page.evaluate(() => {
       const ways = document.querySelector("[data-analysis-ways-out]");
@@ -129,15 +146,21 @@ try {
     assert(Object.keys(counts).some((id) => id.startsWith("module:")), `@${width}: no module target`);
 
     // A module reads done only when it is stored COMPLETED, and a BLOCKED one reads "Potřebuje opravu".
-    const entries = await page.evaluate(() => [...document.querySelectorAll("nav[aria-label=\"Části AI analýzy\"] button")]
+    const entries = await page.evaluate(() => [...document.querySelectorAll("nav[aria-label=\"Části AI analýzy\"] button[data-outcome]")]
       .map((b) => ({ outcome: b.getAttribute("data-outcome"), text: b.textContent ?? "" })));
     assert.equal(entries.length, 8, `@${width}: the eight modules are listed`);
+    // One findings list (ANL3b): each finding drawn once, and a module's filter hides the others' findings.
+    const once = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll("[data-key-findings] li[data-finding-module]")].map((li) => li.id);
+      return ids.length === new Set(ids).size && ids.length > 0;
+    });
+    assert(once, `@${width}: a finding is drawn twice, or none is`);
     for (const e of entries) {
       assert.equal(/Dokončeno/.test(e.text), e.outcome === "COMPLETED", `@${width}: "${e.text}" reads against its stored ${e.outcome}`);
       if (e.outcome === "BLOCKED") assert.match(e.text, /Potřebuje opravu/, `@${width}: a blocked module says it needs repair`);
     }
   }
-  check("Analýza at 1440, 1100, 768 and 390: opens on its analysis; coverage unclipped, milestones done, Hlavní zjištění; no overflow");
+  check("Analýza at 1440, 1100, 768 and 390: opens on its analysis; coverage unclipped, milestones done, one findings list; no overflow");
   check("every module:, finding: and claim: target names exactly one element at every width");
 
   // Moving to Analýza within the page (Výsledky, then its stage) also opens on the analysis (F2).

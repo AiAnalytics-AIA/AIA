@@ -5,6 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -15,6 +16,7 @@ import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { LeadAskContext } from "./AskLead";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
+import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -1196,6 +1198,34 @@ describe("Progress", () => {
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
   });
 
+  it("lists the run's own steps, numbered, in the pipeline's order, with the count in their header (FLD2c)", async () => {
+    // Steps as the run holds them: out of order, one this client has no place for, no report step.
+    const own = run({
+      ...COMPLETED,
+      steps: [
+        step("aggregate", "SUCCEEDED"),
+        step("run", "SUCCEEDED"),
+        step("future_step", "RUNNABLE"),
+        step("compile", "SUCCEEDED"),
+        step("analysis_objects", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" }),
+      ],
+    });
+    api(listed(own));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
+    const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
+    // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
+    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
+    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5"]);
+    // The count belongs to the steps: their section says it, of the steps listed.
+    const section = list.closest("section")!;
+    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
+    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
+    // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
+    expect(rows[4].textContent).toContain(`${t("research.exec.code.unknown")} (${t("research.exec.code.technical")}: future_step)`);
+    expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("says an analysis retry of an old-method run was refused, and starts the new run it names", async () => {
     const blocked = run({
       ...COMPLETED,
@@ -1300,28 +1330,27 @@ describe("Progress", () => {
     expect(card.querySelector("[data-origin-code]")).toBeNull();
   });
 
-  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+  it("tags each step \"AI model\" or \"kód\" and makes it pointable by the Lead (artifact-fieldwork FLD2, FLD2b)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
-    // AI respondents answer this run's fieldwork: a model step.
-    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
-    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
-    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+    // AI respondents answer this run's fieldwork: a model step. The words are a researcher's, not the
+    // gateway's name (research build spec sber/F6, prototype decision R11; FLD2b in #923).
+    expect([work("run"), work("compile"), work("aggregate")]).toEqual(["AI model", "kód", "kód"]);
   });
 
   it("tags fictional fixture fieldwork as code, never as AI", async () => {
     api(listed(COMPLETED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
   });
 
   it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
     api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
     expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
@@ -1331,7 +1360,7 @@ describe("Progress", () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
       expect.stringContaining("Sestavení dotazníku z návrhu"),
       expect.stringContaining("Kontrola připravenosti"),
@@ -1358,7 +1387,7 @@ describe("Progress", () => {
     const banner = await screen.findByText(/^Modelováno: AI respondenti z populace\. Odpovědi vytvořil model/);
     expect(banner.getAttribute("data-origin")).toBe("modelled");
     expect(screen.queryByText(t("research.exec.syntheticNotice"))).toBeNull();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     const kinds = steps.flatMap((li) => [...li.querySelectorAll("[data-origin-kind]")].map((e) => e.getAttribute("data-origin-kind")));
     expect(kinds).toEqual(["MODELLED", "MODELLED"]);
     expect(within(steps[1]).getByText("Modelovaná data")).toBeTruthy();
@@ -1382,7 +1411,7 @@ describe("Progress", () => {
       ],
     })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const orbs = [...list.querySelectorAll("li")].map((li) => {
       const orb = li.querySelector<HTMLElement>("[data-orb]");
       return [li.dataset.step, orb ? `${orb.dataset.orb}/${orb.dataset.orbInk}` : null];
@@ -1414,7 +1443,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
     // The finished and the waiting step keep their row; only the running one opens.
     expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
@@ -1428,7 +1457,7 @@ describe("Progress", () => {
     expect(items[0].hasAttribute("data-day")).toBe(true);
     expect(items[0].textContent).toBe("25. září 2026");
     expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
-      "Worker krok převzal",
+      "Krok začal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
     ]);
@@ -1448,7 +1477,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     await waitFor(() => expect(row.querySelector("[data-last-reported]")?.textContent).toBe(
       `${tv("research.exec.activity.lastReported", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
@@ -1473,7 +1502,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     const fill = await waitFor(() => {
       const el = row.querySelector<HTMLElement>("[data-quota-fill]");
@@ -1493,7 +1522,7 @@ describe("Progress", () => {
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector("[data-orb]")).toBeNull();
   });
 
@@ -1508,7 +1537,7 @@ describe("Progress", () => {
     ])));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(within(steps[2]).getByText(message)).toBeTruthy();
     expect(within(steps[0]).queryByText(message)).toBeNull();
   });
@@ -1920,6 +1949,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    // A module's answers are read with it chosen (ANL3b).
+    fireEvent.click(await screen.findByRole("button", { name: /^Shrnutí analýzy · / }));
     const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
     expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
@@ -1959,8 +1990,13 @@ describe("Results", () => {
     expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
     // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
     expect(table.getAttribute("data-aia")).toBe("module:research_questions");
-    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
-    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    // Each row shows the answer's own text and its state in one word (ANL2b); a recorded gap reads
+    // "Bez dat", with what the run recorded, never "Odpovězeno".
+    expect(rows.map((r) => r.getAttribute("data-verdict"))).toEqual(["answered", "no_data", "no_data"]);
+    expect(rows[0].textContent).toContain("Čaj.");
+    expect(rows[0].textContent).toContain("Odpovězeno");
+    expect(rows[1].textContent).toContain("Nevíme.");
+    expect(rows[1].textContent).toContain("Bez dat");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
     expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
@@ -1985,6 +2021,13 @@ describe("Results", () => {
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
     expect(window.location.hash).toBe(before);
     expect(document.activeElement).toBe(finding);
+    // A finding the module filter leaves off the page is brought back first: the list goes back to "Vše" (ANL3b).
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
+    expect(document.getElementById("analysis-finding-research_questions-0")).toBeNull();
+    // Focused by the render that mounts it, not a timer guessing when that render lands (Codex P1 on #962).
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0");
+    expect(screen.getByRole("button", { name: "Vše" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
@@ -2011,7 +2054,7 @@ describe("Results", () => {
     fireEvent.click(chip);
     // The drawer takes it: the page neither scrolls nor moves focus to the finding.
     expect(document.activeElement).toBe(before);
-    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    const keyFindings = screen.getByRole("region", { name: "Zjištění" });
     fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
     const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
     expect(number.tagName).toBe("BUTTON");
@@ -2223,18 +2266,18 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
-        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
+        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }, { question: "Kolik lidí pije čaj?", answer: "Skoro polovina.", claim_ids: ["C4"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }, { claim_id: "C4", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
-    const keyFindings = await screen.findByRole("region", { name: "Hlavní zjištění" });
-    // Both modules' findings, under their module, before the module-by-module view.
-    expect(within(keyFindings).getByText("Shrnutí analýzy")).toBeTruthy();
-    expect(within(keyFindings).getByText("Srovnání objektů")).toBeTruthy();
+    const keyFindings = await screen.findByRole("region", { name: "Zjištění" });
+    // Both modules' findings in one list, each named by its module (ANL3b).
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')?.textContent).toContain("Shrnutí analýzy");
+    expect(keyFindings.querySelector('[data-finding-module="objects"]')?.textContent).toContain("Srovnání objektů");
     expect(within(keyFindings).getByText("Bez čísel.")).toBeTruthy();
     expect(within(keyFindings).getByText("vyrovnané").tagName).toBe("STRONG");
     // Each cited number: value, what, which question, a link to its card; C9 is not a claim and is left out.
@@ -2273,11 +2316,23 @@ describe("Results", () => {
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
-    expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The module's own text, formatted: its summary's list, its answer with the number it cites.
+    // One list (ANL3b): each finding is drawn once, never again in a module-by-module view.
+    expect(document.querySelectorAll("[data-finding-module]")).toHaveLength(3);
+    expect(screen.getAllByText("vyrovnané")).toHaveLength(1);
+    expect(screen.queryByText("Analýza po částech")).toBeNull();
+    // On "Vše" the analysis's summary opens the list, formatted.
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toContain("první bod");
     expect(items).toContain("druhý bod");
+    // The module filter shows only that module's findings; a finding it leaves off, asked for as the Lead's
+    // focus asks (LEAD_REVEAL), brings the whole list back, so the next look finds it.
+    fireEvent.click(screen.getByRole("button", { name: /^Srovnání objektů · / }));
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')).toBeNull();
+    expect(keyFindings.querySelectorAll('[data-finding-module="objects"]')).toHaveLength(2);
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "finding:executive:0" })); });
+    expect(document.querySelectorAll('[data-aia="finding:executive:0"]')).toHaveLength(1);
+    // A module's own answer, with the number it cites, is read with the module chosen.
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
@@ -2285,6 +2340,12 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
     expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
     expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
+    // A claim only a module's answer cites is drawn among that module's answers alone: asked for, its
+    // module is chosen, never "Vše", where no answer is drawn (Codex P2 on #962).
+    expect(document.querySelector('[data-aia="claim:executive:C4"]')).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "claim:executive:C4" })); });
+    expect(document.querySelectorAll('[data-aia="claim:executive:C4"]')).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Shrnutí analýzy · / }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
@@ -2396,6 +2457,92 @@ describe("Results", () => {
       });
       return render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     };
+
+    // research-lead-workbench 14 / SOC2: the stage routes the Lead's views. A view sent before the maps
+    // were drawn (the Workbench moves here, then sends) and a live one go to the map that owns them,
+    // every map for a stage-wide filter; a view no map here can apply is refused once, in words.
+    describe("the Lead's map views", () => {
+      const both = { ...signedOff, payload: { sociomap: { ...signedOff.payload.sociomap, batteries: signedOffFixture.batteries } } };
+      const idsOf = (b: (typeof signedOffFixture.batteries)[number]) => (b.maps as Record<string, { artifact: { object_ids: string[] } }>)[Object.keys(b.maps)[0]].artifact.object_ids;
+      const drawn = async (count: number) => {
+        const stage = await screen.findByTestId("sociomap-stage");
+        await waitFor(() => expect(within(stage).getAllByTestId("object-map-canvas")).toHaveLength(count));
+        return stage;
+      };
+      const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
+      afterEach(() => { takeLeadMapView(); });
+
+      it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(both, true);
+        const stage = await drawn(2);
+        await waitFor(() => expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]));
+      });
+
+      it("sends a live view to its own map and a stage-wide one to every map", async () => {
+        const [first, second] = signedOffFixture.batteries;
+        open(both, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "select", target: `object:${second.battery_id}/${idsOf(second)[0]}` }); });
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", idsOf(second)[0]]);
+        act(() => { sendLeadMapView({ op: "filter", name: "view", value: "top" }); });
+        expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]);
+        expect(takeLeadMapView()).toBeNull();
+        expect(first.battery_id).not.toBe(second.battery_id);
+      });
+
+      it("refuses in words a view waiting for a stage that draws no signed-off map, never keeping it", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        await waitFor(() => expect(within(stage).getByTestId("sociomap-lead-note").textContent).toContain(battery.battery_id));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("says a stage-wide filter that no map here would show, sent before or live, never dropping it", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        await waitFor(() => expect(note()).toContain("Mapa: shora"));
+        expect(takeLeadMapView()).toBeNull();
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(note()).toContain("na této stránce není mapa");
+      });
+
+      it("says once on the stage that no map stores a respondent map, not once per map", async () => {
+        const bare = structuredClone(both);
+        for (const b of bare.payload.sociomap.batteries) for (const m of Object.values(b.maps as Record<string, { artifact: { respondents?: unknown } }>)) delete m.artifact.respondents;
+        open(bare, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(within(stage).getByTestId("sociomap-lead-note").textContent).toBe(t("research.exec.objectMap.panel.leadNoRespondents"));
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+
+      it("says once, in words, a view no map here can apply, and changes no map", async () => {
+        open(both, true);
+        const stage = await drawn(2);
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        act(() => { sendLeadMapView({ op: "select", target: "object:neni/x" }); });
+        expect(note()).toContain("object:neni/x");
+        act(() => { sendLeadMapView({ op: "filter", name: "hide_weak", value: "on" }); });
+        expect(note()).toContain("skrýt slabé vztahy");
+        expect(note()).not.toContain("hide_weak");
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", ""]);
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+    });
 
     it("is the map: no results tabs, no guide, no other card, the map before what explains it", async () => {
       open(signedOff, true);
@@ -2822,6 +2969,8 @@ describe("Results", () => {
     expect(report.getByText("není součástí")).toBeTruthy();
     const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
     await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    // A review is named by its date, never its run id (RPT12).
+    expect(variant.textContent).not.toContain("RUN-");
     fireEvent.change(variant, { target: { value: "RUN-deep" } });
     const prepare = await report.findByRole("button", { name: /Připravit zprávu s rešerší/ });
     // A PDF is promised only where one will be made (review 2, F35), never as "DOCX i PDF".
@@ -3732,7 +3881,7 @@ describe("Interpretation research", () => {
   });
 });
 
-describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
+describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
   const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 50, spent_usd: 10, remaining_usd: 40, spend_confirm_usd: null };
   const rowsOf = async () => {
     const card = await screen.findByText(t("research.exec.spend.title"));
@@ -3741,7 +3890,10 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
       if (!found) throw new Error("no spend yet");
       return found;
     });
-    return [...dl.querySelectorAll("[data-spend]")].map((r) => [r.getAttribute("data-spend"), r.querySelector("dd")!.textContent]);
+    return [...dl.querySelectorAll("[data-spend]")].map((r) => {
+      const note = r.querySelector("[data-spend-note]")?.textContent;
+      return [r.getAttribute("data-spend"), r.querySelector("[data-spend-value]")!.textContent + (note ? ` · ${note}` : "")];
+    });
   };
 
   it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
@@ -3757,6 +3909,34 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
         ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
       ]),
     );
+  });
+
+  it("shows the spend as tiles in the prototype's words, the unpriced calls a fifth tile only when there are any (FLD4e)", async () => {
+    const labels = () => [...document.querySelectorAll("[data-run-spend] [data-spend] dt")].map((dt) => dt.textContent);
+    const running = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(running), "GET /api/v1/studies/STU-1": () => STUDY });
+    const { unmount } = render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "remaining"]));
+    // The v73 board's tiles (Fieldwork.dc.html), the held ones plural: holds are summed across steps.
+    expect(labels()).toEqual(["Utraceno", "Drženo pro běžící kroky", "Strop běhu", "Zbývá v rozpočtu studie"]);
+    // Each tile its value first, as a figure; a note beneath it, never run into it.
+    for (const tile of document.querySelectorAll("[data-run-spend] [data-spend]")) expect(tile.querySelector("dd > [data-spend-value]")).not.toBeNull();
+    unmount();
+
+    // An ended run with unpriced calls: a fifth tile, and no tile says a step still runs.
+    const ended = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 2 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(ended), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "unpriced", "remaining"]));
+    expect(labels()[1]).toBe(t("research.exec.spend.heldEnded"));
+    expect(document.querySelector('[data-spend="held"] [data-spend-note]')).toBeNull();
+    cleanup();
+
+    // An ended run whose hold was not released yet: the amount still says it is not spent.
+    const leftover = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0.5, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(leftover), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(() => expect(document.querySelector('[data-spend="held"] [data-spend-note]')?.textContent).toBe(t("research.exec.spend.heldNote")));
   });
 
   it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {

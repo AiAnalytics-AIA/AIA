@@ -27,6 +27,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -34,6 +35,7 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.edit_log import ActorKind, OpSource, WriteBy
@@ -41,6 +43,14 @@ from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
 from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
+from ..domain.lead_research_targets import (
+    DEEP_RESEARCH_RUNS,
+    RUNS_FOR_TARGETS,
+    FinishedRun,
+    ModuleOutcome,
+    deep_research_layer,
+    targets_layer,
+)
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -60,6 +70,7 @@ from ..domain.research_lead import (
     ResearcherLead,
     SelfUpdate,
     context_sha256,
+    design_research_questions,
     freeze_context,
     is_text_edit,
     new_turn_id,
@@ -71,9 +82,10 @@ from ..domain.research_lead import (
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
-from ..domain.workflow import StepRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..domain.workspace import edited_from_current
+from ..infrastructure.artifact_repository import ArtifactNotFound
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
@@ -84,7 +96,7 @@ from ..infrastructure.researcher_lead_repository import (
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.storage import ArtifactStore
+from ..infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.study_lead_repository import StudyLeadRepository
 from ..infrastructure.study_workspace_repository import (
@@ -93,8 +105,9 @@ from ..infrastructure.study_workspace_repository import (
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
+from .deep_research import DeepResearchRuns
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
-from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
+from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
 
@@ -478,8 +491,8 @@ def release_lead_budget_waits(
     asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
     released: list[str] = []
     for run_id, step_id in waiting:
-        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
-        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+        requested = _recorded_hold((asked.get(step_id) or {}).get("error", {}).get("requested_usd"))
+        if requested is None or requested > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
         try:
@@ -491,9 +504,19 @@ def release_lead_budget_waits(
             )
         except BudgetWaitNotLiftable:
             continue  # superseded or cancelled since it was listed
-        remaining -= float(requested)
+        remaining -= requested
         released.append(run_id)
     return released
+
+
+def _recorded_hold(value: object) -> float | None:
+    """A parked attempt's ``requested_usd`` as a hold, or None when it is not a finite,
+    non-negative number of USD: NaN compares as fitting anything and a bool is an int, so either
+    would be taken to fit, which is unknown scored as good."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    hold = float(value)
+    return hold if math.isfinite(hold) and hold >= 0 else None
 
 
 def set_study_budget(
@@ -522,6 +545,9 @@ class ResearchLead:
     #: With the API's ``ai_analysis_external_context`` on, the store a turn reads the Study's
     #: newest Design Research bundle from (evidence-integrity 7); ``None``: no external context.
     external_store: ArtifactStore | None = None
+    #: The store each finished run's specification is read from for the ``targets`` layer
+    #: (lead-orchestration LO5a.1); ``None``: the turn is offered no Interpretation target.
+    store: ArtifactStore | None = None
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
 
     def _turns(self) -> StudyLeadRepository:
@@ -1364,6 +1390,7 @@ class ResearchLead:
             else []
         )
         digest, digest_classes = self._decision_digest(history, focus)
+        targets = self._targets()
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1387,6 +1414,12 @@ class ResearchLead:
                 "design_revision_id": design_revision_id,
                 "content": design_material(content),
                 "analysis": analysis,
+                # The ids a focus names, shown beside the content that may not store them.
+                **(
+                    {"research_questions": listed}
+                    if (listed := design_research_questions(content))
+                    else {}
+                ),
                 # The valid n as readiness reads it (RQC9): what a set_n is grounded against.
                 "readiness": readiness_layer(limits.sample_size, limits.methodology_version),
             },
@@ -1409,7 +1442,42 @@ class ResearchLead:
             external=self._external(),
             memory=digest,
             memory_classes=digest_classes,
+            deep_research=self._deep_research((targets or {}).get("candidates") or ()),
+            targets=targets,
         )
+
+    def _deep_research(self, candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+        """The ``deep_research`` layer: this Study's newest Deep Research runs, read through
+        the Study (``DeepResearchRuns``), with their steps; ``None`` when it has none."""
+        runs = DeepResearchRuns(self.session, self.scope)
+        listed = runs.runs(limit=DEEP_RESEARCH_RUNS)
+        if not listed:
+            return None
+        return deep_research_layer([runs.get(r["run_id"]) for r in listed], candidates)
+
+    def _targets(self) -> dict[str, Any] | None:
+        """The ``targets`` layer: the Interpretation Research candidates over this Study's newest
+        completed research runs, each read from its own pinned specification (verified by its
+        SHA-256 as it is read); ``None`` without a store or a completed run."""
+        if self.store is None:
+            return None
+        research = ResearchRuns(self.session, self.scope)
+        artifacts = research_artifacts(self.session, self.scope, self.store)
+        finished: list[FinishedRun] = []
+        unreadable: list[str] = []
+        # Completed runs are selected in the query, before the limit: newer runs that failed or
+        # still run never hide an older completed one (review of #925).
+        completed = research.runs(limit=RUNS_FOR_TARGETS, statuses=(WorkflowRunStatus.COMPLETED,))
+        for listed in completed:
+            try:
+                finished.append(_finished_run(research.get(listed["run_id"]), artifacts))
+            except (ArtifactNotFound, IntegrityError, ObjectNotFound):
+                # A specification that does not read offers no target and is said so, never a
+                # stop (as the external layer's bundle); its CORRUPT mark commits with the turn.
+                unreadable.append(str(listed["run_id"]))
+        if not finished and not unreadable:
+            return None
+        return targets_layer(finished, unreadable=unreadable)
 
     def _decision_digest(
         self, history: Sequence[Mapping[str, Any]], focus: Mapping[str, str] | None
@@ -1482,6 +1550,35 @@ class ResearchLead:
         except SourcesRefused as refused:
             return {"pin": pin, "lines": [], "unavailable": refused.reason}
         return {"pin": pin, "lines": list(lines)}
+
+
+def _finished_run(run: Mapping[str, Any], artifacts: Any) -> FinishedRun:
+    """A completed research run as the candidates read it: the specification its compile step
+    pinned, and the artifacts its aggregate, Sociomap and analysis steps produced."""
+    produced: dict[str, Mapping[str, Any]] = {
+        s["node_key"]: s.get("output") or {}
+        for s in run["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED and (s.get("output") or {}).get("artifact_id")
+    }
+    compiled = produced.get("compile")
+    specification = (
+        artifacts.read_json(str(compiled["artifact_id"])).get("specification") or {}
+        if compiled is not None
+        else {}
+    )
+    modules = [
+        ModuleOutcome(module, str(out["artifact_id"]), str(out.get("outcome") or ""))
+        for key, out in produced.items()
+        if (module := module_of_node(key)) is not None
+    ]
+    aggregate, sociomap = produced.get("aggregate"), produced.get("sociomap")
+    return FinishedRun(
+        run_id=str(run["run_id"]),
+        specification=specification,
+        aggregate_artifact_id=str(aggregate["artifact_id"]) if aggregate else None,
+        sociomap_artifact_id=str(sociomap["artifact_id"]) if sociomap else None,
+        modules=modules,
+    )
 
 
 def _model_prepared(turn: LeadTurn) -> bool:

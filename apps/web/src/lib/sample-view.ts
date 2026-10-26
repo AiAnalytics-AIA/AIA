@@ -5,6 +5,7 @@
 import { verdictWords } from "@/research/audience";
 
 import type { CheckStatus, OutlookVerdict, PersonaSourceOption, ReadinessBody } from "./api";
+import { plural } from "./format";
 import { outlookCounts } from "./research-execution";
 import type { WorkbenchStage } from "./workbench-stages";
 
@@ -34,13 +35,44 @@ export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine
 }
 
 /**
- * The question outlook in counts, every verdict present; `null` when the API sent none (an
- * older API, or a design that does not compile), which reads as unknown, never as "all answered".
+ * The verdict each reason gives an item (domain/question_outlook.py `_VERDICT`). An item carries
+ * every reason it has, the support reason included, and its verdict is the worst of them: a tile
+ * is captioned only by the reasons that give its own verdict.
  */
-export function outlookSummary(readiness: ReadinessBody): Record<OutlookVerdict, number> | null {
+const REASON_VERDICT: Readonly<Record<string, OutlookVerdict>> = {
+  conditional: "UNANSWERABLE",
+  familiarity: "UNANSWERABLE",
+  fidelity_refused: "UNANSWERABLE",
+  support_suppressed: "UNANSWERABLE",
+  support_analysis_excluded: "AT_RISK",
+  open_ended: "AT_RISK",
+  support_indicative: "AT_RISK",
+  support_unknown: "UNKNOWN",
+};
+
+/** One of §02's tiles (spec vzorek V4): a verdict, how many items have it, and its commonest reason. */
+export type OutlookTile = { verdict: OutlookVerdict; count: number; reason: string | null };
+
+/**
+ * §02's tiles, from the server's question outlook: answerable, at risk and unknown always, and
+ * unanswerable beside them only when an item has it (the v73 board draws three). Each tile names
+ * the reason most of its items share, the first met on a tie, counting only the reasons that give
+ * that verdict (a code this client does not know counts, so it is named, never hidden); the
+ * answerable tile has none.
+ * `null` when the server sent no outlook, which reads as unknown, never as answered.
+ */
+export function outlookTiles(readiness: ReadinessBody): OutlookTile[] | null {
   const items = readiness.question_outlook;
   if (!items || !items.length) return null;
-  return outlookCounts(items);
+  const counts = outlookCounts(items);
+  const shown: OutlookVerdict[] = ["ANSWERABLE", "AT_RISK", "UNKNOWN", ...(counts.UNANSWERABLE ? (["UNANSWERABLE"] as const) : [])];
+  return shown.map((verdict) => {
+    const tally = new Map<string, number>();
+    if (verdict !== "ANSWERABLE") for (const item of items) if (item.verdict === verdict) for (const r of item.reasons) if ((REASON_VERDICT[r] ?? verdict) === verdict) tally.set(r, (tally.get(r) ?? 0) + 1);
+    let reason: string | null = null;
+    for (const [code, n] of tally) if (reason === null || n > (tally.get(reason) ?? 0)) reason = code;
+    return { verdict, count: counts[verdict], reason };
+  });
 }
 
 /**
@@ -115,6 +147,22 @@ export function readinessSummary(readiness: ReadinessBody): ReadinessSummary {
   const checks = readiness.checks.map((c, i) => [c, i] as const).sort((a, b) => rank(a[0].status) - rank(b[0].status) || a[1] - b[1]).map(([c]) => c);
   const count = (s: string) => checks.filter((c) => c.status === s).length;
   return { ready: readiness.ready, checks, blocking: count("FAIL"), warnings: count("WARN"), unknown: checks.filter((c) => !known(c.status)).length };
+}
+
+/**
+ * The readiness in one line, as the v73 board's pill reads it (spec vzorek V5): whether a run can
+ * start and what holds it. The server's `ready` decides; a status this client does not know is
+ * said, never read as passed.
+ */
+export type ReadinessLine = { tone: "done" | "done-warn" | "fault" | "inert"; words: string };
+
+export function readinessLine(s: ReadinessSummary): ReadinessLine {
+  if (!s.ready) {
+    return { tone: "fault", words: s.blocking ? `Nelze spustit · ${plural(s.blocking, "kontrola brání", "kontroly brání", "kontrol brání")}` : "Nelze spustit: server spuštění nepovolí" };
+  }
+  if (s.unknown) return { tone: "inert", words: "Stav některých kontrol je neznámý" };
+  if (s.warnings) return { tone: "done-warn", words: `Lze spustit · ${s.warnings} upozornění` };
+  return { tone: "done", words: "Lze spustit · nic nebrání" };
 }
 
 /** The sampler's quota fields in words; a field this client does not know keeps its name. */

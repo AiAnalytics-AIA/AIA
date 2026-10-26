@@ -32,6 +32,7 @@ import {
   planComments,
   projectVariants,
   removeComment,
+  restoreComment,
   removeObject,
   removeSet,
   renameSet,
@@ -46,12 +47,12 @@ import {
 import { type SetLimits, setAboveRecommended, setSizeRefused, setWords } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
-import { DesignCoverage } from "./DesignCoverage";
-import { PlanNarrative } from "./PlanNarrative";
+import { PlanHypotheses, PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button } from "../ui";
 import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { useResearch } from "./context";
 import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
@@ -93,6 +94,8 @@ export function PlanStep() {
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
   const { analyse, resume, failure, busy } = useAnalysis();
+  // The narrative's and the hypotheses' removals share one undo offer, one toast at a time (I6).
+  const narrativeUndo = useUndo();
   const a = proposalAnalysis(state);
   const p = state.project;
   const variants = projectVariants(state);
@@ -207,9 +210,12 @@ export function PlanStep() {
     );
   }
 
+  const hypotheses = Array.isArray(a.hypotheses) ? a.hypotheses.length : 0;
   const chips: { id: string; label: string; state: "done" | "you" | "neutral" }[] = [
     ...(variants.length ? [{ id: "plan-variants", label: t("research.plan.jumpScope"), state: "done" as const }] : []),
     { id: "plan-understanding", label: t("research.plan.jumpUnderstanding"), state: p.ui_state.plan_changed26 ? "done" : "neutral" },
+    // Done as Porozumění is: once the plan was reworked from the person's comments (plan_changed26).
+    { id: "plan-hypotheses", label: tv("research.plan.jumpHypotheses", { n: hypotheses }), state: hypotheses && p.ui_state.plan_changed26 ? "done" : "neutral" },
     { id: "plan-sets", label: tv("research.plan.jumpSets", { n: sets.length }), state: short ? "you" : sets.length ? "done" : "neutral" },
     ...(questions.length
       ? [{ id: "plan-questions", label: tv("research.plan.jumpQuestions", { a: answered, b: questions.length }), state: answered ? ("done" as const) : ("you" as const) }]
@@ -236,13 +242,16 @@ export function PlanStep() {
         void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
       }} /> : null}
       {variantSection}
-      <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} undo={narrativeUndo} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <StepSection id="plan-hypotheses" n={++n} title={t("research.plan.hypothesesTitle")} hint={t("research.plan.hypothesesHint")}>
+            <PlanHypotheses disabled={busy} undo={narrativeUndo} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          </StepSection>
           <Sets n={++n} analysis={a} blocked={busy} limits={setLimits} />
         </div>
       </Commentable>
+      <UndoToast offer={narrativeUndo.current} onDone={narrativeUndo.clear} />
       {questions.length ? (
         <FollowUps
           n={++n}
@@ -267,15 +276,19 @@ export function PlanStep() {
       <Comments
         n={++n}
         busy={busy}
+        undo={narrativeUndo}
         drafts={drafts}
         setDrafts={setDrafts}
         saveOnly={leadOwnsAiStarts}
         onProcess={async () => {
+          // The comments leave the list as one batch, so the stage's one undo offer ends here: a comment
+          // taken back now would replace the next batch, and a narrative removal still offered goes with it.
+          narrativeUndo.clear();
           const reviewed = commentsToReview(store.get().project);
           if (!reviewed) return;
           if (leadOwnsAiStarts) {
-            // The plan is marked as changed by comments, as the analysis by comments marks it.
-            store.update(() => ({ project: { ...reviewed, ui_state: { ...reviewed.ui_state, plan_changed26: true } } }), { reason: "plan_comments_applied26", invalidateCheck: false });
+            // Saved for the Lead, nothing reworked yet: the plan is not marked "upraveno" (spec navrh D8).
+            store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
             setSavedForLead("comments");
             return;
           }
@@ -372,7 +385,7 @@ function Variants({ variants, current, onApply }: { variants: Variant[]; current
   );
 }
 
-function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: boolean; blocked: boolean; onQuote: (quote: string) => void }) {
+function Understanding({ n, changed, blocked, undo, onQuote }: { n: number; changed: boolean; blocked: boolean; undo: ReturnType<typeof useUndo>; onQuote: (quote: string) => void }) {
   return (
     <StepSection
       id="plan-understanding"
@@ -386,7 +399,7 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
         </span>
       ) : null}
     >
-      <PlanNarrative disabled={blocked} onQuote={onQuote} />
+      <PlanNarrative disabled={blocked} undo={undo} onQuote={onQuote} />
     </StepSection>
   );
 }
@@ -672,6 +685,10 @@ function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit
  */
 type Draft = { key: number; quote: string; text: string };
 
+/** Whether a selection reaches words AIA wrote beside the design (data-no-quote), at either end or between. */
+const touchesNoQuote = (root: Element, range: Range): boolean =>
+  [...root.querySelectorAll("[data-no-quote]")].some((el) => range.intersectsNode(el));
+
 function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -680,7 +697,7 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
     const s = window.getSelection();
     const text = commentableSelection(s?.toString() || "");
     const node = s?.anchorNode?.parentElement;
-    if (!text || !s?.rangeCount || !node || !root.current?.contains(node) || node.closest("input,textarea,button,select")) {
+    if (!text || !s?.rangeCount || !node || !root.current?.contains(node) || node.closest("input,textarea,button,select") || touchesNoQuote(root.current, s.getRangeAt(0))) {
       setSel(null);
       return;
     }
@@ -712,7 +729,9 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
   );
 }
 
-function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
+function Comments({ n, busy, undo, drafts, setDrafts, onProcess, saveOnly = false }: {
+  /** The stage's one undo offer: a removed comment comes back with Vrátit. */
+  undo: ReturnType<typeof useUndo>;
   /** The workbench: the comments are saved for the Lead, with no AI call from here. */
   saveOnly?: boolean;
   n: number;
@@ -723,6 +742,17 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
 }) {
   const { store, state } = useResearch();
   const cs = planComments(state.project);
+  const remove = (i: number) => {
+    const all = planComments(store.get().project);
+    const c = all[i];
+    if (!c) return;
+    const copies = all.filter((x) => x.quote === c.quote && x.comment === c.comment).length;
+    store.update(({ project }) => ({ project: removeComment(project, i) }), { reason: "plan_comments26", invalidateCheck: false });
+    undo.offer({
+      message: tv("research.plan.narrative.removed", { text: c.comment }),
+      undo: () => store.update(({ project }) => ({ project: restoreComment(project, c, i, copies) }), { reason: "plan_comments26", invalidateCheck: false }),
+    });
+  };
   const keep = (key: number) => {
     const d = drafts.find((x) => x.key === key);
     if (!d) return;
@@ -732,7 +762,7 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
     setDrafts((all) => all.filter((x) => x.key !== key));
   };
   return (
-    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={t("research.plan.commentsHint")}>
+    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={t(saveOnly ? "research.plan.commentsHintLead" : "research.plan.commentsHint")}>
       {cs.length || drafts.length ? (
         <ul className="flex flex-col gap-2">
           {cs.map((c, i) => (
@@ -745,7 +775,7 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
                 small
                 variant="quiet"
                 aria-label={t("research.plan.commentRemove")}
-                onClick={() => store.update(({ project }) => ({ project: removeComment(project, i) }), { reason: "plan_comments26", invalidateCheck: false })}
+                onClick={() => remove(i)}
               >
                 ×
               </Button>
@@ -773,8 +803,9 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
           ))}
         </ul>
       ) : null}
+      {saveOnly ? <p className={`text-[13px] text-ink-muted ${cs.length || drafts.length ? "mt-3" : ""}`}>{t("research.plan.commentsLeadNote")}</p> : null}
       {saveOnly ? (
-        <Button className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
+        <Button className="mt-3" disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
       ) : (
         <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
           {t("research.plan.commentsProcess")}

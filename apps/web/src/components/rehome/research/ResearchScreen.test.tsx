@@ -382,10 +382,12 @@ describe("ResearchScreen", () => {
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Výzkum A", "Dotazník"]);
     expect(within(crumbs[1]).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-1");
     expect(within(crumbs[3]).getByRole("link").getAttribute("href")).toBe(stagePath("brief"));
-    // Inside a study the global navigation is icons only: the four AIA destinations, each named
-    // for assistive technology (research-lane-redesign); the client is in the breadcrumbs.
-    const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.getAttribute("aria-label"));
-    expect(global).toEqual(["AI Analytics", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
+    // Inside a study the global navigation is the same Dock rail as everywhere (prototype-build
+    // PBA1): icons at rest, every destination named by its own words for assistive technology.
+    const rail = within(screen.getByRole("navigation", { name: "Hlavní navigace" }));
+    for (const name of ["Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení", "Můj Vedoucí"]) {
+      expect(rail.getByRole("link", { name })).toBeTruthy();
+    }
     expect(screen.getByRole("link", { name: /Zpět na klienta/ }).getAttribute("href")).toBe("/app/clients/CLI-1");
   });
 

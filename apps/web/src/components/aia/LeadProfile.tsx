@@ -14,6 +14,8 @@ import type { LeadMemory } from "@/lib/lead";
 import { Button } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { CARD, Empty, Loaded } from "./states";
+import { announceHatched } from "@/lib/rail-lead";
+
 import { useResource } from "./useResource";
 
 const when = (iso: string) => {
@@ -109,7 +111,7 @@ export function LeadProfilePage() {
               <Empty>
                 <span className="flex flex-col items-start gap-3">
                   <span>Svého Vedoucího jste si zatím nevylíhli. Vylíhne se jednou a pak se učí s vámi ve všech vašich studiích.</span>
-                  <Button variant="primary" onClick={() => void researcherLead.hatch().then(retry, retry)}>Vylíhnout mého Vedoucího</Button>
+                  <Button variant="primary" onClick={() => void researcherLead.hatch().then(() => { announceHatched(); retry(); }, retry)}>Vylíhnout mého Vedoucího</Button>
                 </span>
               </Empty>
             );

@@ -25,12 +25,12 @@ export const BRIEF_FIELDS = [
   "title",
   "objectives",
   "decision_use",
+  "type",
   "context",
   "briefing.product_description",
   "briefing.situation",
   "briefing.what_is_known",
   "briefing.constraints",
-  "type",
   "files",
 ] as const;
 
