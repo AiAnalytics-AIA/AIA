@@ -306,7 +306,7 @@ export function ChipInput({ values, onAdd, onRemove, rename, label, placeholder,
             <span className="min-w-0 break-words">{v}</span>
           )}
           <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`-my-1 -mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-faint hover:text-ink ${FOCUS}`}>
-            ×
+            <Icon name="close" size={12} />
           </button>
         </span>
       ))}
