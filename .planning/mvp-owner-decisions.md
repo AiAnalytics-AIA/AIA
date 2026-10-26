@@ -170,6 +170,8 @@ served. **Content-free usage and audit rows** (date, model, tokens, USD, ids; no
 client name) are kept so spend still reconciles, readable by an organisation OWNER or ADMIN
 only.
 
+**Closed, 2026-10-26** (Nigel, in the Settings session ~00:35 UTC, relayed by the PM coordinator: "lets do 365 days"): the kept content-free AI spend and audit rows are retained for **365 days**, and a departed member's sealed Lead is deleted **365 days** after sealing (`lead-orchestration#LO11`; today's code erases it after 30). Settings → Správa dat's "rozhodne vlastník" retention rows read 365 days (`settings-redesign#F22`).
+
 
 **Product owner/data owner.** After a person deletes a client/study, state the
 maximum residual lifetime in backups and object versions. Which non-content
@@ -437,3 +439,37 @@ continues. No elapsed session, expired question widget, draft PR or green test c
 supply an unanswered owner/methodology decision. Record actual answers once using
 MVPQ ids, update the affected child/acceptance contracts together, and retain every
 other open item until its named owner answers.
+
+## The prototype-build answers of 2026-10-26
+
+**Product owner answers** (Nigel Blount, 25-26 Oct 2026 UTC; B1-B6 on the plan page 01:21-01:24 UTC; the Settings answers about 00:35-00:38 UTC; relayed by the PM coordinator). The order and lanes they apply to are [`prototype-build.md`](plans/prototype-build.md). The planning defaults listed there are decided by default, open to his override.
+
+| Id | Answer | Note | Status | Recorded in |
+|---|---|---|---|---|
+| P1 | N is set on Vzorek | "this stage has to do with setting up the AI respondents" | Decided | `artifact-sample#SMP7`, `artifact-dimensions#DIM3b` |
+| P3 | No third document; literature only through "Použít ve zprávě" | "Zpráva s rešerší" leaves the pane | Decided | `artifact-report#RPT3c`, `artifact-chain-to-draft-report#CHN8` |
+| P4 | Five Lead marks | "i chose these five specifically" | Decided | `lead-identity#LI2`, `#LI3` |
+| P5 | Sběr dat one stage, two views (Kontrola, Průběh) | "once it starts, it automatically loads to the prubeh page" | Decided | `artifact-fieldwork#FLD9` |
+| P6 | Chat layout F | — | Decided | `research-lead-workbench#40` |
+| P7 | Keep the brand fonts in the editor DOCX | — | Decided | `artifact-report#RPT15` |
+| UI-1 | The hero on top-level pages only | — | Decided | `prototype-build#PBA4` |
+| UI-2 | Phosphor icons | — | Decided | `prototype-build#PBA5` |
+| UI-3 | The Lead chat's radii as the rest | — | Decided | `prototype-build#PBA7` |
+| B1 | (a) the study budget stops a run before it starts | "as drawn"; readiness FAILs while the ceiling exceeds what is left | Decided | `artifact-sample#SMP10`, `lead-orchestration#LO23` |
+| B2 | (a) the client report is editable in the editor | only accepted findings; the client gate re-runs on every saved version | Decided | `artifact-report#RPT13` |
+| B3 | (a) `AIA_AI_STEP_EVENTS` on for develop | infra sets it | Decided (operator) | `research-lead-workbench#44` |
+| B4 | (a) a brief's files Class A by rule; Veřejné makes one B | an ADR 0008 amendment note needed | Decided | `artifact-brief#BRF7` |
+| B5 | (b) keep the ten problem types | the board changes, not the code | Decided | `artifact-brief#BRF2` |
+| B6 | (b) embed the fonts on download, not at save | a downloaded DOCX differs from the stored bytes; the headers name the stored version | Decided | `artifact-report#RPT15` |
+| PROMPTS | System prompts edited and switched on only with the Metodik mark | "metodik edits the prompts" | Decided | `system-prompts-settings#16` |
+| LO11 | A departing member's Lead sealed, never handed over | "lets seal it, a new user gets a new vedouci" | Decided | `lead-orchestration#LO11` |
+| MVPQ-07 | 365 days for AI spend and the audit; a sealed Lead deleted after 365 days | "lets do 365 days" | Closed | MVPQ-07 above |
+| FRONTA | Fronta práce after the MVP | "lets table this idea as a plan in the future" | Decided | `fronta-prace.md` (master §3.3) |
+| WIDTH | 1440 only for now; the workbench keeps its narrower layouts | "no narrower screens right now" | Decided | `prototype-build.md` |
+| AUD-SRC | The audience's Zdroj stays as it is | — | Decided | `artifact-audience#AUD7` |
+| PAYER | An "AIA" house entity pays charges that belong to no single client | an ADR, drafted by the Lead session | Decided; ADR to write | `lead-identity#LI8` |
+| HATCH | `LEAD_HATCH` Class C; the acceptance step stays; wording vypěstovat / zkumavka | "grow their own from a test tube" | Decided | `lead-identity#LI9` |
+| RIR-5 | The literature check is paid, capped by the study budget | — | Decided | `research-integrity-report` 5 (its 2026-10-26 note), `artifact-report#RPT10` |
+| LANE-A | Lane A (the look and the frame) built by "the second account" | Nigel's art-chain organisation account | Decided | `prototype-build#PBA1` to `#PBA7` |
+| OQ13 | The AGPL sprites (legal) | the editor goes live with ONLYOFFICE's own icons until legal decides | Open (legal) | `report-editor-hosting#5`, `#9` |
+| OQ8/OQ9 | Kish n on Výsledky; a set's scale by the board's presets | — | Open (methodology owner) | `artifact-results#RES3`, `artifact-questionnaire#QST10` |

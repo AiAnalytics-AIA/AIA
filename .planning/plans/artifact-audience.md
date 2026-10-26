@@ -7,6 +7,11 @@ chunks:
   - "[ ] AUD4. Předpoklady o cílové skupině: the assumption list with attached evidence, external and client knowledge labelled apart"
   - "[ ] AUD5. The Lead on Cílová skupina: propose_audience as a card, its proposal inline, the stage's AI start removed"
   - "[ ] AUD6. Journey: Cílová skupina at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[ ] AUD7. The source note above §01: the catalogue's version label and the default persona source (spec vzorek A2; W2)"
+  - "[ ] AUD8. 'Přidat faktor' chips and catalogue search in place of the full catalogue (spec vzorek A4; W2)"
+  - "[ ] AUD9. Live Proveditelnost: the debounced preview, three KPI tiles, feasibility in words (spec vzorek A5; W2)"
+  - "[ ] AUD10. Built-in subpanels as 'Hotové skupiny' chips inside Zúžit (spec vzorek A6; W2)"
+  - "[ ] AUD11. A note where the audience's description and its filters disagree (spec vzorek A7; W2, blocked on OQ5)"
 ---
 # Artifact: Cílová skupina (Audience)
 
@@ -190,10 +195,23 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
   - Tests: `AudienceStep.test.tsx` "switching preset clears the previous subpanel and filters";
     `audience.live.test.ts` "what a preset change clears"; `audience.parity.test.ts` setAudienceEntry,
     setAnalyticsChoice and the preset-after-preset cases; the audience journey's step 3.
-  - The description stays as it is on a preset change (the product owner, 2026-10-25). Still open:
-    a preset's strategy and the subpanel's support figures survive a preset change too. On the classic's
-    port a special panel's key does as well, which keeps a coming-soon preset after a special panel
-    "ready".
+  - The description stays as it is on a preset change (the product owner, 2026-10-25).
+  - Follow-up, fix/audience-preset-clears-strategy (the product owner, 2026-10-25, "Clear both"):
+    `presetReset` also resets the strategy to "population" and the subpanel's support figures
+    (`support_tier`, `subpanel_status`, `support_summary`) to the template's defaults. A special
+    panel's keys (`special_panel_key`, `builtin_special_key`) follow the same rule, since they are the
+    same kind of stale write. On the classic's port (`chooseSpecialPreset`, which no screen calls) a
+    coming-soon preset after a special panel is then no longer "ready". On ČR 18+ the description
+    also stays: the classic's `chooseAudience('population')` wrote "ČR 18+" there. Only a change
+    of who is sampled invalidates the run check, not the support figures alone. The new preset writes
+    its own figures when it has any.
+  - A strategy change (not a preset change) keeps a subpanel's support figures as they are (the product
+    owner, 2026-10-26: "leave the strategy question as is").
+  - A preset's `dataset_name` (shown as "Zdroj audience") stays as it is on ČR připravujeme (the product
+    owner, 2026-10-26: "leave the dataset name as is"). No OI-51 question is left open.
+  - Tests:
+    `AudienceStep.test.tsx` "switching to one's own audience clears the subpanel's strategy and support
+    too…"; `audience.live.test.ts` "what a preset change clears"; the audience journey's step 3.
 
 ## 8. Owner questions
 
@@ -203,3 +221,27 @@ None.
 
 - Register this plan and its chunks.
 - `CLAUDE.md` § 2, `routers/population.py`: the preview's `per_filter` (AUD3).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**AUD7. Source note** (spec `vzorek/A2`; W2, lane F). Nigel, 26 Oct 2026: the audience's Zdroj stays as it is.
+
+**AUD8. Přidat faktor** (spec `vzorek/A4`; partly no backend: suggested factors have no ranking source; W2, lane F). After AUD2's rows.
+
+**AUD9. Live feasibility** (spec `vzorek/A5`; W2, lane F). The preview's p95 measured on develop before merge.
+
+**AUD10. Hotové skupiny** (spec `vzorek/A6`; W2, lane F).
+
+**AUD11. Description-filter mismatch** (spec `vzorek/A7`, no backend; W2, lane F). Blocked: whether a provable-only check is wanted, or none (OQ5, Nigel).
+
+**Notes.**
+- AUD2 is re-scoped by `vzorek/A1` and `vzorek/A3` to one strategy choice and editable filter rows (contradiction 15).
+- AUD5 carries `vzorek/A8`; AUD6 `vzorek/A9`.
+- Decided by default (planning, 26 Oct 2026, open to Nigel's override): AUD4 (Předpoklady) sits under §01 of Cílová skupina (OQ6).
