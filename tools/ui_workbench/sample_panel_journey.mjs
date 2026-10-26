@@ -118,9 +118,18 @@ try {
   check("the support forecast reads the drawn sample: known, at every width");
   check("every control that stands on its own is a touch target: 44 px on a phone, 32 px from 640 px");
 
-  // A readiness check opens the stage that fixes it (SMP4, SMP6), at 1440 (the page is there).
+  // A check on n is fixed here (SMP7): its button focuses the size's control and stays on Vzorek.
   await page.setViewportSize({ width: 1440, height: 900 });
-  const link = page.getByRole("region", { name: "Připravenost ke spuštění" }).locator('[data-aia^="sample:ready:"] button').first();
+  const ready = page.getByRole("region", { name: "Připravenost ke spuštění" });
+  const here = ready.locator('[data-aia="sample:ready:sample_size"] button[data-fixes-here]');
+  await here.waitFor({ timeout: 30000 });
+  await here.click();
+  assert.equal(await page.evaluate(() => !!document.activeElement?.closest('[data-aia="sample:n"]')), true, "n's check focuses the size");
+  assert.equal(await page.locator("[data-sample-view]").count(), 1, "n's check stays on Vzorek");
+  check("a check on n is fixed here: the size's control focused, Vzorek kept");
+
+  // Any other readiness check opens the stage that fixes it (SMP4, SMP6), at 1440 (the page is there).
+  const link = ready.locator('[data-aia^="sample:ready:"] button[data-opens]').first();
   await link.waitFor({ timeout: 30000 });
   // "Opravit v Dimenzích" names the stage in the locative; the button carries the stage it opens.
   const stage = await link.getAttribute("data-opens");

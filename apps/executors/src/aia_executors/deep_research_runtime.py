@@ -91,7 +91,9 @@ kind's answer limit gains the thinking budget, never beyond
 ``AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS``, and its reservation is sized on the sum. With
 thinking on, the output tool cannot be forced; the gateway offers it with
 ``auto``, tells the agent to answer through it, and repairs an answer in text
-like any schema violation. No other agent thinks: the key is Deep Research's.
+like any schema violation. No other agent thinks: the key is Deep Research's. A route
+model that thinks adaptively (``AIA_BEDROCK_THINKING=adaptive``) takes no budget, so
+with it the key is read, checked and not sent.
 
 The lead switch binds ``RESEARCH_LEAD``, the lead's own policy entry, to the
 route's model (``AIRuntimeSettings.research_lead_enabled``); off, nothing binds it and
@@ -505,6 +507,10 @@ def deep_research_runtime(
             f"{THINKING_KEY}={thinking} must be below AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS="
             f"{settings.research_max_output_tokens}: thinking is part of the output limit"
         )
+    # An adaptive route model decides how much it thinks and refuses a budget (the adapter
+    # refuses it unsent), so its agents are sent none: the composition's choice, not the
+    # engine's, whose requests then carry no thinking exactly as with the key unset.
+    thinking = settings.request_profile.thinking_budget(thinking)
     slots: ModelSlots | None = None
     pacer: SharedHostPacer | None = None
     if fanned_out:

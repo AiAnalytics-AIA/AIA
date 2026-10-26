@@ -108,3 +108,11 @@ Apply finalized registry, workflow, configuration and activation changes to the
 shared architecture/map/open-items documents in a separate docs-only PR, including
 the verified disposition of OI-79. Do not claim a whole workflow or live search
 works before its deployed acceptance succeeds.
+
+## Disposition (MP3, 2026-10-26)
+
+**FOLD into the master plan's §4 and `MP7`**, accepted (the product owner in the Decision Review,
+2026-10-26, relayed by the PM coordinator: "Accept: FOLD into §4 and MP7"). Chunk 4 (validate,
+deploy and complete the authorized fictional acceptance) is the AI route activation §4 and
+`mvp-master-plan#MP7` carry; this plan closes with a pointer when `MP7` is done. Its chunk is left
+as it is, neither ticked nor dropped.
