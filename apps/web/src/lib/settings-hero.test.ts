@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AdminClient, AuditEntry, Member } from "./api";
-import { accessFigures, auditFigures } from "./settings-hero";
+import { accessFigures, auditFigures, systemFigures } from "./settings-hero";
 
 const AW = { active: "Aktivní členové", deactivated: "Deaktivovaní", methodologist: "Metodik", clients: "Klienti", selfApproval: "Samoschválení v organizaci", allowed: "povoleno", forbidden: "zakázáno", byDefault: "výchozí" };
 const member = (over: Partial<Member>): Member => ({ user_id: "u", email: "a@example.test", display_name: "A", is_active: true, organization_role: "RESEARCHER", methodologist: false, ...over });
@@ -64,5 +64,15 @@ describe("Audit's hero figures (F18)", () => {
     expect(undated.slice(0, 3).every((x) => x.value === null)).toBe(true);
     const none = auditFigures({ ok: true, data: [] }, 50, NOW, AUW, when);
     expect(none.map((x) => x.value)).toEqual(["0", "0", "0", null]);
+  });
+});
+
+describe("Stav systému's hero figures (F18)", () => {
+  const SW = { ready: "Připraveno", environment: "Prostředí", build: "Sestava webu" };
+  it("reads the ready checks, environment and build, unknown where unread", () => {
+    const rows = [{ key: "environment", value: "develop" }, { key: "build", value: "a1c4e9f" }];
+    expect(systemFigures({ ready: 7, total: 9 }, rows, SW).map((f) => f.value)).toEqual(["7 / 9", "develop", "a1c4e9f"]);
+    expect(systemFigures(null, null, SW).every((f) => f.value === null)).toBe(true);
+    expect(systemFigures(null, [{ key: "environment", value: null }], SW)[1].value).toBeNull();
   });
 });
