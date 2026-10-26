@@ -8,7 +8,6 @@
 // original; this file only draws it. The decision's starters write the same field a person types
 // into; nothing here calls a model but the analysis.
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type DragEvent, useContext, useEffect, useRef, useState } from "react";
 
@@ -44,12 +43,15 @@ import {
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
 import { Icon, type IconName } from "../icons";
-import { FrameNavigation, StepSection } from "../step";
+import { FrameNavigation, StageHeaderSlot, StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
-import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+
+/** The typed start command the Lead stores as the person's own and answers with its analysis card. */
+const ANALYSE_COMMAND = "Analyzuj zadání";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -90,6 +92,7 @@ export function BriefStep() {
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
+  const ask = useAskLead();
 
   const edit = (field: TopField | BriefingField, value: string) =>
     store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
@@ -124,40 +127,35 @@ export function BriefStep() {
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) uploads.setOver(false); }}
       onDrop={(e) => { if (hasFiles(e)) uploads.drop(e); }}
     >
-      <InspectorSlot>
-        {/* The analysis beside the brief, until the stage header takes its actions (research-lead-workbench#36). */}
-        <aside aria-label={t("research.brief.readyTitle")} className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
-          <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
-          {!leadOwnsAiStarts ? (
+      {leadOwnsAiStarts ? (
+        // In the workbench the Lead runs the analysis: the header asks it in the typed command's words
+        // (lead_commands "Analyzuj zadání"), and its card starts the job on the person's approval
+        // (spec navrh B7, BRF4). The header's primary is the frame's "Návrh".
+        ask ? (
+          <StageHeaderSlot slot="actions">
+            <Button small onClick={() => ask(ANALYSE_COMMAND)}>{t("research.brief.askLead")}</Button>
+          </StageHeaderSlot>
+        ) : null
+      ) : (
+        <InspectorSlot>
+          <aside aria-label={t("research.brief.readyTitle")} className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
+            <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
             <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
               {t("research.brief.next")}
               <Icon name="next" size={14} />
             </AiButton>
-          ) : (
-            <>
-              {frameNav?.next ? (
-                <Button className="w-full justify-center !rounded-control !min-h-11" onClick={() => frameNav.next?.go()}>
-                  Pokračovat na Návrh
-                  <Icon name="next" size={14} />
-                </Button>
-              ) : (
-                <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
-                  Pokračovat na Návrh
-                  <Icon name="next" size={14} />
-                </Link>
-              )}
-              <AskLead className="mt-2" what="Analýzu zadání" />
-            </>
-          )}
-          <p className="text-xs leading-4 text-ink-muted">{t("research.brief.readyNote")}</p>
-        </aside>
-      </InspectorSlot>
+            <p className="text-xs leading-4 text-ink-muted">{t("research.brief.readyNote")}</p>
+          </aside>
+        </InspectorSlot>
+      )}
 
-      <ReadinessChips chips={briefReadiness(state)} />
+      <StageHeaderSlot slot="status">
+        <ReadinessChips chips={briefReadiness(state)} />
+      </StageHeaderSlot>
 
       {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void continueAnalysis(id)} /> : null}
 
-      <StepSection id={briefElementId("goal")} n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")} aside={<Cap>{t("research.brief.capRequired")}</Cap>}>
+      <StepSection id={briefElementId("goal")} n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")} cap={t("research.brief.capRequired")}>
         <textarea
           aria-label={t("research.brief.goalLabel")}
           placeholder={t("research.brief.goalPlaceholder")}
@@ -180,7 +178,7 @@ export function BriefStep() {
         n={4}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
-        aside={<Cap>{t("research.brief.capTypes")}</Cap>}
+        cap={t("research.brief.capTypes")}
       >
         <ChoiceChips
           multiple
@@ -249,7 +247,7 @@ function Objectives({ undo }: { undo: Undo }) {
     });
   };
   return (
-    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")} aside={<Cap>{t("research.brief.capObjectives")}</Cap>}>
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")} cap={t("research.brief.capObjectives")}>
       {items.length ? (
         <ol className="flex flex-col gap-1.5">
           {items.map((o, i) => (
@@ -295,11 +293,6 @@ function Objectives({ undo }: { undo: Undo }) {
 /** A drag that carries files (not text or a link dragged within the page). */
 function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types || []).includes("Files") || (e.dataTransfer?.files?.length ?? 0) > 0;
-}
-
-/** A section's right-hand cap: whether it is required, and how it is answered (spec navrh B1). */
-function Cap({ children }: { children: string }) {
-  return <span className="text-xs text-ink-muted">{children}</span>;
 }
 
 const CHIP_LOOK = {
@@ -377,12 +370,8 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
       n={3}
       title={t("research.brief.decisionTitle")}
       hint={t("research.brief.decisionHint")}
-      aside={
-        <span className="flex items-center gap-2">
-          {empty ? <span className="rounded-pill bg-status-you-wash px-2 py-0.5 text-xs font-medium text-status-you-ink">{t("research.brief.decisionMissing")}</span> : null}
-          <Cap>{t("research.brief.capRequired")}</Cap>
-        </span>
-      }
+      need={empty}
+      cap={t("research.brief.capRequired")}
     >
       <InlineText
         multiline
@@ -431,7 +420,7 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
  */
 function Context({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
   return (
-    <StepSection id={briefElementId("context")} n={5} title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")} aside={<Cap>{t("research.brief.capOptional")}</Cap>}>
+    <StepSection id={briefElementId("context")} n={5} title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")} cap={t("research.brief.capOptional")}>
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {CONTEXT.map((c) => (
           <div key={c.field} id={briefElementId(contextField(c.field))} className="flex flex-col gap-1">
@@ -597,12 +586,10 @@ function Attachments({ uploads, undo }: { uploads: Uploads; undo: Undo }) {
       n={6}
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
-      aside={
-        <Cap>
-          {list.length
-            ? `${t("research.brief.capOptional")} · ${tv("research.brief.readyFilesN", { n: list.length })} · ${t("research.brief.dataClassAside")}`
-            : t("research.brief.capOptional")}
-        </Cap>
+      cap={
+        list.length
+          ? `${t("research.brief.capOptional")} · ${tv("research.brief.readyFilesN", { n: list.length })} · ${t("research.brief.dataClassAside")}`
+          : t("research.brief.capOptional")
       }
     >
       <input

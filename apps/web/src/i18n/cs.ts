@@ -2397,7 +2397,7 @@ export const cs = {
       chipWaits: "čeká na vás",
       chipDone: "hotovo",
       chipUnknown: "nelze přečíst",
-      decisionMissing: "chybí",
+      askLead: "Požádat Vedoucího o analýzu",
       decisionStartWith: "Začít od",
       decisionStarters: {
         0: { label: "Volba varianty", text: "Vybrat variantu A, nebo B?" },
