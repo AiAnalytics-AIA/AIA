@@ -17,7 +17,8 @@ import { useSession } from "@/lib/auth";
 import { hatchedRemembered, LEAD_HATCHED_EVENT, type LeadPresence, leadPresence, railLeadItem, rememberPresence } from "@/lib/rail-lead";
 import { signOut } from "@/lib/session";
 
-import { Icon, type IconName } from "../rehome/icons";
+import { RailIcon, type RailIconName } from "../rehome/icons";
+import { PhosphorIcon } from "../icons/PhosphorIcon";
 import { Mark } from "../workbench/Icons";
 import "./dock-rail.css";
 
@@ -25,7 +26,7 @@ export type RailClient = { id: string; name: string };
 
 // Wayfinding tints (tokens hue-*, shell-hue-*): an active item's tile is filled with its hue, an
 // inactive one shows the hue on the graphite. Never a status.
-const NAV: { key: string; icon: IconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
+const NAV: { key: string; icon: RailIconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
   { key: "navClients", icon: "client", href: appRoutes.clients(), tile: "bg-hue-blue text-shell-strong", idle: "text-shell-hue-blue", match: (p) => p === "/app" || p.startsWith("/app/clients") },
   { key: "navIntelligence", icon: "intelligence", href: appRoutes.intelligence(), tile: "bg-hue-green text-shell-strong", idle: "text-shell-hue-green", match: (p) => p.startsWith("/app/intelligence") },
   { key: "navMemory", icon: "memory", href: appRoutes.memory(), tile: "bg-hue-violet text-shell-strong", idle: "text-shell-hue-violet", match: (p) => p.startsWith("/app/memory") },
@@ -132,7 +133,7 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
                 <li key={item.key}>
                   <Link href={item.href} aria-current={active ? "page" : undefined} title={label} className="dock__item">
                     <span aria-hidden="true" className={`dock__tile ${active ? item.tile : item.idle}`}>
-                      <Icon name={item.icon} size={16} />
+                      <RailIcon name={item.icon} />
                     </span>
                     <span className="dock__label" style={{ ["--i" as string]: i++ }}>{label}</span>
                   </Link>
@@ -156,7 +157,7 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
             </span>
           </Link>
           <button type="button" onClick={() => void signOut()} aria-label={t("aia.signOut")} title={t("aia.signOut")} className="dock__out" style={{ ["--i" as string]: 7 }}>
-            <span aria-hidden="true">⎋</span>
+            <PhosphorIcon name="sign-out" />
           </button>
         </div>
       </div>

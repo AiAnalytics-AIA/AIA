@@ -45,6 +45,7 @@ import {
 import { isSignedOffMap } from "@/lib/object-map-signed-off";
 import { num } from "@/lib/sociomapping-view";
 import { type OriginKind, originKind } from "@/lib/research-execution";
+import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 /** The chip and the sentence each origin kind says on the map; an unknown origin is never real. */
 const ORIGIN_CHIP: Record<OriginKind, { chip: string; text: string; className: string; dot: string }> = {
@@ -487,7 +488,7 @@ function PairCard({ a, pair, onClose, onSwap }: { a: MapObject; pair: PairDetail
     <div className="ring-1 ring-inset ring-white/[.07] mt-1 flex flex-col gap-2 rounded-lg bg-[var(--viz-stage)] p-3 text-[var(--viz-stage-ink)]" data-testid="object-map-pair" role="group" aria-label={tv("research.exec.objectMap.pairTitle", { a: a.label, b: pair.label })}>
       <div className="flex items-start justify-between gap-2">
         <span className="text-[13px] font-semibold">{tv("research.exec.objectMap.pairTitle", { a: a.label, b: pair.label })}</span>
-        <button type="button" onClick={onClose} aria-label={t("research.exec.objectMap.pairClose")} className="px-1.5 text-xs">✕</button>
+        <button type="button" onClick={onClose} aria-label={t("research.exec.objectMap.pairClose")} className="px-1.5 text-xs"><PhosphorIcon name="x" size={12} /></button>
       </div>
       <dl className="flex gap-4 tabular-nums">
         <div className="flex flex-col"><dd className="text-xl font-semibold leading-[26px]" data-testid="object-map-pair-r">{fmt(pair.r, 3)}</dd><dt className={caption}>{t("research.exec.objectMap.pairR")}</dt></div>
