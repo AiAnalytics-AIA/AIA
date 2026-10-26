@@ -181,4 +181,20 @@ the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object 
   maps and synthetic variants of them (no reliable pair, sparse design, 36 objects), for
   `object-map-panel.test.ts`; regenerate it from the panel whenever the panel's drawing changes.
 - Decided (methodology owner, 2026-10-20): the respondent card counts respondents without a position as „Bez polohy“, so „Neumístěno“ names only the objects nobody rated; the facts line „Nezařazení respondenti“ (all ratings equal) stays.
-- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied.
+- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied. (Gone with the terrain's sides below: the slab is no longer stroked.)
+
+## The terrain's sides and the smooth terrain (the owner, 2026-10-23)
+
+- The flat slab under the square goes: the terrain stands on its own sides, as the Sociomapy app's Pedestal draws
+  them but without its layer bands. One wall per edge segment of the grid, from the terrain's edge height down to a
+  base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
+  darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
+  `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
+- Nastavení mapy offers „Terén: Blokový / Hladký“, remembered in the browser, Blokový by default. Blokový is the
+  stored envelope as before. Hladký draws heights between the PRIMARY objects by Sociomapy's inverse-distance
+  weighting (1 / d^3, exact at each object, on the objects' colour positions), refines the grid bicubically (x4,
+  clamped) and shades it smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the 2D
+  canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový. The
+  respondent map keeps its density in both. Presentation only: nothing stored or computed by the method changes,
+  but Hladký reads differently (the ground between objects is a blend of their values, an empty corner takes its
+  nearest objects' value), so Blokový stays the default.
