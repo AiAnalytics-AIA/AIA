@@ -292,6 +292,12 @@ describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
     const young = study(ANALYTICS_UI, { strategy: "filters", builtin_subpanel: "young_18_29", filters: {}, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29" });
     const edit = { project: young, reason: "audience_filter", invalidateCheck: false };
     expect(detachSubpanel(edit)).toEqual({ ...edit, invalidateCheck: true, project: { ...young, audience: { ...young.audience, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} } } });
+    // A study on the classic's special path keeps its filters as Zúžit's (Codex on #1000).
+    const special = study({ audience_entry: "analytics", analytics_choice: "special" }, { strategy: "filters", builtin_subpanel: "young_18_29", filters: { kraj: ["A"] } });
+    const detached = detachSubpanel({ project: special, reason: "audience_filter", invalidateCheck: false }).project;
+    expect(detached.ui_state).toMatchObject(ANALYTICS_UI);
+    expect(strategyOf(detached)).toBe("filters");
+    expect(detached.audience.filters).toEqual({ kraj: ["A"] });
     // Nothing chosen: the edit passes through as it is.
     const plain = { project: study(ANALYTICS_UI, { filters: { kraj: ["A"] } }), reason: "audience_filter", invalidateCheck: false };
     expect(detachSubpanel(plain)).toBe(plain);

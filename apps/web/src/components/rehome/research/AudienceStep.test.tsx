@@ -324,12 +324,15 @@ describe("Audience", () => {
 
     it("editing a chosen subpanel's filter leaves the subpanel behind, and it can be chosen again (Codex on #1000)", async () => {
       const young = { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29" };
-      aiaStub({ ui_state: ANALYTICS, n: 500, audience: young }, live());
+      // Stored on the classic's special path: after the edit it stays Zúžit, editor and filters kept (Codex on #1000).
+      aiaStub({ ui_state: { audience_entry: "analytics", analytics_choice: "special" }, n: 500, audience: young }, live());
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
       expect(await screen.findByRole("radio", { name: /Mladí 18–29/, checked: true })).toBeTruthy();
       fireEvent.click(screen.getByRole("button", { name: /Odebrat filtr Věk/ }));
       await saved();
       expect(lastSave().content.audience).toMatchObject({ filters: {}, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {}, description: "Mladí 18–29" });
+      expect(lastSave().content.ui_state).toMatchObject(ANALYTICS);
+      expect(screen.getByRole("radio", { name: /^Zúžit/, checked: true })).toBeTruthy();
       // No longer the subpanel: it reads unchosen, and choosing it restores its filter.
       const again = await screen.findByRole("radio", { name: /Mladí 18–29/, checked: false });
       fireEvent.click(again);

@@ -97,12 +97,13 @@ export function chooseStrategy(p: ResearchProject, x: Strategy): Change | null {
  * longer that subpanel, so its name and support figures go, as a preset change clears them (OI-51
  * (a)), and the run check is made stale. Compile records `builtin_subpanel`, so keeping it would name
  * a subpanel over filters it does not have. The description stays as written; the subpanel can be
- * chosen again. A change on no subpanel passes through.
+ * chosen again. A study stored on the classic's special path is written as ČR 18+ (normalizeEntry),
+ * so its filters stay Zúžit's. A change on no subpanel passes through.
  */
 export function detachSubpanel(c: Change): Change {
   const a = aud(c.project);
   if (!a.builtin_subpanel) return c;
-  return { ...c, project: withAudience(c.project, { ...a, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} }), invalidateCheck: true };
+  return { ...c, project: normalizeEntry(withAudience(c.project, { ...a, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} })), invalidateCheck: true };
 }
 
 /** What a study stored on a path the screen no longer offers: kept in the design, unused by a run. */

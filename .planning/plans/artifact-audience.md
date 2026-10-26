@@ -126,7 +126,8 @@ choice starts afresh as a preset change does (`chooseStrategy` over `presetReset
 both"), so leaving a subpanel for Celá ČR 18+ no longer keeps its support figures, and keeps a
 description the person wrote. Since the subpanels and the filter editor now share Zúžit, a filter
 edit on a chosen subpanel leaves it behind (`detachSubpanel`: its name and support figures go, the
-description stays), because compile records `builtin_subpanel` (Codex on #1000). The
+description stays; a study on the classic's special path is written as ČR 18+, so its filters stay
+Zúžit's), because compile records `builtin_subpanel` (Codex on #1000). The
 description is written in place (§01, `setAudienceDescription`) and the AI proposal asks about it.
 The built-in subpanels move under Zúžit as they are (radio cards; "Hotové skupiny" chips are AUD10).
 The strategy stays three radio cards, not the spec's segmented chips: a chips group chooses as the
