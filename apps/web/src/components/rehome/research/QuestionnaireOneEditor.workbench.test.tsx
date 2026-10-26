@@ -12,21 +12,18 @@ import { CONTENT_PATH, EMPTY_PROJECT, signedIn } from "./test-workspace";
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 
 const urls: string[] = [];
-const bodies: { url: string; body: Record<string, unknown> }[] = [];
 let stored: Record<string, unknown> = {};
-function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby." }, analysis: Record<string, unknown> | null = null) {
+function api(content: Record<string, unknown>) {
   urls.length = 0;
-  bodies.length = 0;
   stored = content;
   vi.stubGlobal("matchMedia", (q: string) => ({ matches: q.includes("min-width: 1100px"), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url).split("?")[0];
     const method = init?.method ?? "GET";
     urls.push(`${method} ${u}`);
-    if (init?.body) bodies.push({ url: `${method} ${u}`, body: JSON.parse(String(init.body)) as Record<string, unknown> });
     const answer =
       u === "/config" ? { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", workbench: true }
-      : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
+      : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis: null, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
       : u === CONTENT_PATH ? { state: "NATIVE", revision: 3, revision_id: "REV-3", deduplicated: false }
       : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
       : u.endsWith("/research/runs") ? { items: [] }
@@ -44,7 +41,6 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
 
 beforeEach(() => {
   signedIn();
-  api();
 });
 afterEach(() => {
   cleanup();

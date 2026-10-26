@@ -769,7 +769,6 @@ export const cs = {
       accessHelp: "Přístup k organizaci a studiím",
       accessNote:
         "AIA otevře každý aktivní člen organizace a vidí v ní všechny klienty a studie organizace. Přístup ke klientovi ani ke studii se neuděluje.",
-      aiDesignPending: "Návrh AI se uloží jako návrh ke kontrole. Změny použijete až po potvrzení.",
       prompts: {
         adminOnly: "Systémové prompty vidí a upravuje jen vlastník nebo správce organizace.",
         malformed: "API nevrátilo seznam promptů.",

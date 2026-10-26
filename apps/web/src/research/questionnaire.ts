@@ -1,8 +1,9 @@
 // Dotazník, the research flow's third step (ADR 0014, area A4): what the
 // classic questionnaire does to the project, ported from the bindings that run
 // -- renderQuestionnaire (:341) under its wizard wrapper (:960), the guided
-// editor and its handlers, the respondent preview, the XLSX/CSV import, and the
-// three AI steps (build, optimise, deep research). Every function is pure and
+// editor and its handlers, the respondent preview, and the AI steps (optimise,
+// deep research). The import and the AI build are not ported: Dotazník has one
+// editor and a file or a draft comes from the Lead (the product owner, 2026-10-26). Every function is pure and
 // returns the next project; the screen hands it to the store with the classic
 // save reason. questionnaire.parity.test.ts compares each with the original
 // under Node. Survey: .planning/plans/research-flow-rehome.md (PR B).

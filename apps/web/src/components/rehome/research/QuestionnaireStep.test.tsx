@@ -81,7 +81,7 @@ afterEach(() => {
 });
 
 describe("Dotazník", () => {
-  it("opens a new study on the one editor, with no way in but it, and waits for questions before going on", async () => {
+  it("opens a new study on the one editor, with no way in but it, and says a question is missing before going on", async () => {
     // One editor, one way in (the product owner, 2026-10-26): a new study's stored path is
     // "choose", and 18.6.6 drew its three paths there; AIA draws the editor.
     unitStub({ ...BRIEF, ui_state: { questionnaire_path: "choose" } });

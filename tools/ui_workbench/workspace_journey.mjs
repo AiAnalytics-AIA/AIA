@@ -205,6 +205,7 @@ for (const gone of ["Nahrát Excel", "Sestavit ručně", "Sestavit s AI"]) {
   if (await page.getByText(gone, { exact: true }).count()) fail(`Dotazník still offers "${gone}"`);
 }
 const added = saved();
+await page.getByRole("button", { name: "Nová otázka" }).first().click();
 const row = page.getByRole("textbox", { name: "Nová otázka" }).first();
 await row.fill("Jak často pijete limonády?");
 await row.press("Enter");

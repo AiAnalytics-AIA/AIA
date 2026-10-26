@@ -230,7 +230,7 @@ export function commentsToReview(p: ResearchProject): ResearchProject | null {
   };
 }
 
-/** setQuestionnairePath('choose'), the plan's way on: the questionnaire starts at its three paths. */
+/** setQuestionnairePath('choose'), the plan's way on, kept to parity; Dotazník no longer reads the path (one editor, 2026-10-26). */
 export function toQuestionnaire(p: ResearchProject): ResearchProject {
   return { ...p, ui_state: { ...p.ui_state, questionnaire_path: "choose" } };
 }
