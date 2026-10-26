@@ -3594,6 +3594,8 @@ export const cs = {
       },
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",
+      // artifact-fieldwork FLD2c: the run's steps, one ordered list.
+      stepsTitle: "Kroky běhu",
       stepWork: {
         ai: "AI model",
         running: "kód",
