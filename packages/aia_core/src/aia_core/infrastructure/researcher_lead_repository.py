@@ -37,6 +37,7 @@ from ..domain.research_lead import (
     ResearcherLead,
     SelfUpdate,
     SelfUpdateApplied,
+    new_hatch_id,
     new_lead_id,
     new_lead_revision_id,
     new_memory_id,
@@ -45,6 +46,7 @@ from ..domain.scope import OrganizationContext, Permission, ScopeDenied, StudyCo
 from .tables import (
     AccessAuditRow,
     ClientRow,
+    ResearcherLeadHatchRow,
     ResearcherLeadMemoryRow,
     ResearcherLeadRevisionRow,
     ResearcherLeadRow,
@@ -56,11 +58,14 @@ __all__ = [
     "SEAL_DAYS",
     "ErasedLead",
     "LeadAlreadyHatched",
+    "LeadHatchNotPending",
     "LeadNotHatched",
     "LeadSeal",
     "LeadSeals",
+    "PendingHatch",
     "ResearcherLeadRepository",
     "erase_client_notes",
+    "erase_member_hatches",
 ]
 
 _FIELD_ORDER = {"name": 0, "soul": 1, "user": 2}
@@ -76,6 +81,32 @@ class LeadNotHatched(Exception):
     """The researcher has not hatched a Lead yet."""
 
     reason = "lead_not_hatched"
+
+
+class LeadHatchNotPending(Exception):
+    """No hatch of the caller's waits under that id, or it has no answer to accept yet."""
+
+    reason = "lead_hatch_not_pending"
+
+
+@dataclass(frozen=True, slots=True)
+class PendingHatch:
+    """A researcher's hatch waiting for them (lead-identity LI1). ``output`` is ``None`` until
+    the model answered."""
+
+    hatch_id: str
+    input: dict[str, Any]
+    output: dict[str, Any] | None
+    created_at: datetime
+
+
+def _pending(row: ResearcherLeadHatchRow) -> PendingHatch:
+    return PendingHatch(
+        hatch_id=row.hatch_id,
+        input=dict(row.input_json),
+        output=dict(row.output_json) if row.output_json is not None else None,
+        created_at=as_utc(row.created_at),
+    )
 
 
 def _lead(row: ResearcherLeadRow) -> ResearcherLead:
@@ -268,6 +299,136 @@ class ResearcherLeadRepository:
         except IntegrityError as exc:
             raise LeadAlreadyHatched("the Lead is already hatched") from exc
         return _lead(row)
+
+    # -- the hatch (lead-identity LI1) ----------------------------------------
+
+    def _person(self) -> None:
+        if self._scope.actor_id.startswith("worker:"):
+            raise ScopeDenied("only a person hatches their Lead", reason="insufficient_role")
+
+    def _hatch_row(self, hatch_id: str, *, for_update: bool = False) -> ResearcherLeadHatchRow:
+        s = self._scope
+        stmt = select(ResearcherLeadHatchRow).where(
+            ResearcherLeadHatchRow.hatch_id == hatch_id,
+            ResearcherLeadHatchRow.organization_id == s.organization_id,
+            ResearcherLeadHatchRow.user_id == s.actor_id,
+            ResearcherLeadHatchRow.status == "pending",
+        )
+        if for_update:
+            stmt = stmt.with_for_update().execution_options(populate_existing=True)
+        row = self._session.scalar(stmt)
+        if row is None:
+            raise LeadHatchNotPending(hatch_id)
+        return row
+
+    def pending_hatch(self) -> PendingHatch | None:
+        """The caller's hatch waiting for their yes, if any."""
+        s = self._scope
+        row = self._session.scalar(
+            select(ResearcherLeadHatchRow).where(
+                ResearcherLeadHatchRow.organization_id == s.organization_id,
+                ResearcherLeadHatchRow.user_id == s.actor_id,
+                ResearcherLeadHatchRow.status == "pending",
+            )
+        )
+        return _pending(row) if row is not None else None
+
+    def record_hatch(self, hatch_input: dict[str, Any]) -> PendingHatch:
+        """Keep what the person wrote as their pending hatch. Refused once a Lead is hatched
+        (a Lead is hatched once) or while another hatch waits."""
+        self._person()
+        if self._row() is not None:
+            raise LeadAlreadyHatched("the Lead is already hatched")
+        s = self._scope
+        row = ResearcherLeadHatchRow(
+            hatch_id=new_hatch_id(),
+            organization_id=s.organization_id,
+            user_id=s.actor_id,
+            status="pending",
+            input_json=dict(hatch_input),
+            created_at=utcnow(),
+        )
+        try:
+            with self._session.begin_nested():
+                self._session.add(row)
+                self._session.flush()
+        except IntegrityError as exc:
+            raise LeadHatchNotPending("another hatch waits") from exc
+        return _pending(row)
+
+    def answer_hatch(self, hatch_id: str, output: dict[str, Any], *, run_id: str) -> None:
+        """Keep the model's answer beside the pending hatch: still no Lead file."""
+        row = self._hatch_row(hatch_id, for_update=True)
+        row.output_json = dict(output)
+        row.run_id = run_id
+        self._session.flush()
+
+    def organization_client_names(self) -> list[str]:
+        """Every client's name in the caller's organization, deleted ones included: what ADR
+        0030 decision 3 refuses in a personal file."""
+        return [
+            str(n)
+            for n in self._session.scalars(
+                select(ClientRow.name).where(
+                    ClientRow.organization_id == self._scope.organization_id
+                )
+            )
+        ]
+
+    def accept_hatch(self, hatch_id: str, *, name: str, soul: str, user: str) -> ResearcherLead:
+        """Hatch the caller's Lead from their accepted hatch, in one transaction: the Lead is
+        made with these files and the hatch is ``accepted``. The caller has checked them."""
+        self._person()
+        row = self._hatch_row(hatch_id, for_update=True)
+        if row.output_json is None:
+            raise LeadHatchNotPending(hatch_id)
+        if self._row() is not None:
+            raise LeadAlreadyHatched("the Lead is already hatched")
+        s = self._scope
+        now = utcnow()
+        lead = ResearcherLeadRow(
+            lead_id=new_lead_id(),
+            organization_id=s.organization_id,
+            user_id=s.actor_id,
+            name=name,
+            soul=soul,
+            user_profile=user,
+            hatched_at=now,
+            updated_at=now,
+        )
+        try:
+            with self._session.begin_nested():
+                self._session.add(lead)
+                self._session.flush()
+        except IntegrityError as exc:
+            raise LeadAlreadyHatched("the Lead is already hatched") from exc
+        row.status, row.decided_at = "accepted", now
+        self._audit("LEAD_HATCH_ACCEPTED", {"hatch_id": hatch_id, "lead_id": lead.lead_id})
+        self._session.flush()
+        return _lead(lead)
+
+    def discard_hatch(self, hatch_id: str) -> None:
+        """ "Zadat znovu": the pending hatch is set aside; nothing of it became a Lead file."""
+        self._person()
+        row = self._hatch_row(hatch_id, for_update=True)
+        row.status, row.decided_at = "discarded", utcnow()
+        self._audit("LEAD_HATCH_DISCARDED", {"hatch_id": hatch_id})
+        self._session.flush()
+
+    def _audit(self, action: str, payload: dict[str, Any]) -> None:
+        s = self._scope
+        self._session.add(
+            AccessAuditRow(
+                organization_id=s.organization_id,
+                client_id=s.client_id if isinstance(s, StudyContext) else None,
+                study_id=s.study_id if isinstance(s, StudyContext) else None,
+                actor_id=s.actor_id,
+                action=action,
+                reason="",
+                payload=payload,
+                request_id=s.request_id,
+            )
+        )
 
     def set_preferences(self, *, auto_accept_text_edits: bool) -> ResearcherLead:
         """The calling researcher sets their own Lead's preferences; audited.
@@ -542,6 +703,20 @@ class LeadSeals:
         )
         session.flush()
         return erased
+
+
+def erase_member_hatches(session: Session, *, organization_id: str, user_id: str) -> int:
+    """Delete a member's hatches, pending or decided (what they wrote and what the model
+    answered: Class C, their own): with their membership deactivated nothing reads them. The
+    caller owns the transaction. Returns the hatches deleted."""
+    result = session.execute(
+        delete(ResearcherLeadHatchRow).where(
+            ResearcherLeadHatchRow.organization_id == organization_id,
+            ResearcherLeadHatchRow.user_id == user_id,
+        )
+    )
+    session.flush()
+    return int(getattr(result, "rowcount", 0) or 0)
 
 
 def erase_client_notes(session: Session, *, client_id: str) -> int:

@@ -4,7 +4,7 @@
 // built to the approved design (plan object-map-3d-redesign; the standalone prototype is its
 // visual acceptance specification, chunk 6, checklist V1-V25).
 //
-// Renders the stored contract-3 artifact only: positions, Stress-1, pair states, heights and
+// Renders the stored contract-3 artifact only: positions, the fit (in words), pair states, heights and
 // the envelope terrain come from the worker, and this view never computes or adjusts them.
 // From above (the default): the stored terrain as ten flat display terraces on the absolute
 // 0-1 scale, the selected object's drawn relations (the one `mapLinks` rule), each object at
@@ -290,13 +290,12 @@ function MappedView({ battery, map, methodId, fingerprint, facts, approved }: { 
           </div>
           <div ref={hud} className="pointer-events-none absolute left-3.5 top-3.5 flex max-w-[calc(50%-21px)] flex-col gap-1.5 rounded-lg border border-white/[.12] bg-[rgba(20,23,28,0.72)] px-3 py-2.5 text-[11px] leading-[14px] sm:max-w-none">
             <span className="text-xs font-semibold">{tv("research.exec.objectMap.hudTitle", { method: methodId })}</span>
-            {layout.quality !== undefined && layout.stress_1 !== undefined ? (
+            {layout.quality !== undefined ? (
               <span className="flex flex-wrap items-center gap-2" data-testid="object-map-fit">
                 <span className="sr-only">{t("research.exec.objectMap.fit")}: </span>
                 <span className="rounded-full px-[7px] py-px font-semibold text-[var(--viz-stage)]" style={{ background: `var(--viz-fit-${layout.quality})` }}>
                   {t(`research.exec.objectMap.qualityBadge.${layout.quality}`)}
                 </span>
-                <span className="tabular-nums">{tv("research.exec.objectMap.stressValue", { value: num(layout.stress_1) })}</span>
               </span>
             ) : null}
             <span className="tabular-nums text-[var(--viz-stage-muted)]">{tv("research.exec.objectMap.hudSupport", { placed: map.support.placed, respondents: map.support.respondents })}</span>
@@ -532,13 +531,13 @@ function Legend({ map, scale }: { map: ObjectMapArtifact; scale?: [number, numbe
       <div className="flex flex-col gap-1" aria-label={legendLabel(scale)} role="img">
         <span className="text-xs font-semibold">{t("research.exec.objectMap.legendTitle")}</span>
         <span className="flex items-end gap-0.5" aria-hidden>
-          {Array.from({ length: TERRACE_BANDS }, (_, k) => <span key={k} className="inline-block w-[18px] rounded-t-sm" style={{ height: 6 + Math.round((22 * (k + 1)) / TERRACE_BANDS), background: TERRACE(k) }} />)}
+          {Array.from({ length: TERRACE_BANDS }, (_, k) => <span key={k} className="inline-block w-[18px] rounded-t-mark" style={{ height: 6 + Math.round((22 * (k + 1)) / TERRACE_BANDS), background: TERRACE(k) }} />)}
         </span>
         <span className="flex justify-between gap-3 text-[var(--viz-stage-muted)]" aria-hidden><span>0</span><span>{num(0.5, 1)}</span><span>1</span></span>
       </div>
       <div className="flex flex-wrap gap-3">
-        <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-sm bg-[var(--viz-ground)]" />{t("research.exec.objectMap.legendGround")}</span>
-        <span className="flex items-center gap-1.5"><span aria-hidden className="h-[3px] w-[18px] rounded-sm bg-[var(--viz-link-positive)]" />{t("research.exec.objectMap.legendPositive")}</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden className="h-3 w-3 rounded-mark bg-[var(--viz-ground)]" />{t("research.exec.objectMap.legendGround")}</span>
+        <span className="flex items-center gap-1.5"><span aria-hidden className="h-[3px] w-[18px] rounded-mark bg-[var(--viz-link-positive)]" />{t("research.exec.objectMap.legendPositive")}</span>
         <span className="flex items-center gap-1.5"><span aria-hidden className="w-[18px] border-t-[3px] border-dashed border-[var(--viz-link-negative)]" />{t("research.exec.objectMap.legendNegative")}</span>
       </div>
       <div className="flex flex-wrap gap-3 text-[var(--viz-stage-muted)]">
