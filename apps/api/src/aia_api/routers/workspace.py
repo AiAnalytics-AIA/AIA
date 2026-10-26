@@ -2241,8 +2241,9 @@ def apply_study_working_ops(
     Needs ``EDIT_STUDY`` on an open research study. ``base_revision`` is the revision the edits
     were made on; one from an older revision is refused with 409 ``stale_revision``, as a save is.
     The batch is all or nothing: an edit the copy does not take (its item gone, a locked Sociomap
-    input, an operation not available yet) refuses the batch with 409 ``edit_refused``, each
-    refused position with its word, and nothing is saved.
+    input) refuses the batch with 409 ``edit_refused``, each refused position with its word, and
+    nothing is saved. An operation the vocabulary declares but does not apply yet has no payload,
+    so the body is refused (422) before anything is read.
     """
     try:
         saved, content = apply_person_edits(

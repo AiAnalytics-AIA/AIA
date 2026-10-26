@@ -1252,3 +1252,48 @@ def test_a_batch_is_validated_before_it_is_applied(lead: TestClient, world: Any)
     assert lead.post(url, json={"ops": [{**edit, "why": ""}]}).status_code == 422
     assert lead.post(url, json={"ops": [{**edit, "field": "n"}]}).status_code == 422
     assert lead.post(url, json={"ops": [edit], "reason": "Bad Reason"}).status_code == 422
+
+
+def test_a_batch_writing_a_locked_sociomap_input_is_refused_as_an_edit(
+    lead: TestClient, world: Any
+) -> None:
+    """The lock arrives as ``edit_refused`` naming ``sociomap_input_locked``, which the web's store
+    answers by saving the copy whole under the PUT's own lock check (WCE3a)."""
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    question = {"id": "Q1", "text": "Jak často?", "typ": "skala", "skala": [1, 5]}
+    declared = {
+        **BRIEF,
+        "sections": [
+            {"id": "s", "type": "questions", "questions": [{**question, "sociomap_rating": True}]}
+        ],
+    }
+    assert lead.put(f"{url}/content", json={"content": declared}).json()["revision"] == 1
+    refused = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [
+                {"op": "question_edit", "question_id": "Q1", "text": "Jak moc?", "why": "person"}
+            ],
+        },
+    )
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "edit_refused"
+    assert refused.json()["details"]["refused"] == {"0": "sociomap_input_locked"}
+    assert lead.get(f"{url}/content").json()["revision"] == 1
+
+
+def test_a_batch_on_a_closed_study_is_refused_as_closed(lead: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    status = f"{API}/studies/{world.study_id()}/status"
+    assert lead.put(status, json={"status": "ARCHIVED"}).status_code == 200
+    refused = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [{"op": "set_text", "field": "title", "value": "A", "why": "person"}],
+        },
+    )
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "study_closed"
