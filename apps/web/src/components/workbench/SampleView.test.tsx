@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WorkingReadiness } from "@/lib/api";
 import type { ResearchProject } from "@/research/model";
 import type { ResearchStore } from "@/research/store";
+import { Stepper } from "@/components/ui/Stepper";
 import { SampleArtifact } from "./SampleView";
 import { loadSampleReadiness, type SampleReadiness } from "./useSampleReadiness";
 
@@ -148,6 +149,22 @@ describe("Připravenost ke spuštění", () => {
     { id: "new_server_check", status: "WARN" as const, message: "Něco nového." },
   ];
 
+  it("fixes n's checks here: focuses the size's control, never leaving Vzorek for Dimenze", () => {
+    const onOpen = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    // The real Stepper above its minimum: its − button comes before the field, and the field is what takes focus.
+    const size = <Stepper label="Počet respondentů" value={200} min={50} max={5000} step={50} onCommit={vi.fn()} />;
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} size={size} readiness={ready({ checks })} />);
+    const field = container.querySelector<HTMLInputElement>('[data-aia="sample:n"] input')!;
+    expect(field.compareDocumentPosition(container.querySelector('[data-aia="sample:n"] button:not([disabled])')!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    for (const id of ["sample_size", "sociomap_support"]) {
+      (document.body as HTMLElement).focus();
+      fireEvent.click(container.querySelector(`[data-aia="sample:ready:${id}"] button`)!);
+      expect(document.activeElement).toBe(field);
+    }
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it("lists every check worst first; a FAIL names its stage and opens it", () => {
     const onOpen = vi.fn();
     const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ ready: false, checks })} />);
@@ -158,8 +175,8 @@ describe("Připravenost ke spuštění", () => {
     const fail = container.querySelector('[data-aia="sample:ready:conditional_questions"]')!;
     fireEvent.click(fail.querySelector("button")!);
     expect(onOpen).toHaveBeenCalledWith("questionnaire");
-    // n's support is fixed where n is set; a check this client does not know names no stage.
-    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Opravit v Dimenzích");
+    // n's support is fixed where n is set, here; a check this client does not know names no stage.
+    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Opravit velikost vzorku");
     expect(fail.querySelector("button")!.textContent).toBe("Opravit v Dotazníku");
     expect(container.querySelector('[data-aia="sample:ready:new_server_check"] button')).toBeNull();
   });
