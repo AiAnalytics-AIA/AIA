@@ -79,17 +79,29 @@ try {
   await page.goto(`${base}/app/settings`);
   await page.waitForFunction(() => window.uxCold !== null);
   latencies.push({ name: "Cold browser document to Metodika's catalogue (no cache)", milliseconds: await page.evaluate(() => window.uxCold) });
-  // The ten tabs in their three groups (settings-redesign F2), each with its lede.
+  // The ten sections in the section menu's three groups (prototype v54), each opened from its link,
+  // its address kept, its lede shown; the time is the link's press to the section's content.
   const expected = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data"];
-  assert.deepEqual(await page.getByRole("tablist", { name: "Oddíly nastavení" }).getByRole("tab").evaluateAll((items) => items.map((item) => item.id.replace("tab-", ""))), expected);
-  for (const mode of ["first", "warm"]) for (const id of expected) {
+  const menuButton = page.locator("[data-section-menu] > button");
+  const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
+  const open = async (id) => {
+    await menuButton.click(); await menu.waitFor();
+    await timed(`${mode} ${id} section`, menu.locator(`[data-section-link="${id}"]`), targets[id]);
+  };
+  let mode = "first";
+  await menuButton.click(); await menu.waitFor();
+  assert.deepEqual(await menu.getByRole("group").evaluateAll((groups) => groups.map((g) => g.getAttribute("aria-label"))), ["Nastavení výzkumu", "Tým a peníze", "Provoz"]);
+  assert.deepEqual(await menu.locator("[data-section-link]").evaluateAll((links) => links.map((a) => a.dataset.sectionLink)), expected);
+  await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+  for (mode of ["first", "warm"]) for (const id of expected) {
     if (id === "methodology" && mode === "first") continue;
-    await timed(`${mode} ${id} tab`, page.locator(`#tab-${id}`), targets[id]);
-    assert.equal(await page.locator(`#tab-${id}`).getAttribute("aria-selected"), "true");
+    await open(id);
+    assert.equal(new URL(page.url()).hash, `#${id}`);
+    assert.equal(await menuButton.getAttribute("aria-label").then((label) => label.split(",")[0]), `Nastavení › ${await page.locator(`#panel-${id} [data-tab-header] h1`).textContent()}`);
     assert(await page.locator(`#panel-${id} [data-tab-lede]`).isVisible(), `${id} lacks its lede`);
   }
-  checks.push("All ten tabs in their three groups retain their hashes and show their lede");
-  await page.locator("#tab-methodology").click();
+  checks.push("All ten sections, in the menu's three groups, open from their links, keep their hashes and show their lede");
+  await menuButton.click(); await menu.locator('[data-section-link="methodology"]').click();
   // The catalogue: a card for every module the API lists but the two D-13 leaves out, and the
   // read-only field-origin area (methodology-tab V1c).
   const nav = page.getByRole("navigation", { name: "Oblasti metodiky" });

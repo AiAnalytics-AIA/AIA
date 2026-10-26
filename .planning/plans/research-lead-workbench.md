@@ -49,6 +49,23 @@ chunks:
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
   - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
   - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
+  - "[ ] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
+  - "[ ] 37. The Lead's run card agrees with Průběh: done steps, spend and ceiling from the single-run read (spec sber F7; W1)"
+  - "[ ] 38. Sociomapa's own state in the stage navigator (spec szz S5; W2)"
+  - "[ ] 39. The Lead pane's header status line (Připravena / Přemýšlí… / Pracuje na …) with the orb in the avatar (spec lead LP-1; W2)"
+  - "[ ] 40. The conversation's timeline axis, a node per card: chat layout F (spec lead LP-2; Nigel P6, 26 Oct 2026; W2)"
+  - "[ ] 41. The composer's '+' menu and shell: '+', the token chip, Vidí under the composer, the quick buttons removed; built on today's contract and GET /lead commands, not on LO21b, which is the prompt's action section only (spec lead LP-3; W1)"
+  - "[ ] 42. Zastavit on a running job card, folded 'zastaveno · zaplaceno x' afterwards (spec lead LP-6; W1, beside lead-orchestration LO17)"
+  - "[ ] 43. The budget lift in the card through SpendDialog, '+N USD a pokračovat', sized by the parked step's need (spec lead LP-8; W2)"
+  - "[ ] 44. A running job card's elapsed time, and the note when step events are off (spec lead LP-9; W1)"
+  - "[ ] 45. An advice answer's first paragraph in the folded card (spec lead LP-10; W2, optional)"
+  - "[ ] 46. Run spend on an expanded run card from the single-run read (spec lead LP-11; W2)"
+  - "[ ] 47. A typed 'Spusť výzkum' shows the run request card's facts (spec lead LP-12; W1)"
+  - "[ ] 48. The analysis retry card reads /analysis/retryable and names the modules (spec lead LP-13; W3, with artifact-analysis ANL6)"
+  - "[ ] 49. The composer's Akce built from GET /lead commands (spec lead LP-15; W2)"
+  - "[ ] 50. The edits card: its targets listed, 'Zahodit vše', 'Otevřít lištu' (spec lead LP-16; W2)"
+  - "[ ] 51. Akce = the artifact contract's starts ∩ the commands; no extra text after a run or a retry (spec lead LP-17; W2)"
+  - "[ ] 52. Přidat podklad in the '+' menu opens the client's intake sheet (spec lead LP-18; W2)"
 ---
 # Research Lead workbench
 
@@ -1908,3 +1925,87 @@ waiting for review. On Zpráva it waits for report-delivery RD5's tracked change
     rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
     read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
     is on when…" (both).
+
+### A card's review drawn under the drawer (2026-10-25, `fix/review-steps-drawer-aside`; the Dotazník audit)
+
+- **F24. Below 1100 px a card's "Zkontrolovat návrh" opened the review under the Lead's drawer or sheet**
+  *(fixed)*.
+  1. Claim: `openJob` opened the review, or moved to its stage, but never stepped the conversation aside,
+     so the review lay under the open drawer, with the focus held in it.
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:719-724 @ fd04ba89`.
+  3. Reproduction: at 768 or 390 px, a finished `optimize_questionnaire` job's card, "Zkontrolovat návrh":
+     "Použít návrh" and "Zahodit" are hidden behind the drawer (reported by the Dotazník session).
+  4. Consequence: the review could not be read or decided below 1100 px without closing the drawer by hand.
+  5. Fix: in a compact layout `openJob` steps the drawer aside (`view`, a peek with "Zpět k Vedoucímu"), as
+     a Lead's view does; the review takes the focus when it mounts.
+  6. Test: `Workbench.layout.test.tsx` "a card's review steps the drawer aside…"; `lead_stale_journey.mjs`
+     now checks it at 768 and 390 px (it had closed the drawer by hand, which hid the defect).
+
+### The Lead's map views: the web half (2026-10-26, `feature/lead-map-view-web`; chunk 14)
+
+The freeze lifted (the owner, 2026-10-26). The held `feature/lead-map-view-ops` lands in two parts; this is
+the first, rebuilt on develop (the held branch predates #809 and conflicted in 13 files).
+- **What it adds, not live.** `LeadView` carries `select` and `filter` (artifact-sociomap SOC1's forms).
+  `LIVE_VIEW_OPS` and `contract.json` are unchanged, so the server's output does not carry them yet.
+  - `lead.ts`: `LeadMapView`, `LEAD_MAP_VIEW` (the event), `sendLeadMapView` (kept for a map that mounts
+    after the move, sent to one on screen), `takeLeadMapView` (taken once), and `mapViewWords` (the chip:
+    what the picture becomes, "Mapa: reliéf", "Vybrat: Objekt set1/fio").
+  - `Workbench.onView` moves to Sociomapa through the leave guard and hands the map the view; a move the
+    guard stops keeps nothing. In a compact layout a filter peeks on Sociomapa.
+- **For Sociomapa (2).** The listener in the map panel imports `LEAD_MAP_VIEW` and `takeLeadMapView`, reads
+  each through `readMapOp`, and changes its display state.
+- **Next, the server half** (after the listener lands): `research_lead.MapFilter` / `SelectItem` with
+  `filter_refusal` / `select_refusal`, `filter_values` in `contract.json`, both sides' `LIVE_VIEW_OPS`,
+  the scripted Lead; `labels` and `hide_weak` left out of the server's values until the panel offers those
+  controls; harness `aia-research-lead-6`.
+- **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
+  `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
+  sent at once on Sociomapa). Each fails without the change.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**36. Stage header slot and next-stage primary** (spec `navrh/X1` and `vzorek/H1`, one chunk: the spec defines the header's next button twice; W1, lane C). One StageHeader context with an action slot and a status slot; StepSection shows number, cap and need state; WellItem is the shared row. The header's primary is the next stage from `FrameNavigation`; inside the workbench the dock's own button is dropped. Serves `artifact-brief#BRF2`, `artifact-design#DSN3c`, `artifact-questionnaire#QST2`. Test: every stage's header names the next stage and opens it through the frame; no dock button inside the workbench.
+
+**37. Run card agrees with Průběh** (spec `sber/F7`; W1, lane C). The run card reads the same `GET …/research/runs/{id}` as Průběh: done steps over total, spent, held, the run's ceiling. On #23. Test: a fixture run shows the same counts and sums on the card and on Průběh.
+
+**38. Sociomapa's state in the navigator** (spec `szz/S5`; W2, lane C). The navigator marks Sociomapa by the map's own state (computed, not mappable, old method), not by Výsledky's. After #35.
+
+**39. Header status line** (spec `lead/LP-1`; W2, lane C). Připravena, Přemýšlí… or Pracuje na <step>, from the turn and job state the pane already reads; the orb in the avatar, the Lead's mark when `lead-identity#LI3` lands (P4: five marks). Unknown reads as unknown, never Připravena.
+
+**40. Timeline axis** (spec `lead/LP-2`; W2, lane C). Nigel chose chat layout F (P6, 26 Oct 2026): a timeline axis with a node per card. The radii are the rest of the product's (UI-3, `prototype-build#PBA7`).
+
+**41. The composer's '+' menu** (spec `lead/LP-3`; W1, lane C). `lead-orchestration#LO21b` generates the prompt's action section; it is not a menu, so the menu has no base there (register contradiction 4). This chunk builds the composer shell: '+' opening the menu, the token chip, Vidí under the composer, the quick buttons removed, over today's artifact contract and `GET /lead`'s `commands`. #49 and #51 fill the menu's Akce. Rešerše items are disabled with their reason until `lead-orchestration#LO5a.3` (decided by default by planning, open to Nigel's override). Test: the menu opens by keyboard, lists only what the contract and commands allow, and a disabled item names why.
+
+**42. Zastavit on job cards** (spec `lead/LP-6`; W1, lane C). Through `lead-orchestration#LO17`'s cancel; the folded card names what was paid. Unknown spend reads as unknown, never 0.
+
+**43. Budget lift in the card** (spec `lead/LP-8`; W2, lane C). Through `input-interactions#6`'s SpendDialog, the need read from `artifact-fieldwork#FLD10`'s `budget_need` (one API for `sber/P3`, `sber/G2` and lead gap B4).
+
+**44. Elapsed time and the step-events-off note** (spec `lead/LP-9`; W1, lane C). B3 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: `AIA_AI_STEP_EVENTS` is on for develop, set by infra (OQ12). The note stays for an environment where it is off.
+
+**45. Advice preview** (spec `lead/LP-10`; W2, lane C, optional). On #23.
+
+**46. Run spend on the card** (spec `lead/LP-11`; W2, lane C). Reads `artifact-fieldwork#FLD4a`'s spend; held, spent and uncertain apart.
+
+**47. Typed start shows the request's facts** (spec `lead/LP-12`; W1, lane C). After `lead-orchestration#LO5`; the ceiling from `lead-orchestration#LO23`.
+
+**48. Retry card names the modules** (spec `lead/LP-13`; W3, lane C). With `artifact-analysis#ANL6`; its ceiling from `lead-orchestration#LO23`.
+
+**49. Akce from commands** (spec `lead/LP-15`; W2, lane C). Lead gap B15: `commands` is served and unread by the web. After #41.
+
+**50. Edits card** (spec `lead/LP-16`; W2, lane C).
+
+**51. Akce as starts ∩ commands** (spec `lead/LP-17`; W2, lane C). After #41 and #49; Deep Research items after `lead-orchestration#LO5a.3`, disabled with a reason until then.
+
+**52. Přidat podklad** (spec `lead/LP-18`; W2, lane C). Opens `IntakeSheet` as the client workspace does. After #41.
+
+**Notes.**
+- `navrh/D9` (edits bar keeps decided rows) is #7 with `working-copy-edit-ops#WCE9`.
+- `sber/F7`, `lead/LP-10` stand on #23, re-waved to W1 (register §6.4; the contracts' second table).
+- `navrh/Q7` and `szz/S4` stand on #23b and #26f.1.

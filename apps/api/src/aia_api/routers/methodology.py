@@ -40,9 +40,11 @@ from aia_core.domain.methodology import (
     MethodModule,
     MethodologyReferenceError,
     StepView,
+    bound_of,
     describe,
     feeds_of,
     module,
+    takes_whole_numbers,
 )
 from aia_core.domain.methodology.aggregation_check import (
     AggregationComparison,
@@ -183,6 +185,28 @@ class ValueOut(_Strict):
     #: ``blocks_run``, ``blocks_design`` or ``warns``; ``changes_stored`` where it changes the
     #: numbers a run stores; empty otherwise.
     effect: str
+    #: The range a check holds the field to; ``null`` where none does (the check still runs).
+    bound: BoundOut | None = None
+
+
+class LimitOut(_Strict):
+    """One side of a field's bound: ``value`` a number, or ``reference`` another field of the same
+    specification, whose value in the draft is the limit; ``strict``: the limit is itself
+    outside."""
+
+    side: str
+    value: float | None
+    reference: str | None
+    strict: bool
+
+
+class BoundOut(_Strict):
+    """The range the module's check holds a field to (settings-redesign F13): every limit, each
+    proved against the check; ``whole``: the field takes whole numbers (a strict limit then reads
+    as the next whole one)."""
+
+    limits: list[LimitOut]
+    whole: bool
 
 
 class FormulaVariableOut(_Strict):
@@ -572,6 +596,24 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
     )
 
 
+def _bound(found: MethodModule, path: str) -> BoundOut | None:
+    bound = bound_of(found, path)
+    if bound is None:
+        return None
+    return BoundOut(
+        limits=[
+            LimitOut(
+                side=x.side,
+                value=None if isinstance(x.value, str) else float(x.value),
+                reference=x.value if isinstance(x.value, str) else None,
+                strict=x.strict,
+            )
+            for x in bound.limits
+        ],
+        whole=takes_whole_numbers(found, path),
+    )
+
+
 def _step(found: MethodModule, view: StepView) -> StepOut:
     s = view.step
     return StepOut(
@@ -601,6 +643,7 @@ def _step(found: MethodModule, view: StepView) -> StepOut:
                 value=None if v.value is ABSENT else _wire(v.value),
                 absent=v.value is ABSENT,
                 effect=v.effect.value,
+                bound=_bound(found, v.reference),
             )
             for v in view.values
         ],

@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -54,6 +54,8 @@ import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import { useWorkingImpact } from "./useWorkingImpact";
 import "./workbench.css";
+import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
+import { t, tv } from "@/i18n/t";
 
 const storage = () => {
   try {
@@ -458,10 +460,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.target }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.op === "filter" ? "sociomap" : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
-      else if (v.op === "inspect") {
+      else if (v.op === "select" || v.op === "filter") {
+        // Sociomapa's picture: on another stage the map takes it once shown, if the move was not stopped.
+        if (stage === "sociomap" || go("sociomap")) sendLeadMapView(v);
+      } else if (v.op === "inspect") {
         // The item drawer over the target's own stage, the one a person's click opens; on another
         // stage it opens once that stage is shown (the move remounts on a route change).
         const t = parseAiaId(v.target);
@@ -716,12 +721,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).
+  // Below 1100 px the review lies under the drawer or the sheet: the conversation steps aside, as for a
+  // Lead's view, and the review takes the focus when it mounts (ProposalReview).
   const openJob = useCallback((job: ResearchAgentJob) => {
     const target = JOB_STAGE[job.action];
+    if (compact) setDrawerState(nextDrawer(drawer, { type: "view", target: target ?? stage }, layout).state);
     if (!target || target === stage || !memory) return onOpenJob(job);
     memory.set(OPEN_REVIEW_KEY, job);
     go(target);
-  }, [stage, memory, onOpenJob, go]);
+  }, [stage, memory, onOpenJob, go, compact, drawer, layout]);
 
   // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
   // stage, else its newest proposal still waiting for review; with neither, the stage itself.
@@ -808,7 +816,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
+      <StudyHeader frame={frame} study={study} flush={() => store.flush()} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
       <StageNav stage={stage} lane={lane} marks={reopened} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
@@ -946,7 +954,7 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
+function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; flush?: () => Promise<unknown>; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
   // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
   // move into the menu (research-lead-workbench 26d).
   const narrow = layout === "sheet";
@@ -987,6 +995,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
     setMenu(false);
     guardedNavigate(url, (u) => router.push(u));
   };
+  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}), flush, frame.holdEdits);
   const budget = study?.budget_usd ?? null;
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
@@ -1007,6 +1016,9 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
           <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
         </span>
       )}
+      {/* The study's status (F7): its own menu beside the header's; under 768 px, items of the header's
+          menu, where every target is 44 px (I11). */}
+      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /> : null}
       <div ref={menuBox} style={{ position: "relative" }}>
         <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
           onClick={() => (menu ? setMenu(false) : openMenu("first"))}
@@ -1019,6 +1031,14 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>
                   <div className="menu__info num" role="none"><Icon name="budget" size={13} />{budget === null ? "Rozpočet nenastaven" : `Rozpočet: ${usd(spent)} / ${usd(budget)} USD`}</div>
                   {pending > 0 ? <button type="button" role="menuitem" className="listbtn" onClick={() => { setMenu(false); onPending(); }}>Čeká na vás: {pending}</button> : null}
+                  {frame.status && frame.refreshStudy ? <>
+                    <div className="menu__info" role="none" data-study-status={frame.status}>{tv("aia.study.status.label", { status: t(`aia.status.${frame.status}`) })}</div>
+                    {otherStatuses(frame.status).map((s) => (
+                      <button key={s} type="button" role="menuitem" className="listbtn" disabled={status.busy} onClick={() => { setMenu(false); void status.change(s); }}>
+                        {tv("aia.study.status.to", { status: t(`aia.status.${s}`) })}
+                      </button>
+                    ))}
+                  </> : null}
                 </>
               ) : null}
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
@@ -1028,6 +1048,8 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
             </div>
           </>
         ) : null}
+        {/* A refused change under 768 px, where the menu that asked has closed: said beneath it. */}
+        {narrow && status.shown && !menu ? <div className="pop" style={{ right: 0, top: 34, width: 280, padding: 8 }}>{status.shown}</div> : null}
       </div>
     </header>
   );

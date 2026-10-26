@@ -581,12 +581,17 @@ def _readiness_draft(n: int, items: int) -> dict[str, Any]:
             "title": "Fiktivní nápoje",
             "n": n,
             "sections": [
+                # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+                {
+                    "type": "questions",
+                    "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+                },
                 {
                     "type": "object_battery",
                     "title": "Nápoje",
                     "object_family": "nápoje",
                     "objects": [f"Nápoj {i}" for i in range(1, items + 1)],
-                }
+                },
             ],
         },
         "base_revision": None,
@@ -605,6 +610,21 @@ def test_each_limit_says_what_crossing_it_does_and_the_rule_reads_with_its_value
     steps = {s["id"]: s for s in body["step_details"]}
     assert steps["sample_size"]["reading_cs"] == "{sample_size.min} ≤ n ≤ {sample_size.max}"
     assert "chybějící n blokuje vždy" in steps["sample_size"]["keeps_cs"]
+
+
+def test_each_bounded_field_carries_its_checks_range_and_an_unbounded_one_none(
+    owner: TestClient,
+) -> None:
+    values = _values(owner.get(READINESS).json())
+    assert values["sample_size.min"]["bound"] == {
+        "limits": [{"side": "low", "value": 1.0, "reference": None, "strict": False}],
+        "whole": True,
+    }
+    # A limit read from another field names it; the draft's value is the limit.
+    assert values["sample_size.max"]["bound"]["limits"] == [
+        {"side": "low", "value": None, "reference": "sample_size.min", "strict": True}
+    ]
+    assert values["methodology_version"]["bound"] is None
 
 
 def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(

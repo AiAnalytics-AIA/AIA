@@ -1,7 +1,7 @@
 """a researcher's hatch while it waits for their yes (lead-identity LI1)
 
 Revision ID: 46d0bf6b5121
-Revises: 7db4e0f96181
+Revises: ba1e7fa927af
 Created: 2026-10-25 23:51:35+00:00
 
 The product owner, 2026-10-25: the model writes the Lead's SOUL and USER at hatching, and the
@@ -18,7 +18,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision: str = "46d0bf6b5121"
-down_revision: str | None = "7db4e0f96181"
+down_revision: str | None = "ba1e7fa927af"
 branch_labels = None
 depends_on = None
 

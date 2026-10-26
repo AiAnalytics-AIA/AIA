@@ -4,7 +4,7 @@
  * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
  * step, a value outside the limits is refused at the field and nothing is saved.
  * A chosen dimension is removed from the selection itself by keyboard (each remove at least 24 px,
- * focus kept in the selection) and put back from the catalogue (DIM-F5, DIM-F7). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
+ * focus kept in the selection) and put back by Vrátit (DIM-F5, DIM-F7, DIM-F10). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
  * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
  * At 1440, 1100, 768 and 390 px, no page overflow. Zero paid starts: the only writes are saves of
  * the working copy and of the stage the person is on. The fixture's n is put back at the end; "Další"
@@ -92,7 +92,7 @@ try {
   assert.equal(await own.getByRole("link", { name: /Populace běhu/ }).getAttribute("href"), `/app/clients/${client}/research/${study}/run`);
   check("Vlastní dimenze klienta: read, with the way to Populace běhu");
 
-  // The last chosen one, so putting it back from the catalogue (which appends) keeps the stored order.
+  // The last chosen one, so even the fallback in `finally` (the catalogue, which appends) keeps the order.
   const chosen = page.getByRole("list", { name: "Vybrané dimenze" });
   const remove = (name) => chosen.getByRole("button", { name: `Odebrat dimenzi ${name}`, exact: true });
   const last = chosen.getByRole("button", { name: /^Odebrat dimenzi / }).last();
@@ -105,12 +105,14 @@ try {
   assert.equal(await remove(label).count(), 0);
   // DIM-F7: focus stays in the selection (the row before's remove), never back at the page's top.
   assert(await chosen.evaluate((ul) => ul.contains(document.activeElement)), "focus stays in the selection after a remove");
+  // DIM-F10: the remove offers Vrátit, which puts the dimension back where it was.
   put = saved();
-  await cardOf(label).click();
+  await page.getByRole("button", { name: "Vrátit" }).click();
   await put;
   await remove(label).waitFor();
   removed = null;
-  check("a chosen dimension is removed by keyboard, focus kept in the selection, and put back from the catalogue");
+  await page.waitForFunction((name) => document.activeElement?.getAttribute("aria-label") === name, `Odebrat dimenzi ${label}`);
+  check("a chosen dimension is removed by keyboard, focus kept in the selection, and put back by Vrátit with focus on it");
 
   // DIM-F8: the search's live region is rendered (not display:none) before it has anything to say.
   const catalogue = page.locator("section", { has: page.getByLabel("Hledat dimenzi") });

@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow,
+  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -221,6 +221,16 @@ describe("changesToShow", () => {
     expect(changesToShow("questionnaire", ["design"], jobs)).toEqual({ kind: "proposal", job: jobs[1] });
     expect(changesToShow("design", [], jobs)).toEqual({ kind: "proposal", job: jobs[3] });
     expect(changesToShow("dimensions", ["design"], jobs)).toBeNull();
+  });
+});
+
+describe("mapViewWords", () => {
+  it("says what the map's picture becomes, never a filter's code", () => {
+    expect(mapViewWords({ op: "filter", name: "view", value: "relief" })).toBe("Mapa: reliéf");
+    expect(mapViewWords({ op: "filter", name: "view", value: "top" })).toBe("Mapa: shora");
+    expect(mapViewWords({ op: "filter", name: "hide_weak", value: "on" })).toBe("Mapa: skrýt slabé vztahy");
+    expect(mapViewWords({ op: "filter", name: "mode", value: "respondents" })).toBe("Mapa respondentů");
+    expect(mapViewWords({ op: "select", target: "pair:set1/fio~air" })).toBe("Vybrat: Dvojice set1/fio~air");
   });
 });
 
