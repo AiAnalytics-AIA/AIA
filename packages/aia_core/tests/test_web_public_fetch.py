@@ -33,6 +33,7 @@ from aia_core.infrastructure.web_retrieval import (
     ToolCallFailed,
     WebFetcher,
     fetch_time_left,
+    note_request_sent,
 )
 from aia_core.infrastructure.web_retrieval_live import (
     PinnedHttpsTransport,
@@ -796,6 +797,7 @@ def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPat
 
         def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
             fetch_time_left()  # a first request (its robots.txt read) starts the clock
+            note_request_sent()  # and was sent
             now[0] = 130.0
             return UrllibWire().get(
                 address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
@@ -900,3 +902,57 @@ def test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host() ->
     _DeadlineWire.cost = {}
     fetcher.fetch("https://news.example/x")
     assert wire.targets().count("news.example/robots.txt") == 2
+
+
+def test_a_first_request_never_sent_keeps_the_fetch_not_sent() -> None:
+    # A first connection refused (or a certificate refused) is a known pre-send failure:
+    # the fetch's clock started with the attempt, but nothing left.
+    class _Refused:
+        retrieval_mode = RetrievalMode.LIVE
+
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            fetch_time_left()
+            raise ToolCallFailed("refused", reason="connect_failed", delivery=Delivery.NOT_SENT)
+
+    fetcher = WebFetcher(
+        transport=_Refused(),
+        resolver=Resolver({"stats.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "connect_failed"
+    assert failed.value.delivery is Delivery.NOT_SENT
+
+
+def test_the_wire_records_a_sent_request_and_not_a_refused_connection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import urllib3
+
+    from aia_core.infrastructure import web_retrieval as retrieval
+
+    clock = retrieval._FetchClock(lambda: 0.0, 120.0)
+    token = retrieval._FETCH_CLOCK.set(clock)
+    try:
+        monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _FakePool)
+        UrllibWire().get(
+            address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
+        )
+        assert clock.sent
+
+        class _NoConnect(_FakePool):
+            def request(self, method: str, target: str, **kwargs: Any) -> Any:
+                raise urllib3.exceptions.NewConnectionError(None, "refused")  # type: ignore[arg-type]
+
+        clock.sent = False
+        monkeypatch.setattr(urllib3, "HTTPSConnectionPool", _NoConnect)
+        with pytest.raises(ToolCallFailed) as failed:
+            UrllibWire().get(
+                address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
+            )
+        assert failed.value.delivery is Delivery.NOT_SENT
+        assert not clock.sent
+    finally:
+        retrieval._FETCH_CLOCK.reset(token)

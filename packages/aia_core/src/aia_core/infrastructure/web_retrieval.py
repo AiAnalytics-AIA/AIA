@@ -97,6 +97,7 @@ __all__ = [
     "fetch_out_of_time",
     "fetch_time_left",
     "load_recorded_web",
+    "note_request_sent",
     "page_snapshot",
 ]
 
@@ -128,10 +129,11 @@ class _FetchClock:
         self._monotonic = monotonic
         self._deadline_s = deadline_s
         self._started: float | None = None
+        self.sent = False
 
     @property
     def started(self) -> bool:
-        """Whether a request of this fetch has been sent."""
+        """Whether a request of this fetch has been attempted (its clock is running)."""
         return self._started is not None
 
     def left(self, *, start: bool) -> float:
@@ -153,6 +155,16 @@ def fetch_time_left() -> float | None:
     fetch's clock."""
     clock = _FETCH_CLOCK.get()
     return None if clock is None else clock.left(start=True)
+
+
+def note_request_sent() -> None:
+    """Record that a request of the fetch in progress may have left: a wire calls it once a
+    request was answered or failed after it was sent, never for one it knows was not sent.
+    A later request of the same fetch that is not sent then leaves the call as a whole
+    ``UNKNOWN``, not ``NOT_SENT``."""
+    clock = _FETCH_CLOCK.get()
+    if clock is not None:
+        clock.sent = True
 
 
 def fetch_out_of_time() -> bool:
@@ -650,7 +662,7 @@ class WebFetcher:
             try:
                 return self._hops(url, max_bytes=max_bytes, host_allowed=host_allowed, clock=clock)
             except ToolCallFailed as exc:
-                if exc.delivery is Delivery.NOT_SENT and clock.started:
+                if exc.delivery is Delivery.NOT_SENT and clock.sent:
                     # This request was not sent, but an earlier one of the same fetch was:
                     # the call as a whole may have been served.
                     raise ToolCallFailed(

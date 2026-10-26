@@ -61,6 +61,7 @@ from .web_retrieval import (
     extract_page,
     fetch_out_of_time,
     fetch_time_left,
+    note_request_sent,
 )
 
 __all__ = [
@@ -159,6 +160,20 @@ class UrllibWire:
         self._clock = clock
 
     def get(
+        self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
+    ) -> FetchedResponse:
+        try:
+            response = self._request(
+                address=address, host=host, target=target, headers=headers, max_bytes=max_bytes
+            )
+        except ToolCallFailed as exc:
+            if exc.delivery is not Delivery.NOT_SENT:
+                note_request_sent()
+            raise
+        note_request_sent()
+        return response
+
+    def _request(
         self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
     ) -> FetchedResponse:
         if max_bytes <= 0:
