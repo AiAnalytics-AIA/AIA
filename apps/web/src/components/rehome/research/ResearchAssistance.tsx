@@ -7,7 +7,7 @@ import type { JobUpdate } from "@/research/jobs";
 import type { StepKey } from "@/research/steps";
 import { t } from "@/i18n/t";
 import { AiButton, Button, Field, TextArea } from "../ui";
-import { Sparkle } from "../icons";
+import { Icon, Sparkle } from "../icons";
 import { AgentProposalContent } from "./AgentProposalDialog";
 import { JobPanel } from "./JobPanel";
 import type { useResearchAgents } from "./useResearchAgents";
@@ -136,7 +136,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
     </>}
   </section>;
   const content = <>
-    <div className="flex items-start justify-between gap-3"><div><h2 ref={heading} tabIndex={-1} id="research-assistance-title" className="text-base font-semibold text-ai-ink">{review ? "Odpověď AI" : ACTION_LABELS[selected]}</h2><p className="mt-1 text-xs text-ink-muted">{studyName} · {t(`aia.stages.${step}`)}</p></div><Button className="!min-h-11 min-w-11 justify-center" aria-label="Zavřít AI pomoc" onClick={close}>×</Button></div>
+    <div className="flex items-start justify-between gap-3"><div><h2 ref={heading} tabIndex={-1} id="research-assistance-title" className="text-base font-semibold text-ai-ink">{review ? "Odpověď AI" : ACTION_LABELS[selected]}</h2><p className="mt-1 text-xs text-ink-muted">{studyName} · {t(`aia.stages.${step}`)}</p></div><Button className="!min-h-11 min-w-11 justify-center" aria-label="Zavřít AI pomoc" onClick={close}><Icon name="close" size={14} /></Button></div>
     <section className="rounded-md border border-border bg-surface-sunken p-3 text-xs leading-5"><h3 className="font-semibold">Co AI uvidí</h3><p>Uloženou revizi návrhu, schválené znalosti dostupné této studii a vaši otázku.</p><p className="mt-2 text-ink-muted">Hodnoty výsledků a sociomap se neposílají automaticky. Odpověď z klientských znalostí nenahrazuje literární rešerši ani numerickou interpretaci.</p></section>
     {review ? <section aria-label="Uložená odpověď AI"><p className="mb-3 text-xs leading-5 text-ink-muted">Odpověď vychází z uloženého kontextu. Nenahrazuje schválení evidence.</p><AgentProposalContent result={review.result} /><details className="mt-3 text-xs text-ink-muted"><summary className="!min-h-11 cursor-pointer py-3">Původ odpovědi</summary><p className="break-all">Revize {review.result.provenance.design_revision_id} · kontext {review.result.provenance.context_sha256}</p></details><Button className="!min-h-11" onClick={close}>Zavřít</Button></section> : <>
       {canEdit ? <form onSubmit={(event) => { event.preventDefault(); send(selected); }} className="flex flex-col gap-3">

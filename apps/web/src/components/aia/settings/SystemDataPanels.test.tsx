@@ -23,7 +23,7 @@ function fake(routes: Record<string, (body: unknown) => Response | unknown>) {
     const method = init?.method ?? "GET";
     const body = init?.body ? JSON.parse(String(init.body)) : null;
     calls.push({ method, url: u, body });
-    if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
+    if (u === "/config" && !routes["GET /config"]) return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
     const answer = routes[`${method} ${u}`]?.(body);
     // A path no route answers, as the API's error contract says it (observability.py: http_<status>).
     if (answer === undefined) return new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
@@ -108,6 +108,114 @@ describe("Stav systému", () => {
     fake({ "GET /api/v1/settings/system-status": shared, "GET /api/v1/settings/error-tracking": shared });
     render(<SystemPanel mayAdminister />);
     expect((await screen.findAllByText("Stav nasazení a chyby z GlitchTipu patří celému nasazení.")).length).toBe(2);
+    // A shared deployment is a fact, not a fault (F12): no alert, nothing red.
+    expect(screen.queryByRole("alert")).toBeNull();
+    const sharedNotes = document.querySelectorAll("[data-deployment-shared]");
+    expect(sharedNotes.length).toBe(2);
+    for (const n of sharedNotes) expect(n.className).not.toMatch(/status-fault/);
+  });
+  it("shows Prostředí a verze from what AIA serves and copies only those rows and the readiness count (F21)", async () => {
+    const item = (key: string, value: unknown) => ({ key, value, control: "DEPLOYMENT", source: "X", unit: null });
+    fake({
+      "GET /config": () => ({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: "a1c4e9f0123456789", built_at: null } }),
+      "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc1234def", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
+        { check: "Sign-in", status: "ok" }, { check: "Bedrock fieldwork", status: "FAIL" },
+      ] } }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+      "GET /api/v1/settings": () => ({ groups: [
+        { key: "deployment", items: [item("env", "develop"), item("version", "0.42.0"), item("database_backend", "postgresql"), item("identity_provider", "cognito"), item("cors_origins", ["https://secret.example"])] },
+        { key: "population", items: [item("field_policy_version", "v17")] },
+      ] }),
+      "GET /api/v1/health": () => ({ status: "ok", service: "aia-api", version: "0.1.0", env: "develop", build: { sha: "f00dcafe0123", built_at: null } }),
+      // The registry is not read: its two rows are unknown, said so, never guessed.
+    });
+    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    render(<SystemPanel mayAdminister />);
+    const card = await waitFor(() => {
+      const c = document.querySelector("[data-system-environment]") as HTMLElement | null;
+      if (!c?.querySelector('[data-env-row="build"]')) throw new Error("not read yet");
+      return c;
+    });
+    expect(within(card).getByRole("heading", { name: "Prostředí a verze" })).toBeTruthy();
+    const value = (k: string) => card.querySelector(`[data-env-row="${k}"] dd`)?.textContent;
+    expect(value("environment")).toBe("develop");
+    expect(value("build")).toBe("a1c4e9f");
+    expect(value("api_build")).toBe("f00dcaf");
+    // The version default (the code's, no deployment sets it) is no row (review of #975).
+    expect(card.textContent).not.toContain("0.42.0");
+    expect(card.textContent).not.toContain("0.1.0");
+    expect(value("live")).toBe("nezjištěno");
+    expect(value("field_rules")).toBe("v17");
+    // The card sits between Připravenost and Hlášení chyb.
+    const order = [...document.querySelectorAll("[data-system-readiness], [data-system-environment], [data-system-errors]")].map((n) => n.getAttribute("aria-labelledby"));
+    expect(order).toEqual(["sys-ready-h", "sys-env-h", "sys-err-h"]);
+    await waitFor(() => expect(document.querySelectorAll("[data-smoke-check]")).toHaveLength(2));
+    // One live region, mounted before any click, so the outcome is a change it announces.
+    const note = card.querySelector("[data-copy-note]") as HTMLElement;
+    expect(note.getAttribute("aria-live")).toBe("polite");
+    expect(note.textContent).toBe("");
+    const copyButton = within(card).getByRole("button", { name: "Kopírovat diagnostiku" });
+    fireEvent.click(copyButton);
+    await waitFor(() => expect(note.textContent).toBe("Zkopírováno."));
+    // A second click clears it first, then says it again: the same node, a new announcement.
+    fireEvent.click(copyButton);
+    expect(note.textContent).toBe("");
+    await waitFor(() => expect(note.textContent).toBe("Zkopírováno."));
+    expect(card.querySelector("[data-copy-note]")).toBe(note);
+    expect(writeText).toHaveBeenCalledTimes(2);
+    const copied = writeText.mock.calls[0]?.[0] ?? "";
+    expect(copied.split("\n")).toEqual([
+      "Prostředí: develop", "Sestava webu: a1c4e9f", "Sestava API: f00dcaf", "Databáze: postgresql", "Přihlášení: cognito",
+      "Populace LIVE: nezjištěno", "Populace STATIC: nezjištěno", "Pravidla polí: v17", "Připravenost: 1/2",
+    ]);
+    expect(copied).not.toContain("secret.example");
+  });
+
+  it("draws Prostředí a verze from answers of another shape as unknown, never a crash (review of #975)", async () => {
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+      // An answer without its lists, as a fake or an older API may give it.
+      "GET /api/v1/settings": () => ({}),
+      "GET /api/v1/population": () => ({}),
+    });
+    render(<SystemPanel mayAdminister />);
+    const card = await waitFor(() => {
+      const c = document.querySelector("[data-system-environment]") as HTMLElement | null;
+      if (!c?.querySelector('[data-env-row="live"]')) throw new Error("not read yet");
+      return c;
+    });
+    expect([...card.querySelectorAll("[data-env-row] dd")].every((n) => n.textContent === "nezjištěno")).toBe(true);
+  });
+
+  it("shows the diagnostics to select by hand when the browser refuses the copy, never 'Zkopírováno'", async () => {
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+    });
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText: vi.fn(async () => { throw new Error("denied"); }) } });
+    render(<SystemPanel mayAdminister />);
+    const button = await screen.findByRole("button", { name: "Kopírovat diagnostiku" });
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(button);
+    const field = await waitFor(() => {
+      const n = document.querySelector("[data-diagnostics-text]") as HTMLTextAreaElement | null;
+      if (!n) throw new Error("no text");
+      return n;
+    });
+    // Nothing was read: every row unknown, and the readiness count too.
+    expect(field.value).toContain("Prostředí: nezjištěno");
+    expect(field.value).toContain("Sestava API: nezjištěno");
+    expect(field.value).toContain("Připravenost: nezjištěno");
+    // Read only, focused and selected, to copy by hand; outside the live region, which says why.
+    expect(field.readOnly).toBe(true);
+    expect(document.activeElement).toBe(field);
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
+    const note = document.querySelector("[data-copy-note]") as HTMLElement;
+    expect(note.contains(field)).toBe(false);
+    expect(note.textContent).toMatch(/nedovolil/);
+    expect(screen.queryByText("Zkopírováno.")).toBeNull();
   });
 });
 
@@ -134,6 +242,38 @@ describe("Správa dat", () => {
       return d;
     });
   };
+
+  it("draws the deletion as prototype v99: a danger button, Smaže se / Zůstane in the open, help behind ⓘ (F12)", async () => {
+    fake({ "GET /api/v1/settings/kept-records": () => [] });
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+    const pick = await screen.findByRole("radiogroup", { name: "Klient" });
+    // Nothing chosen: no inline lists yet.
+    expect(document.querySelector("[data-delete-inline]")).toBeNull();
+    fireEvent.click(within(pick).getByRole("radio", { name: "Kavárny Lípa" }));
+    const inline = document.querySelector("[data-delete-inline]") as HTMLElement;
+    expect(within(inline).getByRole("heading", { name: /Smaže se/ })).toBeTruthy();
+    expect(within(inline).getByRole("heading", { name: /Zůstane/ })).toBeTruthy();
+    expect(inline.textContent).toContain("Studie");
+    expect(inline.textContent).toContain("Záznamy útraty AI");
+    // What stays until SDL2 is listed in the open too, not only in the confirmation.
+    expect(within(inline).getByRole("heading", { name: "Zůstává do SDL2" })).toBeTruthy();
+    expect(inline.querySelector("[data-inline-until-sdl2]")?.querySelectorAll("li").length).toBe(2);
+    // No emoji anywhere (design brief §5): the danger button and Smaže se draw the set's trash icon.
+    expect(document.body.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
+    // The one destructive action is fault-toned, apart from every other button; so is "Nelze vrátit".
+    const del = screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" });
+    expect(del.hasAttribute("data-danger")).toBe(true);
+    expect(del.className).toContain("text-status-fault");
+    expect(document.querySelector("[data-irreversible]")?.className).toContain("status-fault");
+    // Each card's help behind its ⓘ; the cards are h2s.
+    for (const [label, id] of [["Jak se klient maže", "data-del-about"], ["Co jsou uchovávané záznamy", "data-kept-about"]] as const) {
+      const info = screen.getByRole("button", { name: label });
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(true);
+      fireEvent.click(info);
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(false);
+    }
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Smazat klienta", "Uchovávané záznamy"]);
+  });
 
   it("offers a few clients as a segmented bar and more as a select, never a bar of every client (review of #870)", async () => {
     fake({ "GET /api/v1/settings/kept-records": () => [] });

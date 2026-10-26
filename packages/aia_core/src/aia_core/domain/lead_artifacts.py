@@ -322,8 +322,8 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
         _row(
             "sample",
             "working",
-            edits=False,
-            view_ops=("inspect",),
+            edits=True,
+            view_ops=("show_diff", "inspect"),
             targets=("sample",),
             starts=(_MEMORY,),
             inputs=("audience", "dimensions"),

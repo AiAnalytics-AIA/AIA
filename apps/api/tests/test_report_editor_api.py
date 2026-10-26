@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -10,6 +11,7 @@ import time
 import zipfile
 from datetime import datetime
 from typing import Any
+from unittest.mock import ANY
 from urllib.parse import parse_qs, urlparse
 
 import jwt
@@ -179,7 +181,28 @@ def test_the_config_is_signed_names_no_e_mail_and_fetches_its_version(
     user = config["editorConfig"]["user"]
     assert user["id"] == world.users["researcher"] and "@" not in user["name"]
     assert "@" not in response.text  # no e-mail anywhere in what the browser gets
-    assert config["editorConfig"]["customization"]["forcesave"] is True
+    # The board's editor (Z5, T5): the doc bar the only way out, Czech, the AIA theme, compact.
+    assert config["document"]["permissions"] == {
+        "edit": True,
+        "download": False,
+        "print": False,
+        "comment": True,
+    }
+    assert config["editorConfig"]["region"] == "cs-CZ"
+    assert config["editorConfig"]["customization"] == {
+        "uiTheme": "theme-aia",
+        "compactHeader": True,
+        "compactToolbar": True,
+        "toolbarHideFileName": True,
+        "unit": "cm",
+        "zoom": 90,
+        "plugins": False,
+        "chat": False,
+        "help": False,
+        "forcesave": True,
+    }
+    # Unlocking a control stays allowed (amended ADR 0035): the key is never sent.
+    assert "modifyContentControl" not in response.text
     # The Document Server's routes, outside any study: the token's session names it.
     assert config["editorConfig"]["callbackUrl"].startswith(f"{PUBLIC}{API}/report-editor/")
     assert config["document"]["url"].startswith(f"{PUBLIC}{API}/report-editor/document?")
@@ -879,6 +902,79 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
 
 
+def _editor_saved_docx() -> bytes:
+    """A DOCX as ONLYOFFICE saves one AIA composed: a real package whose font table still
+    names a brand face, its embedded parts and their relationships dropped (RPT15)."""
+    import docx
+    from aia_core.infrastructure.report_docx.embed import embed_fonts
+    from lxml import etree
+
+    document = docx.Document()
+    document.add_paragraph("Bance důvěřuje 50 %")
+    embed_fonts(document, ["IBM Plex Sans"])
+    built = io.BytesIO()
+    document.save(built)
+    source = zipfile.ZipFile(built)
+    table = etree.fromstring(source.read("word/fontTable.xml"))
+    for font in table.iter(f"{{{W}}}font"):
+        for child in [c for c in font if c.tag.startswith(f"{{{W}}}embed")]:
+            font.remove(child)
+    rels = etree.fromstring(source.read("word/_rels/fontTable.xml.rels"))
+    for rel in [r for r in rels if r.get("Target", "").startswith("fonts/")]:
+        rels.remove(rel)
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as z:
+        for name in source.namelist():
+            if name.startswith("word/fonts/"):
+                continue
+            data = source.read(name)
+            if name == "word/fontTable.xml":
+                data = etree.tostring(table, xml_declaration=True, encoding="UTF-8")
+            elif name == "word/_rels/fontTable.xml.rels":
+                data = etree.tostring(rels, xml_declaration=True, encoding="UTF-8")
+            z.writestr(zipfile.ZipInfo(name, (2026, 10, 26, 0, 0, 0)), data)
+    return out.getvalue()
+
+
+def test_an_editor_saved_version_downloads_with_its_brand_fonts_embedded_again(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT15 (the owner's B6 (b)): ONLYOFFICE drops the embedded brand fonts when it saves, so
+    the download embeds them again. The headers still name the stored version (its id, its
+    SHA-256, its review), the download says the fonts were re-embedded, and approving the
+    version changes none of it."""
+    run_id, _draft = _reported_run(app, researcher, world)
+    config = researcher.post(_editor(world, run_id), json={}).json()["config"]
+    me = world.users["researcher"]
+    stored = _editor_saved_docx()
+    saved = _callback(client, config, status=6, url=saves.put(stored), users=[me])
+    assert saved.json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={}).json()["version_artifact_id"]
+    versions = f"{_editor(world, run_id)}/versions"
+    sha = researcher.get(f"{versions}/{edited}").json()["sha256"]
+    assert sha == hashlib.sha256(stored).hexdigest()
+
+    def download() -> Any:
+        got = researcher.get(f"{versions}/{edited}/download")
+        assert got.status_code == 200, got.text
+        assert got.headers["X-AIA-Artifact-Id"] == edited
+        assert got.headers["X-AIA-Artifact-Sha256"] == sha
+        assert got.headers["X-AIA-Fonts-Reembedded"] == "true"
+        package = zipfile.ZipFile(io.BytesIO(got.content))
+        assert any(n.startswith("word/fonts/") and n.endswith(".odttf") for n in package.namelist())
+        assert got.content != stored
+        return got
+
+    first = download()
+    assert first.headers["X-AIA-Review-State"] == "DRAFT_UNAPPROVED"
+    assert download().content == first.content  # the same version, the same bytes
+    approve = f"{API}/studies/{world.study_id()}/research/runs/{run_id}/report/approve"
+    assert researcher.post(approve, json={"artifact_id": edited}).status_code == 200
+    after = download()
+    assert after.headers["X-AIA-Review-State"] == "APPROVED_INTERNAL"
+    assert researcher.get(f"{versions}/{edited}").json()["sha256"] == sha  # stored as it was
+
+
 def test_a_version_names_its_authors_and_its_lines_newest_version(
     app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
 ) -> None:
@@ -972,6 +1068,7 @@ def test_the_reports_status_names_the_version_saved_over_its_composed_draft(
     assert line.json()["edited_line"] == {
         "artifact_id": edited,
         "koncept": 2,
+        "stored_at": ANY,
         "review_state": "DRAFT_UNAPPROVED",
         "approved_on": None,
         "stamped": False,
