@@ -1332,6 +1332,7 @@ export const cs = {
         col: { group: "Skupina", setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
         board: {
           rules: "Pravidla rešerše",
+          rulesInfo: "Jak se pravidlo navrhuje a schvaluje",
           rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne; seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení i stažení se potvrzuje a zapisuje do auditu.",
         },
         reach: {
@@ -1341,6 +1342,7 @@ export const cs = {
           source: "z posledního záznamu workeru · {when}",
           build: "sestava {sha}",
           advisory: "kontrola tříd dat jen upozorňuje (vývojové prostředí)",
+          info: "Jak číst Dosah",
           help: "Nahoře, co čeká na schválení, pak aktivní trasy, pak ty, které nasazení nezapojilo. Nic z toho se tu nepřepíná: trasy a klíče zapíná nasazení, placenou trasu pustí schválení pravidel níže.",
           connector: "Konektor {name}",
           priced: "placená",
@@ -1381,6 +1383,7 @@ export const cs = {
         protections: {
           title: "Pevné ochrany v kódu",
           note: "Nejdou vypnout žádným pravidlem.",
+          info: "Co znamenají pevné ochrany",
           robots: "respektuje robots.txt",
           noLogin: "žádné přihlášení ani paywall",
           noPersonal: "žádné osobní údaje",
@@ -1634,7 +1637,7 @@ export const cs = {
         lede: {
           methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
-          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel. Trasy a klíče zapíná nasazení; organizace schvaluje pravidla, bez kterých placená trasa neběží.",
+          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",
@@ -2065,12 +2068,16 @@ export const cs = {
           configMissing: "/config nevrátil přepínače AI.",
           switchLabel: "Hlavní přepínač AI",
           route: "Trasa modelu",
+          routeInfo: "Co pohání AI a kdo trasu mění",
+          activitiesInfo: "Co znamená zapnuto",
+          smokeLink: "smoke test",
+          smokeLinkHelp: "Připravenost po nasazení na Stavu systému. Model nevolá, takže neověřuje, že volání modelu projde.",
           provider: "Poskytovatel",
           inEu: "oblast v EU: data zůstávají v EU",
           notEu: "oblast mimo EU",
           whoChanges: "Kdo mění: operátor nasazení, klíče AIA_AI_* a AIA_BEDROCK_* v SSM; postup je v runbooku nasazení. Tato stránka nic nepřepíná.",
           activitiesHelp: "Seskupeno podle toho, kde AI pracuje. „Zapnuto v konfiguraci“ znamená zapnuto v konfiguraci nasazení; že volání modelu opravdu projde, tato stránka neověřuje.",
-          count: { on: "{n} zapnuto", off: "{n} vypnuto", notBuilt: "{n} nové, zatím nepostavené" },
+          count: { on: "{n} zapnuto", off: "{n} vypnuto", unknown: "zapnuto: nezjištěno", notBuilt: "{n} nové, zatím nepostavené" },
           group: { study: "Návrh studie", run: "Běh a analýza", out: "Výstupy", dr: "Rešerše", client: "Klient" },
           modelOf: {
             study_lead: "vlastní model Vedoucího, je-li nastaven (AIA_AI_RESEARCH_LEAD_MODEL_ID); jinak model trasy",
@@ -2091,7 +2098,7 @@ export const cs = {
           approvedNone: "žádná: trasa nesmí přenést nic, každé volání bude odmítnuto",
           unknownClass: "neznámá třída; zapnutý worker se s ní nespustí",
           switchValue: { on: "zapnuto", off: "vypnuto", invalid: "neplatná hodnota" },
-          activities: "Co AI v AIA dělá",
+          activities: "Činnosti",
           col: { what: "Schopnost", state: "Stav v tomto nasazení", uses: "Žádá o", versions: "Verze", switches: "Přepínače", switch: "Přepínač (operátor)", model: "Model" },
           state: {
             configured: "Zapnuto v konfiguraci",
@@ -2368,7 +2375,7 @@ export const cs = {
       followAgain: "Sledovat znovu",
     },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
-    step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat", chip: "{label} · {n}" },
+    step: { optional: "volitelné", missing: "chybí", remove: "Odebrat", keep: "Ponechat", chip: "{label} · {n}" },
     brief: {
       quickStart: "RYCHLÝ START",
       whatSolve: "Co řešíte?",
@@ -2531,6 +2538,7 @@ export const cs = {
       commentsProcess: "Zpracovat komentáře",
       commentAdd: "Přidat komentář",
       commentRemove: "Odebrat komentář",
+      commentsLeadNote: "Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.",
       commentsDone: "Komentáře zapracovány",
       // artifact-design DSN2, DSN2b: each research question with its coverage on its row, as the server traces it.
       coverage: {
@@ -2588,7 +2596,8 @@ export const cs = {
       followHint: "Odpovězte jen na to, co víte. Nezodpovězené otázky AI vyřeší předpokladem.",
       followAnswered: "{a} z {b} zodpovězeno",
       followAnswer: "Odpověď na otázku {n}",
-      commentsHint: "Označte text v části Porozumění nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHint: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHintLead: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Komentáře uložíte pro Vedoucího výzkumu.",
       commentDraft: "Co změnit? Enter uloží komentář",
       dockSetSize: "Sada „{name}“ má {count}, potřebuje {min}–{max}",
       dockComments: "Komentáře čekající na zpracování: {n}",
@@ -3909,6 +3918,7 @@ export const cs = {
         segLikes: "hodnotí výš než ostatní: {objects}",
         segDislikes: "níž: {objects}",
         segColour: "Barvu na mapě respondentů má jen ten, kdo do své skupiny patří aspoň z {share}; ostatní jsou šedí.",
+        segDescriptive: "Skupiny jen popisují, jak se respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.",
         segBorderline: "Náznak skupin je na hranici; barvy nejsou.",
         segNone: "Respondenti netvoří zřetelné chuťové skupiny.",
         relyTitle: "Jak spolehlivá je mapa",
@@ -4229,6 +4239,11 @@ export const cs = {
           pillQuality: "Kvalita mapy {percent} %",
           pillWeak: "⚠ Slabě určená mapa",
           pillNoStructure: "⚠ Žádná spolehlivá struktura",
+          leadNoControl: "Vedoucí: {what} – tato mapa takové ovládání nemá; zobrazení se nezměnilo.",
+          leadNoRespondents: "Vedoucí: mapu respondentů tato mapa neukládá; zobrazení se nezměnilo.",
+          leadNoMap: "Vedoucí: {what} – na této stránce není mapa, která by to ukázala; zobrazení se nezměnilo.",
+          leadNotApplied: "Vedoucí: „{op}“ mapa sama neprovádí; zobrazení se nezměnilo.",
+          leadRefused: "Vedoucí: {words} Zobrazení se nezměnilo.",
           quality: "Kvalita mapy",
           qualityValue: "{percent} % (50 % = náhoda)",
           qualityWeakValue: "⚠ slabá · {percent} % · pozice nečtěte jako skupiny",

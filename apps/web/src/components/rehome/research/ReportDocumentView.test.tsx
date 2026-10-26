@@ -129,24 +129,31 @@ describe("the stored draft in the pane", () => {
     expect(within(container).queryByRole("complementary")).toBeNull();
   });
 
-  it("lets every source, id and hash line break anywhere, so a SHA-256 never widens a phone's page", async () => {
+  it("lets every source line break anywhere, so a SHA-256 never widens a phone's page", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     const sources = [...container.querySelectorAll("p")].filter((p) => p.textContent?.startsWith("Zdroj:"));
     expect(sources.length).toBeGreaterThan(0);
     for (const p of sources) expect(p.className).toContain("[overflow-wrap:anywhere]");
-    const id = [...container.querySelectorAll("[data-report-docbar] span")].find((s) => s.textContent?.includes("ART-docx"));
-    expect(id?.className).toContain("[overflow-wrap:anywhere]");
   });
 
-  it("names the DOCX it is beside and that draft's review", async () => {
+  it("names the DOCX it is beside and that draft's review, the review in words", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     const bar = container.querySelector("[data-report-docbar]")!;
     expect(bar.textContent).toContain("neschváleno");
-    expect(bar.textContent).toContain("ART-docx");
+    expect(bar.getAttribute("data-report-version")).toBe("ART-docx");
+  });
+
+  it("shows no run id, artifact id or review code anywhere on the stage (RPT12)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22" });
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const text = container.textContent ?? "";
+    for (const id of ["RUN-", "ART-", "APPROVED_INTERNAL", "DRAFT_UNAPPROVED"]) expect(text).not.toContain(id);
+    expect(container.querySelector("[data-report-foot]")!.textContent).toContain("interně schváleno");
   });
 });
 
@@ -208,7 +215,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     const view = render(<StudyFrameProvider frame={frame}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
-    await waitFor(() => expect(bar(view.container).textContent).toContain("ART-client"));
+    await waitFor(() => expect(bar(view.container).getAttribute("data-report-version")).toBe("ART-client"));
     return view.container;
   };
 
@@ -295,7 +302,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(heard).toHaveLength(0);
     // The internal draft was not refused: its page says nothing of it.
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-docx"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-docx"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -455,7 +462,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     // A completed review only: one report with literature offered, named plainly.
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
     fireEvent.click(await screen.findByRole("button", { name: "Připravit zprávu s rešerší" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-context"));
     expect(deepResearch.prepareContextReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "RUN-deep");
     expect(bar(container).textContent).toContain("Zpráva s rešerší");
     fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
@@ -544,11 +551,11 @@ describe("the client report, read here before it is approved (RD3)", () => {
     expect(research.prepareClientReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1");
     const bar = container.querySelector("[data-report-docbar]")!;
     expect(bar.textContent).toContain("Klientská zpráva");
-    expect(bar.textContent).toContain("ART-client");
+    expect(bar.getAttribute("data-report-version")).toBe("ART-client");
     // One article on the page: the Lead's report: ids name one document.
     expect(container.querySelectorAll("article")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx"));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")!.getAttribute("data-report-version")).toBe("ART-docx"));
   });
 
   it("drops a preparation that answers after the person switched back, and closes an open claim on a switch", async () => {
@@ -564,10 +571,10 @@ describe("the client report, read here before it is approved (RD3)", () => {
     expect(container.querySelector("[data-item-inspector]")).toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu" }));
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.textContent).toContain("ART-docx"));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.getAttribute("data-report-version")).toBe("ART-docx"));
     answer(CLIENT);
     await new Promise((r) => setTimeout(r, 0));
-    expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx");
+    expect(container.querySelector("[data-report-docbar]")!.getAttribute("data-report-version")).toBe("ART-docx");
     expect(container.querySelector("[data-report-document]")!.getAttribute("data-report-document")).toBe("ready");
   });
 
@@ -581,7 +588,7 @@ describe("the client report, read here before it is approved (RD3)", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
     expect(inspector.closeWhere).toHaveBeenCalledWith("report:ref:internal:");
-    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.textContent).toContain("ART-client"));
+    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.getAttribute("data-report-version")).toBe("ART-client"));
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
     expect(inspector.closeWhere).toHaveBeenLastCalledWith("report:ref:client:");
     // The document already shown closes nothing.

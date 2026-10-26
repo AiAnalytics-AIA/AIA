@@ -17,6 +17,14 @@ export function reviewsFor(runs: readonly DeepResearchRun[], researchRunId: stri
   );
 }
 
+/** A completed review as a list names it (RPT12): its title, else when it was started, else its
+ *  place in the list (`i`, from 0), never its run id; the doc picker and Varianta share it, so two
+ *  reviews of one run are told apart the same way in both. */
+export function reviewLabel(r: Pick<DeepResearchRun, "title" | "created_at">, i: number): string {
+  if (r.title) return r.title;
+  return r.created_at && !Number.isNaN(Date.parse(r.created_at)) ? new Date(r.created_at).toLocaleString("cs-CZ") : `${i + 1}.`;
+}
+
 /** The variant as read, only when it is this run's report with the chosen review; else none. */
 export function currentVariant(variant: ReportVariant | null, runId: string, review: string | null): ReportVariant | null {
   return variant && review !== null && variant.run_id === runId && variant.deep_research_run_id === review ? variant : null;

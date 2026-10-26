@@ -149,6 +149,8 @@ export function MapExplained({ x, approved, tech, idPrefix = "" }: { x: MapExpla
                 ))}
               </ul>
               <p className="fx-note">{tv(`${M}.segColour`, { share: pct(x.colourMembership) })}</p>
+              {/* Readiness says AIA cannot compare segments yet: these groups only describe this map (SOC14). */}
+              <p className="fx-note">{t(`${M}.segDescriptive`)}</p>
             </>
           ) : seg ? <p className="fx-note">{t(`${M}.${seg.decision === "BORDERLINE" ? "segBorderline" : "segNone"}`)}</p> : null}
         </Section>

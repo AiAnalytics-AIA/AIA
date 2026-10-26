@@ -5,7 +5,7 @@
  *
  * Needs `make ui-workbench` with AIA_WEB_RESEARCH_WORKBENCH=true, `make ui-fixtures` and `make ui-research`
  * (a finished run on the `persona` fixture). Checks, at every width:
- *   - the coverage table, the milestones and Hlavní zjištění are shown, with no page overflow;
+ *   - the coverage table, the milestones and one findings list with a module filter are shown, with no page overflow;
  *   - every Analýza target (module:, finding:, claim:) names exactly one element (focus takes the first);
  *   - in the workbench a coverage chip, a key finding's button and a cited number open in the item
  *     inspector (ANL3), and a cited number links on to its measure on Výsledky (#measure-<id>);
@@ -139,15 +139,21 @@ try {
     assert(Object.keys(counts).some((id) => id.startsWith("module:")), `@${width}: no module target`);
 
     // A module reads done only when it is stored COMPLETED, and a BLOCKED one reads "Potřebuje opravu".
-    const entries = await page.evaluate(() => [...document.querySelectorAll("nav[aria-label=\"Části AI analýzy\"] button")]
+    const entries = await page.evaluate(() => [...document.querySelectorAll("nav[aria-label=\"Části AI analýzy\"] button[data-outcome]")]
       .map((b) => ({ outcome: b.getAttribute("data-outcome"), text: b.textContent ?? "" })));
     assert.equal(entries.length, 8, `@${width}: the eight modules are listed`);
+    // One findings list (ANL3b): each finding drawn once, and a module's filter hides the others' findings.
+    const once = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll("[data-key-findings] li[data-finding-module]")].map((li) => li.id);
+      return ids.length === new Set(ids).size && ids.length > 0;
+    });
+    assert(once, `@${width}: a finding is drawn twice, or none is`);
     for (const e of entries) {
       assert.equal(/Dokončeno/.test(e.text), e.outcome === "COMPLETED", `@${width}: "${e.text}" reads against its stored ${e.outcome}`);
       if (e.outcome === "BLOCKED") assert.match(e.text, /Potřebuje opravu/, `@${width}: a blocked module says it needs repair`);
     }
   }
-  check("Analýza at 1440, 1100, 768 and 390: opens on its analysis; coverage unclipped, milestones done, Hlavní zjištění; no overflow");
+  check("Analýza at 1440, 1100, 768 and 390: opens on its analysis; coverage unclipped, milestones done, one findings list; no overflow");
   check("every module:, finding: and claim: target names exactly one element at every width");
 
   // Moving to Analýza within the page (Výsledky, then its stage) also opens on the analysis (F2).
