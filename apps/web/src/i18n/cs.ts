@@ -3063,7 +3063,7 @@ export const cs = {
       sampleStored: "Uloženo N={n}.",
       sampleStoredOutside: "Uložené N={n} je mimo platný rozsah {range}; spuštění ho odmítne. Zvolte jiné N.",
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
-      dockNote: "{d} dimenzí · N={n}",
+      dockNote: "{d} · N={n}",
     },
     deep: {
       searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",
