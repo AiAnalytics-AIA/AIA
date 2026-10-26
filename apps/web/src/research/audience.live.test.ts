@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -211,5 +211,22 @@ describe("the built-in subpanels a search matches (audit B9)", () => {
     expect(matchingSubpanels(all, " MLADÍ ").map((s) => s.key)).toEqual(["young_18_29"]);
     expect(matchingSubpanels(all, "vestavěný").map((s) => s.key)).toEqual(["young_18_29"]);
     expect(matchingSubpanels(all, "nikdo")).toEqual([]);
+  });
+});
+
+describe("what a preset change clears (OI-51 (a))", () => {
+  it("the subpanel, filters and segment, nothing else", () => {
+    const { audience, cleared } = presetReset({
+      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters",
+    } as never);
+    expect(cleared).toBe(true);
+    expect(audience).toEqual({ builtin_subpanel: "", filters: {}, segment: { mode: "none" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters" });
+  });
+
+  it("says nothing was cleared when there was nothing to clear, a null included", () => {
+    expect(presetReset({ description: "x" } as never).cleared).toBe(false);
+    expect(presetReset({ builtin_subpanel: "", filters: {}, segment: { mode: "none" } } as never).cleared).toBe(false);
+    expect(presetReset({ builtin_subpanel: null, filters: null, segment: null } as never).cleared).toBe(false);
+    expect(presetReset({ segment: { mode: "top" } } as never).cleared).toBe(true);
   });
 });

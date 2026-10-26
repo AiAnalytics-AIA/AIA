@@ -166,11 +166,12 @@ fi
 
 # ONLYOFFICE Docs, Zpráva's report editor (docs/docker-compose.yml), when SSM
 # aia_onlyoffice_enabled is true: started or updated after AIA is healthy, in a project of its
-# own. Optional like GlitchTip: without it Zpráva keeps its read-only pane. Its first start
-# generates fonts (about a minute, measured), hence the longer bound.
+# own. Optional like GlitchTip: without it Zpráva keeps its read-only pane. A start runs
+# upstream's whole start sequence (fonts, then gzipping its static files) before api.js takes its
+# fixed tag and the server reports healthy: 274-330 s measured (4 vCPU), hence the longer bound.
 if [ "${AIA_ONLYOFFICE_ENABLED:-false}" = "true" ]; then
   log "starting the Document Server"
-  if ! timeout --kill-after=30 480 "$DEPLOY_DIR/bin/docs.sh" up; then
+  if ! timeout --kill-after=30 660 "$DEPLOY_DIR/bin/docs.sh" up; then
     log "WARNING: the Document Server did not start (above); Zpráva stays read-only; the deploy goes on"
   fi
 # Switched off while it runs: stopped here, so turning it off needs no hand on the host. Its

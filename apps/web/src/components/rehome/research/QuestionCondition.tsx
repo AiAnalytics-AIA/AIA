@@ -6,7 +6,7 @@
 // (research_design.py condition_refusal); a stored condition the rule refuses, or one 18.6.6 wrote
 // that AIA cannot read, is shown as stored with why, never rewritten here.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { t, tv } from "@/i18n/t";
@@ -51,6 +51,19 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
   const routing = useRouting();
   const [editing, setEditing] = useState(false);
   const { state, sources } = conditionOf(research.project, si, qi);
+  // Each way out (Uložit, Zrušit, Escape, Odebrat) replaces the focused control: focus goes to the
+  // first enabled button left in this box, else to the question's wording, never to the page and
+  // never to a type chip, where one key would change the question's type (QF-18).
+  const box = useRef<HTMLDivElement>(null);
+  const [refocus, setRefocus] = useState(0);
+  useEffect(() => {
+    if (!refocus || !box.current) return;
+    (box.current.querySelector<HTMLElement>("button:not([disabled])") ?? box.current.closest("[id]")?.querySelector<HTMLElement>("textarea"))?.focus();
+  }, [refocus]);
+  const close = () => {
+    setEditing(false);
+    setRefocus((n) => n + 1);
+  };
   const id = String(q.id ?? "").trim();
 
   // Held to the rule before it is written; a refusal is said in the form, which stays open.
@@ -62,42 +75,46 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
       const now = applyEdit({ project: p, analysis: null }, edit);
       return "content" in now ? now.content.project : p;
     }, "questionnaire_condition");
-    setEditing(false);
+    close();
     return null;
   };
 
-  if (editing) return <ConditionForm sources={sources} initial={state.kind === "set" ? state : null} onCancel={() => setEditing(false)} onSave={save} />;
-  // Set or edited only behind the switch (off until fieldwork routes, RQC11); a stored one is
-  // still shown and can be removed.
-  const editable = canEdit && routing && sources.length > 0;
-  if (state.kind === "none") {
-    // Only where a condition can stand: an earlier selection question with answers.
-    if (!editable) return null;
+  return <div ref={box}>{body()}</div>;
+
+  function body() {
+    if (editing) return <ConditionForm sources={sources} initial={state.kind === "set" ? state : null} onCancel={close} onSave={save} />;
+    // Set or edited only behind the switch (off until fieldwork routes, RQC11); a stored one is
+    // still shown and can be removed.
+    const editable = canEdit && routing && sources.length > 0;
+    if (state.kind === "none") {
+      // Only where a condition can stand: an earlier selection question with answers.
+      if (!editable) return null;
+      return (
+        <Button small variant="quiet" icon="plus" className="mt-2" onClick={() => setEditing(true)}>
+          {t("research.questionnaire.conditionEdit.add")}
+        </Button>
+      );
+    }
     return (
-      <Button small variant="quiet" icon="plus" className="mt-2" onClick={() => setEditing(true)}>
-        {t("research.questionnaire.conditionEdit.add")}
-      </Button>
+      <div data-question-condition className="mt-2 flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+        {/* Wraps above its buttons on a phone rather than shrinking to a word a line. */}
+        <span className="min-w-[min(100%,16rem)] flex-1">
+          {state.kind === "set" ? (
+            <>
+              {tv("research.questionnaire.conditionEdit.shown", { n: label(state.source), text: state.source.text, answers: quoted(state.options) })}{" "}
+              {t("research.questionnaire.conditionEdit.notRouted")}
+            </>
+          ) : state.kind === "refused" ? (
+            tv("research.questionnaire.conditionEdit.refused", { reason: EDIT_REFUSAL_WORDS[state.reason] ?? state.reason })
+          ) : (
+            tv("research.questionnaire.condition", { condition: state.stored })
+          )}
+        </span>
+        {editable ? <Button small onClick={() => setEditing(true)}>{t(state.kind === "set" ? "research.questionnaire.conditionEdit.edit" : "research.questionnaire.conditionEdit.again")}</Button> : null}
+        <Button small onClick={() => { update((p) => removeCondition(p, si, qi)); setRefocus((n) => n + 1); }} disabled={!canEdit}>{t("research.questionnaire.removeCondition")}</Button>
+      </div>
     );
   }
-  return (
-    <div data-question-condition className="mt-2 flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
-      {/* Wraps above its buttons on a phone rather than shrinking to a word a line. */}
-      <span className="min-w-[min(100%,16rem)] flex-1">
-        {state.kind === "set" ? (
-          <>
-            {tv("research.questionnaire.conditionEdit.shown", { n: label(state.source), text: state.source.text, answers: quoted(state.options) })}{" "}
-            {t("research.questionnaire.conditionEdit.notRouted")}
-          </>
-        ) : state.kind === "refused" ? (
-          tv("research.questionnaire.conditionEdit.refused", { reason: EDIT_REFUSAL_WORDS[state.reason] ?? state.reason })
-        ) : (
-          tv("research.questionnaire.condition", { condition: state.stored })
-        )}
-      </span>
-      {editable ? <Button small onClick={() => setEditing(true)}>{t(state.kind === "set" ? "research.questionnaire.conditionEdit.edit" : "research.questionnaire.conditionEdit.again")}</Button> : null}
-      <Button small onClick={() => update((p) => removeCondition(p, si, qi))} disabled={!canEdit}>{t("research.questionnaire.removeCondition")}</Button>
-    </div>
-  );
 }
 
 function ConditionForm({
@@ -117,8 +134,12 @@ function ConditionForm({
   const [answers, setAnswers] = useState<string[]>(start && initial ? start.options.filter((o) => initial.options.includes(o)) : []);
   const [problem, setProblem] = useState<string | null>(null);
   const source = sources.find((s) => s.id === sourceId) ?? null;
+  // Opened, focus is on the choice group's own tab stop (ChoiceChips), where the keyboard starts.
+  const form = useRef<HTMLDivElement>(null);
+  useEffect(() => form.current?.querySelector<HTMLElement>('[role="radio"][tabindex="0"]')?.focus(), []);
   return (
     <div
+      ref={form}
       data-condition-form
       onKeyDown={(e) => {
         if (e.key !== "Escape") return;

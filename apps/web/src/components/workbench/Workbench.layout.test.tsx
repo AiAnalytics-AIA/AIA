@@ -11,7 +11,7 @@ import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
-import { LEAD_REVEAL } from "@/lib/lead";
+import { LEAD_MAP_VIEW, LEAD_REVEAL, takeLeadMapView } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
 import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
@@ -114,7 +114,7 @@ function Opener() {
   );
 }
 
-function bench(child = <Stage />, step: "questionnaire" | "plan" = "questionnaire") {
+function bench(child = <Stage />, step: "questionnaire" | "plan" | "results" = "questionnaire") {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
     <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
@@ -882,6 +882,59 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     bench();
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/dimensions$/);
+  });
+});
+
+describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
+  const relief = { op: "filter", name: "view", value: "relief" } as const;
+  afterEach(() => {
+    takeLeadMapView();
+    window.location.hash = "";
+  });
+
+  it("moves to Sociomapa through the leave guard and keeps the Lead's filter for the map", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [relief])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/results#maps$/);
+    expect(takeLeadMapView()).toEqual(relief);
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("keeps nothing for the map when a leave guard stops the move", async () => {
+    push.mockClear();
+    let stopped = 0;
+    const guard = (e: MouseEvent) => {
+      e.preventDefault();
+      if (e.target instanceof HTMLAnchorElement) stopped += 1;
+    };
+    document.addEventListener("click", guard, true);
+    try {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [relief])] })];
+      bench();
+      await waitFor(() => expect(stopped).toBe(1));
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+    expect(push).not.toHaveBeenCalled();
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("sends the map on screen the Lead's selection at once", async () => {
+    window.location.hash = "#maps";
+    const sent: unknown[] = [];
+    const on = (e: Event) => sent.push((e as CustomEvent<unknown>).detail);
+    window.addEventListener(LEAD_MAP_VIEW, on);
+    try {
+      const select = { op: "select", target: "object:set1/fio" };
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [select])] })];
+      bench(<Stage />, "results");
+      await waitFor(() => expect(sent).toEqual([select]));
+      expect(push).not.toHaveBeenCalledWith(expect.stringMatching(/results/));
+    } finally {
+      window.removeEventListener(LEAD_MAP_VIEW, on);
+    }
   });
 });
 
