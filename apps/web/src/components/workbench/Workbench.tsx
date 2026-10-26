@@ -492,6 +492,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       const find = () => {
         const el = document.querySelector<HTMLElement>(selector);
         if (el) {
+          // A target folded away (a closed <details>, Vzorek's other sources) is unfolded first, so
+          // the view shows it rather than scrolling to hidden content.
+          for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
           el.scrollIntoView({ block: "center", behavior: "smooth" });
           // With the conversation stepped aside, focus follows to what the Lead pointed at.
           // The artifact is inert until the drawer's step aside has rendered: try again briefly.
