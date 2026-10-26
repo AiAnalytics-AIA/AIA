@@ -120,7 +120,7 @@ export function StageTrack({ studyId, state, current, stepHref }: {
                     <Link
                       href={stepHref(step)}
                       aria-current={on ? "step" : undefined}
-                      className={`relative flex min-h-[52px] items-center gap-2 whitespace-nowrap rounded-control px-2.5 py-1.5 text-ink no-underline hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring ${on ? "after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t-sm after:bg-signal" : ""}`}
+                      className={`relative flex min-h-[52px] items-center gap-2 whitespace-nowrap rounded-control px-2.5 py-1.5 text-ink no-underline hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring ${on ? "after:absolute after:inset-x-2 after:bottom-0 after:h-[3px] after:rounded-t-mark after:bg-signal" : ""}`}
                     >
                       <Glyph tone={s.tone} />
                       <span>

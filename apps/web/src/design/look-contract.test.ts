@@ -35,11 +35,25 @@ describe("the look contract's radii", () => {
     expect(Math.max(...px)).toBe(10);
   });
 
+  it("keeps small marks square at radius-mark (2), so a legend swatch never reads as a status glyph", () => {
+    expect(radius("radius-mark")).toBe("2px");
+    const at = (file: string) => readFileSync(join(SRC, file), "utf8");
+    const objectMap = at("components/rehome/research/ObjectMapView.tsx");
+    expect(objectMap).toContain('className="inline-block w-[18px] rounded-t-mark"'); // the terrace legend's bars
+    expect(objectMap).toContain('className="h-3 w-3 rounded-mark bg-[var(--viz-ground)]"'); // the ground swatch
+    expect(objectMap).toContain('className="h-[3px] w-[18px] rounded-mark bg-[var(--viz-link-positive)]"');
+    // The cost legend's 10 px mark: coral when a run needs confirmation, square, never the status circle.
+    expect(at("components/rehome/research/ExecutionSteps.tsx")).toContain("block size-2.5 rounded-mark ${asks ?");
+    expect(at("components/rehome/research/PlanStep.tsx")).toContain("block h-2 flex-1 rounded-mark border");
+    expect(at("components/rehome/research/StageTrack.tsx")).toContain("after:h-[3px] after:rounded-t-mark");
+  });
+
   it("generates the theme from the same values", () => {
     const theme = readFileSync(join(SRC, "app/tokens-theme.css"), "utf8");
     expect(theme).toContain("--radius-sm: 6px;");
     expect(theme).toContain("--radius-md: 8px;");
     expect(theme).toContain("--radius-panel: 10px;");
+    expect(theme).toContain("--radius-mark: 2px;");
   });
 });
 
