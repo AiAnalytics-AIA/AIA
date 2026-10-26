@@ -23,9 +23,10 @@ import { jobCostAsked } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
+import { announceDeepResearchStarted } from "@/lib/deep-research-started";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, deepResearchStage, isDeepResearchCard, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -538,10 +539,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
+  const stepHref = frame.stepHref;
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
-    // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
-    if (r.kind !== "agent_job" && !turn.command) {
-      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : r.kind === "analysis_retry" ? "analysis" : "report");
+    // A person's typed start (LO5) and a Deep Research card (LO5a.2) are started by their approval;
+    // the Lead's research-run card opens its stage.
+    const deep = isDeepResearchCard(r);
+    if (r.kind !== "agent_job" && !deep && !turn.command) {
+      go(r.kind === "research_run" ? "fieldwork" : r.kind === "analysis_retry" ? "analysis" : "report");
       return;
     }
     await store.flush();
@@ -556,6 +560,19 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
+        // Its run is followed where the stage's own start shows it, and a panel already open
+        // there reads it now rather than on its next mount.
+        if (deep) {
+          const researchRunId = started.research_run_id ?? null;
+          announceDeepResearchStarted({ runId: started.run_id, purpose: started.purpose ?? null, researchRunId });
+          const at = deepResearchStage(r, started.purpose);
+          // An Interpretation run is shown under the research run it interprets, which need not
+          // be the newest: from another stage the results open on that run (`?run=`); on Výsledky
+          // already, the page follows it on the announcement above.
+          if (at === "report" && researchRunId && STAGES.report.step !== step) {
+            guardedNavigate(`${stepHref("results")}?run=${encodeURIComponent(researchRunId)}#${STAGES.report.view ?? ""}`, (url) => router.push(url));
+          } else if (at) go(at);
+        }
         return;
       } catch (e) {
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {
@@ -581,7 +598,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         throw e;
       }
     }
-  }, [go, store, frame.studyId, confirm, onAgentStarted]);
+  }, [go, store, frame.studyId, stepHref, confirm, onAgentStarted, router, step]);
 
   // Alt+Shift+A / C / N: artifact focus, conversation focus, back to the split (the prototype's keys).
   useEffect(() => {

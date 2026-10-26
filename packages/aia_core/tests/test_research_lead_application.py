@@ -632,6 +632,12 @@ def test_another_researchers_decisions_are_not_in_my_digest(scoped: Any, session
             },
             ["job"],
         ),
+        # A Deep Research card is started on the person's approval through the ledger
+        # (LO5a.2), so it waits until decided, as an agent job does (review of #1006).
+        (
+            {"reply": "Doplňme literaturu.", "request": {"kind": "design_research", "why": WHY}},
+            ["job"],
+        ),
     ],
 )
 def test_only_a_prepared_job_waits_in_the_digest(

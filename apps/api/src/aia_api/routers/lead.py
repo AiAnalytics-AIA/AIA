@@ -27,6 +27,10 @@ from aia_core.application.lead_chat_start import (
     ChatStartRefused,
     newest_analysed_run,
 )
+from aia_core.application.lead_deep_research import (
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
+)
 from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
@@ -76,6 +80,7 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .deep_research import deep_research_mode, deep_research_start_errors, study_prices
 from .research import run_start_errors, run_start_settings
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -153,7 +158,8 @@ class RequestDecision(BaseModel):
     status: Literal["approved"]
     run_id: str | None
     #: A typed start approved on the job an earlier approval had already started for this
-    #: design: nothing started, the card is decided (LO5).
+    #: design, or a Deep Research card on a run another start had made (LO5a.2): nothing
+    #: started or charged, the card is decided (LO5).
     reused: bool = False
 
 
@@ -316,6 +322,11 @@ class ApprovedRequest(BaseModel):
     run_id: str
     design_revision_id: str
     status: str
+    #: A Deep Research card's run: ``DESIGN_RESEARCH`` or ``INTERPRETATION_RESEARCH`` (LO5a.2),
+    #: so the client follows it where it is shown; ``None`` for any other approval.
+    purpose: str | None = None
+    #: An Interpretation card's: the research run its target is a result of, where it is shown.
+    research_run_id: str | None = None
 
 
 class OmittedId(BaseModel):
@@ -532,6 +543,8 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except NotAPaidRequest as exc:
         raise _error(422, exc.reason, "This turn prepared no paid job.") from exc
+    except DeepResearchCardUnavailable as exc:
+        raise _error(409, exc.reason, "Deep Research cannot be started here.") from exc
     except LeadContextTooLarge as exc:
         raise _error(422, exc.reason, str(exc)) from exc
     except LeadRejected as exc:
@@ -788,7 +801,9 @@ def approve_request(
     # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job a card approves reads the Study's
     # pinned Design Research findings, as the stage's start does (artifact-questionnaire QST13).
     external = store if settings.ai_analysis_external_context else None
-    with _lead_errors(), run_start_errors():
+    # A Deep Research card's start refusals are the stage routes' own (LO5a.2), outermost so
+    # the Lead's and a run start's own mappings answer first where they overlap.
+    with deep_research_start_errors(session), _lead_errors(), run_start_errors():
         started = ResearchLead(
             session, scope, enabled=settings.research_lead_on, external_store=external
         ).approve_request(
@@ -799,6 +814,11 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
+            deep_research=DeepResearchCardSettings(
+                prices=study_prices(settings, session, scope),
+                modes=(deep_research_mode(settings),),
+                store=store,
+            ),
         )
     return ApprovedRequest.model_validate(started)
 

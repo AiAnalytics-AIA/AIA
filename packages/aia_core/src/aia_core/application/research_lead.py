@@ -63,6 +63,9 @@ from ..domain.research_lead import (
     RUNS_IN_CONTEXT,
     STAGES,
     AgentJobRequest,
+    DeepResearchRetryRequest,
+    DesignResearchRequest,
+    InterpretationResearchRequest,
     LeadContextTooLarge,
     LeadNote,
     LeadOutput,
@@ -107,6 +110,12 @@ from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, Workflow
 from .analysis_results import SourcesRefused, _external_context
 from .deep_research import DeepResearchRuns
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
+from .lead_deep_research import (
+    DeepResearchCardRequest,
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
+    approve_deep_research_card,
+)
 from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
@@ -145,6 +154,12 @@ _DIGEST_SUBJECTS: Final = frozenset(
 )
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
+
+#: The Lead's request kinds a person decides through the ledger (approve_request): each waits in
+#: the decision digest until decided. A research run's card only opens its stage.
+_LEDGER_CARDS: Final = frozenset(
+    {"agent_job", "design_research", "interpretation_research", "deep_research_retry"}
+)
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
 #: as the web submits it before its own buttons start the same job.
 _SOURCE_STAGE: Final[dict[ResearchAction, str]] = {
@@ -420,7 +435,13 @@ def _view(
         base["edit_decisions"] = dict(decisions.get("edits") or {})
         request = decisions.get("request")
         if request:
-            base["request_decision"] = {"status": "approved", "run_id": request.get("run_id")}
+            base["request_decision"] = {
+                "status": "approved",
+                "run_id": request.get("run_id"),
+                # A Deep Research card approved on a run another start had made (LO5a.2);
+                # absent otherwise, as before (the API reads it as false).
+                **({"reused": True} if request.get("reused") else {}),
+            }
         if decisions.get("self_update"):
             base["self_update_decision"] = dict(decisions["self_update"])
     if run is None or not run.get("steps"):
@@ -1135,9 +1156,16 @@ class ResearchLead:
         wallet_enabled: bool = False,
         workspace_revision: int | None = None,
         retry_run_id: str | None = None,
+        deep_research: DeepResearchCardSettings | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
+
+        A Deep Research card (``design_research``, ``interpretation_research``,
+        ``deep_research_retry``) starts on the server too (lead-orchestration LO5a.2, amending
+        D7 for those kinds): :func:`~aia_core.application.lead_deep_research.
+        approve_deep_research_card`, on ``deep_research``'s prices, mode and store, with the
+        same once-only rule, Lead switch and (for a design card) LO10 check as a design job.
 
         The person's own typed command (a person's turn naming a ``command``, LO5) is approved
         here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
@@ -1191,7 +1219,11 @@ class ResearchLead:
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
         request = output.request
-        if not isinstance(request, AgentJobRequest):
+        card = isinstance(
+            request,
+            DesignResearchRequest | InterpretationResearchRequest | DeepResearchRetryRequest,
+        )
+        if not isinstance(request, AgentJobRequest) and not card:
             raise NotAPaidRequest("this turn prepared no paid job")
         self._turns().lock()
         workflows = self._workflows()
@@ -1199,17 +1231,43 @@ class ResearchLead:
         if approved:
             # Approved before any switch-off: the job exists and is answered as it is, so a
             # retry after a lost response is never misreported as refused (review of #561).
-            jobs = ResearchAgentJobs(self.session, self.scope)
-            run = jobs.get(str(approved["run_id"]))
+            run = (
+                DeepResearchRuns(self.session, self.scope).get(str(approved["run_id"]))
+                if card
+                else ResearchAgentJobs(self.session, self.scope).get(str(approved["run_id"]))
+            )
             return {
                 "run_id": run["run_id"],
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
+                **(
+                    {
+                        "purpose": run["metadata"].get("purpose"),
+                        "research_run_id": (run["metadata"].get("target") or {}).get(
+                            "research_run_id"
+                        ),
+                    }
+                    if card
+                    else {}
+                ),
             }
         # Q42: only an approval that would create a job is held by the switch, before anything
         # is submitted, created, written or held.
         if _model_prepared(turn) and not self.enabled:
             raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
+        if isinstance(
+            request,
+            DesignResearchRequest | InterpretationResearchRequest | DeepResearchRetryRequest,
+        ):
+            return self._approve_deep_research(
+                turn,
+                request,
+                deep_research=deep_research,
+                confirm_cost_usd=confirm_cost_usd,
+                wallet_enabled=wallet_enabled,
+                workspace_revision=workspace_revision,
+            )
+        assert isinstance(request, AgentJobRequest)
         # Read once: the revision checked is the one submitted, so a save landing after the
         # check leaves the next card stale and never runs this job on an unchecked design.
         content, _analysis, current = self._working_content()
@@ -1261,6 +1319,45 @@ class ResearchLead:
             "design_revision_id": revision.revision_id,
             "status": started.run["status"].value,
         }
+
+    def _approve_deep_research(
+        self,
+        turn: LeadTurn,
+        request: DeepResearchCardRequest,
+        *,
+        deep_research: DeepResearchCardSettings | None,
+        confirm_cost_usd: float | None,
+        wallet_enabled: bool,
+        workspace_revision: int | None,
+    ) -> dict[str, Any]:
+        """A Deep Research card's start (LO5a.2). A design card researches the working content
+        the card was prepared on (LO10: the turn's working revision, else stale unless the
+        person names the current one), submitted as its Design Revision; an Interpretation or a
+        retry card reads no working content."""
+        if deep_research is None:
+            raise DeepResearchCardUnavailable("no Deep Research start is composed here")
+        content: dict[str, Any] | None = None
+        current: int | None = None
+        if isinstance(request, DesignResearchRequest):
+            content, _analysis, current = self._working_content()
+            if workspace_revision != current and not self._only_own_accepts(turn, current):
+                raise LeadCardStale(current, turn.workspace_revision)
+
+        def submit() -> Any:
+            assert content is not None
+            return self._submit_design(content, current, source_stage="plan")
+
+        return approve_deep_research_card(
+            self.session,
+            self.scope,
+            turn,
+            request,
+            frozen=self._frozen(turn.turn_id),
+            submit_design=submit,
+            settings=deep_research,
+            confirm_cost_usd=confirm_cost_usd,
+            wallet_enabled=wallet_enabled,
+        )
 
     # -- helpers ----------------------------------------------------------------
 
@@ -1521,11 +1618,11 @@ class ResearchLead:
                 if str(i) not in decided_edits
             )
             request = output.get("request")
-            # Only a prepared agent job is decided through the ledger; a run or Deep Research
-            # card is started from its own screen and never waits here.
+            # A prepared agent job or Deep Research card (LO5a.2) is decided through the ledger
+            # and waits until it is; a run card is started from its own screen and never waits.
             if (
                 isinstance(request, dict)
-                and request.get("kind") == "agent_job"
+                and request.get("kind") in _LEDGER_CARDS
                 and turn.get("request_decision") is None
             ):
                 waiting.append(DigestEntry("job", None, None, turn["turn_id"], index=0))
