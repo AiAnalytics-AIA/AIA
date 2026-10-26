@@ -1516,6 +1516,16 @@ describe("each page's hero (F18)", () => {
     expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
   });
 
+  it("heads Stav systému with the figures its own panel hands up", async () => {
+    api({ "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
+      { check: "Sign-in", status: "ok" }, { check: "Bedrock", status: "FAIL" },
+    ] } }) });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")[0]).toBe("Připraveno=1 / 2"));
+    expect(figures("Stav systému").map((f) => f.split("=")[0])).toEqual(["Připraveno", "Prostředí", "Sestava webu"]);
+  });
+
   it("counts the audit's week only when the page read it whole", async () => {
     // The newest event is stamped now, not a minute ago: "a minute ago" is yesterday just after
     // Prague's midnight, and the page counts today in Prague's day (review of #983).

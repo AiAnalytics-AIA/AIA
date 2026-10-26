@@ -1583,6 +1583,7 @@ export const cs = {
         hero: {
           access: { active: "Aktivní členové", deactivated: "Deaktivovaní", methodologist: "Metodik", clients: "Klienti", selfApproval: "Samoschválení v organizaci", allowed: "povoleno", forbidden: "zakázáno", byDefault: "výchozí" },
           audit: { inPeriod: "Události · 7 dní", today: "Dnes", people: "Kdo měnil", last: "Poslední změna" },
+          system: { ready: "Připraveno" },
         },
         // The section menu in the top bar (prototype v54): ⌘K / Ctrl+K, a search by keyword, three columns.
         menu: {

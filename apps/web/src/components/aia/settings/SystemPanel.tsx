@@ -17,6 +17,8 @@ import { FOCUS } from "../../ui/parts";
 import { InfoButton } from "./InfoButton";
 import { describeError } from "./errors";
 import { Technical } from "./technical";
+import { useHeroFigures } from "./hero-figures";
+import { systemFigures } from "@/lib/settings-hero";
 
 const S = "aia.settings.panel.system";
 const CARD = "rounded-md border border-border bg-surface-raised px-6 py-5";
@@ -123,6 +125,10 @@ function Environment({ system }: { system: Read<SystemStatus> }) {
   // A refused copy: the text selected where it can be copied by hand.
   useEffect(() => { if (copy === "failed") { field.current?.focus(); field.current?.select(); } }, [copy]);
   const label = (k: EnvKey) => t(`${E}.row.${k}`);
+  // The page's hero figures (F18): ready checks, environment and build, from this card's reads.
+  useHeroFigures("system", system.state === "loading" ? undefined : systemFigures(readyOf(system), rows, {
+    ready: t("aia.settings.panel.hero.system.ready"), environment: t(`${E}.row.environment`), build: t(`${E}.row.build`),
+  }));
   const text = rows ? diagnosticsText(rows, label, t(`${E}.unknown`), readyOf(system), t(`${E}.ready`)) : "";
   const doCopy = async () => {
     // Cleared first, at the end of the click, so the outcome is a change the live region announces.
