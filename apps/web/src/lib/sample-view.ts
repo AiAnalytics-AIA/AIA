@@ -33,14 +33,27 @@ export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine
   return { known: true, status: check.status, message: check.message };
 }
 
+/** One of §02's tiles (spec vzorek V4): a verdict, how many items have it, and its commonest reason. */
+export type OutlookTile = { verdict: OutlookVerdict; count: number; reason: string | null };
+
 /**
- * The question outlook in counts, every verdict present; `null` when the API sent none (an
- * older API, or a design that does not compile), which reads as unknown, never as "all answered".
+ * §02's tiles, from the server's question outlook: answerable, at risk and unknown always, and
+ * unanswerable beside them only when an item has it (the v73 board draws three). Each tile names
+ * the reason most of its items share, the first met on a tie; the answerable tile has none.
+ * `null` when the server sent no outlook, which reads as unknown, never as answered.
  */
-export function outlookSummary(readiness: ReadinessBody): Record<OutlookVerdict, number> | null {
+export function outlookTiles(readiness: ReadinessBody): OutlookTile[] | null {
   const items = readiness.question_outlook;
   if (!items || !items.length) return null;
-  return outlookCounts(items);
+  const counts = outlookCounts(items);
+  const shown: OutlookVerdict[] = ["ANSWERABLE", "AT_RISK", "UNKNOWN", ...(counts.UNANSWERABLE ? (["UNANSWERABLE"] as const) : [])];
+  return shown.map((verdict) => {
+    const tally = new Map<string, number>();
+    if (verdict !== "ANSWERABLE") for (const item of items) if (item.verdict === verdict) for (const r of item.reasons) tally.set(r, (tally.get(r) ?? 0) + 1);
+    let reason: string | null = null;
+    for (const [code, n] of tally) if (reason === null || n > (tally.get(reason) ?? 0)) reason = code;
+    return { verdict, count: counts[verdict], reason };
+  });
 }
 
 /**

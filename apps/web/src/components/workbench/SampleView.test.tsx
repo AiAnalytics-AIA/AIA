@@ -51,11 +51,33 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "PASS", message: "Běh bude mít 67 různých dárců na 200 respondentů: opora stačí." }],
       question_outlook: [{ question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: [] }],
     })} />);
-    expect(screen.getByText("odhad, ne výsledek")).toBeTruthy();
+    expect(screen.getByText("odhad před během, ne výsledek")).toBeTruthy();
     expect(screen.getByText("Podle pracovní kopie, revize 7")).toBeTruthy();
     expect(screen.getByText("Opora výsledků")).toBeTruthy();
     expect(screen.getByText("Běh bude mít 67 různých dárců na 200 respondentů: opora stačí.")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Odhad podpory před během" }).querySelector('[data-aia="sample:forecast:outlook"]')?.textContent).toContain("1 S rizikem");
+    // The board's tiles (spec vzorek V4): the server's counts, unanswerable left out at zero.
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect([...outlook.querySelectorAll("[data-verdict]")].map((t) => t.getAttribute("data-verdict"))).toEqual(["ANSWERABLE", "AT_RISK", "UNKNOWN"]);
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1");
+  });
+
+  it("names each tile's commonest reason in a few words, and shows unanswerable only when an item is", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({
+      question_outlook: [
+        { question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "UNKNOWN", reasons: ["open_ended"] },
+        { question_id: "q2", text: "", section_id: "s", battery_id: null, verdict: "UNANSWERABLE", reasons: ["fidelity_refused"] },
+      ],
+    })} />);
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect(outlook.querySelector('[data-verdict="UNKNOWN"]')!.textContent).toBe("Nelze říct předem1otevřená otázka");
+    expect(outlook.querySelector('[data-verdict="UNANSWERABLE"]')!.textContent).toBe("Bez odpovědi1ptá se na absolutní hodnotu");
+  });
+
+  it("forecasts no brand pair: the map's pairs are checked from the data, never counted here", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({})} />);
+    const section = screen.getByRole("region", { name: "Kolik dat bude za čísly" });
+    expect(section.textContent).toContain("Mapa značek: podporu dvojic AIA před během neodhadne; ověří se až z dat");
+    expect(section.textContent).not.toMatch(/\d+ z \d+ dvojic/);
   });
 
   it("reads a panel run's unknown forecast as neznámé, never good", () => {
@@ -64,7 +86,7 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "WARN", message: "Kolik různých dárců běh bude mít, se ukáže až při výběru respondentů z populace." }],
     })} />);
     expect(screen.getByText("Opora výsledků: neznámé")).toBeTruthy();
-    expect(screen.getByText("Na co běh odpoví: neznámé")).toBeTruthy();
+    expect(screen.getByText(/^Na co běh odpoví: neznámé/)).toBeTruthy();
     expect(container.querySelector('[data-aia="sample:forecast:support"] [aria-label="neznámé"]')).toBeTruthy();
   });
 

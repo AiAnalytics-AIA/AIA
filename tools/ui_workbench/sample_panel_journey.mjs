@@ -96,7 +96,7 @@ try {
       assert.equal(opened, cells.length, `the fold opens to every cell @${width}`);
     }
     // §2 reads the drawn sample: the support forecast is known, no longer "neznámé".
-    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
+    const forecast = page.getByRole("region", { name: "Kolik dat bude za čísly" });
     await forecast.getByRole("heading", { name: /^Opora výsledků/ }).waitFor({ timeout: 30000 });
     assert.equal(await forecast.getByRole("heading", { name: "Opora výsledků: neznámé" }).count(), 0, `the panel's forecast is known @${width}`);
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
