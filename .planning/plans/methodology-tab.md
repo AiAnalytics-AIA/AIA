@@ -1311,3 +1311,9 @@ To be written as chunks land:
   - Measured on the workbench at 1440/1710/1920: switching step 44-81 ms, the rule redrawn on a
     keystroke 50-67 ms, no horizontal overflow, no page errors.
 
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed POST). S4d (R-1, the audit's
+check script), W1c (weighting) and X1 (Simulation) stay as written; it is outside the development
+plan, and not POST. ADR 0023's questions (Q1-Q7 and its verdict) are left for the methodology owner.

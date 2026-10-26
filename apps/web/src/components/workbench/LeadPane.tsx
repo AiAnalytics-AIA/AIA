@@ -15,7 +15,7 @@ import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -186,12 +186,19 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     return true;
   }, [studyId, read]);
 
+  // The message on its way to the server, so a stage's repeated ask is not sent twice.
+  const inFlight = useRef<string | null>(null);
   const message = useCallback(async (m: Queued) => {
-    // A save that fails does not hold the message: the Lead then reads the last stored revision.
-    await beforeMessage?.().catch(() => {});
-    if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
-    setQueued((q) => [m, ...q]);
-    setHeld(true);
+    inFlight.current = m.text;
+    try {
+      // A save that fails does not hold the message: the Lead then reads the last stored revision.
+      await beforeMessage?.().catch(() => {});
+      if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
+      setQueued((q) => [m, ...q]);
+      setHeld(true);
+    } finally {
+      inFlight.current = null;
+    }
   }, [post, beforeMessage]);
 
   // The Lead greets a study it has not spoken in for eight hours (the server keeps the rule).
@@ -219,9 +226,14 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     onClearFocus();
   };
   // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
+  // Only when the composer would take it (the workbench opens the pane, which says why when it
+  // would not), and once: the same ask on its way, waiting here or queued on the server is not
+  // asked again.
   const fromStage = (text: string) => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || !canEdit || !me?.hatched || !session?.available) return;
+    if (inFlight.current === t || queued.some((m) => m.text === t)) return;
+    if ((session.turns ?? []).some((turn) => turn.actor === "person" && turn.queued && turn.text === t)) return;
     if (sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
     else void message({ text: t, stage, focus: null });
   };
@@ -585,9 +597,9 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
-  design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
-  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
-  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Otevřít hloubkový výzkum" },
+  design_research: { title: "Hloubkový výzkum k návrhu", action: "Spustit hloubkový výzkum" },
+  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Spustit literární rešerši" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Zopakovat hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
@@ -598,7 +610,8 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job" || typed;
+  // A Deep Research card starts on its approval (LO5a.2), as an agent job does.
+  const paid = r.kind === "agent_job" || isDeepResearchCard(r) || typed;
   const decided = state === "done" || !!approved;
   // Approved on what an earlier approval had already started for this design: nothing started.
   const reused = !!approved?.reused;
@@ -613,12 +626,18 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            // A Deep Research card found the run a stage start (or another card) had made: no
+            // card of it is above, it may still be running, and it is not always "this design's".
+            ? [isDeepResearchCard(r)
+              ? { label: "Výsledek", value: "Tento hloubkový výzkum už běží nebo doběhl", sub: "Nic nového se nespustilo ani nezaplatilo; běh se sleduje v kroku, kde byl spuštěn." }
+              : { label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
             : r.kind === "analysis_retry"
             // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
               ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
               { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : isDeepResearchCard(r)
+            ? deepResearchFacts(r, { walletOn, decided })
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid

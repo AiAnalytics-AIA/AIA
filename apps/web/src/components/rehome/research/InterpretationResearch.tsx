@@ -12,6 +12,7 @@ import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from 
 import { CodedWords } from "./CodedWords";
 import { withBudget } from "@/lib/budget-line";
 import { olderRulesWords } from "@/lib/review-rules";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { holdingWords } from "@/lib/report-status";
 import { AiButton, Button, Field, Select } from "../ui";
 import { useResearch } from "./context";
@@ -73,6 +74,14 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
     const timer = running ? setInterval(() => { void load(); }, 2500) : null;
     return () => { live = false; if (timer) clearInterval(timer); };
   }, [frame.studyId, run.run_id, refresh, running]);
+
+  // A run a Lead card started while this panel is open is read now, and shown once it is this
+  // run's (the load keeps the selection only among this run's own Interpretation runs).
+  useEffect(() => onDeepResearchStarted(({ runId, purpose }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH") return;
+    setSelected(runId);
+    setRefresh(n => n + 1);
+  }), []);
 
   useEffect(() => {
     let live = true;
@@ -187,11 +196,11 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
         <div className="flex flex-wrap gap-2">
           {used
             ? <Button onClick={() => onReview?.(null)} disabled={busy || !mayReview}>Nepoužívat ve zprávě</Button>
-            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.getElementById("complete-report-title")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
+            : <Button variant="primary" onClick={() => { if (current) { onReview?.(current.run_id); document.querySelector("[data-report-docbar]")?.scrollIntoView?.({ block: "start" }); } }} disabled={busy || !mayReview || analysisReady !== "ready"}>Použít ve zprávě</Button>}
         </div>
         <p className="mt-2 text-xs text-ink-muted">{used
-          ? "Kompletní zpráva studie nahoře je teď varianta s touto rešerší: stáhnete ji jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte tam."
-          : "Zprávu s rešerší stahujete a schvalujete v kartě Kompletní zpráva studie nahoře."}</p>
+          ? "Panel Zpráva výše teď ukazuje zprávu s touto rešerší: v jeho liště ji stáhnete jako DOCX, PDF se stejným obsahem tam, kde ho toto prostředí a stav studie dovolí, a schválíte ji tam."
+          : "Zprávu s rešerší čtete, stahujete a schvalujete v liště panelu Zpráva výše."}</p>
       </div>
       {bundle.origins?.includes("RECORDED_FIXTURE") ? <p className="text-sm text-status-fault">Podklady obsahují testovací výměny; nejde výhradně o živou rešerši.</p> : null}
       {older && bundle.accepted.length ? <div role="note" aria-label={older.title} data-older-rules className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm leading-6">

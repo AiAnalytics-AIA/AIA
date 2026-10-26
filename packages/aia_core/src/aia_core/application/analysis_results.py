@@ -102,6 +102,7 @@ from ..domain.evidence import (
     method_status,
     respondent_system_fingerprint,
 )
+from ..domain.evidence.report_lift import ModelledReportLift
 from ..domain.evidence.support import SupportSpec
 from ..domain.fieldwork import (
     JOINT_CERTIFICATE_METADATA,
@@ -647,6 +648,27 @@ def harness_summary(*, language: str, max_repairs: int = MAX_REPAIRS) -> Harness
     )
 
 
+def sources_evidence(
+    sources: NativeSources, *, report_lift: ModelledReportLift | None = None
+) -> NativeEvidence:
+    """The run's evidence table over its verified sources: the one construction its analysis,
+    its client report and Výsledky read (``report_lift`` is the client report's alone).
+
+    Nothing stores a validation of a respondent system yet (evidence-integrity 7 earns the
+    first), so a modelled run's evidence stays internal but for that lift."""
+    return native_evidence(
+        sources.specification,
+        sources.aggregate,
+        dataset_sha256=sources.refs.dataset.sha256,
+        origin=sources.dataset_origin,
+        support=sources.support.analysis,
+        respondent_system=sources.respondent_system,
+        joint_certificate=sources.joint_certificate,
+        validation=None,
+        report_lift=report_lift,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedModule:
     """Everything one module is judged on, and every reason it cannot run."""
@@ -674,18 +696,7 @@ def prepare_module(
     max_repairs: int = MAX_REPAIRS,
 ) -> PreparedModule:
     """Build one module's inputs from verified sources. Pure given the sources."""
-    evidence = native_evidence(
-        sources.specification,
-        sources.aggregate,
-        dataset_sha256=sources.refs.dataset.sha256,
-        origin=sources.dataset_origin,
-        support=sources.support.analysis,
-        respondent_system=sources.respondent_system,
-        joint_certificate=sources.joint_certificate,
-        # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
-        # modelled run's evidence stays internal.
-        validation=None,
-    )
+    evidence = sources_evidence(sources)
     inputs = AnalysisInputs(
         table=evidence.table,
         book=evidence.book,

@@ -56,6 +56,70 @@ export function audienceReady(p: ResearchProject): boolean {
   return false;
 }
 
+/**
+ * R4 (research stages v73, spec vzorek/A1): one choice of three. The source and population questions
+ * are gone, so a choice made on the screen writes the one entry AIA has, ČR 18+, which keeps
+ * audienceReady's rule. A study stored otherwise is read as it is until the person chooses.
+ */
+export function normalizeEntry(p: ResearchProject): ResearchProject {
+  const u = ui(p);
+  if (u.audience_entry === "analytics" && u.analytics_choice === "cz18") return p;
+  return { ...p, ui_state: { ...u, audience_entry: "analytics", analytics_choice: "cz18" } };
+}
+
+/** The strategy the screen shows chosen: none until one was chosen on ČR 18+; a stored subpanel reads as Zúžit. */
+export function strategyOf(p: ResearchProject): Strategy | null {
+  const u = ui(p);
+  if (u.audience_entry !== "analytics") return null;
+  if (u.analytics_choice === "cz18") return (aud(p).strategy || "population") as Strategy;
+  return u.analytics_choice === "special" && aud(p).builtin_subpanel ? "filters" : null;
+}
+
+/**
+ * A choice on the one question (R4). It starts afresh as a preset change does (OI-51 (a), "Clear
+ * both"): the previous subpanel, filters, strategy and support figures go, and the run check is made
+ * stale only when who is sampled changed. The description stays as written (the product owner,
+ * 2026-10-25); only where none is written, or the classic's own "Zúžená cílová populace" would
+ * describe the whole population, does Celá ČR 18+ write the classic's "ČR 18+". Choosing what is
+ * already chosen, or Najít ve výsledcích, changes nothing.
+ */
+export function chooseStrategy(p: ResearchProject, x: Strategy): Change | null {
+  if (x === "discover" || strategyOf(p) === x) return null;
+  const { audience, cleared } = presetReset(aud(p));
+  const c = chooseAudience(normalizeEntry(withAudience(p, audience)), x);
+  const written = aud(p).description;
+  const keep = x === "population" && written && written !== "Zúžená cílová populace";
+  return { ...c, project: keep ? withAudience(c.project, { ...aud(c.project), description: written }) : c.project, invalidateCheck: c.invalidateCheck || cleared };
+}
+
+/**
+ * A filter edit on a chosen subpanel's filters (Zúžit shows both since R4): the audience is no
+ * longer that subpanel, so its name and support figures go, as a preset change clears them (OI-51
+ * (a)), and the run check is made stale. Compile records `builtin_subpanel`, so keeping it would name
+ * a subpanel over filters it does not have. The description stays as written; the subpanel can be
+ * chosen again. A study stored on the classic's special path is written as ČR 18+ (normalizeEntry),
+ * so its filters stay Zúžit's. A change on no subpanel passes through.
+ */
+export function detachSubpanel(c: Change): Change {
+  const a = aud(c.project);
+  if (!a.builtin_subpanel) return c;
+  return { ...c, project: normalizeEntry(withAudience(c.project, { ...a, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} })), invalidateCheck: true };
+}
+
+/** What a study stored on a path the screen no longer offers: kept in the design, unused by a run. */
+export type Kept = { kind: "dataset" | "special"; name: string } | { kind: "discover" };
+
+export function keptPaths(p: ResearchProject): Kept[] {
+  const a = aud(p);
+  const u = ui(p);
+  const kept: Kept[] = [];
+  if (u.audience_entry === "own" && a.dataset_id) kept.push({ kind: "dataset", name: String(a.dataset_name || a.dataset_id) });
+  const special = a.special_catalog_key || a.special_panel_key || a.builtin_special_key;
+  if (u.analytics_choice === "special" && !a.builtin_subpanel && special) kept.push({ kind: "special", name: String(a.dataset_name || a.description || special) });
+  if (a.strategy === "discover") kept.push({ kind: "discover" });
+  return kept;
+}
+
 /** The special screen's "Vybráno" card. */
 export function specialSelected(p: ResearchProject): boolean {
   const a = aud(p);
@@ -588,14 +652,9 @@ export function previewVerdict(r: Record<string, unknown>, n: Json | undefined):
   return { ok: false, text: String((typeof first === "object" ? first?.text : first) || first || "Změňte populaci nebo velikost vzorku.") };
 }
 
-/** discoverEditor: the product description shown falls back to the brief's. */
-export function discoverText(p: ResearchProject): { product: string; success: string } {
-  const a = aud(p);
-  return { product: String(a.product_description || p.briefing.product_description || ""), success: String(a.success_definition || "") };
-}
-
-export function setDiscoverField(p: ResearchProject, field: "product_description" | "success_definition", v: string): ResearchProject {
-  return withAudience(p, { ...aud(p), [field]: v });
+/** "Popis vlastními slovy": the audience's description as the person writes it (spec vzorek/A1). */
+export function setAudienceDescription(p: ResearchProject, v: string): ResearchProject {
+  return withAudience(p, { ...aud(p), description: v });
 }
 
 // ---- the AI proposal ---------------------------------------------------------
@@ -723,7 +782,6 @@ export function verdictWords(v: { reason?: string | null; reasons?: string[] | n
 
 const cs = (n: number) => n.toLocaleString("cs-CZ");
 
-/** The preview's answer in words: what the filters select, and whether a run could draw n. */
 /**
  * Each filter alone (AUD3, the API's `per_filter`), in the order the filters were applied, named
  * by the catalogue's label: which filter narrows the audience. Said only for two filters or more;
@@ -737,15 +795,21 @@ export function filterCountLines(r: AudiencePreview, cat: Catalog | null): strin
   return ids.map((id) => `Samotný filtr ${label.get(id) ?? id}: ${cs(counts[id]!)} lidí.`);
 }
 
-export function liveVerdict(r: AudiencePreview, cat: Catalog | null = null): { ok: boolean; lines: string[] } {
-  if (!r.audience.ok) return { ok: false, lines: [verdictWords(r.audience)] };
-  const lines = [
-    `Filtry vyberou ${cs(r.selected_rows ?? 0)} z ${cs(r.population_rows)} lidí populace ${r.version_label}` +
-      (r.selected_donors != null ? ` (${cs(r.selected_donors)} různých dárců).` : "."),
-    ...filterCountLines(r, cat),
-  ];
-  if (!r.sample) return { ok: true, lines };
-  if (!r.sample.ok) return { ok: false, lines: [...lines, verdictWords(r.sample)] };
-  const weighted = r.sample.status === "PASS_WEIGHTED" ? " Reprezentativní až po kalibraci vah." : "";
-  return { ok: true, lines: [...lines, `Vzorek N=${r.n} z tohoto publika lze vybrat.${weighted}`] };
+
+export type Feasibility = { verdict: "yes" | "tight" | "no" | "unknown"; text: string };
+
+/**
+ * Proveditelnost's "Lze vytáhnout" (AUD9, spec vzorek/A5), in the server's terms: PASS draws n as it
+ * stands; PASS_WEIGHTED draws it representative only once its weights are calibrated (sampling.py's
+ * raw deviation over tolerance, calibrated within it), so "Těsně"; a refusal says why. No answer, no
+ * n, or a status this code does not know is unknown, never "Ano".
+ */
+export function feasibility(r: AudiencePreview | null): Feasibility {
+  if (!r) return { verdict: "unknown", text: "Zatím nespočítáno." };
+  if (!r.audience.ok) return { verdict: "no", text: verdictWords(r.audience) };
+  if (!r.sample || r.n == null) return { verdict: "unknown", text: "Velikost vzorku není nastavená." };
+  if (!r.sample.ok) return { verdict: "no", text: verdictWords(r.sample) };
+  if (r.sample.status === "PASS") return { verdict: "yes", text: `N ${cs(r.n)} z tohoto publika vybereme.` };
+  if (r.sample.status === "PASS_WEIGHTED") return { verdict: "tight", text: "Reprezentativní až po kalibraci vah." };
+  return { verdict: "unknown", text: `Stav výběru ${r.sample.status ?? "bez stavu"} AIA nezná.` };
 }

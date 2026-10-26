@@ -14,9 +14,10 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
 import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
-import { stageOf } from "@/lib/workbench-stages";
+import { stageHref, stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import { LEAD_REVEAL } from "@/lib/lead";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import {
   ApiError,
   api,
@@ -36,7 +37,6 @@ import {
   deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
-  type ResearchStep,
   type PopulationVersion,
   type Study,
   population,
@@ -108,7 +108,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, Switch } from "../step";
+import { ActionDock, FrameNavigation, Switch } from "../step";
 import { AiButton, Button, Chip } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
@@ -431,6 +431,14 @@ export function fixStep(checkId: string): StepKey {
   return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
+// The checks n fixes: in the workbench n is set on Vzorek (#945); the classic layout keeps it on persona.
+const FIXED_BY_N: ReadonlySet<string> = new Set(["sample_size", "support_forecast", "sociomap_support"]);
+
+/** Where a readiness check is fixed, as a link: Vzorek for the checks n fixes inside the workbench. */
+export function checkHref(checkId: string, stepHref: (step: StepKey) => string, workbench: boolean): string {
+  return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
+}
+
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
 function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
   const { state, stepHref } = useResearch();
@@ -644,6 +652,7 @@ const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
+  const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -842,7 +851,7 @@ export function RunStep() {
                   <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
+                    <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
                       {t("research.exec.fix")}
                     </Link>
                   ) : null}
@@ -1061,6 +1070,18 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
     }
     setVersion((v) => v + 1);
   }, []);
+  // An Interpretation run a Lead card started is shown under the research run it interprets
+  // (LO5a.2, review of #1006): the page already open turns to that run, `?run=` naming it.
+  useEffect(() => onDeepResearchStarted(({ purpose, researchRunId }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH" || !researchRunId) return;
+    followed.current = researchRunId;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("run") !== researchRunId) {
+      params.set("run", researchRunId);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params}${window.location.hash}`);
+    }
+    setVersion((v) => v + 1);
+  }), []);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -1696,7 +1717,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
-  return <ResultsWorkspace run={run} progressHref={progressHref}
+  return <ResultsWorkspace run={run} progressHref={progressHref} tabs={!leadOwns}
     notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
@@ -1729,7 +1750,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
-        <ReportDocumentView run={run} />
+        <ReportDocumentView run={run} review={review} onReview={setReview} />
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
@@ -1795,7 +1816,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          {/* Downloads happen on the report card above (CompleteReport); approval on the document read, in Zpráva's doc bar (RPT3a). */}
+          {/* Read, downloaded and approved in Zpráva's doc bar (RPT3a, RPT3c); the card above says what the report holds. */}
           {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}

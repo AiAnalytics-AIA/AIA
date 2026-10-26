@@ -18,6 +18,7 @@ import { DesignResearchReview } from "./DesignResearchReview";
 import { SearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
 import { isDesignRun } from "@/lib/design-evidence";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
 
@@ -60,6 +61,13 @@ export function DeepResearchPanel() {
     }).catch((e: unknown) => { if (live) setError(message(e)); });
     return () => { live = false; };
   }, [frame.studyId]);
+
+  // A run a Lead card started while this panel is open is read and shown at once.
+  useEffect(() => onDeepResearchStarted(({ runId, purpose }) => {
+    if (purpose !== "DESIGN_RESEARCH") return;
+    setSelected(runId);
+    void refresh().catch((e: unknown) => setError(message(e)));
+  }), [refresh]);
 
   const current = runs.find((job) => job.run_id === selected) ?? null;
   const running = current ? deepResearchRunningStep(current.steps) : null;

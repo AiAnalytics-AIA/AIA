@@ -117,6 +117,39 @@ V2: `AudienceArt` (`prototypes/research-lead-v2/src/artifacts/SampleStages.tsx:1
 **AUD2. Body.** Tests: `AudienceStep.test.tsx`: the table lists the saved filters with the catalogue
 version; a missing preview says why. Depends on `input-interactions#5`.
 
+AUD2, part 1 (research stages v73, spec `vzorek/A1`, R4): one choice, "Koho mají výsledky
+reprezentovat?", of Celá ČR 18+, Zúžit and Najít ve výsledcích, the last disabled with its reason. The
+source and population questions are gone; a choice writes `analytics` / `cz18` (`normalizeEntry`), so
+`audienceReady` is unchanged. A study stored as an own dataset, a special group or a Discover opens
+readable and says what is kept (`keptPaths`); a stored subpanel reads as Zúžit (`strategyOf`). A
+choice starts afresh as a preset change does (`chooseStrategy` over `presetReset`, OI-51 (a), "Clear
+both"), so leaving a subpanel for Celá ČR 18+ no longer keeps its support figures, and keeps a
+description the person wrote. Since the subpanels and the filter editor now share Zúžit, a filter
+edit on a chosen subpanel leaves it behind (`detachSubpanel`: its name and support figures go, the
+description stays; a study on the classic's special path is written as ČR 18+, so its filters stay
+Zúžit's), because compile records `builtin_subpanel` (Codex on #1000). The
+description is written in place (§01, `setAudienceDescription`) and the AI proposal asks about it.
+The built-in subpanels move under Zúžit as they are (radio cards; "Hotové skupiny" chips are AUD10).
+The strategy stays three radio cards, not the spec's segmented chips: a chips group chooses as the
+arrows move (I3), and an arrow from Zúžit to Celá ČR 18+ would clear the filters (the reason B9 kept
+cards). Tests: `AudienceStep.test.tsx` ("offers three strategies…", "a study stored as own, special or
+discover opens readable…"), `audience.live.test.ts` ("one strategy choice"), the audience and
+workspace journeys. Part 2 is the filter rows (`vzorek/A3`).
+
+**AUD9, as delivered (research stages v73, spec `vzorek/A5`; chunk added by the build plan).**
+Proveditelnost is asked again 400 ms after the last change of the filters or n
+(`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
+answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
+rows of the population's), "Vzorek" (the stored n, linked to Vzorek, where it is set since #945, through next/link so a pending save and the Lead's pane survive; Codex on #1002) and
+"Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
+(representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
+"kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the
+code knows. A count not answered reads "nezjištěno", never 0. Cost: one POST per settled change; the
+journey prints each preview's time on the machine it runs on. Open before merge: the p95 on develop
+(build plan). Tests: `useAudiencePreview.test.ts`, `audience.live.test.ts` ("Lze vytáhnout…"),
+`AudienceStep.test.tsx` ("Proveditelnost counts the audience in AIA without a click…"), the audience
+journey.
+
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
   population, counts only.

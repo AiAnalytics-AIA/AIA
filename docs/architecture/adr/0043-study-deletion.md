@@ -1,7 +1,8 @@
 # ADR 0043 — Deleting a study or a client: content gone, ledgers kept under a tombstone; a study hidden for 7 days first
 
 **Status:** Accepted — 2026-10-26, by the product owner ("Q1 (b) 7-day window; Q2-Q8 as
-recommended; accept ADR 0043"). Proposed 2026-10-25; its study-specific decisions are the
+recommended; accept ADR 0043"); confirmed the same day in the Decision Review (the product owner,
+relayed by the PM coordinator), answer by answer, below. Proposed 2026-10-25; its study-specific decisions are the
 recommendations of `study-deletion` Q1-Q8, which he adopted unchanged (SD0).
 **Records** the owner's rule of 2026-10-22 for a client's deletion (settings-backends SB5, #850 @
 46fc909f), which no ADR holds today. **Builds on** [ADR 0031](0031-production-environment.md) §5
@@ -37,14 +38,24 @@ delete, and an archived study is still found by project memory and opened by id
    through the same erase as decision 1, and writes the purge to the deletion journal. MVPQ-07's 30
    days count from the person's click, so the S3 noncurrent-version lifecycle is 23 days. A client's
    deletion stays immediate (SB5).
-4. **Who.** Any member deletes a study that is not `DELIVERED` and holds no approved report; an
-   OWNER or ADMIN deletes or restores one that does, and any client.
+4. **Who.** Any member deletes a study that is not `DELIVERED` and holds no approved report or
+   client report; an OWNER or ADMIN deletes or restores one that does, and any client.
 5. **Refused while money or work is open.** A run that has not ended or a `RESERVED` hold refuses
-   the deletion by name; the person cancels first.
+   the deletion by name; the person cancels first. On deletion the study's budget and wallet close;
+   their ledgers stay (decision 1).
 6. **A confirmation is not erased.** A respondent system's holdout confirmation is kept content-free
    under the tombstone, so a deletion never frees a system to be confirmed again.
 7. **Readers say what is gone.** A citation of a deleted study (design reuse, knowledge provenance,
    audit) shows its id and the words smazaná studie, never a link or a guessed name.
+8. **Counted first, nothing lost by surprise.** The confirmation counts what goes and offers each
+   approved report's download before the person confirms; then all of the study's content goes.
+9. **Client knowledge.** The study's pending proposals and its knowledge selection go; accepted
+   knowledge stays, the client's, its provenance reading smazaná studie.
+10. **Project memory and reuse.** A deleted study is gone from project-memory search and from reuse
+    at once; a study that reused its design keeps its copy and citation, marked "source deleted"
+    (Zdrojová studie byla smazána), with no link.
+11. **Where.** "Smazat studii…" in the study's status menu, a dialog with the counts, a toast with
+    Vrátit, and a Smazané studie view with Obnovit.
 
 ## What stays out
 
@@ -76,4 +87,14 @@ SD11 with SDL6 (a restore replays the purge).
 
 ## Open for Nigel
 
-`study-deletion` Q1-Q8.
+None. `study-deletion` Q1-Q8 are answered (2026-10-26). The Decision Review the same day (relayed by
+the PM coordinator) gave: Q1 (b) "Hidden for 7 days, then purged" (backups expire 23 days later, so
+MVPQ-07's 30 days count from the click); Q2 (c) "Any member, unless the study is delivered or holds an
+approved or client report; then OWNER/ADMIN"; Q3 (c) "All go, after showing the counts and offering
+the approved reports to download first"; Q4 (a) "Keep it, without content"; Q5 (a) "Refuse while a
+run is live or money is held; budget and wallet close, ledgers stay"; Q6 (a) "Its pending proposals
+and its knowledge selection go; accepted knowledge stays, marked 'smazaná studie'"; Q7 (a) "Gone from
+search and reuse; a study that reused it keeps its copy and citation, marked 'source deleted', with
+no link"; Q8 (a) "'Smazat studii…' in the study's status menu"; and REV-SD-F1-NOW (a) "Yes, a small fix
+PR now": decision 6's client half (OI-232) is built ahead of the plan as its own small PR
+(`study-deletion#SD7`).

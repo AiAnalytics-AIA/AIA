@@ -8,6 +8,13 @@ from types import SimpleNamespace
 from typing import Any
 
 from aia_core.domain.ai_contracts import ModelCallFailed, validate_structured_output
+from aia_core.domain.ai_models import (
+    DEFAULT_REQUEST_PROFILE,
+    Effort,
+    RequestProfile,
+    StructuredOutput,
+    ThinkingMode,
+)
 from aia_core.domain.ai_respondent import block_contract, fictional_roster, plan_respondent
 from aia_core.domain.fieldwork_events import (
     FIELDWORK_EVENTS_VERSION,
@@ -48,7 +55,9 @@ class _Caller:
         self.requests: list[Any] = []
 
     def preflight(self, request: Any) -> Any:
-        return SimpleNamespace(route_id="route-x", model="model-x")
+        return SimpleNamespace(
+            route_id="route-x", model="model-x", request_profile=DEFAULT_REQUEST_PROFILE
+        )
 
     def invoke(self, request: Any) -> Any:
         self.requests.append(request)
@@ -150,6 +159,48 @@ def test_plans_from_elsewhere_are_answered_block_by_block_and_drawn_by_code() ->
         "message": FieldworkEvent.PROGRESS,
         **progress(respondents=len(plans), of=len(plans), sent=len(caller.requests), replayed=0),
     }
+
+
+def test_a_model_that_takes_no_sampling_is_sent_no_temperature_and_named_with_its_profile() -> None:
+    """The resolved model's profile decides the temperature (sonnet-5-5-switch): none for a
+    model that refuses sampling, which would refuse the request unsent. The respondent system
+    names the profile with the model, so its fingerprint and the replay key move with it."""
+    caller = _Caller()
+    fieldwork, spec, plans = _setup(caller)
+
+    def answer() -> Answered:
+        answered = fieldwork.answer_plans(
+            plans,
+            spec,
+            _Context(),  # type: ignore[arg-type]
+            seed=7,
+            response=AIA_RESPONSE_V1,
+            data_class=DataClass.CLASS_C_INTERNAL,
+            lineage=DataLineage(datasets=frozenset({"synthetic"})),
+        )
+        assert isinstance(answered, Answered)
+        return answered
+
+    sampled = answer()
+    assert {r.temperature for r in caller.requests} == {0.0}
+    assert fieldwork.binding(sampled.resolution) == "aws_bedrock/model-x/route-x"
+
+    profile = RequestProfile(
+        structured_output=StructuredOutput.AUTO_TOOL,
+        thinking=ThinkingMode.ADAPTIVE,
+        accepts_sampling=False,
+        effort=Effort.LOW,
+    )
+    caller.preflight = lambda request: SimpleNamespace(  # type: ignore[method-assign]
+        route_id="route-x", model="model-x", request_profile=profile
+    )
+    caller.requests.clear()
+    unsampled = answer()
+    assert caller.requests and {r.temperature for r in caller.requests} == {None}
+    assert fieldwork.binding(unsampled.resolution) == (
+        "aws_bedrock/model-x/route-x#auto_tool,adaptive,no_sampling,effort=low"
+    )
+    assert unsampled.rows == sampled.rows, "the same outputs draw the same answers"
 
 
 def test_each_draw_is_recorded_beside_the_answers_it_gave() -> None:
@@ -304,7 +355,9 @@ def test_another_model_or_route_asks_again_rather_than_replay() -> None:
     fieldwork, spec, plans = _setup(_Caller())
     _answer(fieldwork, spec, plans, journal, "RUN-1")
     other = _Caller()
-    other.preflight = lambda request: SimpleNamespace(route_id="route-y", model="model-y")  # type: ignore[method-assign]
+    other.preflight = lambda request: SimpleNamespace(  # type: ignore[method-assign]
+        route_id="route-y", model="model-y", request_profile=DEFAULT_REQUEST_PROFILE
+    )
     fieldwork, spec, plans = _setup(other)
     _answer(fieldwork, spec, plans, journal, "RUN-2")
     assert len(other.requests) == sum(len(p.blocks) for p in plans)

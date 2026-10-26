@@ -127,7 +127,8 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}, mayAdmi
         "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: mayAdminister, currency: "USD", people: [] }),
         ...overrides,
       };
-      const answer = routes[`${method} ${u.split("?")[0]}`]?.(body) ?? {};
+      // A route may answer with a promise, so a test can hold one read open.
+      const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
     }),
   );
@@ -1295,7 +1296,9 @@ describe("the settings tabs", () => {
       expect(isOpen(other)).toBe(false);
     }
     // Each section is named by its own h1.
-    expect(panelOf("Metodika").getAttribute("aria-labelledby")).toBe("section-methodology-h");
+    // The section is named by its title, which its hero (F18) draws as the page's one h1.
+    expect(panelOf("Metodika").getAttribute("aria-label")).toBe("Metodika");
+    expect(within(panelOf("Metodika")).getByRole("heading", { level: 1 }).textContent).toBe("Metodika");
   });
 
   it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
@@ -1569,6 +1572,149 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     expect(screen.getByText(/zbývá 7,29 USD/)).toBeTruthy();
     expect(screen.queryByText("12.714524700000009")).toBeNull();
   });
+
+describe("each page's hero (F18)", () => {
+  beforeEach(() => { window.history.replaceState(null, "", "/app/settings"); });
+  const figures = (name: string) => [...panelOf(name).querySelectorAll("[data-hero] dl > div")].map((d) => `${d.querySelector("dt")?.textContent}=${d.querySelector("dd")?.textContent}`);
+
+  it("heads Přístup with its group, title, lede and the figures its reads give", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER", methodologist: true },
+        { user_id: "USR-2", email: "b@example.test", display_name: "", is_active: true, organization_role: "RESEARCHER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z" },
+      ],
+      "GET /api/v1/self-approval": () => ({ organization: true, clients: [], studies: [] }),
+    });
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    await waitFor(() => expect(figures("Přístup a schvalování")).toEqual([
+      "Aktivní členové=1", "Deaktivovaní=1", "Metodik=1", "Klienti=1", "Samoschválení v organizaci=povoleno",
+    ]));
+    const hero = panelOf("Přístup a schvalování").querySelector("[data-hero]") as HTMLElement;
+    expect(hero.querySelector("[data-hero-eyebrow]")?.textContent).toBe("Tým a peníze");
+    expect(within(hero).getByRole("heading", { level: 1 }).textContent).toBe("Přístup a schvalování");
+    // The head keeps its one lede, its chips and the page's one switch.
+    expect(hero.querySelectorAll("[data-tab-lede]")).toHaveLength(1);
+    expect(hero.querySelector("[data-tab-chips]")).toBeTruthy();
+  });
+
+  it("says unknown for a figure whose read failed, never 0, and draws no figures where none are wired", async () => {
+    api({ "GET /api/v1/clients": () => new Response('{"code":"http_500","message":"x"}', { status: 500 }) });
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    await waitFor(() => expect(figures("Přístup a schvalování")).toContain("Klienti=neznámé"));
+    expect(panelOf("Přístup a schvalování").querySelector('[data-hero-figure="unknown"]')).toBeTruthy();
+    // Metodika's figures are its own panel's, not wired yet: no row, nothing claimed.
+    expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
+  });
+
+  const SMOKE = () => ({ latest: { run_id: "r1", build_sha: "abc", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
+    { check: "Sign-in", status: "ok" }, { check: "Bedrock", status: "FAIL" },
+  ] } });
+  const WEB_BUILD = () => ({ ...CONFIG(), build: { sha: "a1c4e9f2b7d3" } });
+
+  it("heads Stav systému with the figures its own panel hands up", async () => {
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=1 / 2", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+  });
+
+  it("hands Stav systému's figures up only once the Environment card has read, never unknown above Načítám", async () => {
+    // Review of #1009 (P2): the smoke run answered, /api/v1/health not yet.
+    let release: (v: unknown) => void = () => {};
+    const health = new Promise((resolve) => { release = resolve; });
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD, "GET /api/v1/health": () => health });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    const panel = panelOf("Stav systému");
+    await waitFor(() => expect(called("GET", "/api/v1/settings/system-status")).toHaveLength(1));
+    await waitFor(() => expect(panel.querySelector("[data-copy-diagnostics]")).toBeTruthy());
+    expect(within(panel.querySelector("[data-system-environment]") as HTMLElement).getByText("Načítám…")).toBeTruthy();
+    expect(panel.querySelector("[data-hero] dl")).toBeNull();
+    await act(async () => { release({ status: "ok", build: { sha: null } }); });
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=1 / 2", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+  });
+
+  it("says Připraveno unknown when no smoke run is stored, never 0", async () => {
+    api({ "GET /api/v1/settings/system-status": () => new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }), "GET /config": WEB_BUILD });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")).toEqual(["Připraveno=neznámé", "Prostředí=develop", "Sestava webu=a1c4e9f"]));
+    expect(panelOf("Stav systému").querySelector('[data-hero-figure="unknown"]')).toBeTruthy();
+  });
+
+  it("keeps Stav systému's figures on its own page: another page draws none of them", async () => {
+    api({ "GET /api/v1/settings/system-status": SMOKE, "GET /config": WEB_BUILD });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    await waitFor(() => expect(figures("Stav systému")[0]).toBe("Připraveno=1 / 2"));
+    await openSection("Metodika");
+    expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
+    expect(panelOf("Správa dat").querySelector("[data-hero] dl")).toBeNull();
+  });
+
+  it("draws no Stav systému figures for someone who is not an administrator", async () => {
+    api({ "GET /api/v1/settings/system-status": SMOKE }, false);
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    expect(await within(panelOf("Stav systému")).findByText("Stav systému vidí vlastník nebo správce.")).toBeTruthy();
+    expect(panelOf("Stav systému").querySelector("[data-hero] dl")).toBeNull();
+    expect(called("GET", "/api/v1/settings/system-status")).toHaveLength(0);
+  });
+
+  it("counts the audit's week only when the page read it whole", async () => {
+    // The newest event is stamped now, not a minute ago: "a minute ago" is yesterday just after
+    // Prague's midnight, and the page counts today in Prague's day (review of #983).
+    const now = Date.now();
+    api({ "GET /api/v1/access-audit": () => [
+      { event_id: 2, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at: new Date(now).toISOString() },
+      { event_id: 1, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-2", role: null, reason: "", payload: {}, created_at: new Date(now - 30 * 86_400_000).toISOString() },
+    ] });
+    render(<ControlPanel />);
+    await openSection("Audit");
+    await waitFor(() => expect(figures("Audit").slice(0, 3)).toEqual(["Události · 7 dní=1", "Dnes=1", "Kdo měnil=1"]));
+  });
+
+  it("counts Dnes from the panel's newest read, so a reload past Prague's midnight agrees with the audit table", async () => {
+    // Settings left open over Prague's midnight (CET, UTC+1): a change reloads the panel, the mounted
+    // page stays, and its hero must count the new day as the table does (Codex on #983). Only the
+    // clock is faked; the session is stamped on it so it has not expired.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-26T22:30:00Z")); // 23:30 in Prague, 26 October
+      sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3 * 86_400_000, email: "owner@example.test", subject: "s" }));
+      const entry = (event_id: number, created_at: string) => ({ event_id, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at });
+      const yesterday = [entry(2, "2026-10-26T22:20:00Z"), entry(1, "2026-10-26T22:10:00Z")];
+      let reads = 0;
+      api({
+        "GET /api/v1/members": () => [
+          { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+          { user_id: "USR-3", email: "second@example.test", display_name: "Druhý", is_active: true, organization_role: "OWNER" },
+        ],
+        "POST /api/v1/members": (b) => ({ user_id: "USR-3", display_name: "Druhý", is_active: true, ...(b as object), organization_role: "ADMIN" }),
+        // The second read is after midnight: one event of the new day beside the two of the old.
+        "GET /api/v1/access-audit": () => (++reads === 1 ? yesterday : [entry(3, "2026-10-26T23:05:00Z"), ...yesterday]),
+      });
+      render(<ControlPanel />);
+      await openSection("Audit");
+      await waitFor(() => expect(figures("Audit")).toContain("Dnes=2"));
+      vi.setSystemTime(new Date("2026-10-26T23:10:00Z")); // 00:10 in Prague, 27 October
+      await openSection("Přístup a schvalování");
+      const roles = await screen.findByRole("radiogroup", { name: "Role: second@example.test" });
+      fireEvent.click(within(roles).getByRole("radio", { name: "správce" }));
+      await waitFor(() => expect(called("GET", "/api/v1/access-audit")).toHaveLength(2));
+      await openSection("Audit");
+      const audit = panelOf("Audit");
+      await waitFor(() => expect(within(audit).getByText(/Zobrazeno \d+ z 3 záznamů/)).toBeTruthy());
+      fireEvent.click(within(audit).getByRole("radio", { name: "Dnes" }));
+      expect(within(audit).getByText("Zobrazeno 1 z 3 záznamů")).toBeTruthy();
+      expect(figures("Audit")).toContain("Dnes=1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
 
 describe("usable settings controls", () => {
   it("changes a member's role where it is shown, offers Vrátit, and adds a new member as a researcher", async () => {

@@ -119,3 +119,29 @@ def test_a_closed_study_or_a_simulation_fixes_no_preregistration(
 def test_the_repository_needs_an_issued_study_context(session: Any) -> None:
     with pytest.raises(TypeError):
         HoldoutRepository(session, object())  # type: ignore[arg-type]
+
+
+def test_a_deleted_clients_confirmation_still_holds_its_system(
+    session: Any, prereg: Any, holdout: Any, scoped: Any
+) -> None:
+    # OI-232: a confirmation is a respondent system's once per organization. Deleting its
+    # client keeps the record (content-free), so a second Study cannot start confirming
+    # the same system and keep the run that passes.
+    from aia_core.infrastructure.holdout_repository import erase_client_holdouts
+    from aia_core.infrastructure.tables import HoldoutConfirmationRow
+
+    record = prereg()
+    first = holdout().record_preregistration(record)
+    holdout().record_confirmation(run_id="RUN-first0001", preregistration_sha256=first.sha256)
+    erase_client_holdouts(session, client_id=scoped.clients["primary"].client_id)
+
+    kept = session.get(HoldoutConfirmationRow, scoped.studies["primary"].study_id)
+    assert kept is not None and kept.run_id == "RUN-first0001"
+    gone = session.get(HoldoutPreregistrationRow, scoped.studies["primary"].study_id)
+    assert gone is not None and gone.content == b""  # the preregistration's content erased
+
+    other = holdout(study="other_client")
+    second = other.record_preregistration(record)
+    with pytest.raises(HoldoutRefused) as refused:
+        other.record_confirmation(run_id="RUN-second001", preregistration_sha256=second.sha256)
+    assert refused.value.reason == "holdout_system_confirmation_started"

@@ -90,6 +90,17 @@ def test_every_research_action_is_a_wired_slot() -> None:
     assert wired_prompt_ids() == expected  # nothing else claims to be editable yet
 
 
+#: The Lead's baseline prompt as each version sends it. A wording change without a version bump
+#: fails here, so Settings' baseline label and a turn's ``prompt_version`` never name two wordings
+#: (version 3: the select and filter instruction on Sociomapa, #992; the product owner, 2026-10-26).
+LEAD_BASELINE_SHA256 = {"3": "9df31859132e4b8afaf73c2d6dc3363b63f55e34a2dbbf16ce55d23e0ba2bbc8"}
+
+
+def test_the_lead_s_baseline_wording_changes_only_with_its_version() -> None:
+    sent = hashlib.sha256(lead_prompt().encode()).hexdigest()
+    assert LEAD_BASELINE_SHA256.get(LEAD_PROMPT_VERSION) == sent
+
+
 def test_the_research_lead_is_a_wired_slot_whose_baseline_is_the_prompt_the_code_sends() -> None:
     """ADR 0026: the Lead's prompt is pinned at enqueue through the same registry (ADR 0020)."""
     slot = get_slot(LEAD_PROMPT_ID)
