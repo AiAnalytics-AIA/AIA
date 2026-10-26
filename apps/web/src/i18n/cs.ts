@@ -981,10 +981,18 @@ export const cs = {
       },
       methodology: {
         // The catalogue the tab opens on (prototype v51, fidelity F4).
-        mvpNote: "MVP počítá Sociomapu jedinou metodou: aia-sociomap-5. Starší metody (-1 až -4), experimentální Sociomapping (H-Model) a referenční mapa 18.6.6 se zde nenabízejí; staré běhy je dál ukazují ve svých výsledcích.",
+        mvpNote: "MVP počítá Sociomapu jedinou metodou, aia-sociomap-5; starší běhy si své mapy ponechávají.",
         catalogue: "Moduly",
         catalogueCount: "{n} modulů · klikněte na modul pro jeho výpočet, verze a porovnání",
         back: "Metodika",
+        name: {
+          sociomap: "Sociomapa",
+          support: "Práh zobrazení",
+          aggregation: "Odhady a intervaly",
+          weighting: "Vážení vzorku",
+          response: "Losování odpovědí",
+          readiness: "Kontrola před spuštěním",
+        },
         oneLine: {
           sociomap: "Z hodnocení respondentů spočítá vztahy mezi objekty, rozloží je do mapy a ukáže, jak věrohodná mapa je, kde stojí respondenti a jaké má segmenty vkusu.",
           support: "Kishovo efektivní n, prahy pro potlačení a orientační hodnoty.",
@@ -1635,7 +1643,7 @@ export const cs = {
         },
         // Each tab's head as the prototype draws it (v51): one paragraph, who may change it in chips.
         lede: {
-          methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
+          methodology: "Jak AIA počítá, od odpovědí přes odhady až po mapu. Každý běh si metodu v platnosti připne, pozdější změna ho nepřepočítá.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
           deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
