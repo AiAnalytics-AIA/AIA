@@ -417,6 +417,9 @@ def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
         {"index": 2, "op": "filter", "reason": "not_in_context"},
     ]
     assert not _valid(_output(view=[{"op": "filter", "name": "threshold", "value": "0.3"}])).ok
+    # The panel has no labels or weak-links control: the Lead is not offered them.
+    assert not _valid(_output(view=[{"op": "filter", "name": "labels", "value": "off"}])).ok
+    assert not _valid(_output(view=[{"op": "filter", "name": "hide_weak", "value": "on"}])).ok
     assert not _valid(_output(view=[{"op": "filter", "name": "view", "value": "a b"}])).ok
 
 

@@ -1934,6 +1934,8 @@ the first, rebuilt on develop (the held branch predates #809 and conflicted in 1
   `select_refusal` (the person's own pointing only, `not_selectable` where the contract has no select)
   and `filter_refusal` (`unknown_value`; a battery `not_in_context`); the executor passes the turn's
   focus to `ground_view`; `filter_values` in `contract.json`, `FILTER_VALUES` on the server held to it
-  and to SOC1's; `select` and `filter` live on both sides; the scripted Lead runs both. Before it
-  opens, its filter values are trimmed to what the listener applies (`labels` and `hide_weak` out
-  unless the panel offers them).
+  and to SOC1's; `select` and `filter` live on both sides; the scripted Lead runs both. The Lead
+  is offered only what the panel applies (Sociomapa (2), 2026-10-26): `select`, `view`, `mode` and
+  `battery`; `labels` and `hide_weak` have no control on it and leave `MapFilter`, while the map's
+  own `FILTER_VALUES` (SOC1, the contract) keep them. A `battery` stays refused (`not_in_context`):
+  the Lead's context names no battery.

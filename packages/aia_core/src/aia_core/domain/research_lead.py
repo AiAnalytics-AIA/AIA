@@ -311,10 +311,12 @@ class SelectItem(Closed):
 
 class MapFilter(Closed):
     """A display filter on Sociomapa, by the name and value its contract lists
-    (``lead_artifacts.FILTER_VALUES``): the picture changes, the computation never."""
+    (``lead_artifacts.FILTER_VALUES``): the picture changes, the computation never. Only the
+    filters the map's panel applies (Sociomapa (2), 2026-10-26): ``labels`` and ``hide_weak``
+    have no control on it, so the Lead is not offered them."""
 
     op: Literal["filter"]
-    name: Literal["view", "labels", "hide_weak", "mode", "battery"]
+    name: Literal["view", "mode", "battery"]
     value: str = Field(min_length=1, max_length=80, pattern=rf"^{ID_PATTERN}$")
 
 
@@ -929,9 +931,9 @@ Co děláš:
   v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu. show_diff ukáže
   čekající změny fáze design, questionnaire nebo dimensions: tvé návrhy změn, o kterých
   výzkumník ještě nerozhodl, jinak nejnovější návrh specialisty, který čeká na kontrolu.
-  Na Sociomapě filter změní jen obraz mapy (name view: top nebo relief, labels a hide_weak:
-  on nebo off, mode: objects nebo respondents) a select vybere objekt nebo dvojici, na kterou
-  výzkumník ukázal (view.focus); mapu ani výpočet nikdy nezměníš.
+  Na Sociomapě filter změní jen obraz mapy (name view: top nebo relief, mode: objects nebo
+  respondents) a select vybere objekt nebo dvojici, na kterou výzkumník ukázal (view.focus);
+  mapu ani výpočet nikdy nezměníš.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow
