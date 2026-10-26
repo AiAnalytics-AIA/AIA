@@ -123,6 +123,62 @@ describe("the Dock rail", () => {
     expect(rail.hasAttribute("data-pointer")).toBe(false);
   });
 
+  it("is put away by Escape while the pointer holds it, focus on the page", () => {
+    answerLead({ hatched: true, lead: {} });
+    render(<AppShell title="Klienti"><button type="button">na stránce</button></AppShell>);
+    const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+    const onPage = screen.getByRole("button", { name: "na stránce" });
+    onPage.focus();
+    fireEvent.pointerMove(rail, { pointerType: "mouse" });
+    fireEvent.keyDown(onPage, { key: "Escape" });
+    expect(rail.hasAttribute("data-dismissed")).toBe(true);
+    expect(document.activeElement).toBe(onPage);
+  });
+
+  it("keeps the one Escape order: a layer the pointer's rail lies over closes on the next Escape, not the same one", () => {
+    answerLead({ hatched: true, lead: {} });
+    // A layer that takes Escape on the window, as the workbench's drawer does (D21), unless taken.
+    let layerOpen = true;
+    const layer = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      layerOpen = false;
+    };
+    window.addEventListener("keydown", layer);
+    try {
+      render(<AppShell title="Klienti"><button type="button">na stránce</button></AppShell>);
+      const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+      fireEvent.pointerMove(rail, { pointerType: "mouse" });
+      fireEvent.keyDown(screen.getByRole("button", { name: "na stránce" }), { key: "Escape" });
+      expect(rail.hasAttribute("data-dismissed")).toBe(true);
+      expect(layerOpen).toBe(true);
+      fireEvent.keyDown(screen.getByRole("button", { name: "na stránce" }), { key: "Escape" });
+      expect(layerOpen).toBe(false);
+      // And an Escape a handler already took is not read again by the rail.
+      fireEvent.pointerEnter(rail, { pointerType: "mouse" });
+      expect(rail.hasAttribute("data-dismissed")).toBe(false);
+      const taken = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      taken.preventDefault();
+      act(() => { document.body.dispatchEvent(taken); });
+      expect(rail.hasAttribute("data-dismissed")).toBe(false);
+    } finally {
+      window.removeEventListener("keydown", layer);
+    }
+  });
+
+  it("keeps Můj Vedoucí when the Lead is grown while the first read is still answering", async () => {
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL) => String(url).endsWith("/api/v1/lead")
+      ? new Promise<Response>((r) => { answer = r; })
+      : Promise.resolve(new Response("{}", { status: 200 }))));
+    render(<AppShell title="Můj Vedoucí"><p>obsah</p></AppShell>);
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled());
+    act(() => announceHatched());
+    await act(async () => answer(new Response(JSON.stringify({ hatched: false, lead: null }), { status: 200 })));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(document.querySelector("[data-rail-lead]")?.getAttribute("data-rail-lead")).toBe("mine");
+  });
+
   it("names the narrow menu button with the product and where you are", () => {
     answerLead({ hatched: true, lead: {} });
     render(<AppShell title="Klienti" client={{ id: "CLI-a", name: "Klient A" }}><p>obsah</p></AppShell>);

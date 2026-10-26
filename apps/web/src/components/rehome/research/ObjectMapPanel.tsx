@@ -600,7 +600,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                   <span className="omx-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
                     title={`${t(`${p}.filterTitle`)} ${changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}. ${t(`${p}.filterUnchanged`)}`}>
                     <b>{t(`${p}.filterChip`)}</b> {changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}<span className="sr-only">. {t(`${p}.filterUnchanged`)}</span>
-                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}>×</button>
+                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}><PhosphorIcon name="x" size={14} /></button>
                   </span>
                 ) : null}
               </span>
@@ -645,7 +645,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             {legendOpen ? (
               <div className="omx-legendwrap">
                 {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
-                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}>×</button>
+                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}><PhosphorIcon name="x" size={14} /></button>
               </div>
             ) : (
               <button type="button" className="omx-legendchip omx-glass" aria-expanded={false} title={`${t(`${p}.legend`)} (L)`} onClick={() => setLegendOpen(true)}>
@@ -671,7 +671,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                     </div>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={t(`${p}.sheetFold`)} title={t(`${p}.sheetFold`)} onClick={() => setFolded(true)}>›</button>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={tv(`${p}.closeWindow`, { title: sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`) })} title={`${t(`${p}.sheetClose`)} (Esc)`}
-                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}>×</button>
+                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}><PhosphorIcon name="x" size={14} /></button>
                   </div>
                   <div className="omx-sheetbody" id={`${described}-sheet`} role="tabpanel" aria-labelledby={`${described}-tab-${sheetTab}`} data-testid={sheetTab === "detail" ? "object-map-detail" : undefined}>
                     {sheetTab === "detail" ? <h3 className="omx-sheettitle">{detailTitle}</h3> : null}
