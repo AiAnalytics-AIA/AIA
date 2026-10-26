@@ -508,7 +508,7 @@ export function droppedLines(dropped: { reason: string }[]): string[] {
 export function editStage(e: LeadEdit): WorkbenchStage {
   if (e.op === "set_text") return e.field.startsWith("plan.") ? "design" : "brief";
   if (e.op.startsWith("list_")) return "design";
-  if (e.op === "set_n") return "dimensions";
+  if (e.op === "set_n") return "sample"; // N is set on Vzorek (artifact-sample SMP7)
   return "questionnaire";
 }
 

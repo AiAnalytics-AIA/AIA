@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
- * Dimenze in a browser (artifact-dimensions DIM3, the start of DIM6): the sample size is one
- * stepper inside data-aia="sample:n", bounded by the server's limits; a press saves n plus the
- * step, a value outside the limits is refused at the field and nothing is saved.
+ * Dimenze in a browser (artifact-dimensions DIM6): in the workbench Dimenze has no sample size (DIM3b);
+ * on Vzorek it is one stepper inside data-aia="sample:n" (artifact-sample SMP7), bounded by the server's
+ * limits; a press saves n plus the step, a value outside the limits is refused at the field and nothing
+ * is saved.
  * A chosen dimension is removed from the selection itself by keyboard (each remove at least 24 px,
  * focus kept in the selection) and put back by Vrátit (DIM-F5, DIM-F7, DIM-F10). The client's own dimensions (DIM4) are read and lead to "Populace běhu". Inside the workbench
  * "Další" goes on to Vzorek, the navigator's next stage (DIM-F4).
@@ -73,8 +74,10 @@ try {
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(url);
-    await n().waitFor({ timeout: 30000 });
-    assert.equal(await page.locator('[data-aia="sample:n"] input[type="range"]').count(), 0, "no slider beside the stepper");
+    await page.getByRole("list", { name: "Vybrané dimenze" }).waitFor({ timeout: 30000 });
+    // DIM3b: in the workbench n is Vzorek's; Dimenze has no control for it, only the way there.
+    assert.equal(await page.locator('[data-aia="sample:n"], [role="spinbutton"]').count(), 0, `${width}: no sample size on Dimenze`);
+    assert.equal(await page.getByRole("button", { name: "Otevřít Vzorek" }).count(), 1, `${width}: the way to Vzorek`);
     const { w, d } = await page.evaluate(() => ({ w: innerWidth, d: document.documentElement.scrollWidth }));
     assert(d <= w + 2, `${width}: page overflow ${d} > ${w}`);
     // DIM-F5: a chosen dimension is removed from the selection itself, its target at least 24 px.
@@ -84,7 +87,7 @@ try {
       assert(box.width >= 24 && box.height >= 24, `${width}: a remove target is ${box.width}x${box.height}`);
     }
     await page.screenshot({ path: join(out, `dimensions-${width}.png`), fullPage: true });
-    check(`${width}: one stepper for n, the selection's remove targets 24 px or more, no overflow`);
+    check(`${width}: no sample size on Dimenze, the selection's remove targets 24 px or more, no overflow`);
   }
 
   const own = page.locator("section", { has: page.getByRole("heading", { name: "Vlastní dimenze klienta" }) });
@@ -123,31 +126,6 @@ try {
   await page.getByLabel("Hledat dimenzi").fill("");
   check("a search that matches nothing is said in a status that was rendered before it");
 
-  const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
-  const max = Number(await n().getAttribute("aria-valuemax"));
-  assert(Number.isFinite(before) && before + 50 <= max, `n ${before} can step up within ${max}`);
-  restore = before;
-  put = saved();
-  await page.getByRole("button", { name: /^Zvýšit/ }).click();
-  await put;
-  assert.equal(await n().getAttribute("aria-valuenow"), String(before + 50));
-  check("a press saves n + 50");
-
-  const puts = writes.length;
-  await n().fill(String(max + 1));
-  await n().press("Enter");
-  await page.getByRole("alert").filter({ hasText: "neuloženo" }).waitFor();
-  assert.equal(await n().getAttribute("aria-invalid"), "true");
-  await page.waitForTimeout(2500); // past the store's 1.8 s save
-  assert.equal(writes.length, puts, "a refused n saves nothing");
-  check("a value above the limits is refused at the field, nothing saved");
-
-  // Put n back while Dimenze is on screen; "Další" then leaves it for Vzorek.
-  await n().fill(String(restore));
-  const back = saved();
-  await n().press("Enter");
-  await back;
-  restore = null;
   const done = saved();
   await page.getByRole("button", { name: "Další · Vzorek" }).click();
   await page.waitForFunction(() => location.hash === "#sample");
@@ -156,6 +134,40 @@ try {
   assert.equal(new URL(page.url()).pathname, `/app/clients/${client}/research/${study}/dimensions`);
   await done; // the persona_done save the click started, before the writes are judged
   check("inside the workbench, Další goes on to Vzorek, its heading focused");
+
+  // SMP7: n is set on Vzorek, one stepper bounded by the server's limits, no slider.
+  await n().waitFor({ timeout: 30000 });
+  assert.equal(await n().count(), 1, "one stepper for n on Vzorek");
+  assert.equal(await page.locator('[data-aia="sample:n"]').count(), 1, "sample:n on one element");
+  assert.equal(await page.locator('[data-aia="sample:n"] input[type="range"]').count(), 0, "no slider beside the stepper");
+  // At the loop's last width, a phone's: every control of n a 44 px touch target (I11).
+  assert.equal(page.viewportSize().width, 390);
+  const short = await page.locator('[data-aia="sample:n"]').locator("button, input").evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().height < 44).map((e) => e.getAttribute("aria-label") ?? e.textContent));
+  assert.deepEqual(short, [], "n's controls are 44 px targets at 390 px");
+  const before = Number((await n().getAttribute("aria-valuenow")) ?? NaN);
+  const max = Number(await n().getAttribute("aria-valuemax"));
+  assert(Number.isFinite(before) && before + 50 <= max, `n ${before} can step up within ${max}`);
+  restore = before;
+  put = saved();
+  await page.getByRole("button", { name: /^Zvýšit/ }).click();
+  await put;
+  assert.equal(await n().getAttribute("aria-valuenow"), String(before + 50));
+  check("on Vzorek at 390 px, n's controls 44 px targets, and a press saves n + 50");
+
+  const puts = writes.length;
+  await n().fill(String(max + 1));
+  await n().press("Enter");
+  await page.getByRole("alert").filter({ hasText: "neuloženo" }).waitFor();
+  assert.equal(await n().getAttribute("aria-invalid"), "true");
+  await page.waitForTimeout(2500); // past the store's 1.8 s save
+  assert.equal(writes.length, puts, "a refused n saves nothing");
+  check("on Vzorek, a value above the limits is refused at the field, nothing saved");
+
+  await n().fill(String(restore));
+  const back = saved();
+  await n().press("Enter");
+  await back;
+  restore = null;
 
   const paid = writes.filter((x) => !/\/workspace\/(content|stage)$/.test(x.path));
   assert.deepEqual(paid, [], "only the working copy is written: no run, job or request");

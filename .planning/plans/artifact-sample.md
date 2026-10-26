@@ -13,7 +13,7 @@ chunks:
   - "[ ] SMP5b. §04 one line for the default source; 'Sběr dat' as the stage's one name (reopens SMP5; spec vzorek V7; W1)"
   - "[ ] SMP10. Readiness FAILs while the run's ceiling exceeds what is left of Rozpočet studie, the remedy raising the budget or lowering N (B1 (a), Nigel 2026-10-26; spec vzorek V5, OQ3; W1, on lead-orchestration LO23)"
   - "[ ] SMP6b. The Vzorek journey extended: N stepped and read back, the Lead's focus, zero paid (reopens SMP6; spec vzorek V8; W1)"
-  - "[ ] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"
+  - "[x] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"
   - "[ ] SMP8. The run's ceiling and the study's remainder beside N (spec vzorek V2; W1)"
   - "[ ] SMP9. The server's reportable_n and 'Zvýšit na N x · strop +Δ USD'; the browser's own recommendation removed (spec vzorek V3; W1)"
 ---
@@ -230,7 +230,13 @@ follow-up chunk below.
 
 **SMP6b. Journey** (spec `vzorek/V8`; reopens SMP6; W1, lane E). After SMP7-SMP9.
 
-**SMP7. N on Vzorek** (spec `vzorek/V1`; W1, lane E). Nigel, 26 Oct 2026 (P1): N is set on Vzorek, "this stage has to do with setting up the AI respondents". One PR with `artifact-dimensions#DIM3b`, so N is never on neither stage. The contract's `sample.edits` becomes true and `set_n` is shown here. Bounds from `/research/limits` (server 20-10 000; register contradiction 14 with `input-interactions#5`'s 50-5000), never clamped. Test: a refused n saves nothing; Dimenze has no n control.
+**SMP7. N on Vzorek** (spec `vzorek/V1`; W1, lane E). Nigel, 26 Oct 2026 (P1): N is set on Vzorek, "this stage has to do with setting up the AI respondents". One PR with `artifact-dimensions#DIM3b`, so N is never on neither stage. The contract's `sample.edits` becomes true and `set_n` is shown here. Bounds from `/research/limits` (server 20-10 000; register contradiction 14 with `input-interactions#5`'s 50-5000), never clamped. Test: a refused n saves nothing; Dimenze has no n control. Done with DIM3b: §01's "Velikost vzorku" is the stepper (`SampleSize.tsx`,
+the one Dimenze used, bounded by `/research/limits`, a refused n saved nothing), "Upravit v Dimenzích" gone;
+`ARTIFACTS.sample.edits` true (`domain/lead_artifacts.py`, `lib/workbench-artifacts.ts`, the contract
+fixture) and the Lead's `set_n` shown on Vzorek (`lib/lead.ts` editStage); `ARTIFACTS.dimensions.edits`
+stays true (WCE10's `dimensions_set`). The browser's recommendation stays beside N until SMP9. Tests:
+"sets n on Vzorek…" (ResearchScreen.workbench), `lead.test.ts` (set_n → sample), `workbench_journey.mjs`
+and `dimensions_journey.mjs` (n stepped on Vzorek, 44 px at 390).
 
 **SMP8. Ceiling beside N** (spec `vzorek/V2`; W1, lane E). Unknown never zero.
 

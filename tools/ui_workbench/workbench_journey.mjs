@@ -8,7 +8,7 @@
  * (the split, the side drawer and the sheet, research-lead-workbench 26b-26c): no page overflow,
  * nothing remounted across 1100 or 768 px, the Lead opened from the launcher and closed by Escape, the eleven stages in six phases, the separator by
  * keyboard, the focus modes, the stage navigation (Výsledky's views by hash), Návrh's research
- * questions with their coverage at 1440, 1100, 768 and 390 px, Vzorek read only with the server's
+ * questions with their coverage at 1440, 1100, 768 and 390 px, Vzorek (n set there) with the server's
  * forecast at the same four widths, and that nothing
  * paid starts: no research run, agent job, Deep Research run or Lead request approval.
  */
@@ -164,7 +164,7 @@ try {
   if (draft) await page.locator("#composer").fill("");
   check(`navigator opens Návrh, Dotazník, Cílová skupina and Dimenze on their routes, the Lead's pane${draft ? " and draft" : ""} kept (${switches.map((s) => `${s.stage} ${s.ms} ms`).join(", ")})`);
 
-  // Vzorek is a read-only view over Dimenze and Kontrola, on Dimenze's route.
+  // Vzorek is a view on Dimenze's route: the sample size set there (SMP7), the rest read only.
   await page.locator(".nav__stage", { hasText: "Vzorek" }).click();
   await page.waitForFunction(() => location.hash === "#sample");
   await page.locator("[data-sample-view]").waitFor();
@@ -172,7 +172,7 @@ try {
   await page.locator(".nav__stage", { hasText: "Dimenze" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Dimenze" }).waitFor();
   assert.equal(await page.locator("[data-sample-view]").count(), 0, "back on Dimenze, not Vzorek");
-  check("Vzorek shows the sample read only, and Dimenze is one click back");
+  check("Vzorek shows the sample, and Dimenze is one click back");
 
   // Výsledky's views are the hash ResultsWorkspace reads.
   await page.locator(".nav__stage", { hasText: "Sociomapa" }).click();
@@ -347,8 +347,8 @@ try {
   }
   check("Cílová skupina names its description, filters, factors and preview at 1440, 1100, 768 and 390; each filter's remove button a 24 px target");
 
-  // Vzorek (artifact-sample SMP6): read only, at every width. Its forecast is the server's, labelled
-  // a forecast, on the revision it was read on; nothing on it sets n or starts anything.
+  // Vzorek (artifact-sample SMP6, SMP7), at every width: n is set here and nothing else. Its forecast
+  // is the server's, labelled a forecast, on the revision it was read on; nothing on it starts anything.
   const submitsBefore = writes.filter((w) => /\/design\/revisions$/.test(w.path)).length;
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
@@ -361,12 +361,15 @@ try {
     // the empty state ("odhad není") or a failed read is a failure here, never a pass.
     await forecast.getByText(/Podle pracovní kopie|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });
     assert.equal(await forecast.getByText(/Podle pracovní kopie, revize \d+/).count(), 1, `Vzorek's forecast read on the working revision @${width}`);
-    // Read only: no editable surface of any kind, and every button one of its navigation links.
+    // Read only but for the sample size (artifact-sample SMP7): no other editable surface, and every
+    // other button one of its navigation links.
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
-    assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    const outsideN = (sel) => sample.locator(sel).evaluateAll((els) => els.filter((e) => !e.closest('[data-aia="sample:n"]')).map((e) => (e.textContent ?? "").trim()));
+    assert.equal((await outsideN(editable)).length, 0, `Vzorek has no editable control but n @${width}`);
+    assert.equal(await sample.locator('[data-aia="sample:n"] [role=spinbutton]').count(), 1, `Vzorek sets n @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
-    const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
+    const NAVIGATION = new Set(["Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
+    const buttons = await outsideN("button, [role=button]");
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
@@ -384,7 +387,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Pokračovat na Sběr dat" }).click();
   await page.locator(".nav__stage.is-current", { hasText: "Sběr dat" }).waitFor();
-  check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only, no overflow; Sběr dat one click away");
+  check("Vzorek: size, the server's forecast and readiness on the working copy at 1440, 1100, 768 and 390, nothing submitted, read only but n, no overflow; Sběr dat one click away");
 
   // Spuštění (artifact-fieldwork F-FLD-3, F-FLD-4, F-FLD-5): every link of the stage is the input
   // standard's touch target (44 px at a phone's width, 32 px from 640 px; I11), and "Co spustíte"

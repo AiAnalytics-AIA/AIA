@@ -7,7 +7,7 @@ chunks:
   - "[ ] DIM4. Vlastní dimenze klienta: a requested dimension materialized as the client's owned child, its outcome, and the run it feeds"
   - "[ ] DIM5. The Lead on Dimenze: suggest_dimensions as a card, its proposal inline, the stage's AI start removed"
   - "[ ] DIM6. Journey: Dimenze at 1440, 1100, 768 and 390 px, zero paid jobs"
-  - "[ ] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
+  - "[x] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
   - "[ ] DIM7. 'podpoří …' per dimension and §01 'Co dimenze podpoří', from the persona-topic feeds (spec vzorek D3; W2, blocked on master I5)"
   - "[ ] DIM8. The dead 'Faktory společnosti' card and the AI suggestion card removed (spec vzorek D6; W2)"
 ---
@@ -234,7 +234,12 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**DIM3b. N leaves Dimenze** (spec `vzorek/D1`; reverses DIM3, which stays ticked; W1, lane F). Nigel, 26 Oct 2026 (P1). One PR with `artifact-sample#SMP7`.
+**DIM3b. N leaves Dimenze** (spec `vzorek/D1`; reverses DIM3, which stays ticked; W1, lane F). Nigel, 26 Oct 2026 (P1). One PR with `artifact-sample#SMP7`. Done in the PR with SMP7: inside the workbench Dimenze has no sample size,
+its intro line opens Vzorek and the dock counts "N dimenzí včetně sociodemografie"
+(`PersonaStep.tsx`, `nOnVzorek`); the stepper is `SampleSize.tsx`, shared with Vzorek. The classic layout
+(the workbench switch off) has no Vzorek, so there the stepper stays on Dimenze: n is never on neither
+stage. Tests: "inside the workbench has no sample size control; it links to Vzorek…" (PersonaStep), "sets n
+on Vzorek, within the server's limits, and not on Dimenze" (ResearchScreen.workbench), `dimensions_journey.mjs`.
 
 **DIM7. What a dimension supports** (spec `vzorek/D3`, no backend; W2, lane F). Blocked on the methodology interface (master I5) and `research_trace`.
 

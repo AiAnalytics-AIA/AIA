@@ -100,7 +100,8 @@ try {
     await forecast.getByRole("heading", { name: /^Opora výsledků/ }).waitFor({ timeout: 30000 });
     assert.equal(await forecast.getByRole("heading", { name: "Opora výsledků: neznámé" }).count(), 0, `the panel's forecast is known @${width}`);
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
-    assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
+    const editableOutsideN = await sample.locator(editable).evaluateAll((els) => els.filter((e) => !e.closest('[data-aia="sample:n"]')).length);
+    assert.equal(editableOutsideN, 0, `Vzorek has no editable control but n (SMP7) @${width}`);
     // The input standard's touch target (I11, WCAG 2.5.8): 44 px at a phone's width, 32 px from
     // 640 px, for every control that stands on its own (one inside a sentence is exempt).
     const floor = width < 640 ? 44 : 32;

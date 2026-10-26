@@ -3,7 +3,7 @@
 // 23): no AI pomoc, no stage "Navrhnout", no job dialog; each stage says to ask the Lead instead.
 // Spuštění's own Start is not a worker start and stays. A file of its own: the workbench switch,
 // once read, is kept for the page, so it would leak into the classic layout's tests.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
@@ -40,6 +40,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
       : u === CONTENT_PATH ? { state: "NATIVE", revision: 3, revision_id: "REV-3", deduplicated: false }
       : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
+      : u.endsWith("/research/limits") ? { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } }
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
       : u.endsWith("/research/agent-jobs") ? (String(url).includes("pending=true") ? pendingAnswer : [])
@@ -156,6 +157,31 @@ describe("the workbench: the Lead owns the AI starts", () => {
     // The Lead answers with its card; nothing paid starts from the stage.
     expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
   });
+
+  it("sets n on Vzorek, within the server's limits, and not on Dimenze (artifact-sample SMP7, artifact-dimensions DIM3b)", async () => {
+    api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", n: 350 });
+    window.location.hash = "#sample";
+    try {
+      render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      const view = await screen.findByLabelText("Vzorek", { selector: "[data-sample-view]" });
+      const field = () => within(view).getByRole("spinbutton", { name: "Počet respondentů" });
+      await within(view).findByRole("spinbutton", { name: "Počet respondentů" });
+      expect(field().closest("[data-aia='sample:n']")).not.toBeNull();
+      expect(document.querySelectorAll("[data-aia='sample:n']")).toHaveLength(1);
+      expect(within(view).queryByRole("button", { name: "Upravit v Dimenzích" })).toBeNull();
+      fireEvent.click(within(view).getByRole("button", { name: "Zvýšit: Počet respondentů" }));
+      await waitFor(() => expect((bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { n?: unknown } | undefined)?.n).toBe(400), { timeout: 10_000 });
+      // The Stepper remounts on the saved value; the field is read again.
+      const puts = bodies.length;
+      fireEvent.change(field(), { target: { value: "10001" } });
+      fireEvent.blur(field());
+      expect((await within(field().closest("[data-aia='sample:n']") as HTMLElement).findByRole("alert")).textContent).toMatch(/neuloženo/);
+      await new Promise((r) => setTimeout(r, 2_100)); // past the store's 1.8 s save
+      expect(bodies.slice(puts).filter((b) => b.url === `PUT ${CONTENT_PATH}` && (b.body.content as { n?: unknown }).n === 10001)).toEqual([]);
+    } finally {
+      window.location.hash = "";
+    }
+  }, 30_000);
 
   it("keeps Spuštění's own Start: a research run is not a worker start", async () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
