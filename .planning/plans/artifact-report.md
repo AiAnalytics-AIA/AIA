@@ -926,7 +926,19 @@ or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Var
 is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
 card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with the card in RPT3c / RPT11.
 
-**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked. *Server half built
+(`feature/client-report-editor`):* the editor opens the run's stored client report (`variant: "client"`; 409
+`client_report_not_prepared` before one is stored, composing nothing; `report_editor_versions.variant` takes `client`,
+migration `184381bbcfef`); a save is `research_client_docx_edit`, approved as the client's (kind `client`, never
+`internal_only`), its authors with the run's starter as the composed client report's (RD8). Its checks
+(`report_approval.edited_client_warnings`): the line's composed draft's (RD0, RD7, from its stored document), then what
+the save changed in what code wrote (`client_gate.edited_client_gate`): a retyped or typed number `unadmitted_number`, a
+removed number or a copy under its own tag nothing, a save not comparable and the hand-written text `gate_unrecorded`
+(nothing reads prose for one respondent's words, so it is never passed). The version read answers them as `warnings`, the
+approval records them. Tests: `test_client_gate.py` (three edited cases), `test_the_client_report_opens_once_it_is_stored`,
+`test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients`. Open: the web half (the pane
+hands the client report to the editor, its doc bar and approval question show these warnings, an approved edited version
+downloaded as the client's); "only accepted findings reach it" is `artifact-chain-to-draft-report#CHN13`.
 
 **RPT14. uiTheme** (spec `szz/T5`; W3, lane G). *Built with RPT8c.1:* the config asks for `theme-aia`; the theme itself
 is served by `report-editor-hosting` 6, and until it is the Document Server shows its default theme.

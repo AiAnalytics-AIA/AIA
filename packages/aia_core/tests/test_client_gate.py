@@ -11,9 +11,15 @@ from typing import Any
 from report_samples import build
 
 from aia_core.domain.evidence.claims import ClaimLevel, ClaimSurface
-from aia_core.domain.report.client_gate import GateCode, client_gate
+from aia_core.domain.report.client_gate import GateCode, client_gate, edited_client_gate
 from aia_core.domain.report.document_model import document_payload
 from aia_core.domain.report.model import Paragraph, Quote, ReportDocument, Section, Value
+from aia_core.domain.report.saved_changes import (
+    ChangeKind,
+    SavedChange,
+    SavedChanges,
+    Uncomparable,
+)
 
 
 def _without_quotes(document: ReportDocument) -> ReportDocument:
@@ -97,3 +103,57 @@ def test_a_document_of_an_older_contract_is_not_judged_so_not_passed(report_ledg
     payload = document_payload(_without_quotes(build("client", report_ledger)))
     payload["contract"] = "aia-report-document-2"
     assert [(r.code, r.where) for r in client_gate(payload)] == [(GateCode.UNRECORDED, "report")]
+
+
+# -- a saved editor version of a client report (artifact-report RPT13) ------------------------
+
+
+def _edited(*changes: SavedChange, uncomparable: Uncomparable | None = None) -> list[Any]:
+    return [f.to_json() for f in edited_client_gate(SavedChanges(changes, uncomparable))]
+
+
+_TEXT = {
+    "code": "gate_unrecorded",
+    "where": "text",
+    "message": "text upravený v editoru AIA neověří; zkontrolujte, že necituje jednoho respondenta",
+}
+
+
+def test_a_retyped_or_typed_number_is_unadmitted_and_the_text_is_never_passed() -> None:
+    assert _edited(
+        SavedChange(ChangeKind.CHANGED, "trust_total", "42,5 %", "50 %"),
+        SavedChange(ChangeKind.TYPED, now="73 %", paragraph="Téměř tři čtvrtiny, 73 %, souhlasí."),
+    ) == [
+        {
+            "code": "unadmitted_number",
+            "where": "trust_total",
+            "message": "číslo přepsané ručně: 42,5 % → 50 %",
+        },
+        {
+            "code": "unadmitted_number",
+            "where": "text",
+            "message": "číslo 73 % napsané ručně mimo připuštěná čísla"
+            " („Téměř tři čtvrtiny, 73 %, souhlasí.…“)",
+        },
+        _TEXT,
+    ]
+
+
+def test_a_removed_number_or_a_copy_under_its_own_tag_prints_nothing_new() -> None:
+    assert _edited(
+        SavedChange(ChangeKind.REMOVED, "trust_total", was="42,5 %"),
+        SavedChange(ChangeKind.ADDED, "trust_total", now="42,5 %"),
+    ) == [_TEXT]
+
+
+def test_a_save_with_nothing_to_compare_is_unknown_never_passed() -> None:
+    # A clean save is still not a passed one: the text a person wrote is never judged.
+    assert _edited() == [_TEXT]
+    assert _edited(uncomparable=Uncomparable.NO_CONTROLS) == [
+        {
+            "code": "gate_unrecorded",
+            "where": "numbers",
+            "message": "čísla verze nelze porovnat s tím, co napsal kód; nelze je ověřit",
+        },
+        _TEXT,
+    ]

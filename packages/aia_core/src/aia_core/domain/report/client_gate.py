@@ -13,6 +13,16 @@ with the approval, so who approved past which warning is on record. Each names i
 * ``ledger_not_client_facing``: the document's numbers were admitted for another surface. The
   block checks still run over it, so a warning about the whole never hides one about a block.
 
+A version a researcher saved in the report editor (artifact-report RPT13; B2 (a), the product
+owner, 2026-10-26) has no document model: it is judged as its line's composed draft was, plus what
+the save changed in what code wrote (``saved_changes``), by :func:`edited_client_gate`:
+
+* a number code wrote that was retyped (``changed``), or a number typed outside every number code
+  wrote (``typed``), is ``unadmitted_number``: no admitted claim prints it;
+* a number removed, or a copy of one code wrote under its own tag, prints nothing new: no finding;
+* what the save could not be compared with is ``gate_unrecorded``, and so is the text a person
+  wrote: nothing reads hand-written prose for one respondent's words, so it is never passed.
+
 ``internal_source_cited`` waits for a chapter that cites a client source (RD11): no client
 report cites one yet, so there is nothing to read. It is not a legal-rights review either way.
 """
@@ -26,6 +36,10 @@ from typing import Any
 
 from aia_core.domain.evidence.claims import ClaimLevel, ClaimSurface
 from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT
+from aia_core.domain.report.saved_changes import ChangeKind, SavedChanges
+
+#: How much of the paragraph a typed number sits in a finding quotes.
+_EXCERPT = 60
 
 
 class GateCode(StrEnum):
@@ -92,4 +106,44 @@ def client_gate(document: Mapping[str, Any]) -> tuple[GateFinding, ...]:
                             GateCode.DRILL_DOWN, where, f"číslo {ref} čte jednoho respondenta"
                         )
                     )
+    return tuple(findings)
+
+
+def edited_client_gate(changes: SavedChanges) -> tuple[GateFinding, ...]:
+    """What a saved editor version of a client report adds to its line's composed draft's
+    findings (RPT13): its changed and typed numbers, and the text nothing judged."""
+    findings: list[GateFinding] = []
+    if not changes.comparable:
+        findings.append(
+            GateFinding(
+                GateCode.UNRECORDED,
+                "numbers",
+                "čísla verze nelze porovnat s tím, co napsal kód; nelze je ověřit",
+            )
+        )
+    for change in changes.changes:
+        if change.kind is ChangeKind.CHANGED:
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    change.tag or "numbers",
+                    f"číslo přepsané ručně: {change.was} → {change.now}",
+                )
+            )
+        elif change.kind is ChangeKind.TYPED:
+            excerpt = (change.paragraph or "")[:_EXCERPT]
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    "text",
+                    f"číslo {change.now} napsané ručně mimo připuštěná čísla („{excerpt}…“)",
+                )
+            )
+    findings.append(
+        GateFinding(
+            GateCode.UNRECORDED,
+            "text",
+            "text upravený v editoru AIA neověří; zkontrolujte, že necituje jednoho respondenta",
+        )
+    )
     return tuple(findings)
