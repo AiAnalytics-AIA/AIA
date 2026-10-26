@@ -183,7 +183,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
-  // "Top vztahy" follows the selection, in full screen as on the page: the selected object's five
+  // "Nejsilnější vztahy" (the panel's Top) follows the selection, in full screen as on the page: the selected object's five
   // strongest, or the map's five strongest with nothing selected (the panel's rule).
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
   // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.

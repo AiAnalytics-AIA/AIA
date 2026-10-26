@@ -4,7 +4,7 @@
 // built to the approved design (plan object-map-3d-redesign; the standalone prototype is its
 // visual acceptance specification, chunk 6, checklist V1-V25).
 //
-// Renders the stored contract-3 artifact only: positions, Stress-1, pair states, heights and
+// Renders the stored contract-3 artifact only: positions, the fit (in words), pair states, heights and
 // the envelope terrain come from the worker, and this view never computes or adjusts them.
 // From above (the default): the stored terrain as ten flat display terraces on the absolute
 // 0-1 scale, the selected object's drawn relations (the one `mapLinks` rule), each object at
@@ -290,13 +290,12 @@ function MappedView({ battery, map, methodId, fingerprint, facts, approved }: { 
           </div>
           <div ref={hud} className="pointer-events-none absolute left-3.5 top-3.5 flex max-w-[calc(50%-21px)] flex-col gap-1.5 rounded-lg border border-white/[.12] bg-[rgba(20,23,28,0.72)] px-3 py-2.5 text-[11px] leading-[14px] sm:max-w-none">
             <span className="text-xs font-semibold">{tv("research.exec.objectMap.hudTitle", { method: methodId })}</span>
-            {layout.quality !== undefined && layout.stress_1 !== undefined ? (
+            {layout.quality !== undefined ? (
               <span className="flex flex-wrap items-center gap-2" data-testid="object-map-fit">
                 <span className="sr-only">{t("research.exec.objectMap.fit")}: </span>
                 <span className="rounded-full px-[7px] py-px font-semibold text-[var(--viz-stage)]" style={{ background: `var(--viz-fit-${layout.quality})` }}>
                   {t(`research.exec.objectMap.qualityBadge.${layout.quality}`)}
                 </span>
-                <span className="tabular-nums">{tv("research.exec.objectMap.stressValue", { value: num(layout.stress_1) })}</span>
               </span>
             ) : null}
             <span className="tabular-nums text-[var(--viz-stage-muted)]">{tv("research.exec.objectMap.hudSupport", { placed: map.support.placed, respondents: map.support.respondents })}</span>
