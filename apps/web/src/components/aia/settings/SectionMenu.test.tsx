@@ -37,6 +37,15 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); resetConfigCache(); sessionStorage.clear(); });
 
+/** Records whether the page prevented each click on a link (its verdict), then cancels the browser's
+ *  default, which jsdom would carry out in this page a task later. `done` stops listening. */
+function leftToTheBrowser() {
+  const verdicts: boolean[] = [];
+  const listen = (e: MouseEvent) => { verdicts.push(e.defaultPrevented); e.preventDefault(); };
+  window.addEventListener("click", listen);
+  return { done: () => { window.removeEventListener("click", listen); return verdicts; } };
+}
+
 const trigger = () => screen.getByRole("button", { name: /^Nastavení › / });
 const dialog = () => screen.getByRole("dialog", { name: "Nastavení – přejít na" });
 
@@ -165,12 +174,18 @@ describe("the settings section menu", () => {
     render(<SectionMenu mayAdminister={false} />);
     fireEvent.click(trigger());
     // A click for a new tab or window is the browser's: not prevented, the page stays where it is.
+    // jsdom has no new tab: it would follow the href in this page, a task later and into whichever
+    // test runs then (#900's CI), so the browser's default is cancelled after the menu has decided.
     const audit = within(dialog()).getByRole("link", { name: /Audit/ });
+    const prevented = leftToTheBrowser();
     for (const modifier of [{ metaKey: true }, { ctrlKey: true }, { shiftKey: true }, { button: 1 }]) {
-      expect(fireEvent.click(audit, modifier)).toBe(true);
+      fireEvent.click(audit, modifier);
       expect(window.location.hash).toBe("#deep_research");
       expect(trigger().getAttribute("aria-label")).toBe("Nastavení › Deep Research");
     }
+    expect(prevented.done()).toEqual([false, false, false, false]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(window.location.hash).toBe("#deep_research");
     fireEvent.click(within(dialog()).getByRole("link", { name: /Audit/ }));
     expect(window.location.hash).toBe("#audit");
     expect(screen.queryByRole("dialog")).toBeNull();

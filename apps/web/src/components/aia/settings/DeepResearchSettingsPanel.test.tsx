@@ -146,6 +146,8 @@ afterEach(() => {
   cleanup();
   resetConfigCache();
   vi.unstubAllGlobals();
+  // The posture's link moves the address; the next test starts from none.
+  window.history.replaceState(null, "", "/");
 });
 
 describe("Deep Research settings", () => {
@@ -346,9 +348,19 @@ describe("Deep Research settings", () => {
     expect(window.history.state).toMatchObject({ __NA: true });
     expect(window.history.length).toBe(entries + 1);
     expect(changes).toEqual(["#access"]);
-    // A click for a new tab is the browser's.
-    expect(fireEvent.click(access, { metaKey: true })).toBe(true);
-    expect(fireEvent.click(access, { ctrlKey: true })).toBe(true);
+    // A click for a new tab is the browser's: not prevented by the page. jsdom has no new tab and would
+    // follow the href in this page a task later, into another test, so its default is cancelled
+    // after the page has decided (window listeners run after React's root).
+    const verdicts: boolean[] = [];
+    const listen = (e: MouseEvent) => { verdicts.push(e.defaultPrevented); e.preventDefault(); };
+    window.addEventListener("click", listen);
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    fireEvent.click(access, { metaKey: true });
+    fireEvent.click(access, { ctrlKey: true });
+    window.removeEventListener("click", listen);
+    expect(verdicts).toEqual([false, false]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(window.location.hash).toBe("#deep_research");
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",
