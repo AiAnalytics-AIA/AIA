@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -1086,21 +1086,34 @@ function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = f
     const k = stageState(s, lane);
     const cur = s === stage;
     const mark = marks[s];
+    // The word is the lane's, beside its tone (stageState): a stage is never called done on a tone it
+    // did not earn; a stage the lane says nothing of says nothing (never "not started").
+    const word = k.word;
+    // One slot per stage, the same markup whichever is current: aria-current and the fill tell it
+    // apart, never a width. Its status is said three ways: the glyph, a word and the tone's strip.
     return (
-      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
+      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}`} data-tone={k.tone}
         aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}${mark ? `; ${mark.words}` : ""}`}
         data-impact={mark?.impact} onClick={() => { setListOpen(false); onOpen(s); }}>
-        <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{layout === "sheet" ? STAGES[s].label : STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
+        <span className="nav__label">{layout === "sheet" ? STAGES[s].label : STAGES[s].short}</span>
+        <span className="nav__state">
+          <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={12} />
+          <span className="nav__status" aria-hidden="true">{word}</span>
+        </span>
+        {k.line || word ? <span className="sr-only">, {k.line || word}</span> : null}
         {mark ? <><span className={`nav__impact nav__impact--${mark.impact.toLowerCase()}`} aria-hidden="true" /><span className="sr-only">, {mark.words}</span></> : null}
       </button>
     );
   };
-  const phases = PHASES.map((ph) => (
-    <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label}>
-      <span className="nav__plabel">{ph.label}</span>
-      {STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id).map(stageButton)}
-    </div>
-  ));
+  const phases = PHASES.map((ph) => {
+    const stages = STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id);
+    return (
+      <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label} style={{ "--slots": stages.length } as CSSProperties}>
+        <span className="nav__plabel" aria-hidden="true">{ph.label}</span>
+        <div className="nav__slots">{stages.map(stageButton)}</div>
+      </div>
+    );
+  });
   if (layout === "sheet") {
     // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
     return (
