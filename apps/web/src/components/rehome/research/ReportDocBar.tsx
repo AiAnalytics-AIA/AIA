@@ -12,7 +12,8 @@ import { type ApprovedEdit, deepResearch, type ReportVariant, type ResearchRepor
 import type { StoredReportDocument } from "@/lib/artifacts/report";
 import { saveBlob } from "@/lib/download";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
-import { downloadMismatch, pdfAskable, pdfWhy, reportPdfPending, variantPdfAskable, variantPdfWhy, variantPending } from "@/lib/report-variant";
+import { downloadMismatch, fileLine, pdfAskable, pdfStatesReview, pdfWhy, reportPdfPending, variantPdfAskable, variantPdfWhy, variantPending } from "@/lib/report-variant";
+import { t } from "@/i18n/t";
 import { Button } from "../ui";
 import { Icon } from "../icons";
 
@@ -35,8 +36,14 @@ function exportPdfWhy(kind: ExportKind, status: Status | null, unread: "loading"
   return pdfWhy(status.value.pdf, reviewStatus(status.value.review_state) === "APPROVED");
 }
 
+/** A version as the bar names it: the document on screen, or, for a draft the pane cannot show
+ *  (stored before its document, or refused), the version the run's status names. */
+type Shown = { artifactId: string | null; reviewState: string | null | undefined; stamped: boolean | null | undefined; approvedOn: string | null | undefined };
+
+/** ``stored``: the document on screen; null for an internal draft (or report with literature) the
+ *  pane cannot show, downloaded as the version the run names, read again before each download. */
 export function ReportExports({ studyId, runId, kind, review, stored, canAct }: {
-  studyId: string; runId: string; kind: ExportKind; review: string | null; stored: StoredReportDocument; canAct: boolean;
+  studyId: string; runId: string; kind: ExportKind; review: string | null; stored: StoredReportDocument | null; canAct: boolean;
 }) {
   const [status, setStatus] = useState<{ at: string; value: Status } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,15 +51,18 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   // The document whose status read failed: its PDF is said not read, not loading.
   const [unreadAt, setUnreadAt] = useState<string | null>(null);
   // One document's status: another's (a switch, or a newer version) is never shown for it.
-  const at = `${runId}:${kind}:${review ?? ""}:${stored.report_artifact_id}:${stored.review_state}`;
+  const at = `${runId}:${kind}:${review ?? ""}:${stored ? `${stored.report_artifact_id}:${stored.review_state}` : "run"}`;
   const read = status?.at === at ? status.value : null;
   // The status is this document's only when it names the version and review on screen.
-  const other = read !== null && (read.value.artifact_id !== stored.report_artifact_id
+  const other = stored !== null && read !== null && (read.value.artifact_id !== stored.report_artifact_id
     || reviewStatus(read.value.review_state) !== reviewStatus(stored.review_state));
   const current = other ? null : read;
+  const version: Shown | null = stored
+    ? { artifactId: stored.report_artifact_id, reviewState: stored.review_state, stamped: stored.stamped, approvedOn: stored.approved_on }
+    : read ? { artifactId: read.value.artifact_id ?? null, reviewState: read.value.review_state, stamped: read.value.stamped, approvedOn: read.value.approved_on } : null;
   const pending = current?.kind === "with_review" ? variantPending(current.value) : current ? reportPdfPending(current.value.pdf) : false;
   useEffect(() => {
-    if (kind === "client") return;
+    if (kind === "client" || !canAct) return;
     let live = true;
     const read = () => (kind === "with_review" && review !== null
       ? deepResearch.contextReport(studyId, runId, review).then((value): Status => ({ kind: "with_review", value }))
@@ -69,9 +79,8 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
     // Read again while its PDF is being made, so the PDF is offered once it exists.
     const timer = pending ? setInterval(() => { void read(); }, 2500) : null;
     return () => { live = false; if (timer) clearInterval(timer); };
-  }, [studyId, runId, kind, review, at, pending]);
+  }, [studyId, runId, kind, review, at, pending, canAct]);
 
-  const shown = { artifactId: stored.report_artifact_id, reviewState: stored.review_state };
   const failed = unreadAt === at && read === null;
   const pdfReason = exportPdfWhy(kind, current, other ? "other" : failed ? "failed" : "loading");
   const askable = current?.kind === "with_review" ? variantPdfAskable(current.value) : current ? pdfAskable(current.value.pdf) : false;
@@ -89,7 +98,17 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
       setBusy(false);
     }
   };
+  // The version a download must be: the one on screen, or the one the run names now.
+  const expected = async (): Promise<{ artifactId: string | null; reviewState: string | null | undefined }> => {
+    if (stored) return { artifactId: stored.report_artifact_id, reviewState: stored.review_state };
+    const value: Status = kind === "with_review" && review !== null
+      ? { kind: "with_review", value: await deepResearch.contextReport(studyId, runId, review) }
+      : { kind: "internal", value: await research.report(studyId, runId) };
+    setStatus({ at, value });
+    return { artifactId: value.value.artifact_id ?? null, reviewState: value.value.review_state };
+  };
   const download = (format: "docx" | "pdf") => act(async () => {
+    const shown = await expected();
     const got = kind === "client"
       ? await research.downloadClientReport(studyId, runId)
       : kind === "with_review" && review !== null
@@ -106,6 +125,14 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
     if (why) throw new Error(why);
     saveBlob(got.blob, got.filename ?? `${base}-koncept-${edit.koncept}.docx`);
   });
+  // A report with literature stored under an earlier composition, prepared anew under today's: a new
+  // draft that needs its own approval; the earlier one stays if composing is refused. Never offered
+  // for an approved version, which stays the report (cross-review interactions#5).
+  const earlier = current?.kind === "with_review" && current.value.state === "READY" && current.value.contract_current === false ? current.value : null;
+  const earlierApproved = earlier !== null && reviewStatus(earlier.review_state) === "APPROVED";
+  const prepareAgain = () => act(async () => {
+    if (review !== null) setStatus({ at, value: { kind: "with_review", value: await deepResearch.prepareContextReport(studyId, runId, review) } });
+  });
   // The same stored draft rendered again by a new job, composing nothing.
   const askPdf = () => act(async () => {
     const value: Status = kind === "with_review" && review !== null
@@ -115,27 +142,55 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   });
 
   const words = said?.at === at ? said.words : null;
+  // A reader who may not act (a past research read from memory) is offered no export at all.
+  if (!canAct) return null;
+  // What the file says of its review (D2), as the server last said it: only a version whose layout
+  // states it promises anything; one stored before that layout keeps its draft footer, said so.
+  const approvedNow = reviewStatus(version?.reviewState) === "APPROVED";
+  const pdfToo = current !== null && pdfStatesReview(version?.reviewState, current.value.pdf, current.value.approval_renders_pdf);
+  const known = version !== null && (kind === "client" || current !== null);
+  const carries = !known ? null
+    : version.stamped === false ? t(`research.exec.report.review.${approvedNow ? "olderApproved" : "older"}`)
+      : version.stamped !== true ? null
+        : approvedNow ? t(`research.exec.report.review.${pdfToo ? "fileApproved" : "fileApprovedDocx"}`)
+          : fileLine({ version: version.artifactId ?? "", reviewState: version.reviewState, approvedOn: version.approvedOn, stamped: true }, pdfToo);
   return (
     <span className="contents" data-report-exports>
-      <Button variant="quiet" className="!min-h-11" disabled={busy || !canAct} onClick={() => void download("docx")}>
+      <Button variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void download("docx")}>
         <Icon name="download" size={16} /> Stáhnout DOCX
       </Button>
-      <Button variant="quiet" className="!min-h-11" disabled={busy || !canAct || pdfReason !== null} title={pdfReason ?? undefined} onClick={() => void download("pdf")}>
+      <Button variant="quiet" className="!min-h-11" disabled={busy || pdfReason !== null} title={pdfReason ?? undefined} onClick={() => void download("pdf")}>
         <Icon name="download" size={16} /> Stáhnout PDF
       </Button>
-      {askable && canAct ? (
+      {askable ? (
         <Button variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void askPdf()}>
           {current?.value.pdf?.state === "NOT_REQUESTED" ? "Vytvořit PDF" : "Vytvořit PDF znovu"}
         </Button>
       ) : null}
       {edits.map((edit) => (
-        <Button key={edit.artifact_id} variant="quiet" className="!min-h-11" disabled={busy || !canAct} onClick={() => void downloadEdit(edit)}>
+        <Button key={edit.artifact_id} variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void downloadEdit(edit)}>
           <Icon name="download" size={16} /> Stáhnout schválenou úpravu, koncept {edit.koncept} (DOCX)
         </Button>
       ))}
+      {earlier ? (
+        <span data-variant-earlier className="basis-full text-xs text-ink-muted">
+          {earlierApproved
+            ? `Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy${earlier.contract ? ` (${earlier.contract})` : ""} a je schválená: zůstává zprávou této varianty a stahuje se taková, jaká byla schválena.`
+            : `Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy${earlier.contract ? ` (${earlier.contract})` : ""}. Stáhnout a schválit ji lze dál; připravená znovu bude nový koncept, který potřebuje vlastní schválení.`}
+        </span>
+      ) : null}
+      {earlier && !earlierApproved ? (
+        <Button variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void prepareAgain()}>Připravit znovu podle současné skladby</Button>
+      ) : null}
       {/* Why no PDF, as text: a disabled button's title reaches no touch or keyboard reader. */}
       {pdfReason && kind !== "client" && (current || other) ? <span data-pdf-why className="basis-full text-xs text-ink-muted">{other ? pdfReason : `Proč není PDF: ${pdfReason}`}</span> : null}
       {busy ? <span role="status" className="basis-full text-xs text-ink-muted">Čekám na odpověď…</span> : null}
+      {carries ? <span data-file-carries className="basis-full text-xs text-ink-muted">{carries}</span> : null}
+      {kind === "client" ? (
+        <span data-client-hint className="basis-full text-xs text-ink-muted">
+          {t("research.exec.results.reportClientHint")}{approvedNow ? "" : ` ${t("research.exec.results.reportClientHintDraft")}`}
+        </span>
+      ) : null}
       {words ? <span role="alert" className="basis-full text-sm text-status-fault">{words}</span> : null}
     </span>
   );

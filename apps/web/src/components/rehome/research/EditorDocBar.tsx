@@ -19,7 +19,6 @@ import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import type { EditorShown } from "./ReportEditor";
 import { type Ask, AskDialog, Button } from "../ui";
 
-type Approved = Awaited<ReturnType<typeof research.approveReport>>;
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -36,8 +35,6 @@ export type EditorDocBarProps = {
    *  as its line's newest: the server refuses once a save moved the line on, and `held` (read on
    *  the pane's own ask and yes) refuses while an edit waits to be stored. */
   approveComposed: (held: () => string | null, seen: () => SeenEdit | null) => void;
-  /** An edited version was approved, as the server answered. */
-  onApproved: (done: Approved) => void;
   /** Open another line in the editor. */
   onOpenLine: (lineId: string) => void;
   /** How often the bar reads again while an edit waits to be stored (a seam for the tests). */
@@ -61,7 +58,7 @@ async function newestOf(studyId: string, runId: string, id: string, seen: SeenEd
 }
 
 export function EditorDocBar({
-  studyId, runId, shown, composedId, documentName, canApprove, approveComposed, onApproved, onOpenLine, pollMs = POLL_MS,
+  studyId, runId, shown, composedId, documentName, canApprove, approveComposed, onOpenLine, pollMs = POLL_MS,
 }: EditorDocBarProps) {
   const opened = shown.opened;
   const at = `${opened.line_id}:${opened.version_artifact_id}`;
@@ -152,7 +149,6 @@ export function EditorDocBar({
                 (done) => {
                   if (!done) return;
                   setAct({ ask: null, busy: false, said: null });
-                  onApproved(done);
                   again();
                 },
                 (error: unknown) => {

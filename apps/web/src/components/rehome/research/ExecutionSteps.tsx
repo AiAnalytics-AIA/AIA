@@ -36,7 +36,6 @@ import {
   deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
-  type ResearchStep,
   type PopulationVersion,
   type Study,
   population,
@@ -1729,7 +1728,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
-        <ReportDocumentView run={run} />
+        <ReportDocumentView run={run} review={review} onReview={setReview} />
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>

@@ -167,9 +167,6 @@ describe("the doc bar while the editor shows the document", () => {
     editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     vi.mocked(research.approveReport).mockResolvedValue({ run_id: "RUN-1", artifact_id: "ART-edit", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-23", stamped: true, approval: null, internal_only: true } as never);
-    const heard: unknown[] = [];
-    const on = (e: Event) => heard.push((e as CustomEvent).detail);
-    window.addEventListener("aia:report-approved", on);
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" }));
     const dialog = await screen.findByRole("dialog");
@@ -178,8 +175,6 @@ describe("the doc bar while the editor shows the document", () => {
     expect(dialog.textContent).toContain("Číslo trust_total: 42,5 % → 50 %");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true, null));
-    await waitFor(() => expect(heard).toContainEqual(expect.objectContaining({ artifactId: "ART-edit", kind: "internal" })));
-    window.removeEventListener("aia:report-approved", on);
   });
 
   it("asks again when a later save exists, approving nothing", async () => {

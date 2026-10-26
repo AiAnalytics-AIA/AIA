@@ -11,7 +11,6 @@ import {
   pdfStatesReview,
   pdfWhy,
   reviewLabel,
-  reviewLine,
   reviewsFor,
   variantPdfAskable,
   variantPdfWhy,
@@ -134,23 +133,6 @@ describe("report variant (research-integrity-report 3)", () => {
     expect(downloadMismatch(seen("ART-1", null), seen("ART-1"))).toBeNull();
     expect(downloadMismatch(seen("ART-1", null), seen("ART-1", "APPROVED_INTERNAL"))).toContain("jiný stav schválení");
     expect(downloadMismatch(seen("ART-1"), seen(null))).toBeNull(); // nothing shown yet
-  });
-
-  it("says what a version's file states only from what the server said (D2)", () => {
-    const review = { version: "ART-1", reviewState: "DRAFT_UNAPPROVED", approvedOn: null, stamped: true };
-    expect(reviewLine(review, true)).toBe(
-      "Stav: Koncept · verze ART-1 — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
-    );
-    expect(reviewLine(review, false)).toContain("po schválení ponese DOCX této verze");
-    const approved = { ...review, reviewState: "APPROVED_INTERNAL", approvedOn: "2026-10-08" };
-    // "Stav:" like every other state line (cross-review web#10).
-    expect(reviewLine(approved, true)).toBe("Stav: Schváleno 8. 10. 2026 · verze ART-1 — DOCX i PDF této verze to nesou v zápatí");
-    expect(reviewLine(approved, false)).toBe("Stav: Schváleno 8. 10. 2026 · verze ART-1 — DOCX této verze to nese v zápatí");
-    // Stored before the footer layout, or not said: the card claims nothing about the footers.
-    expect(reviewLine({ ...approved, stamped: false }, true)).toBeNull();
-    expect(reviewLine({ ...review, stamped: undefined }, true)).toBeNull();
-    // Approved without its date: the line would print a guess.
-    expect(reviewLine({ ...approved, approvedOn: null }, true)).toBeNull();
   });
 
   it("says a version's PDF states its review only from what the server said (review 4)", () => {

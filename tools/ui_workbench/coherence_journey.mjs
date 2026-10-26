@@ -193,7 +193,9 @@ try {
     await visit(stage(binding.study, "run"), "delivered-run", 6000);
     check("a delivered study starts nothing", !(await page.getByRole("button", { name: "Spustit výzkum" }).isEnabled().catch(() => false)));
     await visit(stage(binding.study, "results"), "delivered-results", 6000);
-    const download = page.getByRole("button", { name: /Stáhnout zprávu/ });
+    // The report is downloaded from Zpráva's doc bar, on Rešerše a zpráva (RPT3c).
+    await page.getByRole("tab", { name: "Rešerše a zpráva" }).click().catch(() => {});
+    const download = page.locator("[data-report-docbar]").getByRole("button", { name: "Stáhnout DOCX" }).first();
     const reportMade = (await page.getByText("Tento běh zprávu nevytváří").count()) === 0;
     check("a delivered study keeps its report downloadable", !reportMade || (await download.isEnabled()), reportMade ? "" : "this run makes no report (analysis off)");
   } finally {

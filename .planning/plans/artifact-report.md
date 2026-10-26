@@ -877,7 +877,21 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
+**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10). *Built, but for
+"Zpráva s rešerší" leaving the pane (`feature/report-doc-bar`):* the pane's doc bar (`ReportDocBar.tsx ReportExports`)
+downloads the document on screen, DOCX and PDF, each file checked by `downloadMismatch` to be the version and review
+shown; the PDF is offered only when the server says it exists (`pdfWhy`, `variantPdfWhy`), its reason as text otherwise,
+"Vytvořit PDF" where it can be made; a draft the pane cannot show yet is downloaded from the bar too; the earlier
+composition's note and "Připravit znovu podle současné skladby", D2's file lines (`fileLine`, `fileApproved`) and the
+client hint moved from the card. The card (`CompleteReport.tsx`) keeps what the report holds, its state in words and
+where it is read; its Verze / Varianta / Formát and download controls are gone. "Použít ve zprávě" on Interpretation
+Research selects the report with literature in the pane (`ReportDocumentView` follows the page's review). Tests:
+`ReportDocBar.test.tsx`; `ExecutionSteps.test.tsx` "downloads the report with a review as DOCX and PDF of its own stored
+draft from the doc bar, never the base PDF"; `ReportDocumentView.test.tsx` "downloads an internal draft it cannot show as the version its run names, read again first
+(RPT3c)";
+`acceptance_journey.mjs` and `coherence_journey.mjs` download from the bar. Open: "Zpráva s rešerší" stays in the pane
+until `artifact-chain-to-draft-report#CHN8`, since removing it before then would leave an existing report with literature
+unreadable and unapprovable; the chunk stays open until it leaves.
 
 **RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`. *Built, but for the count (`feature/report-approval-dialog`):* the question names the document
 and when its version was stored, never its id: "Schvalujete tuto verzi: {název}, vytvořenou {čas} ({formát}). Schválení

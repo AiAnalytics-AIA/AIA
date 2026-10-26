@@ -49,7 +49,7 @@ const storeKoncept = (k: number, holds: boolean) => {
 
 const bar = (startedAt: number | null = null, pollMs = 20, dirty = false, seen: () => SeenEdit | null = () => null) => (
   <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty, seen }} composedId="ART-docx" documentName="interní zprávu"
-    canApprove approveComposed={vi.fn()} onApproved={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
+    canApprove approveComposed={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
 );
 const approveButton = (koncept: number) => screen.findByRole("button", { name: `Schválit koncept ${koncept}` });
 const isOff = async (koncept: number) => (await approveButton(koncept) as HTMLButtonElement).disabled;
