@@ -29,7 +29,7 @@ export function Blockers({ state, stepHref }: { state: Pick<ResearchState, "proj
                 href={stepHref(b.step)}
                 className="grid grid-cols-[18px_1fr_auto] items-start gap-2 rounded-control p-1.5 text-ink no-underline hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-focus-ring"
               >
-                <span aria-hidden="true" className="mt-px inline-flex size-[18px] items-center justify-center rounded-full bg-status-you text-[11px] font-bold leading-none text-ink">!</span>
+                <span aria-hidden="true" className="mt-px inline-flex size-[18px] items-center justify-center rounded-full bg-status-you text-[11px] font-semibold leading-none text-ink">!</span>
                 <span className="min-w-0">
                   <span className="block text-[13px] font-medium leading-[18px]">{b.label}</span>
                   <span className="block text-xs leading-4 text-ink-muted">{b.detail}</span>

@@ -101,7 +101,7 @@ export function LeadProfilePage() {
   // What the last change answered, until the page is read again.
   const [changed, setChanged] = useState<ResearcherLeadView | null>(null);
   return (
-    <AppShell title="Můj Vedoucí výzkumu" sub="Váš vlastní Vedoucí, jeho soubory a paměť. Měníte je rozhovorem s ním, ne zde.">
+    <AppShell hero title="Můj Vedoucí výzkumu" sub="Váš vlastní Vedoucí, jeho soubory a paměť. Měníte je rozhovorem s ním, ne zde.">
       <Loaded res={res} retry={retry}>
         {(me: ResearcherLeadView) => {
           if (!me.hatched || !me.lead) {

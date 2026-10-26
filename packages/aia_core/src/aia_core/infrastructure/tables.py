@@ -1000,6 +1000,53 @@ class ResearcherLeadRow(Base):
     )
 
 
+class ResearcherLeadHatchRow(Base):
+    """A researcher's hatch while it waits for them (lead-identity LI1): what they wrote and,
+    once the model answered, the SOUL, USER and greeting it wrote.
+
+    ADR 0030 decision 2: nothing becomes a Lead file without a yes. A hatch is kept here, not in
+    ``researcher_leads``, until the researcher accepts it; then the Lead is made from it and the
+    row is ``accepted``. "Zadat znovu" marks it ``discarded``. At most one is ``pending`` per
+    researcher. Read and written only by ``ResearcherLeadRepository``, for the caller.
+    """
+
+    __tablename__ = "researcher_lead_hatches"
+
+    hatch_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: ``pending`` | ``accepted`` | ``discarded``.
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    #: The person's :class:`~aia_core.domain.lead_hatch.HatchInput`.
+    input_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    #: The model's :class:`~aia_core.domain.lead_hatch.HatchOutput`; null until it answered.
+    output_json: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
+    #: The worker run that asked the model, once there is one (LI1's request side).
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'discarded')", name="researcher_lead_hatch_status"
+        ),
+        Index(
+            "uq_researcher_lead_hatches_one_pending",
+            "organization_id",
+            "user_id",
+            unique=True,
+            sqlite_where=text("status = 'pending'"),
+            postgresql_where=text("status = 'pending'"),
+        ),
+    )
+
+
 class ResearcherLeadRevisionRow(Base):
     """One change to a Lead's file, with the text it replaced. **Insert-once.**
 

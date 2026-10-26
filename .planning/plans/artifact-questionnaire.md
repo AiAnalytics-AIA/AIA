@@ -370,6 +370,14 @@ described by it, still focusable (nothing while the switch is unread or cannot b
 familiarity switch is gone: a set says why, and one stored with it says the run will refuse it, with
 "Vypnout". Tests: `QuestionnaireStep.test.tsx` "offers no condition to set without the routing switch…"
 (extended), "offers no familiarity switch a run would refuse…"; `questionnaire_journey.mjs` at 1440/1100/768/390.
+*QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
+full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
+(feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
+(the visible label in the name) with the question as its tooltip; the linked ones are written out under the
+chips, for touch. Once any item declares a link, an item linked to none says so in words, with what to do
+(before that, coverage is unknown for every item, coverageOf, never a gap on each card). Dangling links stay coral. Tests:
+`QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
+1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
 ## Doc follow-up
 
