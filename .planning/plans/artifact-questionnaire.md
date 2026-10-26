@@ -381,6 +381,15 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 `QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
 1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
+*QST2, spec navrh/Q2 (part: section numbers and the card's "měří"):* the editor headed a block "Blok n · k
+otázek" and a set "SADA n", while its own outline (and the board) number them B n and S n
+(`QuestionnaireStep.tsx:863`, `:1159` @ 25ce6493). Change (feature/questionnaire-sheets): a block is headed "B n"
+with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". Not in this change: the card header
+"Q n · type tag · měří VO n" with the type chips behind the tag in a menu, left for its own chunk so the type
+control's tests and journeys move once (a "měří" line alone would repeat the list under the VO chips). Tests:
+`QuestionnaireStep.test.tsx` "numbers blocks B n and sets S n as the outline does…"; `questionnaire_journey.mjs` at
+1440/1100/768/390.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.

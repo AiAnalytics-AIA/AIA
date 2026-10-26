@@ -100,6 +100,11 @@ try {
     assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
 
+    // Blocks and sets numbered B n / S n, as the outline numbers them (spec navrh/Q2).
+    await page.locator("#qset_sec_wb_set").getByText("S1", { exact: true }).waitFor();
+    assert((await page.locator('[id^="qblock_"]').first().getByText("B1", { exact: true }).count()) > 0, `B1 on the first block at ${width}`);
+    check(`${width}: blocks and sets numbered B n and S n`);
+
     // A question's × stays beside its number at every width, never on a row of its own (the
     // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
     const card = page.locator("#qedit_Q_wb1");

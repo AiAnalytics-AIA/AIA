@@ -400,6 +400,19 @@ describe("Dotazník", () => {
     expect(within(linksOfItem("qedit_Q2")).getByText(/^Neměří žádnou výzkumnou otázku/)).toBeTruthy();
   });
 
+  it("numbers blocks B n and sets S n as the outline does, spoken as Blok n and Sada n (Q2)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    const b1 = within(block).getByText("B1");
+    expect(b1.getAttribute("aria-hidden")).toBe("true");
+    expect(b1.parentElement?.textContent).toBe("B1Blok 1");
+    expect(within(block).getByText("2 otázky")).toBeTruthy();
+    const s1 = within(document.getElementById("qset_sec_b") as HTMLElement).getByText("S1");
+    expect(s1.parentElement?.textContent).toBe("S1Sada 1");
+  });
+
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
     const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
     const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
