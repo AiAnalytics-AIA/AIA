@@ -420,7 +420,8 @@ try {
   for (const slug of ["plan", "questionnaire", "audience", "dimensions"]) {
     await page.goto(base + stagePath(slug));
     await page.locator("[data-workbench]").waitFor();
-    await page.locator("#artbody").getByRole("button").first().waitFor({ timeout: 60000 });
+    // The stage has drawn: its first heading (its dock's action is the header's now, research-lead-workbench 36).
+    await page.locator("#artbody").getByRole("heading").first().waitFor({ timeout: 60000 });
     const classic = await page.locator("#artbody a").evaluateAll((as) => as.map((a) => a.textContent?.trim() ?? "").filter((t) => /^\d\. /.test(t)));
     assert.deepEqual(classic, [], `${slug}: no classic "N. stage" link in the artifact`);
   }

@@ -269,13 +269,20 @@
 
 /* artifact pane */
 .art { display: flex; flex-direction: column; min-height: 0; height: 100%; }
-.arthead { display: flex; align-items: center; gap: 10px; padding: 8px 14px; min-height: 48px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; }
+/* It wraps: with a stage's actions and its next stage beside the title, the title column keeps
+   240 px and the actions take a second row when they do not fit (research-lead-workbench 36). */
+.arthead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 8px 14px; min-height: 48px; border-bottom: 1px solid var(--border); background: var(--surface-raised); flex: none; }
 .arthead__title { font-size: 16px; line-height: 20px; font-weight: 600; }
 /* The save state goes under the title when the two do not fit side by side (workbench audit F13). */
 .arthead .row { flex-wrap: wrap; row-gap: 0; }
 &.wb--sheet .arthead__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .arthead__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arthead__actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+/* A stage's header parts (research-lead-workbench 36): its actions and its forward action, laid out
+   with the header's own; its status line under the header, shown only when the stage gives one. */
+.arthead__slot { display: contents; }
+.artstatus { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 14px; border-bottom: 1px solid var(--border); background: var(--surface); flex: none; }
+.artstatus:empty { display: none; }
 .artbody { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
 .artbar { display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-bottom: 1px solid var(--border); font-size: 13px; line-height: 18px; flex: none; }
 .artbar--you { background: var(--status-you-wash); border-bottom-color: var(--status-you); }
@@ -599,7 +606,7 @@
 @media (max-width: 639.98px) {
   .iconbtn { width: 44px; height: 44px; }
   .composer__send { width: 44px; height: 44px; border-radius: 22px; }
-  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip { min-height: 44px; }
+  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip, .arthead__actions button { min-height: 44px; }
   .refchip__clear { flex: none; }
   .nav--sheet { height: 48px; }
 }

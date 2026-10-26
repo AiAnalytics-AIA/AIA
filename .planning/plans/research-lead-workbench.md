@@ -1944,3 +1944,38 @@ the first, rebuilt on develop (the held branch predates #809 and conflicted in 1
 - **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
   `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
   sent at once on Sociomapa). Each fails without the change.
+
+### The stage header's slots and its next stage (2026-10-26, `feature/stage-header-slot`; chunk 36 of #923, v73 X1 + H1)
+
+The front-matter line for chunk 36 arrives with #923 (the plans PR); this records the build.
+- **`step.tsx`.** `StepSection` prints `n` as two mono digits ("03"), or `num` ("B1", "S1"); `cap` is the
+  right-hand caption; `need` draws the coral edge and a "chybí" pill, in words. `optional` keeps its
+  title suffix, since stage tests read section names with it. `StageHeader` (context) and
+  `StageHeaderSlot` (`actions` | `status`) put a stage's header parts into the workbench's header, and
+  leave them where they stand outside it. `ActionDock` inside the workbench claims the header's primary
+  slot and puts its action there: the stage's own forward action (its label, its conditions, what it
+  saves on the way: Návrh's questionnaire path, Dotazník's run-check reset) rather than a plain next.
+- **`ui.tsx`.** `WellItem`: one row of a section, mono id at the left, actions at the right.
+- **`Workbench.tsx`.** Three slot elements: actions beside the inspector toggle, the primary at the
+  right, a status row under the header (hidden when empty). With no dock claiming the primary, the
+  header shows the frame's next stage ("Cílová skupina ›"), opened through `FrameNavigation.next`
+  (the leave guard, the heading's focus). Vzorek keeps Dimenze's screen mounted but hidden, so it gets no
+  header context: Dimenze's dock would otherwise claim Vzorek's primary.
+- **In a browser** (`workbench_journey.mjs` on a fresh UI workbench built from the branch, fictional
+  studies, nothing paid): every check passes at 1440, 1280, 1100, 1099, 768 and 390 px. It found two
+  defects the unit tests could not: at 390 px the title column fell to 126 px beside the new primary, so
+  the header now wraps, the title keeping 240 px; and the stage's own forward button was 36 px high
+  there, so the header's buttons join the sheet's 44 px rule. The journey waited for a button in the
+  artifact body as its sign that a stage had drawn, and Cílová skupina's only one was its dock action,
+  now in the header; it waits for the stage's first heading instead.
+- **Reversed rule.** `step.test.tsx` had held that sections are not numbered (research-lane-redesign);
+  v73 numbers every section, so that assertion moved to the new test.
+- **For the stage owners.** Zadání's readiness chips go in `StageHeaderSlot slot="status"`, header
+  actions in `slot="actions"`; Dimenze's "N dimenzí…" and Vzorek's readiness pill in `status` (H1).
+- **Tests.** `step.test.tsx` "StepSection prints its number and cap, and the need state names what is
+  missing", "WellItem is one row…", "a stage's header parts stay where they stand outside the
+  workbench…", "ActionDock in the workbench puts its action in the header's primary slot…";
+  `Workbench.layout.test.tsx` "the stage header's slots and its next stage" (actions in the header with
+  no remount across 1100 px; the frame's next when no dock claims it; the dock's action instead, one
+  copy); `ResearchScreen.workbench.test.tsx` "the header's next is the stage's own forward action; no
+  dock button inside the workbench". Each fails without the change.

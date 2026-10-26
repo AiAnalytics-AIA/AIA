@@ -2319,7 +2319,7 @@ export const cs = {
       followAgain: "Sledovat znovu",
     },
     // Studio v3's shared step pieces (components/rehome/step.tsx).
-    step: { optional: "volitelné", remove: "Odebrat", keep: "Ponechat", chip: "{label} · {n}" },
+    step: { optional: "volitelné", missing: "chybí", remove: "Odebrat", keep: "Ponechat", chip: "{label} · {n}" },
     brief: {
       quickStart: "RYCHLÝ START",
       whatSolve: "Co řešíte?",

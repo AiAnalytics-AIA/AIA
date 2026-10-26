@@ -86,6 +86,20 @@ const GLYPH: Record<Tone, IconName> = {
 };
 
 /** A status, drawn: glyph and label always, so colour is never the only cue. */
+/**
+ * One row of a section (v73 X1's well item): a tone below the sheet, no border; its mono id at
+ * the left, its text, its actions at the right. A list item: its section's list is the caller's.
+ */
+export function WellItem({ id, actions, children }: { id?: string; actions?: ReactNode; children: ReactNode }) {
+  return (
+    <li className="flex items-start gap-3 rounded-sm bg-surface-sunken px-3 py-2 text-sm">
+      {id ? <span data-well-id className="mt-px shrink-0 font-mono text-xs text-ink-faint">{id}</span> : null}
+      <div className="min-w-0 flex-1">{children}</div>
+      {actions ? <div className="flex shrink-0 items-center gap-1">{actions}</div> : null}
+    </li>
+  );
+}
+
 export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span data-tone={tone} className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-xs leading-4 ${TONE[tone]}`}>

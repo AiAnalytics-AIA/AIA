@@ -3,7 +3,7 @@
 // 23): no AI pomoc, no stage "Navrhnout", no job dialog; each stage says to ask the Lead instead.
 // Spuštění's own Start is not a worker start and stays. A file of its own: the workbench switch,
 // once read, is kept for the page, so it would leak into the classic layout's tests.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
@@ -130,6 +130,18 @@ describe("the workbench: the Lead owns the AI starts", () => {
     // Every read waits on /config (lib/api.ts), so nothing of either layout is read or mounted.
     expect(urls.filter((u) => u.endsWith("/design/source"))).toHaveLength(0);
     expect(container.querySelector("[data-workbench], [data-research-workspace]")).toBeNull();
+  });
+
+  it("the header's next is the stage's own forward action; no dock button inside the workbench (v73 H1)", async () => {
+    push.mockClear();
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
+    // Dotazník's own forward action ("Další · cílová skupina"), with its conditions: one copy, in the header.
+    await within(header).findByRole("button", { name: /Další · cílová skupina/ });
+    expect(screen.getAllByRole("button", { name: /Další · cílová skupina/ })).toHaveLength(1);
+    // The frame's plain next stage is not shown beside it.
+    expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
   });
 
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
