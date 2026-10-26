@@ -47,7 +47,7 @@ const TONE_WORD: Record<LaneTone, string> = { done: "hotovo", you: "čeká na v�
 function Glyph({ tone }: { tone: LaneTone }) {
   return (
     <span aria-hidden="true" className={`inline-flex size-[18px] shrink-0 items-center justify-center rounded-full ${GLYPH[tone]}`}>
-      {tone === "done" ? <Icon name="done" size={10} /> : tone === "you" ? <span className="text-[11px] font-bold leading-none">!</span> : tone === "fault" ? <span className="text-[11px] font-bold leading-none">×</span> : null}
+      {tone === "done" ? <Icon name="done" size={10} /> : tone === "you" ? <span className="text-[11px] font-semibold leading-none">!</span> : tone === "fault" ? <span className="text-[11px] font-semibold leading-none">×</span> : null}
     </span>
   );
 }

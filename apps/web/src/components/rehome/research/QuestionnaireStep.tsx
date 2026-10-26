@@ -392,7 +392,7 @@ function QuestionnaireReadiness() {
           <li key={r.label}>
             <button type="button" disabled={!r.go} onClick={r.go} className={`grid w-full grid-cols-[18px_1fr] items-start gap-2 rounded-control p-1.5 text-left enabled:hover:bg-surface-sunken ${FOCUS}`}>
               <span aria-hidden="true" className={`mt-px inline-flex size-[18px] items-center justify-center rounded-full ${r.ok ? "bg-status-done text-surface-raised" : "bg-status-you text-ink"}`}>
-                {r.ok ? <Icon name="done" size={10} /> : <span className="text-[11px] font-bold leading-none">!</span>}
+                {r.ok ? <Icon name="done" size={10} /> : <span className="text-[11px] font-semibold leading-none">!</span>}
               </span>
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium leading-[18px]">{r.label}</span>
