@@ -190,6 +190,18 @@ def test_with_the_lead_on_a_typed_command_is_not_sent_to_the_model(
     assert _lead_runs(app) == 0
 
 
+def test_a_typed_job_answers_its_ceiling_before_it_starts(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """LO23 (spec lead/LP-4): a typed agent job's card answers the job's reservation before the
+    person approves it; a typed research run answers none here (its readiness carries it)."""
+    _save(app, world)
+    typed = _type(researcher, world, "Navrhni dotazník: krátce").json()["turns"][0]
+    assert typed["ceiling_usd"] == JOB_RESERVATION
+    run = _type(researcher, world, "Spusť výzkum").json()["turns"][0]
+    assert run["ceiling_usd"] is None
+
+
 def test_a_near_match_is_a_message_never_a_start(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:

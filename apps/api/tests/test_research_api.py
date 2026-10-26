@@ -2508,7 +2508,8 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert missing.status_code == 404
     retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
     assert retryable.status_code == 200, retryable.text
-    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": []}
+    # No analysis reservation is configured here, so the ceiling (LO23) is unknown: null, not 0.
+    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": [], "ceiling_usd": None}
     assert (
         researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
     )

@@ -231,6 +231,8 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "workspace_revision",
         "created_at",
         "created_by",
+        # The prepared job's ceiling before the start (LO23): null on this turn.
+        "ceiling_usd",
         # The typed start a person's message named (LO5); null on a Lead turn.
         "command",
         # What waits and what was answered (ADR 0041 decision 7).
@@ -982,6 +984,35 @@ def test_a_request_that_only_opens_a_stage_is_not_a_paid_request(
     turn_id = _turn(researcher, world, app, run)
     refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
     assert refused.status_code == 422 and refused.json()["code"] == "not_a_paid_request"
+
+
+def test_a_prepared_job_answers_its_ceiling_before_the_start_and_unknown_is_null(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """LO23 (spec lead/LP-4): a Lead card's agent job answers the most it can cost -- the
+    design job's reservation -- before anything starts; a run card answers none, and an
+    unset reservation answers null, never 0."""
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    job_turn = _turn(researcher, world, app, job)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "A běh?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _complete(
+        app, world, {"reply": "Můžeme spustit.", "request": {"kind": "research_run", "why": WHY}}
+    )
+    run_turn = str(posted.json()["turns"][-1]["turn_id"])
+    turns = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert turns[job_turn]["ceiling_usd"] == 2.0
+    assert turns[run_turn]["ceiling_usd"] is None
+    # A person's own message prepares nothing.
+    assert all(t["ceiling_usd"] is None for t in turns.values() if t["actor"] == "person")
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
+    unknown = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert unknown[job_turn]["ceiling_usd"] is None
 
 
 def test_without_a_reservation_a_limited_study_does_not_start_the_job(

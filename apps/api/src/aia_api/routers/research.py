@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
+from aia_core.application.analysis import MAX_REPAIRS as ANALYSIS_MAX_REPAIRS
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
     ReconstructionRefused,
@@ -149,6 +150,7 @@ from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
+from aia_core.domain.run_cost import analysis_ceiling_usd
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -2072,12 +2074,20 @@ def retry_run(
     summary="The analysis modules of a run a person may ask again over its collected data",
 )
 def run_analysis_retryable(
-    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    request: Request,
 ) -> dict[str, Any]:
     """Read from the stored outcomes as they are, under whichever harness stored them, so a
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
     refuses those). ``stale``: the modules among them a model completed under an earlier
-    harness, which today's refuses to re-admit -- the reason, not a model's failure."""
+    harness, which today's refuses to re-admit -- the reason, not a model's failure.
+    ``ceiling_usd`` (lead-orchestration LO23, spec szz/A6 and lead/LP-13): the most asking
+    them again can cost, as the retry's start works it out (``ResearchRuns.cost_ceiling``
+    with the fieldwork frozen: each module a primary and its repairs at the analysis
+    reservation); ``null`` when that reservation is not configured, never 0."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -2089,10 +2099,15 @@ def run_analysis_retryable(
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
+    analysis_usd = _reservations(request).analysis_usd
+    modules = len(analysis.retryable)
     return {
         "run_id": run_id,
         "modules": [module.value for module in analysis.retryable],
         "stale": [module.value for module in analysis.stale],
+        "ceiling_usd": analysis_ceiling_usd(
+            modules, reservation_usd=analysis_usd, calls_per_module=1 + ANALYSIS_MAX_REPAIRS
+        ),
     }
 
 

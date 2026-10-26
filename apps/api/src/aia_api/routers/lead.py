@@ -17,7 +17,7 @@ No route takes a client, organization or user id: the scope says whose it is.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -70,6 +70,7 @@ from aia_core.domain.workspace import WorkspaceRejected
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
+from ..config import Settings
 from ..dependencies import (
     ArtifactStoreDep,
     OrganizationDep,
@@ -238,6 +239,12 @@ class LeadTurn(BaseModel):
     workspace_revision: int | None
     created_at: datetime
     created_by: str
+    #: The most the turn's prepared agent job can cost (lead-orchestration LO23, spec
+    #: lead/LP-4): a Lead card's ``agent_job`` request or a typed ``agent_job:`` command, at
+    #: the design job's reservation (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one
+    #: repair, what its start holds and its threshold reads). ``null`` when that reservation is
+    #: not configured (unknown, never 0) and for any other turn.
+    ceiling_usd: float | None = None
     #: The typed start the server matched in a person's message (lead-orchestration LO5:
     #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
     #: as the person's own, a ``chat_start``. ``null`` on every other turn.
@@ -591,15 +598,33 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             phase=str(retry_run["phase"]),
         ),
         busy=state["busy"],
-        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
+        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"], settings)],
     )
 
 
-def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, Any]]:
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
-    of what waits (the browser reads that from the turn's output)."""
+    of what waits (the browser reads that from the turn's output); with its prepared agent
+    job's ceiling (LO23)."""
     hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
-    return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
+    return [
+        {
+            **{k: v for k, v in t.items() if k not in hidden},
+            "ceiling_usd": settings.ai_research_reservation_usd if _prepares_job(t) else None,
+        }
+        for t in turns
+    ]
+
+
+def _prepares_job(turn: Mapping[str, Any]) -> bool:
+    """Whether the turn's card starts an agent job: a Lead card's ``agent_job`` request or a
+    person's typed ``agent_job:`` command (LO5)."""
+    command = turn.get("command")
+    if isinstance(command, str) and command.startswith("agent_job:"):
+        return True
+    output = turn.get("output")
+    request = output.get("request") if isinstance(output, Mapping) else None
+    return isinstance(request, Mapping) and request.get("kind") == "agent_job"
 
 
 @router.post(
@@ -639,7 +664,7 @@ def post_turn(
         )
     if not turns:
         response.status_code = status.HTTP_200_OK
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.get(
@@ -706,7 +731,7 @@ def answer_queued(
         ).answer_queued()
     if not turns:
         response.status_code = status.HTTP_200_OK
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.post(
@@ -717,12 +742,14 @@ def answer_queued(
         409: {"model": ErrorResponse, "description": "The message no longer waits"},
     },
 )
-def withdraw_message(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> LeadTurns:
+def withdraw_message(
+    turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep, settings: SettingsDep
+) -> LeadTurns:
     """Withdraw one of the caller's messages that still waits for the Lead: it stays stored,
     and no turn is ever sent it."""
     with _lead_errors():
         turns = ResearchLead(session, scope).withdraw(turn_id)
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.post(
