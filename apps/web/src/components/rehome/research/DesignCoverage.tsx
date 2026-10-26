@@ -1,21 +1,20 @@
 "use client";
 
-// Návrh: "Výzkumné otázky a jejich pokrytí" (artifact-design DSN2; V2 DesignArt § 1). Each of the
-// working copy's research questions with what measures it, whether the run will answer it and its
-// gaps, from readiness's research_trace on the working revision (the server's rule; WCE7,
-// lib/design-coverage.ts reads it). Reading it saves an edit still waiting and submits nothing.
+// Návrh: each research question with what measures it, whether the run will answer it and its gaps,
+// on the question's own row (artifact-design DSN2, DSN2b; spec navrh/D3), from readiness's
+// research_trace on the working revision (the server's rule; WCE7, lib/design-coverage.ts reads it).
+// Reading it saves an edit still waiting and submits nothing.
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { type CoverageAt, type CoverageStatus, type RqCoverage, coverageInputs, coverageInputsChanged, coverageStatus, nextCoverageAt, rqCoverage, seedCoverageAt } from "@/lib/design-coverage";
 import { codeWords } from "@/lib/reason-words";
 import type { Tone } from "@/lib/tone";
 import type { ResearchState } from "@/research/store";
-import { researchQuestionsOf } from "@/research/trace";
+import { linkKey } from "@/research/trace";
 import { useSampleReadiness } from "../../workbench/useSampleReadiness";
-import { StepSection } from "../step";
 import { Chip } from "../ui";
 import { CodedWords } from "./CodedWords";
 import { useResearch } from "./context";
@@ -23,45 +22,47 @@ import { useResearch } from "./context";
 const C = "research.plan.coverage";
 const TONE: Record<CoverageStatus, Tone> = { covered: "done", partial: "you", gap: "fault", unknown: "neutral" };
 
-export function DesignCoverage({ id = "plan-coverage" }: { id?: string }) {
-  const { store, state, frame, stepHref } = useResearch();
+export type DesignCoverage = {
+  /** The one line that says what the rows were read on, or why there are none. */
+  line: { words: string; alert: boolean };
+  /** Each shown research question's coverage, in their order; empty while none was read. */
+  rows: RqCoverage[];
+  /** What the server traces that the list does not show (the objectives or the goal it falls back to). */
+  elsewhere: RqCoverage[];
+  revision: number | null;
+};
+
+/**
+ * The coverage of the research questions `shown`, read on the working revision once a change it is
+ * computed from is saved. A shown question the read does not hold is not checked: unknown, never covered.
+ */
+export function useDesignCoverage(shown: readonly string[]): DesignCoverage {
+  const { store, state, frame } = useResearch();
   const at = useCoverageRevision(state);
   // The working copy's readiness (WCE7b), nothing submitted. Návrh's own autosave keeps saving on its
-  // debounce: this section never flushes (canEdit false), it reads a revision once it is saved.
+  // debounce: this never flushes (canEdit false), it reads a revision once it is saved.
   const read = useSampleReadiness(store, frame.studyId, false, at.revision);
+  const readiness = read.kind === "ready" ? read.readiness : null;
+  const shownKey = shown.join("\n");
+  // Recomputed when the read or the list changes, not on every edit's render.
+  const traced = useMemo(() => {
+    const trace = readiness?.research_trace ?? null;
+    if (!trace) return null;
+    const outlook = readiness?.question_outlook ?? [];
+    const list = shownKey ? shownKey.split("\n") : [];
+    const keys = new Set(list.map(linkKey));
+    const elsewhere = rqCoverage(trace.questions.map((q) => q.text).filter((q) => !keys.has(linkKey(q))), trace, outlook);
+    return { rows: rqCoverage(list, trace, outlook), elsewhere };
+  }, [readiness, shownKey]);
+  const empty = { rows: [], elsewhere: [], revision: null };
+  if (read.kind === "loading") return { ...empty, line: { words: t(`${C}.loading`), alert: false } };
+  if (read.kind === "failed") return { ...empty, line: { words: tv(`${C}.failed`, { message: read.message }), alert: true } };
+  if (read.kind === "none") return { ...empty, line: { words: t(`${C}.none`), alert: false } };
+  const { revision } = read;
+  if (!traced) return { ...empty, revision, line: { words: tv(`${C}.noTrace`, { revision }), alert: false } };
   // A change it is computed from, not read yet (typed, saving, or read again now): said, never shown as current.
-  const behind = read.kind === "ready" && (read.revision !== at.revision || coverageInputsChanged(at.inputs, coverageInputs(state.project)));
-
-  const working = researchQuestionsOf(state.project);
-  const body = (() => {
-    if (read.kind === "loading") return <p className="text-[13px] text-ink-muted">{t(`${C}.loading`)}</p>;
-    if (read.kind === "failed") return <p role="alert" className="text-[13px] text-status-fault-ink">{tv(`${C}.failed`, { message: read.message })}</p>;
-    if (read.kind === "none") return <p className="text-[13px] text-ink-muted">{t(`${C}.none`)}</p>;
-    const { revision, readiness } = read;
-    const trace = readiness.research_trace ?? null;
-    if (!trace) return <p className="text-[13px] text-ink-muted">{tv(`${C}.noTrace`, { revision })}</p>;
-    const rows = rqCoverage(working, trace, readiness.question_outlook ?? []);
-    return (
-      <>
-        <p className="text-[13px] text-ink-muted">{tv(`${C}.${behind ? "recomputing" : "fromWorking"}`, { revision })}</p>
-        {rows.length ? (
-          <ol className="mt-3 flex flex-col gap-3">
-            {rows.map((row, i) => (
-              <RqRow key={`${i}-${row.text}`} row={row} revision={revision} questionnaire={stepHref("questionnaire")} />
-            ))}
-          </ol>
-        ) : (
-          <p className="mt-2 text-sm">{t(`${C}.noQuestions`)}</p>
-        )}
-      </>
-    );
-  })();
-
-  return (
-    <StepSection id={id} title={t(`${C}.title`)} hint={t(`${C}.help`)} aside={<span className="text-xs text-ink-faint">{t(`${C}.aside`)}</span>}>
-      <div className="p-4">{body}</div>
-    </StepSection>
-  );
+  const behind = read.revision !== at.revision || coverageInputsChanged(at.inputs, coverageInputs(state.project));
+  return { ...traced, revision, line: { words: tv(`${C}.${behind ? "recomputing" : "fromWorking"}`, { revision }), alert: false } };
 }
 
 /**
@@ -76,54 +77,53 @@ function useCoverageRevision(state: ResearchState): CoverageAt {
   return next;
 }
 
-function RqRow({ row, revision, questionnaire }: { row: RqCoverage; revision: number; questionnaire: string }) {
+/**
+ * A research question's coverage on its row: its status, what measures it (each measure's own
+ * verdict where it is not answerable), its comparison and its gaps. AIA's words, not the design's:
+ * never quoted into a comment (data-no-quote, PlanStep's Commentable).
+ */
+export function RqCoverageLine({ row, revision }: { row: RqCoverage; revision: number }) {
+  const { stepHref } = useResearch();
+  const questionnaire = stepHref("questionnaire");
   return (
-    <li className="rounded-sm border border-border p-3">
-      <div className="flex flex-wrap items-start gap-2">
-        <p className="min-w-0 flex-1 text-sm font-semibold">{row.text}</p>
+    <div data-no-quote className="mt-1 flex flex-col gap-1 text-[13px] leading-5">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <Chip tone={TONE[row.status]}>{t(`${C}.status.${row.status}`)}</Chip>
+        {!row.checked ? (
+          <span className="text-ink-muted">{tv(`${C}.notChecked`, { revision })}</span>
+        ) : row.measures.length ? (
+          <span className="min-w-0">
+            <span className="text-ink-muted">{t(`${C}.measures`)} </span>
+            {row.measures.map((m, i) => {
+              const own = coverageStatus(m.verdict);
+              return (
+                <span key={m.key}>
+                  {i ? ", " : null}
+                  <Link href={`${questionnaire}#${encodeURIComponent(m.anchor)}`} className="text-ink underline decoration-border-strong underline-offset-2 hover:decoration-ink">
+                    {m.code ? <CodedWords inline coded={{ words: m.text, code: m.code }} /> : m.text}
+                  </Link>
+                  {own !== "covered" ? <span className="text-ink-muted"> ({t(`${C}.status.${own}`)})</span> : null}
+                </span>
+              );
+            })}
+          </span>
+        ) : (
+          <span className="text-ink-muted">{t(`${C}.noMeasures`)}</span>
+        )}
+        {row.comparison ? (
+          <span className="rounded-md bg-surface-sunken px-1.5 text-xs leading-5 text-ink-muted">
+            <span className="sr-only">{t(`${C}.comparison`)}: </span>
+            <CodedWords inline coded={codeWords("research.questionnaire.comparisons.kind", row.comparison)} />
+          </span>
+        ) : null}
       </div>
-      {!row.checked ? (
-        <p className="mt-1 text-[13px] text-ink-muted">{tv(`${C}.notChecked`, { revision })}</p>
-      ) : (
-        <dl className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-[13px] leading-5 sm:grid-cols-[150px_minmax(0,1fr)]">
-          <dt className="text-ink-muted">{t(`${C}.items`)}</dt>
-          <dd className="m-0">
-            {row.measures.length ? (
-              <ul className="flex flex-col gap-0.5">
-                {row.measures.map((m) => (
-                  <li key={m.key} className="flex items-start gap-2">
-                    <Chip tone={TONE[coverageStatus(m.verdict)]}>{t(`${C}.status.${coverageStatus(m.verdict)}`)}</Chip>
-                    <Link href={`${questionnaire}#${encodeURIComponent(m.anchor)}`} className="min-w-0 flex-1 text-ink no-underline hover:underline">
-                      {m.code ? <CodedWords inline coded={{ words: m.text, code: m.code }} /> : m.text}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              t(`${C}.noMeasures`)
-            )}
-          </dd>
-          {row.comparison ? (
-            <>
-              <dt className="text-ink-muted">{t(`${C}.comparison`)}</dt>
-              <dd className="m-0"><CodedWords inline coded={codeWords("research.questionnaire.comparisons.kind", row.comparison)} /></dd>
-            </>
-          ) : null}
-          <dt className="text-ink-muted">{t(`${C}.gaps`)}</dt>
-          <dd className="m-0">
-            {row.reasons.length ? (
-              <ul className="flex flex-col gap-0.5">
-                {row.reasons.map((r) => (
-                  <li key={r}><CodedWords coded={codeWords("research.exec.trace.reason", r)} /></li>
-                ))}
-              </ul>
-            ) : (
-              t(`${C}.noGaps`)
-            )}
-          </dd>
-        </dl>
-      )}
-    </li>
+      {row.checked && row.reasons.length ? (
+        <ul className="flex flex-col gap-0.5 text-ink-muted" aria-label={t(`${C}.gaps`)}>
+          {row.reasons.map((r) => (
+            <li key={r}><CodedWords coded={codeWords("research.exec.trace.reason", r)} /></li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
   );
 }

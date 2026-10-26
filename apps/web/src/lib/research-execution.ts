@@ -469,7 +469,7 @@ export function sociomapObjects(battery: SociomapBattery): SociomapObject[] {
 // --------------------------------------------------------------------------- //
 
 /** Worst first: what a run will not answer is read before what it will. */
-export const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
+const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
 
 export function verdictTone(verdict: OutlookVerdict): Tone {
   if (verdict === "UNANSWERABLE") return "fault";
@@ -478,10 +478,11 @@ export function verdictTone(verdict: OutlookVerdict): Tone {
   return "done";
 }
 
-/** How many items carry each verdict; every verdict present, zero when none. */
+/** How many items carry each verdict; every verdict present, zero when none. A verdict this client
+ * does not know counts as unknown, so the item stays counted, never dropped. */
 export function outlookCounts(items: readonly QuestionOutlook[]): Record<OutlookVerdict, number> {
   const counts: Record<OutlookVerdict, number> = { UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 };
-  for (const item of items) counts[item.verdict] += 1;
+  for (const item of items) counts[item.verdict in counts ? item.verdict : "UNKNOWN"] += 1;
   return counts;
 }
 

@@ -380,6 +380,26 @@ describe("Dotazník", () => {
     expect(within(set).queryByRole("radiogroup", { name: "Popisky škály sada 1" })).toBeNull();
   });
 
+  it("shows a question's links as VO chips named by the research question's text, and says when it measures none (Q3)", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const linksOfItem = (id: string) => within(document.getElementById(id) as HTMLElement).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
+    const q1 = linksOfItem("qedit_Q1");
+    // The chip reads "VO1" and is named by it and the question; the question is its tooltip too.
+    const chip = within(q1).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" });
+    expect(chip.querySelector("[title]")?.getAttribute("title")).toBe("Jak často lidé pijí kávu?");
+    // The page keys "VO n" to its question without hover: the comparisons card numbers its rows the same way.
+    expect(screen.getByText("VO2 · Která média lidé používají?")).toBeTruthy();
+    // Nothing linked anywhere yet: coverage is unknown, so no card says it measures nothing.
+    expect(screen.queryByText(/^Neměří žádnou výzkumnou otázku/)).toBeNull();
+    fireEvent.click(chip);
+    // Q1's link is written out for touch, and Q2, now beside a linked item, says it measures none.
+    expect(within(q1).getByText("VO1 · Jak často lidé pijí kávu?")).toBeTruthy();
+    expect(within(linksOfItem("qedit_Q2")).getByText(/^Neměří žádnou výzkumnou otázku/)).toBeTruthy();
+  });
+
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
     const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
     const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
@@ -389,10 +409,10 @@ describe("Dotazník", () => {
     const card = document.getElementById("qedit_Q1") as HTMLElement;
     const links = within(card).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
     fireEvent.click(within(links).getByRole("button", { name: "Odebrat odkaz na „Stará otázka?“" }));
-    fireEvent.click(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }));
-    expect(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(links).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" }));
+    expect(within(links).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
     const set = document.getElementById("qset_sec_b") as HTMLElement;
-    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "Která média lidé používají?" }));
+    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "VO2: Která média lidé používají?" }));
     await saved();
     await waitFor(() => expect(lastSave().reason).toBe("questionnaire_links"));
     const content = lastSave().content as unknown as { sections: { research_questions?: string[]; questions?: { research_questions?: string[] }[] }[] };

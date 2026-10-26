@@ -95,7 +95,7 @@ describe("which drawing a stored map gets", () => {
     render(<ObjectMapView battery={legacyBattery} dataOrigin={null} />);
     expect(screen.getByTestId("object-map-svg")).toBeTruthy();
     expect(screen.queryByTestId("object-map-panel")).toBeNull();
-    expect(screen.getByTestId("object-map-support").textContent).toContain("Šířku kopců");
+    expect(screen.getByTestId("object-map-support").textContent).toContain("Šířka kopců");
   });
 });
 
@@ -282,7 +282,7 @@ describe("the display state, where the web leaves the panel", () => {
     expect(canvas().getAttribute("data-person")).toBe("");
   });
 
-  it("draws Top vztahy in full screen as on the page: the selection's five, the map's five without one", () => {
+  it("draws the strongest relations in full screen as on the page: the selection's five, the map's five without one", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const first = () => openList().getAllByRole("button")[0];
     fireEvent.click(first());
@@ -1175,8 +1175,20 @@ describe("the filter bar and the four registers", () => {
     openInfo();
     const registers = screen.getByTestId("object-map-registers");
     expect([...registers.querySelectorAll("[data-register]")].map((r) => r.getAttribute("data-register"))).toEqual(["computed", "display", "interpretation", "external"]);
-    expect(registers.textContent).toContain("Deterministický výsledek");
+    expect(registers.textContent).toContain("Spočtený výsledek");
+    expect(registers.textContent).not.toContain("Deterministický");
     expect(registers.textContent).toContain("do výpočtu nevstupují");
+  });
+
+  it("speaks to a researcher, not in the workshop's jargon (spec copy pass, SOC11b)", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    expect(screen.getByRole("button", { name: "Absolutní" }).getAttribute("title")).toBe("Na škále, kterou sada uvádí v Dotazníku (např. 1–5 nebo 0–100)");
+    openTools();
+    expect(screen.getByRole("button", { name: "Nejsilnější vztahy na mapě" })).toBeTruthy();
+    openInfo();
+    expect(screen.getByTestId("object-map-registers")).toBeTruthy();
+    for (const word of ["Top vztahy", "kroku 3", "Stress-1", "PROGRESS", "Deterministický"]) expect(document.body.innerHTML).not.toContain(word);
   });
 
   it("names a display change and says what did not change, leaving the map's numbers as they were", () => {
@@ -1205,7 +1217,7 @@ describe("the filter bar and the four registers", () => {
     expect(canvas().getAttribute("data-map")).toBe("objects");
     expect(canvas().getAttribute("data-norm")).toBe("range");
     openTools();
-    expect(screen.getByRole("button", { name: "Top vztahy na mapě" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Nejsilnější vztahy na mapě" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("keeps the keyboard in the bar when Zrušit filtr removes its own chip, and announces the bar from a live region already there", async () => {

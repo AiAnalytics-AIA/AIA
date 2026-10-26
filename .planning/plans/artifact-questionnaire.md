@@ -372,6 +372,14 @@ condition line, "a stejně pro dalších n položek" under a set, and "+ n dalš
 fields stay as ported (parity unchanged). Tests: `questionnaire-preview.test.ts` "a 1–7 scale previews at 1–7…",
 "a cut list says how many it left out…"; `QuestionnaireStep.test.tsx` "previews a scale at its own range and
 says what the preview leaves out (QST11)"; `questionnaire_journey.mjs` at 1440/1100/768/390.
+*QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
+full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
+(feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
+(the visible label in the name) with the question as its tooltip; the linked ones are written out under the
+chips, for touch. Once any item declares a link, an item linked to none says so in words, with what to do
+(before that, coverage is unknown for every item, coverageOf, never a gap on each card). Dangling links stay coral. Tests:
+`QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
+1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
 ## Doc follow-up
 

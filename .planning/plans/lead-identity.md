@@ -96,9 +96,9 @@ Researcher handoff from the research-stages prototype session (relayed by the PM
 - **Its class by a new rule.** No rule names the hatch input today: `LEAD_FILES` (C) covers the
   Lead's name, SOUL, USER and notes, and a message to the Lead is `LEAD_MESSAGE` (B)
   (`domain/material_rules.py:12-15`); material no rule names refuses dispatch. LI1 adds
-  `MaterialRule.LEAD_HATCH` (`rule:lead_hatch`), proposed Class C as the researcher's words about
-  their own working style, the files they become. A rule is the code's and the owner's decision, so
-  it waits on Nigel's word (Open questions). A route not approved for Class C refuses it by name.
+  `MaterialRule.LEAD_HATCH` (`rule:lead_hatch`), **Class C** (decided by Nigel, 2026-10-25: "LEAD_HATCH
+  class C yes"): the researcher's words about their own working style, the files they become. A
+  route not approved for Class C refuses it by name.
 
 **Held, priced and stated before the person confirms.**
 - The hold covers the call and its one repair at the Lead model's prices. The window is the
@@ -201,18 +201,57 @@ LI0 → LI1 → LI2 → LI3 → LI4 → LI5 (with LI7) → LI6.
 
 Both by Nigel, relayed by the coordinator, 2026-10-25 ~22:25 UTC.
 
-## Open questions
+3. **The hatch input's class:** `MaterialRule.LEAD_HATCH`, Class C.
+4. **The acceptance step stays** (ADR 0030 decision 2), no exception.
 
-Both closed by Nigel, 26 Oct 2026 (relayed by the PM coordinator):
+Both by Nigel, relayed by the coordinator, 2026-10-25 ~23:43 UTC: "LEAD_HATCH class C yes, keep
+the acceptance step, ensure the backend is prepared for this".
 
-1. **The hatch input's class:** `MaterialRule.LEAD_HATCH` is **Class C**, as proposed.
-2. **The acceptance step** (Přijmout / Zadat znovu) **stays**, keeping ADR 0030 decision 2.
+5. **The payer for work that belongs to no single client** (Nigel, relayed ~23:47 UTC): "create
+   the AIA organization for charges spent that dont belong to a single client". It replaces the
+   shape LI0 assumed. Every paid path is keyed by a client and `client_id` is NOT NULL on
+   `projects`, `workflow_runs`, `budget_reservations` and the usage ledger
+   (`infrastructure/tables.py @ 534ab048`; the payer is the study or the client,
+   `workflow_repository.py:1229-1359`), so a hatch cannot be held or ledgered until that entity
+   exists. Its shape (a `clients` row per organization or a house organization, whether it is
+   listed, who sees its work, how LI0's allowance maps to its budget) is written as an ADR draft
+   before LI0 and the hatch's request side are built: LI8 below.
 
-Still open: who pays is now LI8's ADR (the "AIA" house entity), drafted by the Lead session.
+## As built
+
+**The decision-free half of LI1** (branch `feature/lead-hatch-backend`):
+- `MaterialRule.LEAD_HATCH` (Class C) in `domain/material_rules.py`, held by
+  `test_material_rules.py::test_every_rule_has_the_class_the_owner_decided`.
+- `domain/lead_hatch.py`: `HatchInput` (the name, the four traits, the brief and about-you,
+  bounded in characters and bytes), the closed `HatchOutput` (SOUL, USER, the greeting, bounded as
+  the Lead's files are) and `hatch_refusals` / `personal_text_refusal`, ADR 0030 decision 3's
+  check (a client of the organization named, or a number: `client_fact_in_personal_file`), run
+  on the three files and on the chosen name (review of #919: the name enters every study's
+  context with them).
+- `researcher_lead_hatches` (migration `46d0bf6b5121`): the pending hatch, at most one per
+  researcher, kept apart from `researcher_leads` so nothing is a Lead file before "Přijmout";
+  `ResearcherLeadRepository.record_hatch / answer_hatch / accept_hatch / discard_hatch`, the
+  accept and the discard audited (`LEAD_HATCH_ACCEPTED`, `LEAD_HATCH_DISCARDED`); a deactivated
+  member's hatches erased with the membership (`erase_member_hatches`).
+- Routes: `POST /api/v1/lead/hatches` refused by name (409 `lead_hatch_unavailable`) after
+  validating the input, nothing sent, kept or charged; `POST …/hatches/{id}/accept` (the files
+  checked again against the organization's clients as they are kept; 422
+  `client_fact_in_personal_file` with the files named) and `…/discard`; `GET /lead` answers the
+  pending hatch before the Lead is hatched.
+- **Not yet:** the request itself (the `research_lead_hatch` step and its hold), which waits on
+  the AIA organization (Decided 5) and LI0. The greeting is answered on accept rather than stored
+  as a first turn: a hatch belongs to no study, and a turn does.
 
 ## Findings
 
-None yet.
+- **F1. ADR 0030 decision 3's check was not implemented.** The ADR (Accepted) says a proposed
+  personal text naming a client or holding a number "is refused by code as
+  `client_fact_in_personal_file`"; no code wrote that reason before this branch
+  (`git grep client_fact_in_personal_file @ 534ab048` finds nothing), so a Lead's self-update of
+  SOUL or USER is not checked today, only seen by the person before it is kept. Smallest fix: run
+  `domain/lead_hatch.personal_text_refusal` on a self-update's name, SOUL, USER and personal
+  notes in `split_self_update`'s waiting half. Test: a self-update naming a client is refused by
+  name. Lead-orchestration LO11's to take.
 
 ## From the research build spec (2026-10-26)
 
