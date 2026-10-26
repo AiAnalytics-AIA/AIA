@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -572,6 +572,27 @@ describe("Zadání", () => {
     expect(document.activeElement).toBe(document.getElementById("brief-decision_use"));
   });
 
+  it("Tab from a typed decision onto a starter keeps the focus there, and the starter writes nothing over the text (stand-in review on #938)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const decision = within(await screen.findByRole("region", { name: /^Rozhodnutí, které má výzkum podpořit/ }));
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    const field = decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" });
+    fireEvent.change(field, { target: { value: "Spustit kampaň v Q1?" } });
+    const starter = decision.getByRole("button", { name: "Cena" });
+    // Tab, in the browser's order: the field blurs (and commits) first, then the starter takes the focus.
+    fireEvent.blur(field, { relatedTarget: starter });
+    act(() => starter.focus());
+    expect(await decision.findByText("Spustit kampaň v Q1?")).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(starter.isConnected).toBe(true);
+    expect(document.activeElement).toBe(starter);
+    expect(starter.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(starter);
+    expect(decision.getByText("Spustit kampaň v Q1?")).toBeTruthy();
+    expect(decision.queryByText("Zvednout cenu, nebo ji držet?")).toBeNull();
+  });
+
   it("a starter pressed while the decision is being typed keeps what was typed (code review)", async () => {
     unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
@@ -580,9 +601,8 @@ describe("Zadání", () => {
     const field = decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" });
     fireEvent.change(field, { target: { value: "Spustit kampaň v Q1?" } });
     const starter = decision.getByRole("button", { name: "Cena" });
-    // The press blurs the open field first, which commits what was typed and takes the starters away.
+    // The press blurs the open field first, which commits what was typed; the starter then writes nothing.
     fireEvent.blur(field);
-    expect(starter.isConnected).toBe(false);
     fireEvent.click(starter);
     expect(await decision.findByText("Spustit kampaň v Q1?")).toBeTruthy();
     expect(decision.queryByText("Zvednout cenu, nebo ji držet?")).toBeNull();

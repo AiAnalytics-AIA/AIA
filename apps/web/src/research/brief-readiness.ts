@@ -6,11 +6,12 @@
 
 import { briefElementId } from "@/lib/artifacts/brief";
 import type { BriefingField } from "./brief";
-import { objectivesOf } from "./brief-objectives";
+import { objectivesEditable, objectivesOf } from "./brief-objectives";
 import { type ResearchProject, selectedProblemTypes } from "./model";
 import type { Analysis } from "./store";
 
-export type ChipState = "done" | "you" | "optional";
+/** `unknown`: the page cannot read what the section holds, so it is neither missing nor done. */
+export type ChipState = "done" | "you" | "optional" | "unknown";
 
 export type ReadinessChip = {
   /** The section's DOM id, the chip's target. */
@@ -33,7 +34,10 @@ export function briefReadiness(design: { project: ResearchProject; analysis: Ana
   const optional = (target: string, label: string, ok: boolean): ReadinessChip => ({ target, label, required: false, state: ok ? "done" : "optional" });
   return [
     required(briefElementId("goal"), "research.brief.chipGoal", filled(p.goal)),
-    required(briefElementId("objectives"), "research.brief.chipObjectives", objectivesOf(design).length > 0),
+    // A list stored in a shape the page cannot read is not an empty one: never "you", never done.
+    objectivesEditable(design)
+      ? required(briefElementId("objectives"), "research.brief.chipObjectives", objectivesOf(design).length > 0)
+      : { target: briefElementId("objectives"), label: "research.brief.chipObjectives", required: true, state: "unknown" },
     required(briefElementId("decision_use"), "research.brief.chipDecision", filled(p.decision_use)),
     required(briefElementId("type"), "research.brief.chipType", selectedProblemTypes(p).length > 0),
     optional(briefElementId("context"), "research.brief.chipContext", CONTEXT_FIELDS.some((f) => filled(briefing[f]))),

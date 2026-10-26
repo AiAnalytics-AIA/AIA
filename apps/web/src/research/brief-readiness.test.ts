@@ -15,6 +15,11 @@ describe("briefReadiness", () => {
     expect(JSON.stringify(chips)).not.toMatch(/%|score/);
   });
 
+  it("an objectives list the page cannot read is unknown, never waiting and never done (stand-in review on #938)", () => {
+    const chips = briefReadiness({ project: project({ research_plan: { objectives: [{ text: "Změřit zájem" }] } } as unknown as Partial<ResearchProject>), analysis: null });
+    expect(chips.find((c) => c.target === "brief-objectives")!.state).toBe("unknown");
+  });
+
   it("a section the brief answers is done, a whitespace-only one is not", () => {
     const chips = briefReadiness({
       project: project({

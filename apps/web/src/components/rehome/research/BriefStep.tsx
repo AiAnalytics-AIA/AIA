@@ -306,7 +306,15 @@ const CHIP_LOOK = {
   done: { glyph: "done", look: "border-border text-ink", icon: "text-status-done" },
   you: { glyph: "you", look: "border-status-you-ink/40 bg-status-you-wash text-status-you-ink", icon: "" },
   optional: { glyph: "dot", look: "border-border text-ink-muted", icon: "text-ink-faint" },
+  unknown: { glyph: "dot", look: "border-dashed border-border-strong text-ink-muted", icon: "text-ink-faint" },
 } as const satisfies Record<ReadinessChip["state"], { glyph: IconName; look: string; icon: string }>;
+
+const CHIP_WORDS: Record<ReadinessChip["state"], string> = {
+  done: "research.brief.chipDone",
+  you: "research.brief.chipWaits",
+  optional: "research.brief.capOptional",
+  unknown: "research.brief.chipUnknown",
+};
 
 /**
  * "Připravenost" (spec navrh B2): one chip per section, in the page's order, each a link to its
@@ -319,7 +327,7 @@ function ReadinessChips({ chips }: { chips: ReadinessChip[] }) {
       <span className="mr-1 text-xs font-medium text-ink-muted">{t("research.brief.readiness")}</span>
       {chips.map((c) => {
         const look = CHIP_LOOK[c.state];
-        const state = c.state === "done" ? t("research.brief.chipDone") : c.state === "you" ? t("research.brief.chipWaits") : t("research.brief.capOptional");
+        const state = t(CHIP_WORDS[c.state]);
         return (
           <a
             key={c.target}
@@ -345,6 +353,24 @@ function ReadinessChips({ chips }: { chips: ReadinessChip[] }) {
  */
 function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
   const empty = !(p.decision_use || "").trim();
+  // Tab from the open field blurs it (committing what was typed) before the starter takes the focus,
+  // so the row goes only once the focus has landed outside it, never from under it. Once the
+  // decision has words, a starter writes nothing.
+  const [wasEmpty, setWasEmpty] = useState(empty);
+  const [lingering, setLingering] = useState(false);
+  // A starter chosen closes the row; only typed text, committed as the focus moves on, leaves it lingering.
+  const [chosen, setChosen] = useState(false);
+  if (wasEmpty !== empty) {
+    setWasEmpty(empty);
+    setLingering(!empty && !chosen);
+    setChosen(false);
+  }
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!lingering) return;
+    const id = setTimeout(() => { if (!row.current?.contains(document.activeElement)) setLingering(false); });
+    return () => clearTimeout(id);
+  }, [lingering]);
   return (
     <StepSection
       id={briefElementId("decision_use")}
@@ -366,17 +392,24 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
         rules={{ required: false, maxLength: CONTEXT_MAX }}
         onCommit={(v) => edit("decision_use", v)}
       />
-      {/* Starters write a whole sentence into an empty decision only, never onto a person's text (spec
-          navrh B3): pressing one blurs an open field, whose commit re-renders the decision as filled and
-          takes the starters away before the click lands. */}
-      {empty ? (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      {/* Starters write a whole sentence into an empty decision only, never onto a person's text (spec navrh B3). */}
+      {empty || lingering ? (
+        <div
+          ref={row}
+          className="mt-2 flex flex-wrap items-center gap-1.5"
+          onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setLingering(false); }}
+        >
           <span className="text-xs text-ink-muted">{t("research.brief.decisionStartWith")}</span>
           {[0, 1, 2].map((i) => (
             <button
               key={i}
               type="button"
-              onClick={() => edit("decision_use", t(`research.brief.decisionStarters.${i}.text`))}
+              aria-disabled={!empty || undefined}
+              onClick={() => {
+                if (!empty) return;
+                setChosen(true);
+                edit("decision_use", t(`research.brief.decisionStarters.${i}.text`));
+              }}
               className={`min-h-7 rounded-pill border border-dashed border-border-strong px-2.5 text-xs leading-5 text-ink-muted hover:border-solid hover:text-ink ${FOCUS}`}
             >
               {t(`research.brief.decisionStarters.${i}.label`)}

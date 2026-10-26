@@ -2340,6 +2340,7 @@ export const cs = {
       chipFiles: "Podklady",
       chipWaits: "čeká na vás",
       chipDone: "hotovo",
+      chipUnknown: "nelze přečíst",
       decisionMissing: "chybí",
       decisionStartWith: "Začít od",
       decisionStarters: {
