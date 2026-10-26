@@ -32,6 +32,11 @@ export const cs = {
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",
     navSettings: "Nastavení",
+    // The researcher's own Lead on the rail (PBA2): grown when there is none (LI9), else theirs.
+    navLead: "Můj Vedoucí",
+    navLeadGrow: "Vypěstovat Vedoucího",
+    menuOpen: "Menu",
+    menuClose: "Zavřít menu",
     signOut: "Odhlásit se",
     loading: "Načítám…",
     loadFailed: "Nepodařilo se načíst data.",
