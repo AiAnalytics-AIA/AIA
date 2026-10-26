@@ -14,7 +14,7 @@ import { lead as leadApi, researcherLead, ApiError, type Readiness, type Researc
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -473,6 +473,7 @@ const stageWords = (stage: string) => (isWorkbenchStage(stage) ? STAGES[stage].l
 const VIEW_LABEL = (v: LeadView, design: TargetWords | null) =>
   v.op === "open_stage" ? `Otevřít ${stageWords(v.stage)}`
   : v.op === "show_diff" ? `Změny: ${stageWords(v.stage)}`
+  : v.op === "select" || v.op === "filter" ? mapViewWords(v, design)
   : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`;
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
