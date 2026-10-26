@@ -202,8 +202,8 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
     its own figures when it has any.
   - A strategy change (not a preset change) keeps a subpanel's support figures as they are (the product
     owner, 2026-10-26: "leave the strategy question as is").
-  - Not done, beyond the decision: a preset's `dataset_name` (shown as "Zdroj audience") survives
-    ČR připravujeme.
+  - A preset's `dataset_name` (shown as "Zdroj audience") stays as it is on ČR připravujeme (the product
+    owner, 2026-10-26: "leave the dataset name as is"). No OI-51 question is left open.
   - Tests:
     `AudienceStep.test.tsx` "switching to one's own audience clears the subpanel's strategy and support
     too…"; `audience.live.test.ts` "what a preset change clears"; the audience journey's step 3.
