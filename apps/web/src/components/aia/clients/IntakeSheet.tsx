@@ -452,7 +452,7 @@ function Row({
                     aria-pressed={e.kind === k}
                     disabled={locked}
                     onClick={() => onChange({ kind: k })}
-                    className={`min-h-[30px] rounded-[4px] px-2.5 text-xs font-medium ${e.kind === k ? "bg-surface-raised text-ink shadow-[0_0_0_1px_var(--color-border)]" : "text-ink-muted"}`}
+                    className={`min-h-[30px] rounded-[4px] px-2.5 text-xs font-medium ${e.kind === k ? "bg-surface-raised text-ink shadow-[0_0_0_1px_var(--border)]" : "text-ink-muted"}`}
                   >
                     {k === "DATASET" ? t("aia.intake.asDataset") : t("aia.intake.asDocument")}
                   </button>

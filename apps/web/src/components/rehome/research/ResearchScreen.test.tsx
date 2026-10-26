@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -40,7 +41,9 @@ function api(load: () => unknown, save: (b: Record<string, unknown>) => unknown 
         : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
         : u.endsWith("/research/agent-jobs") ? []
         : {};
-      return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
+      // An answer may be a promise: a test holds a read back until it says so.
+      const given = await answer;
+      return given instanceof Response ? given : new Response(JSON.stringify(given), { status: 200 });
     }),
   );
 }
@@ -122,10 +125,12 @@ describe("ResearchScreen", () => {
     const closed = { ...TEST_FRAME, canEdit: false, canReview: true, closed: { status: "DELIVERED", deliveredAt: "2026-10-17T09:00:00Z" } };
     render(<ResearchScreen step="brief" frame={closed} />);
     const goal = (await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement;
-    // Said once, on the stage: what it is, what still works and where it is reopened.
+    // Said once, on the stage: what it is and what still works.
     expect(screen.getByText(tv("aia.study.closed.DELIVERED_on", { when: new Date("2026-10-17T09:00:00Z").toLocaleDateString("cs-CZ") }))).toBeTruthy();
     expect(screen.getByText(t("aia.study.closed.help"))).toBeTruthy();
-    expect(screen.getByRole("link", { name: t("aia.study.closed.reopen") }).getAttribute("href")).toBe("/app/settings#studies");
+    // Settings no longer changes a study's status (F7): the notice never sends a person there.
+    expect(document.querySelector('[data-study-closed] a[href*="settings"]')).toBeNull();
+    expect(t("aia.study.closed.reopen")).not.toMatch(/Nastavení/);
     // Every control of the design is disabled as one, and nothing is sent.
     expect(goal.closest("fieldset")?.disabled).toBe(true);
     expect(goal.closest("fieldset")?.getAttribute("role")).toBe("none"); // disables, announces no group
@@ -139,6 +144,162 @@ describe("ResearchScreen", () => {
     await new Promise((r) => setTimeout(r, 2100));
     expect(saves()).toHaveLength(0);
     expect(screen.queryByText(t("research.saveFailed"))).toBeNull();
+  });
+
+  it("changes the study's status on the study, and reopens a closed one in place (F7)", async () => {
+    let status = "DELIVERED";
+    const refreshed: string[] = [];
+    api(() => content({ can_edit: false }), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => { status = String(calls.at(-1)?.body?.status); return { study_id: "STU-1", status }; },
+    });
+    const frame = {
+      ...TEST_FRAME, canEdit: false, canReview: true, status, closed: { status, deliveredAt: null },
+      refreshStudy: async () => { refreshed.push(status); },
+    };
+    render(<ResearchScreen step="brief" frame={frame} />);
+    await screen.findByLabelText(GOAL_LABEL);
+    // The header's control names the status and offers every other one.
+    fireEvent.click(await screen.findByRole("button", { name: "Stav: Předáno" }));
+    expect(within(screen.getByRole("menu", { name: "Stav: Předáno" })).getAllByRole("menuitem").map((i) => i.textContent))
+      .toEqual(["Rozpracováno", "Aktivní", "V kontrole", "Archivováno", "Zrušeno"]);
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+    // The notice reopens it where it stands, to a status that accepts work.
+    const notice = document.querySelector("[data-study-closed]") as HTMLElement;
+    fireEvent.click(within(notice).getByRole("button", { name: t("aia.study.closed.reopen") }));
+    fireEvent.click(within(screen.getByRole("menu", { name: t("aia.study.closed.reopen") })).getByRole("menuitem", { name: "Aktivní" }));
+    await vi.waitFor(() => expect(refreshed).toEqual(["ACTIVE"]));
+    expect(calls.filter((c) => c.method === "PUT" && c.url === "/api/v1/studies/STU-1/status").map((c) => c.body)).toEqual([{ status: "ACTIVE" }]);
+  });
+
+  it("takes edits once a closed study is reopened, and only once the store that takes them is in (Codex on #892)", async () => {
+    let editable = false;
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    // The first read answers at once; the read after the reopen is held back until the test says so.
+    api(() => (editable ? held.then(() => content({ can_edit: true })) : content({ can_edit: false })));
+    const closedFrame = { ...TEST_FRAME, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null }, refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={closedFrame} /></ResearchSession>);
+    expect(((await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true);
+    // Reopened: the study now allows edits, but the store that would take them is not in yet.
+    editable = true;
+    rerender(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={{ ...closedFrame, canEdit: true, status: "ACTIVE", closed: null }} /></ResearchSession>);
+    await vi.waitFor(() => expect(loads()).toHaveLength(2));
+    // No field is offered over the read-only store while the new one loads: the stage waits.
+    expect(screen.queryByLabelText(GOAL_LABEL)).toBeNull();
+    expect(screen.getByText(t("research.loading"))).toBeTruthy();
+    release();
+    const goal = await vi.waitFor(() => {
+      const el = screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement;
+      if (el.closest("fieldset")?.disabled) throw new Error("still read-only");
+      return el;
+    });
+    fireEvent.change(goal, { target: { value: "Po znovuotevření" } });
+    await vi.waitFor(() => expect(saves()).toHaveLength(1), { timeout: 10_000 });
+    expect(saves()[0].body).toMatchObject({ content: { goal: "Po znovuotevření" } });
+  });
+
+  it("never enables a field over a store that takes no edits, whatever the frame allows", async () => {
+    // The study's permission says yes, its content says no: the store is read-only, and so are the fields.
+    api(() => content({ can_edit: false }));
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={{ ...TEST_FRAME, canEdit: true }} /></ResearchSession>);
+    const goal = (await screen.findByLabelText(GOAL_LABEL)) as HTMLTextAreaElement;
+    expect(goal.closest("fieldset")?.disabled).toBe(true);
+  });
+
+  it("saves a typed change before closing the study, then reads it read-only; a failed save keeps it open", async () => {
+    let editable = true;
+    api(() => content({ can_edit: editable }), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => ({ study_id: "STU-1", status: "DELIVERED" }),
+    });
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Rozepsáno" } });
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    await vi.waitFor(() => expect(calls.some((c) => c.url === "/api/v1/studies/STU-1/status")).toBe(true));
+    // The typed change was saved first, then the status changed: nothing was dropped.
+    const order = calls.filter((c) => c.method === "PUT").map((c) => c.url);
+    expect(order).toEqual([CONTENT_PATH, "/api/v1/studies/STU-1/status"]);
+    expect(saves()[0].body).toMatchObject({ content: { goal: "Rozepsáno" } });
+    // Closed: the session reads the content again, read-only.
+    editable = false;
+    rerender(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={{ ...frame, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null } }} /></ResearchSession>);
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true));
+    cleanup();
+    // A save the server refuses keeps the study as it was: the status is not asked, the reason is said.
+    api(() => content(), () => new Response(JSON.stringify({ code: "internal", message: "Boom" }), { status: 500 }));
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Neuloženo" } });
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect(await vi.waitFor(() => {
+      const alert = document.querySelector("[data-study-status] [role=alert]");
+      if (!alert) throw new Error("no refusal yet");
+      return alert;
+    }, { timeout: 10_000 })).toBeTruthy();
+    expect(calls.filter((c) => c.url === "/api/v1/studies/STU-1/status")).toEqual([]);
+  });
+
+  it("holds the editor read-only for the whole change of status, so nothing typed meanwhile is lost (Codex on #892)", async () => {
+    let answer: (r: Response) => void = () => {};
+    const pending = new Promise<Response>((r) => { answer = r; });
+    api(() => content(), undefined, { "PUT /api/v1/studies/STU-1/status": () => pending });
+    function Harness() {
+      // The study's layout as ResearchStudy holds it: editable, and read-only while held.
+      const [holding, setHolding] = useState(false);
+      const frame = { ...TEST_FRAME, canEdit: !holding, status: "ACTIVE", refreshStudy: async () => {}, holdEdits: setHolding };
+      return <ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>;
+    }
+    render(<Harness />);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    // While the status is asked, the design is refused at the field: nothing typed can land in the
+    // store the change is about to replace.
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")?.disabled).toBe(true));
+    answer(new Response(JSON.stringify({ study_id: "STU-1", status: "DELIVERED" })));
+    await vi.waitFor(() => expect((screen.getByLabelText(GOAL_LABEL) as HTMLTextAreaElement).closest("fieldset")).toBeNull());
+  });
+
+  it("says a change the replaced store could not save once the study closed, never dropping it in silence", async () => {
+    let editable = true;
+    api(() => content({ can_edit: editable }), () => new Response(JSON.stringify({ code: "study_closed", message: "Study is closed" }), { status: 403 }));
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} };
+    const { rerender } = render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    fireEvent.change(await screen.findByLabelText(GOAL_LABEL), { target: { value: "Napsáno pozdě" } });
+    // Closed elsewhere before the change was saved: the session rebuilds, and the refused save is said.
+    editable = false;
+    rerender(<ResearchSession studyId="STU-1" canEdit={false}><ResearchScreen step="brief" frame={{ ...frame, canEdit: false, canReview: true, status: "DELIVERED", closed: { status: "DELIVERED", deliveredAt: null } }} /></ResearchSession>);
+    const lost = await vi.waitFor(() => {
+      const el = document.querySelector("[data-lost-edit]");
+      if (!el) throw new Error("not said yet");
+      return el;
+    }, { timeout: 10_000 });
+    expect(lost.getAttribute("role")).toBe("alert");
+  });
+
+  it("keeps a study read-only when its status changed but it could not be read again", async () => {
+    api(() => content(), undefined, { "PUT /api/v1/studies/STU-1/status": () => ({ study_id: "STU-1", status: "DELIVERED" }) });
+    const holds: boolean[] = [];
+    const frame = { ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => { throw new Error("offline"); }, holdEdits: (on: boolean) => holds.push(on) };
+    render(<ResearchSession studyId="STU-1" canEdit><ResearchScreen step="brief" frame={frame} /></ResearchSession>);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(screen.getByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("zůstává jen ke čtení");
+    // Held, and never let go: what the study allows is not known.
+    expect(holds).toEqual([true]);
+  });
+
+  it("says the API's refusal of a status change as given", async () => {
+    api(() => content(), undefined, {
+      "PUT /api/v1/studies/STU-1/status": () => new Response(JSON.stringify({ code: "forbidden", message: "Delivery needs sign-off" }), { status: 403 }),
+    });
+    render(<ResearchScreen step="brief" frame={{ ...TEST_FRAME, status: "ACTIVE", refreshStudy: async () => {} }} />);
+    await screen.findByLabelText(GOAL_LABEL);
+    fireEvent.click(await screen.findByRole("button", { name: "Stav: Aktivní" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Předáno" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("Delivery needs sign-off");
   });
 
   it("reads an AI proposal on a closed study's run stage and closes it, never applies it (review, Codex on #479)", async () => {
@@ -221,10 +382,12 @@ describe("ResearchScreen", () => {
     expect(crumbs.map((c) => c.textContent?.replace("/", "").trim())).toEqual(["Klienti", "Klient A", "Výzkumy", "Výzkum A", "Dotazník"]);
     expect(within(crumbs[1]).getByRole("link").getAttribute("href")).toBe("/app/clients/CLI-1");
     expect(within(crumbs[3]).getByRole("link").getAttribute("href")).toBe(stagePath("brief"));
-    // Inside a study the global navigation is icons only: the four AIA destinations, each named
-    // for assistive technology (research-lane-redesign); the client is in the breadcrumbs.
-    const global = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getAllByRole("link").map((a) => a.getAttribute("aria-label"));
-    expect(global).toEqual(["AI Analytics", "Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení"]);
+    // Inside a study the global navigation is the same Dock rail as everywhere (prototype-build
+    // PBA1): icons at rest, every destination named by its own words for assistive technology.
+    const rail = within(screen.getByRole("navigation", { name: "Hlavní navigace" }));
+    for (const name of ["Klienti", "Společenská inteligence", "Projektová paměť", "Nastavení", "Můj Vedoucí"]) {
+      expect(rail.getByRole("link", { name })).toBeTruthy();
+    }
     expect(screen.getByRole("link", { name: /Zpět na klienta/ }).getAttribute("href")).toBe("/app/clients/CLI-1");
   });
 

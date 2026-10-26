@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { cs } from "@/i18n/cs";
 import type { ResearchAnalysis } from "@/lib/api";
-import { blockedModules, wayOut } from "./analysis-blocked";
+import { blockedModules, unsupportedModules, wayOut } from "./analysis-blocked";
 
 type Module = ResearchAnalysis["modules"][string];
 const mod = (over: Partial<Module> = {}): Module => ({
@@ -51,5 +51,18 @@ describe("blockedModules", () => {
     const words = (cs as unknown as { research: { exec: { violation: Record<string, string> } } }).research.exec.violation;
     expect(codes.filter((c) => !words[c])).toEqual([]);
     expect(Object.keys(words).filter((k) => !codes.includes(k))).toEqual([]);
+  });
+});
+
+describe("unsupportedModules", () => {
+  it("lists each module the server diagnosed as stating nothing, in module order, and no reason it does not know", () => {
+    const analysis = { run_id: "RUN-1", complete: false, internal_only: true, synthetic: true, pending: {}, modules: {
+      hypotheses: mod({ diagnostic: { reason: "context_missing", resolutions: ["changed_design", "more_data"] } }),
+      executive: mod({ diagnostic: { reason: "no_supported_finding", resolutions: ["same_data_retry", "changed_design", "more_data"] } }),
+      objects: mod({ diagnostic: { reason: "a_future_reason", resolutions: [] } }),
+      audience: mod({ diagnostic: null }),
+    } } as ResearchAnalysis;
+    expect(unsupportedModules(analysis).map((u) => [u.module, u.reason])).toEqual([["executive", "no_supported_finding"], ["hypotheses", "context_missing"]]);
+    expect(unsupportedModules(null)).toEqual([]);
   });
 });

@@ -9,6 +9,19 @@ automatically. **Builds on** [ADR 0005](0005-llm-gateway.md) (the one call path)
 call), [ADR 0016](0016-research-execution-and-model-transmission.md) (runs found only through
 the Study) and [ADR 0019](0019-two-roles-and-human-ai-gates.md) (two roles; system settings are
 the Admin's; no approval between people).
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
+**Status note, 2026-10-23 (a draft prompt is never run, D-15, #846):** decision 7 no longer
+holds. A draft is compared and activated, never run from Settings; its effect is seen on the next
+real job, which runs the organization's active prompt. `POST …/research/agent-jobs` takes no
+`prompt_version`: asking for one is 422 by the request's shape (`extra="forbid"`), administrator
+or not, fictional client or not (`apps/api/src/aia_api/routers/research.py:3710 @ 5d5ed250`;
+`test_system_prompts_api.py::test_a_job_runs_the_active_prompt_and_asking_for_a_version_is_refused`).
+No HTTP route runs a draft prompt. The status is unchanged.
+
 **Date:** 2026-10-02
 
 ## Context
@@ -84,7 +97,8 @@ Two things make "just let people edit the string" unsafe here:
    system prompt exactly as sent, because a version label alone cannot say which bytes ran
    (`NULL` for every row before it existed — not recorded, not guessed).
 
-7. **A draft is tested by an ordinary job, and only on a fictional client.**
+7. *Superseded by the status note of 2026-10-23 above: no job runs a draft.*
+   **A draft is tested by an ordinary job, and only on a fictional client.**
    `POST …/research/agent-jobs` accepts `prompt_version` and, for an organization administrator
    only, pins that stored version instead of the active one. The study's client must be on the
    deployment's fictional list (`AIA_AI_FICTIONAL_CLIENT_IDS`, read by the worker and now by the

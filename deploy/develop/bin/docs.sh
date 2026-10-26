@@ -28,7 +28,7 @@ case "${1:-}" in
     docker network inspect aia-docs > /dev/null 2>&1 \
       || die "the network aia-docs does not exist; deploy AIA first"
     log "starting the Document Server"
-    "${DOCS[@]}" up -d --wait --wait-timeout 420
+    "${DOCS[@]}" up -d --wait --wait-timeout 600
     log "the Document Server is up at https://docs.$AIA_PUBLIC_HOSTNAME"
     ;;
   down)

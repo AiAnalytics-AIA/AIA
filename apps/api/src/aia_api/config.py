@@ -9,6 +9,7 @@ production; :mod:`aia_core.domain.deployment` says what each allows).
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from typing import Literal
 from urllib.parse import urlparse
@@ -30,6 +31,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # The deployment environment is the domain's, so the API and the worker read one list.
 Environment = DeploymentEnvironment
+#: An integrity attribute's SHA-384 form: the prefix, then 64 base64 characters (48 bytes).
+_SRI_SHA384 = re.compile(r"sha384-[A-Za-z0-9+/]{64}")
 
 
 class Settings(BaseSettings):
@@ -101,6 +104,11 @@ class Settings(BaseSettings):
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
+    # Compile the object map's numba kernels in the background from start
+    # (AIA_SOCIOMAP_WARMUP_ENABLED): a container starts with an empty kernel cache, and without it
+    # the first Metodika comparison pays the ~40 s compile (warmup.py). Off by default and in test;
+    # on for develop by Compose. One child process per uvicorn process, one core for about a minute.
+    sociomap_warmup_enabled: bool = False
     # Whether a start refuses a run that cannot answer every research question its design
     # states unless a person chooses to continue with limitations (AIA_RESEARCH_ANSWERABILITY_GATE,
     # plan research-integrity-report chunk 1, ADR 0025). Readiness and the run's record say so
@@ -115,6 +123,17 @@ class Settings(BaseSettings):
     # session routes answer 404, and Zpráva keeps its read-only pane.
     onlyoffice_url: str = ""
     onlyoffice_jwt_secret: SecretStr = SecretStr("")
+    # AIA's own public origin as the Document Server reaches it (AIA_ONLYOFFICE_CALLBACK_BASE,
+    # e.g. https://<hostname>; artifact-report RPT8c): the document it fetches and the callback
+    # it posts each save to are built on it. The public hostname, never the internal network
+    # (report-editor-hosting decision 4: the Document Server is not on AIA's network and its
+    # request filter refuses private addresses). Unset, the editor's routes answer 404.
+    onlyoffice_callback_base: str = ""
+    # The Subresource Integrity of the Document Server's api.js (AIA_ONLYOFFICE_API_INTEGRITY,
+    # ``sha384-<base64>``; artifact-report RPT8e): the page loads that script into AIA's own origin,
+    # so it runs only with the hash of the pinned image's own api.js. Unset, Zpráva does not open in
+    # the editor, whatever else is set: a swapped or compromised Document Server runs nothing here.
+    onlyoffice_api_integrity: str = ""
     # Whether a new ``ai_runtime`` run draws its AI respondents from the population it records
     # (AIA_AI_POPULATION_PERSONAS_ENABLED, plan panel-grounded-respondents 5c). Pinned on the run at
     # start, so a retry keeps the original's; the worker composes the panel path behind the same
@@ -240,7 +259,7 @@ class Settings(BaseSettings):
     # its own limit; this guards ordinary JSON endpoints.
     max_request_bytes: int = 2 * 1024 * 1024
 
-    @field_validator("onlyoffice_url")
+    @field_validator("onlyoffice_url", "onlyoffice_callback_base")
     @classmethod
     def _check_onlyoffice_url(cls, value: str) -> str:
         """An origin only: https and a host, nothing else -- a ticket's URL is built on it, and
@@ -257,7 +276,8 @@ class Settings(BaseSettings):
             or parsed.fragment
         ):
             raise ValueError(
-                "AIA_ONLYOFFICE_URL must be an https origin, e.g. https://docs.example"
+                "AIA_ONLYOFFICE_URL and AIA_ONLYOFFICE_CALLBACK_BASE must be https origins, "
+                "e.g. https://docs.example"
             )
         return origin
 
@@ -268,10 +288,31 @@ class Settings(BaseSettings):
             raise ValueError("AIA_ONLYOFFICE_JWT_SECRET must be at least 32 characters")
         return value
 
+    @field_validator("onlyoffice_api_integrity")
+    @classmethod
+    def _check_onlyoffice_integrity(cls, value: str) -> str:
+        """One SHA-384 digest as an integrity attribute takes it, or nothing."""
+        if value and not _SRI_SHA384.fullmatch(value):
+            raise ValueError(
+                "AIA_ONLYOFFICE_API_INTEGRITY must be sha384- and the digest's 64 base64 characters"
+            )
+        return value
+
     @property
     def docs_editor_on(self) -> bool:
         """The report editor is configured: its origin and its secret are both set."""
         return bool(self.onlyoffice_url and self.onlyoffice_jwt_secret.get_secret_value())
+
+    @property
+    def report_editor_on(self) -> bool:
+        """Zpráva opens in the editor: the editor is configured and the Document Server has
+        AIA's public origin to fetch from and call back to (RPT8c), and the page has the integrity
+        its api.js must match (RPT8e)."""
+        return (
+            self.docs_editor_on
+            and bool(self.onlyoffice_callback_base)
+            and bool(self.onlyoffice_api_integrity)
+        )
 
     @field_validator("build_sha", mode="before")
     @classmethod

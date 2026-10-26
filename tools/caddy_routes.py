@@ -60,6 +60,9 @@ ONLYOFFICE = "onlyoffice:80"
 DOCS_GATE = "/api/v1/session/docs-gate"
 # The one path of docs.<hostname> the API answers: a one-time ticket spent for the docs cookie.
 DOCS_SESSION = "/__aia/session"
+# The editor's script and the ticket it is loaded through: the only answers of docs.<hostname> that
+# name AIA's origin for CORS with credentials (artifact-report RPT8e, Subresource Integrity).
+EDITOR_SCRIPT = {DOCS_SESSION, "/web-apps/apps/api/documents/api.js"}
 DOCS_SESSION_TARGET = "/api/v1/session/docs?{http.request.uri.query}"
 # The Document Server's server-to-server, AI proxy, hosting and admin paths: nothing outside
 # needs any of them. Each is refused in any
@@ -114,6 +117,9 @@ CACHE_QUERY = {"expires": ["*"], "md5": ["*"]}
 # What a log must not write from a docs.<hostname> URI's query: the one-time ticket, and a signed
 # cache link's signature and expiry, which open the saved document without the gate until then.
 LOG_SECRETS = ("ticket", "md5", "expires")
+# What a log must not write from the product's URIs: the report editor's URL token, a bearer
+# credential for one version or one editing session (artifact-report RPT8c, ?token=…).
+PRODUCT_LOG_SECRETS = ("token",)
 # What the editor itself loads, which the refusal must leave alone.
 EDITOR_PATHS = (
     "/web-apps/apps/api/documents/api.js",
@@ -249,6 +255,11 @@ def check(config: dict[str, Any]) -> list[str]:
             )
     if DOCS in hosts(config):
         problems.extend(check_docs(config))
+    if not logs_drop_token(config):
+        problems.append(
+            f"{PRODUCT}'s access log or Caddy's error log writes the report editor's token in a "
+            "URI's query"
+        )
     routes = site(config, PRODUCT)
 
     def only(path: str) -> dict[str, Any] | None:
@@ -375,12 +386,55 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     }
     if framers != {f"frame-ancestors https://{PRODUCT}"}:
         problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
+    cors = [
+        (paths_of(r), n["response"]["set"])
+        for r in routes
+        for n in walk(r)
+        if n.get("handler") == "headers"
+        and "Access-Control-Allow-Origin" in n.get("response", {}).get("set", {})
+    ]
+    if {p for paths, _ in cors for p in paths} != EDITOR_SCRIPT or any(
+        not paths
+        or not set(paths) <= EDITOR_SCRIPT
+        or headers["Access-Control-Allow-Origin"] != [f"https://{PRODUCT}"]
+        or headers.get("Access-Control-Allow-Credentials") != ["true"]
+        for paths, headers in cors
+    ):
+        problems.append(
+            f"{DOCS} must answer CORS with credentials for https://{PRODUCT} on the editor's "
+            f"script and its ticket alone; got {cors}"
+        )
     if not logs_drop_ticket(config):
         problems.append(
             f"{DOCS}'s access log writes the ticket or a cache link's signature in a URI's "
             "query, or Caddy's error log does"
         )
     return problems
+
+
+def _drops(config: dict[str, Any], name: str, secrets: tuple[str, ...]) -> bool:
+    encoder = config.get("logging", {}).get("logs", {}).get(name, {}).get("encoder", {})
+    uri = encoder.get("fields", {}).get("request>uri", {})
+    return (
+        encoder.get("format") == "filter"
+        and uri.get("filter") == "query"
+        and set(secrets)
+        <= {a.get("parameter") for a in uri.get("actions", []) if a.get("type") == "delete"}
+    )
+
+
+def logs_drop_token(config: dict[str, Any]) -> bool:
+    """Whether every log that records the product's URIs -- its access logs, and the default
+    logger, which records an upstream error with its request's URI -- deletes the report
+    editor's URL token from the query. No log configured writes nothing."""
+    names = [
+        name
+        for server in config["apps"]["http"]["servers"].values()
+        for name in server.get("logs", {}).get("logger_names", {}).get(PRODUCT, [])
+    ]
+    if "default" in config.get("logging", {}).get("logs", {}):
+        names.append("default")
+    return all(_drops(config, n, PRODUCT_LOG_SECRETS) for n in names)
 
 
 def logs_drop_ticket(config: dict[str, Any]) -> bool:

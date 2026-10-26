@@ -113,3 +113,59 @@ def default_line(lines: Iterable[LineHead]) -> LineHead | None:
     """The line whose newest version is newest by its stored time; on a tie, the one with more
     versions, then the line id, so the choice never depends on the order read."""
     return max(lines, key=lambda h: (h.saved_at, h.koncept, h.line_id), default=None)
+
+
+#: A page's id for its edit reports: random, the page's own, within the key's characters.
+PAGE: Final = re.compile(r"[0-9A-Za-z_-]{8,64}")
+#: The most pages one session keeps edit reports for: a reload is a new page, so a person's
+#: session sees a few; beyond this a new page's report is refused (RPT8f).
+MAX_PAGES_PER_SESSION: Final = 64
+
+
+@dataclass(frozen=True, slots=True)
+class EditMark:
+    """The newest edit start one page reported in an open session (RPT8f): its sequence, the
+    page's own count from 1, and when AIA received it, by AIA's clock."""
+
+    document_key: str
+    page: str
+    seq: int
+    received_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class SeenEdit:
+    """The edit start the approving page last made: its session's key, the page, the sequence."""
+
+    document_key: str
+    page: str
+    seq: int
+
+
+class UnsavedEdits(StrEnum):
+    #: The approving page made an edit AIA has not received: its report is in flight.
+    NOT_RECEIVED = "edit_not_received"
+    #: An edit AIA received is later than the last change the version holds.
+    NOT_SAVED = "edit_not_saved"
+
+
+def unsaved_edits(
+    content_at: datetime | None, marks: Iterable[EditMark], seen: SeenEdit | None
+) -> UnsavedEdits | None:
+    """Why a version whose saves hold changes up to ``content_at`` (the latest ``lastsave`` of a
+    save of its bytes, kept no later than AIA's receipt of that save; ``None`` for koncept 1 or a
+    save that said none) does not hold every edit of the line's open sessions (``marks``) and the
+    one the approving page saw (``seen``); ``None`` when it does. An edit counts as held only when
+    AIA received its report no later than ``content_at``: received after the person typed, so the
+    edit came first. A save made while the report was in flight holds it only once a later save
+    says a later ``lastsave``: late, never early. Unknown is never held."""
+    marks = list(marks)
+    if seen is not None:
+        own = next(
+            (m for m in marks if (m.document_key, m.page) == (seen.document_key, seen.page)), None
+        )
+        if own is None or own.seq < seen.seq:
+            return UnsavedEdits.NOT_RECEIVED
+    if any(content_at is None or m.received_at > content_at for m in marks):
+        return UnsavedEdits.NOT_SAVED
+    return None

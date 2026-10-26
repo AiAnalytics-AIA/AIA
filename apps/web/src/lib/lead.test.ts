@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow,
+  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -76,7 +76,7 @@ describe("describeEdit / editStage", () => {
     expect(describeEdit(content(), { op: "set_text", field: "goal", value: "Nový cíl", why: "" })).toEqual({ where: "Cíl", before: "Zjistit, proč klienti odcházejí", after: "Nový cíl" });
     expect(editStage(e)).toBe("questionnaire");
     expect(editStage({ op: "set_text", field: "plan.problem_summary", value: "", why: "" })).toBe("design");
-    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("dimensions");
+    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("sample");
   });
 });
 
@@ -89,6 +89,7 @@ describe("focusSelector", () => {
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
     expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
     expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
+    expect(focusSelector("plan:hypotheses")).toBe('[id="plan-hypotheses"]');
     expect(focusSelector("section:sec_1")).toBe('[data-aia="section:sec_1"], [id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });
@@ -103,6 +104,14 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names Návrh's hypotheses section, its own since artifact-design DSN12", async () => {
+    const { targetOfElement, targetLabel } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<section id="plan-hypotheses"><h2>Hypotézy</h2><button id="add">Přidat</button></section>`).window;
+    expect(targetOfElement(document.getElementById("add"))).toEqual({ id: "plan:hypotheses", label: "Návrh: hypotézy" });
+    expect(targetLabel("plan:hypotheses")).toBe("Návrh: hypotézy");
   });
 
   it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
@@ -221,6 +230,16 @@ describe("changesToShow", () => {
     expect(changesToShow("questionnaire", ["design"], jobs)).toEqual({ kind: "proposal", job: jobs[1] });
     expect(changesToShow("design", [], jobs)).toEqual({ kind: "proposal", job: jobs[3] });
     expect(changesToShow("dimensions", ["design"], jobs)).toBeNull();
+  });
+});
+
+describe("mapViewWords", () => {
+  it("says what the map's picture becomes, never a filter's code", () => {
+    expect(mapViewWords({ op: "filter", name: "view", value: "relief" })).toBe("Mapa: reliéf");
+    expect(mapViewWords({ op: "filter", name: "view", value: "top" })).toBe("Mapa: shora");
+    expect(mapViewWords({ op: "filter", name: "hide_weak", value: "on" })).toBe("Mapa: skrýt slabé vztahy");
+    expect(mapViewWords({ op: "filter", name: "mode", value: "respondents" })).toBe("Mapa respondentů");
+    expect(mapViewWords({ op: "select", target: "pair:set1/fio~air" })).toBe("Vybrat: Dvojice set1/fio~air");
   });
 });
 

@@ -220,7 +220,12 @@ const POINTS = ["vůbec", "téměř vůbec", "velmi málo", "málo", "spíše m�
 const card = () => page.locator('[id^="qedit_"]').first();
 const scaleGroup = (what) => card().getByRole("radiogroup", { name: new RegExp(`^${what} Q1$`) });
 const pointButton = (n) => card().getByRole("button", { name: new RegExp(`^Upravit: Popisek bodu ${n}(\\s|$)`) });
-await card().getByRole("radiogroup", { name: "Typ" }).getByRole("radio", { name: "Škála" }).click({ timeout: 60000 });
+// The type is a tag that opens its choices; the current type is not offered again.
+const typeTag = card().getByRole("button", { name: /, typ otázky$/ });
+if ((await typeTag.getAttribute("aria-label", { timeout: 60000 })) !== "Škála, typ otázky") {
+  await typeTag.click();
+  await card().getByRole("menuitem", { name: "Škála" }).click();
+}
 await scaleGroup("Rozsah škály").getByRole("radio", { name: "1–10" }).click();
 await scaleGroup("Popisky škály").getByRole("radio", { name: "Každý bod" }).click();
 for (const [i, label] of POINTS.entries()) {

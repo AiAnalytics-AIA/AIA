@@ -26,11 +26,13 @@ from ..sociomap.specification import (
     AIA_SOCIOMAP_V3,
     AIA_SOCIOMAP_V4,
     AIA_SOCIOMAP_V5,
+    FIXED_RULER_EXTENT,
     SociomapSpec,
     SociomapSpecV3,
     require_supported,
 )
 from .catalogue import (
+    Bound,
     ConstantRef,
     Evidence,
     EvidenceKind,
@@ -40,6 +42,10 @@ from .catalogue import (
     Preset,
     StepGroup,
     Symbol,
+    above,
+    at_least,
+    at_most,
+    below,
 )
 from .sociomap_formulas import SOCIOMAP_FORMULAS
 
@@ -2003,6 +2009,80 @@ _GROUPS: Final = (
     ),
 )
 
+_SPEC_CHECK: Final = f"{_S}.specification"
+_V3: Final = f"{_SPEC_CHECK}:_require_supported_v3"
+_CORRECTED: Final = f"{_SPEC_CHECK}:_baseline_corrected_problems"
+_SRS: Final = f"{_SPEC_CHECK}:_soft_rank_spearman_problems"
+_CREDIBILITY: Final = f"{_SPEC_CHECK}:_credibility_problems"
+_RESPONDENTS: Final = f"{_SPEC_CHECK}:_respondent_map_problems"
+_SEGMENTS: Final = f"{_SPEC_CHECK}:_segments_problems"
+_TERRAIN: Final = f"{_SPEC_CHECK}:_terrain_problems"
+_SHARE: Final = (at_least(0), at_most(1))
+_OPEN_SHARE: Final = (above(0), below(1))
+#: The range each check holds a field to (F13), under every preset that gives it a number. Not
+#: here: relation.confidence, layout.max_iterations and layout.tolerance (held to one value under
+#: the signed-off layout, to a range under the others), layout.min_objects (two objects or three,
+#: by the layout), and a pair of quantiles or stress bands (held as one).
+_BOUNDS: Final = (
+    Bound("relation.n_min", (at_least(4),), _V3),
+    Bound("relation.effect_floor", _OPEN_SHARE, _V3),
+    Bound("relation.clear_effect", _OPEN_SHARE, _CORRECTED),
+    Bound("relation.false_discovery_rate", _OPEN_SHARE, _CORRECTED),
+    Bound("relation.noise_rule.permutations", (at_least(2),), _CORRECTED),
+    Bound("relation.noise_rule.seed", (at_least(0),), _CORRECTED),
+    Bound("layout.layout_floor", (at_least(1), at_most("relation.n_min")), _CORRECTED),
+    Bound("layout.layout_weight_full_at", (above(3),), _CORRECTED),
+    Bound("layout.sparse_share", (at_least(0), below(1)), _CORRECTED),
+    Bound("layout.min_layout_partners", (at_least(0),), _CORRECTED),
+    Bound("layout.precision_weight_cap", (at_least(1),), _CORRECTED),
+    Bound("layout.interval_mds.random_starts", (at_least(0),), _CORRECTED),
+    Bound("layout.interval_mds.floor_fraction", _SHARE, _CORRECTED),
+    Bound(
+        "layout.soft_rank_spearman.min_objects",
+        (at_least(2), at_most("layout.soft_rank_spearman.max_objects")),
+        _SRS,
+    ),
+    Bound("layout.soft_rank_spearman.repulsion_weight", (at_least(0),), _SRS),
+    Bound("layout.soft_rank_spearman.restarts_below_ten_objects", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.restarts", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.max_passes", (at_least(1),), _SRS),
+    Bound("layout.soft_rank_spearman.seed", (at_least(0),), _SRS),
+    Bound("credibility.split_half_threshold", _SHARE, _CREDIBILITY),
+    Bound("credibility.split_half_splits", (at_least(1),), _CREDIBILITY),
+    Bound("credibility.split_half_seed", (at_least(0),), _CREDIBILITY),
+    Bound("credibility.bootstrap_resamples", (at_least(2),), _CREDIBILITY),
+    Bound("credibility.bootstrap_seed", (at_least(0),), _CREDIBILITY),
+    Bound("credibility.safety_factor", (above(0),), _CREDIBILITY),
+    Bound("connectedness.resamples", (at_least(1),), _V3),
+    Bound("respondent_map.chance_level", _OPEN_SHARE, _RESPONDENTS),
+    Bound("respondent_map.min_ratings", (at_least(3),), _RESPONDENTS),
+    Bound("respondent_map.informative_min_objects", (at_least(1),), _RESPONDENTS),
+    Bound("respondent_map.density_sigma", (above(0),), _RESPONDENTS),
+    Bound("segments.max_segments", (at_least(2),), _SEGMENTS),
+    Bound("segments.min_respondents", (at_least("segments.max_segments"),), _SEGMENTS),
+    Bound("segments.min_ratings", (above(3),), _SEGMENTS),
+    Bound("segments.penalty_factor", (above(0),), _SEGMENTS),
+    Bound("segments.jitter", (above(0),), _SEGMENTS),
+    Bound("segments.min_separation", (at_least(0),), _SEGMENTS),
+    Bound("segments.distinct_separation", (at_least(0),), _SEGMENTS),
+    Bound("segments.borderline_margin", (at_least(0),), _SEGMENTS),
+    Bound("segments.min_gain_share", _SHARE, _SEGMENTS),
+    Bound("segments.min_segment_share", _SHARE, _SEGMENTS),
+    Bound("segments.colour_membership", (above(0), at_most(1)), _SEGMENTS),
+    Bound("segments.profile_false_discovery_rate", _OPEN_SHARE, _SEGMENTS),
+    Bound("segments.profile_top", (at_least(1),), _SEGMENTS),
+    Bound("segments.consensus_maps", (at_least(1),), _SEGMENTS),
+    Bound("segments.consensus_min_objects", (at_least(1),), _SEGMENTS),
+    Bound("segments.shuffles", (at_least(0),), _SEGMENTS),
+    Bound("segments.seed", (at_least(0),), _SEGMENTS),
+    Bound("terrain.sigma", (above(0),), _TERRAIN),
+    Bound("terrain.grid_resolution", (at_least(1), at_most(256)), _TERRAIN),
+    Bound("terrain.frame_fill", (above(0), at_most(1)), _TERRAIN),
+    Bound("terrain.relative_height_floor", (at_least(0), below(1)), _TERRAIN),
+    Bound("terrain.half_extent", (at_least(FIXED_RULER_EXTENT),), _TERRAIN),
+    Bound("terrain.kernel_cutoff", _OPEN_SHARE, _TERRAIN),
+)
+
 SOCIOMAP: Final = MethodModule(
     id="sociomap",
     title_cs="Sociomapa: objektová mapa",
@@ -2018,6 +2098,7 @@ SOCIOMAP: Final = MethodModule(
     groups=_GROUPS,
     formulas=SOCIOMAP_FORMULAS,
     editable=True,
+    bounds=_BOUNDS,
     note_cs=(
         "Každý nový běh si připne jen aia-sociomap-5: vstupy, vztahy, polohy objektů, jejich "
         "výšky, terén, věrohodnost mapy, mapu respondentů a segmenty vkusu počítá podle "

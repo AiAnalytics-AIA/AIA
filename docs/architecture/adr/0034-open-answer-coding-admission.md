@@ -10,6 +10,11 @@ artifacts are immutable), [ADR 0023](0023-methodology-is-data-the-methodologist-
 pinned, versioned data) and [ADR 0024](0024-panel-grounded-respondents-are-modelled-evidence.md)
 (modelled answers stay internal until a validation lifts them). **Leaves unchanged** every respondent
 answer and every fieldwork artifact.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
 **Date:** 2026-10-20
 **Plan:** [assumptions-and-open-answer-coding](../../../.planning/plans/assumptions-and-open-answer-coding.md)
 AOC4-AOC9; `report-delivery` RD10

@@ -306,6 +306,30 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("switching preset clears the previous subpanel and filters (OI-51 (a))", async () => {
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29], kraj: ["Zlínský kraj"] } } }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("radio", { name: /Speciální skupiny/ }));
+      await saved();
+      const audience = lastSave().content.audience;
+      expect(audience.builtin_subpanel).toBe("");
+      expect(audience.filters).toEqual({}); // exactly empty: toMatchObject would take any object
+      noUnitCalls();
+    });
+
+    it("switching to one's own audience clears the subpanel's strategy and support too, and keeps the description (OI-51 (a))", async () => {
+      // The owner's example: "Mladí 18–29" wrote filters, strategy "filters", ROBUST and its support figures.
+      const young = { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785, unique_core_donors: 900 }, description: "Mladí 18–29" };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: young }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      fireEvent.click(await screen.findByRole("radio", { name: /Vlastní audience/ }));
+      await saved();
+      const a = lastSave().content.audience;
+      expect([a.strategy, a.support_tier, a.subpanel_status, a.support_summary, a.builtin_subpanel, a.filters]).toEqual(["population", "", "", {}, "", {}]);
+      expect(a.description).toBe("Mladí 18–29"); // the description stays as it is (the product owner, 2026-10-25)
+      noUnitCalls();
+    });
+
     it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
       // prijem is outside the category the editor opens on, so its editor is not drawn: its
       // target is the chip every stored filter has.

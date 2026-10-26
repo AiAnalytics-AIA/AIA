@@ -9,6 +9,11 @@ MVPQ-05, and Q4), without editing it: this ADR is the mechanism behind its decis
 on** [ADR 0024](0024-panel-grounded-respondents-are-modelled-evidence.md) (an origin of its own,
 admitted only as what it is) and the evidence gates. **Leaves unchanged** the population contract as
 the authority for panel respondents, `aia-instrument-evidence-1` and `-2`, and every existing run.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
 **Date:** 2026-10-20
 **Plan:** [client-data-in-analysis](../../../.planning/plans/client-data-in-analysis.md) 0-9
 

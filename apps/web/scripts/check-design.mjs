@@ -8,6 +8,8 @@
  *   3. Family separation: client accents vs status/UI/chart colours, and each other.
  *   4. The object Sociomap's ten terrace bands (adjacent ΔE and CVD floors, apart from the
  *      "bez dat" ground) and the contrast of labels, pins and links on its stage.
+ *   5. "Needs you" (status-you, coral) apart from what it must never be read as: failed
+ *      (status-fault, a salmon red in dark) and the wayfinding orange (hue-orange).
  * Exits 1 on any hard failure. `--json` prints the full report.
  */
 import { readFileSync } from "node:fs";
@@ -146,11 +148,20 @@ const STAGE = [
 const stageRows = STAGE.flatMap(([fg, bg, min, use]) =>
   ["light", "dark"].map((theme) => { const r = contrast(hex(fg, theme), hex(bg, theme)); return { theme, fg, bg, min, use, ratio: +r.toFixed(2), pass: r >= min }; }));
 
+// ---------- needs you, apart ----------
+// Coral says a person is awaited; it must never pass for failed or for wayfinding. The floors are
+// today's separations rounded down: dark coral vs fault ΔE 11.7, light coral vs orange ΔE 14.7.
+const YOU_FLOOR = { "status-fault": 11, "hue-orange": 14 };
+const youRows = ["light", "dark"].flatMap((theme) => Object.entries(YOU_FLOOR).map(([other, min]) => {
+  const d = dE(hex("status-you", theme), hex(other, theme));
+  return { theme, other, min, dE: +d.toFixed(1), pass: d >= min };
+}));
+
 // ---------- report ----------
 const failures = [...contrastRows.filter((r) => !r.pass), ...paletteRows.filter((r) => !r.pass), ...separation.filter((r) => !r.pass),
-  ...terraceRows.filter((r) => !r.pass), ...stageRows.filter((r) => !r.pass)];
+  ...terraceRows.filter((r) => !r.pass), ...stageRows.filter((r) => !r.pass), ...youRows.filter((r) => !r.pass)];
 if (process.argv.includes("--json")) {
-  console.log(JSON.stringify({ contrast: contrastRows, palette: paletteRows, separation, terraces: terraceRows, stage: stageRows, failures: failures.length }, null, 2));
+  console.log(JSON.stringify({ contrast: contrastRows, palette: paletteRows, separation, terraces: terraceRows, stage: stageRows, needsYou: youRows, failures: failures.length }, null, 2));
 } else {
   const pairs = contrastRows.length / 2;
   console.log(`contrast: ${pairs} pairs × 2 themes = ${contrastRows.length} checks, ${contrastRows.filter((r) => !r.pass).length} failures`);
@@ -158,6 +169,7 @@ if (process.argv.includes("--json")) {
   for (const s of separation) console.log(`client accents ${s.theme}: nearest status/UI/chart ΔE ${s.nearestOther} (${s.pair.join(" vs ")}), nearest accent ΔE ${s.nearestAccent} → ${s.pass ? "PASS" : "FAIL"}`);
   for (const r of terraceRows) console.log(`terraces ${r.theme}: adjacent ΔE ${r.normal} (≥ ${TERRACE_FLOOR.normal}), protan/deutan ΔE ${r.cvd} (≥ ${TERRACE_FLOOR.cvd}), nearest to ground ΔE ${r.ground} (≥ ${TERRACE_FLOOR.ground}) → ${r.pass ? "PASS" : "FAIL"}`);
   console.log(`map stage: ${stageRows.length} contrast checks, ${stageRows.filter((r) => !r.pass).length} failures`);
+  for (const r of youRows) console.log(`needs you ${r.theme}: vs ${r.other} ΔE ${r.dE} (≥ ${r.min}) → ${r.pass ? "PASS" : "FAIL"}`);
   for (const f of failures) console.error("FAIL", JSON.stringify(f));
 }
 process.exit(failures.length ? 1 : 0);

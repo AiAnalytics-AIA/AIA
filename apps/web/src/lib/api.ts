@@ -6,7 +6,8 @@
 
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
-import type { Approval, StoredReportDocument } from "@/lib/artifacts/report";
+import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
+import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -705,7 +706,7 @@ export type MemoryReuse = {
 };
 export type MemoryReused = { study_id: string; created_study: boolean; revision: DesignRevision; source: DesignSource };
 
-export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean };
+export type Me = { user_id: string; email: string | null; organization_role: string; may_administer: boolean; methodologist: boolean; organization_name?: string | null };
 
 const enc = encodeURIComponent;
 const query = (q: Record<string, string | undefined>) => {
@@ -1105,6 +1106,9 @@ export type ResearchStep = {
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
   /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
   recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
+  /** A step waiting for budget: the hold it asked for and what the study had left (FLD10); null when
+   *  not waiting, its attempts were not read, or the stop named no price -- unknown, never zero. */
+  budget_need?: { requested_usd: number; remaining_usd: number } | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
@@ -1237,6 +1241,9 @@ export type ResearchAnalysis = {
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
+    /** What a module that states nothing says beside it (evidence-integrity 9a): `no_supported_finding` (it
+     *  holds the report) or `context_missing` (it holds nothing), with the server's ways out; null otherwise. */
+    diagnostic?: { reason: string; resolutions: string[] } | null;
   }>;
 };
 
@@ -1252,6 +1259,16 @@ export type ReportPdf = {
   reason?: string | null;
   askable?: boolean;
 };
+/** An edited version of a run's report a person approved (RPT8c): the composed draft stays a
+ *  draft beside it, so a status names these apart. */
+export type ApprovedEdit = {
+  artifact_id: string;
+  line_id: string;
+  koncept: number;
+  review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
+  approved_on?: string | null;
+  stamped?: boolean | null;
+};
 /** The report of a run with one chosen literature review, and the PDF rendered from that very draft. */
 export type ReportVariant = {
   run_id: string;
@@ -1264,6 +1281,8 @@ export type ReportVariant = {
    * footers (D2: approved, DOCX and PDF say SCHVÁLENO; false: stored before that layout). */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** When the draft was stored (RPT3d); null where its record has none, absent from an older API. */
+  stored_at?: string | null;
   internal_only: true;
   pdf?: ReportPdf | null;
   /** Whether approving the draft now gives its approved version a PDF too: approving asks for one
@@ -1273,6 +1292,10 @@ export type ReportVariant = {
    * one stays the report (downloadable, approvable) until it is prepared anew. */
   contract?: string | null;
   contract_current?: boolean | null;
+  /** Its edited versions a person approved (RPT8c); absent from an API before them. */
+  approved_edits?: ApprovedEdit[];
+  /** The newest version saved over the draft in the report editor (RPT8d); null while none. */
+  edited_line?: EditedLine | null;
 };
 export type ResearchReport = {
   run_id: string;
@@ -1283,6 +1306,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** As ReportVariant's: when it was stored (RPT3d). */
+  stored_at?: string | null;
   /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
   artifact_id?: string;
@@ -1296,6 +1321,10 @@ export type ResearchReport = {
   pdf?: ReportPdf | null;
   /** As ReportVariant's: whether approving the draft now gives its approved version a PDF too. */
   approval_renders_pdf?: boolean;
+  /** As ReportVariant's: its edited versions a person approved. */
+  approved_edits?: ApprovedEdit[];
+  /** As ReportVariant's: the newest version saved over the draft in the report editor. */
+  edited_line?: EditedLine | null;
 };
 
 const studyPath = (studyId: string) => `/api/v1/studies/${enc(studyId)}`;
@@ -1400,6 +1429,31 @@ export const research = {
     request<ResearchAnalysis>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis`),
   report: (studyId: string, runId: string) =>
     request<ResearchReport>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report`),
+  /** The report opened in the editor (artifact-report RPT8c/RPT8d): the line asked for or the newest
+   *  one, and the config the API signed for this person; 404 while the editor is off. */
+  openReportEditor: (
+    studyId: string,
+    runId: string,
+    body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
+  ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A one-time ticket into the editor's origin for this person (report-editor-hosting): spent by
+   *  loading api.js through it, which sets the docs gate's cookie there. */
+  reportEditorTicket: () => request<DocsTicket>("POST", "/api/v1/session/docs-ticket"),
+  /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
+  reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
+    request<void>(
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/sessions/${enc(documentKey)}/edits`, body,
+    ),
+  /** A saved version of a report line as its DOCX, its review in the headers (RPT8c). */
+  downloadReportEditorVersion: (studyId: string, runId: string, artifactId: string) =>
+    requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}/download`),
+  /** A saved version of a report line: who saved it, its review, what it changed, its line's newest (RPT8d). */
+  reportEditorVersion: (studyId: string, runId: string, artifactId: string, seen: SeenEdit | null = null) =>
+    request<EditorVersionRead>(
+      "GET",
+      `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor/versions/${enc(artifactId)}${
+        seen ? `?seen_key=${enc(seen.document_key)}&seen_page=${enc(seen.page)}&seen_seq=${seen.seq}` : ""}`,
+    ),
   /** The run's internal draft as its stored document model, beside the DOCX it names (report-delivery RD5a). */
   reportDocument: (studyId: string, runId: string) =>
     request<StoredReportDocument>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/document`),
@@ -1431,7 +1485,12 @@ export const research = {
   downloadReportPdf: (studyId: string, runId: string) =>
     requestStored(`${studyPath(studyId)}/research/runs/${enc(runId)}/report/pdf/download`),
   /** A person approves a stored report of the run: internal, with literature or the client report (recorded in the ledger). */
-  approveReport: (studyId: string, runId: string, artifactId: string, note = "") =>
+  /** `newestOfLine`: a report-editor version approved only while it is its line's newest (RPT8d):
+   *  409 `report_version_stale` once a save stored the next koncept. `seenEdit`: the page's last
+   *  edit start (RPT8f): 409 `report_edits_unsaved` until a stored version holds it and every edit. */
+  approveReport: (
+    studyId: string, runId: string, artifactId: string, note = "", newestOfLine = false, seenEdit: SeenEdit | null = null,
+  ) =>
     request<{
       run_id: string;
       artifact_id: string;
@@ -1444,7 +1503,10 @@ export const research = {
       report_kind?: "internal" | "with_review" | "client";
       internal_only: boolean;
     }>(
-      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`, { artifact_id: artifactId, note },
+      "POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/approve`,
+      newestOfLine
+        ? { artifact_id: artifactId, note, newest_of_line: true, ...(seenEdit ? { seen_edit: seenEdit } : {}) }
+        : { artifact_id: artifactId, note },
     ),
   /** The experimental Sociomapping's internal draft: status, then the DOCX (plan sociomapping-engine I3). */
   sociomappingReport: (studyId: string, runId: string) =>
@@ -1612,6 +1674,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** Start the Lead's turn on the messages that wait, once the conversation is free (any tab). */
+  answerQueued: (studyId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/queued`),
+  /** Withdraw a message that still waits: it stays stored, and no turn is sent it. */
+  withdraw: (studyId: string, turnId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/withdraw`),
   /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
   manifest: (studyId: string, turnId: string) =>
     request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
@@ -1735,7 +1803,16 @@ export type SettingsDocument = {
   vocabularies: Vocabularies;
 };
 
-export type Member = { user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean };
+export type Member = {
+  user_id: string; email: string; display_name: string; is_active: boolean; organization_role: string; methodologist: boolean;
+  /** Deactivated in this organization (D-27, #830); absent or null: not deactivated here. */
+  deactivated_at?: string | null;
+  /** Their Research Lead's seal (ADR 0030): unreadable from lead_sealed_at, erased after lead_erase_after. */
+  lead_sealed_at?: string | null; lead_erase_after?: string | null;
+  /** Their own last authenticated request (F19), for an OWNER or ADMIN: null is never; absent, an
+   *  API that does not serve it (unknown). Null for anyone who may not administer. */
+  last_seen_at?: string | null;
+};
 
 export type AdminClient = {
   client_id: string; slug: string; name: string; status: string; reference: string; study_count: number; created_at: string | null;
@@ -1802,6 +1879,12 @@ export const admin = {
   settings: () => request<SettingsDocument>("GET", "/api/v1/settings"),
   members: () => request<Member[]>("GET", "/api/v1/members"),
   addMember: (body: { email: string; role: string; display_name: string }) => request<Member>("POST", "/api/v1/members", body),
+  /** The Metodik mark (D-14, #823): only an OWNER grants or revokes it (owner_only). Audited. */
+  setMethodologist: (userId: string, methodologist: boolean) => request<Member>("PUT", `/api/v1/members/${enc(userId)}/methodologist`, { methodologist }),
+  /** Deactivate here (D-27, #830): the member's Lead is sealed at once and erased after 30 days. */
+  deactivateMember: (userId: string) => request<Member>("POST", `/api/v1/members/${enc(userId)}/deactivate`),
+  /** Within 30 days the Lead is unsealed for them alone; after, they hatch a new one. */
+  reactivateMember: (userId: string) => request<Member>("POST", `/api/v1/members/${enc(userId)}/reactivate`),
   clients: () => request<AdminClient[]>("GET", "/api/v1/clients?include_archived=true"),
   setClientStatus: (clientId: string, status: string) =>
     request<AdminClient>("PUT", `/api/v1/clients/${enc(clientId)}/status`, { status }),
@@ -1893,6 +1976,9 @@ export type DrSettingVersion = {
   state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
   /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
   decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
+  /** Whether the caller may approve it now (#897): false for their own proposal while independent
+   *  review is required. Absent from a server before it: the page offers it to an administrator. */
+  may_approve?: boolean;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
@@ -1914,6 +2000,71 @@ export type DeepResearchReach = {
   recorded: boolean; worker: string | null; build_sha: string | null; composed_at: string | null;
   agent_directed: boolean | null; class_gates: "enforce" | "advisory" | null; data_class: "A" | "B" | "C" | null;
   missing_for_live: string[]; routes: ReachRoute[];
+};
+
+/** Stav systému (#839): the deployment's latest smoke run and GlitchTip's state; OWNER or ADMIN. */
+export type SmokeCheckStatus = "ok" | "FAIL" | "NOT_RUNNABLE";
+export type SystemStatus = {
+  latest: { run_id: string; build_sha: string; ran_at: string; all_ok: boolean; failed: number; not_runnable: number; checks: { check: string; status: SmokeCheckStatus }[] } | null;
+};
+export type ErrorTracking = {
+  /** false: no read token yet; said so, never as an error. */
+  configured: boolean; dashboard_url: string | null; project: string | null; project_url: string | null;
+  alerts: { name: string; quantity: number | null; timespan_minutes: number | null; recipients: number }[];
+  /** is_up null: GlitchTip did not say; never read as up. */
+  uptime: { name: string; is_up: boolean | null; last_change: string | null }[];
+  /** false: monitoring is off in GlitchTip; null: not read. */
+  uptime_enabled: boolean | null;
+  issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
+  error: string | null;
+};
+/** Each AI activity's last answered call (settings-redesign F14, OI-75 (a)): OWNER and ADMIN
+ *  only. `last_answered` null: none recorded, which is neither working nor broken; `build` null:
+ *  the worker recorded none. */
+export type AiActivityAnswered = {
+  activities: { key: string; last_answered: { at: string; model: string; build: string | null } | null }[];
+};
+export const settingsStatus = {
+  system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
+  errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
+};
+
+/** A client's rules (#853, SB7), read by any member; set on the client's Profil → Pravidla. */
+export type ClientRules = {
+  client_id: string; name: string;
+  /** As stored; null: never set, which reads as CLASSIFIED (effective_posture), never open. */
+  data_posture: "OPEN" | "CLASSIFIED" | null;
+  effective_posture: "OPEN" | "CLASSIFIED";
+  /** null: no ceiling ("bez stropu"), never 0. */
+  wallet_ceiling_usd: number | null;
+  set_by: string | null; set_at: string | null;
+};
+export type ClientRulesOf = Omit<ClientRules, "client_id" | "name">;
+export const clientRules = {
+  list: () => request<ClientRules[]>("GET", "/api/v1/settings/client-rules"),
+  get: (clientId: string) => request<ClientRulesOf>("GET", `/api/v1/clients/${enc(clientId)}/rules`),
+  /** OWNER or ADMIN: only the fields sent change; null clears one (audited CLIENT_RULES_CHANGED). */
+  set: (clientId: string, changes: { data_posture?: "OPEN" | "CLASSIFIED"; wallet_ceiling_usd?: number | null }) =>
+    request<ClientRulesOf>("PUT", `/api/v1/clients/${enc(clientId)}/rules`, changes),
+};
+
+/** Správa dat (#850): a client's deletion, OWNER or ADMIN. */
+export type ClientDeletionPreview = {
+  client_id: string; name: string; status: string;
+  deleted: Partial<Record<"studies" | "working_revisions" | "knowledge_items" | "sources" | "files" | "runs" | "artifacts", number>>;
+  kept: Partial<Record<"usage_rows" | "approval_rows" | "audit_rows", number>>;
+  /** Not deleted until SDL2; null: not counted, never 0. */
+  remains_until_sdl2: { population_children?: number | null; replaced_source_readings?: number | null };
+  confirm_token: string; expires_at: string;
+};
+export type KeptRecord = { record: string; count: number; kept_for: string; why: string };
+export const clientDeletion = {
+  /** Issues the one-time confirmation (ten minutes, this person only). */
+  preview: (clientId: string) => request<ClientDeletionPreview>("POST", `/api/v1/clients/${enc(clientId)}/deletion`),
+  remove: (clientId: string, confirmToken: string) =>
+    request<{ client_id: string; already_deleted: boolean; deleted: Record<string, number>; objects_deleted: number; objects_failed: number }>("DELETE", `/api/v1/clients/${enc(clientId)}`, { confirm_token: confirmToken }),
+  kept: () => request<KeptRecord[]>("GET", "/api/v1/settings/kept-records"),
 };
 
 export const deepResearchSettings = {
@@ -1939,7 +2090,13 @@ export type MethodValue = {
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
   effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
+  /** The range the module's check holds the field to, each limit proved against the check; null
+   *  (or absent, from an older API) where no check holds it. A limit with a `reference` is that
+   *  field's value in the draft. */
+  bound?: MethodBound | null;
 };
+export type MethodLimit = { side: "low" | "high"; value: number | null; reference: string | null; strict: boolean };
+export type MethodBound = { limits: MethodLimit[]; whole: boolean };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {
@@ -1972,15 +2129,23 @@ export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; 
 export type MethodVersion = {
   version_number: number; name: string; base_preset: string; spec: Record<string, unknown>;
   formulas: Record<string, string>; payload_sha256: string; note: string; created_by: string; created_at: string;
+  /** The object map only: the Sociomap register's status for the method this version pins; null elsewhere, absent before the API said it. */
+  register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 export type MethodActivation = {
   activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
 };
 /** What a run started now pins: a stored version, or the code's preset. */
-export type MethodInForce = { origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string };
+export type MethodInForce = {
+  origin: "stored" | "code"; preset: string | null; version_number: number | null; name: string;
+  /** The object map only: the Sociomap register's status for the method in force; null elsewhere, and absent from an API before it. */
+  register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
+};
 export type MethodVersions = {
   in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
+  /** The object map only: the register's status for the code's preset, whatever is in force. */
+  code_register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };

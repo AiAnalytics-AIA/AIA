@@ -36,6 +36,8 @@ import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import type { Part } from "./ControlPanel";
 import { describeError } from "./errors";
+import { waitingChanged } from "./sections";
+import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 const P = "aia.settings.prompts";
 
@@ -44,7 +46,7 @@ const P = "aia.settings.prompts";
  * and the Verze table's row. Green (`in-force`) is the interface's colour for "in force" alone.
  */
 const IN_FORCE = "bg-in-force-wash";
-const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--color-in-force)]";
+const IN_FORCE_EDGE = "shadow-[inset_3px_0_0_var(--in-force)]";
 const IN_FORCE_DOT = "bg-in-force";
 
 export const nameOf = (id: string) => {
@@ -161,6 +163,12 @@ function standing(row: PromptSlotSummary): { text: string; waiting: boolean } {
   return { text: waiting ? `${live} · ${tv(`${P}.state.waiting`, { v: shortName(row.latest_number!) })}` : live, waiting };
 }
 
+/** How many prompts have a saved version waiting to be switched on, as the list knows it: what the
+ *  section menu counts for an administrator (prototype v54), never more than `standing` says. */
+export function waitingPrompts(rows: readonly PromptSlotSummary[]): number {
+  return rows.filter((row) => standing(row).waiting).length;
+}
+
 /** The list: the prompts a person may edit, then those read only, each with where it stands. */
 function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; current: string | null; onChoose: (id: string) => void }) {
   const [query, setQuery] = useState("");
@@ -188,7 +196,7 @@ function PromptList({ rows, current, onChoose }: { rows: PromptSlotSummary[]; cu
                   <li key={row.prompt_id}>
                     <button type="button" data-prompt={row.prompt_id} data-waiting={waiting ? "true" : undefined} aria-current={on ? "true" : undefined}
                       onClick={() => onChoose(row.prompt_id)}
-                      className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center gap-0.5 border-b border-border px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash shadow-[inset_3px_0_0_var(--color-signal)]" : waiting ? "bg-status-you-wash hover:bg-surface-sunken" : "hover:bg-surface-sunken"}`}>
+                      className={`flex min-h-11 w-full min-w-0 flex-col items-start justify-center gap-0.5 border-b border-border px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring ${on ? "bg-signal-wash shadow-[inset_3px_0_0_var(--signal)]" : waiting ? "bg-status-you-wash hover:bg-surface-sunken" : "hover:bg-surface-sunken"}`}>
                       <span className={`max-w-full break-words ${on ? "font-semibold text-signal" : "text-ink"}`}>{nameOf(row.prompt_id)}</span>
                       <span className="flex max-w-full items-center gap-1.5 text-xs text-ink-muted">
                         {row.wired ? <i aria-hidden="true" className={`size-1.5 shrink-0 rounded-full ${IN_FORCE_DOT}`} /> : null}
@@ -320,6 +328,7 @@ function EditorBody({ detail, people, reload, onDirty }: {
     setAnswer(null);
     try {
       const saved = await admin.savePrompt(detail.prompt_id, { text: trimmed, note: note.trim(), based_on: basedOn });
+      waitingChanged();
       setDraft(saved.text);
       setReference(saved.text);
       setBasedOn(saved.label);
@@ -374,7 +383,7 @@ function EditorBody({ detail, people, reload, onDirty }: {
         <Heading detail={detail} dirty={dirty} waiting={waitingNumber} />
         <div data-frame className="flex min-w-0 flex-col gap-2">
           <p className="flex max-w-3xl items-start gap-2 text-sm text-ink-muted">
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v6.5h-9z" /></svg>
+            <PhosphorIcon name="lock-simple" className="mt-0.5 shrink-0" />
             <span><span className="sr-only">{t(`${P}.editor.frameTitle`)}: </span>{t(`${P}.editor.frameNote`)}</span>
           </p>
           <Technical>
@@ -638,6 +647,7 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
     setError(null);
     try {
       const active = await admin.activatePrompt(detail.prompt_id, version, reason.trim());
+      waitingChanged();
       onDone(active.label, textOf(version));
     } catch (e) {
       if (e instanceof Unauthenticated) {

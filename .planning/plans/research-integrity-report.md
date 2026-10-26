@@ -732,6 +732,15 @@ What follows from them:
 - D4 is the evaluation finding ADR 0021 decision 7 asks for (F1), and the owner's call on it: the
   engine changes, by a small set of deterministic rules, each with a test.
 
+### The owner's answer of 2026-10-25
+
+RIR-5 (a), the audit page, relayed by coordinator 3: go. Chunk 5 (develop acceptance on the
+existing fictional Fio run, USD 0) may run on the deploy; it is not ticked until it has.
+
+### The owner's answer of 2026-10-26
+
+RIR-5, Nigel, 26 Oct 2026 (relayed by the PM coordinator; `prototype-build.md`): the literature check is **paid, capped by the study budget**. Chunk 5's own acceptance run stays USD 0 as written; a literature check a person starts in a study is held against that study's budget like any other paid work, never free and never above it.
+
 ## Relation to other plans
 
 - run-recovery-and-truth: chunk 1 builds on 3a-3e (the trace) without editing them; chunk 2 covers

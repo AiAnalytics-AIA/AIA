@@ -123,7 +123,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | only the executor compositions import the model adapters (import contract) | A second model-call path: an adapter driven without the gateway's retry, budget, egress and provenance (ADR 0005) |
 | only the AI runtime composition builds the model gateway | A gateway nobody configured: a route, policy or registry outside `ai_runtime.py`'s validated settings |
 | only the step's model caller invokes the model gateway | A model call with no reservation, no settle and no journal under the lease (`ai_step.py`, StepModelCaller) |
-| network egress only from the transport modules (ruff TID251: `urllib3`, `httpx`, `requests`, `urllib.request`, `http.client`, `socket`, `ssl`; exemptions per file in the root `pyproject.toml`) | A connection with no residency check, pacing, TLS-refusal handling or record: web reads around RetrievalGate, model calls around GovernedModelGateway |
+| network egress only from the transport modules (ruff TID251: `urllib3`, `httpx`, `requests`, `urllib.request`, `http.client`, `socket`, `ssl`; exemptions per file in the root `pyproject.toml`, each exit with its wire, `pyproject.toml:54-63 @ 5d5ed250`; among them `infrastructure/editor_fetch.py`, the one fetch from the report editor's Document Server: its exact origin under `/cache/files/`, no redirect or retry, 64 MB, urllib3 imported lazily) | A connection with no residency check, pacing, TLS-refusal handling or record: web reads around RetrievalGate, model calls around GovernedModelGateway |
 | only the executor compositions import a live network wire: `deep_research_live` and `deep_research_runtime` (web search, Common Crawl), `ai_runtime` (the model transport); every app and the core's domain and application layers are checked, indirect imports included (import contract; RetrievalGate reaches the index and archive through `infrastructure/archive_index.py`, which loads no wire) | A module building a connection no composition configured |
 | no report path reads the Lead's notes (Q69; import contract: every module that composes, stores, renders or approves a report imports none of the Lead's turns, notes, files or their repositories; `test_report_reads_no_lead_notes.py` holds the contract's list to every report module and refuses the Lead's tables and its turn artifact by name, which an import contract cannot see) | A researcher's private Lead notes printed in a draft meant to be as client-ready as possible (the owner, 2026-10-22, Q69 (a)) |
 | the API never builds its own scope context | The same, at the edge where untrusted input arrives |
@@ -150,6 +150,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | the study design table is touched only by its repository (never by the API, the worker or the executors) | A Study's design project -- and the revisions its runs execute -- found by something other than the Study's scope (ADR 0016) |
 | only the design repository and the research runs name the design project's owner (`projects.owner`), and no app does | A generic project route reading or writing a Study's design, around the validation that makes content a Design Revision |
 | no statement updates a project revision (the ORM refuses an UPDATE; this forbids the bulk one) | A run's executed content changing under it |
+| only the 18.6.6 migration (`application/workspace_migration.py`) calls `StudyWorkspaceRepository.import_migrated`, never the API, the worker or the executors (`tools/layer_check.sh:502 @ 5d5ed250`); every other write goes through `save`, whose author (`by: WriteBy`) is required (WCE2f) | A working-copy revision written around the operation log and the Sociomap lock, by a writer nobody named |
 | licence determinations and policies are built only in their policy-data module, never by an app | An approval of panel-derived transmission nobody gave (ADR 0016 decision 5, OI-61) |
 | the fictional fieldwork generator is imported only by the workbench composition; nothing in the API or worker imports either, and no deployment names it | Fictional respondents reaching a deployed run, or a deployed worker configured with the test composition |
 | among the executors only the acceptance composition (`aia_executors/acceptance_recorded.py`) imports or names the recorded models (`recorded_models.py`); the API, the worker and the core never do, every import form and quoted dotted name included | A recording answering a production request |
@@ -277,11 +278,17 @@ can grant approval or supply deployment prices.
   can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
   the interval rule and the tier gate have all passed. The certificate itself is an
   `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
-  hash. A prompt may state a rule; it is never the only thing enforcing it. Decided and not built yet:
-  every key finding of an analysis module cites an admitted claim or is refused (MVP-23,
-  `evidence-integrity#1`); 18.6.6's run QC is a warning, never a gate (MVP-24,
-  `evidence-integrity#2`, `#3`); a module with no supported finding blocks the report (MVPQ-04,
-  `evidence-integrity#9a`, `#9b`).
+  hash. A prompt may state a rule; it is never the only thing enforcing it. Every key finding of
+  an analysis module cites at least one admitted claim (MVP-23, `evidence-integrity#1`):
+  `FINDING_UNCITED` refuses it (`domain/analysis/draft.py:281 @ 5d5ed250`,
+  `domain/evidence/gate.py:84 @ 5d5ed250`), `AnalysisModuleResult` cannot hold it
+  (`domain/analysis/result.py:89 @ 5d5ed250`), and the rule is part of `aia-analysis-harness-3`
+  (`domain/analysis/harness.py:79 @ 5d5ed250`). A module expected to find something that states
+  no supported finding holds the report (`RunAnalysis.holding`,
+  `application/analysis_results.py:840 @ 5d5ed250`); `compose_internal_report` refuses while any
+  module holds (`application/report.py:194 @ 5d5ed250`, reason `analysis_holds_report`; MVPQ-04).
+  The client report reads no analysis and is not gated by it (Q79 (a)). Decided and not built yet:
+  18.6.6's run QC is a warning, never a gate (MVP-24, `evidence-integrity#2`, `#3`).
 - **A research run executes a Design Revision, and nothing else**
   ([ADR 0016](docs/architecture/adr/0016-research-execution-and-model-transmission.md)).
   The browser submits the design it shows; `StudyDesignRepository` stores it as
@@ -548,6 +555,12 @@ What are you building?
 │    + apps/api/src/aia_api/schemas/<resource>.py   (request/response models)
 │    + the path asserted in .github/workflows/ci.yml api-contract
 │      Project routes live under /api/v1/studies/{study_id}/ — always.
+│      One exception: the Document Server's routes, /api/v1/report-editor/…
+│      (document, callback). No person's session reaches them, so scope comes
+│      from the editor session the signed URL token names, resolved through
+│      ScopeResolver for the person who opened it (routers/report_editor.py:327
+│      @ 5d5ed250); outside AC01's study sweep, tested cross-organization in
+│      test_report_editor_api.py.
 │
 ├─ Background work that can fail, retry, or cost money?
 │    → a step kind named in aia_core.domain.workflow_templates, executed by a
@@ -770,9 +783,13 @@ AIA's own pages (`/login`, `/logout`, `/auth/*`, `/config`, `/version`,
 `/studies*`, `/_next/*`, the fonts and identity under `/skin/` and the icon set)
 to the web client. `/app` and `/app/*` -- Clients → client workspace → study → stages -- go
 through `forward_auth` to AIA's own gate, `GET /api/v1/session/gate` (ADR 0018): any
-active member of the organization with an AIA session (`aia_session`, opened by
-`POST /api/v1/session` and admitted by `ScopeResolver.authorize_session`), GET and
-HEAD only, then the web client. No legacy setting touches it; what a page shows is
+active member of the organization with an AIA session (`__Host-aia_session` wherever it is
+deployed, `aia_session` in local and test; `routers/session.py:120 @ 5d5ed250`, `session_cookie`;
+opened by `POST /api/v1/session` and admitted by `ScopeResolver.authorize_session`), GET and
+HEAD only, then the web client. A session cookie whose name is sent twice is no session
+(`routers/session.py:131 @ 5d5ed250`, `_session_credential`;
+`test_a_session_cookie_sent_twice_is_no_session`): a planted twin for the parent domain cannot
+stand in for it. No legacy setting touches it; what a page shows is
 authorized per call by the API. The 18.6.6 interface is not served
 (ADR 0018 decision 4): no page hands off to it, `/classic` is the web client's page
 saying so, and what AIA does not have yet says so where a person meets it. Nothing
@@ -795,7 +812,9 @@ nothing else. `docs.<hostname>` is the report editor, ONLYOFFICE Docs (`deploy/d
 its own Compose project, off unless switched on), and it is an origin of its own rather than a
 path on the product's: on AIA's origin the editor's JavaScript would share `sessionStorage`,
 which holds the person's id token, and the API that trusts it, so an editor bug would be an AIA
-credential leak. `aia_session` is host-only and never reaches it; every request there passes
+credential leak. The session cookie is host-only and never reaches it; deployed, its name is
+`__Host-aia_session`, which no other host can set, and the gate reads that name alone
+(`test_a_deployed_gate_reads_only_the_host_prefixed_cookie`); every request there passes
 AIA's docs gate (`GET /api/v1/session/docs-gate`, `forward_auth`) over a docs-only cookie,
 `aia_docs`, which a one-time ticket (`POST /api/v1/session/docs-ticket`, 60 s, spent once)
 buys on that origin alone. The Document Server's server-to-server and admin paths answer 404

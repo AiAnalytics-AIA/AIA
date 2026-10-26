@@ -105,6 +105,12 @@ function useStartStudy(): { start: (kind: StudyKind) => void; dialog: ReactNode;
 }
 
 const AREAS: ClientArea[] = ["overview", "research", "simulations", "knowledge", "data", "profile"];
+/**
+ * The tabs a person is offered: Simulace is hidden until simulation is built (the product owner,
+ * MVP-31 / AUD-6, K12). Its route stays, and so does every simulation already made: a link to one
+ * still opens it, and it keeps its status on its frame.
+ */
+const SHOWN: ClientArea[] = AREAS.filter((a) => a !== "simulations");
 
 /** The client's tabs, each with what it counts: open studies, knowledge waiting on a person, datasets. */
 function clientTabs(client: ClientWorkspace, area: ClientArea): Tab[] {
@@ -117,7 +123,7 @@ function clientTabs(client: ClientWorkspace, area: ClientArea): Tab[] {
     if (a === "data") return { count: c.datasets, countLabel: tv("aia.client.counts.datasets", { n: c.datasets ?? 0 }) };
     return {};
   };
-  return AREAS.map((a) => ({ key: a, label: t(`aia.client.tabs.${a}`), href: appRoutes.area(client.client_id, a), active: a === area, ...count(a) }));
+  return SHOWN.map((a) => ({ key: a, label: t(`aia.client.tabs.${a}`), href: appRoutes.area(client.client_id, a), active: a === area, ...count(a) }));
 }
 
 function activeArea(path: string, clientId: string): ClientArea {
@@ -137,10 +143,8 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
   const defaultActions = may || mayAdd ? (
     <>
       {mayAdd ? <IntakeButton /> : null}
-      {may && area !== "simulations" ? <Button variant="primary" icon="plus" onClick={() => start("RESEARCH")}>{t("aia.client.newResearch")}</Button> : null}
-      {may && (area === "overview" || area === "simulations") ? (
-        <Button variant={area === "simulations" ? "primary" : "secondary"} icon="plus" onClick={() => start("SIMULATION")}>{t("aia.client.newSimulation")}</Button>
-      ) : null}
+      {/* No new simulation for the MVP (K12): a research is the one new study offered. */}
+      {may ? <Button variant="primary" icon="plus" onClick={() => start("RESEARCH")}>{t("aia.client.newResearch")}</Button> : null}
     </>
   ) : null;
   // Files dropped anywhere on the client's page open the intake sheet with them.
@@ -166,6 +170,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
   return (
     <div {...drop} className="contents">
     <AppShell
+      hero
       crumbs={[{ label: t("aia.navClients"), href: appRoutes.clients() }, { label: client.name, href: appRoutes.client(client.client_id) }, ...crumbs]}
       title={client.name}
       sub={sub}

@@ -304,6 +304,30 @@ def cache_route(match: dict[str, Any] | None = None, *handlers: dict[str, Any]) 
     return r
 
 
+def editor_script_cors(
+    paths: tuple[str, ...] = ("/__aia/session", "/web-apps/apps/api/documents/api.js"),
+    origin: str = "https://aia.example.test",
+    credentials: list[str] | None = None,
+) -> dict[str, Any]:
+    """The adapted ``header @editor_script { defer … }``: CORS for AIA's origin on two paths."""
+    return {
+        "match": [{"path": list(paths)}],
+        "handle": [
+            {
+                "handler": "headers",
+                "response": {
+                    "deferred": True,
+                    "set": {
+                        "Access-Control-Allow-Origin": [origin],
+                        "Access-Control-Allow-Credentials": credentials or ["true"],
+                    },
+                    "add": {"Vary": ["Origin"]},
+                },
+            }
+        ],
+    }
+
+
 def docs_routes(
     *,
     refusal: str = SERVER_ONLY,
@@ -311,7 +335,9 @@ def docs_routes(
     upstream: dict[str, Any] | None = None,
     framed_by: str = "https://aia.example.test",
     cache: dict[str, Any] | None = None,
+    script_cors: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
+    cors = script_cors if script_cors is not None else editor_script_cors()
     headers = {
         "handle": [
             {
@@ -337,6 +363,7 @@ def docs_routes(
     links = cache if cache is not None else cache_route()
     return [
         headers,
+        *([cors] if cors else []),
         exchange,
         refused,
         *([links] if links else []),
@@ -351,7 +378,8 @@ DROPS_TICKET = {
         "request>uri": {
             "filter": "query",
             "actions": [
-                {"type": "delete", "parameter": name} for name in ("ticket", "md5", "expires")
+                {"type": "delete", "parameter": name}
+                for name in ("ticket", "md5", "expires", "token")
             ],
         }
     },
@@ -445,6 +473,26 @@ def test_a_refusal_that_takes_the_editor_s_own_paths_is_refused(routes: Any) -> 
 def test_the_editor_framed_by_anything_but_aia_is_refused(routes: Any, framed_by: str) -> None:
     problems = routes.check(_with_docs_site(good(), docs_routes(framed_by=framed_by)))
     assert any("must be framed by https://aia.example.test alone" in p for p in problems)
+
+
+@pytest.mark.parametrize(
+    "cors",
+    [
+        {},  # none: the editor's script would not load under its integrity
+        editor_script_cors(origin="*"),
+        editor_script_cors(origin="https://evil.example.test"),
+        editor_script_cors(credentials=["false"]),
+        editor_script_cors(paths=("/__aia/session",)),
+        editor_script_cors(paths=("/__aia/session", "/web-apps/apps/api/documents/api.js", "/")),
+    ],
+)
+def test_cors_anywhere_but_the_editors_script_for_aia_is_refused(
+    routes: Any, cors: dict[str, Any]
+) -> None:
+    """RPT8e: api.js loads into AIA's pages under its integrity, so as CORS with credentials; the
+    ticket's redirect and the script name AIA's origin, and no other answer names any origin."""
+    problems = routes.check(_with_docs_site(good(), docs_routes(script_cors=cors)))
+    assert any("must answer CORS with credentials" in p for p in problems), problems
 
 
 def test_the_product_reaching_the_document_server_is_refused(routes: Any) -> None:
@@ -577,3 +625,44 @@ def test_a_non_404_refusal_of_the_editors_paths_is_refused(routes: Any) -> None:
     docs.insert(-1, blocks)
     problems = routes.check(_with_docs_site(good(), docs))
     assert any("is refused, and the editor needs it" in p for p in problems)
+
+
+def _product_log(config: dict[str, Any], encoder: dict[str, Any]) -> dict[str, Any]:
+    config["apps"]["http"]["servers"]["srv0"]["logs"] = {
+        "logger_names": {"aia.example.test": ["log0"]}
+    }
+    config["logging"] = {"logs": {"log0": {"encoder": encoder}}}
+    return config
+
+
+DROPS_TOKEN = {
+    "format": "filter",
+    "fields": {
+        "request>uri": {"filter": "query", "actions": [{"type": "delete", "parameter": "token"}]}
+    },
+    "wrap": {"format": "json"},
+}
+
+
+def test_a_product_log_that_drops_the_editors_token_passes(routes: Any) -> None:
+    assert routes.check(_product_log(good(), DROPS_TOKEN)) == []
+
+
+@pytest.mark.parametrize(
+    "encoder",
+    [{"format": "json"}, {**DROPS_TOKEN, "fields": {"request>uri": {"filter": "query"}}}],
+)
+def test_a_product_log_that_writes_the_editors_token_is_refused(
+    routes: Any, encoder: dict[str, Any]
+) -> None:
+    """The report editor's document and callback URLs carry a bearer token in their query
+    (artifact-report RPT8c): the product's access log must never write it."""
+    problems = routes.check(_product_log(good(), encoder))
+    assert any("writes the report editor's token" in p for p in problems)
+
+
+def test_an_error_log_that_writes_the_editors_token_is_refused(routes: Any) -> None:
+    config = good()
+    config["logging"] = {"logs": {"default": {"encoder": {"format": "json"}}}}
+    problems = routes.check(config)
+    assert any("writes the report editor's token" in p for p in problems)
