@@ -5,10 +5,10 @@
 # fails the smoke like any other row, because it holds whether the Document Server runs or not:
 # the docs gate refuses a request without its cookie, the server's own paths are refused at
 # Caddy, /__aia/session without a ticket opens nothing, and a forged cache link is not served. The
-# Document Server's health only warns: it never fails a deploy (bin/deploy.sh), and without it
-# Zpráva stays read-only.
+# Document Server's health, and whether its api.js is the one Zpráva's integrity names, only warn:
+# it never fails a deploy (bin/deploy.sh), and without it Zpráva stays read-only.
 #
-# Uses smoke.sh's pass, fail, warn, code and status_of.
+# Uses smoke.sh's pass, fail, warn, code and status_of, and lib.sh's COMPOSE.
 
 # Every probe below reads "000" when nothing answers, so a failure is a row, never an abort of the
 # smoke under lib.sh's errexit and pipefail.
@@ -72,4 +72,21 @@ docs_checks() {
   health="$( [ -n "$container" ] && docker inspect --format '{{.State.Health.Status}}' "$container" 2>/dev/null || printf 'not running')"
   if [ "$health" = "healthy" ]; then pass "docs: the Document Server is healthy"
   else warn "docs: the Document Server is healthy" "it is ${health}; Zpráva stays read-only (bin/docs.sh status, bin/docs.sh logs)"; fi
+
+  # Zpráva runs the editor's api.js only under AIA_ONLYOFFICE_API_INTEGRITY (RPT8e), so the
+  # running file's hash must be exactly that; any other, and the editor never opens. Read only from
+  # a healthy server, which has written api.js under its fixed cache tag (docs/). It warns, as the
+  # health above does: the Document Server's own file, never a failed deploy (bin/deploy.sh).
+  [ "$health" = "healthy" ] || return 0
+  local api="/var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js" got integrity
+  # The integrity the API serves Zpráva: its own environment, Compose's default or SSM's.
+  integrity="$("${COMPOSE[@]}" exec -T api printenv AIA_ONLYOFFICE_API_INTEGRITY 2>/dev/null || true)"
+  got="$(docker exec "$container" sh -c "[ -r $api ] && printf 'sha384-%s' \"\$(openssl dgst -sha384 -binary $api | base64)\"" 2>/dev/null || true)"
+  if [ -z "$integrity" ]; then
+    warn "docs: the editor's api.js is the one Zpráva's integrity names" "the API's AIA_ONLYOFFICE_API_INTEGRITY is empty (docker-compose.yml, or SSM aia_onlyoffice_api_integrity), and Zpráva opens no editor without it (the running file: ${got:-unreadable})"
+  elif [ "$got" = "$integrity" ]; then
+    pass "docs: the editor's api.js is the one Zpráva's integrity names"
+  else
+    warn "docs: the editor's api.js is the one Zpráva's integrity names" "the running file is ${got:-unreadable}, the API's integrity is $integrity: Zpráva refuses the editor (README § Report editor)"
+  fi
 }

@@ -351,10 +351,29 @@ included), WOPI and the example are off. Community Edition takes 20 simultaneous
    aws ssm put-parameter --name $P/aia_onlyoffice_enabled --type String --value true
    ```
 
-4. **Deploy** (any SHA): `write-env.sh` reads the three, the API gets the origin and the secret,
-   and `bin/deploy.sh` starts the Document Server after AIA is healthy (its first start generates
-   fonts: about a minute). A Document Server that will not start is said and does not fail the
-   deploy.
+   Zpráva runs the editor's `api.js` only under its Subresource Integrity (RPT8e),
+   `AIA_ONLYOFFICE_API_INTEGRITY`, versioned in `docker-compose.yml` beside the image's fixed cache
+   tag in `docs/docker-compose.yml`; SSM `aia_onlyoffice_api_integrity` overrides it, and nothing
+   needs it set. The image ships `api.js.tpl`, not `api.js`: its start script writes `api.js` under
+   a tag made from the start's date and minute, so its hash would move with every restart.
+   `docs/start-fixed-cache-tag.sh` runs upstream's entrypoint, then upstream's own
+   `documentserver-flush-cache.sh -h $AIA_DS_CACHE_TAG`, and the server reports healthy only once
+   `api.js` carries that tag. The smoke warns when the running file's hash is not the API's
+   integrity.
+   - **A new image** changes three things in one PR: the image digest, `AIA_DS_CACHE_TAG`
+     (`md5("aia-documentserver-" + the image's tag)`, CI holds it), and the integrity: `sha384-` and
+     the base64 SHA-384 of the image's `api.js.tpl` with `{{HASH_POSTFIX}}` replaced by the tag.
+   - **Fonts added to `docs_fonts`**: the tag is also upstream's only cache-buster for the editor's
+     assets (cached a year, immutable), so a font change takes a new tag and integrity too.
+   - **Upstream's maintenance commands** (`documentserver-generate-allfonts.sh`,
+     `documentserver-pluginsmanager.sh`) rewrite `api.js` under a per-minute tag: afterwards,
+     `bin/docs.sh down && bin/docs.sh up`, or the server stays unhealthy and Zpráva read-only.
+
+4. **Deploy** (any SHA): `write-env.sh` reads the three, the API gets the origin, the secret and
+   the integrity, and `bin/deploy.sh` starts the Document Server after AIA is healthy. A start
+   runs upstream's whole sequence (fonts, then gzipping its static files) before `api.js` takes its
+   tag: 274-330 s measured on 4 vCPU, bounded at 660 s. A Document Server that will not start is
+   said and does not fail the deploy.
 5. **Check from outside**: `https://docs.<public hostname>/` answers 401 (no cookie);
    `…/coauthoring/CommandService.ashx` and `…/healthcheck` answer 404.
 

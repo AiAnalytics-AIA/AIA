@@ -1266,8 +1266,9 @@ def _audience(audience: dict[str, Any]) -> dict[str, Any]:
     }
     if description := _text(audience.get("description")):
         out["description"] = description
-    # A subpanel is a part of AIA's population. The audience step keeps the last one chosen
-    # when the source moves outside it (OI-51), so it is the audience's only on a population.
+    # A subpanel is a part of AIA's population. A design stored before OI-51 (a) (2026-10-25)
+    # can still carry the last one chosen after the source moved outside it, so it is the
+    # audience's only on a population.
     if out["source_mode"] == "population" and (subpanel := _text(audience.get("builtin_subpanel"))):
         out["builtin_subpanel"] = subpanel
     return out
