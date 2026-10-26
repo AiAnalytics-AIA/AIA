@@ -969,7 +969,9 @@ jobs:
           assert env["AIA_DS_CACHE_TAG"] == tag, (env["AIA_DS_CACHE_TAG"], version)
           health = " ".join(oo["healthcheck"]["test"])
           prefix = ".".join(version.split(".")[:3])  # api.js's own version prefix, /9.4.0-<tag>
-          assert f"{prefix}-$${{AIA_DS_CACHE_TAG}}" in health or f"{prefix}-${{AIA_DS_CACHE_TAG}}" in health, health
+          # The variable as the container's shell expands it ($$ escaped in the file). Spelled in
+          # parts, so Actions never reads an expression in it.
+          assert prefix + "-$$" + "{AIA_DS_CACHE_TAG}'" in health, health
           product = json.load(open("composed.json"))
           on_docs = sorted(n for n, s in product["services"].items() if "docs" in s.get("networks", {}))
           assert on_docs == ["caddy"], on_docs
