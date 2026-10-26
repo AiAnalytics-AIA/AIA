@@ -211,11 +211,12 @@ class StudyWalletRepository:
         """Hold ``ceiling_usd`` of the wallet for one started run of this study, once.
 
         Under the study row's lock, in an open study: the run must be this study's, and the
-        authorising decision must be **this run's**: a ``chat_start`` or ``plan_step`` row of this
-        study (``CHARGE_AUTHORITIES``) whose ``run_id`` is ``run_id`` and whose decision is
-        ``start`` (``CHARGE_DECISION``), used by no other charge (a unique key). A ``plan_step``
-        row names its step as its subject, and the charge names the same step and its plan
-        (``plan_step_id``, ``plan_id``); a ``chat_start`` charge names neither. The ceiling must
+        authorising decision must be **this run's**: a ``chat_start``, ``plan_step`` or
+        ``lead_card`` row of this study (``CHARGE_AUTHORITIES``) whose ``run_id`` is ``run_id``
+        and whose decision is ``start`` (``CHARGE_DECISION``), used by no other charge (a unique
+        key). A ``plan_step`` row names its step as its subject, and the charge names the same
+        step and its plan (``plan_step_id``, ``plan_id``); a ``chat_start`` or ``lead_card``
+        charge names neither. The ceiling must
         fit what remains. A run already charged returns its charge and charges nothing
         again. Raises :class:`WalletChargeRefused` (``no_wallet``, ``ceiling_unknown``,
         ``outside_wallet``) rather than charge zero or overspend; what the start does with the

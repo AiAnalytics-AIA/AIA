@@ -1,6 +1,8 @@
 # ADR 0021 — Deep Research serves two methodological checkpoints: purpose, typed target and frozen lineage around a frozen engine
 
-**Status:** Proposed — develop (2026-10-06). Implemented on `feature/dr-purpose-lineage`
+**Status:** Held (2026-10-26, the product owner): until all seven target kinds are reachable;
+chunk 31 builds it (`deep-research-web-search#31`). See the [decision notes of
+2026-10-26](#decision-notes-2026-10-26). Proposed — develop (2026-10-06). Implemented on `feature/dr-purpose-lineage`
 ([plan](../../../.planning/plans/deep-research-purpose-lineage.md); AIA-83, parent AIA-81).
 **Amends** the lifecycle reading of [ADR 0017](0017-deep-research-external-retrieval.md):
 Deep Research is not one stage pinned only to a Design Revision; its retrieval, grounding and
@@ -12,6 +14,29 @@ for deterministic computation), [ADR 0016](0016-research-execution-and-model-tra
 0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
 questions, how they're connected in AIA, and the inputs and outputs. Include an example when
 explaining complex topics. do it for each individually." The status is unchanged until he does.
+
+<a id="decision-notes-2026-10-26"></a>
+**Decision notes, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator):
+
+- **Verdict, REV-ADR-0021-VERDICT: hold** until all seven target kinds are reachable, matching
+  0021-Q1 below; the status stays held until then.
+- **0021-Q1 (b): "Hold until all seven kinds are reachable"** (against the review's recommendation,
+  which was to accept now). Today the web always sends `ANALYSIS_MODULE` `research_questions` as the
+  Interpretation target (OI-179; `apps/web/src/lib/api.ts:1568 @ 5d2ac5ac`), so
+  six of the seven kinds have no way in from the product.
+- **0021-Q2 (b): "Build chunk 31 for the MVP"** (against the recommendation to defer it). The
+  Sociomap Research Lens, `deep-research-web-search#31`, is MVP scope; it already has its wave, W3
+  (row E28 of `.planning/mvp-execution-contracts.md`), and it is the work that makes the Sociomap
+  kinds (battery, object, pair) reachable from the map.
+- **0021-Q3 (a): "Yes, as an amendment once segment-maps-and-drilldown defines segment ids".** A
+  SEGMENT target is added by amendment when a segment has a stable identifier; until then it stays
+  absent (decision 2, *Not targets yet*).
+- **0021-Q4 (a): "Amend: every new artifact of the deterministic chain joins the list in the same
+  change that creates it".** Decision 1 reads: `DETERMINISTIC_ARTIFACT_TYPES` grows with the chain,
+  and a change that creates a deterministic artifact type (coded-answer assignments, ADR 0034; the
+  client analysis copy, ADR 0037) adds it to the list in the same change, so the boundary fails
+  closed for types that do not exist yet.
+- **0021-Q5 (a): "Keep".** The engine freeze of decision 7 stands as written.
 
 **Date:** 2026-10-06
 

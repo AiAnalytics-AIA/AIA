@@ -18,6 +18,7 @@ import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
+import { namesOne } from "@/lib/lead";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
 import { itemProblem, narrativeOf } from "@/research/plan-narrative";
 import { CONTEXT_FIELDS, type ReadinessChip, briefReadiness } from "@/research/brief-readiness";
@@ -33,7 +34,6 @@ import {
   addLink,
   attachmentLine,
   canAnalyse,
-  editBrief,
   fileToBase64,
   removeAttachment,
   restoreAttachment,
@@ -42,6 +42,7 @@ import {
   toggleProblemType,
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
+import type { Analysis, PersonEdit } from "@/research/store";
 import { Icon, type IconName } from "../icons";
 import { FrameNavigation, StageHeaderSlot, StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
@@ -84,6 +85,9 @@ function goToSection(id: string) {
   el.focus({ preventScroll: true });
 }
 
+type Design = { project: ResearchProject; analysis: Analysis | null };
+const isTopField = (field: TopField | BriefingField): field is TopField => field === "title" || field === "goal" || field === "decision_use";
+
 export function BriefStep() {
   const { store, state, stepHref, frame } = useResearch();
   const router = useRouter();
@@ -94,8 +98,10 @@ export function BriefStep() {
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const ask = useAskLead();
 
+  // editBrief as the vocabulary's set_text (the same rule: a brief edit drops the analysis, a title keeps it).
+  // Never refused here: the stored brief is completed to an object on load (defaultsMerge).
   const edit = (field: TopField | BriefingField, value: string) =>
-    store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
+    store.apply([{ op: "set_text", field: isTopField(field) ? field : `briefing.${field}`, value }]);
 
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
@@ -239,10 +245,18 @@ function Objectives({ undo }: { undo: Undo }) {
   // Návrh's rule and words for the same list (plan-narrative itemProblem), read from the copy as it
   // is now, not as it was rendered; index null for a new item.
   const repeat = (text: string, index: number | null) => itemProblem(narrativeOf(store.get()), "objectives", text, index);
+  // An objective's change as the vocabulary's edit (WCE3a); where the copy cannot take it as one (the
+  // list not where the vocabulary reads it), the same change made whole, as before.
+  // An item the vocabulary names by its words is written whole when another reads the same (stored before
+  // repeats were refused), so the edit never lands on the other one.
+  const objective = (edit: PersonEdit, whole: (d: Design) => Design, reason: string) => {
+    const named = "old" in edit && !namesOne(objectivesOf(store.get()).map((o) => o.text), edit.old);
+    if (named || store.apply([edit], { reason })) store.update(whole, { reason });
+  };
   const remove = (index: number) => {
     const { removed } = removeObjective(store.get(), index);
     if (removed === null) return;
-    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    objective({ op: "list_remove", list: "plan.objectives", old: removed }, (d) => removeObjective(d, index).design, "brief_objective_remove");
     undo.offer({
       message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
       undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
@@ -261,7 +275,7 @@ function Objectives({ undo }: { undo: Undo }) {
                 value={o.text}
                 label={tv("research.brief.objectiveLabel", { n: i + 1 })}
                 rules={{ maxLength: OBJECTIVE_MAX, validate: (v) => repeat(v, i) }}
-                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+                onCommit={(text) => objective({ op: "list_replace", list: "plan.objectives", old: o.text, value: text }, (d) => setObjective(d, i, text), "brief_objective")}
               />
               <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
                 ×
@@ -284,7 +298,7 @@ function Objectives({ undo }: { undo: Undo }) {
           onCreate={(text) => {
             const problem = repeat(text, null);
             if (problem) return problem;
-            store.update((d) => addObjective(d, text), { reason: "brief_objective_add" });
+            objective({ op: "list_add", list: "plan.objectives", value: text }, (d) => addObjective(d, text), "brief_objective_add");
           }}
         />
       ) : null}

@@ -49,6 +49,22 @@ export function accessFigures(members: Read<Member[]>, clients: Read<AdminClient
   return figures;
 }
 
+export type SystemWords = { ready: string; environment: string; build: string };
+
+/**
+ * Stav systému (System.dc.html): how many of the last smoke run's checks are ready, the environment
+ * and the web's build, from Připravenost's and Prostředí a verze's reads. A smoke run not read, or
+ * none kept, is unknown; so is a row Prostředí a verze could not read.
+ */
+export function systemFigures(ready: { ready: number; total: number } | null, rows: readonly { key: string; value: string | null }[] | null, w: SystemWords): Figure[] {
+  const row = (key: string) => rows?.find((r) => r.key === key)?.value ?? null;
+  return [
+    { label: w.ready, value: ready ? `${n(ready.ready)} / ${n(ready.total)}` : null },
+    { label: w.environment, value: row("environment") },
+    { label: w.build, value: row("build"), mono: true },
+  ];
+}
+
 export type AuditWords = { inPeriod: string; today: string; people: string; last: string };
 
 /**

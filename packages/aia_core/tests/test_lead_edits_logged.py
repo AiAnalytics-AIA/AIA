@@ -251,3 +251,72 @@ def _ledger(session: Any) -> list[ApprovalDecisionRow]:
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "lead_edit")
         )
     )
+
+
+def test_a_persons_batch_with_a_refused_edit_saves_nothing_in_its_own_transaction(
+    scoped: Any, session: Any
+) -> None:
+    """working-copy-edit-ops WCE3a: a person's batch is all or nothing before anything is written,
+    not only because the request rolls back: the same session reads the copy and the log as they
+    were."""
+    from aia_core.application.working_copy import EditsRefused, apply_person_edits
+    from aia_core.domain.edit_ops import ListRemove, SetText
+
+    scope = scoped.scope(user="lead")
+    workspace = StudyWorkspaceRepository(session)
+    workspace.save(
+        scope,
+        content=CONTENT,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
+    edits = [
+        SetText(op="set_text", field="title", value="Jiný", why="person"),
+        ListRemove(op="list_remove", list="plan.objectives", old="Žádný", why="person"),
+    ]
+    with pytest.raises(EditsRefused) as refused:
+        apply_person_edits(session, scope, edits, base_revision=1, reason="autosave")
+    assert refused.value.refused == {1: "unknown_item"}
+    assert workspace.content(scope).revision == 1
+    assert workspace.content(scope).content["title"] == CONTENT["title"]
+    assert WorkspaceEditRepository(session, scope).rows(after_revision=1) == []
+
+    saved, copy = apply_person_edits(session, scope, edits[:1], base_revision=1, reason="autosave")
+    assert (saved.revision, copy.content["title"]) == (2, "Jiný")
+    rows = WorkspaceEditRepository(session, scope).rows(after_revision=1)
+    assert rows and all(
+        r.by == WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI) for r in rows
+    )
+
+
+def test_a_reword_and_an_add_in_one_batch_keep_the_reworded_questions_links(
+    scoped: Any, session: Any
+) -> None:
+    """Ids are settled after each edit, as the browser's store settles them (Codex on #1013):
+    settled once over the batch, a list going from one item to two read the reword as a new item
+    and left the questionnaire's link on the old wording."""
+    from aia_core.application.working_copy import apply_person_edits
+    from aia_core.domain.edit_ops import ListAdd, ListReplace
+
+    scope = scoped.scope(user="lead")
+    with_ids, _ = with_item_ids(CONTENT)
+    StudyWorkspaceRepository(session).save(
+        scope,
+        content=with_ids,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
+    edits = [
+        ListReplace(
+            op="list_replace",
+            list="plan.research_questions",
+            old=RQ,
+            value="Kdo pije kávu?",
+            why="person",
+        ),
+        ListAdd(op="list_add", list="plan.research_questions", value="Kde?", why="person"),
+    ]
+    _, copy = apply_person_edits(session, scope, edits, base_revision=1, reason="autosave")
+    assert copy.content is not None
+    assert copy.content["research_plan"]["research_questions"] == ["Kdo pije kávu?", "Kde?"]
+    assert copy.content["sections"][0]["questions"][0]["research_questions"] == ["Kdo pije kávu?"]

@@ -335,6 +335,10 @@ class AIFieldwork:
             reservation_usd=cfg.reservation_usd,
         )
 
+        # Whether the resolved model takes a sampling setting; read from its profile once the
+        # preflight resolved it. The preflight's own request resolves and sends nothing.
+        sampling = True
+
         def request_for(index: int, block_index: int, answers: dict[str, Answer]) -> Any:
             plan = plans[index]
             return build_request(
@@ -348,6 +352,7 @@ class AIFieldwork:
                 max_output_tokens=cfg.max_output_tokens,
                 response=response,
                 scale_labels_in_prompt=labelled,
+                sampling=sampling,
             )
 
         first = next((i for i, p in enumerate(plans) if p.blocks), None)
@@ -366,6 +371,7 @@ class AIFieldwork:
                         "source": "ai_runtime",
                     },
                 )
+            sampling = resolution.request_profile.accepts_sampling
             resolved = self.binding(resolution)
             if require_binding is not None and resolved != require_binding:
                 # The respondent system is not the one asked for: a different system's answers
@@ -517,8 +523,15 @@ class AIFieldwork:
         )
 
     def binding(self, resolution: Any) -> str:
-        """The provider, model and route a preflight resolved, as a respondent system names it."""
-        return f"{self._config.provider.value}/{resolution.model}/{resolution.route_id}"
+        """The provider, model and route a preflight resolved, as a respondent system names it.
+
+        A model whose request profile is not the default one is named with it
+        (``RequestProfile.tag``): a respondent asked without a temperature, through an offered
+        tool or at another effort answers differently, so the system it names is another one.
+        The default profile adds nothing, so a binding recorded before profiles is unchanged."""
+        named = f"{self._config.provider.value}/{resolution.model}/{resolution.route_id}"
+        tag = resolution.request_profile.tag()
+        return f"{named}#{tag}" if tag else named
 
     def material(self, value: Any) -> Any:
         """``value``'s classification under the operator's content-bound approvals; unknown is

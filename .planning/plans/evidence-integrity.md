@@ -6,7 +6,7 @@ chunks:
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
-  - "[ ] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side, so the screen no longer reads raw aggregates"
+  - "[x] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side (the screen moves onto it in artifact-results RES2)"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
   - "[ ] 9a. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding, shown on Analysis and Results, with its resolution paths named"
   - "[x] 9b. The refusal (MVPQ-04, W3): report composition, approval and every export refuse while any of the eight modules is blocked or has no supported finding, until it is resolved; the diagnostic cannot satisfy the gate"
@@ -124,6 +124,23 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
   aggregate artifact and decides suppression in the browser (`research-execution.ts:373`); no API serves
   `PrintGrade` or the evidence table (T3 A4). Gap G31. Test: a suppressed object's number is absent from
   the response, not hidden in the page.
+  - *As built (2026-10-26, the Výsledky screen session, the PM's assignment).* `GET …/research/runs/{run_id}/results`
+    (`routers/research.py` `run_results`, `VIEW_RESULTS`) over `application/admitted_results.py`: the run's
+    evidence table built from its verified sources as its analysis builds it (`native_sources` with no context,
+    `native_evidence`), each question admitted for the internal surface through the report's own rule
+    (`report_tables.admit_question`, now shared with `question_tables`); a number leaves only from an
+    `AdmittedClaim`. A suppressed row carries its ref, metric, answer and its reasons as codes
+    (`admitted_results.reason_codes`: the reasons' words name the estimate, its interval, n and effective n
+    withheld), and no number, interval or effective n; a question the gate refuses carries the gate's violation
+    codes and no number; 409 `results_unavailable` (its `reason`) while the run has no verified aggregate or no
+    evidence table, 409 `artifact_corrupt` for a source that failed its hash (the mark committed). The evidence
+    table is built once for every reader by `analysis_results.sources_evidence` (the analysis, the client report,
+    Výsledky); `native.ref_metric` reads a suppressed ref's metric beside where the refs are minted. Tests:
+    `test_results_serve_admitted_rows_and_a_suppressed_number_never_leaves_the_api`,
+    `test_results_wait_for_the_aggregate_and_stay_in_their_study`,
+    `test_results_over_a_corrupt_aggregate_keep_it_marked_corrupt`, `test_admitted_results.py`. The screen still
+    reads the aggregate until `artifact-results#RES2` moves it onto this route; the route recomputes on each read
+    (a frozen run's answer cannot change), so RES2 decides whether to keep it, by measurement.
 - **7, corrected at 0d525bc8.** `AnalysisInputs.external_context` already exists (`application/analysis.py:101`) and reaches its fingerprint (:138) and prompt (:176). The missing connection is the production constructor in `application/analysis_results.py:570-579`, which supplies no external context. Trace the sealed-bundle provider into that constructor and the Lead, then test stored source lineage and payload. Reuse the existing field; do not build a second context type or claim its absence. External context remains context, never respondent evidence. Retiring it would change the integrated MVP scope and needs an explicit override.
   - *Module preparation, landed on `feature/analysis-external-context` (2026-10-22); the Lead is still to come.*
     - A run with analysis pins the Study's newest finished Design Research run's sealed bundle when it starts:

@@ -530,3 +530,12 @@ the docs PR after each chunk merges:
   sees contacts (C5).
 - **`docs/migration/interface-screens.json`:** the client area screens' states, if any classic
   screen maps to them.
+
+## Disposition (MP3, 2026-10-26)
+
+**FOLD into `client-knowledge-lifecycle` (S3)**, accepted (the product owner in the Decision Review,
+2026-10-26, relayed by the PM coordinator: "Accept: FOLD into client-knowledge-lifecycle (S3)"). C6
+(the review queue) is `client-knowledge-lifecycle#K2f` over K3; C7 (the intake sheet's remaining
+paths) is `#K2` (K2e, K2f); C9 (retire and restore) is `#K6`; C8 (the Data area) contradicts ADR
+0027 and F19 as written and is re-scoped by the lifecycle's owner under ADR 0027 and
+`client-data-in-analysis`. The plan closes with those pointers; its chunks are left as they are.

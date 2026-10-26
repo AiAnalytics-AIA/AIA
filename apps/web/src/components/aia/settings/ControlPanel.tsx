@@ -11,7 +11,7 @@
 // deployment). Neither is a connection, and the page says so.
 
 import Link from "next/link";
-import { type ReactNode, memo, useState } from "react";
+import { type ReactNode, memo, useCallback, useState } from "react";
 
 import type { PublicConfig } from "@/lib/public-config";
 import { t, tv } from "@/i18n/t";
@@ -41,6 +41,7 @@ import { relative } from "@/lib/format";
 import { nearLimitTally } from "@/lib/researcher-spend";
 import { type Figure, accessFigures, auditFigures } from "@/lib/settings-hero";
 import { Hero } from "../Hero";
+import { HeroFiguresProvider } from "./hero-figures";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
@@ -836,6 +837,11 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   // Each page's hero figures (F18), from the reads this page already made; a page whose figures its own
   // panel reads draws none until that panel hands them up.
   const H = `${P}.hero`;
+  // Figures a panel hands up from its own reads (hero-figures.tsx): Stav systému so far.
+  const [handed, setHanded] = useState<Partial<Record<TabId, Figure[]>>>({});
+  const hand = useCallback((section: TabId, figures: readonly Figure[] | undefined) => {
+    setHanded((was) => ({ ...was, [section]: figures ? [...figures] : undefined }));
+  }, []);
   const figuresOf = (tab: TabId): Figure[] | undefined => {
     if (tab === "access") return accessFigures(panel.members, panel.clients, panel.levels, {
       active: t(`${H}.access.active`), deactivated: t(`${H}.access.deactivated`), methodologist: t(`${H}.access.methodologist`),
@@ -846,11 +852,12 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     if (tab === "audit") return panel.audit === null ? undefined : auditFigures(panel.audit, AUDIT_PAGE, panel.readAt, {
       inPeriod: t(`${H}.audit.inPeriod`), today: t(`${H}.audit.today`), people: t(`${H}.audit.people`), last: t(`${H}.audit.last`),
     }, (iso) => relative(iso) ?? iso);
-    return undefined;
+    return handed[tab];
   };
   const groupOf = (tab: TabId) => SECTION_GROUPS.find((g) => (g.sections as readonly string[]).includes(tab))?.key;
   return (
     <TechnicalProvider on={technical}>
+    <HeroFiguresProvider hand={hand}>
     <div data-settings-workspace className="flex min-w-0 flex-1 flex-col [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
       {/* The sections are chosen in the top bar's menu (prototype v54); the content takes the width. */}
       <div className="min-w-0 flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
@@ -877,6 +884,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
         );
       })}{footer}</div>
     </div>
+    </HeroFiguresProvider>
     </TechnicalProvider>
   );
 }

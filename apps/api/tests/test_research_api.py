@@ -2508,7 +2508,8 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert missing.status_code == 404
     retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
     assert retryable.status_code == 200, retryable.text
-    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": []}
+    # No analysis reservation is configured here, so the ceiling (LO23) is unknown: null, not 0.
+    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": [], "ceiling_usd": None}
     assert (
         researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
     )
@@ -2950,6 +2951,86 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
         assert generic.status_code == 404
 
 
+def _finished_fictional_run(app: FastAPI, c: TestClient, world: Any, n: int) -> str:
+    """A run of DESIGN at ``n`` respondents, on fictional fieldwork, to its end."""
+    app.state.settings = app.state.settings.model_copy(
+        update={"research_fieldwork_source": FieldworkSource.SYNTHETIC_FIXTURE}
+    )
+    run_id = str(
+        start(c, world, submit(c, world, {**DESIGN, "n": n}).json()["revision_id"]).json()["run_id"]
+    )
+    worker = _real_worker(app, workbench=True)
+    while worker.run_once() is not None:
+        pass
+    assert c.get(f"{_runs(world)}/{run_id}").json()["status"] == "COMPLETED"
+    return run_id
+
+
+def test_results_serve_admitted_rows_and_a_suppressed_number_never_leaves_the_api(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """evidence-integrity 6: Results decided suppression in the browser, over the raw aggregate,
+    so a suppressed number reached the page. Here it is absent from the response."""
+    small = _finished_fictional_run(app, researcher, world, n=60)
+    answer = viewer.get(f"{_runs(world)}/{small}/results")
+    assert answer.status_code == 200, answer.text
+    body = answer.json()
+    assert body["run_id"] == small and body["internal_only"] is True
+    assert body["data_origin"] == "SYNTHETIC_FIXTURE"
+    # Every question the specification asked, in its order: the two questions, then each object.
+    ids = [q["question_id"] for q in body["questions"]]
+    assert ids[:2] == ["q1", "q2"] and len(ids) == 2 + 5
+    q2 = next(q for q in body["questions"] if q["question_id"] == "q2")
+    assert [r["answer"] for r in q2["rows"] if r["metric"] == "pct"] == ["Kávu", "Čaj", "Nic"]
+    q1 = body["questions"][0]
+    assert [r["metric"] for r in q1["rows"]] == ["mean", "top2box_pct", "n", "effective_n"]
+    # 60 fictional respondents fall below the effective-n guard: every row says why, none a number,
+    # though the aggregate stored each.
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{small}").json()["steps"]}
+    aggregate = researcher.get(
+        f"{_runs(world)}/{small}/artifacts/{steps['aggregate']['artifact_id']}"
+    ).json()["payload"]["aggregate"]
+    assert aggregate["questions"]["q2"]["celkem_pct"]["Kávu"] is not None
+    for row in (r for q in body["questions"] for r in q["rows"]):
+        assert row["support"] == "SUPPRESS" and row["value"] is None
+        assert row["interval"] is None and row["effective_n"] is None
+        # Why, as codes: the reasons' words name the effective n withheld.
+        assert "below_effective_n" in row["reasons"]
+        assert not any(ch.isdigit() for code in row["reasons"] for ch in code)
+
+    large = _finished_fictional_run(app, researcher, world, n=450)
+    rows = [
+        r
+        for q in viewer.get(f"{_runs(world)}/{large}/results").json()["questions"]
+        for r in q["rows"]
+    ]
+    admitted = [r for r in rows if r["support"] in ("REPORTABLE", "INDICATIVE")]
+    assert admitted
+    for row in admitted:
+        assert row["value"] is not None and not row["reasons"]
+        if row["metric"] not in ("n", "effective_n"):
+            low, high = row["interval"]
+            assert low <= row["value"] <= high
+    for row in rows:
+        assert (row["value"] is None) == (row["support"] == "SUPPRESS")
+
+
+def test_results_wait_for_the_aggregate_and_stay_in_their_study(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    waiting = researcher.get(f"{_runs(world)}/{run_id}/results")
+    assert waiting.status_code == 409
+    assert waiting.json()["code"] == "results_unavailable"
+    assert waiting.json()["details"]["reason"] == "missing_upstream"
+    # Another study's path never finds this study's run.
+    elsewhere = other_client_lead.get(f"{_runs(world, 'other_client')}/{run_id}/results")
+    assert elsewhere.status_code == 404
+    assert researcher.get(f"{_runs(world)}/RUN-0123abcd/results").status_code == 404
+
+
 @pytest.mark.parametrize("damage", ["tampered", "missing"])
 def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
     app: FastAPI,
@@ -2975,6 +3056,24 @@ def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
     assert refused.json()["code"] == "artifact_corrupt"
     assert artifact_status(spec_id) == "CORRUPT"
     assert researcher.get(url).status_code == 409
+
+
+def test_results_over_a_corrupt_aggregate_keep_it_marked_corrupt(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    """The results' read of a damaged source answers 409 and keeps its CORRUPT mark."""
+    run_id = _finished_fictional_run(app, researcher, world, n=60)
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]}
+    aggregate_id = steps["aggregate"]["artifact_id"]
+    damage_artifact(aggregate_id, "tampered")
+    refused = researcher.get(f"{_runs(world)}/{run_id}/results")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "artifact_corrupt"
+    assert artifact_status(aggregate_id) == "CORRUPT"
 
 
 # --------------------------------------------------------------------------- #

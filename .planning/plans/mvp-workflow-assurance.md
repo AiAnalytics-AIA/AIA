@@ -669,3 +669,11 @@ checking that fix's landing and current documentation; F1's Blob guidance is thi
 separate follow-up. Preserve the distinction between completed backend work, unfinished
 product consumers and unresolved methodology. The user explicitly authorized publishing
 these plans on 2026-10-08; implementation, merge and deployment are separate actions.
+
+## Disposition (MP3, 2026-10-26)
+
+**CLOSE A4 and A5; keep A3 optional**, accepted (the product owner in the Decision Review,
+2026-10-26, relayed by the PM coordinator: "Accept: CLOSE A4 and A5; keep A3 optional"). A4 and A5
+define an older four-area MVP with Simulation; `mvp-acceptance-harness` replaces them. A3 (one
+measured simplification at a time) stays optional. The chunks are left as they are; the owner closes
+A4 and A5 with a pointer to `mvp-acceptance-harness`.

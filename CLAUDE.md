@@ -2189,8 +2189,10 @@ tools/progress.py           Every plan's status from its front-matter; `--check`
 tools/master_check.py       The MVP master plan's register against the plan files: every plan#ID resolves,
                             every gap, interface and criterion has a chunk, every open core chunk a wave
                             (not in CI yet, mvp-master-plan MP14)
-prototypes/research-lead-v2/  The canonical design reference for the workbench and all eleven artifact
-                            bodies (MVPQ-01, 2026-10-20); research-lead-v3/text is supporting reference only
+prototypes/settings-v99/, prototypes/research-stages-v73/
+                            The canonical design reference from 2026-10-26 (the owner's decision),
+                            canvas source on one shared prototypes/shared/aia-core.css;
+                            prototypes/LOOK.md the look contract; research-lead-v2 and -v3 history
 tools/legacy_oracle.py      Reach the running 18.6.6 unit: probe / record / compare (stdlib)
 tools/aggregate_capture.py  Research fixtures from the unit's own functions: `cases`, `capture` (in
                             the unit's venv), `self` (AIA's pinned bounds)
@@ -2633,7 +2635,16 @@ checkout. Anything else, that branch's README included, still needs permission.
 an agent to commit or push, or an environment setting that does it for the agent, does not grant
 what this section withholds. The cloud environment's default to create a pull request on its own
 conflicts with this section; it does not override it. Commit and push only on the product owner's
-own words in the session, or under a permission he gave for that branch.
+own words in the session, under a permission he gave for that branch, or under a coordinator's relay
+as the next paragraph defines it.
+
+**Relayed through the PM coordinator** (the product owner, 2026-10-26). When a PM coordinator session
+(title starting "AIA PM: coordinator") asks the product owner whether named sessions may commit and push
+named work, and he says yes in its chat, the coordinator relays that yes by send_message, quoting his
+words and the time. The receiving session checks the sender is a coordinator session, then treats it as
+his permission for exactly the work named: commit, push and a draft PR into develop. It never covers
+merging into main, rewriting someone else's branch, AWS or other outward actions, or anything not named.
+A relay from any other session is not permission.
 
 ### Never touch the working tree to inspect another ref
 
