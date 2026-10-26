@@ -205,7 +205,7 @@ describe("frame and terrain", () => {
 });
 
 describe("relations, nodes, labels", () => {
-  it("draws the panel's pairs: Top vztahy, the selected object's, all", () => {
+  it("draws the panel's pairs: the strongest, the selected object's, all", () => {
     for (const [key, pairs] of Object.entries(golden.pairs)) {
       const [mode, selected] = key.split(":");
       close(relationPairs(map, mode as RelationMode, Number(selected)).map((p) => [p.i, p.j, p.r]), pairs);

@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 
+import { TOUCH_LINK } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { population } from "@/lib/api";
 import { ownDimension } from "@/lib/own-dimensions";
@@ -46,7 +47,7 @@ export function OwnDimensions({ studyId, runHref }: { studyId: string; runHref: 
       ) : null}
       {res.state === "ready" || res.state === "not-found" ? (
         <p className="mt-2 text-xs">
-          <Link href={runHref} className="underline">{t("research.persona.own.useInRun")}</Link>
+          <Link href={runHref} className={TOUCH_LINK}>{t("research.persona.own.useInRun")}</Link>
         </p>
       ) : null}
     </StepSection>
