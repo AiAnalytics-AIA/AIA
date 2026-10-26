@@ -23,7 +23,7 @@ chunks:
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
   - "[x] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
-  - "[ ] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
+  - "[x] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
   - "[ ] LO5a.3. Typed Deep Research starts (DRL-8, on LO5): start, retry and stop matched by code with no model in the path, ledger chat_start, a wallet charge at the ceiling; works with the Lead off"
   - "[ ] LO5a.4. Deep Research as plan-step kinds (DRL-9, on LO3/LO4): design_research and interpretation_research steps, a target fixed or relative to an earlier step resolved when the step starts, parked when its module ended BLOCKED"
   - "[ ] LO12c. The composition digest stored on each run and served over HTTP (D-09; the record #513 called MP6b)"
@@ -1464,6 +1464,76 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, `application/deep_research.py`: `freeze_design(…, focus=)`, `focused_subjects`,
   `FocusUnknown`; a run's `focus` in its metadata, kept by its retry.
 - `CLAUDE.md` map, `workflow_repository.py`: `list_runs(statuses=)`, filtered in the query.
+
+## LO5a.2 delivered (2026-10-26, `feature/lead-deep-research-cards`)
+
+- **The start** (`application/lead_deep_research.py`, `approve_deep_research_card`). The person's
+  approval of a `design_research`, `interpretation_research` or `deep_research_retry` card starts it
+  on the server in the request's one transaction, in LO1's order: freeze once, quote that spec,
+  hold it to the wallet, create the run, record the card's `lead_job_request` row, write the
+  `lead_card` row and charge. A design card first passes LO10's stale-card rule and submits the
+  working copy (`source_stage="plan"`), then freezes it with its focus; an Interpretation card's
+  target is read from the turn's own frozen `targets` layer (`card_target`, by id or the layer's
+  default, validated as a `ResearchTargetRef`), never from today's study, and frozen with every pin
+  verified; a retry card re-freezes the run it names (`retry_spec`). Channel `WEB` and the stage's
+  Interpretation title, so the card's run is the run the stage's start would make: the same spec
+  and fingerprint, found by idempotency whichever starts first.
+- **One spec, quoted and enqueued** (`application/deep_research.py`). `FrozenStart` (spec,
+  purpose source, `retry_of`, focus); `retry_spec` (what `retry` froze, now its own step) and
+  `start_frozen` (enqueue a given spec under the start's checks); `retry` is the two in order.
+  `quote(…, retry_of=)` so a retry's quote finds the retry's idempotency key, not the original's.
+- **The wallet.** `lead_chat_start.wallet_admits` is the typed start's wallet check, shared: a card
+  is judged by `StartPath.CHAT_START` (no `StartPath` member of its own: its rule is the same).
+  Not consulted for a run that already exists (`StartVerdict.EXISTS`), which charges nothing.
+  `ApprovalSubject.LEAD_CARD` is a charge authority; `record_lead_card` writes its row (decision
+  `start`, `gate_type` the card's kind, comment `{turn_id, kind, ceiling_usd}`), and the charge is
+  `DEEP_RESEARCH` or `INTERPRETATION_RESEARCH` at the ceiling. A refused charge rolls back the run
+  and both rows. Spend attribution needs nothing new: the card's `lead_job_request` row names the
+  run (`agent_run_id`), as an agent job's does, so `LEAD_CARD` is not a start approval.
+- **Migration M3b** (`124dedc8f7b1`, on `46d0bf6b5121`): `lead_card` in
+  `approval_decisions.subject_type`'s CHECK; its downgrade refuses while a `lead_card` row exists.
+- **The ledger row.** `record_lead_job_approval(…, details=)`: purpose, target, preset, focus,
+  ceiling, `retry_of` when a retry; `spend` only when the run was created on a confirmation whose
+  every figure is known.
+- **The routes.** `routers/deep_research.py`'s start errors are `deep_research_start_errors` (live
+  settings 409 with `missing` and `routes`; not found 404; `focus_unknown` and `research_input`
+  422; mission, lineage, spec, governance and retryability 409; `artifact_corrupt`), used by the
+  stage's routes and by `routers/lead.py`'s approve, which passes `DeepResearchCardSettings`
+  (`study_prices`, `deep_research_mode`, the store). Without them a card is 409
+  `deep_research_start_unavailable`. `NotAPaidRequest` stays for `research_run` alone. This
+  amends research-lead-workbench D7 for the two kinds.
+- **The web.** `lead.ts` `isDeepResearchCard`, `deepResearchStage`, `deepResearchFacts` (what
+  starts, the preset or "Výchozí rozsah kroku", the focus count, the target or the default the
+  Lead saw, the payment with the wallet only when on) and the refusals' words; `LeadPane` shows the
+  card as a paid one ("Spustit hloubkový výzkum", "Spustit literární rešerši", "Zopakovat hloubkový
+  výzkum"); `Workbench.onRequest` approves it through the same loop as an agent job (threshold,
+  stale card), then opens the stage where its run is followed.
+- **Tests.** `apps/api/tests/test_lead_deep_research_cards_api.py` (11, SQLite and PostgreSQL): a
+  design card's run, approved once, its row and fingerprint equal to the stage start's; stale
+  refused, then run on the yes; the threshold asks and `spend` is recorded; unapproved live
+  settings write nothing; the Lead off starts nothing; `research_run` still 422; the wallet charges
+  once under `lead_card` and refuses over its remainder with nothing written; an Interpretation card
+  equals the stage's run; an unknown target 404 and a deleted aggregate 409; a retry card.
+  `test_approval_ledger.py` M3b round trip and downgrade refusal; `lead.test.ts` and
+  `LeadPane.test.tsx` the card.
+- **Not done here.** A candidate's date on the card (Q44) waits for the targets layer to carry it.
+  A ceiling that grows after a confirmation asks once, as an agent job's does today.
+
+### Doc follow-up (LO5a.2)
+
+- `CLAUDE.md` map, `application/`: `lead_deep_research.py` — a Lead's Deep Research card started on
+  the person's approval (`approve_deep_research_card`, `card_target`, `DeepResearchCardSettings`;
+  one frozen spec quoted and enqueued, the wallet charged under a `lead_card` row).
+- `CLAUDE.md` map, `application/deep_research.py`: `FrozenStart`, `retry_spec`, `start_frozen`,
+  `quote(…, retry_of=)`.
+- `CLAUDE.md` map, `application/lead_chat_start.py`: `wallet_admits`, shared with the cards.
+- `CLAUDE.md` map, `domain/approval_ledger.py` / `wallet.py`: `lead_card` (M3b), a charge authority.
+- `CLAUDE.md` map, `workflow_repository.py`: `record_lead_card`; `record_lead_job_approval(details=)`.
+- `CLAUDE.md` map, routers `lead`: `POST …/turns/{turn_id}/request` starts Design and Interpretation
+  Research and their retry (409 `live_settings_unapproved`, `outside_wallet`, `ceiling_unknown`,
+  `deep_research_start_unavailable`; 404 `deep_research_not_found`); routers `deep research`:
+  `deep_research_start_errors`, `study_prices`.
+- `CLAUDE.md` map, `src/lib/lead.ts`: `isDeepResearchCard`, `deepResearchStage`, `deepResearchFacts`.
 
 ## From the research build spec (2026-10-26)
 
