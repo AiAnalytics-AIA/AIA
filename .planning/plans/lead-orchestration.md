@@ -1425,6 +1425,23 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
     `retry` freezes the same focus; test: `test_deep_research_quote.py` "a focused run retries
     on the same research questions".
 
+- **Stand-in review of #925.**
+  - *The ids a focus names are shown* (P2). `request_ids` derived them with `with_item_ids`, but
+    the design layer sends `design_material(content)`, and a stored copy carries no ids unless
+    `AIA_WEB_STABLE_ITEM_IDS` wrote them, so every focused request named a guess and was
+    refused. The design layer now carries `research_questions: [{id, text}]`
+    (`design_research_questions`, classed by `MaterialRule.DESIGN`, part
+    `design_research_questions`), and `request_ids` reads exactly that list: what grounds a focus
+    is what the model was shown. The prompt names `design.research_questions`. Tests:
+    `test_lead_research_targets.py` "every research question id a focus may name is shown to
+    the model"; `test_research_lead_application.py` "a deep research run…" on a copy with no ids.
+  - *A retry names only a retryable run* (P3, taken): `request_ids` offers only runs whose
+    `retryable` is true. Test: "only a run that can be retried may be named for a retry".
+  - *The manifest's words* (P3, taken): `deep_research` counts runs past its byte bound, older
+    runs are left out uncounted, and the bound now says so.
+  - *A candidate's date* (P3, not taken here): Q44's "the research run and its date" waits for
+    LO5a.2, where the card shows it.
+
 ### Doc follow-up (LO5a.1)
 
 - `CLAUDE.md` map, `domain/`: `lead_research_targets.py` — the Interpretation candidates
