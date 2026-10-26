@@ -40,9 +40,12 @@ export function phaseLabel(phase: ResearchPhase): string {
   return words === key ? t("research.exec.phase.other") : words;
 }
 
+/** A step by name; a key this client has no name for reads as an unnamed step with its code, short
+ *  enough to sit inside a sentence, never the code as if it were a name. */
 export function stepLabel(nodeKey: string): string {
-  const label = t(`research.exec.steps.${nodeKey}`);
-  return label.startsWith("research.") ? nodeKey : label;
+  const key = `research.exec.steps.${nodeKey}`;
+  const label = t(key);
+  return label === key ? tv("research.exec.stepUnnamed", { code: nodeKey }) : label;
 }
 
 /** An analysis step whose module was stored BLOCKED: finished as a step, not as a result. */

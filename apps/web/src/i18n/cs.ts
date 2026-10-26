@@ -3629,6 +3629,8 @@ export const cs = {
       stepsFinished: "{done} z {total} kroků hotovo",
       // artifact-fieldwork FLD2c: the run's steps, one ordered list.
       stepsTitle: "Kroky běhu",
+      // A step this client has no name for: its code, never shown as if it were a name.
+      stepUnnamed: "krok bez názvu ({code})",
       stepWork: {
         ai: "AI model",
         running: "kód",
