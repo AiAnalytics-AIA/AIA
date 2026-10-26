@@ -170,6 +170,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
   return (
     <div {...drop} className="contents">
     <AppShell
+      hero
       crumbs={[{ label: t("aia.navClients"), href: appRoutes.clients() }, { label: client.name, href: appRoutes.client(client.client_id) }, ...crumbs]}
       title={client.name}
       sub={sub}
