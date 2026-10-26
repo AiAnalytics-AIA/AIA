@@ -30,7 +30,10 @@ import {
   type EditField,
   changedPaths,
   editableSteps,
+  boundUnder,
+  boundWords,
   fillReading,
+  outsideBound,
   fromInput,
   problemsFor,
   readPath,
@@ -630,6 +633,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
             <ParamRow key={row.field.reference} row={row} value={raw[row.field.reference] ?? ""} original={original(row.field.reference)}
               live={currentSpec ? readPath(currentSpec, row.field.reference) : undefined}
               reading={row.step.reading_cs ? fillReading(row.step.reading_cs, valueOf) : ""}
+              {...boundOf(row.field, valueOf, raw[row.field.reference] ?? "")}
               problems={problemsFor(problems, `spec.${row.field.reference}`)} onChange={setValue} />
           ))}
           {rows.length ? null : <p className="py-3 text-sm text-ink-muted">{t(`${V}.noParameters`)}</p>}
@@ -719,8 +723,19 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
 /** One parameter: its name and stage, the value it started from, and the value now, with − / +
  *  for a number. The text is the draft as typed: the domain's check reads it, nothing here clamps
  *  or rounds it (IA-1), and its problems are shown under it. */
-const ParamRow = memo(function ParamRow({ row, value, original, live, reading, problems, onChange }: {
+/** A field's bound in words under the draft, and whether its text lies outside it (F13): strings,
+ *  so the memoised row redraws only when either changes. */
+function boundOf(field: EditField, valueOf: (path: string) => string | undefined, raw: string): { bound: string; outside: boolean } {
+  if (!field.bound) return { bound: "", outside: false };
+  const sides = boundUnder(field.bound, valueOf);
+  return { bound: boundWords(sides), outside: outsideBound(sides, raw) };
+}
+
+const ParamRow = memo(function ParamRow({ row, value, original, live, reading, problems, bound, outside, onChange }: {
   row: Row; value: string; original: unknown; live: unknown; reading: string; problems: string[];
+  /** The range the check holds the field to, in words ("" where none does), and whether the
+   *  text lies outside it: said beside the field, the check still the one that refuses. */
+  bound: string; outside: boolean;
   onChange: (reference: string, value: string) => void;
 }) {
   const { field } = row;
@@ -747,7 +762,8 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
       {direction > 0 ? "+" : "−"}
     </button>
   );
-  const others = [live !== undefined && JSON.stringify(live) !== JSON.stringify(original) ? tv(`${V}.inForceValue`, { value: shown(live) }) : "", numeric ? t(`${V}.boundsHint`) : ""].filter(Boolean).join(" · ");
+  const others = [live !== undefined && JSON.stringify(live) !== JSON.stringify(original) ? tv(`${V}.inForceValue`, { value: shown(live) }) : "", numeric ? bound || t(`${V}.boundsHint`) : ""].filter(Boolean).join(" · ");
+  const invalid = problems.length > 0 || (numeric && outside);
   return (
     <div data-edit-row={field.reference} data-edit-step={row.step.id} data-changed={changed || undefined}
       className={`grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-4 gap-y-1.5 border-b border-dashed border-border px-1 py-2.5 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_8.75rem_13rem] ${changed ? "bg-signal-tint" : ""}`}>
@@ -761,9 +777,9 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
       <span data-original title={t(`${V}.originalValue`)} className="min-w-0 pt-1 text-right font-mono text-xs text-ink-faint [overflow-wrap:anywhere] sm:pt-2 sm:text-left">{shown(original)}</span>
       <div className="col-span-2 flex min-w-0 flex-col gap-1 sm:col-span-1">
         {numeric ? (
-          <span className={`inline-flex w-full items-stretch overflow-hidden rounded-control border focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${problems.length ? "border-status-fault" : "border-border-strong"} bg-surface-raised`}>
+          <span className={`inline-flex w-full items-stretch overflow-hidden rounded-control border focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring ${invalid ? "border-status-fault" : "border-border-strong"} bg-surface-raised`}>
             {step(-1)}
-            <input id={id} data-field={field.reference} value={value} inputMode="decimal" aria-invalid={problems.length > 0} aria-describedby={hintId}
+            <input id={id} data-field={field.reference} value={value} inputMode="decimal" aria-invalid={invalid} aria-describedby={hintId}
               onChange={(e) => onChange(field.reference, e.target.value)}
               onKeyDown={(e) => { if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); nudge(e.key === "ArrowUp" ? 1 : -1, e.shiftKey); } }}
               className="min-h-11 w-0 min-w-0 flex-1 border-x border-border bg-transparent px-1 text-center font-mono text-sm text-ink outline-none sm:min-h-8" />
@@ -773,7 +789,12 @@ const ParamRow = memo(function ParamRow({ row, value, original, live, reading, p
           <TextInput id={id} data-field={field.reference} value={value} aria-invalid={problems.length > 0} aria-describedby={others ? hintId : undefined} className="w-full font-mono"
             onChange={(e) => onChange(field.reference, e.target.value)} />
         )}
-        {others ? <span id={hintId} className="text-[11px] leading-4 text-ink-faint">{others}</span> : null}
+        {others ? (
+          <span id={hintId} data-bound={bound || undefined} className="text-[11px] leading-4 text-ink-faint">
+            {others}
+            {numeric && outside ? <span data-outside-bound className="block text-status-fault">{tv(`${V}.outsideBound`, { value, bound })}</span> : null}
+          </span>
+        ) : null}
       </div>
       {problems.map((m) => <span key={m} role="alert" className="col-span-full rounded-sm bg-status-fault-wash px-2 py-1 text-xs text-status-fault">{m}</span>)}
     </div>
