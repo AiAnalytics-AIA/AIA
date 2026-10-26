@@ -4181,6 +4181,7 @@ export const cs = {
           pillNoStructure: "⚠ Žádná spolehlivá struktura",
           leadNoControl: "Vedoucí: {what} – tato mapa takové ovládání nemá; zobrazení se nezměnilo.",
           leadNoRespondents: "Vedoucí: mapu respondentů tato mapa neukládá; zobrazení se nezměnilo.",
+          leadNoMap: "Vedoucí: {what} – na této stránce není mapa, která by to ukázala; zobrazení se nezměnilo.",
           leadNotApplied: "Vedoucí: „{op}“ mapa sama neprovádí; zobrazení se nezměnilo.",
           leadRefused: "Vedoucí: {words} Zobrazení se nezměnilo.",
           quality: "Kvalita mapy",

@@ -13,6 +13,7 @@ import { isRefusal, readMapOp, readTarget } from "@/lib/artifacts/sociomap";
 import { LEAD_MAP_VIEW, type LeadMapView, mapViewWords, sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { explainMap } from "@/lib/map-explained";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
+import { densityGrid } from "@/lib/object-map-panel";
 import { isSignedOffMap, storedFrame } from "@/lib/object-map-signed-off";
 import { stageOf } from "@/lib/workbench-stages";
 import { useFrame } from "./frame-hook";
@@ -64,7 +65,8 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   const batteries = payload?.sociomap?.batteries ?? [];
   // The Lead's views (artifact-sociomap SOC2; research-lead-workbench 14), routed by the stage, which
   // knows every map it draws: each view checked with readMapOp against all of them and handed to the map
-  // that owns it (every map for a stage-wide filter), or refused here once, in words. Live views and the
+  // that owns it (every map for a stage-wide filter), or refused here once, in words, a view no map
+  // here receives included (a stage that draws no signed-off map). Live views and the
   // one sent before the maps were drawn (the Workbench moves here, then sends) go the same way.
   // The maps drawn as the signed-off panel with its terrain (ObjectMapPanel's PanelView): what a Lead view
   // may name (each with the objects it places) and what the item inspector may open. Null until the
@@ -80,7 +82,7 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   }, [artifact]);
   const drawn = useMemo(() => panels?.map(({ battery: b, map }) => {
     const placed = new Set(map.object_ids);
-    return { battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)) };
+    return { battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)), respondents: densityGrid(map) !== null };
   }) ?? null, [panels]);
   // The item inspector opens an object or a relation of these maps, and of no other (MapInspect).
   useEffect(() => {
@@ -97,11 +99,17 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
       takeLeadMapView();
       const op = readMapOp(view, all);
       const lacks = view.op === "filter" && (view.name === "labels" || view.name === "hide_weak");
-      const note = isRefusal(op) ? tv(`${P}.leadRefused`, { words: op.words }) : lacks ? tv(`${P}.leadNoControl`, { what: mapViewWords(view) }) : "";
-      setLeadNote({ artifact: artifactId, text: note });
-      if (note) return;
       const owner = view.op === "select" ? readTarget(view.target)?.battery : view.name === "battery" ? view.value : null;
-      for (const b of all) if (!owner || owner === b.battery_id) routeToMap(b.battery_id, view);
+      // The respondent map goes only to the maps that store one; none here is said once, not once per map.
+      const people = view.op === "filter" && view.name === "mode" && view.value === "respondents";
+      const to = all.filter((b) => (!owner || owner === b.battery_id) && (!people || b.respondents));
+      const note = isRefusal(op) ? tv(`${P}.leadRefused`, { words: op.words })
+        : lacks ? tv(`${P}.leadNoControl`, { what: mapViewWords(view) })
+        : to.length ? ""
+        : people && all.length ? t(`${P}.leadNoRespondents`)
+        : tv(`${P}.leadNoMap`, { what: mapViewWords(view) });
+      setLeadNote({ artifact: artifactId, text: note });
+      if (!note) for (const b of to) routeToMap(b.battery_id, view);
     };
     window.addEventListener(LEAD_MAP_VIEW, onView);
     const waiting = takeLeadMapView();

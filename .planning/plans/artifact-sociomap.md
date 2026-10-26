@@ -139,8 +139,10 @@ Depends on `research-lead-workbench#14`, `#16`.
   takes the view sent before (`takeLeadMapView`); each is checked with `readMapOp` against all its maps and
   handed to the map that owns it (`routeToMap`), to every map for a stage-wide filter (view, mode; stand-in
   review P2, #939), or refused once by the stage in words (`sociomap-lead-note`, reset with the run on
-  screen): an element no map here places, a stage that draws no signed-off map, and `labels` / `hide_weak`,
-  which the panel has no control for (SOC3 finding). `ObjectMapPanel` applies what is routed to its battery,
+  screen): an element no map here places, a view no map here receives (a stage that draws no signed-off
+  map, a stage-wide filter included; stand-in review P2 on 7a8172ca), the respondent map when no map stores
+  one (said once, not once per map), and `labels` / `hide_weak`, which the panel has no control for (SOC3
+  finding). `ObjectMapPanel` applies what is routed to its battery,
   once, as it arrives, to the picture only:
   - `select` on `object:` or `pair:` opens that element's detail on the object map;
   - `filter` `view` sets the camera (top: 2D, relief: 3D), `mode` the map (objects / respondents),
