@@ -14,6 +14,7 @@ chunks:
   - "[ ] PE9b. The rest of the release checklist evidenced (W5): rollback, alarms, the activation profile `READY` on the production host"
   - "[ ] PE10. An audited operator command that creates the first organization and its owner; production starts empty (D-22)"
   - "[ ] PE11. An external security review of the production hostname before the first client (D-23)"
+  - "[ ] PE12. The browser holds no token: the API authenticates by AIA's HttpOnly session cookie with a CSRF token, before the first production sign-in (OI-35)"
 ---
 # The production environment
 
@@ -61,6 +62,19 @@ Interfaces I18; shared with `run-qc-and-checkpoint#RQC10`.
 **PE9b. Rollback, alarms and the activation profile `READY` on the production host (W5)**  
 A production release stays a blocker on I-5 whatever tier B showed on develop.
 
+**PE12. The browser holds no token: the API authenticates by AIA's HttpOnly session cookie with a CSRF token (OI-35)**  
+The owner, 2026-10-25 (OI-35 (a), the audit page): "HttpOnly cookie session before production." Half of it exists.
+`POST /session` already sets an HttpOnly, SameSite=Lax cookie, `__Host-aia_session` when deployed (`apps/api/src/aia_api/routers/session.py:69-73,120-122 @ 399b8057`, #831). But it serves only the `/app` gate, and its value is the Cognito id token itself (`session.py:20-22`).
+Every `/api/v1` call still sends `Authorization: Bearer` (`apps/web/src/lib/api.ts:38`, `apps/api/src/aia_api/dependencies.py:410-416`). The browser keeps the id and refresh tokens in `sessionStorage` (`apps/web/src/lib/auth.ts:18,96-119`), within reach of any XSS.
+Done when:
+- the API accepts the session cookie on every `/api/v1` route, through the same verification and `ScopeResolver` path as a bearer token;
+- every unsafe method requires a CSRF token minted with the session (double-submit or header-bound) and refuses without it by name;
+- the session's lifetime no longer rides the id token's: the refresh happens server-side, so no refresh token reaches the browser;
+- `sessionStorage` holds no token after sign-in;
+- the bearer path is refused outside `AIA_ENV` local and test, or kept only for named non-browser callers. Which one is decided in this chunk's PR.
+
+Its tests: a cookie-only call succeeds; an unsafe call without the CSRF token is refused; a bearer call is refused in a deployed environment; and a journey shows no token in the browser's storage after sign-in. W1, beside PE10: settled before anyone signs in on production. The `IdentityProvider` seam is unchanged (OI-35's smallest fix).
+
 ## Open: owner clarifications
 
 - The production hostname, RDS sizing and Bedrock quota (owner and operator).
@@ -79,7 +93,7 @@ the tested candidate during tier B; PE9a consumes SDL6 and PE9b closes the check
 
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
-**New chunks.** PE10 (W1), PE11 (W4).
+**New chunks.** PE10 (W1), PE11 (W4). PE12 (W1) was added 2026-10-25 from the owner's OI-35 answer, not the scope freeze.
 
 **Existing chunks, changed by the owner's answers.**
 

@@ -869,6 +869,9 @@ class StudyLeadTurnRow(Base):
     #: The typed start the server matched in a person's message (lead-orchestration LO5,
     #: ``domain/lead_commands.py``), or NULL. Only a person's turn names one.
     command: Mapped[str | None] = mapped_column(String(64))
+    #: The turn this one answers or follows (ADR 0041 decision 7): a ``withdrawal`` names the
+    #: queued message it withdraws. Set on insert, never after.
+    parent_turn_id: Mapped[str | None] = mapped_column(String(64))
     created_by: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -882,13 +885,22 @@ class StudyLeadTurnRow(Base):
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
         ForeignKeyConstraint(["run_id"], ["workflow_runs.run_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["parent_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
         UniqueConstraint("study_id", "user_id", "sequence_no", name="study_lead_turn_sequence"),
         # A typed command is a person's: the Lead's model never names a start (D22).
         CheckConstraint(
             "command IS NULL OR actor = 'person'", name="study_lead_turn_command_is_a_persons"
         ),
         CheckConstraint("actor in ('person','lead')", name="study_lead_turn_actor_known"),
-        CheckConstraint("kind in ('message','greeting')", name="study_lead_turn_kind_known"),
+        CheckConstraint(
+            "kind in ('message','greeting','withdrawal')", name="study_lead_turn_kind_known"
+        ),
+        # A withdrawal is the person's, carries no text and names the message it withdraws.
+        CheckConstraint(
+            "kind <> 'withdrawal' OR (actor = 'person' AND text IS NULL"
+            " AND parent_turn_id IS NOT NULL)",
+            name="study_lead_turn_withdrawal_has_parent",
+        ),
         CheckConstraint("sequence_no >= 1", name="study_lead_turn_sequence_positive"),
         # A Lead turn is answered by its run; a person's turn names none.
         CheckConstraint(
@@ -905,6 +917,41 @@ class StudyLeadTurnRow(Base):
 def _lead_turns_are_never_updated(_mapper: Any, _connection: Any, row: StudyLeadTurnRow) -> None:
     """A turn is what was said; the conversation is append-only (ADR 0026 decision 8)."""
     raise RuntimeError(f"lead turn {row.turn_id} is immutable; append a new one")
+
+
+class StudyLeadTurnAnswerRow(Base):
+    """Which person messages a Lead turn was sent (ADR 0041 decision 7). **Append-only.**
+
+    One row per message a Lead turn answered, inserted with the Lead turn, so what a turn
+    answered is exact, never a high-water mark: a message no row names is still queued. Scoped
+    like the turns, and read and written only by ``StudyLeadRepository``.
+    """
+
+    __tablename__ = "study_lead_turn_answers"
+
+    lead_turn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    person_turn_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        ForeignKeyConstraint(["lead_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
+        ForeignKeyConstraint(["person_turn_id"], ["study_lead_turns.turn_id"], ondelete="CASCADE"),
+        Index("ix_study_lead_turn_answers_person", "person_turn_id"),
+        Index("ix_study_lead_turn_answers_scope", "study_id", "user_id"),
+    )
+
+
+@event.listens_for(StudyLeadTurnAnswerRow, "before_update")
+def _lead_answers_are_never_updated(
+    _mapper: Any, _connection: Any, row: StudyLeadTurnAnswerRow
+) -> None:
+    """What a turn was sent is a fact of that turn (ADR 0041 decision 7)."""
+    raise RuntimeError(f"lead answer {row.lead_turn_id} is immutable; append a new one")
 
 
 class ResearcherLeadRow(Base):
@@ -950,6 +997,53 @@ class ResearcherLeadRow(Base):
         Index("ix_researcher_leads_erase_after", "erase_after"),
         CheckConstraint("length(soul) <= 2000", name="researcher_lead_soul_bounded"),
         CheckConstraint("length(user_profile) <= 2000", name="researcher_lead_user_bounded"),
+    )
+
+
+class ResearcherLeadHatchRow(Base):
+    """A researcher's hatch while it waits for them (lead-identity LI1): what they wrote and,
+    once the model answered, the SOUL, USER and greeting it wrote.
+
+    ADR 0030 decision 2: nothing becomes a Lead file without a yes. A hatch is kept here, not in
+    ``researcher_leads``, until the researcher accepts it; then the Lead is made from it and the
+    row is ``accepted``. "Zadat znovu" marks it ``discarded``. At most one is ``pending`` per
+    researcher. Read and written only by ``ResearcherLeadRepository``, for the caller.
+    """
+
+    __tablename__ = "researcher_lead_hatches"
+
+    hatch_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    #: ``pending`` | ``accepted`` | ``discarded``.
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    #: The person's :class:`~aia_core.domain.lead_hatch.HatchInput`.
+    input_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False)
+    #: The model's :class:`~aia_core.domain.lead_hatch.HatchOutput`; null until it answered.
+    output_json: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
+    #: The worker run that asked the model, once there is one (LI1's request side).
+    run_id: Mapped[str | None] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id"], ["organizations.organization_id"], ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(["user_id"], ["users.user_id"], ondelete="CASCADE"),
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'discarded')", name="researcher_lead_hatch_status"
+        ),
+        Index(
+            "uq_researcher_lead_hatches_one_pending",
+            "organization_id",
+            "user_id",
+            unique=True,
+            sqlite_where=text("status = 'pending'"),
+            postgresql_where=text("status = 'pending'"),
+        ),
     )
 
 
@@ -2002,6 +2096,15 @@ class ApprovalDecisionRow(Base):
 
     decision: Mapped[str] = mapped_column(String(64), nullable=False)
     comment: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # What the person was warned of and approved past, as shown to them: the client report's
+    # checks (report-delivery RD0, warnings since 2026-10-22), each {code, where, message}. NULL
+    # where nothing is checked (every subject but a client report, and rows from before).
+    #: ``none_as_null``: ``None`` is SQL NULL, not JSON null, so "nothing checked" stays apart
+    #: from a recorded ``[]`` and the downgrade counts only rows that recorded warnings.
+    warnings: Mapped[list[dict[str, str]] | None] = mapped_column(
+        JSON(none_as_null=True).with_variant(JSONB(none_as_null=True), "postgresql"),
+        nullable=True,
+    )
     request_id: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -2163,6 +2266,16 @@ class AIUsageEventRow(Base):
         # Per-researcher spend: by person over time, and "which holds the ledger names".
         Index("ix_usage_charged_to", "organization_id", "charged_to_user_id", "occurred_at"),
         Index("ix_usage_reservation", "reservation_id"),
+        # Each activity's last answered call, for Settings (OI-75 (a)): the answered rows only,
+        # newest last per organization and agent.
+        Index(
+            "ix_usage_org_answered",
+            "organization_id",
+            "agent_id",
+            "occurred_at",
+            postgresql_where=text("outcome = 'SUCCEEDED'"),
+            sqlite_where=text("outcome = 'SUCCEEDED'"),
+        ),
     )
 
 
@@ -2995,6 +3108,10 @@ class ReportEditorVersionRow(Base):
     saved_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
     )
+    #: The latest ``lastsave`` of a save of exactly these bytes, never later than AIA's receipt of
+    #: it (RPT8f), moved on by a later save of the same bytes, so a save that changed nothing still
+    #: releases a hold. Null for koncept 1, a save that said none, and rows from before.
+    content_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     __table_args__ = (
         ForeignKeyConstraint(
@@ -3062,5 +3179,32 @@ class ReportEditorSessionRow(Base):
             unique=True,
             postgresql_where=text("closed_at IS NULL"),
             sqlite_where=text("closed_at IS NULL"),
+        ),
+    )
+
+
+class ReportEditorEditRow(Base):
+    """The newest edit start one page reported in an editing session (artifact-report RPT8f).
+
+    The page counts its edit starts from 1 and reports each; AIA keeps the highest with the time
+    it received it, by AIA's clock, so an approval is refused while an edit no stored version
+    holds is known (``domain.report.editor.unsaved_edits``). One row per session and page; it
+    goes with its session. Only ``ReportEditorRepository`` reads or writes it.
+    """
+
+    __tablename__ = "report_editor_edits"
+
+    document_key: Mapped[str] = mapped_column(String(128), primary_key=True)
+    page: Mapped[str] = mapped_column(String(64), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    client_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    study_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    user_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    seq: Mapped[int] = mapped_column(Integer, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["document_key"], ["report_editor_sessions.document_key"], ondelete="CASCADE"
         ),
     )

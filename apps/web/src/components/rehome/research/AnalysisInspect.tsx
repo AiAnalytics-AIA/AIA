@@ -10,13 +10,14 @@ import { t } from "@/i18n/t";
 import type { ResearchAnalysis } from "@/lib/api";
 import { inspectView, numberWords, type CitedNumber } from "@/lib/analysis-inspect";
 import { readAnalysisTarget } from "@/lib/artifacts/analysis";
+import { plural } from "@/lib/format";
 import { stepLabel } from "@/lib/research-execution";
 import { Icon } from "../icons";
 import type { CompiledSpecification } from "@/lib/result-reading";
 import { CodedWords } from "./CodedWords";
 import { FormattedText } from "./FormattedText";
 
-type Shown = { runId: string; analysis: ResearchAnalysis; spec: CompiledSpecification | null } | null;
+type Shown = { analysis: ResearchAnalysis; spec: CompiledSpecification | null } | null;
 
 let shown: Shown = null;
 const listeners = new Set<() => void>();
@@ -94,14 +95,14 @@ export function AnalysisInspect({ target }: { target: { kind: "module" | "findin
           : "Zjištění napsala AI analýza a neopírá se o žádné připuštěné číslo tohoto běhu; čeká na posouzení výzkumníkem."}</p>
         <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Čísla, o která se opírá</h4>
         {view.numbers.length ? <ul className="flex flex-col gap-2">{view.numbers.map((n) => <CitedLine key={n.claim.claim_id} n={n} />)}</ul> : <p className="text-ink-muted">Necituje žádné připuštěné číslo.</p>}
-        {view.unresolved.length ? <p className="text-xs text-ink-muted">Odkazuje i na čísla, která modul neuložil: {view.unresolved.map((id) => <code key={id} className="mr-1">{id}</code>)}</p> : null}
+        {view.unresolved.length ? <p className="text-xs text-ink-muted">{view.unresolved.length === 1 ? "Jeden odkaz míří na číslo, které modul neuložil." : `${plural(view.unresolved.length, "odkaz míří", "odkazy míří", "odkazů míří")} na čísla, která modul neuložil.`}</p> : null}
       </div>
     );
   }
   return (
     <div data-inspect="claim" className="flex flex-col gap-3 text-sm">
       <ul><CitedLine n={view.number} /></ul>
-      <p className="text-xs text-ink-muted">Připuštěné číslo běhu {current.runId}. Odkaz: <code>{view.number.claim.evidence_ref}</code></p>
+      <p className="text-xs text-ink-muted">Připuštěné číslo tohoto běhu.</p>
       <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Kde ho analýza cituje</h4>
       {view.citedBy.length ? (
         <ul className="flex flex-col gap-2">

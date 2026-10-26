@@ -1,0 +1,323 @@
+"""A save the Document Server sent, stored as a line's next version (artifact-report RPT8c).
+
+:func:`store_save` fetches the file the callback names (only from the editor's own origin, under
+``/cache/files/``: :func:`~aia_core.infrastructure.editor_fetch.allowed`, checked before any
+fetcher is called), checks it is a DOCX that opens, and stores it as the line's next koncept: an
+artifact depending on the version before it, with what it changed in the numbers code wrote
+beside it (RPT8b, ``saved_changes``, compared with the line's koncept 1). The same bytes are never
+a line's version twice. A save not stored is :class:`SaveNotStored` with a stable reason, which
+the session keeps for the pane to say (``last_problem``); the next stored save clears it.
+
+Its authors are the people the Document Server names, each of whom a config was signed for.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from collections.abc import Sequence
+from dataclasses import dataclass
+from datetime import datetime
+
+from sqlalchemy.orm import Session
+
+from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
+from aia_core.application.report_export import review_stamp_record
+from aia_core.application.research import research_artifacts
+from aia_core.domain.deep_research.documents import DocumentRefused
+from aia_core.domain.report.editor import (
+    CHANGES_ARTIFACT_TYPE,
+    EDIT_ARTIFACT_TYPES,
+    SeenEdit,
+    UnsavedEdits,
+    unsaved_edits,
+)
+from aia_core.domain.report.saved_changes import (
+    SavedChanges,
+    changes_payload,
+    compare,
+    read_changes_payload,
+)
+from aia_core.domain.scope import Permission, StudyContext
+from aia_core.infrastructure.artifact_repository import Artifact, ArtifactNotFound
+from aia_core.infrastructure.editor_fetch import SaveFetcher, SaveFetchRefused, allowed
+from aia_core.infrastructure.report_docx.census import census
+from aia_core.infrastructure.report_editor_repository import (
+    EditorSession,
+    EditorVersion,
+    ReportEditorRepository,
+)
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
+
+__all__ = [
+    "SaveNotStored",
+    "StoredSave",
+    "VersionNotFound",
+    "approved_versions",
+    "content_held",
+    "edited_version",
+    "edits_verdict",
+    "store_save",
+    "version_changes",
+]
+
+
+class VersionNotFound(LookupError):
+    """Not a version of one of this run's report lines."""
+
+
+class SaveNotStored(Exception):
+    """A save not stored. ``reason`` is stable: the pane says it in words."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+@dataclass(frozen=True)
+class StoredSave:
+    version: EditorVersion
+    #: False when the same bytes were already a version of the line: nothing stored again.
+    created: bool
+
+
+def store_save(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    editor_session: EditorSession,
+    *,
+    url: str,
+    origin: str,
+    fetcher: SaveFetcher,
+    authors: Sequence[str],
+    now: datetime,
+    content_at: datetime | None = None,
+) -> StoredSave:
+    """The file at ``url`` stored as ``editor_session``'s line's next version, or
+    :class:`SaveNotStored` (noted on the session, in the caller's transaction). ``content_at``:
+    the time of the last change the file holds, as the Document Server says it (``lastsave``),
+    kept with the version so the pane can tell an edit it holds from one made after (RPT8d)."""
+    scope.require(Permission.EDIT_STUDY)
+    repo = ReportEditorRepository(session, scope)
+    try:
+        stored = _store(
+            session,
+            scope,
+            store,
+            repo,
+            editor_session,
+            url,
+            origin,
+            fetcher,
+            authors,
+            now,
+            content_at,
+        )
+    except SaveNotStored as refused:
+        repo.note_problem(editor_session.document_key, now=now, problem=refused.reason)
+        raise
+    repo.note_problem(editor_session.document_key, now=now, problem=None)
+    return stored
+
+
+def _store(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    repo: ReportEditorRepository,
+    editor_session: EditorSession,
+    url: str,
+    origin: str,
+    fetcher: SaveFetcher,
+    authors: Sequence[str],
+    now: datetime,
+    content_at: datetime | None,
+) -> StoredSave:
+    if not authors or not set(authors) <= set(editor_session.users):
+        raise SaveNotStored("unknown_author")
+    if not allowed(url, origin):
+        raise SaveNotStored("not_the_editors_file")
+    try:
+        data = fetcher(url)
+    except SaveFetchRefused as exc:
+        raise SaveNotStored(exc.reason) from exc
+    try:
+        saved = census(data)
+    except DocumentRefused as exc:
+        raise SaveNotStored("save_unreadable") from exc
+    # Tried before the line is held: a pass over the package that serialises nothing.
+    stamp_record = review_stamp_record(data)
+    # One save of a line at a time: the line's composed row is held before its versions are
+    # read, so two saves never number the same koncept (the version rows alone do not stop an
+    # insert). The session is read again under it: one that closed meanwhile takes no save.
+    repo.lock_line(editor_session.line_id)
+    current = repo.session(editor_session.document_key)
+    if current is None or current.closed_at is not None:
+        raise SaveNotStored("session_closed")
+    versions = repo.versions(editor_session.line_id, for_update=True)
+    sha256 = hashlib.sha256(data).hexdigest()
+    same = next((v for v in versions if v.sha256 == sha256), None)
+    if same is not None:
+        # The newest's bytes again, saved later: it holds what this save holds too (RPT8f).
+        if same is versions[-1] and content_at is not None:
+            repo.cover(same.artifact_id, content_at)
+        return StoredSave(same, created=False)
+    first, previous = versions[0], versions[-1]
+    artifacts = research_artifacts(session, scope, store)
+    composed = artifacts.get(first.artifact_id)
+    try:
+        baseline = census(artifacts.read(first.artifact_id))
+    except (DocumentRefused, IntegrityError, ObjectNotFound):
+        baseline = None  # not comparable, and said so; the save is still kept
+    changes = compare(baseline, saved)
+    koncept = previous.koncept + 1
+    meta = {
+        "run_id": previous.run_id,
+        "report_kind": "internal",
+        "line_id": editor_session.line_id,
+        "koncept": koncept,
+        "edited_from": previous.artifact_id,
+        "authors": list(authors),
+        "review_state": "DRAFT_UNAPPROVED",
+    }
+    if previous.deep_research_run_id is not None:
+        meta["deep_research_run_id"] = previous.deep_research_run_id
+    if content_at is not None:
+        meta["content_at"] = content_at.isoformat()
+    # Whether its footers still take the review stamp, tried on the saved bytes as on every
+    # stored report (report_export.review_stamp_record): approved, its export and its PDF then
+    # say SCHVÁLENO there; where the editor changed the footers, it is served as saved and says
+    # so. Its composition's contract comes with it, so a body that states its status
+    # (report_export.STATUS_IN_BODY) is never stamped.
+    if composed.metadata.get("report_contract"):
+        meta["report_contract"] = composed.metadata["report_contract"]
+    meta.update(stamp_record)
+    version, _ = artifacts.put(
+        project_id=composed.project_id,
+        revision=composed.revision,
+        stage_type=composed.stage_type,
+        artifact_type=EDIT_ARTIFACT_TYPES[previous.variant],
+        data=data,
+        content_type=INTERNAL_REPORT_MEDIA_TYPE,
+        metadata=meta,
+        depends_on=[previous.artifact_id],
+        reuse=False,
+    )
+    changed, _ = artifacts.put_json(
+        payload=changes_payload(changes),
+        project_id=composed.project_id,
+        revision=composed.revision,
+        stage_type=composed.stage_type,
+        artifact_type=CHANGES_ARTIFACT_TYPE,
+        metadata={
+            "run_id": previous.run_id,
+            "line_id": editor_session.line_id,
+            "version_artifact_id": version.artifact_id,
+        },
+        depends_on=[version.artifact_id],
+        reuse=False,
+    )
+    added = repo.add_version(
+        artifact_id=version.artifact_id,
+        line_id=editor_session.line_id,
+        koncept=koncept,
+        run_id=previous.run_id,
+        variant=previous.variant,
+        deep_research_run_id=previous.deep_research_run_id,
+        sha256=version.sha256,
+        saved_at=now,
+        authors=authors,
+        changes_artifact_id=changed.artifact_id,
+        content_at=content_at,
+    )
+    return StoredSave(added, created=True)
+
+
+def content_held(version: EditorVersion, artifact: Artifact) -> datetime | None:
+    """The last change ``version`` (``artifact``) is known to hold (RPT8f): the latest ``lastsave``
+    of a save of its bytes, else its own save's as stored before RPT8f; ``None`` for koncept 1 and
+    a save that said none: unknown, never held."""
+    stamp = artifact.metadata.get("content_at")
+    stored = datetime.fromisoformat(stamp) if isinstance(stamp, str) else None
+    return version.content_at or stored
+
+
+def edits_verdict(
+    session: Session,
+    scope: StudyContext,
+    version: EditorVersion,
+    artifact: Artifact,
+    seen: SeenEdit | None = None,
+) -> UnsavedEdits | None:
+    """Why ``version`` does not hold every edit its line's open session reported and the one
+    the asking page saw (RPT8f), by the rule the approval refuses under; ``None`` when it does.
+    The server's verdict, which the pane's hold follows."""
+    repo = ReportEditorRepository(session, scope)
+    marks = repo.edit_marks(version.line_id, also=seen.document_key if seen else None)
+    return unsaved_edits(content_held(version, artifact), marks, seen)
+
+
+def edited_version(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, Artifact]:
+    """A version of one of ``run_id``'s lines and its artifact, or :class:`VersionNotFound`."""
+    scope.require(Permission.VIEW_RESULTS)
+    scope.require(Permission.EDIT_STUDY)  # an internal draft, as the run's report status asks
+    version = ReportEditorRepository(session, scope).version(artifact_id)
+    if version is None or version.run_id != run_id:
+        raise VersionNotFound(artifact_id)
+    try:
+        artifact = research_artifacts(session, scope, store).get(version.artifact_id)
+    except ArtifactNotFound as exc:  # its row outlived the artifact: nothing to serve
+        raise VersionNotFound(artifact_id) from exc
+    return version, artifact
+
+
+def version_changes(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, run_id: str, artifact_id: str
+) -> tuple[EditorVersion, Artifact, SavedChanges | None]:
+    """:func:`edited_version` and what it changed in the numbers code wrote, as stored beside
+    it; ``None`` for koncept 1, the composer's own, which changed nothing."""
+    version, artifact = edited_version(
+        session, scope, store, run_id=run_id, artifact_id=artifact_id
+    )
+    if version.changes_artifact_id is None:
+        return version, artifact, None
+    data = research_artifacts(session, scope, store).read(version.changes_artifact_id)
+    return version, artifact, read_changes_payload(json.loads(data))
+
+
+def approved_versions(
+    session: Session,
+    scope: StudyContext,
+    store: ArtifactStore,
+    *,
+    run_id: str,
+    variant: str,
+    deep_research_run_id: str | None = None,
+) -> list[tuple[EditorVersion, Artifact]]:
+    """The run's edited versions of ``variant`` a person approved, oldest first: what a run's
+    report status names beside its composed draft, which an approved edit leaves a draft."""
+    artifacts = research_artifacts(session, scope, store)
+    found = []
+    for version in ReportEditorRepository(session, scope).approved_edits(
+        run_id=run_id, variant=variant, deep_research_run_id=deep_research_run_id
+    ):
+        try:
+            found.append((version, artifacts.get(version.artifact_id)))
+        except ArtifactNotFound:
+            continue  # its row outlived the artifact: nothing approved to name
+    return found
+
+
+def newest_saved(
+    session: Session, scope: StudyContext, store: ArtifactStore, *, composed_id: str
+) -> tuple[EditorVersion, Artifact] | None:
+    """The newest version a person saved over the composed draft ``composed_id`` (koncept 2
+    on), with its artifact; ``None`` while none was saved. A read, any member's who reads the
+    run's report: it changes nothing and opens no line."""
+    versions = ReportEditorRepository(session, scope).versions(composed_id)
+    if not versions or versions[-1].koncept < 2:
+        return None
+    return versions[-1], research_artifacts(session, scope, store).get(versions[-1].artifact_id)

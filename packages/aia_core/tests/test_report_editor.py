@@ -131,6 +131,7 @@ def editor_world(session: Any, scoped: Any) -> Any:
     world = World()
     world.session, world.scoped, world.scope = session, scoped, scope  # type: ignore[attr-defined]
     world.compose, world.save = compose, save  # type: ignore[attr-defined]
+    world.store = store  # type: ignore[attr-defined]
     world.editor = ReportEditor(session, scope)  # type: ignore[attr-defined]
     return world
 
@@ -356,3 +357,206 @@ def test_two_first_opens_of_a_new_line_meet_in_one_session(
         .where(ReportEditorSessionRow.closed_at.is_(None))
     )
     assert open_rows == 1
+
+
+def _docx(value: str) -> bytes:
+    import io
+    import zipfile
+
+    w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    body = (
+        f'<w:document xmlns:w="{w}"><w:body><w:p><w:sdt><w:sdtPr><w:tag w:val="trust_total"/>'
+        f"</w:sdtPr><w:sdtContent><w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt></w:p>"
+        "</w:body></w:document>"
+    )
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w") as z:
+        z.writestr(zipfile.ZipInfo("word/document.xml", (2026, 10, 23, 0, 0, 0)), body)
+    return out.getvalue()
+
+
+def test_two_saves_of_one_line_at_once_take_the_next_two_koncepts(
+    editor_world: Any, engine: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two force-saves of one session arrive together. The first is held after it stored its
+    koncept, holding the line; the second must wait for it and store the next one, never number
+    the same koncept (uq_report_editor_versions_koncept, a 500).
+
+    PostgreSQL only: the guard is a row lock, which SQLite does not take."""
+    import threading
+    import time
+
+    from aia_core.application.report_editor_saves import store_save
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    origin = "https://docs.aia.example.test"
+    files = {f"{origin}/cache/files/{n}.docx": _docx(f"{n} %") for n in (50, 60)}
+    composed = editor_world.compose(data=_docx("42 %"))
+    opened = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0)
+    editor_world.session.commit()
+    first_in, first_go = threading.Event(), threading.Event()
+    real = ReportEditorRepository.add_version
+
+    def held(self: ReportEditorRepository, **kw: Any) -> Any:
+        added = real(self, **kw)
+        if not first_in.is_set():
+            first_in.set()
+            assert first_go.wait(30)
+        return added
+
+    monkeypatch.setattr(ReportEditorRepository, "add_version", held)
+    factory = create_session_factory(engine)
+    koncepts: list[int] = []
+    errors: list[BaseException] = []
+
+    def save(url: str) -> None:
+        try:
+            with factory() as own:
+                scope = editor_world.scoped.scope()
+                stored = store_save(
+                    own,
+                    scope,
+                    editor_world.store,
+                    opened.session,
+                    url=url,
+                    origin=origin,
+                    fetcher=files.__getitem__,
+                    authors=[scope.actor_id],
+                    now=T0,
+                )
+                own.commit()
+                koncepts.append(stored.version.koncept)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    one, two = list(files)
+    a = threading.Thread(target=save, args=(one,))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=save, args=(two,))
+    b.start()
+    time.sleep(1.0)  # room for the second to race ahead if nothing held it
+    first_go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert sorted(koncepts) == [2, 3]
+
+
+def test_approved_edits_are_read_from_the_approved_rows_alone(editor_world: Any) -> None:
+    """Whatever the length of a line's history, the run's approved edits are one query over
+    the approved rows: unapproved autosaves are never read one by one."""
+    composed = editor_world.compose()
+    line = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0).line_id
+    saved = [
+        editor_world.save(line, n, f"save {n}".encode(), T0 + timedelta(minutes=n))
+        for n in range(2, 7)
+    ]
+    repo = ReportEditorRepository(editor_world.session, editor_world.scope)
+    assert repo.approved_edits(run_id="RUN-1", variant="internal", deep_research_run_id=None) == []
+    artifacts = research_artifacts(editor_world.session, editor_world.scope, editor_world.store)
+    artifacts.approve(saved[2])
+    found = repo.approved_edits(run_id="RUN-1", variant="internal", deep_research_run_id=None)
+    assert [v.artifact_id for v in found] == [saved[2]]
+    assert repo.approved_edits(run_id="RUN-1", variant="context", deep_research_run_id=None) == []
+
+
+def test_an_edit_is_held_only_by_a_save_no_earlier_than_its_report() -> None:
+    from aia_core.domain.report.editor import EditMark, SeenEdit, UnsavedEdits, unsaved_edits
+
+    mark = EditMark("K.1", "page-0123456789", 3, T0)
+    seen = SeenEdit("K.1", "page-0123456789", 3)
+    assert unsaved_edits(T0, [mark], seen) is None
+    assert unsaved_edits(T0 - timedelta(milliseconds=1), [mark], seen) is UnsavedEdits.NOT_SAVED
+    # Koncept 1, or a save that named no time: unknown, never held.
+    assert unsaved_edits(None, [mark], seen) is UnsavedEdits.NOT_SAVED
+    assert unsaved_edits(None, [], None) is None
+    # The page's own edit 4 has not arrived; another page's or another session's is not its.
+    assert unsaved_edits(T0, [mark], SeenEdit("K.1", "page-0123456789", 4)) is (
+        UnsavedEdits.NOT_RECEIVED
+    )
+    assert unsaved_edits(T0, [mark], SeenEdit("K.1", "page-other-0000", 1)) is (
+        UnsavedEdits.NOT_RECEIVED
+    )
+    assert unsaved_edits(T0, [mark], SeenEdit("K.2", "page-0123456789", 1)) is (
+        UnsavedEdits.NOT_RECEIVED
+    )
+    # A co-editor's edit no save holds keeps the approval waiting too.
+    other = EditMark("K.1", "page-other-0000", 1, T0 + timedelta(seconds=1))
+    assert unsaved_edits(T0, [mark, other], seen) is UnsavedEdits.NOT_SAVED
+
+
+def test_an_edit_reported_while_an_approval_checks_the_line_is_never_missed(
+    editor_world: Any, engine: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An edit report and an approval of the line's newest version arrive together. The report is
+    held after it flushed its mark, inside its transaction; the approval's check must wait for it
+    (the line's lock, taken by both) and then see the mark, never pass on the marks committed
+    before it (RPT8f, Codex on #880).
+
+    PostgreSQL only: the guard is a row lock, which SQLite does not take."""
+    import threading
+    import time
+
+    from aia_core.application.report_approval import ReportEditsUnsaved, _check_line
+    from aia_core.domain.report.editor import UnsavedEdits
+    from aia_core.infrastructure.db import create_session_factory
+
+    if engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    composed = editor_world.compose()
+    opened = editor_world.editor.open(composed, run_id="RUN-1", variant="internal", now=T0)
+    editor_world.session.commit()
+    key = opened.session.document_key
+    first_in, first_go = threading.Event(), threading.Event()
+    real = ReportEditorRepository.record_edit
+
+    def held(self: ReportEditorRepository, *args: Any, **kw: Any) -> Any:
+        done = real(self, *args, **kw)
+        first_in.set()
+        assert first_go.wait(30)
+        return done
+
+    monkeypatch.setattr(ReportEditorRepository, "record_edit", held)
+    factory = create_session_factory(engine)
+    outcome: list[object] = []
+    errors: list[BaseException] = []
+
+    def report() -> None:
+        try:
+            with factory() as own:
+                ReportEditor(own, editor_world.scoped.scope()).record_edit(
+                    key, run_id="RUN-1", page="page-0123456789", seq=1, now=T0
+                )
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    def approve() -> None:
+        try:
+            with factory() as own:
+                scope = editor_world.scoped.scope()
+                artifact = research_artifacts(own, scope, editor_world.store).get(
+                    composed.artifact_id
+                )
+                try:
+                    _check_line(own, scope, artifact, None, newest=True)
+                    outcome.append("approved")
+                except ReportEditsUnsaved as refused:
+                    outcome.append(refused.reason)
+        except BaseException as exc:
+            errors.append(exc)
+
+    a = threading.Thread(target=report)
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=approve)
+    b.start()
+    time.sleep(1.0)  # room for the approval to race ahead if nothing held it
+    first_go.set()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert outcome == [UnsavedEdits.NOT_SAVED]

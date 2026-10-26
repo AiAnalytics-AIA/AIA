@@ -14,7 +14,11 @@ from aia_core.domain.report.document_model import (
     document_bytes,
 )
 from aia_core.domain.report.model import ReportDocument
-from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository
+from aia_core.infrastructure.artifact_repository import (
+    Artifact,
+    ArtifactRepository,
+    ArtifactStatus,
+)
 
 
 def beside(model: Artifact, docx: Artifact) -> bool:
@@ -23,6 +27,24 @@ def beside(model: Artifact, docx: Artifact) -> bool:
         model.metadata.get("docx_artifact_id") == docx.artifact_id
         and model.metadata.get("docx_sha256") == docx.sha256
     )
+
+
+def document_of(
+    artifacts: ArtifactRepository, docx: Artifact, artifact_type: str
+) -> Artifact | None:
+    """The newest valid document model of ``artifact_type`` stored beside exactly ``docx``;
+    ``None`` for a version stored before its document was. Composes nothing."""
+    models = [
+        a
+        for a in artifacts.list_for_stage(
+            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
+        )
+        if a.artifact_type == artifact_type
+        and a.content_type == DOCUMENT_MODEL_MEDIA_TYPE
+        and a.status is ArtifactStatus.VALID
+        and beside(a, docx)
+    ]
+    return models[-1] if models else None
 
 
 def store_document_beside(

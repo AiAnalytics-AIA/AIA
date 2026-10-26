@@ -11,7 +11,7 @@ chunks:
   - "[x] 7. Taste segments: the mixture on slopes, the shuffle guard, the step-down, profiles, colour only for clearly placed respondents, borderline segments"
   - "[x] 8. aia-sociomap-5 the only method of new runs: the code's default pins -5 by its own name, -1 to -4 leave every product path (run pins, Metodika presets and in-force, the web, the report), Metodika's in force is -5 (D-13); as built under the owner's decisions of 2026-10-21 (§ Chunk 8 as built)"
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
-  - "[ ] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4)"
+  - "[x] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4) (#823, merged 2026-10-23)"
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
@@ -323,3 +323,7 @@ place in the chapter, drawn from #517's renderer.
   numba cache path, a deployment detail, is not recorded.
 - **Client reports show the `-5` respondent map** beside its two object-map views.
 - **"Klienti"** is the team's own client handling.
+
+## Chunk 10 ticked (2026-10-26, docs PR)
+
+Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backends' SB1: the Metodik mark (`PUT /members/{user_id}/methodologist`, `apps/api/src/aia_api/routers/scope.py:806-821 @ 40b16d58`), and `MethodologyRepository` requiring it before any methodology change (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:233-237 @ 40b16d58`, `require_methodologist`). The Settings gap map recorded the drift (SOSM#10 open although SB1 shipped).

@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from types import MappingProxyType
+from typing import Any, Final
 
 from aia_core.application.analysis_results import RunAnalysis
 from aia_core.application.report_design import scale_wording
@@ -42,7 +44,16 @@ from aia_core.domain.report.model import (
     TextCell,
     text,
 )
+from aia_core.domain.report.table_export import (
+    QUESTION_SECTION,
+    QUESTION_TABLE_ANCHOR,
+    WIDTHS,
+    question_rows,
+    to_csv,
+)
 from aia_core.domain.research_design import ResearchSpecification
+from aia_core.infrastructure.xlsx_writer import MEDIA_TYPE as XLSX_MEDIA_TYPE
+from aia_core.infrastructure.xlsx_writer import workbook
 
 #: The suffixes ``native_evidence`` gives a question's rows, in the order a table prints them
 #: (the estimates, then the counts behind them), and how a table names a row that was
@@ -203,7 +214,7 @@ def question_tables(
             rows.append(TableRow((TextCell(_label(ref, qid, detail)), NumberCell(ref, True))))
         blocks.append(
             Table(
-                id=f"tab-question-{index}",
+                id=f"{QUESTION_TABLE_ANCHOR}{index}",
                 title=item.text,
                 columns=(
                     Column("Ukazatel", width_weight=3),
@@ -225,5 +236,26 @@ def question_tables(
                 ),
             )
         )
-    section = Section("Výsledky jednotlivých otázek", tuple(blocks), id="ch-questions")
+    section = Section("Výsledky jednotlivých otázek", tuple(blocks), id=QUESTION_SECTION)
     return QuestionTables((section,), tuple(claims), tuple(refused))
+
+
+#: The media type of each export format (report-delivery RD12).
+EXPORT_MEDIA_TYPES: Final[Mapping[str, str]] = MappingProxyType(
+    {"csv": "text/csv; charset=utf-8", "xlsx": XLSX_MEDIA_TYPE}
+)
+
+
+def export_question_tables(document: Mapping[str, Any], file_format: str) -> bytes | None:
+    """The per-question tables of a stored report document as a ``csv`` or ``xlsx`` file
+    (report-delivery RD12, D-41): every cell a number the report admitted for its surface,
+    printed as the report prints it (``domain/report/table_export.py``). ``None`` when the
+    document has no question table."""
+    rows = question_rows(document)
+    if len(rows) == 1:
+        return None
+    if file_format == "csv":
+        return to_csv(rows)
+    if file_format == "xlsx":
+        return workbook([("Tabulky", rows, WIDTHS)])
+    raise ValueError(f"no export format {file_format!r}")

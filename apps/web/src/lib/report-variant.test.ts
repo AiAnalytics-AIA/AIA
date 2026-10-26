@@ -5,10 +5,12 @@ import {
   currentVariant,
   czechDate,
   downloadMismatch,
+  fileLine,
   literatureState,
   pdfAskable,
   pdfStatesReview,
   pdfWhy,
+  reviewLabel,
   reviewLine,
   reviewsFor,
   variantPdfAskable,
@@ -189,16 +191,43 @@ describe("report variant (research-integrity-report 3)", () => {
   });
 });
 
-describe("approvalQuestion (B22)", () => {
-  it("names the document, its variant, the stored version and its format", () => {
-    expect(approvalQuestion("client", "ART-0000000000000001")).toBe(
-      "Schválit klientskou zprávu, uloženou verzi ART-0000000000000001 (DOCX)? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+describe("reviewLabel (RPT12)", () => {
+  it("tells two reviews of one run apart by title, else start time, else place, never by run id", () => {
+    const sameDay = [
+      { title: null, created_at: "2026-10-26T08:00:00Z" },
+      { title: null, created_at: "2026-10-26T09:30:00Z" },
+    ];
+    const labels = sameDay.map(reviewLabel);
+    expect(new Set(labels).size).toBe(2);
+    expect(labels[0]).toBe(new Date("2026-10-26T08:00:00Z").toLocaleString("cs-CZ"));
+    expect(reviewLabel({ title: "Výsledek otázky q1", created_at: "2026-10-26T08:00:00Z" }, 0)).toBe("Výsledek otázky q1");
+    expect([{ title: null, created_at: null }, { title: null, created_at: "nevím" }].map(reviewLabel)).toEqual(["1.", "2."]);
+  });
+});
+
+describe("approvalQuestion (B22, RPT3d)", () => {
+  it("names the document, when its version was stored and its format, never an id", () => {
+    expect(approvalQuestion("Klientská zpráva", { storedAt: "2026-10-21T13:12:00+00:00", modelled: true })).toBe(
+      "Schvalujete tuto verzi: Klientská zpráva, vytvořenou 21. 10. 2026 15:12 (DOCX). Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi. " +
+        "Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit. Čísla jsou modelovaná; zpráva to u každého uvádí.",
     );
-    expect(approvalQuestion("internal", "ART-a", { pdf: true })).toContain("interní zprávu, uloženou verzi ART-a (DOCX i jeho PDF)?");
-    expect(approvalQuestion("with_review", "ART-b", { review: "DR-7" })).toContain("interní zprávu s rešerší DR-7, uloženou verzi ART-b (DOCX)?");
+    expect(approvalQuestion("Interní zpráva", { pdf: true, storedAt: "2026-10-21T13:12:00Z" })).toContain("Interní zpráva, vytvořenou 21. 10. 2026 15:12 (DOCX i jeho PDF).");
+    expect(approvalQuestion("Interní zpráva")).not.toMatch(/modelovaná/);
+  });
+
+  it("says what a stamped draft's file carries without its id, and nothing for an unstamped or approved one (D2)", () => {
+    const draft = { version: "ART-1", reviewState: "DRAFT_UNAPPROVED", approvedOn: null, stamped: true };
+    expect(fileLine(draft, true)).toBe("Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.");
+    expect(fileLine(draft, false)).toContain("ponese DOCX této verze");
+    expect(fileLine({ ...draft, stamped: false }, true)).toBeNull();
+    expect(fileLine({ ...draft, reviewState: "APPROVED_INTERNAL", approvedOn: "2026-10-08" }, true)).toBeNull();
+  });
+
+  it("leaves out a time the server did not give, never guessing one", () => {
+    expect(approvalQuestion("Interní zpráva", { storedAt: null })).toMatch(/^Schvalujete tuto verzi: Interní zpráva \(DOCX\)\./);
   });
 
   it("promises nothing about the file: that is the card's own line (was: \"stažený soubor ponese schválení\" always)", () => {
-    expect(approvalQuestion("internal", "ART-a")).not.toMatch(/ponese/);
+    expect(approvalQuestion("Interní zpráva")).not.toMatch(/ponese/);
   });
 });

@@ -9,6 +9,11 @@ decides what the AI produced), [ADR 0024](0024-panel-grounded-respondents-are-mo
 **Changes** the closed set of data origins (decision 1) and the claims a report may print (decision 6).
 **Leaves unchanged** the AI respondents' origins, the Sociomap register, the methodology in force and
 every existing run.
+**Owner decision, 2026-10-25** (ADR-HELD (a), the audit page, relayed by coordinator 3): accept once its methodology answer is
+written in; the owner asked for the same review document as for ADRs 0020 to 0024 (its questions,
+how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
+unchanged until the methodology answer is written in and he accepts it.
+
 **Date:** 2026-10-19. **Amended 2026-10-20** with the product owner's MVPQ-05 answer (decisions 3, 6 and
 Q3; `mvp-owner-decisions.md`) and the support question the cross-check found (Q4, master plan G51).
 

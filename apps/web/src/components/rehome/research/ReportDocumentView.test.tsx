@@ -21,7 +21,7 @@ import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
 
@@ -45,11 +45,13 @@ beforeEach(() => {
   // No literature review by default: the pane offers the reports a run has.
   vi.mocked(deepResearch.runs).mockResolvedValue([]);
   vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-docx", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+  // The report editor off (AIA_ONLYOFFICE_URL unset, the default): the read-only draft is the pane.
+  vi.mocked(research.openReportEditor).mockRejectedValue(new ApiError(404, "not_found", "No such resource.", null));
 });
 
 afterEach(() => {
   cleanup();
-  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report,
+  for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report, research.openReportEditor,
     deepResearch.runs, deepResearch.contextReport, deepResearch.contextReportDocument, deepResearch.prepareContextReport]) vi.mocked(f).mockReset();
 });
 
@@ -127,24 +129,31 @@ describe("the stored draft in the pane", () => {
     expect(within(container).queryByRole("complementary")).toBeNull();
   });
 
-  it("lets every source, id and hash line break anywhere, so a SHA-256 never widens a phone's page", async () => {
+  it("lets every source line break anywhere, so a SHA-256 never widens a phone's page", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     const sources = [...container.querySelectorAll("p")].filter((p) => p.textContent?.startsWith("Zdroj:"));
     expect(sources.length).toBeGreaterThan(0);
     for (const p of sources) expect(p.className).toContain("[overflow-wrap:anywhere]");
-    const id = [...container.querySelectorAll("[data-report-docbar] span")].find((s) => s.textContent?.includes("ART-docx"));
-    expect(id?.className).toContain("[overflow-wrap:anywhere]");
   });
 
-  it("names the DOCX it is beside and that draft's review", async () => {
+  it("names the DOCX it is beside and that draft's review, the review in words", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     const bar = container.querySelector("[data-report-docbar]")!;
     expect(bar.textContent).toContain("neschváleno");
-    expect(bar.textContent).toContain("ART-docx");
+    expect(bar.getAttribute("data-report-version")).toBe("ART-docx");
+  });
+
+  it("shows no run id, artifact id or review code anywhere on the stage (RPT12)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22" });
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    const text = container.textContent ?? "";
+    for (const id of ["RUN-", "ART-", "APPROVED_INTERNAL", "DRAFT_UNAPPROVED"]) expect(text).not.toContain(id);
+    expect(container.querySelector("[data-report-foot]")!.textContent).toContain("interně schváleno");
   });
 });
 
@@ -199,14 +208,14 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
       { node_key: "report", kind: "research_report", status: "SUCCEEDED", artifact_id: "ART-docx" },
     ],
   } as unknown as ResearchRun;
-  const CLIENT: StoredReportDocument = { ...STORED, report_artifact_id: "ART-client", document: { ...DOC, meta: { ...DOC.meta, kind: "client" } } };
+  const CLIENT: StoredReportDocument = { ...STORED, report_artifact_id: "ART-client", stored_at: "2026-10-21T13:12:00Z", document: { ...DOC, meta: { ...DOC.meta, kind: "client" } } };
   const APPROVE = "Schválit k předání klientovi";
   const bar = (c: HTMLElement) => c.querySelector("[data-report-docbar]") as HTMLElement;
   const openClient = async (frame = TEST_FRAME) => {
     const view = render(<StudyFrameProvider frame={frame}><ReportDocumentView run={modelled} /></StudyFrameProvider>);
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
-    await waitFor(() => expect(bar(view.container).textContent).toContain("ART-client"));
+    await waitFor(() => expect(bar(view.container).getAttribute("data-report-version")).toBe("ART-client"));
     return view.container;
   };
 
@@ -219,7 +228,11 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     const article = container.querySelector("article");
     fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
     const dialog = container.querySelector("dialog[open]") as HTMLElement;
-    expect(dialog.textContent).toContain("klientskou zprávu, uloženou verzi ART-client");
+    // By name and when it was stored, never its id; the numbers said modelled (RPT3d, spec Z4).
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Klientská zpráva, vytvořenou 21. 10. 2026 15:12 (DOCX).");
+    expect(dialog.textContent).toContain("stáhnete přesně tuto verzi");
+    expect(dialog.textContent).toContain("Čísla jsou modelovaná");
+    expect(dialog.textContent).not.toContain("ART-");
     expect(dialog.textContent).toContain("„KONCEPT — NESCHVÁLENO“");
     // Zrušit approves nothing.
     fireEvent.click(within(dialog).getByRole("button", { name: "Zrušit" }));
@@ -241,10 +254,47 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(research.clientReportDocument).toHaveBeenCalledTimes(1);
   });
 
+  it("names the client checks' warnings in the question and approves past them (RD0, warnings since 2026-10-22)", async () => {
+    vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+    const warnings = [{ code: "drill_down_content", where: "ch-summary.2", message: "doslovná odpověď jednoho respondenta" }];
+    vi.mocked(research.clientReportDocument).mockResolvedValue({ ...CLIENT, warnings });
+    vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-client", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: true, approval: null } as never);
+    const container = await openClient();
+    fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain("Upozornění (1): doslovná odpověď jednoho respondenta (oddíl „Shrnutí pro vedení“). Schválením je berete na vědomí");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-client"));
+  });
+
+  it("marks a sentence that compares with no number where it stands, names it in the question and approves past it (RD7)", async () => {
+    const sentence = "Nejvíc důvěřují lidé v Praze, nejméně v Ostravě; rozdíl je dost velký na to, aby rozhodl o tom, kde začít.";
+    const elsewhere = "Věta, kterou žádný úsek textu neobsahuje celou.";
+    const mark = (where: string, text: string, n: number) => ({ code: "unsupported_comparison", where, message: `srovnání bez doloženého čísla: „${text}“`, sentence: n, text });
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, warnings: [mark("ch-summary.1", sentence, 1), mark("ch-confidence.1", elsewhere, 0)] });
+    vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-docx", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-24", stamped: false, approval: null } as never);
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    // In place, inside its paragraph, every other word of it kept and unmarked.
+    const marked = container.querySelector('[data-aia="report:ch-summary.1"] mark[data-sentence-mark]') as HTMLElement;
+    expect(marked.textContent).toBe(`${sentence} (srovnání bez doloženého čísla)`);
+    expect(container.querySelector('[data-aia="report:ch-summary.1"] p')?.textContent).toContain("Bankám v Česku důvěřuje");
+    // One no inline holds whole is named under its block, never dropped.
+    const under = container.querySelector('[data-aia="report:ch-confidence.1"] p[data-sentence-mark]');
+    expect(under?.textContent).toBe(`Upozornění: srovnání bez doloženého čísla: „${elsewhere}“`);
+    expect(container.querySelectorAll("[data-sentence-mark]")).toHaveLength(2);
+    fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
+    await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
+    const dialog = container.querySelector("dialog[open]") as HTMLElement;
+    expect(dialog.textContent).toContain(`Upozornění (2): srovnání bez doloženého čísla: „${sentence}“ (oddíl „`);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
+    await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-docx"));
+  });
+
   it("says a refusal in words over the version refused only, and tells the card nothing", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue(STORED);
     vi.mocked(research.clientReportDocument).mockResolvedValue(CLIENT);
-    vi.mocked(research.approveReport).mockRejectedValue(new ApiError(409, "client_gate_refused", "Zprávu nelze schválit.", null));
+    vi.mocked(research.approveReport).mockRejectedValue(new ApiError(409, "report_not_approvable", "Zprávu nelze schválit.", null));
     const container = await openClient();
     fireEvent.click(within(bar(container)).getByRole("button", { name: APPROVE }));
     fireEvent.click(within(container.querySelector("dialog[open]") as HTMLElement).getByRole("button", { name: "Schválit" }));
@@ -252,7 +302,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(heard).toHaveLength(0);
     // The internal draft was not refused: its page says nothing of it.
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-docx"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-docx"));
     expect(screen.queryByRole("alert")).toBeNull();
   });
 
@@ -284,8 +334,8 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
   it("approves the internal draft it shows, naming the PDF the approval renders as the run states it at the ask, and says a producer's refusal in words", async () => {
     vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, stamped: true });
     vi.mocked(research.report)
-      .mockResolvedValueOnce({ artifact_id: "ART-docx", stamped: true, pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never)
-      .mockResolvedValue({ artifact_id: "ART-docx", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
+      .mockResolvedValueOnce({ artifact_id: "ART-docx", stored_at: "2026-10-21T13:12:00Z", stamped: true, pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never)
+      .mockResolvedValue({ artifact_id: "ART-docx", stored_at: "2026-10-21T13:12:00Z", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
     vi.mocked(research.approveReport)
       .mockRejectedValueOnce(new ApiError(403, "separation_of_duties", "independent review required", null))
       .mockResolvedValue({ artifact_id: "ART-docx", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22", stamped: true, approval: null } as never);
@@ -300,13 +350,14 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
       return container.querySelector("dialog[open]") as HTMLElement;
     };
     let dialog = await ask();
-    expect(dialog.textContent).toContain("interní zprávu, uloženou verzi ART-docx (DOCX)");
+    expect(dialog.textContent).toContain("Interní zpráva, vytvořenou 21. 10. 2026 15:12 (DOCX).");
+    expect(dialog.textContent).not.toContain("modelovaná");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
     expect(await screen.findByText(t("research.exec.results.reportApproveIndependent"))).toBeTruthy();
     expect(heard).toHaveLength(0);
     // The PDF became part of the approval meanwhile: the next question says so, read again.
     dialog = await ask();
-    expect(dialog.textContent).toContain("interní zprávu, uloženou verzi ART-docx (DOCX i jeho PDF)");
+    expect(dialog.textContent).toContain("Interní zpráva, vytvořenou 21. 10. 2026 15:12 (DOCX i jeho PDF).");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
     await waitFor(() => expect(heard).toHaveLength(1));
     expect(heard[0]).toMatchObject({ runId: "RUN-1", kind: "internal", artifactId: "ART-docx" });
@@ -339,7 +390,8 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Schválit pro interní použití" }));
     await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
     const dialog = container.querySelector("dialog[open]") as HTMLElement;
-    expect(dialog.textContent).toContain("uloženou verzi ART-old (DOCX i jeho PDF)");
+    // The status gave no time: none is said, never guessed.
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Interní zpráva (DOCX i jeho PDF).");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit" }));
     await waitFor(() => expect(heard).toHaveLength(1));
     expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-old");
@@ -362,6 +414,31 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(heard[0]).toMatchObject({ kind: "internal", artifactId: "ART-docx", reviewState: "APPROVED_INTERNAL" });
   });
 
+  it("offers no approval of a draft a version saved in the editor stands over, when the editor cannot show it", async () => {
+    // The PM's walk: the Document Server fails, the draft is shown, koncept 4 is approved.
+    vi.mocked(research.openReportEditor).mockRejectedValue(new ApiError(503, "unavailable", "Služba nedostupná.", null));
+    const line = { artifact_id: "ART-k4", koncept: 4, review_state: "APPROVED_INTERNAL" as const, approved_on: "2026-10-24", stamped: true };
+    vi.mocked(research.reportDocument).mockResolvedValue({ ...STORED, edited_line: line });
+    const { container } = show();
+    await screen.findByRole("article", { name: "Koncept zprávy" });
+    expect(within(bar(container)).queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
+    const said = container.querySelector("[data-report-edited-line]") as HTMLElement;
+    expect(said.textContent).toBe("Nad tímto konceptem je v editoru uložen koncept 4 (interně schválen); schvaluje se v editoru, tento koncept už ne.");
+  });
+
+  it("refuses at the ask a draft it cannot show once the run's status names a version saved over it", async () => {
+    vi.mocked(research.reportDocument).mockRejectedValue(new ApiError(409, "report_document_not_stored", "", null));
+    vi.mocked(research.report).mockResolvedValue({
+      artifact_id: "ART-old", pdf: { state: "READY" }, approval_renders_pdf: true,
+      edited_line: { artifact_id: "ART-k2", koncept: 2, review_state: "DRAFT_UNAPPROVED" },
+    } as never);
+    const { container } = show();
+    fireEvent.click(await screen.findByRole("button", { name: "Schválit pro interní použití" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("koncept 2 (neschválen)");
+    expect(container.querySelector("dialog[open]")).toBeNull();
+    expect(research.approveReport).not.toHaveBeenCalled();
+  });
+
   it("still offers the internal draft's approval when its document could not be read", async () => {
     vi.mocked(research.reportDocument).mockRejectedValue(new ApiError(503, "unavailable", "Služba nedostupná.", null));
     show();
@@ -378,20 +455,21 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
       .mockRejectedValueOnce(new ApiError(409, "context_report_not_prepared", "", null))
       .mockResolvedValue(WITH);
     vi.mocked(deepResearch.prepareContextReport).mockResolvedValue({} as never);
-    vi.mocked(deepResearch.contextReport).mockResolvedValue({ artifact_id: "ART-context", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
+    vi.mocked(deepResearch.contextReport).mockResolvedValue({ artifact_id: "ART-context", stored_at: "2026-10-21T13:12:00Z", stamped: true, pdf: { state: "READY" }, approval_renders_pdf: true } as never);
     vi.mocked(research.approveReport).mockResolvedValue({ artifact_id: "ART-context", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-22", stamped: true, approval: null } as never);
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     // A completed review only: one report with literature offered, named plainly.
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
     fireEvent.click(await screen.findByRole("button", { name: "Připravit zprávu s rešerší" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-context"));
     expect(deepResearch.prepareContextReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "RUN-deep");
     expect(bar(container).textContent).toContain("Zpráva s rešerší");
     fireEvent.click(within(bar(container)).getByRole("button", { name: "Schválit pro interní použití" }));
     await waitFor(() => expect(container.querySelector("dialog[open]")).not.toBeNull());
     const dialog = container.querySelector("dialog[open]") as HTMLElement;
-    expect(dialog.textContent).toContain("interní zprávu s rešerší RUN-deep, uloženou verzi ART-context (DOCX i jeho PDF)");
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Zpráva s rešerší · Fiktivní rešerše, vytvořenou 21. 10. 2026 15:12 (DOCX i jeho PDF).");
+    expect(dialog.textContent).not.toContain("RUN-deep");
     expect(deepResearch.contextReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "RUN-deep");
     // The safe choice holds the focus (B22); Esc answers the dialog alone, nothing beneath it sees
     // it (I7, D21); Zrušit approves nothing.
@@ -473,11 +551,11 @@ describe("the client report, read here before it is approved (RD3)", () => {
     expect(research.prepareClientReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1");
     const bar = container.querySelector("[data-report-docbar]")!;
     expect(bar.textContent).toContain("Klientská zpráva");
-    expect(bar.textContent).toContain("ART-client");
+    expect(bar.getAttribute("data-report-version")).toBe("ART-client");
     // One article on the page: the Lead's report: ids name one document.
     expect(container.querySelectorAll("article")).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx"));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")!.getAttribute("data-report-version")).toBe("ART-docx"));
   });
 
   it("drops a preparation that answers after the person switched back, and closes an open claim on a switch", async () => {
@@ -493,10 +571,10 @@ describe("the client report, read here before it is approved (RD3)", () => {
     expect(container.querySelector("[data-item-inspector]")).toBeNull();
     fireEvent.click(await screen.findByRole("button", { name: "Připravit klientskou zprávu" }));
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
-    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.textContent).toContain("ART-docx"));
+    await waitFor(() => expect(container.querySelector("[data-report-docbar]")?.getAttribute("data-report-version")).toBe("ART-docx"));
     answer(CLIENT);
     await new Promise((r) => setTimeout(r, 0));
-    expect(container.querySelector("[data-report-docbar]")!.textContent).toContain("ART-docx");
+    expect(container.querySelector("[data-report-docbar]")!.getAttribute("data-report-version")).toBe("ART-docx");
     expect(container.querySelector("[data-report-document]")!.getAttribute("data-report-document")).toBe("ready");
   });
 
@@ -510,7 +588,7 @@ describe("the client report, read here before it is approved (RD3)", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
     expect(inspector.closeWhere).toHaveBeenCalledWith("report:ref:internal:");
-    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.textContent).toContain("ART-client"));
+    await waitFor(() => expect(document.querySelector("[data-report-docbar]")?.getAttribute("data-report-version")).toBe("ART-client"));
     fireEvent.click(screen.getByRole("button", { name: "Interní zpráva" }));
     expect(inspector.closeWhere).toHaveBeenLastCalledWith("report:ref:client:");
     // The document already shown closes nothing.

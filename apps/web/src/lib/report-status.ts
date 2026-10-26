@@ -52,6 +52,9 @@ export function holdingWords(modules: readonly string[]): string {
 }
 
 export function approvalRefusal(e: unknown): string {
+  if (e instanceof ApiError && e.code === "report_version_stale" && typeof e.details.koncept === "number") {
+    return `Editor mezitím uložil koncept ${e.details.koncept}; zkontrolujte jeho změny a schvalte znovu.`;
+  }
   if (e instanceof ApiError && e.code === "separation_of_duties") return t("research.exec.results.reportApproveIndependent");
   if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "fingerprint_mismatch") return t("research.exec.results.analysisStale");
   if (e instanceof ApiError && e.code === "context_report_refused" && e.details.reason === "analysis_holds_report" && Array.isArray(e.details.modules)) {

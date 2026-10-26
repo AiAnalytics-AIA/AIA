@@ -6,7 +6,13 @@ chunks:
   - "[x] 3. The docs gate in the API: a docs-only session cookie on docs.<hostname> from a one-time ticket, refused without it"
   - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
   - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
+  - "[x] 4b. Before activation, in a PR: api.js under a fixed cache tag, so the integrity Zpráva loads it under (RPT8e) holds after every restart; the smoke compares the running file with it"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
+  - "[ ] 5. The AIA editor theme, its icons and their generator in the repository, with a token drift check; the icons wait on legal (OQ13) and the editor goes live with ONLYOFFICE's own icons until then (spec szz T1; W3)"
+  - "[ ] 6. The theme and icons mounted read-only; api.js's SRI unchanged (spec szz T2; W3, the icons after OQ13)"
+  - "[ ] 7. The brand fonts installed on the editor server, required, no longer optional (spec szz T3; W3)"
+  - "[ ] 8. The docs gate seeds the theme in localStorage (/__aia/theme) (spec szz T4; W3)"
+  - "[ ] 9. NOTICE names the mounts, and the AGPL §13 source offer for the redrawn sprites (spec szz T6; W3, blocked on legal OQ13)"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
 
@@ -255,6 +261,8 @@ in the Document Server could plant `aia_session; Domain=<hostname>; Path=/app`, 
 ahead of the host-only cookie. That is a login CSRF, and a lockout `DELETE /session` cannot clear, since it
 deletes only the host-only cookie (review of #785, 2026-10-22). Nothing is served while the editor is off,
 so this PR does not wait on it; activation does.
+
+*The owner, 2026-10-25 (RD-EDITOR-ACTIVATION (a), the audit page, relayed by coordinator 3): go once OI-200's cookie fix is merged.*
 
 Each step needs the owner's word and the coordinator's approval:
 
@@ -580,7 +588,10 @@ aws ssm put-parameter --region eu-central-1 --name /aia/develop/aia_onlyoffice_e
   - `AIA_ONLYOFFICE_URL` and `AIA_ONLYOFFICE_JWT_SECRET` (`apps/api/src/aia_api/config.py`; both set,
     or the docs routes stay 404);
   - `AIA_ONLYOFFICE_ENABLED` (`bin/deploy.sh`).
-- Any key RPT8 adds is named in its PR and added here.
+- Any key RPT8 adds is named in its PR and added here. RPT8e (#895) added
+  `AIA_ONLYOFFICE_API_INTEGRITY`. Chunk 4b versions its value in `deploy/develop/docker-compose.yml`
+  beside the cache tag (for 9.4.0.1, `sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G`),
+  so no SSM write is needed; SSM `aia_onlyoffice_api_integrity` would override it.
 - Caddy's route needs no change: the `docs.` site has been deployed since #785, `tools/caddy_routes.py`
   checks it in CI, and the smoke's "running the deployed Caddyfile" row confirms it on the host.
 - Then deploy: the next merge to `develop`, or "Deploy develop" dispatched for the head SHA.
@@ -689,3 +700,63 @@ the same request then logged `"/__aia/session?next=%2Fx"` in both its access and
     they exist.
   - **Test that would have caught it:** that CI step. It runs the real bundle step, in Actions' shell
     and with S3 stubbed, on `013f2e11` and on the current tree.
+
+- **F3. The editor's api.js changes with every start, so no fixed integrity can hold.** Fixed by chunk 4b.
+  - **Claim:** the image ships `web-apps/apps/api/documents/api.js.tpl`, not `api.js`. Its start script
+    runs `documentserver-flush-cache.sh` (`/app/ds/run-document-server.sh:824` in the image, and again
+    from `documentserver-generate-allfonts.sh:83`), which writes `api.js` from the template under
+    `md5(date +'%Y.%m.%d-%H%M')`, the start's minute. RPT8e (#895) loads that script only under
+    `AIA_ONLYOFFICE_API_INTEGRITY`.
+  - **Anchor:** image `onlyoffice/documentserver:9.4.0.1@sha256:3ab6ebc7…88212`, amd64 manifest
+    `sha256:e231bc62…db84b`, layer `sha256:e5a14e23…11a7` (read from the registry, digests verified);
+    `deploy/develop/docs/docker-compose.yml @ 1fed2969` started it unchanged.
+  - **Reproduction:** the script's own substitution on the template: a start at 23:30 gives
+    `sha384-c0+Tg0Sh…oZgfeYM`, at 23:31 `sha384-B6NlD0vc…H64xK4bUa`.
+  - **Consequence:** an integrity taken from one running server refuses the editor after the next host
+    reboot or container recreate: Zpráva quietly stays read-only.
+  - **Wrong vs right:**
+    - wrong: hash the running `api.js` once and store it;
+    - right: `deploy/develop/docs/start-fixed-cache-tag.sh` as the entrypoint. It runs upstream's
+      entrypoint, waits for its last step (it follows its logs, `xargs tail -F`), then runs upstream's
+      own `documentserver-flush-cache.sh -h $AIA_DS_CACHE_TAG`, which writes `api.js` and nginx's
+      `$cache_tag` together. Healthy only once `api.js` carries the tag. Nothing of the program is
+      changed (NOTICE).
+  - **Measured** (the pinned image, locally, 4 vCPU, 2026-10-26): the file, the plain response and the
+    gzipped response all `sha384-GvDXeDqc…Sd7G`, the value computed from the template; the same after a
+    stop and start. Healthy 274-330 s after start (upstream's gzip of its static files runs before the
+    last step; the unmodified image reaches that step in the same ~275 s), hence `bin/docs.sh up` waits
+    600 s and `bin/deploy.sh` bounds it at 660 s. A stop reaches upstream's `clean_exit` (its
+    "Preparing for shutdown" runs) and ends at Docker's 10 s grace (exit 137), as the unmodified
+    image's stop does.
+  - **Test:** `test_develop_docs_smoke.py::test_an_api_js_the_apis_integrity_does_not_name_warns`
+    (the smoke warns, as the server's health does, when the running file's hash is not the API's
+    integrity or the API has none), and CI's "Validate the report editor's Compose project" (the
+    entrypoint, the mount, the tag as md5 of the image's tag, the health check, the integrity's shape).
+  - **Review** (before the push): no P1. Taken: the tag tied to the image's tag in CI (it is also
+    upstream's only cache-buster for a year-long, immutable asset cache, so a new image or a font
+    change takes a new tag); the integrity versioned in Compose beside it rather than SSM alone, so an
+    upgrade or a rollback carries its own; the row a warning, not a failed deploy; a bounded, logged
+    wait and a checked flush in the wrapper; README notes on fonts and upstream's maintenance
+    commands.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**5. Theme, icons, generator** (spec `szz/T1`; W3, lane G). Open, legal (OQ13): the AIA icons are redrawn from ONLYOFFICE's AGPL sprites, a modified covered work. The editor goes live with ONLYOFFICE's own icons until legal decides; the theme alone may land first.
+
+**6. Mounted read-only** (spec `szz/T2`; W3, lane G).
+
+**7. Fonts on the server** (spec `szz/T3`; W3, lane G). This plan called them optional; the spec makes them required (contradiction 17).
+
+**8. Theme seeded** (spec `szz/T4`; W3, lane G). After 6.
+
+**9. NOTICE and source offer** (spec `szz/T6`; W3, lane G). Blocked on legal (OQ13); rewrites this plan's AGPL paragraph.
+
+**Notes.**
+- Chunk 4 (activation) with `artifact-report#RPT8e` carries `szz/T8`. This plan stays SUPPORT; its waves above are informational.

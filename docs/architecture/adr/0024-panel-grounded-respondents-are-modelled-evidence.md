@@ -8,6 +8,11 @@ the population contract ([population.md](../population.md)). **Answers, for one 
 part of decision ANL-1 (`.planning/overview.md`) that asks *whether any instrument evidence may
 ever be client-facing, and on what origin*. **Leaves open** D6 (the Sociomap) and ANL-1 for every
 other origin.
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-12
 
 ## Context
@@ -131,6 +136,17 @@ exists. It is a recorded exception to this section, not a change of its rule:
   for the validation this section describes.
 
 Revoking it is removing that record; the chunk-7 validation, once earned, supersedes it.
+
+**Amendment, 2026-10-22: the client report's checks warn.** Since 2026-10-22 (the product owner:
+"lets get rid of these strict gates", "Relax RD0 too", "Warnings for all of it"; report-delivery
+RD0, #879), the client report's checks (`drill_down_content`, `unadmitted_number`,
+`ledger_not_client_facing`, `gate_unrecorded`, and the Interní dokument check once RD11 cites a
+client source) warn in the approval dialog, are named by where they are, and are recorded on the
+approval's ledger row (`approval_decisions.warnings`); none refuses
+(`packages/aia_core/src/aia_core/domain/report/client_gate.py:32-36 @ 5d5ed250`;
+`application/report_approval.py:151-170 @ 5d5ed250`; `infrastructure/tables.py:2010 @ 5d5ed250`).
+What composition admits is unchanged (only `CLIENT_FACING` claims); the researcher approves past
+what the checks name, on record.
 
 ### 5. Support counts donors, not respondents
 

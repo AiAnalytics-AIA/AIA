@@ -120,7 +120,7 @@ export const colors = {
   },
   "status-you": {
     "light": "#ff8270",
-    "dark": "#fda258"
+    "dark": "#ffaa77"
   },
   "on-status-you": {
     "light": "#151a20",
@@ -128,7 +128,7 @@ export const colors = {
   },
   "status-you-ink": {
     "light": "#971c11",
-    "dark": "#fda258"
+    "dark": "#ffaa77"
   },
   "status-you-wash": {
     "light": "#fbe7e6",
@@ -546,11 +546,13 @@ export const scalars = {
   "space-8": "32px",
   "space-12": "48px",
   "radius-0": "0px",
-  "radius-sm": "2px",
-  "radius-md": "4px",
+  "radius-mark": "2px",
+  "radius-sm": "6px",
+  "radius-md": "8px",
   "radius-control": "6px",
   "radius-card": "8px",
   "radius-panel": "10px",
+  "radius-composer": "12px",
   "radius-pill": "999px",
   "stroke-hairline": "1px",
   "stroke-mark": "1.5px",

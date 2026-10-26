@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import random
 from functools import cache
+from typing import Any
 
 import numpy as np
 import pytest
@@ -128,6 +129,31 @@ def test_a_signed_off_map_gets_the_panel_figures_and_its_respondent_map() -> Non
         if isinstance(b, SociomapFigure)
     ]
     assert "Číslované objekty odpovídají legendě" in first.alt
+
+
+def test_one_figure_of_a_signed_off_map_is_drawn_alone_and_as_the_report_draws_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD4's snapshot asks one view: only that figure is drawn, the same bytes as the report's."""
+    from aia_core.infrastructure.report_docx import signed_off_map_figure as figure
+    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshot
+
+    frozen = tastes()
+    battery = frozen["batteries"][0]
+    ((method, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    printed = object_map_snapshots(frozen)
+    drawn: list[str] = []
+    real = figure.render_objects
+
+    def counted(*args: Any, **kw: Any) -> Any:
+        drawn.append("objects")
+        return real(*args, **kw)
+
+    monkeypatch.setattr(figure, "render_objects", counted)
+    monkeypatch.setattr(figure, "render_respondents", lambda *a, **k: drawn.append("respondents"))
+    assert object_map_snapshot(artifact, labels, "top") == printed[("fictional", method, "top")]
+    assert drawn == ["objects"]
 
 
 def test_the_object_map_draws_the_stored_relations_heights_and_words() -> None:

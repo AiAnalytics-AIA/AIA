@@ -5,9 +5,11 @@
 // readiness rule, the preview and preflight requests, the upload, and the AI
 // proposal. Every function is pure and returns the next project with the
 // classic save reason. audience.parity.test.ts compares each with the original
-// under Node. Two classic behaviours that change who is sampled are kept and
-// characterised, not fixed: OI-50 (an empty range bound is 0) and OI-51 (a
-// special preset keeps the previous subpanel and filters).
+// under Node. OI-50 (an empty range bound is 0) is kept and characterised; AIA's
+// own range writer (setRange) leaves an empty bound out. OI-51 is fixed by the
+// product owner's decisions (2026-10-25): a preset change no longer keeps the
+// previous subpanel, filters, strategy or support figures, and keeps the
+// description (presetReset), a stated departure from the classic.
 //
 // Since ADR 0018 the product draws only what needs no 18.6.6. Since
 // panel-grounded-respondents 6e the factor catalogue, the preview and the
@@ -60,14 +62,51 @@ export function specialSelected(p: ResearchProject): boolean {
   return !!(a.dataset_id || a.builtin_subpanel || a.special_panel_key || a.builtin_special_key);
 }
 
-/** setAudienceEntry (the preview is cleared by the screen). */
+/**
+ * What a preset change clears (OI-51 (a), the product owner, 2026-10-25): the previous audience's
+ * subpanel, filters and segment, its strategy and the subpanel's support figures (back to the
+ * template's defaults: "population", "" and {}), and a special panel's keys, so a new preset never
+ * carries who the last one sampled or what supported it. The classic kept them; this is a stated
+ * departure. The description stays as it is (the product owner, 2026-10-25). Answers whether who is
+ * sampled changed (the support figures alone do not), so the run check is invalidated only then.
+ */
+export function presetReset(a: Audience): { audience: Audience; cleared: boolean } {
+  const filled = (v: unknown): boolean => (v && typeof v === "object" ? Object.keys(v).length > 0 : !!v);
+  const segment = a.segment;
+  const segmentMode = segment && typeof segment === "object" && !Array.isArray(segment) ? (segment as Obj).mode : undefined;
+  const cleared =
+    ["builtin_subpanel", "filters", "special_panel_key", "builtin_special_key"].some((k) => filled(a[k])) ||
+    (filled(segmentMode) && segmentMode !== "none") ||
+    (filled(a.strategy) && a.strategy !== "population");
+  return {
+    audience: {
+      ...a,
+      builtin_subpanel: "",
+      filters: {},
+      segment: { mode: "none" },
+      strategy: "population",
+      special_panel_key: "",
+      builtin_special_key: "",
+      support_tier: "",
+      subpanel_status: "",
+      support_summary: {},
+    },
+    cleared,
+  };
+}
+
 export function setAudienceEntry(p: ResearchProject, x: "choose" | "own" | "analytics"): Change {
   let a = { ...aud(p) };
-  if (x === "own") a = { ...a, source_mode: "customer", customer_kind: "custom", dataset_id: "", dataset_name: "" };
+  let cleared = false;
+  if (x === "own") {
+    const reset = presetReset(a);
+    cleared = reset.cleared;
+    a = { ...reset.audience, source_mode: "customer", customer_kind: "custom", dataset_id: "", dataset_name: "" };
+  }
   return {
     project: { ...withAudience(p, a), ui_state: { ...ui(p), audience_entry: x, analytics_choice: "" } },
     reason: "audience_entry",
-    invalidateCheck: false,
+    invalidateCheck: cleared,
   };
 }
 
@@ -90,18 +129,24 @@ export function chooseAudience(p: ResearchProject, x: Strategy): Change {
   return { project: withAudience(p, a), reason: "audience_strategy", invalidateCheck: false };
 }
 
-/** setAnalyticsChoice: ČR 18+ starts on the whole population; special clears the source, not the filters (OI-51). */
+/** setAnalyticsChoice: ČR 18+ starts on the whole population; every choice starts afresh (OI-51). */
 export function setAnalyticsChoice(p: ResearchProject, x: "cz18" | "cz_coming" | "special"): Change {
   const next: ResearchProject = { ...p, ui_state: { ...ui(p), analytics_choice: x } };
-  if (x === "cz18") return chooseAudience(next, "population");
+  const { audience, cleared } = presetReset(aud(next));
+  if (x === "cz18") {
+    // The classic's chooseAudience('population'), on the audience the reset leaves; it writes
+    // "ČR 18+" as the description, which a preset change does not (the product owner, 2026-10-25).
+    const c = chooseAudience(withAudience(next, audience), "population");
+    return { ...c, project: withAudience(c.project, { ...aud(c.project), description: aud(next).description }), invalidateCheck: c.invalidateCheck || cleared };
+  }
   if (x === "special") {
     return {
-      project: withAudience(next, { ...aud(next), dataset_id: "", dataset_name: "", builtin_subpanel: "", special_panel_key: "", special_catalog_key: "" }),
+      project: withAudience(next, { ...audience, dataset_id: "", dataset_name: "", special_catalog_key: "" }),
       reason: "analytics_choice",
-      invalidateCheck: false,
+      invalidateCheck: cleared,
     };
   }
-  return { project: next, reason: "analytics_choice", invalidateCheck: false };
+  return { project: withAudience(next, audience), reason: "analytics_choice", invalidateCheck: cleared };
 }
 
 /** The back button of the three analytics branches. */
@@ -155,13 +200,13 @@ export function applyPopulationSubpanel(p: ResearchProject, key: string, c: Cata
 }
 
 /**
- * chooseSpecialPreset. A special or coming-soon preset does not clear the
- * subpanel or the filters a population preset set before it (OI-51).
+ * chooseSpecialPreset. Every preset starts afresh: the subpanel and filters a preset set before it are
+ * cleared (OI-51 (a)), where the classic kept them.
  */
 export function chooseSpecialPreset(p: ResearchProject, key: string, c: Catalogues): Change | null {
   const x = SPECIAL_AUDIENCE_PRESETS.find((z) => z.key === key);
   if (!x) return null;
-  const marked = withAudience(p, { ...aud(p), special_catalog_key: key });
+  const marked = withAudience(p, { ...presetReset(aud(p)).audience, special_catalog_key: key });
   if (x.kind === "population") {
     const next = applyPopulationSubpanel(marked, x.source, c);
     return { project: withAudience(next, { ...aud(next), description: x.name }), reason: "special_preset_population", invalidateCheck: true };

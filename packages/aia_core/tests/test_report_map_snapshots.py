@@ -46,7 +46,10 @@ from aia_core.domain.sociomap.layout import correlation_distance
 from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 from aia_core.infrastructure.report_docx.cover import ASSET
-from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
+from aia_core.infrastructure.report_docx.object_map_figure import (
+    object_map_snapshot,
+    object_map_snapshots,
+)
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -100,6 +103,19 @@ def test_both_views_preserve_the_frozen_artifact_and_are_deterministic() -> None
         if hasattr(i, "text")
     )
     assert "20" in prose and "donorů" in prose and "Prázdné oblasti" in prose
+
+
+def test_one_view_is_drawn_as_the_report_draws_it_and_an_unshowable_view_is_none() -> None:
+    """RD4's snapshot: one stored map's view, the same bytes the report prints."""
+    frozen = result()
+    battery = frozen["batteries"][0]
+    ((method, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    printed = object_map_snapshots(frozen)
+    for view in ("top", "3d"):
+        assert object_map_snapshot(artifact, labels, view) == printed[("fictional", method, view)]
+    flat = artifact.model_copy(update={"terrain": None})
+    assert object_map_snapshot(flat, labels, "3d") is None  # no terrain: no side view
 
 
 def test_the_map_chapter_says_its_counts_and_pair_states_in_czech() -> None:

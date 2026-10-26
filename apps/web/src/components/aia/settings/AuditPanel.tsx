@@ -92,7 +92,7 @@ export function AuditPanel({ audit, members, clients, studies }: {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <ChoiceChips label={t(`${P}.audit.period`)} value={period} options={PERIODS.map((p) => ({ key: p, label: PERIOD_NAMES[p] }))} onChange={setPeriod} />
+        <ChoiceChips look="segmented" small label={t(`${P}.audit.period`)} value={period} options={PERIODS.map((p) => ({ key: p, label: PERIOD_NAMES[p] }))} onChange={setPeriod} />
       </div>
       <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_minmax(8rem,12rem)_minmax(8rem,14rem)]">
         <TextInput type="search" aria-label={t(`${P}.auditSearch`)} placeholder={t(`${P}.auditSearchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />

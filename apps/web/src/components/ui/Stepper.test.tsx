@@ -298,4 +298,14 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(document.getElementById(money.getAttribute("aria-describedby") ?? "")?.textContent).toBe("80,86–500 USD · ↑ ↓ o krok, Shift ×10");
     expect(money.getAttribute("aria-valuetext")).toBe("85,00 USD");
   });
+
+  it("leaves the unit to a column's header and still reads it with the value", () => {
+    render(
+      <Stepper label="Rozpočet" value={85} onCommit={() => {}} min={80.86} max={500} decimals={2} unit="USD" unitShown={false} />,
+    );
+    expect(screen.queryByText("USD")).toBeNull();
+    const money = screen.getByRole("spinbutton", { name: "Rozpočet" });
+    expect(document.getElementById(money.getAttribute("aria-describedby") ?? "")?.textContent).toBe("80,86–500\u00a0USD · ↑ ↓ o krok, Shift ×10");
+    expect(money.getAttribute("aria-valuetext")).toBe("85,00\u00a0USD");
+  });
 });

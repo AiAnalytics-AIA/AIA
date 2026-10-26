@@ -13,10 +13,22 @@ chunks:
   - "[ ] RPT8. The editor is Zpráva's main surface: the stored draft opened in ONLYOFFICE Docs (Q35), the researcher editing directly, every number code wrote a locked, tagged control whose edits are shown, never refused (ADR 0035, amended 2026-10-22; split 2026-10-22: RPT8a-d)"
   - "[ ] RPT8a. Every printed number a locked content control tagged with its source (the editor spike's F-ED1): ledger values in prose, table cells, captions (part 1); KPI tiles, figures, the evidence appendix, suppressed counts (part 2); the map, design, run and bundle spans (part 3; the map locked and tagged like the rest, the owner 2026-10-22)"
   - "[x] RPT8b. What a saved version changed: each tagged number edited or removed and each number typed outside one, shown as \"Upraveno ručně\", never refusing (changed 2026-10-22: the owner, ADR 0035 amended)"
-  - "[ ] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
-  - "[ ] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
+  - "[x] RPT8c. The editor routes behind AIA_ONLYOFFICE_URL (unset: off): the config with its JWT and the docs ticket, the signed document URL, the callback storing every save as the next version (the hosting contract, report-editor-hosting); the internal draft and the report with literature"
+  - "[x] RPT8d. The pane opens the newest version in the editor from 768 px (view mode below), its doc bar naming the version and its \"Upraveno ručně\" changes; the read-only document stays where the editor is off"
+  - "[ ] RPT8e. Before activation, a hard gate: the editor's api.js loaded with Subresource Integrity, the hash taken from the pinned Document Server image's own api.js and configured beside AIA_ONLYOFFICE_URL, verified against the real Document Server with CORS; AIA_ONLYOFFICE_URL stays unset until this is ticked (the PM, 2026-10-23; owner: Zpráva)"
+  - "[x] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
+  - "[ ] RPT3c. One document bar: document, status, Připravit, approve, DOCX and PDF; every download moves into it, and 'Zpráva s rešerší' leaves the pane (follows RPT3 and RPT3a, with RPT5; spec szz Z2; Nigel P3, 26 Oct 2026; W3)"
+  - "[ ] RPT3d. The approval dialog: name, saved time, 'stáhnete přesně tuto verzi', the accepted-findings count (follows RPT3a; spec szz Z4; W3)"
+  - "[ ] RPT8b.1. A prose number's change shown inline as 'Upraveno ručně'; no 'Vrátit' inside the open editor (follows RPT8b; spec szz Z6; W3)"
+  - "[x] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
+  - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
+  - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
+  - "[x] RPT12. No ids on the stage (spec szz Z3; W3)"
+  - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
+  - "[x] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
+  - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
 ---
 # Artifact: Zpráva (Report)
 
@@ -421,6 +433,58 @@ https://${AIA_PUBLIC_HOSTNAME}` (the worker none); the editor stays off there un
 (`test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set`). Tests: the browser's config token, a JWT for another URL, an
 expired document token, a callback token, another line's version and a key no session has are each refused.
 
+*RPT8c, part 3 (`feature/report-editor-callback`):* `POST /report-editor/callback?token=` (the Document Server's,
+beside its document route; token and body optional, the body read in the route, so anything that is not a JSON
+object is unsigned: 403, or 404 while off, never 422): ONLYOFFICE's JWT, which it sends once, in the body (`inBody`:
+the body's fields beside `iat`/`exp`) or in the header (the body as `payload`, which it may trim), read by
+`EditorTokens.read_callback`; both, when sent, agree on each of `key`, `status`, `url`, `users` that each carries,
+and only those signed fields are read; the URL token naming this session, the signed key the token's (403
+otherwise); each status as `callback_action` says, any other `{"error": 1}`. A session already closed takes nothing:
+a late or replayed save for it is `{"error": 1}` (`session_closed`), any other status `{"error": 0}`. A save (6, or 2,
+which then closes the session) is stored by `application/report_editor_saves.py` `store_save`, one at a time per line
+(the line's composed row held first, as `open` does; the session read again under it): its authors each one a
+config was signed for (`unknown_author`), the file's URL on the editor's exact origin under `/cache/files/`
+(`infrastructure/editor_fetch.py` `allowed`, checked before any fetcher is called, `not_the_editors_file`), fetched
+by `LiveSaveFetcher` (urllib3, the egress fence's newest named exit in `pyproject.toml`: no retry, no redirect, 64
+MB, a 403 `document_server_restarted`, a break while the body streams `document_server_unreachable`), a DOCX that opens (RPT8b's `census`, `save_unreadable`), then koncept N+1
+(`research_internal_docx_edit` / `…_with_research_edit`) depending on koncept N, produced by its first author, with
+RPT8b's changes against koncept 1 beside it (`research_report_changes`); the same bytes again store nothing. A save
+not stored answers `{"error": 1}` (the Document Server tries again) and stays on the session (`last_problem`), which
+the config answers as `problem` for the pane to say; the next stored save clears it. Not here: the edited version's
+PDF, which needs the PDF job to take an edit artifact (part 4). Tests: `test_report_editor_api.py` (SQLite and
+PostgreSQL): a force-save stores koncept 2 depending on koncept 1 with the changed number named, under the same key,
+and the same bytes twice once; status 2 closes and the next config has a new key; a file on another host, path or
+port refused unfetched; a restarted Document Server's save not stored and said; an author no config was signed for
+refused; an unsigned, wrongly signed or other-key callback 403; a version stored as its author's.
+`test_editor_fetch.py`: the origin rule, and the live fetcher refusing before sending anything.
+
+*RPT8c, part 4 (`feature/report-editor-approval`):* `POST …/report/approve` takes an edited version
+(`report_approval.EDITED_REPORT_KINDS`, kind internal or with_review; `APPROVABLE_KINDS` is both), approved and frozen
+as exactly that version, of whichever line; `REPORT_ARTIFACT_TYPES` stays the composed reports the 2026-10-18 freeze
+migration names. Where self-approval is off, no author of any version of the line up to the one approved may approve
+it (an edited version records one producer, its save's first author). `GET …/report/editor/versions/{artifact_id}`: the
+version's provenance (authors, `edited_from`), its review and approval as the run's report status says them, and what it
+changed, as stored beside it (`report_editor_saves.version_changes`; `changes` null for koncept 1; a version of another
+run or study 404), for the doc bar and the approval dialog (RPT8d); `…/download`: exactly its DOCX with the report
+download's headers (`X-AIA-Artifact-Id`, `X-AIA-Review-State`), named `schvaleno-v-aia` once approved (it keeps the
+draft footer). Both answer with the editor off. `GET …/report` and the report with literature's status (`GET`/`POST
+…/report/context`) name the run's approved edits of that report beside its composed draft (`approved_edits`), which an
+approved edit leaves a draft; a version row whose artifact is gone is skipped there and 404 on its own route. Every author of the line is a producer for the ledger too
+(`ArtifactRepository.approve(co_producers=)`): a co-author approving where self-approval is on is recorded as self-approving.
+Noted, older than RPT8c: two concurrent first approvals of one report take no row lock between them (the stand-in's P3 on
+#869); not changed here. Tests: `test_an_edited_version_says_what_it_changed_and_is_approved_as_itself`,
+`test_no_author_of_an_edited_version_approves_it_where_self_approval_is_off`.
+
+*RPT8c, part 5 (`feature/report-editor-pdf`), the chunk's last:* an edited version is a report the worker renders
+(`report_variants.RENDERABLE_REPORTS` holds both `EDIT_ARTIFACT_TYPES`): `POST …/report/editor/versions/{artifact_id}/pdf`
+asks for its PDF by the one rule (`request_pdf`), `GET …/pdf/download` serves it with the DOCX's review headers, and the
+version route answers its `pdf`. Each save is tried with the review stamp as every stored report is
+(`report_export.review_stamp_record`, ~200 ms a save) and keeps its composition's `report_contract`: approved, a version
+whose footers the editor kept says SCHVÁLENO there, in its DOCX and its approved PDF (asked on approval where its draft
+PDF is ready, `approval_asks_pdf`); one whose footers changed is served as saved, `schvaleno-v-aia`. Tests:
+`test_an_edited_version_renders_its_pdf_and_approved_says_so_in_its_footers`,
+`test_a_version_saved_in_the_report_editor_is_rendered_like_the_report`.
+
 **RPT8d. The pane opens the editor.**
 - 768 px and wider, with the editor configured: Zpráva's pane loads the Document Server's `api.js` from
   `AIA_ONLYOFFICE_URL` and opens the default line's newest version (RPT8c) with the config the API signed.
@@ -436,7 +500,170 @@ expired document token, a callback token, another line's version and a key no se
   the callback with a fictional edited DOCX), zero paid jobs. A real Document Server is checked once on develop after
   activation.
 
-Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → activation (infra: the
+*RPT8d, part 1 (`feature/report-editor-pane`), the editor in the pane:* `ReportDocumentView` hands the internal draft and the
+report with literature to `ReportEditor` (the client report is never edited), which opens them through
+`POST …/report/editor` (`research.openReportEditor`; mode `edit` from 768 px, `view` below, followed as the width
+changes) and mounts `DocsAPI.DocEditor` from the api.js of the origin the API named (`lib/report-editor.ts`
+`apiScriptUrl`: https alone, its origin alone; loaded once per page) with the config the API signed. A 404 (the editor
+off) is the read-only draft, saying nothing, as before; a refusal is said in words beside it; a script that does not
+load, an editor error or no `onAppReady` within `EDITOR_TIMEOUT_MS` (20 s) leaves the read-only draft and says so
+(`UNREACHABLE`), the editor destroyed. The line's last failed save (`problem`) is said in words (`problemWords`). Found
+while building it: AIA's pages send no Content-Security-Policy (`next.config.ts` and the Caddyfile's product site set
+none), so the CSP the chunk names has nothing to add the editor's origin to; a CSP for the product is its own work, not
+started here. While the editor is open the read-only draft, and the `report:` targets the Lead focuses, is not on the
+page: the Lead in the document is RPT9. While the editor shows the document, the doc bar offers no approval of the
+composed draft, koncept 1 included, since a save there moves it past the draft (the version read is the version
+approved, RPT3a; Codex on #875); approving the editor's version from the pane is part 2. A risk, stated plainly (the stand-in's review of #875): ONLYOFFICE's api.js runs in AIA's own
+origin, beside the session's id and refresh tokens in `sessionStorage` (`lib/auth.ts`), so a compromised Document
+Server could read them; the editor's own domain keeps its documents and cookies apart, not this loader. Before
+activation the Zpráva session pins it: Subresource Integrity on the script (the hash of the pinned Document Server
+image's api.js, beside `AIA_ONLYOFFICE_URL`), checked against the real Document Server on develop, which must answer
+it with CORS for SRI to load; until then the editor stays off. Tests: `report-editor.test.ts`, `ReportEditor.test.tsx`,
+`ReportDocumentView.editor.test.tsx` (the client report never handed to the editor, the report with literature by its
+review, no approval of the composed draft while the editor shows the document).
+
+*RPT8d, part 2 (`feature/report-editor-doc-bar`), the doc bar on the editor's version:* while the editor shows a document
+(`ReportEditor` `onShown`: the line and version opened, when this person last started an edit,
+`onDocumentStateChange` with `true`, and whether one is not yet sent), the doc bar is
+`EditorDocBar`: the version on screen read from `GET …/report/editor/versions/{id}`, and its line's newest when a later
+save exists (`newest_in_line`, new), named "Koncept N, uložen <kdy> · <kdo>" (`author_names`, new: display names of
+the organization's members, never an e-mail, null otherwise); "Upraveno ručně" with its count (against the line's
+first version, the composed draft) or why nothing compared, opening to each change in words (`changeWords`); the run's
+other lines, each opened in the editor (`line`); and "Schválit koncept N" for exactly that version. The approval reads
+the version again on the ask: a later save is said and shown, approving nothing; koncept 1 of the current composition
+goes through the pane's own question (its PDF read on the ask, as before); an edited version is asked by name with its
+changes listed (`editedApprovalQuestion`), read again on the yes (a save while the question was open approves
+nothing), then approved as itself (`POST …/report/approve`), and the report card hears it. An edit is not a stored
+version: the event's `false` only says the edit reached the Document Server, and AIA stores a version on the callback's
+status 6 or 2. So an edit started holds the approval off, re-reading the line every 10 s, until a stored version holds
+it: the time of the last change its file holds (ONLYOFFICE's signed `lastsave`, kept as the version's `content_at`;
+without it a version holds nothing, since the time AIA stored it is only when the callback came, and the bar says a
+reload starts again from what is stored: ONLYOFFICE sends `lastsave` on status 2 and 6, so this is rare) no earlier
+than the edit, both on the server's clock (`server_now` beside each read,
+the edit placed as late as the request's send time allows, so a slow answer only holds longer; `holdsEdit`, a second's
+tolerance for the Document Server's time); and while the editor holds an edit not yet sent.
+A version id alone could not tell: a save in flight while the person typed on is a newer version that does not hold
+the later edit, and a save stored before the first read after the edit would have become the edit's own baseline
+(the stand-in's review and Codex on #877). Koncept 1's approval, which goes through the pane's own question, asks
+the bar's hold too, on the ask and on the yes (Codex on #877). An assumption, named (the PM, 2026-10-24): `lastsave` is
+the Document Server's clock and `server_now` the API's, compared within a second. On develop they share a host, so it
+holds. A Document Server moved to another host with more than a second of skew would hold an approval too long (safe)
+or release it early (not safe); before it moves, both hosts keep NTP time or AIA checks the skew (the Document
+Server's `Date` beside the API's on each callback). Five review rounds found client-side timing edges in this hold; a
+further one is answered with a server-authoritative rule, not another patch (the PM, 2026-10-24), for instance a
+per-session edit counter the editor reports and the server checks against the save that holds it.
+
+*Known limit, and the server-authoritative proposal (Codex on #877 at e81333b8; the PM's rule, 2026-10-24).* The hold is
+the browser's: it checks for an edit before it reads the version on the yes, and an edit the person starts while that
+read is in flight is not checked again before the approval is sent, so the earlier snapshot can be approved (sequence:
+confirm the question; the yes's version read leaves; the person types; the read answers; the approval posts; no save
+holds the new edit yet, so `newest_of_line` passes). Each round of review found such a corner, because the browser
+decides on facts it reads at different moments. The proposal ends the class by letting the server decide at the moment
+it approves, under the line's lock:
+1. The editor reports each edit start to AIA (`POST …/report/editor/sessions/{key}/edits`, the session's own key and a
+   per-session sequence number the page keeps), and AIA records it with the server's time of receipt.
+2. A save records, beside its signed `lastsave`, the highest edit sequence whose receipt it holds (receipt no later
+   than `lastsave`; on develop both clocks are one host's).
+3. The approval names the edit sequence the page last saw; `approve_report(newest_of_line=True)` refuses 409
+   `report_edits_unsaved` unless the newest stored version holds that sequence and no higher one was received.
+4. The browser's hold stays as the visible state, no longer the gate.
+
+*RPT8f, built (`feature/report-edit-sequence`).* `POST …/report/editor/sessions/{document_key}/edits` (`{page, seq}`,
+204; 404 for a session not the run's, not open, or not one a config was signed for the caller in; 409
+`editor_pages_exhausted` for a new page beyond 64 in a session) keeps per session and page the newest edit start with
+AIA's time of receipt (`report_editor_edits`, migration `9c1e3a5b7d2f`), under the line's lock and then the session's,
+the order a save and an approval take. A save's callback keeps its `lastsave` no later than AIA's receipt of it (a later
+one is logged as skew), as the version's `content_at` (`report_editor_versions.content_at`), and a save of the newest
+version's bytes again moves it on and stores no koncept. An edit is held (`domain/report/editor.py` `unsaved_edits`) when
+AIA received its report no later than the version's `content_at`; koncept 1 and a save that said nothing hold no edit.
+For every edited version (koncept 2 on, whatever the caller asks) and any version approved with `newest_of_line`,
+`approve_report` refuses under the line's lock 409 `report_edits_unsaved`: `edit_not_received` (the approving page's
+`seen_edit` has not arrived) or `edit_not_saved` (an edit of the line's open session, or of the seen one, is held by
+no save). The version read takes the page's seen edit (`seen_key`, `seen_page`, `seen_seq`) and answers the same verdict
+as `edits: {saved, reason}`; the doc bar's hold follows it alone, a read from before the page's newest edit counting
+for nothing, and guesses nothing (Codex on #880).
+
+*RPT8e, built (`feature/editor-api-integrity`); its last check is activation's.* `AIA_ONLYOFFICE_API_INTEGRITY`
+(`sha384-` and the digest's 64 base64 characters, refused at start otherwise): without it `report_editor_on` is false,
+so Zpráva opens nothing in the editor and the open route answers 404, whatever else is set. The open route answers it as
+`api_integrity`. The page then asks `POST /session/docs-ticket` for a one-time ticket and spends it first, a credentialed
+CORS request to `<docs>/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js` (`ticketUrl`, `spendTicket`:
+spending it sets the docs gate's cookie; the pane had loaded api.js without one, which the docs gate answers 401), then
+loads api.js at its canonical path with `integrity` and `crossorigin="use-credentials"` (`apiScriptUrl`,
+`scriptIntegrity`; `ReportEditor.tsx` `loadDocsApi`). The canonical path, not the ticket's URL as the script: ONLYOFFICE's
+api.js finds its base, and so its iframes' origin, by matching its script element's src against `api/documents/api.js`
+(getBasePath), which a ticket URL with an encoded `next` does not (Codex on #895). No integrity, no ticket, a ticket not
+spent or a script that does not hash to it: the read-only draft, said (`UNVERIFIED`, `UNREACHABLE`).
+`AIA_ONLYOFFICE_API_INTEGRITY` reaches the develop API through `deploy/develop/docker-compose.yml` from SSM
+`aia_onlyoffice_api_integrity` (`env.example`; `test_develop_host_configuration.py`: off without it, on with it). `deploy/develop/Caddyfile`'s
+docs site answers CORS with credentials for AIA's origin on those two paths alone (`@editor_script`, `defer`, so it
+replaces whatever the Document Server answers), held by `tools/caddy_routes.py`. Tests: `test_report_editor_api.py`
+(the integrity's form; the editor on only with it; the open route answers it), `report-editor.test.ts`,
+`ReportEditor.test.tsx` (the script's attributes, no integrity, no ticket), `test_caddy_routes.py`
+(`test_cors_anywhere_but_the_editors_script_for_aia_is_refused`); `report_editor_journey.mjs`: a ticket is spent before
+the script loads, api.js finds its base on the editor's origin at every width (the stand-in's api.js computes it as
+ONLYOFFICE's getBasePath does), and a swapped api.js runs nothing under Chromium's own integrity check. Left for activation (infra, with the
+owner's word): the integrity of the api.js the Document Server serves, set beside `AIA_ONLYOFFICE_URL`, and the page
+loaded once against the real Document Server; RPT8e is ticked then. The pinned image (9.4.0.1) ships no api.js, only
+`api.js.tpl`: at every container start `documentserver-flush-cache.sh` builds api.js with `{{HASH_POSTFIX}}` set from that
+start's date and minute, so a hash read from one running server fails the next restart (the infra session, 2026-10-25).
+The integrity is therefore taken from the api.js built by the pinned copy of that script, whose HASH_POSTFIX is a constant
+per image version (`e2c7b902106f86a68aabb088d5054ee0` for 9.4.0.1; infra's report-editor-hosting PR records it beside the
+image version and changes both together). For 9.4.0.1 that is
+`sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G`, checked after the deploy against the live file:
+`docker exec <the onlyoffice container> cat /var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js |
+openssl dgst -sha384 -binary | base64`, which must print the digest after `sha384-`, and print it again after a restart.
+
+Every rule fails closed but one (the PM, 2026-10-24, choosing the one rule over a clean-report rule that, bound to the
+snapshot, decided nothing the first did not): a Document Server clock running ahead of AIA's by more than the gap between
+a save's last change and the next edit's report lets that save hold the edit; the clamp to AIA's receipt bounds it.
+Behind, it fails closed: an edit whose report reached AIA after the save that holds it (late, or the Document Server's
+clock behind) waits for a save whose `lastsave` follows the report, which Ctrl+S, the next change or the save as everyone
+leaves makes; the bar says Ctrl+S. Both rest on the clock assumption recorded for develop (the PM, 2026-10-24; open-items'
+clock-skew note): the Document Server and the API share a host; before it moves off-host, both keep NTP time or AIA
+checks the skew. A co-editor's edit whose report never reaches AIA cannot be known. Tests: `test_report_editor.py`
+`test_an_edit_is_held_only_by_a_save_no_earlier_than_its_report`,
+`test_an_edit_reported_while_an_approval_checks_the_line_is_never_missed` (PostgreSQL); `test_report_editor_api.py`
+(the wait and the verdict, a `lastsave` ahead of AIA's clock, the wedge either side, a co-author and a reload, every
+edited version, a closed seen session, the session's bounds); `ReportEditor.test.tsx` (each report; only the session on
+screen's edit named), `EditorDocBar.test.tsx` (the hold follows the server's verdict, a verdict read before the page's
+edit counting for nothing), `report-editor.test.ts` ("the edit sequence (RPT8f)").
+
+*RPT8d, part 3 (`feature/report-editor-journey`), the journey:* `report_editor_journey.mjs` drives Zpráva in the editor
+in a real browser against a stand-in Document Server (`tools/ui_workbench/report_editor_standin.py`): no ONLYOFFICE
+runs. The workbench's API, started with `AIA_WORKBENCH_REPORT_EDITOR=true`, is configured for fictional `.invalid`
+origins and a fictional secret, and is given a fetcher that reads a save from `tmp/ui-workbench/editor-saves` under
+the live fetcher's own URL rule (`app.state.editor_fetcher`, as a test's is); the page loads a stand-in api.js the
+journey serves for that origin (`fixtures/report_editor/api.js`), and a save is made as a Document Server makes one:
+the composed draft with one ledger number edited, written where the fetcher reads it, the callback posted, signed.
+It checks edit mode at 1440, 1100 and 768 px and view mode at 390, the doc bar on the version shown and no draft
+approval, no overflow; an edit holding the approval off past the editor's own "saved" until AIA stores the next
+koncept; that koncept's Upraveno ručně naming the number; a save while the question is open approving nothing; an edit
+started while the question is open approving nothing until its save is stored (the PM's ask on #877); the newest
+approved with `newest_of_line` and downloaded from the report card; nothing paid. It runs again on the same
+workbench. `research_journey.mjs` takes the editor's open as a known write. Found while building it: a locked span's
+text (a design span is a paragraph) made a change line unreadable; `changeWords` cuts a long pair around where the two
+differ, so "…" never hides the difference (Codex on #878).
+
+*RPT8d, fix (`fix/report-pane-superseded-draft`), the draft a saved version stands over:* found by the PM's audit walk on
+develop 156d339c. With the Document Server down (or the editor off) the pane fell back to the composed draft, said
+"neschváleno" and offered its approval while koncept 4 of its line was approved: a person could approve the older draft
+beside the approved edit. The server approves an older version as itself without `newest_of_line`, as designed
+(`test_a_version_asked_as_its_lines_newest_is_refused_once_a_later_save_exists`), so the pane is where it is offered. The
+run's report status, the report-with-review status and both document reads now answer `edited_line`: the newest version
+saved over the composed draft (koncept 2 on) with its review, null while none (`report_editor_saves.newest_saved`, a read
+any member who reads the report may make). The pane says it over the draft where the editor does not show it
+(`editedLineWords`) and offers no approval of the draft; an ask for a draft it cannot show is refused at the ask by the
+status read then. Tests: `test_the_reports_status_names_the_version_saved_over_its_composed_draft`;
+`ReportDocumentView.test.tsx` ("offers no approval of a draft a version saved in the editor stands over…", "refuses at
+the ask…"); `report.test.ts` (editedLineWords); `report_editor_journey.mjs`, the Document Server down at 1440, 1100,
+768 and 390 px. The two 404s the walk saw with the editor off are the pane's probe, `POST …/report/editor`, answering
+404 while the editor is off (its documented "off"), once per mount of the editor's slot.
+An older version approved as itself (the API, without `newest_of_line`) records the `superseded_version` warning on its
+approval's ledger row, naming the newer koncept (`report_approval._newer_koncept`; the PM, 2026-10-24), so approving it on
+purpose is on the record; no page offers that approval any more, so no dialog names it. Test: the stale test above.
+
+Order: F1 (its own small PR) → RPT8a part 3 → RPT8b → RPT8c → RPT8d → RD0's change → RPT8e (SRI on api.js) and RPT8f (the server's edit sequence) → activation (infra: the
 editor's own domain, its Caddy site without the docs gate, Route 53, SSM, the flag) → RPT9.
 
 *RPT8a, part 3, the map (`feature/report-locked-facts-map`):* a paragraph, callout, text cell, table's notes or
@@ -477,6 +704,9 @@ counts, dates, L-labels and seal; P14), and the audit's values under `run:<run>`
 `test_every_number_the_bundle_writes_is_locked_under_its_review`, `test_report_controls.py`
 `test_the_audits_values_print_locked_and_the_source_audit_keeps_them`.
 
+*The owner, 2026-10-25 (AUD-2 (a), the audit page, relayed by coordinator 3): the Lead edits the report as proposed versions a person
+approves; this chunk builds it.*
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
@@ -491,6 +721,10 @@ through the edit operations:
   that path in `domain/edit_ops` and the report modules' own apply step, so the import contract "no
   report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
   `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
+
+*The owner's answer (AUD-2, 2026-10-25, /pmstatus):* "(a) yes, as proposed versions a person approves". The Lead edits
+the final report directly only as proposed versions through the editor's version store (RPT8c), each approved by a
+person; built after the editor is live; every number stays locked to an admitted claim (ADR 0035).
 
 Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
 accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
@@ -543,6 +777,29 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
 ## Findings
+
+- **Výsledky opened the report editor from a hidden tab (from the stand-in review of #939, 2026-10-26): fixed on
+  `fix/report-editor-on-action`.** `ResultsWorkspace` keeps every panel mounted (hidden), and `ReportEditor`
+  POSTed `…/report/editor` in its mount effect (`ReportEditor.tsx:148 @ 25ce6493`), so opening any Výsledky view,
+  the Sociomapa stage included, opened an editor session no one asked for, and sociomap_journey's "nothing
+  written but the stage opened" failed. Now `ResultsWorkspace` says which panel is on screen (`panel-shown.ts`
+  `PanelShown`), and the editor opens only once its panel is first shown, staying open after. Test:
+  `ReportEditor.test.tsx` "asks for nothing from a hidden results panel, opens once it is shown, and stays open
+  when it is hidden again" (fails before: `open` called once while hidden).
+
+- **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
+  `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
+  `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
+  real host every path there passes the docs gate, which needs the cookie only a spent one-time ticket sets
+  (report-editor-hosting.md:288, "the script load is the way in"; `POST /session/docs-ticket`,
+  `GET /session/docs?ticket&next`, both built). Consequence: on activation the docs gate answers api.js
+  401 and Zpráva falls back to read only on day one. The workbench's stand-in served api.js ungated, so no
+  journey showed it. Fix: the page spends the ticket first (`ticketUrl`, a credentialed CORS request), then
+  loads api.js at its canonical path under RPT8e's integrity with credentials; the docs site answers CORS
+  for AIA's origin on those two paths. Tests: `report-editor.test.ts` ("spends the ticket at the named
+  origin's session path…"), `ReportEditor.test.tsx` ("spends the ticket at the editor's origin before the
+  script loads", "keeps the read-only draft when no ticket is given or it is not spent…"),
+  `report_editor_journey.mjs` (a ticket spent before the script loads).
 
 - **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
   internal draft never said what the person asked for: "Návrh studie" printed only how the study
@@ -610,3 +867,62 @@ CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A mo
 ## Doc follow-up
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
+
+**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`. *Built, but for the count (`feature/report-approval-dialog`):* the question names the document
+and when its version was stored, never its id: "Schvalujete tuto verzi: {název}, vytvořenou {čas} ({formát}). Schválení
+se zapíše pod vaším jménem a stáhnete přesně tuto verzi.", then that it cannot be undone, what a stamped draft's file
+carries (`fileLine`, D2 without the id) and, on the client report, "Čísla jsou modelovaná; zpráva to u každého uvádí."
+(`report-variant.ts approvalQuestion`); an edited version by its koncept and `saved_at`
+(`report-editor.ts editedApprovalQuestion`). The time is `stored_at`, the DOCX's stored time with its offset, on every
+report status and stored document (`routers/research.py _review_fields`); a time the server does not give is left out.
+Tests: `report-variant.test.ts` "approvalQuestion (B22, RPT3d)"; `ReportDocumentView.test.tsx` the client and internal
+questions; `test_the_client_report_is_prepared_to_be_read_without_a_download` (`stored_at` carries its offset). Open: the
+accepted-findings count on Pro klienta, after ANL11; the chunk stays open until it lands.
+
+**RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
+
+**RPT8c.1. Editor config** (spec `szz/Z5`; follows RPT8c; W3, lane G). With RPT14. *Built with RPT14 (`feature/editor-config`):* `_config` (`routers/report_editor.py`) signs
+`permissions.download` and `print` false, `editorConfig.region` `cs-CZ` and the board's `customization` (`uiTheme`
+`theme-aia`, compact header and toolbar, no file name, cm, zoom 90, no plugins, chat or help, `forcesave` kept);
+`modifyContentControl` is never sent. Test: `test_the_config_is_signed_names_no_e_mail_and_fetches_its_version`.
+
+**RPT8d.1. Number detail** (spec `szz/Z7`; follows RPT8d, partly new; W3, lane G). After RPT8a part 3.
+
+**RPT11. Its own stage** (spec `szz/Z1`; W3, lane G).
+
+**RPT12. No ids** (spec `szz/Z3`; W3, lane G). *Built (`feature/report-no-ids`):* the doc bar no longer prints the
+DOCX's artifact id and the draft's footer reads the review in words and the revision (`reviewWords`), with no review code,
+run id or artifact id (`ReportDocumentView.tsx`); a review in the doc picker and Výsledky' Varianta list is named by its
+title, else its start time, else its place in the list, never its run id, by one rule for both lists
+(`report-variant.ts reviewLabel`); the Záznam pokrytí names an output in words, never by its id or raw type
+(`report-coverage.ts`). The version shown stays readable to tests and journeys as
+`data-report-version` on the doc bar, never as text. Tests: `ReportDocumentView.test.tsx` "shows no run id, artifact id
+or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Varianta list carries no `RUN-`. Left as
+is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
+card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with the card in RPT3c / RPT11.
+
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+
+**RPT14. uiTheme** (spec `szz/T5`; W3, lane G). *Built with RPT8c.1:* the config asks for `theme-aia`; the theme itself
+is served by `report-editor-hosting` 6, and until it is the Document Server shows its default theme.
+
+**RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded. *Built (`feature/editor-docx-fonts`):* `report_docx/embed.py` `reembed_fonts` puts back every face `FACES` names that
+the package lacks, changing only the font table, its relationships, settings and content types (every other part byte for
+byte, written deterministically); the editor version download (`routers/report_editor.py`) re-embeds after the stamp and
+answers `X-AIA-Fonts-Reembedded: true`, the other headers naming the stored version. Tests:
+`test_an_editor_saved_version_downloads_with_its_brand_fonts_embedded_again`, `test_report_fonts.py`,
+`test_an_approved_editor_saved_version_exports_stamped_with_its_fonts_back`.
+
+**Notes.**
+- RPT10 carries `szz/Z9` (literature only from the Lead card); RPT9 `szz/Z10`; RPT7 `szz/Z11`; RPT8e with `report-editor-hosting#4` carry `szz/T8`.

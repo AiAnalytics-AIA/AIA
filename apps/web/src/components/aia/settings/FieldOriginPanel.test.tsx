@@ -46,7 +46,6 @@ function fakeApi({ live = true, kept = true }: { live?: boolean; kept?: boolean 
 
 async function openArea() {
   render(<MethodologyPanel />);
-  fireEvent.click(await screen.findByRole("button", { name: "Změnit oblast" }));
   fireEvent.click(await screen.findByRole("button", { name: "Původ polí: k čemu smí sloužit" }));
 }
 

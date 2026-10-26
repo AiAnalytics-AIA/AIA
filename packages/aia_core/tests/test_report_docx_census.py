@@ -194,3 +194,28 @@ def test_numbers_a_tab_parts_are_two(report_doc: Any) -> None:
 
     changes = compare(census(draft), census(_saved(draft, edit))).changes
     assert [c.now for c in changes] == ["12", "34"]
+
+
+@pytest.mark.parametrize(
+    "part", ["word/styles.xml", "word/footer1.xml", "word/_rels/document.xml.rels"]
+)
+def test_a_saved_file_whose_other_parts_declare_a_dtd_is_refused(
+    report_doc: Any, part: str
+) -> None:
+    """Every XML part of a saved file is a stranger's, not only its body: the review stamp
+    parses its styles and footers later, so a part declaring a document type is refused here,
+    before anything is stored."""
+    draft = _draft(report_doc)
+    out = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(draft)) as source, zipfile.ZipFile(out, "w") as target:
+        names = [i.filename for i in source.infolist()]
+        assert part in names
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == part:
+                data = (
+                    b'<?xml version="1.0"?><!DOCTYPE w [<!ENTITY x "1">]>' + data.split(b"?>", 1)[1]
+                )
+            target.writestr(info, data)
+    with pytest.raises(DocumentRefused):
+        census(out.getvalue())
