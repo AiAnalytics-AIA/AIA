@@ -11,6 +11,7 @@ import time
 import zipfile
 from datetime import datetime
 from typing import Any
+from unittest.mock import ANY
 from urllib.parse import parse_qs, urlparse
 
 import jwt
@@ -1046,6 +1047,7 @@ def test_the_reports_status_names_the_version_saved_over_its_composed_draft(
     assert line.json()["edited_line"] == {
         "artifact_id": edited,
         "koncept": 2,
+        "stored_at": ANY,
         "review_state": "DRAFT_UNAPPROVED",
         "approved_on": None,
         "stamped": False,

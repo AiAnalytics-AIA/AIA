@@ -870,7 +870,16 @@ follow-up chunk below.
 
 **RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
 
-**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`.
+**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`. *Built, but for the count (`feature/report-approval-dialog`):* the question names the document
+and when its version was stored, never its id: "Schvalujete tuto verzi: {název}, vytvořenou {čas} ({formát}). Schválení
+se zapíše pod vaším jménem a stáhnete přesně tuto verzi.", then that it cannot be undone, what a stamped draft's file
+carries (`fileLine`, D2 without the id) and, on the client report, "Čísla jsou modelovaná; zpráva to u každého uvádí."
+(`report-variant.ts approvalQuestion`); an edited version by its koncept and `saved_at`
+(`report-editor.ts editedApprovalQuestion`). The time is `stored_at`, the DOCX's stored time with its offset, on every
+report status and stored document (`routers/research.py _review_fields`); a time the server does not give is left out.
+Tests: `report-variant.test.ts` "approvalQuestion (B22, RPT3d)"; `ReportDocumentView.test.tsx` the client and internal
+questions; `test_the_client_report_is_prepared_to_be_read_without_a_download` (`stored_at` carries its offset). Open: the
+accepted-findings count on Pro klienta, after ANL11; the chunk stays open until it lands.
 
 **RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
 
