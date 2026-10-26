@@ -154,6 +154,12 @@ _DIGEST_SUBJECTS: Final = frozenset(
 )
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
+
+#: The Lead's request kinds a person decides through the ledger (approve_request): each waits in
+#: the decision digest until decided. A research run's card only opens its stage.
+_LEDGER_CARDS: Final = frozenset(
+    {"agent_job", "design_research", "interpretation_research", "deep_research_retry"}
+)
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
 #: as the web submits it before its own buttons start the same job.
 _SOURCE_STAGE: Final[dict[ResearchAction, str]] = {
@@ -1607,11 +1613,11 @@ class ResearchLead:
                 if str(i) not in decided_edits
             )
             request = output.get("request")
-            # Only a prepared agent job is decided through the ledger; a run or Deep Research
-            # card is started from its own screen and never waits here.
+            # A prepared agent job or Deep Research card (LO5a.2) is decided through the ledger
+            # and waits until it is; a run card is started from its own screen and never waits.
             if (
                 isinstance(request, dict)
-                and request.get("kind") == "agent_job"
+                and request.get("kind") in _LEDGER_CARDS
                 and turn.get("request_decision") is None
             ):
                 waiting.append(DigestEntry("job", None, None, turn["turn_id"], index=0))

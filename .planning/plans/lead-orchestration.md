@@ -1561,6 +1561,12 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
     the panel outside the editor once the study has a design run or one is announced. Test:
     `QuestionnaireStep.test.tsx` "shows a design run's Deep Research before any questionnaire
     exists" (fails without it).
+  - *Delta review, two P3s taken.* A reused Deep Research card said an agent job's words ("its
+    card is above"); it now says the run is already running or done, followed on its stage
+    (`LeadPane.test.tsx` "says a Deep Research card approved on a run already there in its own
+    words"). The decision digest listed only an agent job as waiting; an undecided Deep Research
+    card now waits too (`_LEDGER_CARDS`; `test_research_lead_application.py`
+    "only a prepared job waits in the digest", the design_research case, failed first).
   - Not taken: the price on the card (a follow-up for every paid card alike); narrowing
     `deep_research_start_errors` to the card branch (a hypothesis about a future path; the
     Deep Research card reads the store before it writes); `no_wallet`'s words (kept for

@@ -614,7 +614,11 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            // A Deep Research card found the run a stage start (or another card) had made: no
+            // card of it is above, it may still be running, and it is not always "this design's".
+            ? [isDeepResearchCard(r)
+              ? { label: "Výsledek", value: "Tento hloubkový výzkum už běží nebo doběhl", sub: "Nic nového se nespustilo ani nezaplatilo; běh se sleduje v kroku, kde byl spuštěn." }
+              : { label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
             : r.kind === "analysis_retry"
             // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
