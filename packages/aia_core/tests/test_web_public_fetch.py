@@ -6,6 +6,9 @@ fake clock; one test replaces urllib3's pool to see what the real wire would sen
 
 from __future__ import annotations
 
+import socket
+import threading
+import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -645,3 +648,73 @@ def test_a_trickling_answer_is_cut_at_the_fetchs_overall_deadline(
     assert failed.value.delivery is Delivery.RESPONDED
     # Cut at the first read past 60 s, not after 10 MB at a byte per 19 s.
     assert _TricklePool.reads == 4
+
+
+def _trickling_server(prelude: bytes, drip: bytes) -> tuple[int, threading.Event]:
+    """A local plain-HTTP server that sends ``prelude``, then ``drip`` every 0.1 s until told
+    to stop or the client goes: each piece inside the read timeout, never an end."""
+    server = socket.socket()
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    stop = threading.Event()
+
+    def serve() -> None:
+        conn, _ = server.accept()
+        try:
+            conn.recv(65_536)
+            conn.sendall(prelude)
+            while not stop.wait(0.1):
+                conn.sendall(drip)
+        except OSError:
+            pass
+        finally:
+            conn.close()
+            server.close()
+
+    threading.Thread(target=serve, daemon=True).start()
+    return server.getsockname()[1], stop
+
+
+def _wire_to(port: int, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The wire's pool, pointed at the local server over plain HTTP (its framing is
+    http.client's either way); every TLS argument dropped."""
+    import urllib3
+
+    monkeypatch.setattr(
+        urllib3,
+        "HTTPSConnectionPool",
+        lambda *_a, **kw: urllib3.HTTPConnectionPool(
+            "127.0.0.1", port=port, retries=False, maxsize=1, block=True
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("prelude", "drip"),
+    [
+        # Chunked: a whole body, then trailer lines http.client drains inside one read1().
+        (
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"2\r\nok\r\n0\r\n",
+            b"X-Trailer: x\r\n",
+        ),
+        # Headers: one more header line inside every read timeout, the body never begun.
+        (b"HTTP/1.1 200 OK\r\n", b"X-Slow: x\r\n"),
+    ],
+    ids=["chunked-trailers", "headers"],
+)
+def test_a_trickle_the_body_loop_never_sees_is_cut_by_the_watchdog(
+    monkeypatch: pytest.MonkeyPatch, prelude: bytes, drip: bytes
+) -> None:
+    port, stop = _trickling_server(prelude, drip)
+    _wire_to(port, monkeypatch)
+    wire = UrllibWire(read_timeout_s=2.0, deadline_s=0.5)
+    started = time.monotonic()
+    try:
+        with pytest.raises(ToolCallFailed) as failed:
+            wire.get(address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=1000)
+    finally:
+        stop.set()
+    assert failed.value.reason == "timeout"
+    # The socket is shut at the deadline, not after the trickle ends (it never does).
+    assert time.monotonic() - started < 3.0

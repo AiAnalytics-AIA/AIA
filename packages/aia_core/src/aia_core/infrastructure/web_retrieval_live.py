@@ -20,6 +20,7 @@ Pages are untrusted evidence candidates, never instructions.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import re
 import socket
@@ -120,8 +121,13 @@ class UrllibWire:
     The read timeout bounds one read, not the answer: a server that sends a byte inside every
     timeout would hold the fetch, and its host's pacing turn, until ``max_bytes``. So the whole
     request has a deadline, ``deadline_s`` (security-audit-2026-10 S13), past which the fetch
-    fails ``timeout``. The body is read with ``read1``, one socket read at a time, so the cut
-    comes at most one read timeout after the deadline; ``read`` would wait to fill its amount.
+    fails ``timeout``. Two things keep it:
+
+    * a watchdog shuts the connection's socket at the deadline. http.client reads the status
+      and headers, and a chunked body's size lines and trailers, inside calls that never
+      return to this loop; only closing the socket under them stops a trickle there;
+    * the body loop checks the clock between reads, and reads with ``read1``, one socket read
+      at a time (``read`` would wait to fill its amount).
     """
 
     def __init__(
@@ -148,6 +154,9 @@ class UrllibWire:
         if max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
         u = self._urllib3
+        expired = threading.Event()
+        sockets: list[Any] = []
+        guard = threading.Lock()
         pool = u.HTTPSConnectionPool(
             address,
             port=443,
@@ -158,8 +167,32 @@ class UrllibWire:
             maxsize=1,
             block=True,
         )
+        base = getattr(pool, "ConnectionCls", None)
+        if base is not None:
+
+            class _Watched(base):  # type: ignore[misc, valid-type]
+                """The pool's connection, its socket kept where the watchdog can shut it."""
+
+                def connect(self) -> None:
+                    super().connect()
+                    with guard:
+                        sockets.append(self.sock)
+                        if expired.is_set():
+                            _shut(self.sock)
+
+            pool.ConnectionCls = _Watched
+
+        def expire() -> None:
+            with guard:
+                expired.set()
+                for sock in sockets:
+                    _shut(sock)
+
+        watchdog = threading.Timer(self._deadline_s, expire)
+        watchdog.daemon = True
         response: Any = None
         started = self._clock()
+        watchdog.start()
         try:
             response = pool.request(
                 "GET",
@@ -184,15 +217,14 @@ class UrllibWire:
             body = bytearray()
             while len(body) <= max_bytes:
                 if self._clock() - started > self._deadline_s:
-                    raise ToolCallFailed(
-                        "the answer did not arrive within the fetch's deadline",
-                        reason="timeout",
-                        delivery=Delivery.RESPONDED,
-                    )
+                    raise _deadline_passed()
                 chunk = read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
                 if not chunk:
                     break
                 body.extend(chunk)
+            if expired.is_set():
+                # A socket shut under a read can end it as if the server had: never a page.
+                raise _deadline_passed()
             return FetchedResponse(
                 status=int(response.status),
                 headers=answered,
@@ -202,27 +234,52 @@ class UrllibWire:
             )
         except ToolCallFailed:
             raise
-        except (u.exceptions.ConnectTimeoutError, u.exceptions.NewConnectionError) as exc:
-            raise ToolCallFailed(
-                "the connection was not established",
-                reason="connect_failed",
-                delivery=Delivery.NOT_SENT,
-            ) from exc
-        except u.exceptions.SSLError as exc:
-            delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
-            raise ToolCallFailed(
-                "the TLS session failed", reason="tls_failed", delivery=delivery
-            ) from exc
-        except u.exceptions.HTTPError as exc:
-            raise ToolCallFailed(
-                "the request failed after it was sent",
-                reason="transport_failed",
-                delivery=Delivery.UNKNOWN,
-            ) from exc
+        except Exception as exc:
+            if expired.is_set():
+                raise _deadline_passed() from exc
+            failure = _wire_failure(u, exc)
+            if failure is exc:
+                raise
+            raise failure from exc
         finally:
+            watchdog.cancel()
             if response is not None:
                 response.release_conn()
             pool.close()
+
+
+def _shut(sock: Any) -> None:
+    """Shut a socket under whatever is reading it; it may be closed already."""
+    with contextlib.suppress(OSError):
+        sock.shutdown(socket.SHUT_RDWR)
+
+
+def _deadline_passed() -> ToolCallFailed:
+    return ToolCallFailed(
+        "the answer did not arrive within the fetch's deadline",
+        reason="timeout",
+        delivery=Delivery.RESPONDED,
+    )
+
+
+def _wire_failure(u: Any, exc: Exception) -> Exception:
+    """urllib3's failure as the wire says it; anything else as it was."""
+    if isinstance(exc, (u.exceptions.ConnectTimeoutError, u.exceptions.NewConnectionError)):
+        return ToolCallFailed(
+            "the connection was not established",
+            reason="connect_failed",
+            delivery=Delivery.NOT_SENT,
+        )
+    if isinstance(exc, u.exceptions.SSLError):
+        delivery = Delivery.NOT_SENT if certificate_refused(exc) else Delivery.UNKNOWN
+        return ToolCallFailed("the TLS session failed", reason="tls_failed", delivery=delivery)
+    if isinstance(exc, u.exceptions.HTTPError):
+        return ToolCallFailed(
+            "the request failed after it was sent",
+            reason="transport_failed",
+            delivery=Delivery.UNKNOWN,
+        )
+    return exc
 
 
 class HostPinnedHttpsTransport:
