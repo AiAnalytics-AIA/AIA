@@ -542,6 +542,18 @@ describe("LeadPane", () => {
     expect(onView).toHaveBeenCalledWith([{ op: "show_diff", stage: "questionnaire" }]);
   });
 
+  it("names the Lead's map views by what the picture becomes, and hands them to the frame", async () => {
+    const filter = { op: "filter", name: "labels", value: "off" } as const;
+    const select = { op: "select", target: "object:set1/fio" } as const;
+    state = { ...state, turns: [turn({ output: { reply: "Na mapě.", view: [filter, select] } })] };
+    const onView = vi.fn();
+    render(pane({ onView }));
+    fireEvent.click(await screen.findByRole("button", { name: "Mapa: popisky vypnout" }));
+    expect(onView).toHaveBeenCalledWith([filter]);
+    fireEvent.click(screen.getByRole("button", { name: "Vybrat: Objekt set1/fio" }));
+    expect(onView).toHaveBeenLastCalledWith([select]);
+  });
+
   it("keeps a message the server did not take, held until the researcher tries again", async () => {
     state = { ...state, turns: [turn({ output: { reply: "Dobrý den." } })] };
     render(pane());

@@ -208,14 +208,14 @@ develop through #908). `lead-orchestration#LO11` (seal-only).
 Nigel, verbatim: "its important that in the questionnaire there is no nahrat excel, sestavit rucne, sestavit with ai, becuse we only need one interface to create the question, and the user can create it manually, but can also upload an excel to the lead researcehr and the lead researcehr will create the questionnaire, if no excel is used the user can still use the lead researcher to help create it based on the previous stage inputs, client knowledgebase and deep research."
 
 - `artifact-questionnaire#QST12`: Dotazník's "Způsob" choice removed; one editor, empty or not (lane E, W1).
-- `lead-orchestration#LO26`: any standard document to the Lead on any stage, worked with as the model reasons
+- `lead-orchestration#LO18a`-`LO18b`: any standard document to the Lead on any stage, worked with as the model reasons
   through the existing gated outputs (Nigel, ~01:47 UTC: "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"). A questionnaire file is one such use: read by the
-  questionnaire import and filed as a no-model questionnaire proposal. The file is Class A by rule; **open**: Class A
-  on the Lead's route, which is approved for B today.
+  questionnaire import and filed as a no-model questionnaire proposal. The file is the client's source, shown under
+  the client's Data (Nigel's D-a); its class is recorded and, under PB6, never refused.
 - `lead-orchestration#LO27` with `artifact-questionnaire#QST13`: without a file, the existing build/optimize
   questionnaire jobs from a Lead card, reading every verified finding of the newest Design Research run (Nigel,
   ~01:47 UTC: "All verified findings"; a prompt and harness bump).
-- QST12 ships with LO26 or after it, so Excel import is never missing in between. Nigel named no order; this is
+- QST12 ships with LO18b or after it, so Excel import is never missing in between. Nigel named no order; this is
   planning's default.
 
 ### Data class gates out of the MVP (26 Oct 2026 ~01:52 UTC)
@@ -232,14 +232,23 @@ develop today; the gate's tests keep running under `enforce`, none loosened, and
 records the class in production's configuration. Turning enforcement back on before clients' live data is one
 setting.
 
-- **In scope:** the class-only refusals, including the Lead's route reading a Class A file (`lead-orchestration#LO26`)
+- **In scope:** the class-only refusals, including the Lead's route reading a Class A file (`lead-orchestration#LO18a`-`LO18b`)
   and knowledge or sources on a route below their class; the operator classification a Deep Research run on an edited
   design waits for (OI-129; advisory already takes the design rule's class).
 - **Stays:** the accept gates (Přijmout), the spend confirmations and the budget stop (B1), the evidence gates and the
   Sociomap register, EU-only hosting and residency (Bedrock EU), and the **licence gate** (panel-derived data to
   `bedrock-eu-primary` only, OI-61, `domain/licence_determinations.py`), read as a licence term, not a class gate.
-- **To list in the chunk's PR:** every refusal site the switch covers (the Lead worker supplies it); the
-  `develop-class-advisory` plan's chunks 1-6 name the sites built so far.
+- **The one change** (the Lead worker, 26 Oct, anchors at `2e7fc1dd`): allow advisory in staging and production in
+  `data_class_gates_problem` (`domain/deployment.py:123-138`), enforced at start in the API
+  (`apps/api/src/aia_api/config.py:464-467, 512`) and the worker (`apps/executors/src/aia_executors/ai_runtime.py:927-940`);
+  `enforce` stays the default; the MVP deployments set `advisory`; the gate tests stay on `enforce`.
+- **The class-only refusal sites it covers:** `application/model_gateway.py:356` (and `:907`, the ledger);
+  `domain/residency.py:266-272, 280-290` (checks 2 and 4; checks 1, 3 and 5-7 stay); `application/web_retrieval.py:546-695`
+  (a Class A or B query to a NON_EU route is still refused by residency; Brave is the stated exception);
+  `domain/deep_research/plan.py:169-190` (OI-129); `application/validation.py:270-284`; and the display
+  `domain/deep_research_reach.py:102-126`. Not a class gate: the population field policy (`population/policy.py:388`).
+  The licence gate stays on (`application/model_gateway.py:374`; `:198` says advisory judges residency, licence and
+  budget exactly as enforce).
 
 ### The plan page's answers, B1-B6 (26 Oct 2026, 01:21-01:24 UTC)
 

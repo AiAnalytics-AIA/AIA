@@ -391,9 +391,12 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-orchestration#LO23` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-4, lead B1, szz A6 |
 | `lead-orchestration#LO24` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-5, lead B2 |
 | `lead-orchestration#LO25` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-7, lead B3 |
-| `lead-orchestration#LO26` | W1 | Nigel, 26 Oct: any document to the Lead on any stage (LO18 widened); a questionnaire file one use; with QST12 |
+| `lead-orchestration#LO18a` | W1 | Nigel, 26 Oct: any document to the Lead on any stage (D-a: the client's source) |
+| `lead-orchestration#LO18b` | W1 | Nigel, 26 Oct: a questionnaire table as a no-model proposal; with QST12 |
+| `lead-orchestration#LO18c` | W2 | the Lead worker's LO18 split, 26 Oct |
+| `lead-orchestration#LO18d` | W2 | with lead-client-knowledge LK3 (ADR 0041 A3) |
 | `lead-orchestration#LO27` | W1 | Nigel, 26 Oct (the Lead drafts the questionnaire without a file) |
-| `artifact-questionnaire#QST12` | W1 | Nigel, 26 Oct: one editor, with LO26 in one PR |
+| `artifact-questionnaire#QST12` | W1 | Nigel, 26 Oct: one editor, with LO18b in one PR or after it |
 | `artifact-questionnaire#QST13` | W1 | Nigel, 26 Oct ("All verified findings"): for LO27 |
 | `lead-conversation#LC20` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-19 |
 | `lead-identity#LI8` | W3 | Nigel, 2026-10-26 (`prototype-build.md`) |
