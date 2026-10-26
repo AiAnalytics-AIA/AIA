@@ -21,7 +21,7 @@ import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults, fixStep } from "./ExecutionSteps";
+import { RunResults, checkHref, fixStep } from "./ExecutionSteps";
 import { REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
@@ -187,11 +187,24 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+describe("checkHref", () => {
+  it("opens Vzorek for n and its support in the workbench, the persona step outside it", () => {
+    const href = (step: string) => `/s/${step}`;
+    for (const id of ["sample_size", "support_forecast", "sociomap_support"]) {
+      expect(checkHref(id, href, true)).toBe("/s/persona#sample");
+      expect(checkHref(id, href, false)).toBe("/s/persona");
+    }
+    // Every other check goes where fixStep sends it, in the workbench too.
+    expect(checkHref("dimensions", href, true)).toBe("/s/persona");
+    expect(checkHref("audience", href, true)).toBe("/s/audience");
+  });
+});
+
 describe("fixStep", () => {
   it("sends each readiness check to the stage where it is fixed", () => {
     // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
-    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
-    // the audience on its own stage.
+    // research_trace), a prefixed one standing for its kind; n and its support on the persona step
+    // (the workbench links them to Vzorek, checkHref), the audience on its own stage.
     const where = {
       sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
       audience: "audience",
