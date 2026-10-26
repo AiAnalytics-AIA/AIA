@@ -1299,15 +1299,14 @@ describe("Progress", () => {
     expect(card.querySelector("[data-origin-code]")).toBeNull();
   });
 
-  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+  it("tags each step \"AI model\" or \"kód\" and makes it pointable by the Lead (artifact-fieldwork FLD2, FLD2b)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
     const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
-    // AI respondents answer this run's fieldwork: a model step.
-    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
-    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
-    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+    // AI respondents answer this run's fieldwork: a model step. The words are a researcher's, not the
+    // gateway's name (research build spec sber/F6, prototype decision R11; FLD2b in #923).
+    expect([work("run"), work("compile"), work("aggregate")]).toEqual(["AI model", "kód", "kód"]);
   });
 
   it("tags fictional fixture fieldwork as code, never as AI", async () => {
