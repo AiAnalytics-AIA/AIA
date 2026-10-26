@@ -24,7 +24,7 @@ import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
-import { approvalQuestion, pdfStatesReview, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
+import { approvalQuestion, pdfStatesReview, reviewLabel, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
@@ -318,8 +318,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     { kind: "internal", review: null, label: KIND_NAME.internal },
     ...(offersClient ? [{ kind: "client" as const, review: null, label: KIND_NAME.client }] : []),
     // One per completed review; named by its title where several could be told apart by nothing else.
-    // Untitled, by when it was started (or its place in the list), never its run id (RPT12).
-    ...offered.map((r, i) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${r.title ?? (r.created_at ? new Date(r.created_at).toLocaleString("cs-CZ") : `${i + 1}.`)}` : KIND_NAME.with_review })),
+    ...offered.map((r, i) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${reviewLabel(r, i)}` : KIND_NAME.with_review })),
   ];
   const choose = docs.length > 1 ? (
     <div role="group" aria-label="Dokument" className="mb-2 flex flex-wrap gap-2" data-report-kind>
@@ -434,7 +433,6 @@ function Coverage({ lines }: { lines: CoverageLine[] }) {
           <li key={i} data-coverage={line.kind} className="min-w-0 break-words">
             <span className="font-medium">{line.label}</span>: {line.state}
             {line.why ? <span className="text-ink-muted"> — {line.why}</span> : null}
-            {line.ref ? <span className={`font-mono text-xs text-ink-muted ${WRAPS}`}> · {line.ref}</span> : null}
           </li>
         ))}
       </ul>

@@ -883,7 +883,9 @@ follow-up chunk below.
 **RPT12. No ids** (spec `szz/Z3`; W3, lane G). *Built (`feature/report-no-ids`):* the doc bar no longer prints the
 DOCX's artifact id and the draft's footer reads the review in words and the revision (`reviewWords`), with no review code,
 run id or artifact id (`ReportDocumentView.tsx`); a review in the doc picker and Výsledky' Varianta list is named by its
-title or date, never its run id (`CompleteReport.tsx`). The version shown stays readable to tests and journeys as
+title, else its start time, else its place in the list, never its run id, by one rule for both lists
+(`report-variant.ts reviewLabel`); the Záznam pokrytí names an output in words, never by its id or raw type
+(`report-coverage.ts`). The version shown stays readable to tests and journeys as
 `data-report-version` on the doc bar, never as text. Tests: `ReportDocumentView.test.tsx` "shows no run id, artifact id
 or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Varianta list carries no `RUN-`. Left as
 is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
