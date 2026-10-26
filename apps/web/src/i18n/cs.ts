@@ -1332,6 +1332,7 @@ export const cs = {
         col: { group: "Skupina", setting: "Pravidlo", value: "V platnosti", proposal: "Návrh", approval: "Schválení" },
         board: {
           rules: "Pravidla rešerše",
+          rulesInfo: "Jak se pravidlo navrhuje a schvaluje",
           rulesHelp: "Řádky s návrhem čekajícím na schválení jsou zvýrazněné. Návrh vznikne změnou ve sloupci Návrh: krokem u čísla, volbou u ano/ne; seznam, datum nebo adresu napíšete pod řádkem. Platí až po schválení; schválení i stažení se potvrzuje a zapisuje do auditu.",
         },
         reach: {
@@ -1341,6 +1342,7 @@ export const cs = {
           source: "z posledního záznamu workeru · {when}",
           build: "sestava {sha}",
           advisory: "kontrola tříd dat jen upozorňuje (vývojové prostředí)",
+          info: "Jak číst Dosah",
           help: "Nahoře, co čeká na schválení, pak aktivní trasy, pak ty, které nasazení nezapojilo. Nic z toho se tu nepřepíná: trasy a klíče zapíná nasazení, placenou trasu pustí schválení pravidel níže.",
           connector: "Konektor {name}",
           priced: "placená",
@@ -1381,6 +1383,7 @@ export const cs = {
         protections: {
           title: "Pevné ochrany v kódu",
           note: "Nejdou vypnout žádným pravidlem.",
+          info: "Co znamenají pevné ochrany",
           robots: "respektuje robots.txt",
           noLogin: "žádné přihlášení ani paywall",
           noPersonal: "žádné osobní údaje",
@@ -1634,7 +1637,7 @@ export const cs = {
         lede: {
           methodology: "Jak AIA počítá mapy, podporu, agregaci a připravenost. Každý krok ukazuje vzorec, parametry a odkud hodnota pochází. Platí pro běhy spuštěné po aktivaci; běh si metodu připne.",
           prompts: "Instrukce, které agenti AIA dostávají. Upravená instrukce se uloží jako verze a začne platit až po zapnutí; úloha už zadaná si nechá instrukci, se kterou začala.",
-          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel. Trasy a klíče zapíná nasazení; organizace schvaluje pravidla, bez kterých placená trasa neběží.",
+          deep_research: "Kam rešerše dosáhne, za kolik a podle jakých pravidel.",
           ai: "Co pohání AI v AIA. Všechno tu je jen ke čtení: zapíná a nastavuje to operátor nasazení (SSM). U každé činnosti vidíte, zda je zapnutá, a pokud ne, proč.",
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",

@@ -26,7 +26,7 @@ chunks:
   - "[x] F6b. Metodika → Verze and Porovnání as full tables even when empty (the code's preset a row of Uložené verze, Druh / Co mění / Uložil / Stav pro klienty, each version's register status from the API; Porovnání shows what is in force beside itself when asked)"
   - "[x] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
-  - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
+  - "[x] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
@@ -199,6 +199,13 @@ develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded 
 A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
+
+**F8b. Deep Research compacted** (built). As prototype v55: the tab's lede one line; Dosah and Pravidla
+rešerše the section's h2s, the posture and the code's protections h3s under them; each card's caption
+(how to read Dosah, how a rule is proposed and approved, what the protections mean) behind its ⓘ, a real
+button (settings/InfoButton.tsx); what still waits for approval said in the open while it holds, as a
+state, not an explanation. Each rule's own ⓘ is F8's. No amber anywhere: a waiting rule is coral for who
+can approve it (#897).
 
 **F16. Studie a rozpočty compacted** (built). The studies card as prototype v52 draws it: its title the
 tab's h2 with the count and an ⓘ; each money column's ⓘ a real button (it was an aria-hidden title,
