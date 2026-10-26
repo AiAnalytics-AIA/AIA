@@ -37,6 +37,7 @@ import { useResource } from "../useResource";
 import type { Part } from "./ControlPanel";
 import { describeError } from "./errors";
 import { waitingChanged } from "./sections";
+import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 const P = "aia.settings.prompts";
 
@@ -382,7 +383,7 @@ function EditorBody({ detail, people, reload, onDirty }: {
         <Heading detail={detail} dirty={dirty} waiting={waitingNumber} />
         <div data-frame className="flex min-w-0 flex-col gap-2">
           <p className="flex max-w-3xl items-start gap-2 text-sm text-ink-muted">
-            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0"><path d="M4.5 7V5a3.5 3.5 0 0 1 7 0v2M3.5 7h9v6.5h-9z" /></svg>
+            <PhosphorIcon name="lock-simple" className="mt-0.5 shrink-0" />
             <span><span className="sr-only">{t(`${P}.editor.frameTitle`)}: </span>{t(`${P}.editor.frameNote`)}</span>
           </p>
           <Technical>
