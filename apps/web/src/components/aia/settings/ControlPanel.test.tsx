@@ -152,6 +152,14 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+// The technical value "Prostředí" as its reference row: the Environment card (F21) on the same tab
+// says "Prostředí" too, in a <dt>, so a bare text query finds two.
+const referenceEnv = (root: HTMLElement) => waitFor(() => {
+  const row = within(root).getAllByText("Prostředí").map((e) => e.closest("tr[data-setting]")).find((r) => r !== null);
+  expect(row).toBeTruthy();
+  return row as HTMLElement;
+});
+
 describe("the settings control panel", () => {
   it("sends the signed-in token to the API, and no development identity header", async () => {
     api();
@@ -825,7 +833,7 @@ describe("Stav systému's technical values (once Reference, F17)", () => {
     render(<ControlPanel />);
     await openSection("Stav systému");
     const panel = panelOf("Stav systému");
-    await within(panel).findByText("Prostředí");
+    await referenceEnv(panel);
     for (const key of ["min_cell", "default_spec_seed"]) expect(document.querySelector(`[data-setting="${key}"]`)).toBeNull();
     for (const id of ["evidence", "simulation"]) expect(section(id)).toBeNull();
     // Not taken for a group the page does not know either.
@@ -1412,7 +1420,7 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await openSection("Stav systému");
     const reference = panelOf("Stav systému").querySelector("[data-reference-filters]")?.parentElement as HTMLElement;
-    const env = (await within(reference).findByText("Prostředí")).closest("tr") as HTMLElement;
+    const env = await referenceEnv(reference);
     expect(env.getAttribute("data-owner")).toBe("deployment");
     expect(within(env).getByText(/Rozlišuje vývojové/)).toBeTruthy();
     expect(within(section("deployment")).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Hodnota", "Nastaveno", "Kdo mění", "Co znamená"]);
@@ -1436,7 +1444,7 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await openSection("Stav systému");
     const reference = panelOf("Stav systému").querySelector("[data-reference-filters]")?.parentElement as HTMLElement;
-    await within(reference).findByText("Prostředí");
+    await referenceEnv(reference);
     const keys = [...reference.querySelectorAll("tr[data-setting]")].map((r) => r.getAttribute("data-setting"));
     expect(keys.length).toBe(new Set(keys).size);
     const total = Number(/z (\d+) hodnot/.exec(within(reference.querySelector("[data-reference-filters]") as HTMLElement).getByRole("status").textContent ?? "")?.[1]);
