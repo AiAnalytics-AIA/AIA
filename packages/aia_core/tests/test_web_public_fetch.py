@@ -797,7 +797,7 @@ def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPat
 
         def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
             fetch_time_left()  # a first request (its robots.txt read) starts the clock
-            note_request_sent()  # and was sent
+            note_request_sent(answered=False)  # and was sent; its answer was lost
             now[0] = 130.0
             return UrllibWire().get(
                 address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
@@ -814,8 +814,8 @@ def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPat
     with pytest.raises(ToolCallFailed) as failed:
         fetcher.fetch("https://stats.example/a")
     assert failed.value.reason == "timeout"
-    # This request was never sent (no connection opened), but the fetch's first one was:
-    # the call as a whole says it may have been served.
+    # This request was never sent (no connection opened), but the fetch's first one was and
+    # its answer was lost: the call as a whole says it may have been served.
     assert failed.value.delivery is Delivery.UNKNOWN
     assert _FakePool.created == []
 
@@ -956,3 +956,29 @@ def test_the_wire_records_a_sent_request_and_not_a_refused_connection(
         assert not clock.sent
     finally:
         retrieval._FETCH_CLOCK.reset(token)
+
+
+def test_a_fetch_whose_every_sent_request_was_answered_says_responded() -> None:
+    # The robots read and the page were answered (a redirect); the deadline ran out before
+    # the next hop. No answer is missing, so the call is RESPONDED, not UNKNOWN (which the
+    # gate would journal uncertain and so stop the track).
+    class _Answered(_SlowHops):
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            answer = super().get(url, address=address, max_bytes=max_bytes)
+            note_request_sent(answered=True)
+            self.now += 100.0
+            return answer
+
+    hops = _Answered()
+    fetcher = WebFetcher(
+        transport=hops,
+        resolver=Resolver({"stats.example": (PUBLIC,), "hop1.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: hops.now,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    assert failed.value.delivery is Delivery.RESPONDED

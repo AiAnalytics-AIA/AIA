@@ -168,9 +168,9 @@ class UrllibWire:
             )
         except ToolCallFailed as exc:
             if exc.delivery is not Delivery.NOT_SENT:
-                note_request_sent()
+                note_request_sent(answered=exc.delivery is Delivery.RESPONDED)
             raise
-        note_request_sent()
+        note_request_sent(answered=True)
         return response
 
     def _request(

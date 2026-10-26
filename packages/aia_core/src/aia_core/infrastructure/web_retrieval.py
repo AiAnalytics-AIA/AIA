@@ -130,6 +130,8 @@ class _FetchClock:
         self._deadline_s = deadline_s
         self._started: float | None = None
         self.sent = False
+        #: A request of this fetch left and no answer to it is known (a lost answer).
+        self.unanswered = False
 
     @property
     def started(self) -> bool:
@@ -157,14 +159,15 @@ def fetch_time_left() -> float | None:
     return None if clock is None else clock.left(start=True)
 
 
-def note_request_sent() -> None:
-    """Record that a request of the fetch in progress may have left: a wire calls it once a
-    request was answered or failed after it was sent, never for one it knows was not sent.
-    A later request of the same fetch that is not sent then leaves the call as a whole
-    ``UNKNOWN``, not ``NOT_SENT``."""
+def note_request_sent(*, answered: bool) -> None:
+    """Record that a request of the fetch in progress left: a wire calls it once a request
+    was answered (``answered``) or failed after it may have left, never for one it knows was
+    not sent. A later request of the same fetch that is not sent then leaves the call as a
+    whole ``RESPONDED`` when every request that left was answered, else ``UNKNOWN``."""
     clock = _FETCH_CLOCK.get()
     if clock is not None:
         clock.sent = True
+        clock.unanswered = clock.unanswered or not answered
 
 
 def fetch_out_of_time() -> bool:
@@ -664,10 +667,9 @@ class WebFetcher:
             except ToolCallFailed as exc:
                 if exc.delivery is Delivery.NOT_SENT and clock.sent:
                     # This request was not sent, but an earlier one of the same fetch was:
-                    # the call as a whole may have been served.
-                    raise ToolCallFailed(
-                        str(exc), reason=exc.reason, delivery=Delivery.UNKNOWN
-                    ) from exc
+                    # the call as a whole was served (every answer known) or may have been.
+                    delivery = Delivery.UNKNOWN if clock.unanswered else Delivery.RESPONDED
+                    raise ToolCallFailed(str(exc), reason=exc.reason, delivery=delivery) from exc
                 raise
 
     def _hops(

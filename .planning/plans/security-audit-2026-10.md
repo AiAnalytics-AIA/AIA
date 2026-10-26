@@ -297,7 +297,12 @@ what a bound on one path misses.
   `test_waiting_for_a_hosts_turn_is_not_spent_from_the_deadline`,
   `test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host`.
   Not covered: DNS (`SystemResolver.resolve`, `getaddrinfo`) runs before any request and
-  outside the deadline; the resolver has no timeout of its own.
+  outside the deadline; the resolver has no timeout of its own. After a fetch's first request,
+  waiting for another host's lock and the pacer's crawl-delay sleep are not cut at the
+  deadline either (`PublicHttpsTransport.get`'s `_host_lock`, `host_pacing` `_sleep`): the
+  next request then finds no time left and is not sent, so a fetch's wall time is its queue
+  time, plus up to its deadline, plus those waits, each bounded by the lock holders ahead
+  (their own deadlines) and a crawl delay of at most 30 s (the stand-in review on #999).
 - **S13b. The Brave search wire has the same per-read-only timeout** (found reviewing #999).
   1. Claim: `web_retrieval_brave.py`'s own urllib3 request has connect and read timeouts and
      no overall deadline.
