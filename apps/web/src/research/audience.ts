@@ -7,8 +7,9 @@
 // classic save reason. audience.parity.test.ts compares each with the original
 // under Node. OI-50 (an empty range bound is 0) is kept and characterised; AIA's
 // own range writer (setRange) leaves an empty bound out. OI-51 is fixed by the
-// product owner's decision (2026-10-25, (a)): a preset change no longer keeps
-// the previous subpanel and filters, a stated departure from the classic.
+// product owner's decisions (2026-10-25): a preset change no longer keeps the
+// previous subpanel, filters, strategy or support figures, and keeps the
+// description (presetReset), a stated departure from the classic.
 //
 // Since ADR 0018 the product draws only what needs no 18.6.6. Since
 // panel-grounded-respondents 6e the factor catalogue, the preview and the
@@ -63,19 +64,35 @@ export function specialSelected(p: ResearchProject): boolean {
 
 /**
  * What a preset change clears (OI-51 (a), the product owner, 2026-10-25): the previous audience's
- * subpanel, filters and segment, so a new preset never carries who the last one sampled. The classic
- * kept them; this is a stated departure. Answers whether anything was there to clear, so the run
- * check is invalidated only when who is sampled changed.
+ * subpanel, filters and segment, its strategy and the subpanel's support figures (back to the
+ * template's defaults: "population", "" and {}), and a special panel's keys, so a new preset never
+ * carries who the last one sampled or what supported it. The classic kept them; this is a stated
+ * departure. The description stays as it is (the product owner, 2026-10-25). Answers whether who is
+ * sampled changed (the support figures alone do not), so the run check is invalidated only then.
  */
 export function presetReset(a: Audience): { audience: Audience; cleared: boolean } {
-  const filters = a.filters;
+  const filled = (v: unknown): boolean => (v && typeof v === "object" ? Object.keys(v).length > 0 : !!v);
   const segment = a.segment;
   const segmentMode = segment && typeof segment === "object" && !Array.isArray(segment) ? (segment as Obj).mode : undefined;
   const cleared =
-    !!a.builtin_subpanel ||
-    (!!filters && typeof filters === "object" && Object.keys(filters).length > 0) ||
-    (segmentMode !== undefined && segmentMode !== null && segmentMode !== "none");
-  return { audience: { ...a, builtin_subpanel: "", filters: {}, segment: { mode: "none" } }, cleared };
+    ["builtin_subpanel", "filters", "special_panel_key", "builtin_special_key"].some((k) => filled(a[k])) ||
+    (filled(segmentMode) && segmentMode !== "none") ||
+    (filled(a.strategy) && a.strategy !== "population");
+  return {
+    audience: {
+      ...a,
+      builtin_subpanel: "",
+      filters: {},
+      segment: { mode: "none" },
+      strategy: "population",
+      special_panel_key: "",
+      builtin_special_key: "",
+      support_tier: "",
+      subpanel_status: "",
+      support_summary: {},
+    },
+    cleared,
+  };
 }
 
 export function setAudienceEntry(p: ResearchProject, x: "choose" | "own" | "analytics"): Change {
@@ -117,13 +134,14 @@ export function setAnalyticsChoice(p: ResearchProject, x: "cz18" | "cz_coming" |
   const next: ResearchProject = { ...p, ui_state: { ...ui(p), analytics_choice: x } };
   const { audience, cleared } = presetReset(aud(next));
   if (x === "cz18") {
-    // chooseAudience('population') clears the same three as the classic does; the check follows them.
-    const c = chooseAudience(next, "population");
-    return { ...c, invalidateCheck: c.invalidateCheck || cleared };
+    // The classic's chooseAudience('population'), on the audience the reset leaves; it writes
+    // "ČR 18+" as the description, which a preset change does not (the product owner, 2026-10-25).
+    const c = chooseAudience(withAudience(next, audience), "population");
+    return { ...c, project: withAudience(c.project, { ...aud(c.project), description: aud(next).description }), invalidateCheck: c.invalidateCheck || cleared };
   }
   if (x === "special") {
     return {
-      project: withAudience(next, { ...audience, dataset_id: "", dataset_name: "", special_panel_key: "", special_catalog_key: "" }),
+      project: withAudience(next, { ...audience, dataset_id: "", dataset_name: "", special_catalog_key: "" }),
       reason: "analytics_choice",
       invalidateCheck: cleared,
     };

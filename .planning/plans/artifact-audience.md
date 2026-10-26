@@ -190,10 +190,22 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
   - Tests: `AudienceStep.test.tsx` "switching preset clears the previous subpanel and filters";
     `audience.live.test.ts` "what a preset change clears"; `audience.parity.test.ts` setAudienceEntry,
     setAnalyticsChoice and the preset-after-preset cases; the audience journey's step 3.
-  - The description stays as it is on a preset change (the product owner, 2026-10-25). Still open:
-    a preset's strategy and the subpanel's support figures survive a preset change too. On the classic's
-    port a special panel's key does as well, which keeps a coming-soon preset after a special panel
-    "ready".
+  - The description stays as it is on a preset change (the product owner, 2026-10-25).
+  - Follow-up, fix/audience-preset-clears-strategy (the product owner, 2026-10-25, "Clear both"):
+    `presetReset` also resets the strategy to "population" and the subpanel's support figures
+    (`support_tier`, `subpanel_status`, `support_summary`) to the template's defaults. A special
+    panel's keys (`special_panel_key`, `builtin_special_key`) follow the same rule, since they are the
+    same kind of stale write. On the classic's port (`chooseSpecialPreset`, which no screen calls) a
+    coming-soon preset after a special panel is then no longer "ready". On ČR 18+ the description
+    also stays: the classic's `chooseAudience('population')` wrote "ČR 18+" there. Only a change
+    of who is sampled invalidates the run check, not the support figures alone. The new preset writes
+    its own figures when it has any.
+  - Not done, beyond the decision: a preset's `dataset_name` (shown as "Zdroj audience") survives
+    ČR připravujeme, and a strategy change (not a preset change) still keeps a subpanel's support
+    figures.
+  - Tests:
+    `AudienceStep.test.tsx` "switching to one's own audience clears the subpanel's strategy and support
+    too…"; `audience.live.test.ts` "what a preset change clears"; the audience journey's step 3.
 
 ## 8. Owner questions
 

@@ -215,12 +215,22 @@ describe("the built-in subpanels a search matches (audit B9)", () => {
 });
 
 describe("what a preset change clears (OI-51 (a))", () => {
-  it("the subpanel, filters and segment, nothing else", () => {
+  it("everything a preset writes, back to the template's defaults; never the description", () => {
     const { audience, cleared } = presetReset({
-      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters",
+      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, strategy: "filters", special_panel_key: "k", builtin_special_key: "b",
+      support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29", source_mode: "population",
     } as never);
     expect(cleared).toBe(true);
-    expect(audience).toEqual({ builtin_subpanel: "", filters: {}, segment: { mode: "none" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters" });
+    expect(audience).toEqual({
+      builtin_subpanel: "", filters: {}, segment: { mode: "none" }, strategy: "population", special_panel_key: "", builtin_special_key: "",
+      support_tier: "", subpanel_status: "", support_summary: {}, description: "Mladí 18–29", source_mode: "population",
+    });
+  });
+
+  it("counts a strategy as a change of who is sampled; support figures alone are not", () => {
+    expect(presetReset({ strategy: "filters" } as never).cleared).toBe(true);
+    expect(presetReset({ support_tier: "ROBUST", support_summary: { rows: 1 } } as never).cleared).toBe(false);
+    expect(presetReset({ strategy: "population", support_summary: {} } as never).cleared).toBe(false);
   });
 
   it("says nothing was cleared when there was nothing to clear, a null included", () => {
