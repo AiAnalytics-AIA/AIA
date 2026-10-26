@@ -1909,6 +1909,21 @@ waiting for review. On Zpráva it waits for report-delivery RD5's tracked change
     read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
     is on when…" (both).
 
+### A card's review drawn under the drawer (2026-10-25, `fix/review-steps-drawer-aside`; the Dotazník audit)
+
+- **F24. Below 1100 px a card's "Zkontrolovat návrh" opened the review under the Lead's drawer or sheet**
+  *(fixed)*.
+  1. Claim: `openJob` opened the review, or moved to its stage, but never stepped the conversation aside,
+     so the review lay under the open drawer, with the focus held in it.
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:719-724 @ fd04ba89`.
+  3. Reproduction: at 768 or 390 px, a finished `optimize_questionnaire` job's card, "Zkontrolovat návrh":
+     "Použít návrh" and "Zahodit" are hidden behind the drawer (reported by the Dotazník session).
+  4. Consequence: the review could not be read or decided below 1100 px without closing the drawer by hand.
+  5. Fix: in a compact layout `openJob` steps the drawer aside (`view`, a peek with "Zpět k Vedoucímu"), as
+     a Lead's view does; the review takes the focus when it mounts.
+  6. Test: `Workbench.layout.test.tsx` "a card's review steps the drawer aside…"; `lead_stale_journey.mjs`
+     now checks it at 768 and 390 px (it had closed the drawer by hand, which hid the defect).
+
 ### The Lead's map views: the web half (2026-10-26, `feature/lead-map-view-web`; chunk 14)
 
 The freeze lifted (the owner, 2026-10-26). The held `feature/lead-map-view-ops` lands in two parts; this is
