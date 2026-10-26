@@ -226,12 +226,14 @@ follow-up chunk below.
 
 Done (F21): `SystemPanel.tsx` draws Prostředí a verze between Připravenost and Hlášení chyb, from the
 settings document's `deployment` and `population` groups, `GET /population` (each kind's current version by
-its label) and `/config`'s `build.sha`; `lib/system-environment.ts` holds the rows and the copied text
-(`environmentRows`, `diagnosticsText`). A read that fails leaves its rows "nezjištěno". The copy carries only
-those eight rows and the readiness count of the smoke run Připravenost read (one read, shared); a copy the
-browser refuses shows the text to select, never "Zkopírováno". Tests: `system-environment.test.ts`,
-`SystemDataPanels.test.tsx` (F21 cases). The Sestava row is the web client's build; the API's own build stays
-the smoke run's, on Připravenost.
+its label), `/config`'s `build.sha` (Sestava webu) and `GET /health`'s `build.sha` (Sestava API);
+`lib/system-environment.ts` holds the rows and the copied text (`environmentRows`, `healthBuild`,
+`diagnosticsText`). A read that fails, or answers another shape, leaves its rows "nezjištěno". No version
+row: `AIA_VERSION` is set by no deployment, so the document's `version` is the code's default 0.1.0, a
+stamped guess (review of #975). The copy carries only those eight rows and the readiness count of the smoke
+run Připravenost read (one read, shared), offered once that run is read; one live region stays mounted and
+is cleared on each click; a copy the browser refuses selects the text in a read-only field, never
+"Zkopírováno". Tests: `system-environment.test.ts`, `SystemDataPanels.test.tsx` (F21 cases).
 
 **F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
 

@@ -6,12 +6,12 @@
 // holds several organizations (409 deployment_shared) says the server's words; GlitchTip without a
 // token says so, never as an error; a monitor GlitchTip did not report on is unknown, never up.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, type ErrorTracking, type SystemStatus, admin, population, settingsStatus } from "@/lib/api";
+import { ApiError, type ErrorTracking, type SystemStatus, admin, api, population, settingsStatus } from "@/lib/api";
 import { loadConfig } from "@/lib/auth";
-import { type EnvKey, diagnosticsText, environmentRows } from "@/lib/system-environment";
+import { type EnvKey, diagnosticsText, environmentRows, healthBuild } from "@/lib/system-environment";
 import { relative } from "@/lib/format";
 import { FOCUS } from "../../ui/parts";
 import { InfoButton } from "./InfoButton";
@@ -103,24 +103,30 @@ const orNull = <T,>(p: Promise<T>): Promise<T | null> => p.then((v) => v, () => 
 /**
  * Prostředí a verze (F21, prototype v99): what this deployment runs, from the settings document,
  * the population registry and the web's own build (/config), and "Kopírovat diagnostiku": those
- * rows and the readiness count as text, nothing else. A copy the browser refuses shows the text to
- * select by hand, never "Zkopírováno".
+ * rows and the readiness count as text, nothing else, offered once the smoke run was read. A copy the
+ * browser refuses shows the text selected in a read-only field, never "Zkopírováno". One live region
+ * stays mounted and is cleared on each click, so every outcome is announced, a repeated one too.
  */
 function Environment({ system }: { system: Read<SystemStatus> }) {
   const E = `${S}.env`;
   const [rows, setRows] = useState<ReturnType<typeof environmentRows> | null>(null);
   const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
   const [about, setAbout] = useState(false);
+  const field = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     let live = true;
-    void Promise.all([orNull(admin.settings()), orNull(population.registry()), orNull(loadConfig())]).then(([doc, registry, config]) => {
-      if (live) setRows(environmentRows(doc, registry, config?.build?.sha ?? null));
+    void Promise.all([orNull(admin.settings()), orNull(population.registry()), orNull(loadConfig()), orNull(api.health())]).then(([doc, registry, config, health]) => {
+      if (live) setRows(environmentRows(doc, registry, config?.build?.sha ?? null, healthBuild(health)));
     });
     return () => { live = false; };
   }, []);
+  // A refused copy: the text selected where it can be copied by hand.
+  useEffect(() => { if (copy === "failed") { field.current?.focus(); field.current?.select(); } }, [copy]);
   const label = (k: EnvKey) => t(`${E}.row.${k}`);
   const text = rows ? diagnosticsText(rows, label, t(`${E}.unknown`), readyOf(system), t(`${E}.ready`)) : "";
   const doCopy = async () => {
+    // Cleared first, at the end of the click, so the outcome is a change the live region announces.
+    setCopy("idle");
     try {
       if (!navigator.clipboard) throw new Error("no clipboard");
       await navigator.clipboard.writeText(text);
@@ -134,7 +140,7 @@ function Environment({ system }: { system: Read<SystemStatus> }) {
           <h3 id="sys-env-h" className="text-base font-semibold">{t(`${E}.title`)}</h3>
           <InfoButton label={t(`${E}.info`)} controls="sys-env-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${E}.help`)} />
         </div>
-        <button type="button" data-copy-diagnostics disabled={!rows} onClick={() => void doCopy()}
+        <button type="button" data-copy-diagnostics disabled={!rows || system.state === "loading"} onClick={() => void doCopy()}
           className={`inline-flex min-h-9 items-center rounded-sm border border-border-strong px-3 text-sm disabled:opacity-50 ${FOCUS}`}>{t(`${E}.copy`)}</button>
       </div>
       <p id="sys-env-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${E}.help`)}</p>
@@ -148,11 +154,9 @@ function Environment({ system }: { system: Read<SystemStatus> }) {
           ))}
         </dl>
       )}
-      {copy === "copied" ? <p role="status" data-copied className="mt-2 text-xs text-ink-muted">{t(`${E}.copied`)}</p> : null}
-      {copy === "failed" ? <div role="status" className="mt-2">
-        <p className="text-xs text-ink-muted">{t(`${E}.copyFailed`)}</p>
-        <pre data-diagnostics-text className="mt-1 overflow-x-auto rounded-sm border border-border bg-surface px-3 py-2 text-xs">{text}</pre>
-      </div> : null}
+      <p aria-live="polite" data-copy-note className="mt-2 min-h-4 text-xs text-ink-muted">{copy === "copied" ? t(`${E}.copied`) : copy === "failed" ? t(`${E}.copyFailed`) : null}</p>
+      {copy === "failed" ? <textarea ref={field} readOnly data-diagnostics-text aria-label={t(`${E}.copyField`)} value={text} rows={text.split("\n").length}
+        className={`mt-1 w-full resize-none rounded-sm border border-border bg-surface px-3 py-2 font-mono text-xs ${FOCUS}`} /> : null}
     </section>
   );
 }

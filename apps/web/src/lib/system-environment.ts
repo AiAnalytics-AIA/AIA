@@ -1,6 +1,8 @@
 // Stav systému's Prostředí a verze (settings-redesign F21, prototype v99): what this deployment runs,
 // read from what AIA already serves -- the settings document's deployment and population groups,
-// the population registry and the web's own build -- and the diagnostics a person copies from it.
+// the population registry, the API's build (GET /health) and the web's own (/config) -- and the
+// diagnostics a person copies from it. No version number: AIA_VERSION is set by no deployment, so
+// the settings document's "version" is the code's default, a stamped guess (review of #975).
 // Pure. A value a read did not give is unknown, never a guess; nothing secret is ever named here,
 // because only these named, non-secret values are read.
 
@@ -8,10 +10,10 @@ import type { PopulationRegistry, SettingsDocument } from "./api";
 
 /** One line of Prostředí a verze: its label key and its value, null when no read gave it. */
 export type EnvRow = { key: EnvKey; value: string | null };
-export type EnvKey = "environment" | "build" | "api_version" | "database" | "sign_in" | "live" | "static" | "field_rules";
+export type EnvKey = "environment" | "build" | "api_build" | "database" | "sign_in" | "live" | "static" | "field_rules";
 
 /** The rows in v99's order. */
-export const ENV_KEYS: readonly EnvKey[] = ["environment", "build", "api_version", "database", "sign_in", "live", "static", "field_rules"];
+export const ENV_KEYS: readonly EnvKey[] = ["environment", "build", "api_build", "database", "sign_in", "live", "static", "field_rules"];
 
 /** A list the answer carries, or none: an answer of another shape is read as unread, never thrown on. */
 const list = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
@@ -27,6 +29,15 @@ function item(doc: SettingsDocument | null, group: string, key: string): string 
   return null;
 }
 
+/** A commit as its first seven characters; anything but a non-empty string is unknown. */
+const sha = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim().slice(0, 7) : null);
+
+/** The API's build from a GET /health answer of any shape: its build.sha, or unknown. */
+export function healthBuild(health: unknown): string | null {
+  const build = health && typeof health === "object" ? (health as { build?: unknown }).build : null;
+  return build && typeof build === "object" ? sha((build as { sha?: unknown }).sha) : null;
+}
+
 /** The current version of the population of this kind, by its registry label; null when unread. */
 function current(registry: PopulationRegistry | null, kind: "LIVE" | "STATIC"): string | null {
   const record = list<PopulationRegistry["populations"][number]>(registry?.populations).find((p) => p?.kind === kind);
@@ -36,16 +47,16 @@ function current(registry: PopulationRegistry | null, kind: "LIVE" | "STATIC"): 
 }
 
 /**
- * The rows from what was read. `sign_in` is the identity provider, with whether Cognito is configured
- * when the document says so; the build is the commit the web client runs (/config), the API's own
- * being the smoke run's, shown on Připravenost.
+ * The rows from what was read. `sign_in` is the identity provider; `build` the commit the web client
+ * runs (/config) and `api_build` the commit the API process runs (GET /health's build.sha), each its
+ * first seven characters, unknown when the process was not told.
  */
-export function environmentRows(doc: SettingsDocument | null, registry: PopulationRegistry | null, webBuild: string | null): EnvRow[] {
+export function environmentRows(doc: SettingsDocument | null, registry: PopulationRegistry | null, webBuild: string | null, apiBuild: string | null = null): EnvRow[] {
   const provider = item(doc, "deployment", "identity_provider");
   const value: Record<EnvKey, string | null> = {
     environment: item(doc, "deployment", "env"),
-    build: webBuild ? webBuild.slice(0, 7) : null,
-    api_version: item(doc, "deployment", "version"),
+    build: sha(webBuild),
+    api_build: sha(apiBuild),
     database: item(doc, "deployment", "database_backend"),
     sign_in: provider,
     live: current(registry, "LIVE"),

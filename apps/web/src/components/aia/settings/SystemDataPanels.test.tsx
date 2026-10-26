@@ -121,6 +121,7 @@ describe("Stav systému", () => {
         { key: "deployment", items: [item("env", "develop"), item("version", "0.42.0"), item("database_backend", "postgresql"), item("identity_provider", "cognito"), item("cors_origins", ["https://secret.example"])] },
         { key: "population", items: [item("field_policy_version", "v17")] },
       ] }),
+      "GET /api/v1/health": () => ({ status: "ok", service: "aia-api", version: "0.1.0", env: "develop", build: { sha: "f00dcafe0123", built_at: null } }),
       // The registry is not read: its two rows are unknown, said so, never guessed.
     });
     const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
@@ -135,18 +136,32 @@ describe("Stav systému", () => {
     const value = (k: string) => card.querySelector(`[data-env-row="${k}"] dd`)?.textContent;
     expect(value("environment")).toBe("develop");
     expect(value("build")).toBe("a1c4e9f");
-    expect(value("api_version")).toBe("0.42.0");
+    expect(value("api_build")).toBe("f00dcaf");
+    // The version default (the code's, no deployment sets it) is no row (review of #975).
+    expect(card.textContent).not.toContain("0.42.0");
+    expect(card.textContent).not.toContain("0.1.0");
     expect(value("live")).toBe("nezjištěno");
     expect(value("field_rules")).toBe("v17");
     // The card sits between Připravenost and Hlášení chyb.
     const order = [...document.querySelectorAll("[data-system-readiness], [data-system-environment], [data-system-errors]")].map((n) => n.getAttribute("aria-labelledby"));
     expect(order).toEqual(["sys-ready-h", "sys-env-h", "sys-err-h"]);
     await waitFor(() => expect(document.querySelectorAll("[data-smoke-check]")).toHaveLength(2));
-    fireEvent.click(within(card).getByRole("button", { name: "Kopírovat diagnostiku" }));
-    expect(await within(card).findByText("Zkopírováno.")).toBeTruthy();
+    // One live region, mounted before any click, so the outcome is a change it announces.
+    const note = card.querySelector("[data-copy-note]") as HTMLElement;
+    expect(note.getAttribute("aria-live")).toBe("polite");
+    expect(note.textContent).toBe("");
+    const copyButton = within(card).getByRole("button", { name: "Kopírovat diagnostiku" });
+    fireEvent.click(copyButton);
+    await waitFor(() => expect(note.textContent).toBe("Zkopírováno."));
+    // A second click clears it first, then says it again: the same node, a new announcement.
+    fireEvent.click(copyButton);
+    expect(note.textContent).toBe("");
+    await waitFor(() => expect(note.textContent).toBe("Zkopírováno."));
+    expect(card.querySelector("[data-copy-note]")).toBe(note);
+    expect(writeText).toHaveBeenCalledTimes(2);
     const copied = writeText.mock.calls[0]?.[0] ?? "";
     expect(copied.split("\n")).toEqual([
-      "Prostředí: develop", "Sestava webu: a1c4e9f", "Verze API: 0.42.0", "Databáze: postgresql", "Přihlášení: cognito",
+      "Prostředí: develop", "Sestava webu: a1c4e9f", "Sestava API: f00dcaf", "Databáze: postgresql", "Přihlášení: cognito",
       "Populace LIVE: nezjištěno", "Populace STATIC: nezjištěno", "Pravidla polí: v17", "Připravenost: 1/2",
     ]);
     expect(copied).not.toContain("secret.example");
@@ -179,14 +194,22 @@ describe("Stav systému", () => {
     const button = await screen.findByRole("button", { name: "Kopírovat diagnostiku" });
     await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(button);
-    const pre = await waitFor(() => {
-      const n = document.querySelector("[data-diagnostics-text]");
+    const field = await waitFor(() => {
+      const n = document.querySelector("[data-diagnostics-text]") as HTMLTextAreaElement | null;
       if (!n) throw new Error("no text");
       return n;
     });
     // Nothing was read: every row unknown, and the readiness count too.
-    expect(pre.textContent).toContain("Prostředí: nezjištěno");
-    expect(pre.textContent).toContain("Připravenost: nezjištěno");
+    expect(field.value).toContain("Prostředí: nezjištěno");
+    expect(field.value).toContain("Sestava API: nezjištěno");
+    expect(field.value).toContain("Připravenost: nezjištěno");
+    // Read only, focused and selected, to copy by hand; outside the live region, which says why.
+    expect(field.readOnly).toBe(true);
+    expect(document.activeElement).toBe(field);
+    expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
+    const note = document.querySelector("[data-copy-note]") as HTMLElement;
+    expect(note.contains(field)).toBe(false);
+    expect(note.textContent).toMatch(/nedovolil/);
     expect(screen.queryByText("Zkopírováno.")).toBeNull();
   });
 });
