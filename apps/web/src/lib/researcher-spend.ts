@@ -132,11 +132,16 @@ export function nearLimit(s: { budget_usd: number | null; spent_usd: number | nu
   return s.spent_usd / s.budget_usd >= NEAR_LIMIT;
 }
 
-/** How many studies are near their budget, and how many could not be judged (costs hidden or unread). */
+/** A study that accepts no new work: its budget can no longer run out (domain/scope.py accepts_work). */
+const CLOSED = new Set(["DELIVERED", "ARCHIVED", "CANCELLED"]);
+
+/** How many open studies are near their budget, and how many could not be judged (costs hidden or
+ *  unread). A closed study is not counted, as the server's own tally does not count it. */
 export type NearLimitTally = { near: number; unknown: number };
-export function nearLimitTally(rows: readonly ({ ok: true; data: { budget_usd: number | null; spent_usd: number | null } } | { ok: false })[]): NearLimitTally {
+export function nearLimitTally(rows: readonly ({ ok: true; data: { budget_usd: number | null; spent_usd: number | null; status?: string } } | { ok: false })[]): NearLimitTally {
   let near = 0, unknown = 0;
   for (const r of rows) {
+    if (r.ok && r.data.status && CLOSED.has(r.data.status)) continue;
     if (!r.ok || r.data.budget_usd === null || r.data.spent_usd === null) unknown++;
     else if (nearLimit(r.data)) near++;
   }

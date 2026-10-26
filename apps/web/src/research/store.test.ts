@@ -277,6 +277,24 @@ describe("ResearchStore", () => {
     expect(bodies).toHaveLength(1);
   });
 
+  it("says a change it could not save when let go while the person stays, never dropping it in silence", async () => {
+    // The study closed under the store: the save of what was typed is refused.
+    const { save } = aia(() => new ApiError(403, "study_closed", "closed", null));
+    const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2, save: { kind: "saved" } }, "STU-1", { save });
+    store.update(({ project }) => ({ project: { ...project, goal: "Rozepsáno" } }));
+    const refused: unknown[] = [];
+    store.dispose((e) => refused.push(e));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(refused).toHaveLength(1);
+    expect((refused[0] as ApiError).code).toBe("study_closed");
+    // A change already refused before the store was let go is said too.
+    const again: unknown[] = [];
+    const closed = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2, save: { kind: "closed" } }, "STU-1", { save });
+    closed.dispose((e) => again.push(e));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(again).toHaveLength(1);
+  });
+
   it("leaves nothing to save when nothing changed", async () => {
     const { bodies, save } = aia(() => saved(1));
     const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2, save: { kind: "saved" } }, "STU-1", { save });

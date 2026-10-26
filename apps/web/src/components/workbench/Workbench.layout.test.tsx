@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -344,6 +344,32 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(document.querySelector(".shead__state")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+
+  it("keeps the study's status in the header, and under 768 px moves it into the menu's 44 px items (F7, I11)", async () => {
+    const refreshed: number[] = [];
+    const base = vi.mocked(fetch);
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).endsWith("/studies/STU-1/status") && init?.method === "PUT") { sent.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ study_id: "STU-1", status: "ACTIVE" })); }
+      return base(url, init);
+    }));
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={{ ...TEST_FRAME, status: "DRAFT", refreshStudy: async () => { refreshed.push(1); } }} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null}
+        reload={vi.fn()} confirm={vi.fn(async () => true)} onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    expect(screen.getByRole("button", { name: "Stav: Rozpracováno" })).toBeTruthy();
+    setWidth(390);
+    expect(screen.queryByRole("button", { name: "Stav: Rozpracováno" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    const menu = screen.getByRole("menu", { name: "Nabídka" });
+    expect(menu.textContent).toContain("Stav: Rozpracováno");
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Změnit stav na Aktivní" }));
+    await waitFor(() => expect(sent).toEqual([{ status: "ACTIVE" }]));
+    await waitFor(() => expect(refreshed).toEqual([1]));
   });
 });
 
