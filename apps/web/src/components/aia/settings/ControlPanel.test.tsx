@@ -697,19 +697,40 @@ const elsewhere = () => calls.filter((c) => !c.url.startsWith("/api/v1/") && c.u
 const OVERCLAIM = /připojen|funkční spojení|spojení funguje|(?<!ne)ověřen[oaáý]|healthy|connected|\bverified\b/i;
 const LOGIN = /přihlaste se|zadejte (api )?klíč|api klíč se zadává|subscription login|ANTHROPIC_API_KEY/i;
 
-describe("the reference", () => {
+describe("Stav systému's technical values (once Reference, F17)", () => {
   it("shows a value found by search in a group with its own panel, its source alone behind technical details", async () => {
     const doc = DOC();
     doc.groups = [...doc.groups, { key: "workflow", items: [item("lease_seconds", 60, "CODE", "aia_core.domain.workflow:LEASE_SECONDS", "s")] }];
     api({ "GET /api/v1/settings": () => doc });
     render(<ControlPanel />);
-    await openSection("Reference");
-    const panel = panelOf("Reference");
+    await openSection("Stav systému");
+    const panel = panelOf("Stav systému");
     fireEvent.change(await within(panel).findByRole("searchbox", { name: "Hledat technickou hodnotu" }), { target: { value: "lease" } });
     const row = await waitFor(() => { const r = panel.querySelector('[data-setting="lease_seconds"]') as HTMLElement | null; if (!r) throw new Error("no row"); return r; });
     // The row is shown with technical details off; only its source waits for them.
     expect(row.closest("[hidden]")).toBeNull();
     expect(within(row).queryByText("aia_core.domain.workflow:LEASE_SECONDS")).toBeNull();
+  });
+
+  it("drops what is not the system's state, the evidence thresholds and the simulation constants, and keeps their invariants", async () => {
+    // Nigel, 25 Oct 2026: "merge Reference into it, drop what is irrelevant". The thresholds a run
+    // applies are Metodika's (Práh zobrazení); Simulace is hidden for the MVP.
+    const doc = DOC();
+    doc.groups = [...doc.groups,
+      { key: "evidence", items: [item("min_cell", 30, "CODE", "aia_core.domain.evidence:REFERENCE_THRESHOLDS", "n"), item("no_invented_certainty", true, "INVARIANT", "ARCHITECTURE.md §10")] },
+      { key: "simulation", items: [item("default_spec_seed", 7, "CODE", "aia_core.domain.simulation:DEFAULT_SPEC_SEED"), item("no_visualisation_mutation", true, "INVARIANT", "ARCHITECTURE.md §10")] },
+    ];
+    api({ "GET /api/v1/settings": () => doc });
+    render(<ControlPanel />);
+    await openSection("Stav systému");
+    const panel = panelOf("Stav systému");
+    await within(panel).findByText("Prostředí");
+    for (const key of ["min_cell", "default_spec_seed"]) expect(document.querySelector(`[data-setting="${key}"]`)).toBeNull();
+    for (const id of ["evidence", "simulation"]) expect(section(id)).toBeNull();
+    // Not taken for a group the page does not know either.
+    expect(panel.querySelector('[data-reference-category="evidence"], [data-reference-category="simulation"]')).toBeNull();
+    for (const key of ["no_invented_certainty", "no_visualisation_mutation"]) expect(section("invariants").querySelector(`[data-setting="${key}"]`)).toBeTruthy();
+    expect(within(panel).getByText(/Prahy podpory jsou v Metodice → Práh zobrazení/)).toBeTruthy();
   });
 });
 
@@ -1042,7 +1063,7 @@ const BREADCRUMBS = "Kde jste";
 const SECTION_IDS: Record<string, string> = {
   "Metodika": "methodology", "Systémové prompty": "prompts", "Deep Research": "deep_research", "AI běh": "ai",
   "Přístup a schvalování": "access", "Studie a rozpočty": "studies", "Audit": "audit", "Stav systému": "system",
-  "Reference": "reference", "Správa dat": "data",
+  "Správa dat": "data",
 };
 const panelOf = (name: string) => document.getElementById(`panel-${SECTION_IDS[name]}`) as HTMLElement;
 const isOpen = (name: string) => !!panelOf(name) && !panelOf(name).hidden;
@@ -1064,16 +1085,16 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("draws all ten sections, no tab list of its own (prototype v54), and opens on methodology", async () => {
+  it("draws all nine sections, Reference folded into Stav systému (F17), no tab list of its own (prototype v54), and opens on methodology", async () => {
     api();
     render(<ControlPanel />);
     await sectionsDrawn();
     expect(screen.queryByRole("tablist", { name: "Oddíly nastavení" })).toBeNull();
     expect([...document.querySelectorAll("section[data-section]")].map((x) => x.getAttribute("data-section"))).toEqual([
-      "methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data",
+      "methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "data",
     ]);
     expect(isOpen("Metodika")).toBe(true);
-    for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
+    for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Správa dat"]) {
       expect(isOpen(other)).toBe(false);
     }
     // Each section is named by its own h1.
@@ -1103,7 +1124,7 @@ describe("the settings tabs", () => {
     expect(window.location.hash).toBe("#data");
   });
 
-  it("puts each group where its tab says, and the read-only material under Reference", async () => {
+  it("puts each group where its tab says, and the read-only material in Stav systému", async () => {
     api();
     render(<ControlPanel />);
     await sectionsDrawn();
@@ -1115,10 +1136,15 @@ describe("the settings tabs", () => {
     expect(panelOf("Přístup a schvalování").contains(section("roles"))).toBe(true);
     expect(panelOf("Studie a rozpočty").contains(section("studies"))).toBe(true);
     expect(panelOf("Audit").contains(section("audit"))).toBe(true);
-    const reference = panelOf("Reference");
-    for (const id of ["deployment", "invariants"]) expect(reference.contains(section(id))).toBe(true);
-    // A group the page has no tab for lands in Reference rather than disappearing.
-    expect(within(reference).getByText("something new")).toBeTruthy();
+    const system = panelOf("Stav systému");
+    for (const id of ["deployment", "invariants"]) expect(system.contains(section(id))).toBe(true);
+    // A group the page has no tab for lands in Stav systému rather than disappearing.
+    expect(within(system).getByText("something new")).toBeTruthy();
+    // Under it, after the readiness and the error reporting, which wait for the section's first visit.
+    expect(system.querySelector("[data-system-readiness]")).toBeNull();
+    await openSection("Stav systému");
+    const order = [...system.querySelectorAll("[data-system-readiness], [data-system-errors], [data-reference-filters]")].map((n) => n.getAttribute("data-system-readiness") !== null ? "readiness" : n.getAttribute("data-system-errors") !== null ? "errors" : "values");
+    expect(order).toEqual(["readiness", "errors", "values"]);
   });
 
   it("heads each tab as the prototype does: a serif h1, one paragraph, who may change it in chips, and no disclosure", async () => {
@@ -1127,7 +1153,7 @@ describe("the settings tabs", () => {
     await sectionsDrawn();
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
     const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => `${c.textContent}|${c.getAttribute("data-chip-tone")}`);
-    for (const name of ["Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
+    for (const name of ["Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Správa dat"]) {
       await openSection(name);
       const head = panelOf(name).querySelector("[data-tab-header]") as HTMLElement;
       expect(within(head).getByRole("heading", { level: 1 }).textContent).toBe(name);
@@ -1151,9 +1177,8 @@ describe("the settings tabs", () => {
     expect(chips("Stav systému")).toEqual(["Spravuje nasazení|deployment"]);
     expect(chips("Správa dat")).toEqual(["Jen vlastník nebo správce|plain"]);
     expect(chips("Audit")).toEqual([]);
-    expect(chips("Reference")).toEqual([]);
-    // The reference names its groups up front as categories with their counts.
-    const cats = panelOf("Reference").querySelector("[data-reference-categories]") as HTMLElement;
+    // Stav systému names its technical values' groups up front as categories with their counts.
+    const cats = panelOf("Stav systému").querySelector("[data-reference-categories]") as HTMLElement;
     expect([...cats.querySelectorAll("[data-reference-category]")].map((b) => b.getAttribute("data-reference-category"))).toContain("invariants");
   });
 
@@ -1186,15 +1211,15 @@ describe("the settings tabs", () => {
     expect((await within(access).findByRole("radiogroup", { name: "Samoschválení organizace" })).getAttribute("data-look")).toBe("segmented");
     await openSection("Audit");
     expect(within(panelOf("Audit")).getByRole("radiogroup", { name: "Období" }).getAttribute("data-look")).toBe("segmented");
-    await openSection("Reference");
-    expect(within(panelOf("Reference")).getByRole("radiogroup", { name: "Kdo mění" }).getAttribute("data-look")).toBe("segmented");
+    await openSection("Stav systému");
+    expect(within(panelOf("Stav systému")).getByRole("radiogroup", { name: "Kdo mění" }).getAttribute("data-look")).toBe("segmented");
   });
 
-  it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
+  it("reads the technical values as tables by category, filters by category and by who changes a value, and says what each means", async () => {
     api();
     render(<ControlPanel />);
-    await openSection("Reference");
-    const reference = panelOf("Reference");
+    await openSection("Stav systému");
+    const reference = panelOf("Stav systému").querySelector("[data-reference-filters]")?.parentElement as HTMLElement;
     const env = (await within(reference).findByText("Prostředí")).closest("tr") as HTMLElement;
     expect(env.getAttribute("data-owner")).toBe("deployment");
     expect(within(env).getByText(/Rozlišuje vývojové/)).toBeTruthy();
@@ -1208,21 +1233,21 @@ describe("the settings tabs", () => {
     fireEvent.click(reference.querySelector('[data-reference-category="invariants"]') as HTMLElement);
     expect(section("deployment")).toBeNull();
     expect(reference.contains(section("invariants"))).toBe(true);
-    expect(within(reference).getByRole("status").textContent).toMatch(/^Zobrazeno \d+ z \d+ hodnot$/);
+    expect(within(reference.querySelector("[data-reference-filters]") as HTMLElement).getByRole("status").textContent).toMatch(/^Zobrazeno \d+ z \d+ hodnot$/);
   });
 
-  it("lists each Reference value once, invariants under Invarianty only, and counts each chip under the filters", async () => {
+  it("lists each technical value once, invariants under Invarianty only, and counts each chip under the filters", async () => {
     // An invariant in a reference group (as residency, workflow and evidence carry them).
     const doc = DOC();
     doc.groups = doc.groups.map((g) => (g.key === "deployment" ? { ...g, items: [...g.items, { key: "eu_residency", value: true, control: "INVARIANT" as const, source: "ADR 0008", unit: null }] } : g));
     api({ "GET /api/v1/settings": () => doc });
     render(<ControlPanel />);
-    await openSection("Reference");
-    const reference = panelOf("Reference");
+    await openSection("Stav systému");
+    const reference = panelOf("Stav systému").querySelector("[data-reference-filters]")?.parentElement as HTMLElement;
     await within(reference).findByText("Prostředí");
     const keys = [...reference.querySelectorAll("tr[data-setting]")].map((r) => r.getAttribute("data-setting"));
     expect(keys.length).toBe(new Set(keys).size);
-    const total = Number(/z (\d+) hodnot/.exec(within(reference).getByRole("status").textContent ?? "")?.[1]);
+    const total = Number(/z (\d+) hodnot/.exec(within(reference.querySelector("[data-reference-filters]") as HTMLElement).getByRole("status").textContent ?? "")?.[1]);
     expect(total).toBe(keys.length);
     expect(reference.querySelector('[data-reference-category="all"]')?.textContent).toBe(`Vše${total}`);
     // Under Kdo mění, a chip counts only what its group then shows.
@@ -1251,11 +1276,13 @@ describe("the settings tabs", () => {
   });
 
   it("opens the tab a link names, and records the one you choose", async () => {
-    window.history.replaceState(null, "", "/app/settings#reference");
+    window.history.replaceState(null, "", "/app/settings#audit");
     api();
     render(<ControlPanel />);
     await sectionsDrawn();
-    await waitFor(() => expect(isOpen("Reference")).toBe(true));
+    await waitFor(() => expect(isOpen("Audit")).toBe(true));
+    await openSection("Studie a rozpočty");
+    expect(window.location.hash).toBe("#studies");
     await openSection("Audit");
     expect(window.location.hash).toBe("#audit");
   });
@@ -1305,11 +1332,11 @@ describe("the settings tabs", () => {
     await waitFor(() => expect(called("GET", "/api/v1/deep-research/settings")).toHaveLength(1));
     expect(panelOf("Deep Research").contains(section("deep_research"))).toBe(true);
     // The settings document's own group says how the values are set and what no value changes.
-    // It is drawn on this tab, not again in Reference (whose invariants list holds every rail).
+    // It is drawn on this tab, not again in Stav systému (whose invariants list holds every rail).
     const group = within(panelOf("Deep Research"));
     expect(group.getByText(/Jen veřejné zdroje: robots.txt platí/)).toBeTruthy();
     expect(group.getByText(/Pravidla Deep Research/)).toBeTruthy();
-    expect(within(panelOf("Reference")).queryByText(/Pravidla Deep Research/)).toBeNull();
+    expect(within(panelOf("Stav systému")).queryByText(/Pravidla Deep Research/)).toBeNull();
   });
 });
 
@@ -1318,9 +1345,10 @@ it("follows changed settings hashes and preserves the framework's navigation sta
   api(); render(<ControlPanel />); await sectionsDrawn();
   window.history.replaceState({ __NA: true, marker: "preserve" }, "", "/app/settings");
   await openSection("Audit"); expect(window.history.state).toMatchObject({ __NA: true, marker: "preserve" });
+  // An old link to Reference, folded into Stav systému (F17), opens Stav systému.
   window.history.replaceState(window.history.state, "", "/app/settings#reference");
   fireEvent(window, new HashChangeEvent("hashchange"));
-  await waitFor(() => expect(isOpen("Reference")).toBe(true));
+  await waitFor(() => expect(isOpen("Stav systému")).toBe(true));
 });
 
  it("explains what a setting does, keeps its technical source optional and formats money for a reader", async () => {

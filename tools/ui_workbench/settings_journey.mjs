@@ -52,8 +52,8 @@ try {
   await page.locator("body").press("Meta+k"); await page.waitForTimeout(200);
   assert.equal(await menu.count(), 0, "⌘K is not this platform's shortcut");
   await page.locator("body").press("Control+k"); await menu.waitFor();
-  // Ten sections in three columns, each with its line.
-  assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 10);
+  // Nine sections in three columns, each with its line (Reference is part of Stav systému, F17).
+  assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 9);
   await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
   assert(await menuButton().evaluate((b) => b === document.activeElement), "Esc gives the focus back to the menu's button");
   // The shortcut again closes it, the focus back on the button too.
@@ -95,12 +95,13 @@ try {
     await measure(`section menu open at ${width}`);
     const box = await menu.boundingBox(); assert(box && box.x >= 0 && box.x + box.width <= width + 1, `section menu inside the viewport at ${width}: ${JSON.stringify(box)}`);
     const lines = await menu.locator("[data-section-link] > span > span:nth-child(2)").evaluateAll((spans) => spans.map((s) => s.offsetParent !== null && s.textContent.trim() !== ""));
-    assert.deepEqual(lines, Array(10).fill(true), `every section's line at ${width}`);
+    assert.deepEqual(lines, Array(9).fill(true), `every section's line at ${width}`);
     await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   checks.push("The open section menu stays inside the viewport at 1440, 1330, 1280, 1024, 768 and 390, every section with its line");
-  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
+  // Nine sections: Reference is part of Stav systému (settings-redesign F17).
+  for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "data"]) {
     const panel = await tab(id); await panel.locator("[data-tab-header] h1").waitFor();
     if (id === "ai") {
       for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
@@ -122,6 +123,10 @@ try {
     if (id === "system") {
       await page.locator("[data-system-readiness] :is([data-not-yet], [data-smoke-check], [data-smoke-none], [role=alert])").first().waitFor();
       await page.locator("[data-system-errors] :is([data-not-yet], [data-glitchtip-unconfigured], h4, [role=alert])").first().waitFor();
+      // The technical values under them, once Reference (F17).
+      await page.locator("#panel-system [data-reference-filters]").waitFor();
+      assert.equal(await page.locator("#panel-system #set-deployment").count(), 1, "system: the deployment's values");
+      assert.equal(await page.locator('#panel-system :is(#set-evidence, #set-simulation)').count(), 0, "system: the evidence thresholds and simulation constants are dropped");
     }
     if (id === "data") {
       await page.locator("[data-kept-records] :is([data-not-yet], table, [role=alert])").first().waitFor();
@@ -129,9 +134,9 @@ try {
     }
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All ten settings sections load and fit desktop/tablet/phone without page overflow");
+  checks.push("All nine settings sections load and fit desktop/tablet/phone without page overflow");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
-  for (const id of ["ai", "access", "studies", "audit", "reference"]) {
+  for (const id of ["ai", "access", "studies", "audit", "system"]) {
     const panel = await tab(id);
     assert.equal(await panel.locator("details, summary").count(), 0, `${id}: a disclosure is back`);
     // The prototype's head (v51): the tab's name as h1 and one paragraph; who may change it in chips.
@@ -140,19 +145,19 @@ try {
     for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }
-  const techPanel = await tab("reference");
-  assert(await techPanel.locator("[data-reference-category]").count() > 2, "reference: categories");
+  const techPanel = await tab("system");
+  assert(await techPanel.locator("[data-reference-category]").count() > 2, "system values: categories");
   await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Pevné pravidlo", exact: true }).click();
-  assert.equal(await techPanel.locator('[data-owner="deployment"]').count(), 0, "reference: the owner filter");
+  assert.equal(await techPanel.locator('[data-owner="deployment"]').count(), 0, "system values: the owner filter");
   await techPanel.getByRole("radiogroup", { name: "Kdo mění" }).getByRole("radio", { name: "Vše", exact: true }).click(); const techSwitch = page.locator("[data-technical-switch]").getByRole("switch", { name: "Technické údaje", exact: true });
   const t0 = Date.now(); await techSwitch.click(); await techPanel.locator("[data-technical]").first().waitFor(); const techMs = Date.now() - t0; console.log(`technical details: ${techMs} ms`);
-  assert(techMs < 400, `technical details: ${techMs} ms`); await widths("reference with technical details"); await screenshot("reference-technical");
+  assert(techMs < 400, `technical details: ${techMs} ms`); await widths("system values with technical details"); await screenshot("system-technical");
   await techSwitch.click(); assert.equal(await techPanel.locator("[data-technical]").count(), 0);
   checks.push(`Settings tabs carry no disclosures; one switch shows every technical detail in ${techMs} ms (< 400 ms)`);
-  await tab("reference"); await page.getByRole("searchbox", { name: "Hledat technickou hodnotu" }).fill("databáze");
+  await tab("system"); await page.getByRole("searchbox", { name: "Hledat technickou hodnotu" }).fill("databáze");
   assert.equal(await page.locator('[data-setting="database_backend"]').count(), 1);
   assert(await page.getByText("Typ databáze, ve které AIA ukládá pracovní obsah a historii.").isVisible());
-  checks.push("Reference search finds purpose as well as identifiers; technical settings explain their ownership");
+  checks.push("Stav systému's technical values: the search finds purpose as well as identifiers; technical settings explain their ownership");
   await tab("access");
   // A client's posture and wallet ceiling are read here (#853) and set on its profile (D-17): before
   // the route is deployed each row says so; after, each row its posture. Never a ceiling of 0.
