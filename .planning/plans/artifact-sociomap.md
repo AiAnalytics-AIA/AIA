@@ -15,7 +15,7 @@ chunks:
   - "[x] SOC12. No amber notice frame on the stage: amber means only a person is waited on"
   - "[x] SOC13. The map's overlays: one bar with popovers, a view rail bottom right, the legend as a chip, the side sheet beside the map, fading while the map moves, keys"
   - "[x] SOC11b. A copy pass on the stage: Stress-1, PROGRESS D6, Top vztahy, a dead key (reopens SOC11; spec szz S1; W2)"
-  - "[ ] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
+  - "[x] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -331,6 +331,12 @@ follow-up chunk below.
   methodologist's); Zpráva's map caption (`ReportDocumentView.tsx:655`) is Zpráva's.
 
 **SOC14. Segments are descriptive** (spec `szz/S2`; W2, lane F). Beside SOC6.
+- Delivered (2026-10-26): under the found segments, below the map (`MapExplained`), "Skupiny jen popisují, jak se
+  respondenti na této mapě liší; srovnání segmentů AIA zatím neumí a analýza s nimi nepracuje.", matching
+  readiness's `segments_unavailable`. A map without segments says nothing of them. Test: `MapExplained.test.tsx` ›
+  "the taste segments, as what they are". The same sentence in the `-5` panel's own segment legend
+  (`ObjectMapPanel.tsx` `segmentLines`, also drawn into the PNG export's legend card) is the methodology owner's
+  call, inside the panel's drawing: put to him, not built.
 
 **Notes.**
 - SOC4 carries `szz/S3`; SOC5 `szz/S4` (with `artifact-report#RPT10`, `lead-orchestration#LO5a.3`); SOC8 `szz/S6`.
