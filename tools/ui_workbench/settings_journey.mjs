@@ -47,6 +47,9 @@ try {
   // shortcut (Chromium on Linux: Ctrl+K; ⌘K is Apple's and does nothing here).
   assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).count(), 0, "no tab column");
   const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
+  // The chord is named after mount (the platform is read in the browser): wait for the hydrated
+  // button, then hold it to this platform's chord. Under `next dev` the button is drawn first.
+  await page.locator("[data-section-menu] > button[aria-keyshortcuts]").waitFor();
   assert.equal(await menuButton().getAttribute("aria-keyshortcuts"), "Control+K");
   assert.equal(await page.locator("[data-section-menu] [data-shortcut]").textContent(), "Ctrl K");
   await page.locator("body").press("Meta+k"); await page.waitForTimeout(200);
