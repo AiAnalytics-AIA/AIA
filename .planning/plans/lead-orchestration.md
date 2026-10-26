@@ -1555,6 +1555,12 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
     for a confirmation".
   - *Stale comments* (P3, taken): `tables.py`'s last CHECK migration and `StudyWallets.charge`'s
     authorities name M3b and `lead_card`.
+  - *Codex, fourth round: the panel before a questionnaire exists* (P2). Dotazník drew its
+    `DeepResearchPanel` only inside the editor, so a design card approved on a goal alone opened
+    a page with no progress, cancel or review for its run. `DesignResearchBeforeEditor` shows
+    the panel outside the editor once the study has a design run or one is announced. Test:
+    `QuestionnaireStep.test.tsx` "shows a design run's Deep Research before any questionnaire
+    exists" (fails without it).
   - Not taken: the price on the card (a follow-up for every paid card alike); narrowing
     `deep_research_start_errors` to the card branch (a hypothesis about a future path; the
     Deep Research card reads the store before it writes); `no_wallet`'s words (kept for
