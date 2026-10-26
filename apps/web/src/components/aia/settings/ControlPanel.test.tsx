@@ -295,6 +295,50 @@ describe("the settings control panel", () => {
     expect(names.textContent).toContain("Od 10 USD, nejvýš rozpočet studie.");
   });
 
+  it("filters the studies by client and opens what each money column is from its ⓘ, a real button (F16)", async () => {
+    api({
+      "GET /api/v1/studies": () => [STUDY("STU-1", "Vnímání značky"), { ...STUDY("STU-2", "Cizí studie"), client_id: "CLI-b" }],
+      "GET /api/v1/clients": () => [
+        { client_id: "CLI-a", slug: "a", name: "Klient A", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
+        { client_id: "CLI-b", slug: "b", name: "Klient B", status: "ACTIVE", reference: "", study_count: 1, created_at: null },
+      ],
+    });
+    render(<ControlPanel />);
+    await screen.findByText("Vnímání značky");
+    const filter = document.querySelector("[data-client-filter]") as HTMLSelectElement;
+    expect([...filter.options].map((o) => o.textContent)).toEqual(["Všichni klienti (2)", "Klient A (1)", "Klient B (1)"]);
+    const row = (id: string) => document.querySelector(`[data-study="${id}"]`) as HTMLElement;
+    fireEvent.change(filter, { target: { value: "CLI-b" } });
+    expect(row("STU-1").hidden).toBe(true);
+    expect(row("STU-2").hidden).toBe(false);
+    // The filter and the search together; a hidden row keeps what was typed in it (it is not unmounted).
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta", hidden: true }), { target: { value: "Vnímání" } });
+    expect(row("STU-2").hidden).toBe(true);
+    fireEvent.change(filter, { target: { value: "" } });
+    expect(row("STU-1").hidden).toBe(false);
+    // Each money column's ⓘ is a button that opens the four names; the paragraph under the table is gone.
+    const names = document.querySelector("[data-money-names]") as HTMLElement;
+    const info = screen.getByRole("button", { name: "Co je Práh potvrzení", hidden: true });
+    expect(info.getAttribute("aria-controls")).toBe("set-studies-money");
+    fireEvent.click(info);
+    expect(names.hidden).toBe(false);
+    expect(names.textContent).toContain("Rozpočet studie smí měnit každý výzkumník");
+    expect(screen.getByRole("heading", { level: 2, name: /^Studie/, hidden: true })).toBeTruthy();
+  });
+
+  it("never hides a study by a client filter that has no control left, and reads an unserved remainder as unknown (review of #966)", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: 40, remaining_usd: null }) });
+    render(<ControlPanel />);
+    await screen.findByText("Vnímání značky");
+    // Both studies are one client's: no filter is drawn, and none hides a row.
+    expect(document.querySelector("[data-client-filter]")).toBeNull();
+    expect((document.querySelector('[data-study="STU-1"]') as HTMLElement).hidden).toBe(false);
+    // The server gave no remainder: the line says unknown, never 60 USD worked out in the browser.
+    const line = document.querySelector('[data-study="STU-1"] [data-spend-line]') as HTMLElement;
+    expect(line.textContent).toContain("zbývá: nezjištěno");
+    expect(line.textContent).not.toMatch(/60/);
+  });
+
   it("draws no spend for a study whose spend is unknown, never a 0 beside its budget", async () => {
     api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: null, remaining_usd: null }) });
     render(<ControlPanel />);

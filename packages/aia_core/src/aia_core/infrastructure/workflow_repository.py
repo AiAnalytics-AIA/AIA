@@ -745,6 +745,7 @@ class WorkflowRepository:
         steps: bool = False,
         run_ids: Sequence[str] | None = None,
         exclude_workflow_types: Sequence[str] = (),
+        statuses: Sequence[WorkflowRunStatus] | None = None,
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
@@ -755,6 +756,7 @@ class WorkflowRepository:
         time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
         those runs (still within the project and the scope). ``exclude_workflow_types``
         leaves runs of those types out, in the query, so a page is never short of them.
+        ``statuses`` keeps only runs in those states, in the query too, before the limit.
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
@@ -763,6 +765,8 @@ class WorkflowRepository:
             filters.append(WorkflowRunRow.workflow_type.not_in(list(exclude_workflow_types)))
         if run_ids is not None:
             filters.append(WorkflowRunRow.run_id.in_(list(run_ids)))
+        if statuses is not None:
+            filters.append(WorkflowRunRow.status.in_([s.value for s in statuses]))
         if key_prefix is not None:
             filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
         rows = self._session.scalars(

@@ -10,7 +10,7 @@
 import { tv } from "@/i18n/t";
 
 import { type Template, type Json, PROVIDER_FORCED, type ResearchProject, defaultsMerge } from "./model";
-import { keepPointLabels } from "./scale-labels";
+import { keepPointLabels, readRange } from "./scale-labels";
 import type { Analysis } from "./store";
 
 type Obj = { [k: string]: Json };
@@ -108,8 +108,17 @@ export function setQuestionnairePath(p: ResearchProject, x: QuestionnairePath): 
  * Dotazník's editor numbers it (Q1…, Sada 1…): questions, and every section that is not questions,
  * each counted on its own. */
 export type PreviewItem =
-  | { kind: "question"; index: number; number: number; text: string; typ: string; options: string[]; scale: [string, string] | null }
-  | { kind: "battery"; index: number; number: number; title: string; rows: string[]; low: string; high: string };
+  | {
+      kind: "question"; index: number; number: number; text: string; typ: string; options: string[]; scale: [string, string] | null;
+      /** AIA's additions (artifact-questionnaire QST11): the stored range the scale is drawn at (18.6.6 drew
+       * every scale 1-10; null for a range the editor would not read, never guessed), the options past the
+       * eight shown, and whether the question has a display condition. */
+      range: readonly [number, number] | null; moreOptions: number; conditional: boolean;
+    }
+  | { kind: "battery"; index: number; number: number; title: string; rows: string[]; low: string; high: string; objects: number; range: readonly [number, number] | null };
+
+/** How many items the preview draws, 18.6.6's fourteen. */
+export const PREVIEW_ITEMS = 14;
 
 /** questionnaireRespondentPreview1780: the first fourteen items as a respondent sees them. */
 export function respondentPreview(p: ResearchProject): PreviewItem[] {
@@ -121,15 +130,22 @@ export function respondentPreview(p: ResearchProject): PreviewItem[] {
     if (sec.type === "questions") {
       for (const q of sec.questions || []) {
         parts.push({ ...previewQuestion(q, i++), number: ++questions });
-        if (parts.length >= 14) break;
+        if (parts.length >= PREVIEW_ITEMS) break;
       }
     } else {
       sets++;
       if (sec.type === "object_battery") parts.push({ ...previewBattery(sec, i++), number: sets });
     }
-    if (parts.length >= 14) break;
+    if (parts.length >= PREVIEW_ITEMS) break;
   }
   return parts;
+}
+
+/** The items a respondent answers that the preview's fourteen leave out (QST11): every question, and every
+ * tracked set, counted as respondentPreview reads them. */
+export function previewLeftOut(p: ResearchProject, shown: number): number {
+  const total = sections(p).reduce((n, sec) => n + (sec.type === "questions" ? (sec.questions || []).length : sec.type === "object_battery" ? 1 : 0), 0);
+  return Math.max(0, total - shown);
 }
 
 /** previewQuestion1780 */
@@ -137,16 +153,23 @@ export function previewQuestion(q: Question, index: number): Omit<Extract<Previe
   const typ = String(q?.typ || "vyber");
   let options: string[] = [];
   let scale: [string, string] | null = null;
-  if (typ === "vyber" || typ === "multi") options = (q.kategorie || q.volby || []).slice(0, 8).map(String);
-  else if (typ === "skala") {
+  let range: readonly [number, number] | null = null;
+  let moreOptions = 0;
+  if (typ === "vyber" || typ === "multi") {
+    const all = q.kategorie || q.volby || [];
+    options = all.slice(0, 8).map(String);
+    moreOptions = Math.max(0, all.length - options.length);
+  } else if (typ === "skala") {
     const sc = q.skala || [1, 10];
+    range = readRange(sc);
     const lb = q.popisky_skaly || ["vůbec", "zcela"];
     // A scale labelled on every point shows its first and last label as its ends (#559); two
     // labels or fewer read as previewQuestion1780 read them.
     const high = lb.length > 2 ? lb[lb.length - 1] : lb[1];
     scale = [String(lb[0] || sc[0]), String(high || sc[1])];
   }
-  return { kind: "question", index, text: String(q.text || "Bez znění"), typ, options, scale };
+  const conditional = questionCondition(q) !== null;
+  return { kind: "question", index, text: String(q.text || "Bez znění"), typ, options, scale, range, moreOptions, conditional };
 }
 
 /** previewObjectBattery1780: eight object rows, the first {object} filled. */
@@ -162,6 +185,9 @@ export function previewBattery(sec: Section, index: number): Omit<Extract<Previe
     rows: (sec.objects || []).slice(0, 8).map((x) => tmpl.replace("{object}", x)),
     low: String(lb[0]),
     high: String(high),
+    objects: (sec.objects || []).length,
+    // The set's stored range, as the compiler takes it (`scale`, 1-10 when none); 18.6.6 drew 1-10.
+    range: readRange(sec.scale ?? [1, 10]),
   };
 }
 
