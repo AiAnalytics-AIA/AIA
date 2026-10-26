@@ -21,7 +21,7 @@ import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief
 import { aiaId } from "@/lib/workbench-artifacts";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
 import { itemProblem, narrativeOf } from "@/research/plan-narrative";
-import { type ReadinessChip, briefReadiness } from "@/research/brief-readiness";
+import { CONTEXT_FIELDS, type ReadinessChip, briefReadiness } from "@/research/brief-readiness";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
@@ -58,19 +58,29 @@ const INPUT = `rounded-control border border-border-strong text-ink placeholder:
 /** The longest text a brief field takes: the edit vocabulary's set_text value (edit_ops VALUE_MAX_CHARS). */
 const CONTEXT_MAX = 4000;
 
-/** The further context, in the order the classic form showed it. */
-const CONTEXT: { field: BriefingField; label: string }[] = [
-  { field: "product_description", label: "research.brief.productDescription" },
-  { field: "situation", label: "research.brief.situation" },
-  { field: "what_is_known", label: "research.brief.whatIsKnown" },
-  { field: "constraints", label: "research.brief.constraints" },
-];
+/** The further context, in the order the classic form showed it, each with its label. */
+const CONTEXT_LABEL: Record<(typeof CONTEXT_FIELDS)[number], string> = {
+  product_description: "research.brief.productDescription",
+  situation: "research.brief.situation",
+  what_is_known: "research.brief.whatIsKnown",
+  constraints: "research.brief.constraints",
+};
+const CONTEXT = CONTEXT_FIELDS.map((field) => ({ field, label: CONTEXT_LABEL[field] }));
 
 function contextValue(p: ResearchProject, field: TopField | BriefingField): string {
   return field === "decision_use" ? p.decision_use || "" : String((p.briefing as Record<string, unknown>)[field] || "");
 }
 
 const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+
+/** A readiness chip's way to its section: scrolled to and focused, so the next Tab is inside it. */
+function goToSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  jumpTo(id);
+  if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
+}
 
 export function BriefStep() {
   const { store, state, stepHref } = useResearch();
@@ -315,7 +325,7 @@ function ReadinessChips({ chips }: { chips: ReadinessChip[] }) {
             key={c.target}
             href={`#${c.target}`}
             data-state={c.state}
-            onClick={(e) => { e.preventDefault(); jumpTo(c.target); }}
+            onClick={(e) => { e.preventDefault(); goToSection(c.target); }}
             className={`inline-flex min-h-7 items-center gap-1 rounded-pill border px-2.5 text-xs no-underline ${look.look} ${FOCUS}`}
           >
             <Icon name={look.glyph} size={12} className={look.icon} />
@@ -356,7 +366,9 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
         rules={{ required: false, maxLength: CONTEXT_MAX }}
         onCommit={(v) => edit("decision_use", v)}
       />
-      {/* Starters write a whole sentence into an empty decision only, never onto a person's text (spec navrh B3). */}
+      {/* Starters write a whole sentence into an empty decision only, never onto a person's text (spec
+          navrh B3): pressing one blurs an open field, whose commit re-renders the decision as filled and
+          takes the starters away before the click lands. */}
       {empty ? (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-ink-muted">{t("research.brief.decisionStartWith")}</span>

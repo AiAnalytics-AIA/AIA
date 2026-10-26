@@ -5,6 +5,7 @@
 // sections are not worth a quarter each. Pure.
 
 import { briefElementId } from "@/lib/artifacts/brief";
+import type { BriefingField } from "./brief";
 import { objectivesOf } from "./brief-objectives";
 import { type ResearchProject, selectedProblemTypes } from "./model";
 import type { Analysis } from "./store";
@@ -22,8 +23,8 @@ export type ReadinessChip = {
 
 const filled = (v: unknown) => typeof v === "string" && v.trim() !== "";
 
-/** The Brief's further-context fields, as the Context section lists them. */
-const CONTEXT_FIELDS = ["product_description", "situation", "what_is_known", "constraints"] as const;
+/** The Brief's further-context fields, in the order the Context section lists them. */
+export const CONTEXT_FIELDS = ["product_description", "situation", "what_is_known", "constraints"] as const satisfies readonly BriefingField[];
 
 export function briefReadiness(design: { project: ResearchProject; analysis: Analysis | null }): ReadinessChip[] {
   const p = design.project;

@@ -2297,7 +2297,7 @@ export const cs = {
     brief: {
       quickStart: "RYCHLÝ START",
       whatSolve: "Co řešíte?",
-      // Studio v3 (BriefStep): the four numbered sections, the readiness panel, the dock.
+      // BriefStep, as the v73 board draws it: six numbered sections, the readiness chips, the analysis beside them.
       goalTitle: "Co potřebujete zjistit?",
       goalHint: "Cíl vlastními slovy · 1–3 věty",
       // The v73 board's section caps and readiness chips (artifact-brief BRF2, spec navrh B1-B3).
@@ -2372,7 +2372,6 @@ export const cs = {
       dockMissing: "Napište cíl, nebo co přesně zkoumáme",
       typesHelp: "Můžete vybrat více možností. AI je spojí do jednoho návrhu výzkumu.",
       titleLabel: "Název studie",
-      optional: "volitelné",
       titlePlaceholder: "Např. Nové balení produktu",
       goalLabel: "Cíl výzkumu",
       goalPlaceholder: "Např. Chceme zjistit, jak nás lidé 25–55 vnímají proti dvěma největším konkurentům. Výsledek použijeme pro brief jarní kampaně.",

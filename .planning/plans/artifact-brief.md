@@ -162,6 +162,24 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
   textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
   written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
+- *Landed, the v73 board's body* (spec navrh B1, B2, B3, B5; BriefStep, `research/brief-readiness.ts`):
+  - the order is now the v73 board's: Cíl, Cíle, Rozhodnutí, Typ problému, Kontext, Podklady. This
+    supersedes the order above, and `BRIEF_FIELDS` follows it;
+  - each section carries its cap on the right (povinné / volitelné);
+  - the goal asks only "Co potřebujete zjistit?". Its sentence starters, the 40-character "sentence"
+    rule and "Navrhnout z cíle" are gone, and the title is a plain field;
+  - "Připravenost" is one chip per section in page order. Each chip scrolls to its section and focuses
+    it. A missing required section waits on the person; an optional one never does. There is no
+    percentage, and nothing gates the analysis, which keeps `canAnalyse` (advisory, the 26 Oct default);
+  - an empty Rozhodnutí says "chybí" and offers three starters, which fill an empty field only. A note
+    says what the decision is for;
+  - Kontext keeps all four fields, in a two-column grid (spec B5 owner question: the board shows two).
+  Waiting on `research-lead-workbench#36` (spec X1): the header slot, StepSection's number and need
+  state, and WellItem. Until then the caps use StepSection's `aside`, the chips sit at the top of the
+  body, and the analysis action stays in the inspector without the old panel's rows.
+  Tests: `BriefStep.test.tsx` "sections render in the board's order…", "a readiness chip per
+  section…", "an empty decision shows chybí…", "context fields render in a two-column grid", and
+  `brief-readiness.test.ts`.
 
 - *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
   arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled

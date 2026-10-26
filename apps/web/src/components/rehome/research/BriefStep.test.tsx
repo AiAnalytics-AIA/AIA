@@ -568,6 +568,24 @@ describe("Zadání", () => {
     document.getElementById("brief-decision_use")!.scrollIntoView = scroll;
     fireEvent.click(chips[2]!);
     expect(scroll).toHaveBeenCalledTimes(1);
+    // Focus moves with it, so the next Tab is inside the section, not on the next chip.
+    expect(document.activeElement).toBe(document.getElementById("brief-decision_use"));
+  });
+
+  it("a starter pressed while the decision is being typed keeps what was typed (code review)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const decision = within(await screen.findByRole("region", { name: /^Rozhodnutí, které má výzkum podpořit/ }));
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    const field = decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" });
+    fireEvent.change(field, { target: { value: "Spustit kampaň v Q1?" } });
+    const starter = decision.getByRole("button", { name: "Cena" });
+    // The press blurs the open field first, which commits what was typed and takes the starters away.
+    fireEvent.blur(field);
+    expect(starter.isConnected).toBe(false);
+    fireEvent.click(starter);
+    expect(await decision.findByText("Spustit kampaň v Q1?")).toBeTruthy();
+    expect(decision.queryByText("Zvednout cenu, nebo ji držet?")).toBeNull();
   });
 
   it("an empty decision shows chybí and starters; a starter fills it and the chip turns done (spec navrh B3)", async () => {
