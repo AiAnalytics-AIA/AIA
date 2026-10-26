@@ -64,12 +64,12 @@ describe("SampleArtifact", () => {
   it("names each tile's commonest reason in a few words, and shows unanswerable only when an item is", () => {
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({
       question_outlook: [
-        { question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "UNKNOWN", reasons: ["open_ended"] },
-        { question_id: "q2", text: "", section_id: "s", battery_id: null, verdict: "UNANSWERABLE", reasons: ["fidelity_refused"] },
+        { question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: ["open_ended", "support_unknown"] },
+        { question_id: "q2", text: "", section_id: "s", battery_id: null, verdict: "UNANSWERABLE", reasons: ["fidelity_refused", "support_unknown"] },
       ],
     })} />);
     const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
-    expect(outlook.querySelector('[data-verdict="UNKNOWN"]')!.textContent).toBe("Nelze říct předem1otevřená otázka");
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1otevřená otázka");
     expect(outlook.querySelector('[data-verdict="UNANSWERABLE"]')!.textContent).toBe("Bez odpovědi1ptá se na absolutní hodnotu");
   });
 

@@ -43,14 +43,25 @@ describe("outlookTiles", () => {
   it("counts the server's verdicts, naming each tile's commonest reason, the first met on a tie", () => {
     const tiles = outlookTiles(readiness({ question_outlook: [
       item("ANSWERABLE"), item("ANSWERABLE"),
-      item("AT_RISK", ["support_indicative"]), item("AT_RISK", ["familiarity", "support_indicative"]), item("AT_RISK", ["familiarity"]),
-      item("UNKNOWN", ["open_ended"]), item("UNKNOWN", ["support_unknown"]),
+      item("AT_RISK", ["open_ended"]), item("AT_RISK", ["support_analysis_excluded"]), item("AT_RISK", ["support_analysis_excluded"]),
+      item("UNKNOWN", ["support_unknown"]), item("UNKNOWN", ["support_unknown"]),
     ] }));
     expect(tiles).toEqual([
       { verdict: "ANSWERABLE", count: 2, reason: null },
-      { verdict: "AT_RISK", count: 3, reason: "support_indicative" },
-      { verdict: "UNKNOWN", count: 2, reason: "open_ended" },
+      { verdict: "AT_RISK", count: 3, reason: "support_analysis_excluded" },
+      { verdict: "UNKNOWN", count: 2, reason: "support_unknown" },
     ]);
+  });
+
+  it("captions a tile only by the reasons that give its verdict, never the support reason every item shares", () => {
+    const tiles = outlookTiles(readiness({ question_outlook: [
+      item("UNANSWERABLE", ["conditional", "support_indicative"]), item("UNANSWERABLE", ["fidelity_refused", "support_indicative"]),
+      item("AT_RISK", ["open_ended", "support_unknown"]), item("UNKNOWN", ["support_unknown"]),
+      item("AT_RISK", ["new_reason", "support_unknown"]), item("AT_RISK", ["new_reason"]),
+    ] }));
+    expect(tiles!.find((t) => t.verdict === "UNANSWERABLE")!.reason).toBe("conditional");
+    // A code this client does not know still counts, so it is named.
+    expect(tiles!.find((t) => t.verdict === "AT_RISK")!.reason).toBe("new_reason");
   });
 
   it("shows unanswerable only when an item is, and the three others even at zero", () => {

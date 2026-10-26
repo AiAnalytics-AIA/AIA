@@ -33,13 +33,31 @@ export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine
   return { known: true, status: check.status, message: check.message };
 }
 
+/**
+ * The verdict each reason gives an item (domain/question_outlook.py `_VERDICT`). An item carries
+ * every reason it has, the support reason included, and its verdict is the worst of them: a tile
+ * is captioned only by the reasons that give its own verdict.
+ */
+const REASON_VERDICT: Readonly<Record<string, OutlookVerdict>> = {
+  conditional: "UNANSWERABLE",
+  familiarity: "UNANSWERABLE",
+  fidelity_refused: "UNANSWERABLE",
+  support_suppressed: "UNANSWERABLE",
+  support_analysis_excluded: "AT_RISK",
+  open_ended: "AT_RISK",
+  support_indicative: "AT_RISK",
+  support_unknown: "UNKNOWN",
+};
+
 /** One of §02's tiles (spec vzorek V4): a verdict, how many items have it, and its commonest reason. */
 export type OutlookTile = { verdict: OutlookVerdict; count: number; reason: string | null };
 
 /**
  * §02's tiles, from the server's question outlook: answerable, at risk and unknown always, and
  * unanswerable beside them only when an item has it (the v73 board draws three). Each tile names
- * the reason most of its items share, the first met on a tie; the answerable tile has none.
+ * the reason most of its items share, the first met on a tie, counting only the reasons that give
+ * that verdict (a code this client does not know counts, so it is named, never hidden); the
+ * answerable tile has none.
  * `null` when the server sent no outlook, which reads as unknown, never as answered.
  */
 export function outlookTiles(readiness: ReadinessBody): OutlookTile[] | null {
@@ -49,7 +67,7 @@ export function outlookTiles(readiness: ReadinessBody): OutlookTile[] | null {
   const shown: OutlookVerdict[] = ["ANSWERABLE", "AT_RISK", "UNKNOWN", ...(counts.UNANSWERABLE ? (["UNANSWERABLE"] as const) : [])];
   return shown.map((verdict) => {
     const tally = new Map<string, number>();
-    if (verdict !== "ANSWERABLE") for (const item of items) if (item.verdict === verdict) for (const r of item.reasons) tally.set(r, (tally.get(r) ?? 0) + 1);
+    if (verdict !== "ANSWERABLE") for (const item of items) if (item.verdict === verdict) for (const r of item.reasons) if ((REASON_VERDICT[r] ?? verdict) === verdict) tally.set(r, (tally.get(r) ?? 0) + 1);
     let reason: string | null = null;
     for (const [code, n] of tally) if (reason === null || n > (tally.get(reason) ?? 0)) reason = code;
     return { verdict, count: counts[verdict], reason };
