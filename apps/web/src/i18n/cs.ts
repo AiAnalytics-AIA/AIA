@@ -2642,6 +2642,12 @@ export const cs = {
       previewEmpty: "Jakmile vzniknou otázky, uvidíte je zde očima respondenta.",
       previewQuestion: "Otázka {n}",
       previewSet: "Sledovaná sada {n} · {title}",
+      // What the preview leaves out, said (artifact-questionnaire QST11): 18.6.6 cut silently.
+      previewMoreOptions: { label: "+ {count}", one: "další možnost", few: "další možnosti", many: "dalších možností" },
+      previewMoreObjects: { label: "a stejně pro {count}", one: "další položku", few: "další položky", many: "dalších položek" },
+      previewLeftOut: { label: "+ {count} dotazníku, náhled ukazuje prvních {max}", one: "další položka", few: "další položky", many: "dalších položek" },
+      previewCondition: "Má podmínku zobrazení; zda ji běh přijme, rozhodne Kontrola.",
+      previewRangeUnread: "Rozsah škály nejde přečíst; opravte ho v režimu Upravit.",
       scale: "1–10",
       editorTag: "Osnova dotazníku",
       editorCounts: "{questions} · {sets}",

@@ -114,6 +114,19 @@ try {
     // Measured together, so a scroll between the two reads cannot part them.
     assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
     check(`${width}: a question's × beside its number`);
+
+    // The respondent preview draws a scale at its stored range (Q2 is 1–10) and says what it leaves out
+    // of a set (QST11), without overflowing the page.
+    await page.getByRole("radio", { name: "Náhled respondenta" }).click();
+    const preview = page.getByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    await preview.waitFor();
+    const q2 = preview.locator("li", { hasText: "Jak pravděpodobně byste nápoj vyzkoušeli?" });
+    assert.equal(await q2.locator("[data-scale-points]").getAttribute("data-scale-points"), "10", `Q2's points at ${width}`);
+    await preview.getByText(/^a stejně pro/).first().waitFor();
+    await noOverflow(`preview @${width}`);
+    await shot(`${width}-preview`);
+    await page.getByRole("radio", { name: "Upravit" }).click();
+    check(`${width}: the preview draws a scale at its range and names the set's objects it leaves out, no overflow`);
   }
 
   // A scale's two ends sit under the ends they name at 390 px (the browser audit, QF-11): the right
