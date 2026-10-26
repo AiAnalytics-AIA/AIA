@@ -111,6 +111,9 @@ export type StoredReportDocument = {
   review_state: "DRAFT_UNAPPROVED" | "APPROVED_INTERNAL";
   approved_on: string | null;
   stamped: boolean;
+  /** When the DOCX was stored, which the approval question names it by (RPT3d); null where its
+   *  record has none, absent from an API before it. */
+  stored_at?: string | null;
   /** Who approved the DOCX and when, from its ledger row (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
   /** The checks on this version, warnings, never a refusal: the client report's (RD0) and, on every

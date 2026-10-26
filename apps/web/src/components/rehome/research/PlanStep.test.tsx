@@ -181,7 +181,7 @@ describe("Návrh", () => {
     expect(screen.getByRole("radio", { name: /Varianty a cena/ }).getAttribute("aria-checked")).toBe("true");
     // Jump chips over the sections.
     const jump = screen.getByRole("navigation", { name: "Oddíly návrhu" });
-    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
+    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Hypotézy · 1", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
   });
 
   it("opens on the research questions a link from the Run stage names", async () => {
@@ -372,11 +372,33 @@ describe("Návrh", () => {
   it("marks each narrative item for the Lead by its stable id: an objective as the Brief's own target", async () => {
     unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "P", objectives: ["Cíl A"], research_questions: ["Kdo?"], hypotheses: ["H1"] } });
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-    const item = (text: string) => screen.getByText(text).closest("li")!;
+    const item = (text: string) => screen.getByText(text).closest("li")!.querySelector(":scope > [data-aia]")!;
     await screen.findByText("Cíl A");
     expect(item("Cíl A").getAttribute("data-aia")).toMatch(/^objective:obj_/);
     expect(item("Kdo?").getAttribute("data-aia")).toMatch(/^rq:rq_/);
     expect(item("H1").getAttribute("data-aia")).toMatch(/^hypothesis:hyp_/);
+  });
+
+  it("hypotheses render as their own section; no verdict without a server answer", async () => {
+    unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "P", objectives: ["Cíl A"], research_questions: ["Kdo?"], hypotheses: ["H1", "H2"] } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: "Hypotézy" });
+    // Each hypothesis in its section, marked for the Lead, edited in place; none left under Porozumění.
+    const marks = [...section.querySelectorAll("[data-aia]")].map((el) => el.getAttribute("data-aia"));
+    expect(marks).toHaveLength(2);
+    expect(marks.every((m) => /^hypothesis:hyp_/.test(m ?? ""))).toBe(true);
+    expect(within(section).getByRole("button", { name: /^Upravit: Hypotéza 1/ })).toBeTruthy();
+    expect(within(section).getByRole("button", { name: "Přidat hypotézu" })).toBeTruthy();
+    const understanding = document.getElementById("plan-understanding")!;
+    expect(within(understanding).queryByText("H1")).toBeNull();
+    expect(within(understanding).getByText("Kdo?")).toBeTruthy();
+    // On the page after the narrative, before the sets.
+    const order = ["plan-understanding", "plan-hypotheses", "plan-sets"].map((id) => document.getElementById(id)!);
+    expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // What verifies a hypothesis has no server answer yet: no "ověří" verdict and no coverage words.
+    expect(section.textContent).not.toMatch(/ověří|ověřiteln|pokryto|neznámé/);
+    expect(within(section).queryByRole("heading", { level: 3 })).toBeNull();
   });
 
   it("comments on a part of a narrative item selected in place, and still edits the item on a plain click (Q68)", async () => {
@@ -544,6 +566,27 @@ describe("direct proposal editing", () => {
     expect(unload.defaultPrevented).toBe(false);
   });
 
+  it("offers one removal back at a time across the narrative and the hypotheses", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await screen.findByText("Mírnější varianta vyhraje");
+    const [objective] = ANALYSIS.objectives;
+    fireEvent.click(screen.getByRole("button", { name: "Přidat cíl" }));
+    const row = screen.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "Druhý cíl" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    fireEvent.keyDown(await screen.findByRole("textbox", { name: "Přidat cíl" }), { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: `Odebrat: ${objective}` }));
+    expect(await screen.findByRole("button", { name: "Vrátit" })).toBeTruthy();
+    // A hypothesis removed next replaces the offer: one toast, and it takes back the hypothesis.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Mírnější varianta vyhraje" }));
+    await waitFor(() => expect(screen.getByText("Odebráno: „Mírnější varianta vyhraje“")).toBeTruthy());
+    expect(screen.getAllByRole("button", { name: "Vrátit" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Mírnější varianta vyhraje")).toBeTruthy();
+    expect(screen.queryByText(objective)).toBeNull();
+  });
+
   it("edits a set's measurement field by field on its card, preserving its extra fields and the existing questionnaire, and confirms scope replacement", async () => {
     const analysis = { ...ANALYSIS, tracked_sets: [{ ...ANALYSIS.tracked_sets[0], purpose: "Porovnat varianty", objects: ["A", "B", "C", "D"], custom_method: "keep" }] };
     const ws = unitStub(analysis, {}, { ...PROJECT, sections: [{ title: "Existující dotazník" }] });
@@ -614,11 +657,15 @@ describe("direct proposal editing", () => {
 // artifact-design DSN2: each research question with its coverage, read on the working revision
 // (GET …/research/readiness/working, WCE7): nothing is submitted, started or paid, and nothing saved
 // outside Návrh's own autosave.
-describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
+describe("Návrh: Výzkumné otázky a co je měří", () => {
   const REVISIONS = "/api/v1/studies/STU-1/design/revisions";
   const WORKING = "/api/v1/studies/STU-1/research/readiness/working";
   const RQS = ["Kolik lidí nápoj zkusí?", "Proč by ho nekoupili?", "Nová otázka?"];
   const WITH_RQS = { ...PROJECT, research_plan: { ...ANALYSIS, research_questions: RQS } };
+  let extra: { text: string; measures: string[]; verdict: string; reasons: string[] }[] = [];
+  beforeEach(() => {
+    extra = [];
+  });
   const readiness = (revision: number) => ({
     working_revision: revision,
     question_outlook: [{ question_id: "q_try", text: "Zkusil byste nápoj?", section_id: "s1", battery_id: null, verdict: "ANSWERABLE", reasons: [] }],
@@ -627,13 +674,15 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
       questions: [
         { text: RQS[0], measures: ["q_try"], verdict: "ANSWERABLE", reasons: [], comparison: "describe" },
         { text: RQS[1], measures: [], verdict: "UNANSWERABLE", reasons: ["unmeasured"] },
+        ...extra,
       ],
     },
   });
-  const section = async () => screen.findByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
+  const section = async () => screen.findByRole("region", { name: "Výzkumné otázky a co je měří" });
   const read = (revision: number) => calls.filter((c) => c.url.startsWith(WORKING) && c.url.includes(`working_revision=${revision}`));
   // The native fixture answers no working readiness; this test's answer goes in front of it.
-  const stub = (analysis: unknown = ANALYSIS) => {
+  // The analysis and the plan state the same research questions, as applyNarrative writes them together.
+  const stub = (analysis: unknown = { ...ANALYSIS, research_questions: RQS }) => {
     const ws = unitStub(analysis, {}, WITH_RQS);
     const inner = globalThis.fetch;
     vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
@@ -644,23 +693,107 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
     return ws;
   };
 
-  it("shows each research question with the working copy's status, its items linked to Dotazník and its gaps", async () => {
+  it("shows each research question's coverage on its own row: status, its items linked to Dotazník, its comparison and gaps", async () => {
     stub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     const s = await section();
     await within(s).findByText(/Podle pracovní kopie, revize 3/);
     // Read on the working revision on screen (WCE7b), never on a submitted Design Revision.
     expect(read(3)).toHaveLength(1);
-    const items = within(s).getAllByRole("listitem").filter((li) => li.parentElement?.tagName === "OL");
-    expect(items.map((li) => li.querySelector("p")?.textContent)).toEqual(RQS);
-    expect(within(items[0]).getAllByText("pokryto").length).toBeGreaterThan(0);
+    // DSN2b: no separate coverage block; each row is the research question itself, its Lead target.
+    expect(screen.queryByRole("region", { name: "Výzkumné otázky a jejich pokrytí" })).toBeNull();
+    const targets = [...s.querySelectorAll<HTMLElement>('[data-aia^="rq:"]')];
+    // The Lead's target holds the question's own words; its coverage is beside it, never in its label.
+    expect(targets.map((el) => el.textContent?.includes("pokryto") || el.textContent?.includes("neznámé"))).toEqual([false, false, false]);
+    const items = targets.map((el) => el.closest("li")!);
+    expect(items.map((li) => RQS.find((q) => li.textContent?.includes(q)))).toEqual(RQS);
+    expect(within(items[0]).getByText("pokryto")).toBeTruthy();
     expect(within(items[0]).getByRole("link", { name: "Zkusil byste nápoj?" }).getAttribute("href")).toMatch(/\/questionnaire#qedit_q_try$/);
+    expect(within(items[0]).getByText(/Srovnání/)).toBeTruthy();
     expect(within(items[1]).getByText("mezera")).toBeTruthy();
-    expect(within(items[1]).getByText("Žádná položka dotazníku ji neměří.")).toBeTruthy();
+    expect(within(items[1]).getByText("Zatím ji nic v dotazníku neměří.")).toBeTruthy();
+    expect(within(items[1]).getByRole("list", { name: "Mezery" })).toBeTruthy();
     // A question the trace does not hold is not checked: unknown, never pokryto.
     expect(within(items[2]).getByText("neznámé")).toBeTruthy();
+    expect(within(items[2]).queryByText("pokryto")).toBeNull();
     // Nothing was submitted or started from here.
     expect(calls.filter((c) => c.body !== null && (c.url.startsWith(REVISIONS) || c.url.includes("/research/runs")))).toEqual([]);
+  });
+
+  it("lists what the server reads as a research question that the list does not show, never hiding its coverage", async () => {
+    // The server falls back to the objectives, or reads a plan that disagrees with the analysis.
+    extra = [{ text: "Ověřit zájem o nápoj", measures: ["q_try"], verdict: "ANSWERABLE", reasons: [] }];
+    stub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const group = await within(await section()).findByRole("group", { name: "Co AIA čte jako výzkumné otázky mimo tento seznam" });
+    expect(within(group).getByText("Ověřit zájem o nápoj")).toBeTruthy();
+    expect(within(group).getByText("pokryto")).toBeTruthy();
+    // Each shown question keeps its own row; the extra one is not counted among them.
+    expect(screen.getAllByText("Ověřit zájem o nápoj")).toHaveLength(1);
+  });
+
+  it("says a research question past the analysis's cap is not read, never unknown or covered", async () => {
+    const nine = [...RQS, ...Array.from({ length: 6 }, (_, i) => `Otázka navíc ${i + 1}?`)];
+    stub({ ...ANALYSIS, research_questions: nine });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const s = await section();
+    await within(s).findByText(/Podle pracovní kopie, revize 3/);
+    const items = [...s.querySelectorAll<HTMLElement>('[data-aia^="rq:"]')].map((el) => el.closest("li")!);
+    expect(items).toHaveLength(9);
+    expect(within(items[8]).getByText(/nejvýše 8 výzkumných otázek/)).toBeTruthy();
+    expect(within(items[8]).queryByText("neznámé")).toBeNull();
+    expect(within(items[7]).queryByText(/nejvýše 8/)).toBeNull();
+  });
+
+  it("never quotes AIA's coverage words into a comment", async () => {
+    stub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const s = await section();
+    const words = (await within(s).findByText("Zatím ji nic v dotazníku neměří.")).firstChild as Text;
+    const box = Range.prototype.getBoundingClientRect;
+    Range.prototype.getBoundingClientRect = () => ({ left: 100, top: 200, width: 80, height: 16, right: 180, bottom: 216, x: 100, y: 200, toJSON: () => ({}) });
+    onTestFinished(() => {
+      Range.prototype.getBoundingClientRect = box;
+      window.getSelection()!.removeAllRanges();
+    });
+    const range = document.createRange();
+    range.setStart(words, 0);
+    range.setEnd(words, 12);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(range);
+    fireEvent.mouseUp(words.parentElement!);
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    expect(screen.queryByRole("button", { name: "Přidat komentář" })).toBeNull();
+    // Nor a selection that starts in the question's own words and runs into its coverage.
+    const question = (within(s).getAllByText(RQS[1])[0]).firstChild as Text;
+    const across = document.createRange();
+    across.setStart(question, 0);
+    across.setEnd(words, 12);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(across);
+    fireEvent.mouseUp(question.parentElement!);
+    await act(() => new Promise((r) => setTimeout(r, 50)));
+    expect(screen.queryByRole("button", { name: "Přidat komentář" })).toBeNull();
+    // Nor AIA's other words beside the list: the status line and the aside.
+    for (const own of [within(s).getByText(/Podle pracovní kopie, revize/), within(s).getByText("pokrytí počítá AIA ze stejných pravidel jako Spuštění")]) {
+      const text = own.firstChild as Text;
+      const r = document.createRange();
+      r.setStart(text, 0);
+      r.setEnd(text, 8);
+      window.getSelection()!.removeAllRanges();
+      window.getSelection()!.addRange(r);
+      fireEvent.mouseUp(own);
+      await act(() => new Promise((res) => setTimeout(res, 50)));
+      expect(screen.queryByRole("button", { name: "Přidat komentář" })).toBeNull();
+    }
+    // The question's words alone still quote.
+    const own = document.createRange();
+    own.setStart(question, 0);
+    own.setEnd(question, 4);
+    window.getSelection()!.removeAllRanges();
+    window.getSelection()!.addRange(own);
+    fireEvent.mouseUp(question.parentElement!);
+    expect(await screen.findByRole("button", { name: "Přidat komentář" })).toBeTruthy();
   });
 
   it("reads the coverage again once a research question's edit is saved, not for an edit it does not read, and submits no design", async () => {
@@ -688,7 +821,7 @@ describe("Návrh: Výzkumné otázky a jejich pokrytí", () => {
   });
 
   it("says when the working copy cannot be compiled into a run", async () => {
-    unitStub(ANALYSIS, { [WORKING]: () => ({ working_revision: 3, research_trace: null, question_outlook: [] }) }, WITH_RQS);
+    unitStub({ ...ANALYSIS, research_questions: RQS }, { [WORKING]: () => ({ working_revision: 3, research_trace: null, question_outlook: [] }) }, WITH_RQS);
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
     expect(await within(await section()).findByText(/se nedá sestavit do běhu/)).toBeTruthy();
   });

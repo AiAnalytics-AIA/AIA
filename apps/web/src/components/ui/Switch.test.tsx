@@ -26,6 +26,17 @@ describe("Switch", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("draws the look contract's 40 x 24 track, round, signal when on", () => {
+    const { rerender } = render(<Switch on={false} onChange={() => {}} label="Štítek Metodik" />);
+    const track = () => screen.getByRole("switch").querySelector("[data-switch-track]") as HTMLElement;
+    expect(track().className).toContain("h-6");
+    expect(track().className).toContain("w-10");
+    expect(track().className).toContain("rounded-pill");
+    expect(track().className).not.toContain("bg-signal");
+    rerender(<Switch on onChange={() => {}} label="Štítek Metodik" />);
+    expect(track().className).toContain("bg-signal");
+  });
+
   it("shows its words beside the track when asked, and keeps them as its name", () => {
     render(<Switch on={false} onChange={() => {}} label="Technické údaje" showLabel />);
     expect(screen.getByRole("switch", { name: "Technické údaje" }).textContent).toBe("Technické údaje");

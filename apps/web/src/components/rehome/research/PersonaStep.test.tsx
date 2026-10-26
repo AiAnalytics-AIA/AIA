@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
 import { FrameNavigation } from "../step";
+import { TOUCH_LINK } from "@/components/ui/parts";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -163,6 +164,28 @@ describe("Dimenze", () => {
     expect(container.querySelector("[data-aia^='own_dimension:']")).toBeNull();
   });
 
+  it("the dock counts the chosen dimensions in Czech, as the stage track does", async () => {
+    const cases: [string[], RegExp][] = [
+      [[], /^Bez dimenzí · N=\d+$/],
+      [["cena"], /^1 dimenze · N=\d+$/],
+      [["cena", "media"], /^2 dimenze · N=\d+$/],
+      [["cena", "media", "zdravi", "politika", "duvera"], /^5 dimenzí · N=\d+$/],
+    ];
+    for (const [approved, words] of cases) {
+      aiaStub({ ...PLANNED, persona_dimensions: { approved } });
+      const { unmount } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      // The dock's note (its polite live region), not the stage track's line.
+      await waitFor(() => expect([...document.querySelectorAll("span[aria-live='polite']")].map((e) => e.textContent).filter((x) => x?.includes("· N="))).toEqual([expect.stringMatching(words)]));
+      unmount();
+    }
+  }, 30_000);
+
+  it("the way to the run's population is a stand-alone link with the touch target (TOUCH_LINK)", async () => {
+    aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect((await screen.findByRole("link", { name: /Populace běhu/ })).className).toBe(TOUCH_LINK);
+  });
+
   it("without any materialization from this study the section says so, and still leads to the run's population", async () => {
     aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -289,6 +312,16 @@ describe("Dimenze", () => {
     expect(status.textContent).toBe("Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.");
   });
 
+  it("finds a dimension typed without diacritics or with spaces around it (DIM-F13)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const search = await screen.findByLabelText("Hledat dimenzi");
+    const section = search.closest("section") as HTMLElement;
+    fireEvent.change(search, { target: { value: " duvera " } });
+    expect(within(section).getByRole("button", { name: /^Důvěra/ })).toBeTruthy();
+    expect(within(section).getByRole("status").textContent).toBe("");
+  });
+
   it("reviews new dimensions and proposes one to the client's knowledge, never approving it", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -358,6 +391,24 @@ describe("Dimenze", () => {
     noUnitCalls();
   }, 20_000);
 
+  it("refuses at the field a request the catalogue already names, sending nothing (DIM-F14)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const input = await screen.findByLabelText("Název dimenze");
+    const add = screen.getByRole("button", { name: "Přidat jako požadavek" });
+    for (const [typed, label] of [["  DUVERA ", "Důvěra"], ["vztah k  ai", "Vztah k AI"]]) {
+      fireEvent.change(input, { target: { value: typed } });
+      fireEvent.click(add);
+      const said = `Dimenze „${label}“ už v katalogu je: vyberte ji v seznamu nahoře.`;
+      expect(await screen.findByText(said)).toBeTruthy();
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(said);
+      expect(document.activeElement).toBe(input);
+    }
+    expect(posted(PROPOSALS_PATH)).toEqual([]);
+    noUnitCalls();
+  });
+
   it("a proposal AIA refuses is shown, and nothing is recorded", async () => {
     aiaStub(PLANNED, { [PROPOSALS_PATH]: () => new Response(JSON.stringify({ code: "forbidden", message: "Your role on this study does not permit proposing knowledge." }), { status: 403 }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -385,7 +436,7 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: /Zvýšit/ }));
     await savedWith("sample_n_1789");
     expect(lastSave().content.n).toBe(350);
-    expect(screen.getByText(/^\d+ dimenzí · N=350$/)).toBeTruthy(); // the dock's note
+    expect(screen.getAllByText(/^Bez dimenzí · N=350$/).some((e) => e.getAttribute("aria-live") === "polite")).toBe(true); // the dock's note, as the track says it
     const stepped = screen.getByRole("spinbutton", { name: "Počet respondentů" });
     expect(stepped).not.toBe(n); // a new stored n redraws the field (key)
     fireEvent.change(stepped, { target: { value: "100" } });
