@@ -98,11 +98,17 @@ def _idw(hills: Any, params: EnvelopeParameters) -> EnvelopeTerrain:
     return object_idw(hills, params, TERRAIN.idw_power)
 
 
-def _framed(points: Any, relative: Any, framing: Any, ids: Any = None) -> EnvelopeTerrain:
+def _envelope(hills: Any, params: EnvelopeParameters) -> EnvelopeTerrain:
+    return object_envelope(hills, params, method="framed_relative_envelope")
+
+
+def _framed(
+    points: Any, relative: Any, framing: Any, ids: Any = None, *, envelope: bool = False
+) -> EnvelopeTerrain:
     centre, half = fit_frame(
         [p for p, f in zip(points, framing, strict=True) if f], TERRAIN.frame_fill
     )
-    terrain = object_envelope if TERRAIN.idw_power is None else _idw
+    terrain = _envelope if envelope or TERRAIN.idw_power is None else _idw
     return terrain(
         [
             EnvelopeHill(entity_id=oid, x=p[0], y=p[1], height=t)
@@ -203,12 +209,24 @@ def test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5() -> None
         heights.values, [True] * 7, TERRAIN.relative_height_floor
     )
     framing = _frame_objects(heights.values, _known(artifact.relations.status))
-    relative_only = terrain.model_copy(update={"absolute_height": None})
+    relative_only = terrain.model_copy(
+        update={"absolute_height": None, "envelope_height": None, "envelope_absolute_height": None}
+    )
     assert relative_only == _framed(layout.points, heights.relative, framing, rated)
     # The panel's Absolutní view: the same terrain with each object at its 0-1 height, stored.
     absolute = _framed(layout.points, heights.values, framing, rated)
     assert terrain.absolute_height == absolute.height
     assert terrain.absolute_height != terrain.height
+    # The map's Blokový view: the envelope of the same hills on the same grid, stored beside it.
+    assert (
+        terrain.envelope_height
+        == _framed(layout.points, heights.relative, framing, rated, envelope=True).height
+    )
+    assert (
+        terrain.envelope_absolute_height
+        == _framed(layout.points, heights.values, framing, rated, envelope=True).height
+    )
+    assert terrain.envelope_height != terrain.height
     assert terrain.source_ids == rated
     assert all(h is not None for row in terrain.height for h in row)
     # The map is the rated objects' own, as if the object were not in the set.
@@ -252,7 +270,9 @@ def test_the_object_map_frames_its_terrain_on_the_objects_with_a_known_pair() ->
     framing = _frame_objects(artifact.heights.values, _known(artifact.relations.status))
     assert framing == tuple(j != few for j in range(8))
     assert artifact.objects_not_placed == () and relative[few] is not None
-    relative_only = artifact.terrain.model_copy(update={"absolute_height": None})
+    relative_only = artifact.terrain.model_copy(
+        update={"absolute_height": None, "envelope_height": None, "envelope_absolute_height": None}
+    )
     assert relative_only == _framed(layout.points, relative, framing)
     assert relative_only != _framed(layout.points, relative, [True] * 8)
     absolute = _framed(layout.points, artifact.heights.values, framing)
@@ -421,6 +441,9 @@ def test_every_value_and_formula_of_the_stage_changes_the_map_when_edited() -> N
     assert isinstance(envelope.terrain, EnvelopeTerrain)
     assert envelope.terrain.method == "framed_relative_envelope"
     assert envelope.terrain.height != base.terrain.height
+    # The envelope is the Blokový view's own terrain: stored once, not again beside itself.
+    assert envelope.terrain.envelope_height is None
+    assert base.terrain.envelope_height == envelope.terrain.height
     # The height formula reads every rater at weight 1; the kernel formula is read as is.
     highest = _map(**{HEIGHT: lambda a, w: max(a)})
     assert highest.heights.values != base.heights.values

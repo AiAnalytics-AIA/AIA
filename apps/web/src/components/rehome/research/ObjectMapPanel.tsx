@@ -39,7 +39,7 @@ import {
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type Norm, type PanelCamera, type RelationMode,
-  REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
+  REL_FLOOR, absoluteGrid, envelopeGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
   panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
 import { PhosphorIcon } from "../../icons/PhosphorIcon";
@@ -198,13 +198,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
-  // The stored terrain drawn Hladký (refined and shaded smoothly) or Blokový (flat triangles);
-  // remembered in the browser, smooth by default.
+  // Hladký: the method's stored terrain, refined and shaded smoothly. Blokový: the earlier map, the
+  // envelope of hills a map under the inverse-distance terrain stores beside it (else its own
+  // terrain), as flat triangles. Remembered in the browser, smooth by default.
   const [terrain, setTerrainState] = useState<TerrainMode>(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem(TERRAIN_KEY) === "blocky" ? "blocky" : "smooth"; } catch { return "smooth"; }
   });
   const setTerrain = (next: TerrainMode) => { setTerrainState(next); try { window.localStorage.setItem(TERRAIN_KEY, next); } catch { /* the choice lasts this page */ } };
-  const grid = people ? density! : absolute ?? relativeGrid;
+  const blocky = useMemo(() => (terrain === "blocky" ? envelopeGrid(map, norm === "absolute" && stored !== null) : null), [terrain, map, norm, stored]);
+  const grid = people ? density! : blocky ?? absolute ?? relativeGrid;
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);

@@ -486,18 +486,30 @@ class EnvelopeTerrain(BaseModel):
     height: tuple[tuple[float | None, ...], ...]
     governing: tuple[tuple[int | None, ...], ...]
     absolute_height: tuple[tuple[float | None, ...], ...] | None = None
+    #: Under the inverse-distance terrains, the envelope of the same hills on the same grid
+    #: (relative and absolute), stored so that the map's Blokový view draws the earlier terrain
+    #: without evaluating a kernel. ``None`` (every other terrain) is left out of the stored form.
+    envelope_height: tuple[tuple[float | None, ...], ...] | None = None
+    envelope_absolute_height: tuple[tuple[float | None, ...], ...] | None = None
 
     @model_serializer(mode="wrap")
     def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        if body.get("absolute_height") is None:
-            body.pop("absolute_height", None)
+        for key in ("absolute_height", "envelope_height", "envelope_absolute_height"):
+            if body.get(key) is None:
+                body.pop(key, None)
         return body
 
     @model_validator(mode="after")
     def _shape(self) -> Self:
         size = self.parameters.grid_resolution + 1
-        for name in ("height", "governing", "absolute_height"):
+        for name in (
+            "height",
+            "governing",
+            "absolute_height",
+            "envelope_height",
+            "envelope_absolute_height",
+        ):
             grid = getattr(self, name)
             if grid is None:
                 continue

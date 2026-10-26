@@ -6,7 +6,9 @@
 // context; `nodeScale` is the methodology's sociomap_3d.node_scale, which the panel reads from its
 // backend. The slab (the terrain's sides) was recorded again the same way from the panel's `drawSlab66`
 // once it drew them (`source.slabLines`), with each scene's grid and camera. The port must match to
-// 1e-9, colour strings exactly.
+// 1e-9, colour strings exactly. The contour lines were recorded the same way from the panel's
+// `contourRuns66` and `drawContours66` (`source.contourLines`): each pass's strokes on its layer and
+// the alpha the layer is laid over the map at.
 import { describe, expect, it } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -230,9 +232,38 @@ describe("relations, nodes, labels", () => {
   });
 });
 
+/** The strokes a contour pass leaves on its layer, as the map lays the layer over itself. */
+type LayerStroke = { style: string; width: number; path: unknown[][] };
+/** A recording layer: what its passes stroke, cleared with the layer. */
+function layerRecorder() {
+  let strokes: LayerStroke[] = [];
+  let path: unknown[][] = [];
+  const ctx = {
+    strokeStyle: "#000", lineWidth: 1, lineCap: "butt", lineJoin: "miter",
+    setTransform() {}, clearRect() { strokes = []; },
+    beginPath() { path = []; }, moveTo(x: number, y: number) { path.push(["M", x, y]); }, lineTo(x: number, y: number) { path.push(["L", x, y]); },
+    stroke(p?: { cmds: unknown[][] }) { strokes.push({ style: ctx.strokeStyle, width: ctx.lineWidth, path: p ? p.cmds : path }); },
+  };
+  return { ctx, strokes: () => strokes };
+}
+
+/** The map's canvas as the recorder offers it: its size, and a document that makes recording layers. */
+function recordingCanvas(): { width: number; height: number; ownerDocument: { createElement: () => unknown } } {
+  return {
+    width: 900, height: 700,
+    ownerDocument: {
+      createElement: () => {
+        const layer = layerRecorder();
+        const canvas = { width: 0, height: 0, getContext: () => Object.assign(layer.ctx, { canvas }), layer };
+        return canvas;
+      },
+    },
+  };
+}
+
 /** A context that records the fills, strokes and texts painted; text widths as the golden run's. */
 function recorder() {
-  type Op = { op: string; path: unknown[][]; style?: string | RecordedGradient; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
+  type Op = { op: string; path: unknown[][]; layer?: LayerStroke[]; style?: string | RecordedGradient; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
   const ops: Op[] = [];
   let path: unknown[][] = [];
   let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic", tx: 0, ty: 0, rot: 0 };
@@ -246,7 +277,11 @@ function recorder() {
     get font() { return state.font; }, set font(v) { state.font = v; },
     get textAlign() { return state.textAlign; }, set textAlign(v) { state.textAlign = v; },
     get textBaseline() { return state.textBaseline; }, set textBaseline(v) { state.textBaseline = v; },
-    lineCap: "butt", shadowColor: "", shadowBlur: 0,
+    lineCap: "butt", lineJoin: "miter", shadowColor: "", shadowBlur: 0,
+    canvas: recordingCanvas(),
+    getTransform() { return { a: 1 }; },
+    setTransform() {},
+    drawImage(img: { layer?: ReturnType<typeof layerRecorder> }) { ops.push({ op: "image", path: [], alpha: state.globalAlpha, layer: [...(img.layer?.strokes() ?? [])] }); },
     setLineDash(d: number[]) { state.dash = [...d]; },
     translate(x: number, y: number) { state.tx += x; state.ty += y; },
     rotate(a: number) { state.rot += a; },
@@ -273,6 +308,31 @@ type RecordedGradient = { kind: "gradient"; x0: number; y0: number; x1: number; 
 const isGradient = (style: unknown): style is RecordedGradient => typeof style === "object" && style !== null && (style as RecordedGradient).kind === "gradient";
 const gradientOf = ({ x0, y0, x1, y1, stops }: RecordedGradient) => ({ x0, y0, x1, y1, stops });
 
+/** FNV-1a over a string, 32 bits: an exact fingerprint of a pass's strokes in order. */
+function fnv1a(text: string): number {
+  let h = 0x811c9dc5;
+  for (const byte of new TextEncoder().encode(text)) h = Math.imul(h ^ byte, 0x01000193) >>> 0;
+  return h;
+}
+
+/** One contour pass as the golden run recorded it: its alpha, how many strokes and segments, every
+ *  stroke's style, width and segment count (fingerprinted in order), the sums of their end points,
+ *  and every 40th stroke in full. */
+function contourDigest(alpha: number, layer: LayerStroke[]) {
+  const strokes = layer.map((l) => ({ style: l.style, width: l.width, segments: l.path.filter((p) => p[0] === "M").length, first: l.path.slice(0, 2), last: l.path.slice(-2) }));
+  let xsum = 0, ysum = 0;
+  for (const s of strokes) for (const p of [...s.first, ...s.last]) { xsum += p[1] as number; ysum += p[2] as number; }
+  return {
+    alpha,
+    strokes: strokes.length,
+    segments: strokes.reduce((n, s) => n + s.segments, 0),
+    signature: fnv1a(strokes.map((s) => `${s.style}|${s.width}|${s.segments};`).join("")),
+    xsum,
+    ysum,
+    sample: strokes.filter((_, i) => i % 40 === 0),
+  };
+}
+
 /** The same summary of a frame the golden run took of the panel's `draw66`. */
 function summarise(ops: ReturnType<typeof recorder>["ops"]) {
   const tri = ops.filter((o) => o.op === "fill" && o.alpha === 0.94);
@@ -283,7 +343,7 @@ function summarise(ops: ReturnType<typeof recorder>["ops"]) {
     slab: ops.filter((o) => o.op === "fill" && (o.style === "#0e181d" || isGradient(o.style))).map((o) => ({ style: isGradient(o.style) ? gradientOf(o.style) : o.style, path: o.path })),
     slabStrokes: ops.filter((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.05)").map((o) => o.width),
     triangles: { count: tri.length, samples: pick.map((k) => ({ k, style: tri[k].style, path: tri[k].path })), hairline: ops.find((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.025)")?.width ?? null },
-    contours: ops.filter((o) => o.op === "stroke" && o.style === "rgba(5,10,12,.30)").map((o) => ({ segments: o.path.filter((s) => s[0] === "M").length, first: o.path.slice(0, 2), last: o.path.slice(-2), width: o.width })),
+    contours: ops.filter((o) => o.op === "image").map((o) => contourDigest(o.alpha ?? 1, o.layer ?? [])),
     lines: ops.filter((o) => o.op === "stroke" && o.path.some((s) => s[0] === "Q")).map((o) => ({ style: o.style, alpha: o.alpha, width: o.width, path: o.path })),
     discs: ops.filter((o) => o.op === "fill" && o.path.some((s) => s[0] === "A")).map((o) => ({ style: o.style, alpha: o.alpha, path: o.path })),
     rings: ops.filter((o) => o.op === "stroke" && !o.dash && o.path.length === 1 && o.path[0][0] === "A").map((o) => ({ style: o.style, alpha: o.alpha, width: o.width, path: o.path })),

@@ -406,15 +406,26 @@ def _terrain(
                 return object_idw_falloff(hills, grid, declared.idw_power, slots=slots)
             return object_envelope(hills, grid, slots=slots, method="framed_relative_envelope")
 
-        relative = framed(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled]
-        )
+        relative_hills = [
+            EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled
+        ]
+        relative = framed(relative_hills)
         # The panel's Absolutní view: the same hills at their heights on the declared 0-1 scale,
         # stored so that no reader evaluates a kernel of its own.
-        absolute = framed(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled]
-        )
-        return relative.model_copy(update={"absolute_height": absolute.height})
+        absolute_hills = [
+            EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled
+        ]
+        absolute = framed(absolute_hills)
+        update: dict[str, object] = {"absolute_height": absolute.height}
+        if declared.method != TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+            # The map's Blokový view: the earlier terrain, the envelope of the same hills.
+            update["envelope_height"] = object_envelope(
+                relative_hills, grid, slots=slots, method="framed_relative_envelope"
+            ).height
+            update["envelope_absolute_height"] = object_envelope(
+                absolute_hills, grid, slots=slots, method="framed_relative_envelope"
+            ).height
+        return relative.model_copy(update=update)
     if declared.half_extent is None or declared.kernel_cutoff is None:
         raise ValueError("the envelope is declared whole (require_supported)")
     hills = [

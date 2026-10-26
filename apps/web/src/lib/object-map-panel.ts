@@ -16,6 +16,7 @@
 // relief, the projection, label placement and the screen size of the stored uncertainty radius.
 
 import { panelObjects, panelRespondents } from "./object-map-signed-off";
+import { drawContours } from "./object-map-contours";
 import { PEDESTAL, drawSmoothTerrain } from "./object-map-smooth";
 import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } from "./object-map-view";
 
@@ -32,8 +33,6 @@ export const WARM = "#ffb35c";
 export const COOL = "#6fa8ff";
 /** A SECONDARY object's node (`drawObjects66`). */
 export const SECONDARY = "#8a93a6";
-/** The contour levels on the normalised height (`drawContours66`). */
-const CONTOUR_LEVELS = [0.16, 0.28, 0.4, 0.52, 0.64, 0.76, 0.88];
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -180,6 +179,18 @@ export function absoluteGrid(map: ObjectMapArtifact): PanelGrid | null {
   return panelGrid(terrain.parameters.grid_resolution, terrain.absolute_height);
 }
 
+/**
+ * The map's Blokový view: the earlier terrain, the envelope of the same hills, which a map under
+ * the inverse-distance terrain stores beside its own (Relativni, or Absolutni on the 0-1 scale).
+ * Null when the map stores none: its own terrain is then the envelope, or it has none.
+ */
+export function envelopeGrid(map: ObjectMapArtifact, absolute: boolean): PanelGrid | null {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed") return null;
+  const height = absolute ? terrain.envelope_absolute_height : terrain.envelope_height;
+  return height ? panelGrid(terrain.parameters.grid_resolution, height) : null;
+}
+
 /** The drawn elevation under a frame point, bilinear between the grid's samples (`terrainAt66`). */
 export function terrainAt(grid: PanelGrid, x: number, y: number): number {
   const { N, span } = grid;
@@ -207,30 +218,6 @@ function terrainTriangles(grid: PanelGrid, P: Projection): TerrainTriangle[] {
   tris.sort((m, n) => m.d - n.d);
   // The object terrain colours by its own height (the panel's `ct` is `ht` on the object map).
   return tris.map((tr) => ({ ...tr, fill: blend66(color66(tr.h), 0.78 + 0.28 * tr.h) }));
-}
-
-/** One contour level's segments on the frame, cell by cell, as `drawContours66` walks them. */
-function contourSegments(grid: PanelGrid, level: number): { x: number; y: number }[][] {
-  const { N, xs, ht } = grid;
-  const out: { x: number; y: number }[][] = [];
-  for (let y = 0; y < N; y++) {
-    for (let x = 0; x < N; x++) {
-      const c = [[y, x], [y, x + 1], [y + 1, x + 1], [y + 1, x]].map(([gy, gx]) => ({ x: xs[gx], y: xs[gy], ht: ht[gy][gx] }));
-      const pts: { x: number; y: number }[] = [];
-      for (let e = 0; e < 4; e++) {
-        const a = c[e], b = c[(e + 1) % 4], va = a.ht - level, vb = b.ht - level;
-        if ((va <= 0 && vb > 0) || (va > 0 && vb <= 0)) {
-          const f = Math.abs(vb - va) < 1e-9 ? 0.5 : (level - a.ht) / (b.ht - a.ht);
-          pts.push({ x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f });
-        }
-      }
-      if (pts.length >= 2) {
-        out.push([pts[0], pts[1]]);
-        if (pts.length === 4) out.push([pts[2], pts[3]]);
-      }
-    }
-  }
-  return out;
 }
 
 // ---------------------------------------------------------------- objects
@@ -497,22 +484,6 @@ function drawSlab(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCam
     ctx.fillStyle = gradient;
     ctx.fill();
   }
-}
-
-function drawContours(ctx: CanvasRenderingContext2D, P: Projection, grid: PanelGrid): void {
-  ctx.save();
-  ctx.lineWidth = 0.75;
-  ctx.strokeStyle = "rgba(5,10,12,.30)";
-  for (const level of CONTOUR_LEVELS) {
-    ctx.beginPath();
-    for (const [a, b] of contourSegments(grid, level)) {
-      const qa = P.project(a.x, a.y, level * RELIEF + 0.08), qb = P.project(b.x, b.y, level * RELIEF + 0.08);
-      ctx.moveTo(qa.x, qa.y);
-      ctx.lineTo(qb.x, qb.y);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
 }
 
 function drawObjects(ctx: CanvasRenderingContext2D, P: Projection, scene: MapScene): DrawResult {

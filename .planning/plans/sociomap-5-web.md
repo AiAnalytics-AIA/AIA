@@ -198,10 +198,19 @@ Display only, from the stored relations. The experimental map itself stays in th
   darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
   `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
 - Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
-  2026-10-26). Both draw the same stored terrain, the method's envelope of hills (the respondent map's density):
-  Blokový as flat triangles, as before; Hladký refined bicubically (x4, clamped, as the Sociomapy app's
+  2026-10-26). Hladký draws the method's stored terrain, since the same day the objects' heights weighted by
+  inverse distance as the Sociomapy app (`signed-off-sociomap-method.md`), refined bicubically (x4, clamped, as its
   `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
-  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový.
-  Drawing only: the heights are the method's. Sociomapy's own inverse-distance-weighted terrain was tried and left
-  out (the owner, 2026-10-26): a weighted mean fills empty ground with the nearest objects' values, the plateaus
-  the envelope replaced (`sociomap_math/terrain.py`).
+  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws the same
+  heights as flat triangles. Blokový is the earlier map: the envelope of hills, which a `-5` map now stores beside
+  its own terrain (`terrain.envelope_height`, `envelope_absolute_height`), as flat triangles; a map stored before
+  has only its envelope, which both then draw. The respondent map keeps its density in both. The browser
+  computes no terrain of its own.
+- Contour lines on both (the owner, 2026-10-26), as the Sociomapy app draws them and the AIA panel follows
+  (`contourRuns66`, `drawContours66`; `lib/object-map-contours.ts`): nine levels 0.1–0.9 traced by marching
+  squares and stitched into runs, Chaikin x2 and Taubin x12, each in the terrain's colour at its level x 0.72,
+  shaded by one in-map light (the shadow side toward black), thinner where lines crowd, a two-pass glow widening
+  toward the corners, fading toward them and dissolving on steep shadowed ground; each pass stroked opaque on a
+  layer and laid over the map at its alpha. The golden frames' contours were recorded again from the panel's own
+  code, kept as a digest per pass (counts, an exact fingerprint of every stroke's style and width, end-point sums,
+  every 40th stroke in full).

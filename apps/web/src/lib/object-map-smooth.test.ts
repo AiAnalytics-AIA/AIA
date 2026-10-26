@@ -3,7 +3,9 @@
 // the blocky terrain (ObjectMapPanel.test.tsx).
 import { describe, expect, it } from "vitest";
 
+import { envelopeGrid } from "./object-map-panel";
 import { refine } from "./object-map-smooth";
+import type { ObjectMapArtifact } from "./object-map-view";
 describe("refine", () => {
   it("keeps every original node and fills between them", () => {
     const values = [[0, 0.2, 0.4], [0.2, 0.4, 0.6], [0.4, 0.6, 0.8]];
@@ -21,5 +23,21 @@ describe("refine", () => {
     const out = refine(spike, 4);
     expect(Math.min(...out.flat())).toBe(0);
     expect(Math.max(...out.flat())).toBe(1);
+  });
+});
+
+describe("envelopeGrid", () => {
+  const terrain = (extra: object) => ({ terrain: { status: "computed", method: "framed_relative_idw", source_ids: ["a"], parameters: { grid_resolution: 1, half_extent: 1, sigma: 0.25, centre: [0, 0] }, height: [[0.5, 0.5], [0.5, 0.5]], governing: [[0, 0], [0, 0]], ...extra } }) as unknown as ObjectMapArtifact;
+
+  it("reads the envelope a map under the inverse-distance terrain stores for the Blokový view", () => {
+    const map = terrain({ envelope_height: [[0.1, 0.2], [0.3, 0.4]], envelope_absolute_height: [[0.5, 0.6], [0.7, 0.8]] });
+    expect(envelopeGrid(map, false)?.ht).toEqual([[0.1, 0.2], [0.3, 0.4]]);
+    expect(envelopeGrid(map, true)?.ht).toEqual([[0.5, 0.6], [0.7, 0.8]]);
+    expect(envelopeGrid(map, false)?.N).toBe(1);
+  });
+
+  it("has none for a map stored before, whose own terrain is the envelope", () => {
+    expect(envelopeGrid(terrain({}), false)).toBeNull();
+    expect(envelopeGrid({ terrain: { status: "not_computed", reason: "x" } } as unknown as ObjectMapArtifact, false)).toBeNull();
   });
 });
