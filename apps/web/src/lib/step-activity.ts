@@ -6,7 +6,9 @@
 
 import { t, tv } from "@/i18n/t";
 import type { RunEvent } from "./api";
+import { codeWords, codedText, known } from "./reason-words";
 import { isWaiting } from "./research-execution";
+import { usdWords } from "./spend";
 
 /** Feed lines kept per step: the latest few, newest last. */
 export const KEEP_LINES = 6;
@@ -51,6 +53,15 @@ export const formatUsd = usd;
 
 const TOOL_PREFIX = "deep_research_tool_";
 
+const ACTION = "research.exec.activity.action";
+/** Actions after which the step goes on by itself: said, not warned. */
+const GOES_ON = new Set(["RETRY", "DEFER"]);
+/** Engine reasons (domain/workflow.py) whose words are kept under the API's recovery_reason name. */
+const REASON_WORDS: Readonly<Record<string, string>> = {
+  paid_external_call_side_effect_uncertain: "paid_call_uncertain",
+  max_attempts_exhausted: "attempts_exhausted",
+};
+
 /** A fieldwork count with the blocks answered from the checkpoint, said only when there are any. */
 const withReplayed = (text: string, replayed: number) =>
   replayed ? `${text} · ${tv("research.exec.activity.fieldworkReplayed", { replayed })}` : text;
@@ -92,9 +103,26 @@ export function describe(event: RunEvent): ActivityLine | null {
     case "STEP_SUCCEEDED":
       return line(t("research.exec.activity.succeeded"));
     case "STEP_DEFERRED":
-      return line(tv("research.exec.activity.deferred", { reason: reason(event.message) }), "warn");
-    case "STEP_RECOVERY":
-      return line(tv("research.exec.activity.recovery", { reason: reason(event.message) }), "warn");
+    case "STEP_RECOVERY": {
+      // What the engine decided, in words (artifact-fieldwork FLD11): the reason's own words where
+      // a wait has them, else the action's (a closed set, tests/fixtures/step_feed/actions.json);
+      // a pair this client cannot word keeps its code named, never a guess.
+      const action = str(p.action);
+      const code = str(p.reason);
+      const words = (code ? known(`research.exec.wait.${REASON_WORDS[code] ?? code}`) : null) ?? (action ? known(`${ACTION}.${action}`) : null);
+      if (words) return line(words, action && GOES_ON.has(action) ? "info" : "warn");
+      return line(codedText(codeWords(ACTION, action ?? code ?? reason(event.message))), "warn");
+    }
+    case "STEP_RESUMED": {
+      // Every feed shown is a study's (a run, an agent job, Deep Research): a lift is its budget's.
+      const before = num(p.budget_before_usd);
+      const after = num(p.budget_after_usd);
+      return line(
+        before !== null && after !== null
+          ? tv("research.exec.activity.budgetLifted", { before: usdWords(before), after: usdWords(after) })
+          : t("research.exec.activity.resumed"),
+      );
+    }
     case "ATTEMPT_ABANDONED":
       return line(tv("research.exec.activity.abandoned", { reason: reason(event.message) }), "warn");
     case "STEP_PROGRESS":
