@@ -47,6 +47,11 @@ try {
       for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
       assert.equal(await page.locator('[data-activity="run_qc"][data-state="not_built"]').count(), 1, "ai: a not-built activity says so");
       await page.locator("#panel-ai [data-config]").waitFor();
+      // Each listed activity's last answered call, read from the ledger for an administrator
+      // (F14): when, or none recorded; never unread on a healthy API, never a claim it works.
+      const listed = (await get("/api/v1/settings")).ai_runtime.activities.length;
+      await waitFor(async () => await page.locator("#panel-ai [data-answered]").count() === listed, "ai: each activity's last answer");
+      assert.equal(await page.locator('#panel-ai [data-answered="unread"]').count(), 0, "ai: the last answers could not be read");
     }
     if (id === "prompts") {
       await page.getByLabel("Instrukce", { exact: true }).waitFor();

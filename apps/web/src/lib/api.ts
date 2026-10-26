@@ -2005,8 +2005,15 @@ export type ErrorTracking = {
   issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
   error: string | null;
 };
+/** Each AI activity's last answered call (settings-redesign F14, OI-75 (a)): OWNER and ADMIN
+ *  only. `last_answered` null: none recorded, which is neither working nor broken; `build` null:
+ *  the worker recorded none. */
+export type AiActivityAnswered = {
+  activities: { key: string; last_answered: { at: string; model: string; build: string | null } | null }[];
+};
 export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
 };
 

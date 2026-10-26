@@ -1977,6 +1977,14 @@ export const cs = {
           adminOnly: "Samoschválení nastavuje a vidí jen vlastník nebo správce.",
         },
         runtime: {
+          answered: {
+            at: "Naposledy odpověděl {when}",
+            on: "model {model}",
+            build: "build {build}",
+            none: "Zatím žádné zaznamenané odpovězené volání.",
+            unread: "Poslední odpověď se nepodařilo načíst.",
+            help: "Z účetní knihy volání celé organizace: kdy činnost naposledy dostala odpověď, ne zda odpoví teď.",
+          },
           powers:
             "AIA volá jazykové modely přes {provider}: vždy z workeru, přes jedinou řízenou bránu a proti rozpočtu studie. Prohlížeč ani API model nevolají.",
           credential: {
