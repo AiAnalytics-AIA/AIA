@@ -121,7 +121,7 @@ version; a missing preview says why. Depends on `input-interactions#5`.
 Proveditelnost is asked again 400 ms after the last change of the filters or n
 (`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
 answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
-rows of the population's), "Vzorek" (the stored n; it is set on Dimenze until SMP7 moves it) and
+rows of the population's), "Vzorek" (the stored n, linked to Vzorek, where it is set since #945) and
 "Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
 (representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
 "kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the

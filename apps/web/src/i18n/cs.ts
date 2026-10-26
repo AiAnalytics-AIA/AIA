@@ -3080,7 +3080,7 @@ export const cs = {
       feasibilitySelected: "V populaci vybráno",
       feasibilityOf: "lidí z {rows}",
       feasibilitySample: "Vzorek",
-      feasibilitySampleEdit: "upravit v Dimenzích",
+      feasibilitySampleEdit: "upravit na Vzorku",
       feasibilityDraw: "Lze vytáhnout",
       feasibleYes: "Ano",
       feasibleTight: "Těsně",

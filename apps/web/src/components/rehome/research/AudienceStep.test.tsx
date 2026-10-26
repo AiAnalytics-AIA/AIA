@@ -391,6 +391,8 @@ describe("Audience", () => {
       expect(figures.textContent).toContain("5\u00a0120");
       expect(figures.textContent).toContain("lidí z 18\u00a0766");
       expect(figures.textContent).toContain("N 500");
+      // n is set on Vzorek (#945): the figure links there.
+      expect(within(figures).getByRole("link", { name: "upravit na Vzorku" }).getAttribute("href")).toMatch(/#sample$/);
       expect(within(figures).getByText("Ne")).toBeTruthy();
       expect(figures.textContent).toMatch(/nebyl reprezentativní/);
       expect(posted(PREVIEW)).toHaveLength(1);

@@ -28,6 +28,7 @@ import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
 import { rangeWords } from "@/lib/number-input";
 import { isNativeResult } from "@/lib/research-agent-jobs";
+import { stageHref } from "@/lib/workbench-stages";
 import { t, tv } from "@/i18n/t";
 import {
   type Catalog,
@@ -592,7 +593,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
                 <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySample")}</dt>
                 <dd className="mt-1 text-lg font-semibold tabular-nums">{n != null ? `N ${n.toLocaleString("cs-CZ")}` : t("research.audience.unset")}</dd>
                 <dd className="text-xs">
-                  <a className="text-signal underline" href={stepHref("persona")}>{t("research.audience.feasibilitySampleEdit")}</a>
+                  <a className="text-signal underline" href={stageHref("sample", stepHref)}>{t("research.audience.feasibilitySampleEdit")}</a>
                 </dd>
               </div>
               <div className="rounded-control border border-border bg-surface p-3">
