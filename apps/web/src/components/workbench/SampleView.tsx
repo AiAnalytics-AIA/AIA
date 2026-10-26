@@ -6,7 +6,7 @@
 // this view edits nothing and decides nothing: it shows what is set, what the server forecasts,
 // and links to where each is set.
 
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
@@ -20,7 +20,8 @@ import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
 import type { ResearchProject } from "@/research/model";
-import { PERSONA_DIM_LABELS, chosenDimensions, recommendedSample } from "@/research/persona";
+import { chosenDimensions, clientDimensions, dimensionLabels, recommendedSample } from "@/research/persona";
+import { workspace } from "@/lib/api";
 import { CodedWords } from "../rehome/research/CodedWords";
 import { useResearch } from "../rehome/research/context";
 import { Glyph, type GlyphTone } from "./Glyph";
@@ -31,7 +32,28 @@ type Open = (stage: WorkbenchStage) => void;
 export function SampleView({ project, onOpen }: { project: ResearchProject; onOpen: Open }) {
   const { store, frame, state } = useResearch();
   const readiness = useSampleReadiness(store, frame.studyId, frame.canEdit, state.revision);
-  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} />;
+  const labels = useDimensionLabels(frame.studyId);
+  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} labels={labels} />;
+}
+
+/**
+ * The dimension names Dimenze shows: the system's, with the client's own library dimensions by
+ * their titles, so a library dimension is never named by its id (spec vzorek V6, critique d2).
+ * Without the client's knowledge, the system's names.
+ */
+function useDimensionLabels(studyId: string): Record<string, string> {
+  const [labels, setLabels] = useState(() => dimensionLabels({}));
+  useEffect(() => {
+    let live = true;
+    workspace.studyContext(studyId).then(
+      (c) => live && setLabels(dimensionLabels(clientDimensions(c.client))),
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [studyId]);
+  return labels;
 }
 
 function Sec({ n, title, aside, aia, children }: { n: number; title: string; aside?: string; aia: string; children: ReactNode }) {
@@ -47,8 +69,8 @@ function Sec({ n, title, aside, aia, children }: { n: number; title: string; asi
   );
 }
 
-/** How many cells the composition lists before the rest fold away. */
-const CELLS_SHOWN = 10;
+/** How many groups the composition lists before the rest fold away (the v73 board: six). */
+const CELLS_SHOWN = 6;
 
 /** One decimal on every row, so a column of shares reads aligned ("3,0 %" beside "2,7 %"). */
 const share = (x: number) => `${(x * 100).toLocaleString("cs-CZ", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %`;
@@ -69,9 +91,9 @@ function CellTable({ rows, caption }: { rows: CompositionRow[]; caption: string 
       <caption className="sr-only">{caption}</caption>
       <thead>
         <tr className="text-left text-ink-muted">
-          <th scope="col" className="py-1 pr-3 font-normal">Kvótní buňka</th>
+          <th scope="col" className="py-1 pr-3 font-normal">Skupina</th>
           <th scope="col" className="py-1 pr-3 text-right font-normal">Podíl</th>
-          <th scope="col" className="py-1 text-right font-normal">n</th>
+          <th scope="col" className="py-1 text-right font-normal">Respondentů</th>
         </tr>
       </thead>
       <tbody><CellRows rows={rows} /></tbody>
@@ -89,22 +111,22 @@ function Composition({ readiness }: { readiness: SampleReadiness }) {
     : c.kind === "refused" ? <p className="mt-1 text-sm" role="status">Vzorek z populace teď nelze vybrat: {c.words}</p>
     : (
       <>
-        <p className="mt-1 text-sm text-ink-muted">
-          Podle: {c.fields.join(" × ")}. {plural(c.rows.length, "buňka", "buňky", "buněk")} s respondenty
-          {c.donors !== null ? `, ${plural(c.donors, "různý dárce", "různí dárci", "různých dárců")}` : ""}.
-        </p>
         <CellTable rows={c.rows.slice(0, CELLS_SHOWN)} caption="Složení vzorku podle kvót" />
         {c.rows.length > CELLS_SHOWN ? (
           <details className="text-sm">
-            <summary className={`cursor-pointer text-signal ${TOUCH}`}>Dalších {plural(c.rows.length - CELLS_SHOWN, "buňka", "buňky", "buněk")}</summary>
-            <CellTable rows={c.rows.slice(CELLS_SHOWN)} caption="Další buňky vzorku" />
+            <summary className={`cursor-pointer text-signal ${TOUCH}`}>Dalších {plural(c.rows.length - CELLS_SHOWN, "skupina", "skupiny", "skupin")}</summary>
+            <CellTable rows={c.rows.slice(CELLS_SHOWN)} caption="Další skupiny vzorku" />
           </details>
         ) : null}
+        <p className="text-sm text-ink-muted">Kvóta říká, kolik lidí každé skupiny vytáhneme; neříká, že odpoví na každou otázku.</p>
       </>
     );
   return (
     <div>
-      <div className="flex items-center gap-2"><Glyph tone={c.kind === "drawn" ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Složení podle kvót</h3></div>
+      <div className="flex items-center gap-2">
+        <Glyph tone={c.kind === "drawn" ? "done" : "inert"} size={12} />
+        <h3 className="text-sm font-semibold">Složení podle kvót{c.kind === "drawn" && c.fields.length ? ` · ${c.fields.join(" × ").toLocaleLowerCase("cs")}` : ""}</h3>
+      </div>
       {body}
     </div>
   );
@@ -113,7 +135,21 @@ function Composition({ readiness }: { readiness: SampleReadiness }) {
 const STATUS_TONE: Record<string, GlyphTone> = { PASS: "done", WARN: "done-warn", FAIL: "fault" };
 const VERDICT_TONE: Record<OutlookVerdict, GlyphTone> = { ANSWERABLE: "done", UNKNOWN: "inert", AT_RISK: "you", UNANSWERABLE: "fault" };
 
-export function SampleArtifact({ project, readiness, onOpen }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open }) {
+/** A link to the stage where a part of the sample is set: its name, what is set there, and the way. */
+function LinkCard({ title, caption, done, onClick }: { title: string; caption: string; done: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className={`flex items-start gap-2 rounded-card border border-border px-3 py-2 text-left hover:bg-surface ${TOUCH}`}>
+      <span className="mt-1"><Glyph tone={done ? "done" : "inert"} size={12} /></span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-sm text-ink-muted">{caption}</span>
+      </span>
+      <span aria-hidden className="text-ink-muted">›</span>
+    </button>
+  );
+}
+
+export function SampleArtifact({ project, readiness, onOpen, labels = dimensionLabels({}) }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open; labels?: Record<string, string> }) {
   const n = Number(project.n) || 0;
   const dims = chosenDimensions(project);
   const rec = recommendedSample(project);
@@ -130,14 +166,14 @@ export function SampleArtifact({ project, readiness, onOpen }: { project: Resear
           <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
           <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
         </div>
-        <div>
-          <div className="flex items-center gap-2"><Glyph tone={audienceReady(project) ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Cílová skupina</h3></div>
-          <p className="mt-1 text-sm">{description || "Bez popisu"}{filters ? ` · ${filters} ${filters === 1 ? "filtr" : filters < 5 ? "filtry" : "filtrů"}` : ""}</p>
-          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("audience")}>Upravit cílovou skupinu</button>
-        </div>
-        <div>
-          <div className="flex items-center gap-2"><Glyph tone={dims.length ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Dimenze</h3></div>
-          {dims.length ? <ul className="mt-1 flex flex-wrap gap-1.5">{dims.map((d) => <li key={d} className="rounded-sm border border-border px-2 py-0.5 text-sm">{PERSONA_DIM_LABELS[d] ?? d}</li>)}</ul> : <p className="mt-1 text-sm text-ink-muted">Žádné</p>}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
+          <LinkCard
+            title="Cílová skupina"
+            caption={`${description || "Bez popisu"}${filters ? ` · ${plural(filters, "faktor", "faktory", "faktorů")}` : ""}`}
+            done={audienceReady(project)}
+            onClick={() => onOpen("audience")}
+          />
+          <LinkCard title="Dimenze" caption={dims.length ? dims.map((d) => labels[d] ?? d).join(", ") : "Žádné"} done={dims.length > 0} onClick={() => onOpen("dimensions")} />
         </div>
         <Composition readiness={readiness} />
       </Sec>
