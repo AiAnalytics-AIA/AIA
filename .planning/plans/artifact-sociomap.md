@@ -131,6 +131,26 @@ Depends on `research-lead-workbench#14`, `#16`.
   `object:<battery>/<object>` (its one element, selected or not), and the detail card's selected
   relation `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
   frame itself waits for `research-lead-workbench#15`.
+- Delivered (2026-10-26): the Lead's map views on the `-5` panel (`research-lead-workbench` 14, "For Sociomapa
+  (2)"). `ObjectMapPanel` listens for `LEAD_MAP_VIEW` and, on mount, takes the view waiting
+  (`takeLeadMapView`); each goes through `readMapOp` against its own battery and changes the picture only:
+  - `select` on `object:` or `pair:` opens that element's detail on the object map;
+  - `filter` `view` sets the camera (top: 2D, relief: 3D), `mode` the map (objects / respondents),
+    `battery` brings that battery's map into view;
+  - `labels` and `hide_weak`, which the panel has no control for (SOC3 finding), and any refusal are said
+    in words in a polite live region (`object-map-lead-note`), never dropped; nothing changes;
+  - `mode` respondents on a map that stores no respondent map, and any accepted op the map does not apply,
+    are said too;
+  - another battery's element is that battery's map's to apply; a waiting view for it goes back when that
+    map is on the page, and is refused otherwise; a view applied is no longer waiting;
+  - a waiting view is taken once the canvas is measured, so a view from above fits the box it is drawn in.
+  `LEAD_REVEAL` on a `pair:` target opens the relation's detail on the object map, so its id is there to be
+  shown; the respondent map is left as the person has it.
+  Tests: `ObjectMapPanel.test.tsx` › "the Lead's map views" (nine, each failing on develop);
+  `sociomap_journey.mjs` sends the workbench's event at 1440 and 390 px. The server half (the views live
+  in `LeadOutput`) is the integration session's, after this.
+  - The refusal is read out but not drawn: whether the panel shows it is the methodology owner's call
+    (the panel's visual decisions are his).
 
 **SOC3. Legend and filter bar.** Test: with weak links hidden the bar says what did not change.
 - Delivered on the `-5` panel: the filter bar (`lib/sociomap-display.ts` `displayChanges`: what the
@@ -308,3 +328,15 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
   `tmp/ui-workbench/sociomap-journey/390-older-method.png`. Smallest fix: print the hint only when some battery draws a map (`!olderMethodOnly(b)` for one). Test: the
   `ExecutionSteps.test.tsx` older-method case expects no `mapToolNotInAia`. Left for SOC2, which hosts the
   panel and writes no second notice; ExecutionSteps is Výsledky's.
+- **Open, not this plan's code: two of `sociomap_journey.mjs`'s checks fail on develop @ `ce25a1b8`.**
+  1. "no run or method id outside Technické údaje": the stage renders the experimental Sociomapping view
+     (`ExecutionSteps.tsx:1664 @ ce25a1b8`), whose provenance row (`SociomappingView.tsx:318 @ ce25a1b8`,
+     `ART-… · SHA256 … · RUN-…`) and report line (`SociomappingView.tsx:383 @ ce25a1b8`) print the run id
+     outside `map-tech`. Reproduction: `node tools/ui_workbench/sociomap_journey.mjs` after `--prepare` on a
+     fresh workbench. Smallest fix: on the stage, those two lines go inside a Technické údaje disclosure.
+     The test that catches it is this journey check. Owner: the map-first stage (SOC9-SOC11).
+  2. "nothing written but the stage opened": opening Výsledky now POSTs `…/report/editor` twice
+     (`lib/api.ts:1428 @ ce25a1b8`, the report editor). The same reproduction. Smallest fix: open the editor
+     session on the person's action, not on the page's load; the same journey check catches it. Owner: the
+     report editor.
+  Both fail with develop's own journey on the same workbench; neither is changed here.

@@ -15,7 +15,7 @@ import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
 import { readTarget } from "@/lib/artifacts/sociomap";
-import { LEAD_REVEAL, focusSelector } from "@/lib/lead";
+import { LEAD_REVEAL, type LeadMapView, focusSelector, sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
@@ -1161,6 +1161,102 @@ describe("the Lead's names on the map", () => {
       expect(same[0].tagName).toBe("BUTTON");
     }
     expect(document.querySelector(focusSelector(`object:hudba/${map.object_ids[i]}`))?.tagName).toBe("BUTTON");
+  });
+});
+
+// The Lead's views on the map (artifact-sociomap SOC2; research-lead-workbench 14, "For Sociomapa (2)"):
+// each read through readMapOp and applied to the picture only; a refused one said in words, never dropped.
+describe("the Lead's map views", () => {
+  const send = (view: LeadMapView) => act(() => { sendLeadMapView(view); });
+  const said = () => screen.getByTestId("object-map-lead-note").textContent;
+  const [a, b] = [map.object_ids[1], map.object_ids[3]].sort();
+  afterEach(() => { takeLeadMapView(); });
+
+  it("selects an object or a relation the Lead names, and opens its detail", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "select", target: `object:hudba/${map.object_ids[2]}` });
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
+    expect(screen.getByTestId("object-map-detail-label").textContent).toBeTruthy();
+    send({ op: "select", target: `pair:hudba/${a}~${b}` });
+    expect(canvas().getAttribute("data-relation")!.split("|").sort()).toEqual([a, b]);
+    expect(screen.getByTestId("object-map-detail-relation").closest("[data-aia]")!.getAttribute("data-aia")).toBe(`pair:hudba/${a}~${b}`);
+  });
+
+  it("sets the view and the map the Lead names, and leaves the map's numbers as they were", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "filter", name: "view", value: "top" });
+    expect(camera().pitch).toBe(0);
+    send({ op: "filter", name: "view", value: "relief" });
+    expect(camera().pitch).toBeGreaterThan(0);
+    send({ op: "select", target: `object:hudba/${map.object_ids[2]}` });
+    send({ op: "filter", name: "mode", value: "respondents" });
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    // A select on the respondent map goes back to the object map, where selection is.
+    send({ op: "select", target: `object:hudba/${map.object_ids[0]}` });
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[0]);
+  });
+
+  it("says a refused view in words and changes nothing: a control the map lacks, an element it lacks", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const before = canvas().getAttribute("data-camera");
+    send({ op: "filter", name: "hide_weak", value: "on" });
+    expect(said()).toContain("Mapa: skrýt slabé vztahy");
+    expect(said()).not.toContain("hide_weak");
+    send({ op: "select", target: "object:hudba/neni-na-mape" });
+    expect(said()).toContain("neni-na-mape");
+    expect(canvas().getAttribute("data-camera")).toBe(before);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    // Another battery's element is that map's to apply, not this one's to refuse.
+    send({ op: "select", target: `object:${sum.battery_id}/${map.object_ids[2]}` });
+    expect(said()).toContain("neni-na-mape");
+  });
+
+  it("applies the view the Lead sent before the map was on screen, once", () => {
+    sendLeadMapView({ op: "select", target: `object:hudba/${map.object_ids[4]}` });
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[4]);
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("leaves nothing waiting once a map on screen applied the view: a later map does not apply it again", () => {
+    const first = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "select", target: `object:hudba/${map.object_ids[4]}` });
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[4]);
+    first.unmount();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+  });
+
+  it("refuses a waiting view no map on the page takes, in words, rather than keep it", () => {
+    sendLeadMapView({ op: "select", target: "object:neni/x" });
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(said()).toContain("object:neni/x");
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("says the respondent map is not stored rather than show the object map silently", () => {
+    const flat = { ...hudba, maps: { "aia-sociomap-5": { ...hudba.maps!["aia-sociomap-5"], artifact: { ...map, respondents: undefined } } } } as unknown as BatteryWithMaps;
+    render(<ObjectMapView battery={flat} dataOrigin={null} />);
+    send({ op: "filter", name: "mode", value: "respondents" });
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(said()).toContain("mapu respondentů tato mapa neukládá");
+  });
+
+  it("opens a relation's detail when the Lead points at it, so its id is there to be shown", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const target = `pair:hudba/${a}~${b}`;
+    expect(document.querySelector(focusSelector(target))).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target })); });
+    expect(document.querySelector(focusSelector(target))).toBeTruthy();
+  });
+
+  it("leaves the respondent map as the person has it when the Lead points at a relation", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "filter", name: "mode", value: "respondents" });
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: `pair:hudba/${a}~${b}` })); });
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
   });
 });
 

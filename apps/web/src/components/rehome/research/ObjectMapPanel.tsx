@@ -27,8 +27,8 @@
 import "./object-map-windows.css";
 import { type PointerEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from "react";
 import { t, tv } from "@/i18n/t";
-import { objectTarget, pairTarget } from "@/lib/artifacts/sociomap";
-import { LEAD_REVEAL } from "@/lib/lead";
+import { isRefusal, objectTarget, pairTarget, readMapOp, readTarget } from "@/lib/artifacts/sociomap";
+import { LEAD_MAP_VIEW, LEAD_REVEAL, type LeadMapView, mapViewWords, sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
@@ -56,6 +56,7 @@ type WorkWindow = "settings" | "tools" | "objects";
 
 // The map last pressed or focused: Esc with nothing focused acts on it, not on every map on the page.
 let lastStage: HTMLElement | null = null;
+
 
 /** The stage's height before it is measured (stageHeight then follows the pane it is read in). */
 const FIRST_HEIGHT = "min(700px, max(120px, calc(100dvh - 260px)), max(360px, 110vw))";
@@ -371,16 +372,81 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     const back = detailOpener.current?.isConnected ? detailOpener.current : canvas.current;
     back?.focus({ preventScroll: true });
   };
-  // The Lead points at one of this map's objects while Správa objektů is closed: open it, so the
-  // object's button (its target) is there to be shown.
+  // The Lead's views on this map (artifact-sociomap SOC2): each read through readMapOp against this
+  // battery and applied to the picture only. A select opens the element's detail on the object map;
+  // a filter sets the camera (top / relief), the map (objects / respondents) or brings this battery's
+  // map into view. A refused view is said in words (lead note), never dropped; another battery's
+  // element is that map's own.
+  const [leadNote, setLeadNote] = useState("");
+  const selectTarget = (target: string) => {
+    const t = readTarget(target);
+    const at = (id: string) => nodes.findIndex((n) => n.id === id);
+    if (!t) return;
+    showMap("objects");
+    if (t.kind === "object") { setSelected(at(t.object)); setRelation(null); }
+    else { setSelected(at(t.a)); setRelation([at(t.a), at(t.b)]); }
+    detailOpener.current = null;
+    showDetail();
+  };
+  // Whose view it is: a select on this battery's element (or on no readable element at all, which every
+  // map refuses), a filter for every map but a battery filter for its own.
+  const ours = (view: LeadMapView) => {
+    if (view.op === "select") { const at = readTarget(view.target); return !at || at.battery === battery.battery_id; }
+    return view.op !== "filter" || view.name !== "battery" || view.value === battery.battery_id;
+  };
+  const say = (key: string, vars: Record<string, string> = {}) => setLeadNote(tv(`research.exec.objectMap.panel.${key}`, vars));
+  /** Applies a Lead view to this map's picture; false for another battery's (`anyway`: refuse it here). */
+  const applyLeadView = (view: LeadMapView, anyway = false) => {
+    if (!anyway && !ours(view)) return false;
+    const op = readMapOp(view, [{ battery_id: battery.battery_id, title: battery.title, objects: nodes }]);
+    setLeadNote("");
+    if (isRefusal(op)) say("leadRefused", { words: op.words });
+    else if (op.op === "select") selectTarget((view as { target: string }).target);
+    else if (op.op !== "filter") say("leadNotApplied", { op: op.op });
+    else if (op.name === "view") setCamera((c) => (op.value === "top" ? topCamera(c, size.width, size.height) : camera3d(c)));
+    else if (op.name === "mode" && op.value === "respondents" && !density) say("leadNoRespondents");
+    else if (op.name === "mode") showMap(op.value as "objects" | "respondents");
+    else if (op.name === "battery") stage?.scrollIntoView?.({ block: "start" });
+    else say("leadNoControl", { what: mapViewWords({ op: "filter", name: op.name, value: op.value }) });
+    return true;
+  };
+  // The listeners read the latest render's handlers, registered once.
+  const onObjects = view === "objects";
+  const lead = useRef({ applyLeadView, selectTarget, openSheet, onObjects });
+  useEffect(() => { lead.current = { applyLeadView, selectTarget, openSheet, onObjects }; });
   useEffect(() => {
-    const on = (e: Event) => {
+    // A view applied here is no longer waiting for a map that mounts later.
+    const onView = (e: Event) => { if (lead.current.applyLeadView((e as CustomEvent<LeadMapView>).detail)) takeLeadMapView(); };
+    // The Lead points at one of this map's objects while Správa objektů is closed: open it; at one of
+    // its relations on the object map: open the relation's detail. Either way the target's element is
+    // there to be shown; the respondent map is left as the person has it.
+    const onReveal = (e: Event) => {
       const target = (e as CustomEvent<unknown>).detail;
-      if (nodes.some((n) => objectTarget(battery.battery_id, n.id) === target)) openSheet();
+      const t = typeof target === "string" ? readTarget(target) : null;
+      if (!t || t.battery !== battery.battery_id) return;
+      const has = (id: string) => nodes.some((n) => n.id === id);
+      if (t.kind === "object" && has(t.object)) lead.current.openSheet();
+      else if (t.kind === "pair" && has(t.a) && has(t.b) && lead.current.onObjects) lead.current.selectTarget(target as string);
     };
-    window.addEventListener(LEAD_REVEAL, on);
-    return () => window.removeEventListener(LEAD_REVEAL, on);
+    window.addEventListener(LEAD_MAP_VIEW, onView);
+    window.addEventListener(LEAD_REVEAL, onReveal);
+    return () => { window.removeEventListener(LEAD_MAP_VIEW, onView); window.removeEventListener(LEAD_REVEAL, onReveal); };
   }, [nodes, battery.battery_id]);
+  // A view sent before this map was on screen, taken once the canvas is measured (a view from above is
+  // fitted to its box). Another battery's goes back for that battery's map when it is on the page;
+  // with none, it is refused here, in words.
+  const measured = size !== DEFAULT_SIZE || typeof ResizeObserver === "undefined";
+  const tookWaiting = useRef(false);
+  useEffect(() => {
+    if (!measured || tookWaiting.current) return;
+    tookWaiting.current = true;
+    const waiting = takeLeadMapView();
+    if (!waiting || lead.current.applyLeadView(waiting)) return;
+    const other = waiting.op === "select" ? readTarget(waiting.target)?.battery : waiting.value;
+    const shown = [...document.querySelectorAll("[data-map-battery]")].some((m) => m.getAttribute("data-map-battery") === other);
+    if (other && shown) sendLeadMapView(waiting);
+    else lead.current.applyLeadView(waiting, true);
+  }, [measured]);
   // Nastavení mapy and Nástroje are the bar's popovers (a second press closes); Správa objektů is a tab
   // of the side sheet, beside the detail.
   const openWork = (next: WorkWindow) => {
@@ -498,7 +564,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   return (
     <div className="flex flex-col gap-3" data-testid="object-map-panel">
       <div ref={setStage} className="omw omx relative isolate w-full min-w-0 overflow-hidden bg-[#07090c] [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
-        data-testid="object-map-stage" data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
+        data-testid="object-map-stage" data-map-battery={battery.battery_id} data-moving={moving || undefined} style={full ? undefined : { height: fit ?? FIRST_HEIGHT }}
         onPointerDownCapture={(e) => { lastStage = e.currentTarget; }}
         onFocusCapture={(e) => { lastStage = e.currentTarget; }}>
         <div className="omx-body">
@@ -540,6 +606,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                   </span>
                 ) : null}
               </span>
+              {/* A Lead view the map refused, in words; read out, nothing drawn over the panel. */}
+              <span role="status" className="sr-only" data-testid="object-map-lead-note">{leadNote}</span>
             </div>
 
             {menu === "more" ? (
