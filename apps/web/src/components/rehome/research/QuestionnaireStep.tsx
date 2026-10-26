@@ -800,9 +800,10 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
       <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
-        {stated.map((rq) => (
+        {stated.map((rq, i) => (
           <li key={rq} className="flex flex-col gap-1.5 text-sm">
-            <span>{rq}</span>
+            {/* Numbered with the chips' key, so "VO n" is legible without hover (keyboard, touch). */}
+            <span>{tv("research.questionnaire.strip.rq", { n: i + 1 })} · {rq}</span>
             <ChoiceChips
               label={tv("research.questionnaire.comparisons.choose", { rq })}
               value={comparisonOf(state.project, rq) ?? NONE}

@@ -361,6 +361,8 @@ describe("Dotazník", () => {
     // The chip reads "VO1" and is named by it and the question; the question is its tooltip too.
     const chip = within(q1).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" });
     expect(chip.querySelector("[title]")?.getAttribute("title")).toBe("Jak často lidé pijí kávu?");
+    // The page keys "VO n" to its question without hover: the comparisons card numbers its rows the same way.
+    expect(screen.getByText("VO2 · Která média lidé používají?")).toBeTruthy();
     // Nothing linked anywhere yet: coverage is unknown, so no card says it measures nothing.
     expect(screen.queryByText(/^Neměří žádnou výzkumnou otázku/)).toBeNull();
     fireEvent.click(chip);
