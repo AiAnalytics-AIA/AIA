@@ -65,6 +65,8 @@ chunks:
   - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
   - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
   - "[ ] 59. The Deep Research tool event carries the fetched host and a refusal's reason (spec lead LP-14, lead B9; W1, only as a defect or evaluation finding under the engine freeze)"
+  - "[ ] 60. Remove the study-scoped test policies: the table, the repository's propose/approve, the start's test_policy_approval pin and their tests; a run that pinned one still reads (ADR 0022 amendment 2026-10-26, Q1 (b); W1)"
+  - "[ ] 61. Remove the per-run limit setting budgets.run_limit.<preset> from the catalogue, the live-readiness list and the page; a stored or pinned value still reads (ADR 0022 amendment 2026-10-26, Q2 (b); OI-158; W1)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1978,3 +1980,42 @@ ids repeat across sections. A ticked chunk the spec reopens is never unticked: i
 follow-up chunk below.
 
 **59. Host and reason on the tool event** (spec `lead/LP-14`; W1, lane C). With `research-lead-workbench#23b`. Open contradiction 13: CLAUDE.md freezes the engine "except on a defect or evaluation finding"; this chunk lands only if it is recorded as one, else it is moved.
+
+## ADR 0022 accepted (2026-10-26): chunks 60 and 61
+
+The product owner accepted ADR 0022 with its amendment in the Decision Review, 2026-10-26 (relayed by
+the PM coordinator; `docs/architecture/adr/0022-deep-research-settings-are-approved-data.md` §
+Amendment, 2026-10-26). Two answers go against the review's recommendation and are code:
+
+**60. Remove the study test policies** (W1). Q1 (b): "Remove the test policies". Today:
+`deep_research_test_policies` (`packages/aia_core/src/aia_core/infrastructure/tables.py:2887 @
+5d2ac5ac`), `propose_test_policy` / `approve_test_policy` and the seal check
+(`infrastructure/deep_research_settings_repository.py:319-402,553,626 @ 5d2ac5ac`), the client
+deletion's `erase_client_test_policies` (`:896`), and the start's pinned `test_policy_approval`
+(`application/deep_research.py:821 @ 5d2ac5ac`); `test_deep_research_sandbox_policy.py` tests them. A
+migration drops the table once nothing reads it; a run's stored metadata that names a
+`test_policy_approval` still reads as stored, never rewritten. Test: a live start on a fictional
+study with no organization approval is refused `live_settings_unapproved`, whatever was once
+proposed for it; the repository has no test-policy entry point.
+
+**61. Remove the per-run limit setting** (W1). Q2 (b): "Remove the setting" (OI-158).
+`budgets.run_limit.standard|deep|exhaustive` (`domain/deep_research/settings.py:366-378 @ 5d2ac5ac`,
+required for live) leaves the catalogue, the live-readiness list, the page's copy
+(`apps/web/src/i18n/cs.ts:1518-1520`, `settings/settings-guide.ts:97 @ 5d2ac5ac`) and the
+test-policy check that was its one reader (`deep_research_settings_repository.py:357`, gone with 60).
+A version or pin already stored keeps reading as stored (an unknown key in a stored pin is history,
+not an error). Test: the catalogue has no `budgets.run_limit.*` key and the live-readiness list does
+not ask for one; a pin stored with it still verifies.
+
+Q3 (a), Q4 (a) and Q5 (a) change no chunk: chunk 1's sign-off is an Admin's approvals on the page,
+develop's organization first, and tier B approves the acceptance organization's live settings
+(OI-159); the register and weights stay Admin settings.
+
+## Chunk 31 confirmed for the MVP (ADR 0021, 2026-10-26)
+
+ADR 0021 Q2 (b), the product owner in the Decision Review, 2026-10-26 (relayed by the PM coordinator):
+"Build chunk 31 for the MVP", against the review's recommendation to defer it. Chunk 31 (the Sociomap
+Research Lens) keeps its wave, W3 (row E28 of `mvp-execution-contracts.md`, with 32). ADR 0021 is
+held "until all seven target kinds are reachable; chunk 31 builds it" (Q1 (b) and the verdict), so
+the Lens's acceptance includes an Interpretation start from the map on each Sociomap target kind it
+reaches (battery, object, pair), beside OI-179's fix for the result kinds.

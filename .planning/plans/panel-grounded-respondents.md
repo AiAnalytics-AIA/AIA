@@ -2099,3 +2099,12 @@ Tests:
   sampler's rows), installed through `aia_api.dependencies.AudiencePopulation`";
   `dependencies.py`: "AudiencePopulation: the population the audience routes read (the Czech
   LIVE; the workbench's fictional one)".
+
+## Disposition (MP3, 2026-10-26)
+
+**Kept open as it is** (Nigel, 26 Oct: "Keep it open as it is", the product owner in the Decision
+Review, 2026-10-26, relayed by the PM coordinator; against the proposed POST). 7f-7h stay as
+written; it is outside the development plan, and not POST. ADR 0024 is accepted (2026-10-26) with Q1
+(a), "Confirm P1-P8 as written before the preregistration is pinned": **7h does not pin a
+preregistration until the methodology owner has confirmed P1-P8 by name**; that confirmation is not
+yet on his question page.
