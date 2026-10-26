@@ -22,6 +22,7 @@ import { MemorySearch } from "./MemorySearch";
 import { PopulationCharacteristicsSection } from "./PopulationCharacteristics";
 import { CARD, Empty, Loaded } from "./states";
 import { ControlPanel } from "./settings/ControlPanel";
+import { SectionMenu } from "./settings/SectionMenu";
 import { useResource } from "./useResource";
 
 export function IntelligencePage() {
@@ -204,9 +205,11 @@ export function SettingsPage() {
   // "Organizace <name> / Nastavení", as the prototype's top bar; a name the API did not send is
   // left out, never guessed.
   const organization = me.state === "ready" ? me.data.organization_name : null;
-  const crumbs = organization ? [{ prefix: t("aia.settings.organization"), label: organization }, { label: t("aia.settings.title") }] : [{ label: t("aia.settings.title") }];
+  // The section is chosen in the top bar (prototype v54): "Organizace <name> / Nastavení › <sekce> ⌄".
+  const crumbs = organization ? [{ prefix: t("aia.settings.organization"), label: organization }] : [];
+  const mayAdminister = me.state === "ready" ? me.data.may_administer : me.state === "loading" ? null : false;
   return (
-    <AppShell title={t("aia.settings.title")} crumbs={crumbs} topbar bleed>
+    <AppShell title={t("aia.settings.title")} crumbs={crumbs} crumbEnd={<SectionMenu mayAdminister={mayAdminister} />} topbar bleed>
       <ControlPanel me={me} rereadMe={rereadMe} footer={
         <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
           <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
