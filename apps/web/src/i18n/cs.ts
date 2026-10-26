@@ -1590,6 +1590,11 @@ export const cs = {
           CODE: "Verzovaná konstanta; mění se revidovanou změnou kódu.",
           INVARIANT: "Odmítnutí produktu. Nelze nastavit.",
         },
+        // Each page's hero figures (F18, prototype v99's hero-meta), from the reads the page makes.
+        hero: {
+          access: { active: "Aktivní členové", deactivated: "Deaktivovaní", methodologist: "Metodik", clients: "Klienti", selfApproval: "Samoschválení v organizaci", allowed: "povoleno", forbidden: "zakázáno", byDefault: "výchozí" },
+          audit: { inPeriod: "Události · 7 dní", today: "Dnes", people: "Kdo měnil", last: "Poslední změna" },
+        },
         // The section menu in the top bar (prototype v54): ⌘K / Ctrl+K, a search by keyword, three columns.
         menu: {
           label: "Nastavení – přejít na",
