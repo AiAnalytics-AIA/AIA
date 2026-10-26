@@ -10,7 +10,7 @@ chunks:
   - "[ ] SMP2b. Složení: the composition table renamed and folded after six rows, link cards, the own dimension by name (reopens SMP2; spec vzorek V6; W1)"
   - "[ ] SMP3b. §02 'Kolik dat bude za čísly': KPI tiles from the outlook; pair support disabled with its reason, 'ověří se až z dat' (reopens SMP3; spec vzorek V4; W1)"
   - "[ ] SMP4b. §03 readiness in words, one fix per check, the header pill, the budget row as a warning (reopens SMP4; spec vzorek V5; W1)"
-  - "[ ] SMP5b. §04 one line for the default source; 'Sběr dat' as the stage's one name (reopens SMP5; spec vzorek V7; W1)"
+  - "[x] SMP5b. §04 one line for the default source; 'Sběr dat' as the stage's one name (reopens SMP5; spec vzorek V7; W1)"
   - "[ ] SMP10. Readiness FAILs while the run's ceiling exceeds what is left of Rozpočet studie, the remedy raising the budget or lowering N (B1 (a), Nigel 2026-10-26; spec vzorek V5, OQ3; W1, on lead-orchestration LO23)"
   - "[ ] SMP6b. The Vzorek journey extended: N stepped and read back, the Lead's focus, zero paid (reopens SMP6; spec vzorek V8; W1)"
   - "[ ] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"

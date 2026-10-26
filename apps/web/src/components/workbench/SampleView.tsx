@@ -267,7 +267,7 @@ function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen
       )}
       {rest.length ? (
         <details className="text-sm">
-          <summary className="cursor-pointer text-ink-muted">Další zdroje ({rest.length})</summary>
+          <summary className={`cursor-pointer text-ink-muted ${TOUCH}`}>Další zdroje ({rest.length})</summary>
           <ul className="mt-2 flex flex-col gap-2" aria-label="Další zdroje respondentů">
             {rest.map((o) => <li key={o.source} className="flex"><SourceRow source={o} /></li>)}
           </ul>
