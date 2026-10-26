@@ -361,6 +361,16 @@ first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts foc
 left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
 into the condition form and back to its button when it closes" (all four ways out).
 
+*QST4, spec navrh/Q4 (R9: what a run cannot do shown disabled, with the reason):* with routing off a
+question's display condition was simply absent (`QuestionCondition.tsx:72-75` @ 25ce6493), and a tracked set
+offered a familiarity switch that readiness then FAILs (`QuestionnaireStep.tsx:1225` @ f7b2f381, readiness
+battery_familiarity at `research_design.py:1501` @ f7b2f381). Change (feature/questionnaire-unavailable-disabled): with `/config` routing known to be off,
+a question that has an earlier choice question shows "Podmínka zobrazení", why, and an aria-disabled "Zapnout"
+described by it, still focusable (nothing while the switch is unread or cannot be read); a stored condition still shows and can be removed. The
+familiarity switch is gone: a set says why, and one stored with it says the run will refuse it, with
+"Vypnout". Tests: `QuestionnaireStep.test.tsx` "offers no condition to set without the routing switch…"
+(extended), "offers no familiarity switch a run would refuse…"; `questionnaire_journey.mjs` at 1440/1100/768/390.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
@@ -395,3 +405,4 @@ follow-up chunk below.
 **QST12. One questionnaire editor** (Nigel, 26 Oct 2026 ~01:41 UTC, relayed by the PM coordinator: "its important that in the questionnaire there is no nahrat excel, sestavit rucne, sestavit with ai, becuse we only need one interface to create the question, and the user can create it manually, but can also upload an excel to the lead researcehr and the lead researcehr will create the questionnaire, if no excel is used the user can still use the lead researcher to help create it based on the previous stage inputs, client knowledgebase and deep research."). W1, lane E. Dotazník loses its "Způsob" radiogroup (`apps/web/src/i18n/cs.ts:2587-2591 @ 2e7fc1dd`, pathUpload / pathManual / pathAi) and keeps one editor, which also works on an empty questionnaire. Excel import moves to the Lead, as one use of any file given to the Lead (`lead-orchestration#LO18a`-`LO18b`), and AI drafting to the Lead's questionnaire job (`lead-orchestration#LO27`, with QST13). Ships in the same PR as LO18b, or after it, so the Excel import is never missing in between (planning's default and the Lead worker's; Nigel may split them). It belongs with #808 / QF-13, which already hides Dotazník's own workbench start. Test: Dotazník on an empty study shows the editor and no path choice; the import route stays (`apps/api/src/aia_api/routers/workspace.py:2318`).
 
 **QST13. Verified Design Research findings in the questionnaire jobs** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "All verified findings"). W1, for `lead-orchestration#LO27`. The two questionnaire contracts (`domain/research_agents.py`) read every verified finding of the Study's newest finished Design Research run, frozen at enqueue and labelled external context, never respondent evidence, as the Lead's `external_context_not_evidence` layer and Analýza's external context already are. A prompt version and harness bump, the frozen findings in the job's input fingerprint. Today the jobs read Design Research only where a person accepted it into the design. Test: a job enqueued after a sealed run carries its verified findings in the frozen context, and its fingerprint changes when a newer run seals.
+- CLAUDE.md § 2 map, QuestionCondition.tsx: with routing known off, a question that could take a condition shows it disabled with the reason (QST4, R9). Tracked sets: no familiarity switch; a stored one says the run refuses it, with Vypnout.

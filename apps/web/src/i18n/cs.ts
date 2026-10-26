@@ -2759,8 +2759,10 @@ export const cs = {
       setObjects: "Objekty — jeden na řádek (doporučeno 4–15)",
       setLow: "Levý konec škály",
       setHigh: "Pravý konec škály",
-      familiarity: "Před hodnocením ověřovat znalost každého objektu",
-      familiarityHelp: "Zapínejte jen když to dává věcný smysl — typicky u značek, produktů či konceptů. U médií, emocí nebo vztahových výroků obvykle ne.",
+      // The board's R9: what a run cannot do is not offered (spec navrh/Q4).
+      familiarityUnavailable: "Ověřování znalosti objektů před hodnocením zatím AIA neumí položit: běh by sadu odmítl, proto tu přepínač chybí.",
+      familiarityStored: "Sada má uložené ověřování znalosti objektů, které AIA zatím neumí položit: běh ji odmítne.",
+      familiarityOff: "Vypnout",
       conceptTest: "Porovnat položky jako koncepty (A/B test)",
       conceptTestHelp: "Sada se vyhodnotí jako test konceptů místo poziční mapy; výzkumnou otázku zodpovídanou A/B testem lze zodpovědět jen takovou sadou.",
       priceBands: "Cenová pásma pro test konceptu",
@@ -2823,6 +2825,8 @@ export const cs = {
         shown: "Zobrazí se jen těm, kdo u {n} („{text}“) odpověděli {answers}.",
         notRouted: "Sběr dat zatím podmínky nepoužívá, takže běh s podmínkou zatím neproběhne.",
         refused: "Podmínka neplatí: {reason}",
+        unavailable: "Běh s podmínkou zatím AIA neumí odeslat, proto ji nelze zapnout.",
+        turnOn: "Zapnout",
       },
       // productization PC6: what accepting a questionnaire proposal replaces.
       replacement: {

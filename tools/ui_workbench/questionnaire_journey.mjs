@@ -100,6 +100,12 @@ try {
     assert(room.column >= 160 && !room.clipped, `the set's name at ${width}: ${Math.round(room.column)} px, clipped ${room.clipped}`);
     check(`${width}: Závislosti lists the set's readers, the open question apart, no overflow`);
 
+    // No familiarity switch a run would refuse; the set says why (spec navrh/Q4, R9).
+    const setCard = page.locator("#qset_sec_wb_set");
+    assert.equal(await setCard.getByRole("switch", { name: /znalost/ }).count(), 0, `a familiarity switch at ${width}`);
+    await setCard.getByText(/proto tu přepínač chybí/).waitFor();
+    check(`${width}: a set offers no familiarity switch and says why`);
+
     // A question's × stays beside its number at every width, never on a row of its own (the
     // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
     const card = page.locator("#qedit_Q_wb1");

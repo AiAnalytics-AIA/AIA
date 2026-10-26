@@ -1120,6 +1120,8 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
+  const { canEdit } = useFrame();
+  const familiarityBox = useRef<HTMLDivElement>(null);
   const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
@@ -1221,9 +1223,27 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         perPoint={false}
         onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
       />
-      <div className="flex flex-col gap-1">
-        <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
-        <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
+      {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
+          with it says so and can drop it. */}
+      <div ref={familiarityBox}>
+        {sec.familiarity_required ? (
+          <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+            <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
+            <Button
+              small
+              disabled={!canEdit}
+              onClick={() => {
+                update((p) => setSectionField(p, si, "familiarity_required", false), "familiarity");
+                // The button goes with the note it stood in; focus the line that replaces it, never the page.
+                window.requestAnimationFrame(() => familiarityBox.current?.querySelector<HTMLElement>("p")?.focus());
+              }}
+            >
+              {t("research.questionnaire.familiarityOff")}
+            </Button>
+          </div>
+        ) : (
+          <p tabIndex={-1} className={`text-xs text-ink-muted ${FOCUS}`}>{t("research.questionnaire.familiarityUnavailable")}</p>
+        )}
       </div>
       {togglesConceptTest(sec) ? (
         <div className="flex flex-col gap-1">
