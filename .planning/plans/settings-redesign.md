@@ -27,7 +27,7 @@ chunks:
   - "[x] F7. Studie a rozpočty: the 6-column table without the per-study status picker, the KPI tiles, per-researcher stacked bars; near-limit grey with ⚠ (gaps 4, 16, 17)"
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
-  - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
+  - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
@@ -205,6 +205,13 @@ follow-up chunk below.
   (`packages/aia_core/src/aia_core/infrastructure/scope_repository.py:214 @ 25ce6493`); it now
   stamps only with `seen=True`, which the API's identity path alone passes, and a first sign-in
   stamps the row it creates. Test: `apps/api/tests/test_member_last_seen_api.py`.
+- F9: Přístup as prototype v58 draws it: Členové, Samoschválení and Klienti as three flat cards under
+  the tab's head (no group card around them; each card's title the h2), their explanations behind an ⓘ
+  that a keyboard or touch opens (`settings/InfoButton.tsx`, shared with later compaction chunks), the
+  role boxes behind the Role column's ⓘ. Naposledy for an administrator: a time with the exact moment on
+  hover, "nikdy" for null, "nezjištěno" for an API that does not serve it; a member sees no column. The
+  organization's self-approval in the card's one row beside the precedence; "Výchozí" kept (the code's
+  third option) and the study rules kept in the card, against v58's two options and "ve studii".
 
 **F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
 

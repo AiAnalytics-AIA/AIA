@@ -536,7 +536,7 @@ describe("the settings control panel", () => {
     expect(within(panel).queryByRole("button", { name: /^Deaktivovat/ })).toBeNull();
   });
 
-  it("draws the new member's row with the table's five cells (review of #859)", async () => {
+  it("draws the new member's row in step with the table's six columns, Naposledy among them (review of #859, F9)", async () => {
     api();
     render(<ControlPanel />);
     await openSection("Přístup a schvalování");
@@ -544,11 +544,67 @@ describe("the settings control panel", () => {
     fireEvent.click(await within(panel).findByRole("button", { name: "+ Přidat člena" }));
     const table = within(panel).getByRole("table", { name: "Členové" });
     const columns = table.querySelectorAll('[role="columnheader"]').length;
-    expect(columns).toBe(5);
+    expect(columns).toBe(6);
+    expect([...table.querySelectorAll('[role="columnheader"]')].map((h) => h.textContent)).toContain("Naposledy");
     const row = table.querySelector("[data-member-new]") as HTMLElement;
-    expect(row.querySelectorAll(':scope > [role="cell"]')).toHaveLength(columns);
+    // The note spans Naposledy and Stav, as the prototype's: the row still fills every column once.
+    const spans = [...row.querySelectorAll(':scope > [role="cell"]')].reduce((n, c) => n + (c.classList.contains("col-span-2") ? 2 : 1), 0);
+    expect(spans).toBe(columns);
     // The add and cancel buttons sit in the last, the action column.
     expect(within(row.lastElementChild as HTMLElement).getByRole("button", { name: "Zrušit" })).toBeTruthy();
+  });
+
+  it("says when each member was last active, never as a date for one who never was, unknown when not served (F9, F19)", async () => {
+    const recent = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "Petr", is_active: true, organization_role: "OWNER", methodologist: false, last_seen_at: recent },
+        { user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: true, organization_role: "MEMBER", methodologist: false, last_seen_at: null },
+        // An API from before F19 does not serve the field: unknown, never "nikdy".
+        { user_id: "USR-3", email: "eva@example.test", display_name: "Eva", is_active: true, organization_role: "MEMBER", methodologist: false },
+      ],
+    });
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await waitFor(() => expect(panel.querySelector('[data-member="USR-3"]')).toBeTruthy());
+    const seen = (id: string) => panel.querySelector(`[data-member="${id}"] [data-last-seen]`) as HTMLElement;
+    expect(seen("USR-1").getAttribute("data-last-seen")).toBe(recent);
+    expect(seen("USR-1").textContent).toBe("před 3 h");
+    expect(seen("USR-1").getAttribute("title")).toBeTruthy();
+    expect(seen("USR-2").textContent).toBe("nikdy");
+    expect(seen("USR-3").getAttribute("data-last-seen")).toBe("unknown");
+    expect(seen("USR-3").textContent).toBe("nezjištěno");
+  });
+
+  it("shows a member no Naposledy column: the API serves it to an administrator alone (F19)", async () => {
+    api({}, false);
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    const table = await within(document.getElementById("panel-access") as HTMLElement).findByRole("table", { name: "Členové" });
+    expect([...table.querySelectorAll('[role="columnheader"]')].map((h) => h.textContent)).not.toContain("Naposledy");
+    expect(table.querySelector("[data-last-seen]")).toBeNull();
+  });
+
+  it("explains each card behind its ⓘ, a button a keyboard or touch opens, not text on the page (F9)", async () => {
+    api();
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    const panel = document.getElementById("panel-access") as HTMLElement;
+    await within(panel).findByRole("table", { name: "Členové" });
+    for (const [label, id] of [["Jak se mění členové", "members-about"], ["Co která role smí", "members-roles"], ["Co smí štítek Metodik", "members-metodik"], ["Jak funguje samoschválení", "self-approval-about"], ["Co se u klientů mění zde", "clients-about"]] as const) {
+      const button = within(panel).getByRole("button", { name: label });
+      const text = document.getElementById(id) as HTMLElement;
+      expect(button.getAttribute("aria-controls")).toBe(id);
+      expect(text.hidden).toBe(true);
+      fireEvent.click(button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
+      expect(text.hidden).toBe(false);
+      fireEvent.click(button);
+      expect(text.hidden).toBe(true);
+    }
+    // The three cards are the tab's h2s, under its h1.
+    expect(within(panel).getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(expect.arrayContaining(["Členové", "Samoschválení", "Klienti"]));
   });
 
   it("deactivates at once and offers Vrátit, which reactivates", async () => {
@@ -1108,7 +1164,10 @@ describe("the settings tabs", () => {
     render(<ControlPanel />);
     await sectionsDrawn();
     expect(panelOf("AI běh").contains(section("ai"))).toBe(true);
-    expect(panelOf("Přístup a schvalování").contains(section("approvals"))).toBe(true);
+    // Přístup's three flat cards (F9), in no group card of their own.
+    for (const id of ["members", "self-approval", "clients"]) expect(panelOf("Přístup a schvalování").contains(section(id))).toBe(true);
+    expect(section("approvals")).toBeNull();
+    expect(section("members").parentElement?.closest("section[id^='set-']")).toBeNull();
     // The role matrix is reference material: drawn only with technical details on.
     expect(section("roles")).toBeNull();
     fireEvent.click(techSwitch());
