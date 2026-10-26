@@ -1,12 +1,10 @@
-// The map's smooth terrain (the owner, 2026-10-23), beside the panel's blocky one: as the Sociomapy
-// app draws it. The object map's heights between the objects are inverse-distance weighted through
-// the PRIMARY objects (Sociomapy's `interpolateHeight`, weight 1 / d^3) instead of the hills'
-// envelope; the respondent map keeps its density. Either surface is refined bicubically
-// (Sociomapy's `refineGrid`) and shaded smoothly in WebGL with the panel's colours and projection,
-// then painted into the 2D canvas, so the objects, lines, labels, hits and the PNG export stay the
-// 2D canvas's. Presentation only: nothing stored or computed by the method changes.
+// The map's smooth terrain (the owner, 2026-10-26), beside the panel's blocky one: the same stored
+// terrain (the object map's envelope of hills, the respondent map's density), refined bicubically as
+// the Sociomapy app refines its surface (`refineGrid`) and shaded smoothly in WebGL with the panel's
+// colours and projection, then painted into the 2D canvas, so the objects, lines, labels, hits and
+// the PNG export stay the 2D canvas's. Drawing only: the heights are the method's.
 
-import { blend66, color66, gridAxis, type PanelCamera, type PanelGrid, type PanelNode } from "./object-map-panel";
+import { blend66, color66, type PanelCamera, type PanelGrid } from "./object-map-panel";
 
 export type TerrainMode = "blocky" | "smooth";
 
@@ -16,26 +14,6 @@ export const PEDESTAL = { depth: (0.01 * 26) / 2.2, bottomDarken: 0.7, base: "#0
 const RELIEF = 26;
 const BACKGROUND: [number, number, number] = [7, 9, 12];
 const REFINE = 4;
-
-/** The object map's smooth heights: each grid point the 1 / d^3-weighted mean of the PRIMARY
- *  objects' heights (their colour positions), exact at an object. Null without one. */
-export function idwGrid(nodes: PanelNode[], tones: number[], N: number): PanelGrid | null {
-  const pts = nodes.flatMap((n, i) => (n.primary ? [{ x: n.x, y: n.y, z: tones[i] }] : []));
-  if (!pts.length) return null;
-  const xs = gridAxis(N);
-  const ht = xs.map((y) => xs.map((x) => {
-    let ws = 0, vs = 0;
-    for (const p of pts) {
-      const d = Math.hypot(p.x - x, p.y - y);
-      if (d === 0) return p.z;
-      const w = 1 / (d * d * d);
-      ws += w;
-      vs += p.z * w;
-    }
-    return vs / ws;
-  }));
-  return { N, span: xs[N], xs, ht };
-}
 
 function catmullRom(p0: number, p1: number, p2: number, p3: number, t: number): number {
   return 0.5 * (2 * p1 + (p2 - p0) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);

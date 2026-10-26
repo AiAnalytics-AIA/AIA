@@ -190,11 +190,11 @@ the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object 
   base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
   darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
   `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
-- Nastavení mapy offers „Terén: Blokový / Hladký“, remembered in the browser, Blokový by default. Blokový is the
-  stored envelope as before. Hladký draws heights between the PRIMARY objects by Sociomapy's inverse-distance
-  weighting (1 / d^3, exact at each object, on the objects' colour positions), refines the grid bicubically (x4,
-  clamped) and shades it smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the 2D
-  canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový. The
-  respondent map keeps its density in both. Presentation only: nothing stored or computed by the method changes,
-  but Hladký reads differently (the ground between objects is a blend of their values, an empty corner takes its
-  nearest objects' value), so Blokový stays the default.
+- Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
+  2026-10-26). Both draw the same stored terrain, the method's envelope of hills (the respondent map's density):
+  Blokový as flat triangles, as before; Hladký refined bicubically (x4, clamped, as the Sociomapy app's
+  `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
+  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový.
+  Drawing only: the heights are the method's. Sociomapy's own inverse-distance-weighted terrain was tried and left
+  out (the owner, 2026-10-26): a weighted mean fills empty ground with the nearest objects' values, the plateaus
+  the envelope replaced (`sociomap_math/terrain.py`).

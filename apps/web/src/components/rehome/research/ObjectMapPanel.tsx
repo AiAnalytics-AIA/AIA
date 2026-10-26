@@ -31,7 +31,7 @@ import { isRefusal, objectTarget, pairTarget, readMapOp, readTarget } from "@/li
 import { LEAD_REVEAL, type LeadMapView, mapViewWords } from "@/lib/lead";
 import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
-import { type TerrainMode, idwGrid } from "@/lib/object-map-smooth";
+import type { TerrainMode } from "@/lib/object-map-smooth";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
   type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
@@ -198,14 +198,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
-  // Blokový (the stored envelope, flat triangles) or Hladký (heights between the objects weighted by
-  // distance, drawn smoothly); remembered in the browser, blocky by default.
+  // The stored terrain drawn Hladký (refined and shaded smoothly) or Blokový (flat triangles);
+  // remembered in the browser, smooth by default.
   const [terrain, setTerrainState] = useState<TerrainMode>(() => {
-    try { return typeof window !== "undefined" && window.localStorage.getItem(TERRAIN_KEY) === "smooth" ? "smooth" : "blocky"; } catch { return "blocky"; }
+    try { return typeof window !== "undefined" && window.localStorage.getItem(TERRAIN_KEY) === "blocky" ? "blocky" : "smooth"; } catch { return "smooth"; }
   });
   const setTerrain = (next: TerrainMode) => { setTerrainState(next); try { window.localStorage.setItem(TERRAIN_KEY, next); } catch { /* the choice lasts this page */ } };
-  const smoothGrid = useMemo(() => (terrain === "smooth" && !people ? idwGrid(nodes, tones, relativeGrid.N) : null), [terrain, people, nodes, tones, relativeGrid.N]);
-  const grid = people ? density! : smoothGrid ?? absolute ?? relativeGrid;
+  const grid = people ? density! : absolute ?? relativeGrid;
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
@@ -555,8 +554,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
       <div role="group" aria-label={t(`${p}.terrain`)}>
         <SectionHead label={t(`${p}.terrain`)} help={t(`${p}.terrainHelp`)} />
         <div className="omw-row">
-          <button type="button" className="omw-btn" aria-pressed={terrain === "blocky"} onClick={() => setTerrain("blocky")}>{t(`${p}.terrainBlocky`)}</button>
           <button type="button" className="omw-btn" aria-pressed={terrain === "smooth"} onClick={() => setTerrain("smooth")}>{t(`${p}.terrainSmooth`)}</button>
+          <button type="button" className="omw-btn" aria-pressed={terrain === "blocky"} onClick={() => setTerrain("blocky")}>{t(`${p}.terrainBlocky`)}</button>
         </div>
       </div>
       <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />

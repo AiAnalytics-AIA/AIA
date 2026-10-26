@@ -4262,7 +4262,7 @@ export const cs = {
           objectsHelp: "Které objekty mapa ukazuje a v jaké roli: hlavní (tvoří mapu) nebo doplňkové (umístěné podle vztahů k hlavním).",
           objectManager: "Správa objektů",
           terrain: "Terén",
-          terrainHelp: "Blokový: terén z kopců kolem objektů, kreslený plochými trojúhelníky. Hladký: výška mezi objekty se dopočítá váženým průměrem podle vzdálenosti (jako aplikace Sociomapy) a terén se kreslí hladce; na mapě respondentů zůstává hustota, jen hladší.",
+          terrainHelp: "Tentýž terén mapy, jen jinak kreslený. Hladký: vyhlazený a plynule stínovaný. Blokový: plochými trojúhelníky, jak je terén spočten v mřížce.",
           terrainBlocky: "Blokový",
           terrainSmooth: "Hladký",
           exportSection: "Export",
