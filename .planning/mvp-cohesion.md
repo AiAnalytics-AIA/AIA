@@ -607,7 +607,7 @@ dated, until the provider contract and the method owner have owners.
 | Q2 | F2: **decided 2026-10-19: yes, internal, the Lead may read it, never exported** | decided |
 | Q3 | F3: **decided 2026-10-19: later, in the ADR 0027 plan** (recommendation: the accepted data contract is the policy source) | decided |
 | Q4 | F7: **decided 2026-10-19: write the missing plans** (six files cover the eight pieces of work, see #497). Track owners are chat sessions, probably Opus 5.5; name each session when its track starts | decided; names open |
-| Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: **no dates yet (2026-10-19)**; I-2 and I-4 stay undated until each has an owner | open |
+| Q5 | The provider contract (MVP-27, owner) and the method owner's 0b answers, clustering algorithm and register entries: **no dates yet (2026-10-19)**; I-2 and I-4 stay undated until each has an owner | **decided 2026-10-25: (c) no dates** (the owner, the audit page) |
 | Q6 | F4 and F5: the Lead's results context and the worker row | **adopted 2026-10-19** |
 | Q7 | F6, F8, F9: id namespaces, surface owners and migration lane, parity wording | **adopted 2026-10-19** |
 | Q8 | F11: one shared server-validated edit vocabulary for a person and the Lead | **decided 2026-10-19** |

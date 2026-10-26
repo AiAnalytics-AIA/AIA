@@ -305,6 +305,15 @@ tracked objects, in approved client knowledge and on the web (`deep_research/con
 `Channel`), and AIA itself never shows respondents a finding's outcome numbers (the leakage rule); the
 line promising a model choice and an update is gone, with the four unused half-English keys beside it. Test: `QuestionnaireStep.test.tsx`.
 
+*Finding QF-15 (browser audit 3, 2026-10-22):* loading a questionnaire file replaces every block, question
+and set already there, with no word before and no way back (`QuestionnaireStep.tsx:456-458 @ 382b418a`):
+a person with a questionnaire who tries the template loses it on the first file. Fix
+(fix/questionnaire-import-undo): the upload card says a file replaces the questionnaire there is (any
+section, a block with no questions yet included: `hasQuestionnaire`), and an import over one is offered
+back with Vrátit (input standard I6): the sections and the plan's status as they were, the rest of the plan
+as it now is, and only while the questionnaire is still the file's, else it says it cannot. Tests:
+`QuestionnaireStep.test.tsx`.
+
 *Finding QF-14 (browser audit 2, 2026-10-22):* the respondent preview numbers its items with
 18.6.6's running count over questions and sets, so after four questions the set reads "Sledovaná sada 5"
 where the editor says Sada 1, and a question after a set skips a number (`QuestionnaireStep.tsx:554,573
@@ -332,6 +341,14 @@ message (`questionnaire_import.py:324`, unreachable) is Czech too. Tests: `Quest
 "says an empty file, a refusal without words of its own and a lost connection in Czech" and "says a
 template the API would not give in Czech".
 
+*Finding QF-17 (OI-52, the data owner's answer, 2026-10-25 (b)):* a questionnaire made only of tracked
+sets is not complete; it needs at least one plain question. Before, readiness's `questionnaire` check always
+passed (`research_design.py:1457-1463 @ f7762d72`), Dotazník's track read a sets-only questionnaire as done
+(`lane.ts:63 @ f7762d72`) and its dock said "Dotazník je připravený" once the editor was open (`QuestionnaireStep.tsx:259 @ f7762d72`).
+Fix (fix/questionnaire-plain-question): the check FAILs with words that say why, the track reads "· bez běžné
+otázky", and the dock is not ready and says why; `assess_readiness` re-pinned in Metodika. Tests:
+`test_research_design.py` "a questionnaire of tracked sets only is not ready", `lane.test.ts`, `QuestionnaireStep.test.tsx`.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
@@ -339,4 +356,6 @@ template the API would not give in Czech".
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
+- open-items.md: OI-52 answered by the data owner (2026-10-25, (b)) and closed by fix/questionnaire-plain-question (QF-17).
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
+- open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.

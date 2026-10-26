@@ -10,7 +10,9 @@ import type { Json, ResearchProject } from "@/research/model";
 import { proposalAnalysis, type Narrative } from "@/research/plan-edit";
 import { type ConditionRefusal, type ConditionValue, conditionRefusal, qId, sections, type Question, type Section } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
+import type { ResearchAgentJob } from "./api";
 import { parseAudienceId } from "./artifacts/audience";
+import { JOB_STAGE } from "./lead-cards";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
 import { parseAiaId, type TargetKind } from "./workbench-artifacts";
@@ -35,8 +37,24 @@ export type RouteSetEdit = { op: "route_set"; question_id: string; condition: Co
 export type WorkingEdit = LeadEdit | RouteSetEdit;
 
 /** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
- *  open an element's detail in the item drawer over its stage. */
-export type LeadView = { op: "open_stage"; stage: WorkbenchStage } | { op: "focus" | "inspect"; target: string };
+ *  open an element's detail in the item drawer over its stage, show a stage's waiting changes. */
+export type LeadView =
+  | { op: "open_stage"; stage: WorkbenchStage }
+  | { op: "show_diff"; stage: WorkbenchStage }
+  | { op: "focus" | "inspect"; target: string };
+
+/**
+ * What a Lead's show_diff on `stage` shows (the owner, 2026-10-22): the Lead's edits still to
+ * decide there, else the newest proposal still waiting for review from a worker whose proposal
+ * changes that stage (JOB_STAGE); null when nothing waits. `editStages`: each waiting edit's stage.
+ */
+export function changesToShow<J extends ResearchAgentJob>(stage: WorkbenchStage, editStages: readonly WorkbenchStage[], jobs: readonly J[]): { kind: "edits" } | { kind: "proposal"; job: J } | null {
+  if (editStages.includes(stage)) return { kind: "edits" };
+  const waiting = jobs
+    .filter((j) => j.proposal_state === "pending" && JOB_STAGE[j.action] === stage)
+    .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  return waiting[0] ? { kind: "proposal", job: waiting[0] } : null;
+}
 
 export type LeadRequest =
   | { kind: "agent_job"; action: string; why: string }
@@ -119,6 +137,12 @@ export type LeadTurn = {
   command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
+  /** A person's message that waits for the Lead, stored on the server and shown in every tab
+   *  (ADR 0041 decision 7); withdrawn: taken back before any turn was sent it. */
+  queued?: boolean;
+  withdrawn?: boolean;
+  /** The messages a Lead turn was sent, in queue order. */
+  answers?: string[];
 };
 
 /**
@@ -750,6 +774,9 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_queue_full: "Na Vedoucího už čeká pět zpráv. Počkejte, až odpoví.",
+  lead_message_not_queued: "Zpráva už nečeká: Vedoucí ji mezitím dostal.",
+  message_too_long: "Zpráva je příliš dlouhá: nejvýše 8 KB textu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
   agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",

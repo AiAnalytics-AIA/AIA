@@ -14,6 +14,7 @@ import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import ARTIFACT_TYPE, EXTERNAL_LAYER
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
@@ -61,7 +62,10 @@ def _scope(app: FastAPI, world: Any, session: Any, user: str = "researcher") -> 
 def _save_content(app: FastAPI, world: Any) -> int:
     with create_session_factory(app.state.engine)() as session:
         saved = StudyWorkspaceRepository(session).save(
-            _scope(app, world, session), content=CONTENT, base_revision=None
+            _scope(app, world, session),
+            content=CONTENT,
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -189,13 +193,21 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "created_by",
         # The typed start a person's message named (LO5); null on a Lead turn.
         "command",
+        # What waits and what was answered (ADR 0041 decision 7).
+        "queued",
+        "withdrawn",
+        "answers",
     }
     assert lead["command"] is None
+    assert lead["answers"] == [person["turn_id"]] and person["queued"] is False
 
-    busy = researcher.post(
+    # While the Lead works a message waits, stored and shown in every tab.
+    waiting = researcher.post(
         f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Haló?"}
     )
-    assert busy.status_code == 409 and busy.json()["code"] == "lead_busy"
+    assert waiting.status_code == 201, waiting.text
+    (queued,) = waiting.json()["turns"]
+    assert (queued["actor"], queued["queued"]) == ("person", True)
     greeting = researcher.post(
         f"{lead_url(world)}/turns", json={"kind": "greeting", "stage": "brief"}
     )
@@ -203,7 +215,11 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
 
     state = researcher.get(lead_url(world)).json()
     assert (state["available"], state["unavailable_reason"], state["busy"]) == (True, None, True)
-    assert [t["turn_id"] for t in state["turns"]] == [person["turn_id"], lead["turn_id"]]
+    assert [t["turn_id"] for t in state["turns"]] == [
+        person["turn_id"],
+        lead["turn_id"],
+        queued["turn_id"],
+    ]
 
 
 def test_the_state_reads_the_reply_from_the_turns_step(
@@ -325,6 +341,8 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
     assert paths == {
         "/api/v1/studies/{study_id}/lead",
         "/api/v1/studies/{study_id}/lead/turns",
+        "/api/v1/studies/{study_id}/lead/turns/queued",
+        "/api/v1/studies/{study_id}/lead/turns/{turn_id}/withdraw",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/edits",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/manifest/omitted",
@@ -635,6 +653,42 @@ def test_a_turns_manifest_is_its_researchers_alone(
     assert bad.status_code == 422
 
 
+def test_the_queue_is_the_researchers_bounded_and_answered_when_the_lead_is_free(
+    researcher: TestClient, viewer: TestClient, world: Any, app: FastAPI
+) -> None:
+    _hatched(researcher)
+    _save_content(app, world)
+    turns_url = f"{lead_url(world)}/turns"
+
+    def say(text: str) -> Any:
+        return researcher.post(turns_url, json={"kind": "message", "stage": "brief", "text": text})
+
+    assert say("První").status_code == 201
+    first, second = (say(t).json()["turns"][0] for t in ("Druhá", "Třetí"))
+    assert researcher.post(f"{turns_url}/queued").status_code == 200  # the Lead is at work
+    too_long = say("😀" * 4000)
+    assert too_long.status_code == 422 and too_long.json()["code"] == "message_too_long"
+    _hatched(viewer)
+    gone = viewer.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert gone.status_code == 404 and gone.json()["code"] == "lead_turn_not_found"
+    withdrawn = researcher.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert withdrawn.status_code == 200 and withdrawn.json()["turns"][0]["withdrawn"] is True
+    again = researcher.post(f"{turns_url}/{second['turn_id']}/withdraw")
+    assert again.status_code == 409 and again.json()["code"] == "lead_message_not_queued"
+    for i in range(4):
+        assert say(f"Další {i}").status_code == 201
+    full = say("Šestá")
+    assert full.status_code == 409 and full.json()["code"] == "lead_queue_full"
+
+    _complete(app, world, {"reply": "Hotovo."})
+    started = researcher.post(f"{turns_url}/queued")
+    assert started.status_code == 201, started.text
+    (turn,) = started.json()["turns"]
+    assert turn["actor"] == "lead" and turn["answers"][0] == first["turn_id"]
+    assert second["turn_id"] not in turn["answers"]
+    assert researcher.post(f"{turns_url}/queued").status_code == 200  # one turn, not two
+
+
 def test_the_generic_run_routes_never_serve_a_lead_turn(
     researcher: TestClient, reviewer: TestClient, world: Any, app: FastAPI
 ) -> None:
@@ -747,6 +801,7 @@ def _person_saves(app: FastAPI, world: Any, base_revision: int) -> int:
             _scope(app, world, session),
             content={**CONTENT, "title": "Přepsáno rukou"},
             base_revision=base_revision,
+            by=WriteBy(ActorKind.PERSON, _scope(app, world, session).actor_id, OpSource.UI),
         )
         session.commit()
         return saved.revision
@@ -795,7 +850,10 @@ def test_a_save_landing_after_the_check_does_not_change_what_the_job_runs_on(
     def save_meanwhile(self: Any, confirm: float | None) -> Any:
         # Between the check and the submit, as another tab's save would land.
         StudyWorkspaceRepository(self.session).save(
-            self.scope, content={**CONTENT, "title": "Jinde"}, base_revision=1
+            self.scope,
+            content={**CONTENT, "title": "Jinde"},
+            base_revision=1,
+            by=WriteBy(ActorKind.PERSON, self.scope.actor_id, OpSource.UI),
         )
         return gate(self, confirm)
 

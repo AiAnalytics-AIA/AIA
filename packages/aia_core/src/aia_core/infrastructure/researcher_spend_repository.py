@@ -18,10 +18,10 @@ from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import ColumnElement, exists, or_, select
+from sqlalchemy import ColumnElement, exists, func, or_, select
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
-from ..domain.scope import OrganizationContext
+from ..domain.scope import OrganizationContext, StudyStatus
 from ..domain.spend_attribution import HoldFact, UsageFact, activity_of
 from ..domain.workflow import ReservationStatus
 from .tables import (
@@ -39,6 +39,7 @@ from .tables import (
 __all__ = [
     "Person",
     "ResearcherSpendRepository",
+    "StudyBudget",
     "StudyName",
     "hold_facts",
     "run_spend_facts",
@@ -61,6 +62,19 @@ class StudyName:
     study_id: str
     name: str
     client_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class StudyBudget:
+    """A study's budget position now: its budget, what it has spent and what is held open."""
+
+    study_id: str
+    study_name: str
+    client_id: str
+    client_name: str
+    budget_usd: float
+    spent_usd: float
+    held_usd: float
 
 
 class ResearcherSpendRepository:
@@ -130,6 +144,56 @@ class ResearcherSpendRepository:
             )
             for user in sorted(wanted)
         ]
+
+    def study_budgets(self) -> list[StudyBudget]:
+        """Every open study of the organization with a budget set, its spend and its open
+        holds; an OWNER or ADMIN only (a budget near its limit is the organization's view).
+        A delivered, archived or cancelled study takes no new work, so it is not listed."""
+        self._scope.require_administer()
+        open_statuses = [s.value for s in StudyStatus if s.accepts_work]
+        held = (
+            select(
+                BudgetReservationRow.study_id.label("study_id"),
+                func.sum(BudgetReservationRow.amount_usd).label("held"),
+            )
+            .where(BudgetReservationRow.status == ReservationStatus.RESERVED.value)
+            .group_by(BudgetReservationRow.study_id)
+            .subquery()
+        )
+        rows = self._session.execute(
+            select(
+                StudyRow.study_id,
+                StudyRow.name,
+                StudyRow.client_id,
+                ClientRow.name,
+                StudyRow.budget_usd,
+                StudyRow.spent_usd,
+                held.c.held,
+            )
+            .join(ClientRow, ClientRow.client_id == StudyRow.client_id)
+            .outerjoin(held, held.c.study_id == StudyRow.study_id)
+            .where(
+                StudyRow.organization_id == self._scope.organization_id,
+                ClientRow.organization_id == self._scope.organization_id,
+                StudyRow.status.in_(open_statuses),
+                StudyRow.budget_usd > 0,
+            )
+        ).all()
+        budgets: list[StudyBudget] = []
+        for row in rows:
+            m = row._mapping
+            budgets.append(
+                StudyBudget(
+                    study_id=str(m[StudyRow.study_id]),
+                    study_name=str(m[StudyRow.name]),
+                    client_id=str(m[StudyRow.client_id]),
+                    client_name=str(m[ClientRow.name]),
+                    budget_usd=float(m[StudyRow.budget_usd]),
+                    spent_usd=float(m[StudyRow.spent_usd]),
+                    held_usd=float(m["held"] or 0.0),
+                )
+            )
+        return budgets
 
     def study_names(self, study_ids: Collection[str]) -> dict[str, StudyName]:
         """The organization's studies among ``study_ids``, by id."""

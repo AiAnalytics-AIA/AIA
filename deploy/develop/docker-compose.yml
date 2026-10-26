@@ -139,12 +139,20 @@ services:
       AIA_COGNITO_TOKEN_USE: id
       # Same-origin through Caddy: an empty list means no CORS middleware at all.
       AIA_CORS_ORIGINS: "[]"
+      # Settings → Stav systému (settings-backends SB4): GlitchTip read through a read-only API
+      # token, SSM aia_glitchtip_api_token, this service only; unset, the card says it is not
+      # configured. GlitchTip is reached as glitchtip:8000 (the default); people open it here.
+      AIA_GLITCHTIP_API_TOKEN: ${AIA_GLITCHTIP_API_TOKEN:-}
+      AIA_GLITCHTIP_DASHBOARD_URL: https://errors.${AIA_PUBLIC_HOSTNAME}
       # Where an administrator may try a draft system prompt (ADR 0020): the same list the
       # worker reads below, so the API can refuse a draft on any other client before a job
       # exists. Empty means no draft can be run anywhere.
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
       # The API pins this deterministic engine and its report into newly queued runs.
       AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: ${AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED:-false}
+      # The object map's numba kernels compiled in the background after start, so the first
+      # Metodika comparison after a deploy is not the ~40 s compile (apps/api warmup.py).
+      AIA_SOCIOMAP_WARMUP_ENABLED: ${AIA_SOCIOMAP_WARMUP_ENABLED:-true}
       # A run that cannot answer every research question its design states starts only on a
       # person's recorded choice to continue with limitations (plan research-integrity-report
       # chunk 1, ADR 0025). On for develop by the owner's D1, 2026-10-17; an SSM value of false
@@ -197,6 +205,15 @@ services:
       # Unset (the default), the docs session routes answer 404 and Zpráva stays read-only.
       AIA_ONLYOFFICE_URL: ${AIA_ONLYOFFICE_URL:-}
       AIA_ONLYOFFICE_JWT_SECRET: ${AIA_ONLYOFFICE_JWT_SECRET:-}
+      # AIA's public origin, which the Document Server fetches a version from and posts each
+      # save to (artifact-report RPT8c): the public hostname, never the internal network, which
+      # the Document Server is not on (report-editor-hosting decision 4). The editor's routes
+      # answer only with it, the URL and the secret all set; the URL and secret unset, still 404.
+      AIA_ONLYOFFICE_CALLBACK_BASE: https://${AIA_PUBLIC_HOSTNAME}
+      # The integrity the page's api.js must match (artifact-report RPT8e), from SSM
+      # aia_onlyoffice_api_integrity: the pinned image's own api.js, sha384-<base64>. Unset, Zpráva
+      # opens nothing in the editor whatever else is set.
+      AIA_ONLYOFFICE_API_INTEGRITY: ${AIA_ONLYOFFICE_API_INTEGRITY:-}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]
@@ -281,6 +298,7 @@ services:
       # Each answered respondent block kept and replayed on a resumed or retried run (RQC0).
       AIA_AI_FIELDWORK_CHECKPOINT: ${AIA_AI_FIELDWORK_CHECKPOINT:-false}
       AIA_AI_FIELDWORK_HEARTBEAT: ${AIA_AI_FIELDWORK_HEARTBEAT:-false}
+      AIA_AI_FIELDWORK_QUOTA_FILL: ${AIA_AI_FIELDWORK_QUOTA_FILL:-false}
       # The report's PDF beside its DOCX (complete-study-report B3). The develop worker image
       # is built with LibreOffice (AIA_WORKER_PDF=true in deploy-develop.yml), so it is on.
       AIA_REPORT_PDF_ENABLED: ${AIA_REPORT_PDF_ENABLED:-true}

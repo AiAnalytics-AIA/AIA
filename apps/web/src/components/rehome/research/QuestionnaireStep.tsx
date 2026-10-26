@@ -43,6 +43,7 @@ import {
   changeQType,
   optimizePayload,
   questionnaireCounts,
+  hasQuestionnaire,
   countWords,
   countsWords,
   questionnaireHasQuestions,
@@ -255,11 +256,14 @@ export function QuestionnaireStep() {
   const dock = (
     <ActionDock
       back={{ href: stepHref("plan"), label: `2. ${t("aia.stages.plan")}` }}
-      ready={canGo && !emptyQuestions && !badSets}
+      ready={has && !emptyQuestions && !badSets}
       note={
         !canGo
           ? t("research.questionnaire.nextHint")
-          : emptyQuestions
+          : !has
+            // Tracked sets alone are no questionnaire (OI-52 (b)); readiness fails it too.
+            ? t(questionnaireCounts(p).sets ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
+            : emptyQuestions
             ? tv("research.questionnaire.dockEmpty", { n: emptyQuestions })
             : badSets
               ? tv("research.questionnaire.dockSets", { n: badSets, ...setWords(setLimits) })
@@ -452,8 +456,11 @@ function importProblem(e: unknown, filename: string): string {
  * is the guide the classic interface's missing methodology link pointed at nothing for.
  */
 function Upload() {
-  const { store, template, toast, frame } = useResearch();
+  const { store, template, toast, frame, state } = useResearch();
+  const undo = useEditorUndo();
   const input = useRef<HTMLInputElement>(null);
+  // What a file would replace (the browser audit, QF-15): said before, and taken back with Vrátit after.
+  const replaces = hasQuestionnaire(state.project);
   const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);
   const [over, setOver] = useState(false);
 
@@ -470,9 +477,35 @@ function Upload() {
       const data_b64 = await fileToBase64(f);
       read = true;
       const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64 });
-      const imported = applyImport(store.get().project, r, template);
+      const before = store.get().project;
+      const imported = applyImport(before, r, template);
       store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
-      toast(imported.toast);
+      if (undo && hasQuestionnaire(before)) {
+        // The import as the store holds it: with stable item ids on, the update gave its items ids.
+        const held = JSON.stringify(store.get().project.sections);
+        undo.offer({
+          message: imported.toast,
+          undo: () => {
+            // Only while the questionnaire is still the file's: never over an edit, a Lead's change or a
+            // reload made since. The plan keeps everything but the status the import set.
+            if (JSON.stringify(store.get().project.sections) !== held) return toast(t("research.questionnaire.importUndoStale"));
+            store.update(
+              ({ project }) => {
+                const plan = { ...project.research_plan };
+                // Only the status the import set goes back; one set since is a later decision and stays.
+                if (plan.status === imported.project.research_plan.status) {
+                  if (before.research_plan.status === undefined) delete plan.status;
+                  else plan.status = before.research_plan.status;
+                }
+                return { project: { ...project, sections: before.sections, research_plan: plan, ui_state: { ...project.ui_state, questionnaire_path: "upload" } } };
+              },
+              { reason: "questionnaire_import_undone" },
+            );
+          },
+        });
+      } else {
+        toast(imported.toast);
+      }
       setStatus(null);
     } catch (e) {
       // A file the browser could not read was never sent: no connection is to blame.
@@ -494,6 +527,7 @@ function Upload() {
     <section className={CARD} aria-labelledby="q-upload">
       <h2 id="q-upload" className="text-lg font-semibold">{t("research.questionnaire.uploadTitle")}</h2>
       <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.uploadIntro")}</p>
+      {replaces ? <p className="mt-2 text-sm text-status-you-ink">{t("research.questionnaire.uploadReplaces")}</p> : null}
       <ol className="mt-4 flex flex-col gap-4">
         <li className="flex gap-3">
           <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-wash font-mono text-xs font-semibold text-signal">1</span>
@@ -883,7 +917,7 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const unworded = !String(q.text || "").trim();
   const hint = `${questionElementId(q)}_missing`;
   return (
-    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--color-status-you-wash)]" : "border-border"}`}>
+    <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--status-you-wash)]" : "border-border"}`}>
       {/* The number and the × keep the row's ends; the type chips wrap between them, so on a phone
           the × stays beside its question's number instead of falling to a row of its own. Both ends
           take a chip's height (TOUCH), so they sit level with the chips' first row. */}

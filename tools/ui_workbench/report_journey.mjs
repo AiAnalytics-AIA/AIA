@@ -102,6 +102,16 @@ try {
       assert(!entry.suppressed, `@${width}: no suppressed number is shown (${ref})`);
       assert(text.startsWith(entry.value_text), `@${width}: chip ${ref} prints the stored text`);
     }
+    // The sentence check (RD7): exactly the sentences the server marked, each in its own block, in
+    // the block's words; none where it marked none.
+    const flagged = (stored.warnings ?? []).filter((w) => w.code === "unsupported_comparison");
+    const shownMarks = await article.locator("[data-sentence-mark]").evaluateAll((els) =>
+      els.map((e) => [e.closest("[data-aia^='report:']")?.getAttribute("data-aia"), e.textContent]));
+    assert.equal(shownMarks.length, flagged.length, `@${width}: one mark per sentence the check marked`);
+    for (const w of flagged) {
+      assert(shownMarks.some(([block, text]) => block === `report:${w.where}` && text.includes(w.text)), `@${width}: "${w.text}" marked in ${w.where}`);
+    }
+    if (flagged.length) await article.locator("[data-sentence-mark]").first().screenshot({ path: join(out, `${width}-report-sentence-mark.png`) });
     const ids = await article.locator("[data-aia]").evaluateAll((els) => els.map((e) => e.getAttribute("data-aia")));
     assert.equal(new Set(ids).size, ids.length, `@${width}: no two elements share a data-aia`);
     assert(ids.every((id) => id.startsWith("report:")), `@${width}: every target is the report's own kind`);

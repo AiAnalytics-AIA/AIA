@@ -1068,7 +1068,7 @@
       "reading_cs": "{sample_size.min} ≤ n ≤ {sample_size.max}",
       "role_cs": "Kolik respondentů smí studie mít. Mimo rozsah AIA běh nespustí: výzkumník musí vzorek upravit.",
       "source_cs": "n zadané v kroku Dimenze a vzorek",
-      "source_sha256": "cd0da671d26406a380673d7c9f200961847a3c4e0b3522bf1643e01be2fcf3d7",
+      "source_sha256": "5e973cf7040644da7ff7bca27cab18dad2042e75243f49fac9f780715a179d20",
       "symbols": [
        {
         "latex": "n",
@@ -20574,7 +20574,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
+      "source_sha256": "6b93c078adcf4bafe43fd920ef36569c8dde0cef4b66cc880da8b28b551855f6",
       "symbols": [
        {
         "latex": "A",
@@ -21008,7 +21008,7 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "219eb3ea61b39facd62d6e02d85feef1377aac0b83b4deb704c418638e896290",
+      "source_sha256": "6b93c078adcf4bafe43fd920ef36569c8dde0cef4b66cc880da8b28b551855f6",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_population_sampling.py::test_the_verdict_is_the_units"

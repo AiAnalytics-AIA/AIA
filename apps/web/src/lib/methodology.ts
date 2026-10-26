@@ -5,6 +5,7 @@
 import temml from "temml";
 import { t, tv } from "@/i18n/t";
 
+import { plural } from "./format";
 import type { MethodGroup, MethodModuleDetail, MethodStepOut, MethodValue } from "./api";
 
 const SUPERSCRIPT: Record<string, string> = {
@@ -50,6 +51,19 @@ export function groupSteps(detail: MethodModuleDetail): GroupedSteps {
     group,
     steps: group.step_ids.map((id) => byId.get(id)).filter((s): s is MethodStepOut => s !== undefined),
   }));
+}
+
+/** A value a version can change: one of the specification's, present, and not the method's own
+ *  name (the store writes that). A code constant is shown, never a parameter. */
+export function isParameter(value: MethodValue): boolean {
+  return value.origin === "specification" && !value.absent && value.reference !== "methodology_version";
+}
+
+/** A count of steps or stages in Czech: "1 krok", "3 kroky", "17 kroků"; `stageIn` is the form
+ *  after "v" ("v 1 etapě", "v 12 etapách"). */
+export function methodologyCount(n: number, what: "step" | "stage" | "stageIn"): string {
+  const k = `aia.settings.methodology.count.${what}`;
+  return plural(n, t(`${k}.one`), t(`${k}.few`), t(`${k}.many`));
 }
 
 /** Each stage's number in the computation, from the module's full list of stages (the editor

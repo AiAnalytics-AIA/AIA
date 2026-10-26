@@ -60,6 +60,9 @@ ONLYOFFICE = "onlyoffice:80"
 DOCS_GATE = "/api/v1/session/docs-gate"
 # The one path of docs.<hostname> the API answers: a one-time ticket spent for the docs cookie.
 DOCS_SESSION = "/__aia/session"
+# The editor's script and the ticket it is loaded through: the only answers of docs.<hostname> that
+# name AIA's origin for CORS with credentials (artifact-report RPT8e, Subresource Integrity).
+EDITOR_SCRIPT = {DOCS_SESSION, "/web-apps/apps/api/documents/api.js"}
 DOCS_SESSION_TARGET = "/api/v1/session/docs?{http.request.uri.query}"
 # The Document Server's server-to-server, AI proxy, hosting and admin paths: nothing outside
 # needs any of them. Each is refused in any
@@ -82,6 +85,41 @@ SERVER_ONLY = (
     "/welcome/",
     "/healthcheck",
 )
+# The one route of docs.<hostname> without the docs gate: the Document Server's signed links to a
+# saved document and its changes, which AIA's API fetches server to server after a save callback.
+# Its nginx refuses one without a valid md5 and expiry (secure_link, a secret drawn at each start),
+# so only that shape goes by: GET or HEAD, both parameters, and plain segments, none starting with
+# a dot, so no path its nginx would resolve elsewhere is matched.
+
+
+def cache_shape(route: dict[str, Any]) -> list[str]:
+    """How a route's match differs from the cache links' exact one; empty when it is that one."""
+    match = route.get("match", [])
+    if len(match) != 1:
+        return [f"{len(match)} matchers"]
+    m = match[0]
+    differs = []
+    if set(m) != {"method", "path_regexp", "query"}:
+        differs.append(f"matches on {sorted(m)}")
+    if set(m.get("method", [])) != CACHE_METHODS or len(m.get("method", [])) != 2:
+        differs.append(f"methods {m.get('method')}")
+    if m.get("path_regexp", {}).get("pattern") != CACHE_FILE:
+        differs.append(f"path {m.get('path_regexp', {}).get('pattern')!r}")
+    if m.get("query") != CACHE_QUERY:
+        differs.append(f"query {m.get('query')}")
+    return differs
+
+
+# A segment takes a document key's characters (`0-9 a-z A-Z . = _ -`), never a leading dot.
+CACHE_FILE = r"^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$"
+CACHE_METHODS = {"GET", "HEAD"}
+CACHE_QUERY = {"expires": ["*"], "md5": ["*"]}
+# What a log must not write from a docs.<hostname> URI's query: the one-time ticket, and a signed
+# cache link's signature and expiry, which open the saved document without the gate until then.
+LOG_SECRETS = ("ticket", "md5", "expires")
+# What a log must not write from the product's URIs: the report editor's URL token, a bearer
+# credential for one version or one editing session (artifact-report RPT8c, ?token=…).
+PRODUCT_LOG_SECRETS = ("token",)
 # What the editor itself loads, which the refusal must leave alone.
 EDITOR_PATHS = (
     "/web-apps/apps/api/documents/api.js",
@@ -217,6 +255,11 @@ def check(config: dict[str, Any]) -> list[str]:
             )
     if DOCS in hosts(config):
         problems.extend(check_docs(config))
+    if not logs_drop_token(config):
+        problems.append(
+            f"{PRODUCT}'s access log or Caddy's error log writes the report editor's token in a "
+            "URI's query"
+        )
     routes = site(config, PRODUCT)
 
     def only(path: str) -> dict[str, Any] | None:
@@ -292,12 +335,33 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     for path in SERVER_ONLY:
         if not any(refuses(r, path) for r in refusal):
             problems.append(f"{DOCS}{path} must answer 404: it is the Document Server's own")
+    # The cache links' route matches by path_regexp too, but it serves: it refuses nothing.
+    cache = [r for r in served if not cache_shape(r)]
     for path in EDITOR_PATHS:
-        if any(refuses(r, path) for r in served):
+        if any(refuses(r, path) for r in served if r not in cache):
             problems.append(f"{DOCS}{path} is refused, and the editor needs it")
+    if len(cache) != 1 or steps(cache[0]) != [f"proxy:{ONLYOFFICE}"]:
+        near = [
+            cache_shape(r)
+            for r in served
+            if any("path_regexp" in m for m in r.get("match", [])) and r not in refusal
+        ]
+        problems.append(
+            f"{DOCS}'s signed cache links must be one route to the Document Server alone; got "
+            f"{[steps(r) for r in cache]}, near misses {near}"
+        )
     for r in served:
         where = paths_of(r) or ["any path"]
         if r in session:
+            continue
+        if r in cache:
+            if not cookie_dropped(r):
+                problems.append(f"{DOCS} cache links: a cookie reaches the Document Server")
+            if any(
+                n.get("handler") in ("rewrite", "reverse_proxy") and n.get("rewrite", n.get("uri"))
+                for n in walk(r)
+            ):
+                problems.append(f"{DOCS} cache links: a rewrite would send them to another path")
             continue
         if API in proxied(r):
             problems.append(f"{DOCS} {where} reaches the API beyond the ticket exchange")
@@ -322,16 +386,60 @@ def check_docs(config: dict[str, Any]) -> list[str]:
     }
     if framers != {f"frame-ancestors https://{PRODUCT}"}:
         problems.append(f"{DOCS} must be framed by https://{PRODUCT} alone; got {sorted(framers)}")
+    cors = [
+        (paths_of(r), n["response"]["set"])
+        for r in routes
+        for n in walk(r)
+        if n.get("handler") == "headers"
+        and "Access-Control-Allow-Origin" in n.get("response", {}).get("set", {})
+    ]
+    if {p for paths, _ in cors for p in paths} != EDITOR_SCRIPT or any(
+        not paths
+        or not set(paths) <= EDITOR_SCRIPT
+        or headers["Access-Control-Allow-Origin"] != [f"https://{PRODUCT}"]
+        or headers.get("Access-Control-Allow-Credentials") != ["true"]
+        for paths, headers in cors
+    ):
+        problems.append(
+            f"{DOCS} must answer CORS with credentials for https://{PRODUCT} on the editor's "
+            f"script and its ticket alone; got {cors}"
+        )
     if not logs_drop_ticket(config):
         problems.append(
-            f"{DOCS}'s access log writes the ticket in a URI's query, or Caddy's error log"
+            f"{DOCS}'s access log writes the ticket or a cache link's signature in a URI's "
+            "query, or Caddy's error log does"
         )
     return problems
 
 
+def _drops(config: dict[str, Any], name: str, secrets: tuple[str, ...]) -> bool:
+    encoder = config.get("logging", {}).get("logs", {}).get(name, {}).get("encoder", {})
+    uri = encoder.get("fields", {}).get("request>uri", {})
+    return (
+        encoder.get("format") == "filter"
+        and uri.get("filter") == "query"
+        and set(secrets)
+        <= {a.get("parameter") for a in uri.get("actions", []) if a.get("type") == "delete"}
+    )
+
+
+def logs_drop_token(config: dict[str, Any]) -> bool:
+    """Whether every log that records the product's URIs -- its access logs, and the default
+    logger, which records an upstream error with its request's URI -- deletes the report
+    editor's URL token from the query. No log configured writes nothing."""
+    names = [
+        name
+        for server in config["apps"]["http"]["servers"].values()
+        for name in server.get("logs", {}).get("logger_names", {}).get(PRODUCT, [])
+    ]
+    if "default" in config.get("logging", {}).get("logs", {}):
+        names.append("default")
+    return all(_drops(config, n, PRODUCT_LOG_SECRETS) for n in names)
+
+
 def logs_drop_ticket(config: dict[str, Any]) -> bool:
     """Whether docs.<hostname>'s access logs and the default logger, which records an upstream
-    error with its request's URI, both delete ``ticket`` from it."""
+    error with its request's URI, both delete every one of ``LOG_SECRETS`` from it."""
     names = [
         name
         for server in config["apps"]["http"]["servers"].values()
@@ -345,10 +453,8 @@ def logs_drop_ticket(config: dict[str, Any]) -> bool:
         return (
             encoder.get("format") == "filter"
             and uri.get("filter") == "query"
-            and any(
-                a.get("type") == "delete" and a.get("parameter") == "ticket"
-                for a in uri.get("actions", [])
-            )
+            and set(LOG_SECRETS)
+            <= {a.get("parameter") for a in uri.get("actions", []) if a.get("type") == "delete"}
         )
 
     return bool(names) and all(drops(n) for n in [*names, "default"])

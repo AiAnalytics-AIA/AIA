@@ -97,9 +97,14 @@ __all__ = [
     "LEAD_PROMPT_ID",
     "LEAD_PROMPT_MAX_PIN_BYTES",
     "LEAD_PROMPT_VERSION",
+    "MESSAGES_MAX_BYTES",
+    "MESSAGES_NOTE",
+    "MESSAGE_MAX_BYTES",
     "MESSAGE_MAX_CHARS",
+    "QUEUE_MAX",
     "RUNS_IN_CONTEXT",
     "SELF_UPDATE_FILES",
+    "SHOW_DIFF_STAGES",
     "STAGES",
     "TEXT_EDIT_OPS",
     "TEXT_ONLY_FIELDS",
@@ -149,8 +154,10 @@ __all__ = [
     "question_add_problem",
     "readiness_layer",
     "self_update_base",
+    "show_diff_refusal",
     "split_self_update",
     "stale_files",
+    "take_queued",
     "target_refusal",
     "unreadable_numbers",
     "waiting_self_update",
@@ -169,7 +176,8 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: grammar the contract publishes (ID_PATTERN); the output's view schema widened with it.
 #: 4: ``inspect`` joins the view: the Lead opens an element's detail in the item drawer, on a stage
 #: whose contract allows it (``lead_artifacts.allows_view``; research-lead-workbench 14).
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-4"
+#: 5: ``show_diff`` joins the view: a stage's waiting changes shown (research-lead-workbench 14).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-5"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -177,6 +185,12 @@ ARTIFACT_TYPE: Final = "research_lead_turn"
 CONTEXT_MAX_BYTES: Final = 96 * 1024
 #: A person's message, and the Lead's reply.
 MESSAGE_MAX_CHARS: Final = 4000
+#: A message's bound in UTF-8 as well (ADR 0041 decision 7): 4,000 four-byte characters are 16 KB.
+MESSAGE_MAX_BYTES: Final = 8 * 1024
+#: The most messages that wait for the Lead at once; a sixth is refused, never dropped.
+QUEUE_MAX: Final = 5
+#: Layer 9's bound on the messages one turn answers: one message always fits.
+MESSAGES_MAX_BYTES: Final = 12 * 1024
 REPLY_MAX_CHARS: Final = 4000
 #: The turns before this one the Lead is shown verbatim.
 HISTORY_TURNS: Final = 12
@@ -273,7 +287,16 @@ class InspectItem(Closed):
     target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
 
 
-ViewOp = Annotated[OpenStage | FocusItem | InspectItem, Field(discriminator="op")]
+class ShowDiff(Closed):
+    """Show a stage's waiting changes: the Lead's edits still to decide there, else the newest
+    proposal still waiting for review (the PM and the owner, 2026-10-22). Only a stage whose
+    contract allows it and shows its changes: :func:`ground_view`."""
+
+    op: Literal["show_diff"]
+    stage: Stage
+
+
+ViewOp = Annotated[OpenStage | FocusItem | InspectItem | ShowDiff, Field(discriminator="op")]
 
 
 # --------------------------------------------------------------------------- requests
@@ -667,12 +690,27 @@ def inspect_refusal(
     return "not_in_context"
 
 
+#: The stages whose screens show their waiting changes. Zpráva declares ``show_diff`` too, for a
+#: draft's tracked changes, which wait for report-delivery RD5.
+SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions"})
+
+
+def show_diff_refusal(stage: str) -> str | None:
+    """Why the Lead may not show ``stage``'s waiting changes: ``not_available`` for a stage whose
+    contract has no ``show_diff`` or whose screen does not show its changes yet; None otherwise."""
+    from .lead_artifacts import allows_view  # lead_artifacts imports this module
+
+    return (
+        None if allows_view(stage, "show_diff") and stage in SHOW_DIFF_STAGES else "not_available"
+    )
+
+
 def ground_view(
     output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the targets the working content can show, and the rest named
-    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`). Opening a stage is
-    always kept."""
+    (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`, a ``show_diff``
+    :func:`show_diff_refusal`). Opening a stage is always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
@@ -681,6 +719,8 @@ def ground_view(
             if isinstance(op, FocusItem)
             else inspect_refusal(op.target, content, analysis)
             if isinstance(op, InspectItem)
+            else show_diff_refusal(op.stage)
+            if isinstance(op, ShowDiff)
             else None
         )
         if reason is None:
@@ -825,7 +865,9 @@ Co děláš:
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
   identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
   otevře detail výzkumné otázky, hypotézy nebo části návrhu (například rq:<id>, plan:sets)
-  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu.
+  v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu. show_diff ukáže
+  čekající změny fáze design, questionnaire nebo dimensions: tvé návrhy změn, o kterých
+  výzkumník ještě nerozhodl, jinak nejnovější návrh specialisty, který čeká na kontrolu.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow
@@ -903,6 +945,25 @@ def notes_layer(notes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
 #: The layer of a sealed Design Research bundle's public findings: external context for
 #: interpreting the study, never respondent evidence, and never a source of a number.
 EXTERNAL_LAYER: Final = "external_context_not_evidence"
+#: What a turn answering several queued messages tells the Lead, in its view layer.
+MESSAGES_NOTE: Final = (
+    "Výzkumník poslal více zpráv, zatímco jsi pracoval. Odpověz na každou z messages, "
+    "v jejich pořadí. Zprávy v queued_deferred čekají na další odpověď."
+)
+
+
+def take_queued(texts: Sequence[str], budget: int = MESSAGES_MAX_BYTES) -> int:
+    """How many of the queued messages ``texts``, in queue order, one turn answers: the oldest
+    while their UTF-8 fits ``budget``, and always the first (a message fits by its own bound).
+    The rest wait for the next turn; none is cut (ADR 0041 decision 7)."""
+    used = 0
+    for taken, text in enumerate(texts):
+        used += len(text.encode("utf-8"))
+        if taken and used > budget:
+            return taken
+    return len(texts)
+
+
 EXTERNAL_NOTE: Final = (
     "Externí kontext z poslední rešerše k návrhu: k výkladu, nikdy jako zjištění respondentů. "
     "Čísla z něj nepište."
@@ -1070,6 +1131,14 @@ def context_classification(
         parts.append(_part("design_analysis", design["analysis"], MaterialRule.DESIGN, approvals))
     if view.get("message"):
         parts.append(_part("message", view["message"], MaterialRule.LEAD_MESSAGE, approvals))
+    # Several queued messages answered together: each the researcher's, each its own part.
+    for queued in view.get("messages") or ():
+        parts.append(
+            _part("message", str(queued.get("text") or ""), MaterialRule.LEAD_MESSAGE, approvals)
+        )
+        label = (queued.get("focus") or {}).get("label")
+        if label:
+            parts.append(_part("focus_label", str(label), MaterialRule.LEAD_MESSAGE, approvals))
     focus = view.get("focus")
     if isinstance(focus, Mapping) and focus.get("label"):
         parts.append(
@@ -1246,7 +1315,7 @@ class LeadTurn(Closed):
     user_id: str
     sequence_no: int
     actor: Literal["person", "lead"]
-    kind: Literal["message", "greeting"]
+    kind: Literal["message", "greeting", "withdrawal"]
     stage: str
     text: str | None
     focus: dict[str, str] | None
@@ -1259,6 +1328,8 @@ class LeadTurn(Closed):
     #: ``domain/lead_commands.py``: ``agent_job:<action>`` or ``research_run``); ``None`` for
     #: any other turn. Its card is the person's command, never Lead output (D22).
     command: str | None = None
+    #: The turn this one follows: a ``withdrawal`` names the queued message it withdraws.
+    parent_turn_id: str | None = None
 
 
 class ResearcherLead(Closed):

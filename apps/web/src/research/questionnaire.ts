@@ -69,6 +69,11 @@ export function questionnaireCounts(p: ResearchProject): { questions: number; se
   };
 }
 
+/** Whether there is a questionnaire a file would replace: any section, even a block with no questions yet. */
+export function hasQuestionnaire(p: ResearchProject): boolean {
+  return sections(p).length > 0;
+}
+
 /** A Czech count of `kind`, the word by its number: 1 otázka, 2–4 otázky, 0 and 5+ otázek. */
 export function countWords(kind: "questions" | "sets", n: number): string {
   const form = n === 1 ? "one" : n >= 2 && n <= 4 ? "few" : "many";

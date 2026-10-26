@@ -365,7 +365,9 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
   const inWorkbench = workbench === true;
   const leadOwns = leadOwnsAiStarts(inWorkbench ? "workbench" : "classic");
   const starts = !leadOwns;
-  // A card on another stage asked for this job's review: opened here once the jobs are read.
+  // A card on another stage asked for this job's review: opened here once the jobs are read. The
+  // job itself is kept, so one older than the newest page (the Lead's show_diff finds those through
+  // ?pending=true) opens too; the page's copy is preferred when it holds one.
   const openAgent = agents.open;
   // The screen stays mounted from stage to stage (research-lead-workbench 34): a review left open on
   // the stage the person leaves is kept for later, as leaving the page kept it, never carried over
@@ -378,12 +380,10 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
     review?.decide("keep");
   }, [step, review]);
   useEffect(() => {
-    const wanted = memory.get(OPEN_REVIEW_KEY);
-    if (typeof wanted !== "string" || agents.busy) return;
-    const job = agents.recent.find((j) => j.run_id === wanted);
-    if (!job) return;
+    const wanted = memory.get(OPEN_REVIEW_KEY) as ResearchAgentJob | undefined;
+    if (!wanted?.run_id || agents.busy) return;
     memory.delete(OPEN_REVIEW_KEY);
-    void openAgent(job);
+    void openAgent(agents.recent.find((j) => j.run_id === wanted.run_id) ?? wanted);
   }, [memory, agents.recent, agents.busy, openAgent, step]);
 
   // The layout is the switch's: mounting the classic one while it is unread would read and record

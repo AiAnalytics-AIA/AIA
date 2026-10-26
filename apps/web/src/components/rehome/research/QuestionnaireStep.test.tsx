@@ -100,6 +100,14 @@ describe("Dotazník", () => {
     expect(await screen.findByRole("heading", { name: "Nahrát dotazník" })).toBeTruthy();
   });
 
+  it("says tracked sets alone are no questionnaire yet, and the dock is not ready (OI-52 (b))", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[1]], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const note = await screen.findByText("Samotné sledované sady dotazník netvoří: přidejte alespoň jednu běžnou otázku.");
+    expect(note.className).toContain("text-status-you-ink");
+    expect(screen.queryByText("Dotazník je připravený")).toBeNull();
+  });
+
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -549,6 +557,49 @@ describe("Dotazník", () => {
     expect(body.content.ui_state.questionnaire_path).toBe("manual");
     // The rest of the project is the person's own.
     expect(body.content.title).toBe("Moje studie");
+  });
+
+  it("says a file replaces the questionnaire there is, and takes the import back with Vrátit (QF-15)", async () => {
+    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [{ id: "Q9", text: "Moje otázka?", typ: "otevrena" }] }];
+    const loaded = [{ id: "sec_l", type: "questions", title: "Ze souboru", purpose: "", questions: [{ id: "Q1", text: "Ze souboru?", typ: "otevrena" }, { id: "Q2", text: "Také?", typ: "otevrena" }] }];
+    unitStub(
+      { ...BRIEF, sections: mine, research_plan: { status: "draft", objectives: ["Cíl"] }, ui_state: { questionnaire_path: "upload" } },
+      null,
+      { [IMPORT_PATH]: () => ({ sections: loaded, summary: { question_count: 2, tracked_sets: 0, sections: 1 }, filename: "dotaznik.xlsx" }) },
+    );
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
+    const toast = (await screen.findByText("Načteno: 2 otázky · 0 sledovaných sad")).closest("[role=status]") as HTMLElement;
+    expect(screen.getByRole("heading", { name: "2 otázky · 0 sledovaných sad" })).toBeTruthy();
+    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByRole("heading", { name: "1 otázka · 0 sledovaných sad" })).toBeTruthy();
+    await waitFor(() => expect((saves.at(-1) as unknown as { reason: string }).reason).toBe("questionnaire_import_undone"));
+    const body = saves.at(-1) as unknown as { content: { sections: unknown; research_plan: Record<string, unknown>; ui_state: Record<string, unknown> } };
+    expect(body.content.sections).toEqual(mine);
+    // Only the status the import set goes back: the rest of the plan is as it now is.
+    expect(body.content.research_plan.status).toBe("draft");
+    expect(body.content.research_plan.objectives).toEqual(["Cíl"]);
+    expect(body.content.ui_state.questionnaire_path).toBe("upload");
+  });
+
+  it("never takes an import back over a change made since, and says so", async () => {
+    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [] }];
+    unitStub(
+      { ...BRIEF, sections: mine, ui_state: { questionnaire_path: "upload" } },
+      null,
+      { [IMPORT_PATH]: () => ({ sections: SECTIONS, summary: {}, filename: "dotaznik.xlsx" }) },
+    );
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    // A block with no questions yet is a questionnaire a file would replace.
+    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
+    const toast = (await screen.findByText("Načteno: 2 otázky · 1 sledovaná sada")).closest("[role=status]") as HTMLElement;
+    // A question's wording changed after the import, then Vrátit.
+    fireEvent.change(screen.getAllByRole("textbox", { name: "Znění otázky" })[0]!, { target: { value: "Upraveno po načtení?" } });
+    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Dotazník se od načtení změnil, import už se nevrátí.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
   });
 
   it("shows why a file did not import, in the words AIA gave", async () => {

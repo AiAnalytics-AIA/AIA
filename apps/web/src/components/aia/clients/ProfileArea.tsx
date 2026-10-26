@@ -28,6 +28,7 @@ import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { said } from "./KnowledgeLibrary";
 import { ClientPage, useClient } from "./ClientContext";
+import { ClientRulesEditor } from "./ClientRules";
 import { roleLabel } from "./ClientDirectory";
 
 const FIELDS: (keyof ClientProfileFields)[] = ["short_code", "industry", "market", "description"];
@@ -314,6 +315,8 @@ function Rules({ mayAdminister }: { mayAdminister: boolean }) {
       </div>
       {!mayAdminister ? <p className="mt-2 text-xs text-ink-faint">{t("aia.profile.selfApprovalAdmin")}</p> : null}
       {error ? <p role="alert" className={`mt-2 ${ERROR}`}>{error}</p> : null}
+      {/* The data posture and the wallet ceiling (D-17): set here, read on Nastavení → Přístup. */}
+      <ClientRulesEditor clientId={client.client_id} clientName={client.name} mayAdminister={mayAdminister} />
     </section>
   );
 }

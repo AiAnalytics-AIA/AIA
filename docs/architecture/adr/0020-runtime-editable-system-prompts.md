@@ -9,6 +9,11 @@ automatically. **Builds on** [ADR 0005](0005-llm-gateway.md) (the one call path)
 call), [ADR 0016](0016-research-execution-and-model-transmission.md) (runs found only through
 the Study) and [ADR 0019](0019-two-roles-and-human-ai-gates.md) (two roles; system settings are
 the Admin's; no approval between people).
+**Owner decision, 2026-10-25** (ADR-0020-0024 (b), the audit page, relayed by coordinator 3): the owner will review ADRs 0020 to
+0024 one by one. His note, verbatim: "i want to review them, Create a document that includes all the
+questions, how they're connected in AIA, and the inputs and outputs. Include an example when
+explaining complex topics. do it for each individually." The status is unchanged until he does.
+
 **Date:** 2026-10-02
 
 ## Context

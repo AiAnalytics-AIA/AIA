@@ -201,18 +201,32 @@ to the input-interactions plan (#528).
 | Q33 | Report approval stays a modal naming the document | `input-interactions#6` |
 | Q34 | Any member may rename a client, audited, under EDIT_CLIENT_PROFILE | `input-interactions#7` |
 
+### The owner's audit answers of 2026-10-25 (about 21:15 UTC)
+
+Relayed by coordinator 3 from the audit page; all thirty are in
+[`mvp-owner-decisions.md`](../mvp-owner-decisions.md) § The audit answers of 2026-10-25 and summarised in
+`overview.md`. Those that move this register:
+
+| Id | Answer | Chunks |
+|---|---|---|
+| MP3 | (b) go plan by plan: each §3.2 disposition confirmed with its plan's owner, one plan at a time. **Being reviewed, not decided** | `mvp-master-plan#MP3` |
+| SCOPE-OVERRIDES | (d) another combination: "i want to review each individually"; S2-S5 go to a review page. **Being reviewed, not decided** | §11.3 |
+| MVPQ-06 (rest) | (a) the plan's proposed targets adopted for evaluations 25, 26 and 39 | `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `deep-research-web-search#27` |
+| COHESION-Q5 | (c) no dates: I-2 and I-4 stay undated | `mvp-cohesion.md` §5 Q5 |
+| PERF-BUDGETS | (b) planning proposes per-journey numbers in that chunk's PR; the owner approves them there | `mvp-acceptance-harness#18` |
+| ADR-0041 | (b) accept with amendments; the amendment is being drafted, the ADR stays Proposed | `lead-conversation#LC0` |
+| ADR-HELD | (a) 0027, 0034, 0036 and 0037 each accepted once its methodology answer is written in | `mvp-master-plan#MP5` |
+
 ### Open: signing does not answer these
 
 | # | Question | Who answers | Waits on it |
 |---|---|---|---|
 | — | The editor's go/no-go after the spike (page Q19): Wordcraft, ONLYOFFICE Docs or Collabora Online, against Tiptap | the owner | `research-lead-workbench#33`, `lead-orchestration#LO19`, `report-delivery#RD6` |
 | — | Scale labels in what respondents read (input-interactions 3b, finding IA-7, PR #528): it moves the respondent-system fingerprint the holdout validation binds to; the wording rule is the methodology owner's | A. Bahbouh | `input-interactions#3b3` (switching on `AIA_AI_SCALE_LABELS_IN_PROMPT`, which 3b1 built off); `panel-grounded-respondents` 7f-7h |
-| — | ADR 0041 (the Lead's conversation and context, #529) accepted | the owner | `lead-conversation#LC0` |
-| — | The performance budget values for `mvp-acceptance-harness#18` (D-48); planning proposes them in that chunk's PR, the owner approves | the owner | `mvp-acceptance-harness#18` |
+| — | ADR 0041 (the Lead's conversation and context, #529) accepted. *2026-10-25: (b) accept with amendments; the amendment is being drafted* | the owner | `lead-conversation#LC0` |
 | — | The methodology owner's decisions MQ-01 to MQ-24, MQ-01 (the `-5` register entry) first | A. Bahbouh | `mvp-methodology-packet.md` (#510); §11.4 |
-| — | The Deep Research evaluation tasks and thresholds (MVPQ-06, rest) | the owner | `deep-research-web-search#27` |
-| — | The scope overrides S2 to S5, only if wanted (§11.3) | the owner | §11.3 |
-| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts), and the new ADR for the Lead's web lookup (Q6) written | the owner | `mvp-master-plan#MP5`, `lead-orchestration#LO20` |
+| — | The scope overrides S2 to S5, only if wanted (§11.3). *2026-10-25: (d), the owner reviews each individually; not decided* | the owner | §11.3 |
+| — | Each ADR 0028 to 0038 accepted (the owner; A. Bahbouh on the method parts), and the new ADR for the Lead's web lookup (Q6) written. *2026-10-25: 0034, 0036 and 0037 (with 0027) accepted once each methodology answer is written in* | the owner | `mvp-master-plan#MP5`, `lead-orchestration#LO20` |
 
 ### Signature
 
@@ -241,7 +255,7 @@ Signed: Nigel Blount, product owner ("ok lets sign it", relayed by the coordinat
 **Role.** `CORE`: carries an MVP gate. `SUPPORT`: needed, gates nothing alone. `CLOSE`: finished or
 superseded, to be verified and closed by its owner. `FOLD`: its remaining work belongs inside another
 plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan are
-**proposed** (◇): each plan's owner confirms in `MP3`.
+**proposed** (◇): each plan's owner confirms in `MP3` (the owner, 2026-10-25: (b), plan by plan; being reviewed).
 
 ### 3.1 Core: carry an MVP gate
 
@@ -267,6 +281,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `lead-identity` | S1 (proposed) | I-1 (proposed) | core, W3, after `lead-conversation#LC5b` and `#LC10` (Nigel, 2026-10-25 ~23:47 UTC, relayed by the PM coordinator); LI0's money amount needs its ADR 0028 amendment |
 | `lead-client-knowledge` | S1 | I-1, I-3 | LK0's licence determination (Q60) first; ADR 0042 (Proposed, written in LK1) before the read round |
 | `artifact-questionnaire` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#17` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-brief` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
@@ -306,6 +321,10 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
 | `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
+| `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
+| `settings-redesign` | SUPPORT (S1) | the owner's Nastavení redesign; gates nothing alone | registered 2026-10-25 (register drift) |
+| `study-deletion` | ◇ for the owner (Q1-Q8, ADR 0043) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | planning proposes CORE once the owner answers Q1-Q8 and accepts ADR 0043 (SD0); no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
@@ -784,6 +803,9 @@ The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#53`; contradicts the open posture's intent |
 | S5 | Client PDF in the MVP | Client report DOCX only; amend AC-13 | `report-delivery#RD1`, `docs/migration/mvp-acceptance.md` |
 
+**2026-10-25 (SCOPE-OVERRIDES (d)):** "i want to review each individually". S2 to S5 go to a review page,
+one at a time; none is decided, and the plans stand as written until he answers each.
+
 ### 11.4 Open, with the chunks each blocks
 
 Answer-ready wording, stable decision ids, decision owner and permitted independent work are in
@@ -793,7 +815,7 @@ Q8) are in § The scope baseline; the methodology owner's are MQ-01 to MQ-24 in
 
 | # | Question | Blocks | Recommendation |
 |---|---|---|---|
-| 3, 5, 6, 9 (rest) | **The methodology and quality halves of four answered questions** (owner parts recorded 2026-10-20, §11.1): MVPQ-03 segment combinations, support, own dimensions, clustering and its register entry (reconcile with PR #504's `aia-sociomap-5`); MVPQ-05 the benchmark interval and whether a client survey may ground AI respondents; MVPQ-06 the evaluation tasks, metrics and thresholds; MVPQ-09 any scientific check beyond admitted support | `segment-maps-and-drilldown#1`, `client-data-in-analysis#9`, `deep-research-web-search#27`, `report-delivery#RD1` | The methodology owner (03, 05, 09) and the product owner (06) |
+| 3, 5, 6, 9 (rest) | **The methodology and quality halves of four answered questions** (owner parts recorded 2026-10-20, §11.1): MVPQ-03 segment combinations, support, own dimensions, clustering and its register entry (reconcile with PR #504's `aia-sociomap-5`); MVPQ-05 the benchmark interval and whether a client survey may ground AI respondents; MVPQ-06 the evaluation tasks, metrics and thresholds (*answered 2026-10-25: the plan's proposed targets adopted*); MVPQ-09 any scientific check beyond admitted support | `segment-maps-and-drilldown#1`, `client-data-in-analysis#9`, `deep-research-web-search#27`, `report-delivery#RD1` | The methodology owner (03, 05, 09) and the product owner (06) |
 | 10 | **Replacement weighting and support.** What a replaced respondent does to the weights, the effective n and the support rules (a methodology dependency; the feature itself is settled, F18) | `run-qc-and-checkpoint#RQC5` | The method owner defines it; until then the chunk builds the mechanism and labels the limit |
 
 | 12 | **Canonical Sociomap decisions.** Confirm the still-open Q5/Q6/Q7 meaning and evidence policy, fixed-ruler kernel widths, F10 misfit threshold and F16 disposition with the methodology owner; use the existing decision sheets, not new invented defaults. *Under MVPQ-13 (2026-10-20), answered by `aia-sociomap-5` except the packet's MQ-04, MQ-05 (i, ii) and MQ-07 to MQ-10* | `sociomap-formula-corrections#0b`, `sociomap-formula-corrections#I0`, `sociomap-formula-corrections#3`, `sociomap-formula-corrections#4c` | Canonical F1-F16 remain the baseline; checked implementation chunks do not approve the audit's provisional parameters |

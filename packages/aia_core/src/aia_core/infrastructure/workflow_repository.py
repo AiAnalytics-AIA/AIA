@@ -23,7 +23,7 @@ The behavioural contract is
 from __future__ import annotations
 
 import json
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -32,6 +32,7 @@ from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
+from ..domain.content_free import content_free, rename
 from ..domain.population import (
     JointState,
     PopulationBinding,
@@ -124,7 +125,10 @@ __all__ = [
     "WorkflowNotFound",
     "WorkflowRepository",
     "charged_to_for_run",
+    "client_approval_rows",
     "erase_lead_run_payloads",
+    "organization_approval_rows",
+    "scrub_client_approvals",
 ]
 
 
@@ -1335,8 +1339,14 @@ class WorkflowRepository:
         else:
             client_query = select(ClientRow).where(ClientRow.client_id == run.client_id)
             if self._is_postgres:
-                client_query = client_query.with_for_update()
+                client_query = client_query.with_for_update().execution_options(
+                    populate_existing=True
+                )
             payer = self._session.scalar(client_query)
+            if payer is not None and payer.deleted_at is not None:
+                # A deletion held the lock first and committed (settings-backends SB5): the
+                # client's own work spends nothing under its tombstone.
+                raise ScopeDenied("not found", reason="client_deleted")
         if payer is None:
             raise WorkflowNotFound(run.study_id or run.client_id)
 
@@ -3482,6 +3492,8 @@ class WorkflowRepository:
             "project_id": run.project_id,
             "project_revision": run.project_revision,
             "cancel_requested": run.cancel_requested,
+            # Who started the run: the person its outputs are the work of (null for a system run).
+            "triggered_by": run.triggered_by,
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
@@ -3817,3 +3829,51 @@ def erase_lead_run_payloads(
             .values(output_json=_ERASED, error_json=_ERASED)
         )
     return attempt_ids
+
+
+def client_approval_rows(session: Session, *, client_id: str) -> int:
+    """How many approval-ledger rows a client has: what a deletion keeps."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.client_id == client_id)
+        )
+        or 0
+    )
+
+
+def organization_approval_rows(session: Session, *, organization_id: str) -> int:
+    """The organization's approval-ledger rows: what deletions keep."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.organization_id == organization_id)
+        )
+        or 0
+    )
+
+
+def scrub_client_approvals(session: Session, *, client_id: str, names: Mapping[str, str]) -> int:
+    """A deleted client's approval ledger kept content-free (settings-backends SB5, MVPQ-07):
+    each decision's comment -- a lift note, a report or gate note, an acknowledgement's reason
+    and gaps -- with names replaced by ids and every other text erased; ids, digests, codes and
+    numbers stay. A JSON comment is scrubbed field by field. Returns the comments changed."""
+    changed = 0
+    for row in session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.client_id == client_id)
+    ):
+        if not row.comment:
+            continue
+        try:
+            parsed = json.loads(row.comment)
+        except ValueError:
+            scrubbed = content_free(rename(row.comment, names))
+        else:
+            scrubbed = json.dumps(content_free(rename(parsed, names)), ensure_ascii=False)
+        if scrubbed != row.comment:
+            row.comment = scrubbed
+            changed += 1
+    session.flush()
+    return changed

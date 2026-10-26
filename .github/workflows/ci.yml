@@ -948,6 +948,13 @@ jobs:
                       "USE_UNAUTHORIZED_STORAGE", "WOPI_ENABLED", "EXAMPLE_ENABLED"):
               assert env[key] == "false", key
           assert docs["networks"]["docs"]["name"] == "aia-docs" and docs["networks"]["docs"]["external"]
+          # Its one configuration file: a timed force-save and nothing else, read-only, and never
+          # local.json, which the image's start script writes with the JWT secret.
+          conf = "/etc/onlyoffice/documentserver/local-production-linux.json"
+          mounts = [v for v in oo["volumes"] if v["type"] == "bind"]
+          assert [(m["target"], m.get("read_only")) for m in mounts] == [(conf, True)], mounts
+          local = json.load(open("deploy/develop/docs/local-production-linux.json"))
+          assert local == {"services": {"CoAuthoring": {"autoAssembly": {"enable": True, "interval": "5m"}}}}, local
           product = json.load(open("composed.json"))
           on_docs = sorted(n for n, s in product["services"].items() if "docs" in s.get("networks", {}))
           assert on_docs == ["caddy"], on_docs

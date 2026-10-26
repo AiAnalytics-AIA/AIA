@@ -95,7 +95,7 @@ import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
 import { readBudget, withBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
-import { reportStatus, reportStatusWords } from "@/lib/report-status";
+import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
@@ -116,7 +116,7 @@ import { useResource } from "@/components/aia/useResource";
 import { InspectorSlot } from "./Inspector";
 import { ResearchContext, useResearch } from "./context";
 import { SociomappingView } from "./SociomappingView";
-import { StepActivityPanel } from "./StepActivityPanel";
+import { QuotaFillTable, StepActivityPanel } from "./StepActivityPanel";
 import { useStepActivity } from "./useStepActivity";
 import { ObjectMapView } from "./ObjectMapView";
 import { SociomapStage, useOnSociomapStage } from "./SociomapStage";
@@ -1485,6 +1485,7 @@ export function ProgressStep() {
               </span>
               {waitingDetail(s) ? <span className="text-xs text-ink">{waitingDetail(s)}</span> : null}
               {last ? <span data-last-reported className="font-mono text-xs tabular-nums text-ink-muted">{last}</span> : null}
+              {stepActivity?.quota ? <QuotaFillTable quota={stepActivity.quota} /> : null}
               <StepActivityPanel orb={researchStepOrb(run, s)} activity={stepActivity} startedAt={s.started_at} label={stepLabel(s.node_key)} />
             </li>
             );
@@ -1903,6 +1904,8 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
+  const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
@@ -1932,7 +1935,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
               ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
-                : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
+                : withoutSupport.length && !Object.keys(analysis.pending).length
+                  ? holdingWords(withoutSupport)
+                  : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
           <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
@@ -2189,7 +2194,7 @@ function AggregateView({ artifact, run, specification }: { artifact: Artifact; r
           const anchor = measureAnchor(measure.id);
           const reading = readMeasure(measure.result, measure.scale, box, at, measure.options);
           return <section key={measure.id} id={anchor} aria-label={measure.title} data-aia={measure.target ?? undefined} data-focused={focused === anchor ? "true" : undefined}
-            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--color-signal)]" : "border-border"}`}>
+            className={`scroll-mt-24 rounded-md border bg-surface-raised p-4 ${focused === anchor ? "border-signal shadow-[0_0_0_1px_var(--signal)]" : "border-border"}`}>
             {/* The reading runs the card's full width under the title and its chip: beside the chip it
                 was squeezed to half a phone's width (artifact-results, Findings). The title keeps
                 14rem, below which the chip wraps under it. */}

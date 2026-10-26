@@ -7,6 +7,8 @@ chunks:
   - "[x] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
   - "[ ] LC4. Budgets enforced: ADR 0041's floors, ceilings and two-pass global allocation, the design layer's five-step shortening ladder, spare bytes to the verbatim conversation, every omission named"
   - "[ ] LC5. Queued messages stored on the server: immutable rows, queued / answered / withdrawn derived (an exact study_lead_turn_answers relation, a withdrawal row, queue position kept through an edit), bounded in bytes and count, a follow-on turn for what layer 9 cannot hold, LeadBusy retired for messages, visible in every tab"
+  - "[x] LC5a. (opened as a draft during the feature freeze at Nigel's word, 2026-10-22) The server's queue: a message posted while a turn runs is stored at once, bounded (8 KB, 5 queued), answered by the next turn while layer 9 fits, the rest deferred and named; study_lead_turn_answers; withdraw; the web's queue retired"
+  - "[ ] LC5b. Edit a queued message as a replacement keeping its place, and requeue what an inactive turn answered (with LC10's replaces_turn_id and active path)"
   - "[ ] LC6. Cost, model and class on every Lead turn, from the usage ledger and the composition digest"
   - "[ ] LC7. Grounded hierarchical compaction: research_lead_compact after the reply, block summaries of eight turns with a turn reference on every sentence, episode roll-ups (three levels at most), the preservation check, the coverage floor and the uncovered-terms index, STUDY_LEAD_SUMMARY, AIA_AI_RESEARCH_LEAD_COMPACTION_ENABLED and its two keys, summary_lag"
   - "[ ] LC7a. Kept facts (Držená fakta): proposed by the compaction step, each with a quote located verbatim in its named turn, never compacted, superseded only by name, 40 x 300 characters"
@@ -70,6 +72,10 @@ Waves are `mvp-execution-contracts.md`'s; the row these chunks join is the docs 
 - **After the MVP:** LC14-LC18.
 
 ## Chunks
+
+*The owner, 2026-10-25 (ADR-0041 (b), the audit page, relayed by coordinator 3): accept with amendments (Sonnet 5.5's capabilities,
+enough context for all documents and actions, a benchmark); the amendment is being drafted, and LC0
+stays open until it is written in.*
 
 **LC0. ADR 0041 accepted.** The coordinator relayed the owner's answers from the PM status page
 (2026-10-20 22:39-22:42 UTC): Q25 (a) the digest plus a model summary, "ensure we are using an
@@ -271,6 +277,97 @@ Tests:
 - one Lead turn answers two queued messages, then the newer is edited and resent: the shared turn
   goes inactive, the other message is queued again, and the replacement turn answers both;
 - a greeting still waits.
+
+*Split (2026-10-22):* LC5's edit-as-replacement and requeue rest on `replaces_turn_id` and the
+active-path predicate, which LC10 introduces; building them twice is waste. **LC5a** is the
+queue: storage, bounds, packing, answer rows, deferral, withdrawal and the web. **LC5b** is the
+replacement and requeue, with LC10. LC5's tests on edits and inactive turns move to LC5b.
+LC5a decisions:
+- **What starts the next turn.** ADR 0041 decision 7 says a follow-on turn is enqueued "at once"
+  for deferred messages. Two Lead turns of one researcher cannot run at once: the second would
+  be frozen without the first's answer. So the next turn is started when the conversation is
+  free: by the next post, or by `POST …/lead/turns/queued`, which the pane calls as soon as it
+  reads the conversation free with messages still queued (any tab; the researcher's Lead row
+  lock makes a second call a no-op). A worker-side follow-on, started when the step finishes,
+  is LC5c if a closed tab must not delay a deferred message.
+- **Legacy turns.** The migration backfills one answer row per existing Lead message turn for
+  the person message at the sequence just before it, which is how `post` stored them. No
+  stored message reads as queued after the migration.
+- **The view.** One message: `view.message`, as today, so a single message's context is
+  unchanged. Several: `view.messages`, each `{turn_id, stage, text, focus}` in queue order and
+  never concatenated, with `view.message` null. Deferred ones are named in `view.queued_deferred`
+  by turn id. A note in the view says so (`MESSAGES_NOTE`): the fixed prefix is every
+  agent's, and the task wording is the editable prompt's. The harness stays
+  `aia-research-lead-4`, because a single message's context is byte-identical.
+
+*As built (LC5a):*
+- **Migration `7db4e0f96181`:**
+  - `study_lead_turn_answers` (append-only, with a `before_update` guard);
+  - `study_lead_turns.parent_turn_id`;
+  - the kind `withdrawal`, which is the person's, has no text and names its message;
+  - the backfill of legacy answers;
+  - a downgrade refused while a withdrawal is stored.
+
+  Checked on PostgreSQL 16: upgrade with a backfill of two legacy pairs (a typed command left
+  out), `alembic check` with no drift, downgrade base and upgrade head, and the refusal.
+- **`StudyLeadRepository`:** `queued()` (derived, in queue order), `answers`, `withdrawn` and
+  `record_answers`. `make layer_check` holds the answers table to the repository as it does the
+  turns.
+- **`ResearchLead`:**
+  - `post` stores a message while a turn runs; `LeadBusy` stays for a greeting.
+  - `answer_queued` starts the next turn once the conversation is free; `withdraw`.
+  - `_start_turn` freezes and queues a turn with `take_queued` (domain) and writes its answer
+    rows.
+  - A turn parked on the budget and superseded by a message has its messages answered by the
+    new turn, with the new one, in order: they are no longer only history.
+- **Bounds:** `MESSAGE_MAX_BYTES` 8 KB (422 `message_too_long`), `QUEUE_MAX` 5 (409
+  `lead_queue_full`) and `MESSAGES_MAX_BYTES` 12 KiB (layer 9).
+- **API:** `POST …/lead/turns/queued` (201 with the turn, 200 with none) and
+  `POST …/turns/{id}/withdraw` (409 `lead_message_not_queued`, 404 for anyone else's). A turn
+  answers `queued`, `withdrawn` and `answers`.
+- **The web:**
+  - The pane posts at once; the server queues.
+  - Its local list holds only a post in flight or one the server did not take.
+  - The composer's queue shows what waits on the server, and withdraws it.
+  - The conversation leaves out what waits or was withdrawn.
+  - A free Lead with messages waiting is asked once per set (any tab).
+- **Tests:**
+  - application, on SQLite and PostgreSQL: two tabs answered by one turn; a withdrawal; bytes
+    and count; five 8 KB messages chained; small ones packed;
+  - API: the queue end to end;
+  - domain: `take_queued` and the classification of each message;
+  - web: `LeadPane.test.tsx`.
+
+*Review of LC5a (independent, before the PR).*
+
+Fixed, each with a test:
+- **The pane's ask key.** It now includes the newest Lead turn's id and status. Keyed on the
+  waiting set alone, a message waiting behind a turn parked on the budget was never asked about
+  again after the budget was lifted and the turn answered.
+- **A waiting message's focus is checked again** against the copy its turn is frozen with. One
+  another tab removed is left out; the message is still sent (the race of Codex on #624).
+- **Only a busy Lead's queue fills up.** A free Lead answers what waits together with the new
+  message.
+- **Smaller fixes:**
+  - a superseded turn's messages are read by id, not from the newest 50 rows;
+  - `withdraw` needs an open study;
+  - the downgrade also refuses while an answer row exists that the backfill would not write
+    again (checked on PostgreSQL).
+
+Left, as findings:
+- **F5.** A batch answered by a turn that then failed or parked for a reason other than the
+  budget is answered by that turn and never sent again: up to five messages, where one was
+  before (`application/research_lead.py`, `_start_turn`). Smallest fix: LC10's retry, which
+  regenerates a failed turn; until then the researcher sends again. Test: LC10's.
+- **F6.** `state(limit=100)` counts withdrawal rows within its limit, so it can return fewer than
+  100 turns. Harmless at today's sizes.
+- **F7.** A queued person turn no longer stores `design_revision_id`. Nothing reads it on a
+  person turn; the Lead turn that answers it names its revision.
+- **F8.** `POST …/lead/turns` takes no idempotency key (`apps/api/src/aia_api/routers/lead.py:574
+  @ ddda4d21`; it predates LC5a), so a retry after a lost response stores the message twice, and
+  with the queue both copies wait to be answered. Hypothesis until reproduced (the coordinator's
+  review of #817). Smallest fix: a client-chosen key on the post, unique per researcher and
+  study, answering the stored turn on a repeat. Test: the same key posted twice stores one turn.
 
 **LC6. Cost, model and class per turn.** The turn's usage rows (model, tokens, USD) and class in
 `GET …/lead`; a quiet line under each Lead turn; compaction and lookup costs as their own lines.

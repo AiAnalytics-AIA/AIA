@@ -570,6 +570,122 @@ def _document_model(title: str = "Úvod a rámec studie") -> bytes:
     ).encode()
 
 
+def _question_table_model() -> bytes:
+    """A stored internal document with one per-question table, as the composer anchors it."""
+    model = json.loads(_document_model())
+    model["sections"].append(
+        {
+            "id": "ch-tables",
+            "title": "Výsledky jednotlivých otázek",
+            "appendix": False,
+            "refs": ["q1.pct.1", "q1.n"],
+            "blocks": [
+                {
+                    "id": "ch-tables.1",
+                    "type": "table",
+                    "anchor": "tab-question-1",
+                    "title": "@Jak často nakupujete?",
+                    "columns": [{"label": "Ukazatel", "align": "left", "unit": None}],
+                    "rows": [
+                        {
+                            "cells": [
+                                {"type": "text", "text": "Denně", "control": None},
+                                {"type": "number", "ref": "q1.pct.1", "with_interval": True},
+                            ],
+                            "emphasis": False,
+                        },
+                        {
+                            "cells": [
+                                {"type": "text", "text": "platné odpovědi", "control": None},
+                                {"type": "number", "ref": "q1.n", "with_interval": False},
+                            ],
+                            "emphasis": False,
+                        },
+                    ],
+                    "suppressed_rows": 1,
+                    "source": "Fiktivní",
+                    "base_ref": "q1.n",
+                    "notes": [],
+                    "notes_control": None,
+                    "refs": ["q1.pct.1", "q1.n"],
+                }
+            ],
+        }
+    )
+    entry = {"suppressed": False, "grade": "measured", "modelled_panel": False}
+    model["ledger"]["refs"] = {
+        "q1.pct.1": {
+            **entry,
+            "value_text": "42,5 %",
+            "interval_text": "38,1 až 46,9 %",
+            "base_text": "n = 480",
+        },
+        "q1.n": {**entry, "value_text": "480", "interval_text": None, "base_text": None},
+    }
+    return json.dumps(model, sort_keys=True, separators=(",", ":")).encode()
+
+
+def test_a_runs_question_tables_export_as_the_report_prints_them(
+    app: FastAPI,
+    researcher: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD12 (D-41): the per-question tables of the stored internal draft as CSV and XLSX, each
+    number the text the report prints; the client report's alone with document=client."""
+    import csv
+    import io
+
+    import openpyxl
+
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/report/tables"
+    assert researcher.get(f"{url}/csv").status_code == 404  # no report yet
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=_question_table_model()
+    )
+
+    got = researcher.get(f"{url}/csv")
+    assert got.status_code == 200, got.text
+    assert got.headers["content-type"].startswith("text/csv")
+    assert got.headers["x-aia-artifact-id"] == report_id
+    assert (
+        got.headers["x-aia-artifact-sha256"]
+        == researcher.get(f"{_runs(world)}/{run_id}/report/document").json()["report_sha256"]
+    )
+    assert got.headers["x-aia-review-state"] == "DRAFT_UNAPPROVED"
+    assert f"-tabulky-zakladni-{report_id}-koncept.csv" in got.headers["content-disposition"]
+    rows = list(csv.reader(io.StringIO(got.content.decode("utf-8-sig")), delimiter=";"))
+    title = "'@Jak často nakupujete?"  # a formula's first character, kept as text
+    assert rows == [
+        ["Otázka", "Ukazatel", "Hodnota", "95% interval", "Základ", "Evidence", "Původ"],
+        [title, "Denně", "42,5 %", "38,1 až 46,9 %", "n = 480", "Měřeno", ""],
+        [title, "platné odpovědi", "480", "", "", "Měřeno", ""],
+        [title, "vynecháno pro nedostatečnou oporu: 1", "", "", "", "", ""],
+    ]
+
+    book = researcher.get(f"{url}/xlsx")
+    assert book.status_code == 200, book.text
+    sheet = openpyxl.load_workbook(io.BytesIO(book.content)).active
+    cells = [[c if c is not None else "" for c in r] for r in sheet.iter_rows(values_only=True)]
+    # A workbook cell is text, never a formula: it carries the title as written, unguarded.
+    assert cells == [[c.removeprefix("'") for c in row] for row in rows]
+
+    # The client report's export is its own: this one has no question table, said by name.
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    assert researcher.get(f"{_runs(world)}/{run_id}/report/client/download").status_code == 200
+    none = researcher.get(f"{url}/csv", params={"document": "client"})
+    assert none.status_code == 409 and none.json()["code"] == "no_question_tables"
+    assert researcher.get(f"{url}/pdf").status_code == 422
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/report/tables/csv"
+    assert other_client_lead.get(foreign).status_code == 404
+
+
 def test_the_internal_draft_is_read_as_its_document_beside_its_docx(
     app: FastAPI,
     researcher: TestClient,
@@ -884,6 +1000,9 @@ def test_a_person_approves_a_runs_stored_report_once_and_only_that(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
         ).all()
     assert [(d.decision, d.comment) for d in decisions] == [("APPROVED", "Přečteno.")]
+    # Its document was checked (RD7) and nothing found: an empty list, never NULL, which says
+    # nothing was checked (the next test).
+    assert decisions[0].warnings == []
 
 
 def _prague_today() -> str:
@@ -1424,14 +1543,187 @@ def _composing(document: ReportDocument) -> Any:
     return compose
 
 
-def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
+def test_the_client_report_is_the_runs_work_not_its_first_downloaders(
+    app: FastAPI,
+    owner: TestClient,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD8: the client report is stored on whoever's read first asks for it, but code composed
+    it from the run. With independent review on, the person who downloaded it first may approve
+    it; the person who started the run may not, as for the run's internal report."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    # Every run names its starter: no run reaches a client report without a producer.
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        run = WorkflowRepository(session, scope).get_run(run_id)
+    assert run["triggered_by"] == world.users["researcher"]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    url = f"{_runs(world)}/{run_id}/report"
+    # The reviewer reads it first: that read stores the draft.
+    version = outsider.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
+    own = researcher.post(f"{url}/approve", json={"artifact_id": version})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "client"
+    assert approved.json()["approval"]["self_approved"] is False
+
+
+def _held_after(real: Any, applies: Any) -> tuple[Any, Any]:
+    """``real`` held after it ran: the first call that ``applies`` to waits, its write not yet
+    committed, until a second has written too (no lock), or for 10 s (the second waits on the
+    lock). Answers the replacement and the event the first call sets."""
+    import threading
+
+    first_in, second_done = threading.Event(), threading.Event()
+
+    def held(self: Any, *args: Any, **kw: Any) -> Any:
+        done = real(self, *args, **kw)
+        if not applies(*args, **kw):
+            return done
+        if not first_in.is_set():
+            first_in.set()
+            second_done.wait(10)
+        else:
+            second_done.set()
+        return done
+
+    return held, first_in
+
+
+def _at_once(app: FastAPI, world: Any, first_in: Any, calls: list[tuple[str, Any]]) -> None:
+    """Each of ``calls`` (a user, then what it does in its own session and scope) in a thread of
+    its own, the second started once the first holds; every error raised here."""
+    import threading
+
+    factory = create_session_factory(app.state.engine)
+    errors: list[BaseException] = []
+
+    def run(user: str, act: Any) -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users[user], organization_id=world.organization_id
+                )
+                act(own, ScopeResolver(own).study_context(principal, study_id=world.study_id()))
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    threads = [threading.Thread(target=run, args=call) for call in calls]
+    threads[0].start()
+    assert first_in.wait(30)
+    threads[1].start()
+    for thread in threads:
+        thread.join(30)
+    assert not errors, errors
+
+
+def test_two_first_reads_of_the_client_report_store_one_draft(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two first reads at once (two people opening Zpráva) store one draft: the second waits on
+    the run's lock and finds the first's, so the version one approves is the one the other read.
+    PostgreSQL only: the guard is a row lock, which SQLite does not take (it serialises writers
+    instead)."""
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    held, first_in = _held_after(
+        ArtifactRepository.put,
+        lambda **kw: kw.get("artifact_type") == CLIENT_REPORT_ARTIFACT_TYPE,
+    )
+    monkeypatch.setattr(ArtifactRepository, "put", held)
+    ids: list[str] = []
+
+    def read(session: Any, scope: Any) -> None:
+        found, _data = client_report.stored_client_report(
+            session, scope, app.state.artifact_store, run_id=run_id
+        )
+        ids.append(found.artifact_id)
+
+    _at_once(app, world, first_in, [("researcher", read), ("lead", read)])
+    assert len(ids) == 2 and ids[0] == ids[1]
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalar(
+            select(func.count())
+            .select_from(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE)
+        )
+    assert stored == 1
+
+
+def test_two_approvals_of_one_report_at_once_record_one_decision(
     app: FastAPI,
     researcher: TestClient,
     outsider: TestClient,
     world: Any,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """RD0 (MVPQ-09): the gate refuses by name, and blocks: no reviewer approves past it."""
+    """Approve once: the second approval waits on the run's lock, then reads the report
+    approved and records nothing. PostgreSQL only, as the store race above."""
+    from aia_core.application.report_approval import approve_report
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    monkeypatch.setattr(
+        client_report, "compose_client_report", _composing(_client_report_document())
+    )
+    report = f"{_runs(world)}/{run_id}/report/client/download"
+    version = outsider.get(report).headers["X-AIA-Artifact-Id"]
+    held, first_in = _held_after(ArtifactRepository.approve, lambda *a, **kw: True)
+    monkeypatch.setattr(ArtifactRepository, "approve", held)
+
+    def approve(session: Any, scope: Any) -> None:
+        approve_report(session, scope, app.state.artifact_store, run_id=run_id, artifact_id=version)
+
+    _at_once(app, world, first_in, [("outsider", approve), ("lead", approve)])
+    with create_session_factory(app.state.engine)() as session:
+        decisions = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == version)
+        )
+    assert decisions == 1
+
+
+def test_a_client_report_carrying_drill_down_content_is_approved_with_its_warning_on_record(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    world: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """RD0 (MVPQ-09), warnings since 2026-10-22 (the product owner: "Warnings for all of it"):
+    the check names what it found before the approval and never refuses it; the approval records
+    the warning it went past, on its ledger row."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1448,18 +1740,86 @@ def test_a_client_report_carrying_drill_down_content_cannot_be_approved(
     monkeypatch.setattr(client_report, "compose_client_report", _composing(quoted))
     url = f"{_runs(world)}/{run_id}/report"
     version = researcher.get(f"{url}/client/download").headers["X-AIA-Artifact-Id"]
-    refused = outsider.post(f"{url}/approve", json={"artifact_id": version})
-    assert refused.status_code == 409, refused.text
-    assert refused.json()["code"] == "client_gate_refused"
-    assert refused.json()["details"]["refusals"] == [
-        {
-            "code": "drill_down_content",
-            "where": "v.1",
-            "message": "doslovná odpověď jednoho respondenta",
-        }
-    ]
+    warning = {
+        "code": "drill_down_content",
+        "where": "v.1",
+        "message": "doslovná odpověď jednoho respondenta",
+    }
+    before = researcher.get(f"{url}/client/document").json()
+    assert before["warnings"] == [warning] and before["approval"] is None
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [warning]
     after = researcher.get(f"{url}/client/document").json()
-    assert after["review_state"] == "DRAFT_UNAPPROVED"
+    assert after["review_state"] == "APPROVED_INTERNAL"
+    assert after["approval"]["warnings"] == [warning]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == version)
+        ).one()
+        assert row.warnings == [warning]
+
+
+def test_a_sentence_comparing_in_words_alone_is_marked_and_approved_on_record(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """RD7 (MVPQ-09), marking since 2026-10-22: the internal draft's document names a
+    sentence of the analysis prose that compares with no number from the ledger; approving
+    goes through and records it, as RD0's warnings are recorded."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    model = json.loads(_document_model())
+    model["sections"][0]["sources"] = [
+        {"kind": "artifact", "artifact_type": "research_analysis_module"}
+    ]
+    model["sections"][0]["blocks"][0]["content"] = [
+        {"type": "text", "text": "Fiktivní. Nejvíc důvěřují lidé v Praze.", "emphasis": "none"}
+    ]
+    report_id = _store_internal_report(
+        app, world, run_id, b"PK\x03\x04draft", model=json.dumps(model).encode()
+    )
+    url = f"{_runs(world)}/{run_id}/report"
+    marked = {
+        "code": "unsupported_comparison",
+        "where": "intro.1",
+        "message": "srovnání bez doloženého čísla: „Nejvíc důvěřují lidé v Praze.“",
+        "sentence": 1,
+        "text": "Nejvíc důvěřují lidé v Praze.",
+    }
+    assert researcher.get(f"{url}/document").json()["warnings"] == [marked]
+    approved = outsider.post(f"{url}/approve", json={"artifact_id": report_id})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["approval"]["warnings"] == [marked]
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == report_id)
+        ).one()
+        assert row.warnings == [marked]
+
+
+def test_a_version_with_no_stored_document_is_approved_unchecked(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A version with no stored document is not checked: SQL NULL, never JSON null (RD0), so
+    the migration's downgrade counts only the rows that recorded warnings."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    report_id = _store_internal_report(app, world, run_id, b"PK\x03\x04before-rd5a")
+    approve = f"{_runs(world)}/{run_id}/report/approve"
+    assert outsider.post(approve, json={"artifact_id": report_id}).status_code == 200
+    with create_session_factory(app.state.engine)() as session:
+        unchecked = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.subject_id == report_id,
+                ApprovalDecisionRow.warnings.is_(None),
+            )
+        )
+    assert unchecked == 1
 
 
 def test_the_client_report_is_prepared_to_be_read_without_a_download(
@@ -1534,10 +1894,11 @@ def test_a_client_document_of_an_older_contract_is_stored_again_on_download(
     assert outsider.post(f"{url}/approve", json={"artifact_id": version}).status_code == 200
 
 
-def test_a_client_draft_with_no_stored_document_is_not_approvable(
+def test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable(
     app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
 ) -> None:
-    """A draft stored before its document (RD5a) cannot be judged: unknown, never passed."""
+    """A draft stored before its document (RD5a) cannot be checked: unknown, never passed, and
+    said as a warning the approval records ("nelze ověřit"), never a refusal (RD0, 2026-10-22)."""
     app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
     revision = submit(researcher, world).json()["revision_id"]
     run_id = start(researcher, world, revision).json()["run_id"]
@@ -1558,11 +1919,12 @@ def test_a_client_draft_with_no_stored_document_is_not_approvable(
             metadata={"run_id": run_id, "report_kind": "client", **REVIEW_STAMP_RECORD},
         )
         session.commit()
-    refused = outsider.post(
+    approved = outsider.post(
         f"{_runs(world)}/{run_id}/report/approve", json={"artifact_id": stored.artifact_id}
     )
-    assert refused.status_code == 409
-    assert [r["code"] for r in refused.json()["details"]["refusals"]] == ["gate_unrecorded"]
+    assert approved.status_code == 200, approved.text
+    (warning,) = approved.json()["approval"]["warnings"]
+    assert warning["code"] == "gate_unrecorded" and "nelze ji ověřit" in warning["message"]
 
 
 def test_a_client_report_stored_before_its_document_says_so(
@@ -3076,3 +3438,456 @@ def test_a_step_passes_on_a_stored_code_never_free_text() -> None:
     assert _code("Trasa není schválená.") is None
     assert _code(None) is None
     assert _code(3) is None
+
+
+def test_a_report_a_module_holds_is_refused_naming_the_modules(
+    researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Evidence-integrity 9b: the report with literature, asked for directly while a module states
+    no supported finding, is refused with its reason and the modules in its details, so the
+    screen says it in words (approvalRefusal) instead of the composer's English."""
+    from aia_core.application.report import ReportCompositionRefused
+
+    def held(*_a: Any, **_kw: Any) -> Any:
+        raise ReportCompositionRefused(
+            "waiting on: executive", reason="analysis_holds_report", modules=("executive",)
+        )
+
+    monkeypatch.setattr(research_router, "prepared_context_report", lambda *_a, **_kw: None)
+    monkeypatch.setattr(research_router, "stored_contextual_report", held)
+    refused = researcher.post(
+        f"{_runs(world)}/RUN-000000/report/context",
+        params={"deep_research_run_id": "RUN-000001"},
+    )
+    assert refused.status_code == 409, refused.text
+    body = refused.json()
+    assert body["code"] == "context_report_refused"
+    assert body["details"] == {"reason": "analysis_holds_report", "modules": ["executive"]}
+
+
+# --------------------------------------------------- map snapshots (report-delivery RD4)
+
+
+def _fictional_map() -> dict[str, Any]:
+    """A stored Sociomap result with one contract-3 object map, computed by the engine on
+    fictional ratings, as the sociomap step stores it."""
+    import random
+
+    from aia_core.domain.sociomap import (
+        AIA_SOCIOMAP_V3,
+        ObjectMapInputs,
+        RatingItem,
+        compute_object_map,
+    )
+
+    rng = random.Random(92)
+    objects = ("a", "b", "c", "d")
+    inputs = ObjectMapInputs(
+        respondent_ids=tuple(f"FIC-{i}" for i in range(40)),
+        donor_ids=tuple(f"DONOR-{i // 2}" for i in range(40)),
+        items=tuple(RatingItem(item_id=o, scale_min=1, scale_max=10) for o in objects),
+        values=tuple(tuple(float(rng.randint(1, 10)) for _ in objects) for _ in range(40)),
+        weights=(1.0,) * 40,
+        object_ids=objects,
+        object_items=objects,
+        roles=dict.fromkeys(objects, "primary"),
+    )
+    artifact = compute_object_map(inputs, AIA_SOCIOMAP_V3, connectedness_interval=False)
+    return {
+        "batteries": [
+            {
+                "battery_id": "fictional",
+                "title": "Fiktivní nabídky",
+                "objects": [{"id": o, "label": f"Objekt {o}"} for o in objects],
+                "maps": {AIA_SOCIOMAP_V3.methodology_version: artifact.to_payload()},
+            }
+        ],
+        # As a run records its pinned methods: the register's approved -3, at its exact spec.
+        "methods": [
+            {
+                "method_id": AIA_SOCIOMAP_V3.methodology_version,
+                "spec_fingerprint": artifact.spec_fingerprint,
+            }
+        ],
+    }
+
+
+def _store_map(
+    app: FastAPI, world: Any, run_id: str, body: dict[str, Any], *, reused: str | None = None
+) -> str:
+    """Drive the run's steps to the end, its sociomap step storing ``body``, or naming the map
+    ``reused`` another run stored (as a retry reuses it); the map's id."""
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        workflow = WorkflowRepository(session, scope)
+        map_id = None
+        while (work := workflow.claim_next(worker_id="map-fixture")) is not None:
+            output: dict[str, Any] = {}
+            if work.node_key == "sociomap" and reused:
+                map_id = output["artifact_id"] = reused
+            elif work.node_key == "sociomap":
+                stored, _ = research_artifacts(session, scope, app.state.artifact_store).put_json(
+                    project_id=work.project_id,
+                    revision=work.project_revision,
+                    stage_type="SOCIOMAP",
+                    artifact_type="research_sociomap",
+                    payload={"kind": "research_sociomap", "sociomap": body},
+                    input_fingerprint=f"map-route-test-{run_id}",
+                    produced_by_job_id=work.attempt_id,
+                    metadata={"run_id": run_id},
+                )
+                map_id = output["artifact_id"] = stored.artifact_id
+            workflow.complete_attempt(work.attempt_id, worker_id="map-fixture", output=output)
+        session.commit()
+    assert map_id is not None
+    return map_id
+
+
+def test_a_map_snapshot_is_drawn_on_the_server_from_the_stored_map_and_approved_once(
+    app: FastAPI,
+    researcher: TestClient,
+    outsider: TestClient,
+    other_client_lead: TestClient,
+    world: Any,
+) -> None:
+    """RD4: the snapshot is the stored map drawn by the report's figure function, never the
+    browser's bytes; stored once per map and view; its status is the register's for the map's
+    method, read now; approved as any deliverable is, the run's starter its producer."""
+    from aia_core.application.map_snapshots import MAP_SNAPSHOT_ARTIFACT_TYPE
+
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    early = researcher.post(url, json=asked)
+    assert early.status_code == 409 and early.json()["details"]["reason"] == "no_map"
+    map_id = _store_map(app, world, run_id, _fictional_map())
+
+    drawn = researcher.post(url, json=asked)
+    assert drawn.status_code == 201, drawn.text
+    snapshot = drawn.json()
+    assert snapshot["status"] == "CLIENT_FACING"  # aia-sociomap-3 at its registered spec
+    assert snapshot["camera"] is None and snapshot["view"] == "top"
+    assert snapshot["review_state"] == "DRAFT_UNAPPROVED" and snapshot["approval"] is None
+    again = researcher.post(url, json=asked)
+    assert again.status_code == 200 and again.json()["artifact_id"] == snapshot["artifact_id"]
+    side = researcher.post(url, json={**asked, "view": "3d"})
+    assert side.status_code == 201 and side.json()["artifact_id"] != snapshot["artifact_id"]
+    for wrong, reason in (
+        ({**asked, "battery_id": "nowhere"}, "no_battery"),
+        ({**asked, "method": "aia-sociomap-1"}, "no_method"),
+    ):
+        refused = researcher.post(url, json=wrong)
+        assert refused.status_code == 409 and refused.json()["details"]["reason"] == reason
+
+    one = f"{url}/{snapshot['artifact_id']}"
+    png = researcher.get(f"{one}/download")
+    assert png.status_code == 200 and png.content.startswith(b"\x89PNG")
+    assert png.headers["content-type"] == "image/png"
+    assert png.headers["x-aia-artifact-id"] == snapshot["artifact_id"]
+    assert png.headers["content-disposition"].endswith(
+        f'-mapa-fictional-top-klient-{snapshot["artifact_id"]}-koncept.png"'
+    )
+    # The same map and view draw the same bytes: the figure function fits nothing.
+    from aia_core.domain.sociomap import read_object_maps
+    from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshot
+
+    battery = _fictional_map()["batteries"][0]
+    ((_, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    assert png.content == object_map_snapshot(artifact, labels, "top")
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.artifact_id == snapshot["artifact_id"]
+            )
+        ).one()
+        assert stored.artifact_type == MAP_SNAPSHOT_ARTIFACT_TYPE
+        assert stored.artifact_metadata["map_artifact_id"] == map_id
+        assert stored.produced_by_user_id is None  # code drew it; no person is its producer
+
+    foreign = f"{_runs(world, 'other_client')}/{run_id}/map-snapshots/{snapshot['artifact_id']}"
+    assert other_client_lead.get(foreign).status_code == 404
+    # The run is found before its row is locked: a run outside the study is 404, never 500.
+    assert other_client_lead.post(f"{foreign}/approve", json={}).status_code == 404
+    # A member of another organization finds neither the study nor its snapshot.
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).create_organization(
+            slug="elsewhere", name="Elsewhere", owner_email="o@elsewhere.example"
+        )
+        session.commit()
+    app.state.identity_provider.register(
+        "token-elsewhere", subject="o@elsewhere.example", email="o@elsewhere.example"
+    )
+    stranger = TestClient(app)
+    stranger.headers.update({"Authorization": "Bearer token-elsewhere"})
+    for path in ("", "/download"):
+        assert stranger.get(f"{url}/{snapshot['artifact_id']}{path}").status_code == 404
+    assert stranger.post(url, json=asked).status_code == 404
+    approved = outsider.post(f"{one}/approve", json={"note": "Zkontrolováno."})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["review_state"] == "APPROVED_INTERNAL"
+    assert approved.json()["approval"]["note"] == "Zkontrolováno."
+    with create_session_factory(app.state.engine)() as session:
+        rows = session.scalars(
+            select(ApprovalDecisionRow).where(
+                ApprovalDecisionRow.subject_id == snapshot["artifact_id"]
+            )
+        ).all()
+    assert [r.subject_type for r in rows] == ["artifact"]  # one ledger shape
+    assert outsider.post(f"{one}/approve", json={}).status_code == 200  # once: nothing new
+    with create_session_factory(app.state.engine)() as session:
+        assert (
+            session.scalar(
+                select(func.count())
+                .select_from(ApprovalDecisionRow)
+                .where(ApprovalDecisionRow.subject_id == snapshot["artifact_id"])
+            )
+            == 1
+        )
+
+
+def test_the_run_starter_may_not_approve_a_map_snapshot_under_independent_review(
+    app: FastAPI, owner: TestClient, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    # The reviewer asks for it: the run's work all the same, not theirs.
+    snapshot = outsider.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ).json()
+    forbid = owner.put(
+        f"{API}/self-approval", json={"allowed": False, "client_id": world.client_id()}
+    )
+    assert forbid.status_code == 200, forbid.text
+    own = researcher.post(f"{url}/{snapshot['artifact_id']}/approve", json={})
+    assert own.status_code == 403 and own.json()["code"] == "separation_of_duties"
+    assert outsider.post(f"{url}/{snapshot['artifact_id']}/approve", json={}).status_code == 200
+
+
+def test_a_snapshot_of_a_method_the_register_does_not_approve_is_internal() -> None:
+    """The register's status, read at every read: -3 at another specification is no method it
+    approved, so its snapshot is internal whatever its review."""
+    from aia_core.application.map_snapshots import _status
+    from aia_core.domain.sociomap_register import MethodologyStatus
+
+    body = _fictional_map()
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.CLIENT_FACING
+    body["methods"][0]["spec_fingerprint"] = "0" * 64
+    assert _status(body, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    assert _status({}, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+    # A stored methodology edit is another method, whatever its base: never the register's.
+    edited = _fictional_map()
+    edited["methods"][0]["formulas"] = {"relation": "fiktivní"}
+    assert _status(edited, "aia-sociomap-3") is MethodologyStatus.INTERNAL_ONLY
+
+
+@pytest.mark.parametrize("unapproved", ["another_spec", "stored_edit"])
+def test_a_map_the_register_does_not_approve_is_internal_through_every_route_and_its_approval(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any, unapproved: str
+) -> None:
+    """The snapshot's status is the register's for the map's method, read at every read: a
+    method at a specification the register never approved, or a stored methodology edit of an
+    approved one, is INTERNAL_ONLY when drawn, read and downloaded, and approving the snapshot
+    does not make it the client's."""
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    body = _fictional_map()
+    if unapproved == "another_spec":
+        body["methods"][0]["spec_fingerprint"] = "0" * 64
+    else:
+        body["methods"][0]["formulas"] = {"relation": "fiktivní"}
+    _store_map(app, world, run_id, body)
+    url = f"{_runs(world)}/{run_id}/map-snapshots"
+    drawn = researcher.post(
+        url, json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    )
+    assert drawn.status_code == 201 and drawn.json()["status"] == "INTERNAL_ONLY"
+    one = f"{url}/{drawn.json()['artifact_id']}"
+    assert researcher.get(one).json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-koncept.png"')
+    approved = outsider.post(f"{one}/approve", json={})
+    assert approved.status_code == 200 and approved.json()["status"] == "INTERNAL_ONLY"
+    name = researcher.get(f"{one}/download").headers["content-disposition"]
+    assert name.endswith(f'-interni-{drawn.json()["artifact_id"]}-schvaleno.png"')
+
+
+def test_two_first_asks_of_one_snapshot_store_one(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A double click: the second ask waits on the run's lock and answers the first's
+    snapshot, never a second one under the same key. PostgreSQL only: the guard is a row lock,
+    which SQLite does not take (it serialises writers instead)."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    first_in, second_stored = threading.Event(), threading.Event()
+    real = ArtifactRepository.put
+
+    def held(self: ArtifactRepository, **kw: Any) -> Any:
+        stored = real(self, **kw)
+        if kw.get("artifact_type") != "research_map_snapshot":
+            return stored
+        if not first_in.is_set():
+            # The first ask: its snapshot stored, not yet committed. Held until the second
+            # has stored one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_stored.wait(10)
+        else:
+            second_stored.set()
+        return stored
+
+    monkeypatch.setattr(ArtifactRepository, "put", held)
+    factory = create_session_factory(app.state.engine)
+    ids: list[str] = []
+    errors: list[BaseException] = []
+
+    def ask() -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users["researcher"], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                found, _created = map_snapshots.map_snapshot(
+                    own,
+                    scope,
+                    app.state.artifact_store,
+                    run_id=run_id,
+                    battery_id="fictional",
+                    method="aia-sociomap-3",
+                    view="top",
+                )
+                own.commit()
+                ids.append(found.artifact.artifact_id)
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=ask)
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=ask)
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    assert len(ids) == 2 and ids[0] == ids[1]
+    with create_session_factory(app.state.engine)() as session:
+        stored = session.scalar(
+            select(func.count())
+            .select_from(ProjectArtifactRow)
+            .where(ProjectArtifactRow.artifact_type == "research_map_snapshot")
+        )
+    assert stored == 1
+
+
+def test_a_run_that_reuses_another_runs_map_gets_a_snapshot_of_its_own(
+    app: FastAPI, researcher: TestClient, outsider: TestClient, world: Any
+) -> None:
+    """A run whose sociomap step reuses the map another run stored (a retry does) is drawn its
+    own snapshot: found through it, read, downloaded and approved under it, never the other
+    run's, which it could not read."""
+    import copy
+
+    first = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()
+    map_id = _store_map(app, world, first["run_id"], _fictional_map())
+    other = copy.deepcopy(DESIGN)
+    other["title"] = "Fiktivní studie, druhá revize"
+    second = start(researcher, world, submit(researcher, world, other).json()["revision_id"]).json()
+    assert first["run_id"] != second["run_id"]
+    _store_map(app, world, second["run_id"], {}, reused=map_id)
+    asked = {"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"}
+    ids = []
+    for run in (first, second):
+        url = f"{_runs(world)}/{run['run_id']}/map-snapshots"
+        drawn = researcher.post(url, json=asked)
+        assert drawn.status_code == 201, drawn.text
+        one = f"{url}/{drawn.json()['artifact_id']}"
+        assert researcher.get(one).status_code == 200
+        assert researcher.get(f"{one}/download").status_code == 200
+        assert outsider.post(f"{one}/approve", json={}).status_code == 200
+        ids.append(drawn.json()["artifact_id"])
+    assert ids[0] != ids[1]
+
+
+def test_two_approvals_of_one_snapshot_at_once_record_one_decision(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Approve once: the second approval waits on the run's lock, then reads the snapshot
+    approved and records nothing. PostgreSQL only, as the store race above."""
+    import threading
+
+    from aia_core.application import map_snapshots
+    from aia_core.infrastructure.artifact_repository import ArtifactRepository
+
+    if app.state.engine.dialect.name != "postgresql":
+        pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
+    revision = submit(researcher, world).json()["revision_id"]
+    run_id = start(researcher, world, revision).json()["run_id"]
+    _store_map(app, world, run_id, _fictional_map())
+    snapshot = researcher.post(
+        f"{_runs(world)}/{run_id}/map-snapshots",
+        json={"battery_id": "fictional", "method": "aia-sociomap-3", "view": "top"},
+    ).json()["artifact_id"]
+    first_in, second_in = threading.Event(), threading.Event()
+    real = ArtifactRepository.approve
+
+    def held(self: ArtifactRepository, artifact_id: str, **kw: Any) -> Any:
+        approved = real(self, artifact_id, **kw)
+        if not first_in.is_set():
+            # The first approval: recorded, not yet committed. Held until the second has
+            # recorded one too (no lock), or for 10 s (the second waits on the lock).
+            first_in.set()
+            second_in.wait(10)
+        else:
+            second_in.set()
+        return approved
+
+    monkeypatch.setattr(ArtifactRepository, "approve", held)
+    factory = create_session_factory(app.state.engine)
+    errors: list[BaseException] = []
+
+    def approve(user: str) -> None:
+        try:
+            with factory() as own:
+                principal = AuthenticatedPrincipal(
+                    user_id=world.users[user], organization_id=world.organization_id
+                )
+                scope = ScopeResolver(own).study_context(principal, study_id=world.study_id())
+                map_snapshots.approve_map_snapshot(
+                    own, scope, app.state.artifact_store, run_id=run_id, artifact_id=snapshot
+                )
+                own.commit()
+        except BaseException as exc:  # reported below, never swallowed
+            errors.append(exc)
+
+    a = threading.Thread(target=approve, args=("outsider",))
+    a.start()
+    assert first_in.wait(30)
+    b = threading.Thread(target=approve, args=("lead",))
+    b.start()
+    a.join(30)
+    b.join(30)
+    assert not errors, errors
+    with create_session_factory(app.state.engine)() as session:
+        decisions = session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.subject_id == snapshot)
+        )
+    assert decisions == 1

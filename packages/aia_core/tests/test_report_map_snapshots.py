@@ -2,17 +2,31 @@
 
 from __future__ import annotations
 
+import io
 import random
+import zipfile
+from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
+from lxml import etree
 
 from aia_core.application.report_maps import (
     PAIR_STATUS,
     compose_map_sections,
     pair_status_means,
 )
-from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure, Table, Text, TextCell
+from aia_core.domain.report.model import (
+    Callout,
+    Classification,
+    Paragraph,
+    ReportKind,
+    SociomapFigure,
+    Table,
+    Text,
+    TextCell,
+)
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
     AIA_SOCIOMAP_V2,
@@ -32,7 +46,13 @@ from aia_core.domain.sociomap.layout import correlation_distance
 from aia_core.domain.sociomap.relations import PairStatus
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 from aia_core.infrastructure.report_docx.cover import ASSET
-from aia_core.infrastructure.report_docx.object_map_figure import object_map_snapshots
+from aia_core.infrastructure.report_docx.object_map_figure import (
+    object_map_snapshot,
+    object_map_snapshots,
+)
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
+
+W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
 
 def result(*, flat: bool = False, spec: SociomapSpecV3 = AIA_SOCIOMAP_V3) -> dict:
@@ -83,6 +103,19 @@ def test_both_views_preserve_the_frozen_artifact_and_are_deterministic() -> None
         if hasattr(i, "text")
     )
     assert "20" in prose and "donorů" in prose and "Prázdné oblasti" in prose
+
+
+def test_one_view_is_drawn_as_the_report_draws_it_and_an_unshowable_view_is_none() -> None:
+    """RD4's snapshot: one stored map's view, the same bytes the report prints."""
+    frozen = result()
+    battery = frozen["batteries"][0]
+    ((method, artifact),) = read_object_maps(battery)
+    labels = {o["id"]: o["label"] for o in battery["objects"]}
+    printed = object_map_snapshots(frozen)
+    for view in ("top", "3d"):
+        assert object_map_snapshot(artifact, labels, view) == printed[("fictional", method, view)]
+    flat = artifact.model_copy(update={"terrain": None})
+    assert object_map_snapshot(flat, labels, "3d") is None  # no terrain: no side view
 
 
 def test_the_map_chapter_says_its_counts_and_pair_states_in_czech() -> None:
@@ -309,3 +342,48 @@ def test_read_object_maps_reads_in_stored_order_and_refuses_another_contract() -
     ).to_payload()
     with pytest.raises(ArtifactIntegrityError, match="must use contract 3"):
         read_object_maps({"maps": {AIA_SOCIOMAP_V1.methodology_version: contract_2}})
+
+
+def _digits(text: str) -> bool:
+    return any(c.isdigit() for c in text)
+
+
+@pytest.mark.parametrize("spec", [AIA_SOCIOMAP_V3, AIA_SOCIOMAP_V5])
+def test_every_number_the_map_writes_is_locked_under_its_map(report_doc: Any, spec: Any) -> None:
+    """The map's support, credibility, fit and pair numbers are none of the ledger's, so each
+    block code writes them into prints in a control tagged with the stored map it came from
+    (artifact-report RPT8a, part 3; the editor spike's P7-P9)."""
+    frozen = result(spec=spec)
+    ((method, _),) = read_object_maps(frozen["batteries"][0])
+    tag = f"map:fictional/{method}"
+    blocks = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen")[0].blocks
+    written: list[tuple[str | None, str]] = []  # (its control, its text), each with a digit
+    for b in blocks:
+        if isinstance(b, (Paragraph, Callout)):
+            words = "".join(i.text for i in b.content if isinstance(i, Text))
+            if _digits(words):
+                written.append((b.control, words))
+        elif isinstance(b, Table):
+            # Every column but the first, the pair's labels, which the person named: the pair's
+            # r, n, Kish n and its state, each the stored map's.
+            cells = [c for row in b.rows for c in row.cells[1:] if isinstance(c, TextCell)]
+            assert cells and all(c.control == tag for c in cells)
+            written += [(c.control, c.text) for c in cells if _digits(c.text)]
+            written += [(b.notes_control, n) for n in b.notes if _digits(n)]
+        elif isinstance(b, SociomapFigure):
+            assert b.control == tag
+    assert written and all(control == tag for control, _ in written), written
+
+    doc = report_doc(*blocks)
+    internal = replace(doc.meta, kind=ReportKind.INTERNAL, classification=Classification.INTERNAL)
+    doc = replace(doc, meta=internal)
+    with zipfile.ZipFile(io.BytesIO(DocxRenderer().render(doc))) as z:
+        body = etree.fromstring(z.read("word/document.xml"))
+    locked: dict[str, list[str]] = {}
+    for sdt in body.iter(f"{W}sdt"):
+        name = sdt.find(f"{W}sdtPr/{W}tag").get(f"{W}val")
+        locked.setdefault(name, []).append("".join(t.text or "" for t in sdt.iter(f"{W}t")))
+    for control, words in written:
+        assert words in locked[control], (control, words)
+    # The caption's fit: its stress, or the signed-off layout's own words.
+    assert any(t.startswith(("stres 1 =", "rozložení ")) for t in locked[tag]), locked[tag]
