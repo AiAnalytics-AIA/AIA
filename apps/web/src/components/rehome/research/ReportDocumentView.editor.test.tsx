@@ -170,7 +170,8 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("Schválit interní zprávu, koncept 2 (ART-edit)?");
+    expect(dialog.textContent).toMatch(/^Schvalujete tuto verzi: Interní zpráva, koncept 2, uloženou \d+\. \d+\. \d{4} \d{2}:\d{2}\. Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi\./);
+    expect(dialog.textContent).not.toContain("ART-");
     expect(dialog.textContent).toContain("Číslo trust_total: 42,5 % → 50 %");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true, null));
@@ -197,7 +198,7 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("ART-docx");
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Interní zpráva (DOCX).");
     expect(container.querySelector("[data-editor-edited]")).toBeNull();
     // Approved as its line's newest: the server refuses once a save moved the line on.
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);

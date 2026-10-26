@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.analysis_results import (
@@ -2549,13 +2549,24 @@ def _export(
         raise artifact_corrupt(session) from exc
 
 
+def _utc_iso(at: datetime | None) -> str | None:
+    """A stored time with its offset: SQLite hands back the UTC it was written in without one,
+    which a browser would read as its own local time."""
+    if at is None:
+        return None
+    return (at if at.tzinfo else at.replace(tzinfo=UTC)).isoformat()
+
+
 def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     """A version's review as a status says it: its state, the day it was approved, and whether
     its file states it (``stamped``: an approved export says SCHVÁLENO in its footers; false
     for a version stored before that layout, or whose bytes the stamp refused when it was
     stored, whose file keeps its draft footer). Read from the record its writer made after
-    trying the stamp (``report_export.review_stamp_record``), so it is what the export does."""
+    trying the stamp (``report_export.review_stamp_record``), so it is what the export does.
+    ``stored_at``: when the version was stored, which the approval question names it by (RPT3d);
+    null where its record has none, never a guess."""
     return {
+        "stored_at": _utc_iso(artifact.created_at),
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
@@ -2822,6 +2833,9 @@ class ReportVariantResponse(BaseModel):
     #: footers; false for a draft stored before that layout (or whose bytes the stamp refused),
     #: which keeps its draft footer and downloads as "…-schvaleno-v-aia" once approved.
     stamped: bool | None = None
+    #: When the draft was stored, with its offset, which the approval question names it by
+    #: (RPT3d); null while none is stored.
+    stored_at: str | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
     #: Whether approving the draft now gives its approved version a PDF too: approving asks for
@@ -2856,6 +2870,7 @@ def _variant_response(
         review_state=mark.state.value,
         approved_on=mark.approved_on,
         stamped=stampable(docx),
+        stored_at=_utc_iso(docx.created_at),
         pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
         approval_renders_pdf=status_.approval_renders_pdf,
         contract=docx.metadata.get("report_contract"),

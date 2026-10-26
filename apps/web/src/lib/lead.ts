@@ -559,7 +559,7 @@ export function focusSelector(target: string): string {
   if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
-    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
+    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions", hypotheses: "plan-hypotheses" };
     return `[id="${section[id] ?? "plan-understanding"}"]`;
   }
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
@@ -576,6 +576,7 @@ const PLAN_LABELS: Record<string, string> = {
   variants: "Návrh: varianty výzkumu",
   questions: "Návrh: otázky k doplnění",
   narrative: "Návrh: porozumění zadání",
+  hypotheses: "Návrh: hypotézy",
 };
 
 /** An item row's words as a person sees them: without its numbering and icons (aria-hidden), what
@@ -710,6 +711,7 @@ export function targetOfElement(el: Element | null): { id: string; label: string
       "plan-variants": { id: "plan:variants", label: "Návrh: varianty výzkumu" },
       "plan-questions": { id: "plan:questions", label: "Návrh: otázky k doplnění" },
       "plan-understanding": { id: "plan:narrative", label: "Návrh: porozumění zadání" },
+      "plan-hypotheses": { id: "plan:hypotheses", label: "Návrh: hypotézy" },
     };
     if (plan[id]) return plan[id]!;
   }

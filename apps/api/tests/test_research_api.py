@@ -1849,6 +1849,8 @@ def test_the_client_report_is_prepared_to_be_read_without_a_download(
     body = prepared.json()
     assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approval"] is None
     assert body["document"]["meta"]["kind"] == "client"
+    # When the version was stored, with its offset: the approval question names it by it (RPT3d).
+    assert datetime.fromisoformat(body["stored_at"]).utcoffset() is not None
     assert researcher.get(f"{url}/client/document").json() == body
     again = researcher.post(f"{url}/client/prepare").json()
     assert again["report_artifact_id"] == body["report_artifact_id"]  # stored once
