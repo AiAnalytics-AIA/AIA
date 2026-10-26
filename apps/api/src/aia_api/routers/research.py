@@ -22,6 +22,7 @@ from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
     ReconstructionRefused,
     SourcesRefused,
+    modules_asked,
     reconstruct_run,
     retry_failed_modules,
     stored_analysis,
@@ -2080,10 +2081,10 @@ def run_analysis_retryable(
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
     refuses those). ``stale``: the modules among them a model completed under an earlier
     harness, which today's refuses to re-admit -- the reason, not a model's failure.
-    ``ceiling_usd`` (lead-orchestration LO23, spec szz/A6 and lead/LP-13): the most asking
-    them again can cost, as the retry's start works it out (``ResearchRuns.cost_ceiling``
-    with the fieldwork frozen: each module a primary and its repairs at the analysis
-    reservation); ``null`` when that reservation is not configured, never 0."""
+    ``ceiling_usd`` (lead-orchestration LO23, spec szz/A6 and lead/LP-13): the most the
+    retry can cost, priced as its start prices it (``modules_asked``, the modules the start
+    asks, each a primary and its repairs at the analysis reservation, the fieldwork frozen);
+    ``null`` when that reservation is not configured, never 0."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -2096,7 +2097,9 @@ def run_analysis_retryable(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
     analysis_usd = _reservations(request).analysis_usd
-    modules = len(analysis.retryable)
+    # Priced on what the retry's start asks, not on the retryable modules alone: a run with
+    # no record of a module asks it too, so the count here is never below the start's.
+    modules = modules_asked(analysis)
     return {
         "run_id": run_id,
         "modules": [module.value for module in analysis.retryable],

@@ -1623,6 +1623,16 @@ follow-up chunk below.
   "says the most a prepared job can cost before it starts".
 - Not here: the typed analysis retry's card reading the ceiling (LP-13's card, which lists the
   modules, reads the same route), and Výsledky's retry button showing it (szz/A6's screen).
+- Stand-in review of #1014:
+  - *P2, fixed:* the retryable route priced only the retryable modules, but the retry's start
+    prices `modules_asked`, which also counts modules the run has no record of. A run missing a
+    module's step showed 3,00 USD and then asked 6,00. `analysis_results.modules_asked` is now
+    the one count both use. Test: `test_analysis_executor.py` "a retry is priced on every module
+    its start asks, not only the failed ones".
+  - *P3, fixed:* a reservation of 0 answered "Cena nejvýše 0,00 USD"; a non-positive reservation
+    is now unknown on the card too, as `analysis_ceiling_usd` reads it.
+  - *P3, a later chunk:* nothing on screen reads the retry's ceiling yet (`api.ts` types it);
+    LP-13's card and szz/A6's button will (above).
 - Doc follow-up: `CLAUDE.md` map, routers `lead`: "each turn's `ceiling_usd` (LO23)"; routers
   `research`: "`…/analysis/retryable` answers `ceiling_usd`"; `domain/run_cost.py`:
   `analysis_ceiling_usd`.

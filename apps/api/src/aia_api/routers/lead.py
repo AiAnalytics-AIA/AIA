@@ -610,10 +610,17 @@ def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, A
     return [
         {
             **{k: v for k, v in t.items() if k not in hidden},
-            "ceiling_usd": settings.ai_research_reservation_usd if _prepares_job(t) else None,
+            "ceiling_usd": _job_ceiling(settings) if _prepares_job(t) else None,
         }
         for t in turns
     ]
+
+
+def _job_ceiling(settings: Settings) -> float | None:
+    """A prepared agent job's ceiling: its reservation, or ``None`` when that is not
+    configured or not positive -- unknown, never 0, the rule ``analysis_ceiling_usd`` keeps."""
+    reserved = settings.ai_research_reservation_usd
+    return reserved if reserved is not None and reserved > 0 else None
 
 
 def _prepares_job(turn: Mapping[str, Any]) -> bool:

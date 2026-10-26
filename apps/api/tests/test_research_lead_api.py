@@ -1049,6 +1049,11 @@ def test_a_prepared_job_answers_its_ceiling_before_the_start_and_unknown_is_null
     app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
     unknown = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
     assert unknown[job_turn]["ceiling_usd"] is None
+    # A reservation of 0 is no price either: unknown, as analysis_ceiling_usd reads it, never
+    # "0,00 USD" on the card (stand-in review of #1014).
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": 0.0})
+    zero = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert zero[job_turn]["ceiling_usd"] is None
 
 
 def test_without_a_reservation_a_limited_study_does_not_start_the_job(
