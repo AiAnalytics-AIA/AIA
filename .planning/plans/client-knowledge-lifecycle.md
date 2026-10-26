@@ -31,6 +31,7 @@ chunks:
   - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
   - "[x] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17) (#853 @ 0eda121e)"
   - "[x] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
+  - "[ ] K13. A person's accept of an AI-written knowledge proposal writes one ai_proposal row in the approval ledger, once, in the decision's transaction, as design proposals do (two-roles 5b.3; REV-5B-KNOWLEDGE (a), the product owner 2026-10-26; W1)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -821,6 +822,24 @@ it could not" failed once in `npx vitest run` (1 of 1511, 2026-10-15, while K2d5
 It passed alone twice and in the next full run. There is no reproduction, so it is a
 hypothesis. The file is not touched by K2d. Next step: run the full suite repeatedly and, if it
 recurs, capture the assertion and its timing.
+
+## K13: the approval ledger records an AI knowledge proposal's accept (2026-10-26)
+
+The product owner in the Decision Review, 2026-10-26 (relayed by the PM coordinator), REV-5B-KNOWLEDGE
+(a): "Yes, one 'ai_proposal' ledger row per accept, as for design proposals". Today an accept of an
+AI-authored knowledge proposal (K2d's, `authored: "ai"`) goes through `decide`
+(`packages/aia_core/src/aia_core/infrastructure/client_knowledge_repository.py:1278 @ 5d2ac5ac`) and
+writes a knowledge revision, but no approval-ledger row; an agent job's accept writes one
+(`infrastructure/workflow_repository.py:2577 @ 5d2ac5ac`, `record_ai_proposal_acceptance`, subject
+`ApprovalSubject.AI_PROPOSAL`, `domain/approval_ledger.py:46,77 @ 5d2ac5ac`). K13: an approval of a
+proposal whose author is `KnowledgeAuthor.AI` writes one `ai_proposal` row in the same transaction as
+the revision, under `APPROVE_GATE` (the worker's scope cannot), naming the proposal and its run, the
+producer (the run's starter), the accepter and whether they are the same person, and the revision
+written; a rejection writes none (a dismissal, as `record_ai_proposal_dismissal` records for agent
+jobs, if the ledger's subject spec admits it). The ledger subject's description in
+`approval_ledger.py` widens from "the agent job's run" to name a client-work run too, with its writer.
+W1, beside K2e and K2f. Test: an AI proposal's approval writes exactly one `ai_proposal` row and a
+second approval of the same proposal none; a person-written proposal's approval writes none.
 
 ## Doc follow-up
 

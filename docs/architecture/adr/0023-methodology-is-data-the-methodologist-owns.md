@@ -2,6 +2,11 @@
 
 **Status:** Proposed — develop (2026-10-11). To be implemented as
 [`methodology-tab.md`](../../../.planning/plans/methodology-tab.md).
+**Decision note, 2026-10-26** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator): **0023-Q6 (a)**, no methodologist role: the methodology is
+written through the Admin permission for the MVP (the Metodik mark, `signed-off-sociomap-method#10`, governs
+who edits; there is no separate role). The verdict, Q1, Q5 and Q7 are the methodology owner's (on his page,
+v2); the status is unchanged.
+
 **Builds on:**
 - [ADR 0020](0020-runtime-editable-system-prompts.md): immutable versions, append-only
   activations, a pin at enqueue, audit.
