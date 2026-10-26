@@ -17,7 +17,7 @@ import { isSignedOffMap, storedFrame } from "@/lib/object-map-signed-off";
 import { stageOf } from "@/lib/workbench-stages";
 import { useFrame } from "./frame-hook";
 import { MapExplained } from "./MapExplained";
-import { setShownMaps } from "./MapInspect";
+import { clearShownMaps, setShownMaps } from "./MapInspect";
 import { ObjectMapPanel, routeToMap } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
@@ -66,18 +66,27 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   // knows every map it draws: each view checked with readMapOp against all of them and handed to the map
   // that owns it (every map for a stage-wide filter), or refused here once, in words. Live views and the
   // one sent before the maps were drawn (the Workbench moves here, then sends) go the same way.
-  // The maps drawn as the signed-off panel with its terrain (ObjectMapPanel's PanelView), each with the
-  // objects it places: what a Lead view may name. Null until the artifact is read.
-  const drawn = useMemo(() => {
+  // The maps drawn as the signed-off panel with its terrain (ObjectMapPanel's PanelView): what a Lead view
+  // may name (each with the objects it places) and what the item inspector may open. Null until the
+  // artifact is read.
+  const panels = useMemo(() => {
     const read = ((artifact?.payload ?? null) as Payload)?.sociomap?.batteries;
     if (!read) return null;
-    return read.flatMap((b) => {
-      const o = olderMethodOnly(b) ? null : readObjectMap(b);
+    return read.flatMap((battery) => {
+      const o = olderMethodOnly(battery) ? null : readObjectMap(battery);
       if (!o?.ok || o.map.outcome !== "MAPPED" || !o.map.layout || !isSignedOffMap(o.map) || !storedFrame(o.map) || o.map.terrain.status !== "computed") return [];
-      const placed = new Set(o.map.object_ids);
-      return [{ battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)) }];
+      return [{ battery, map: o.map }];
     });
   }, [artifact]);
+  const drawn = useMemo(() => panels?.map(({ battery: b, map }) => {
+    const placed = new Set(map.object_ids);
+    return { battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)) };
+  }) ?? null, [panels]);
+  // The item inspector opens an object or a relation of these maps, and of no other (MapInspect).
+  useEffect(() => {
+    setShownMaps(panels);
+    return () => clearShownMaps(panels);
+  }, [panels]);
   const artifactId = artifact?.artifact_id ?? null;
   const [leadNote, setLeadNote] = useState({ artifact: artifactId, text: "" });
   useEffect(() => {
@@ -99,15 +108,6 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
     if (waiting) sendLeadMapView(waiting);
     return () => window.removeEventListener(LEAD_MAP_VIEW, onView);
   }, [drawn, artifactId]);
-  // The maps the item inspector may open an object or a relation of (MapInspect): the ones drawn here.
-  useEffect(() => {
-    const stored = ((artifact?.payload ?? null) as Payload)?.sociomap?.batteries ?? [];
-    setShownMaps(stored.flatMap((battery) => {
-      const read = readObjectMap(battery);
-      return read.ok && read.map.outcome === "MAPPED" && isSignedOffMap(read.map) ? [{ battery, map: read.map }] : [];
-    }));
-    return () => setShownMaps([]);
-  }, [artifact]);
   return (
     <div className="fx-stage flex min-w-0 flex-col gap-4" data-testid="sociomap-stage">
       {notice}

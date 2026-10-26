@@ -14,7 +14,7 @@ const [a, b] = map.object_ids;
 const pair = `pair:hudba/${[a, b].sort().join("~")}`;
 const show = (m: ObjectMapArtifact) => act(() => { setShownMaps([{ battery: hudba, map: m }]); });
 
-afterEach(() => { cleanup(); act(() => { setShownMaps([]); }); });
+afterEach(() => { cleanup(); act(() => { setShownMaps(null); }); });
 
 describe("a relation in the inspector", () => {
   it("shows the stored pair: its r, interval, N and verdict", () => {
@@ -37,9 +37,14 @@ describe("a relation in the inspector", () => {
     show(stored);
     render(<MapInspect target={pair} />);
     const body = screen.getByTestId("map-inspect-pair").textContent!;
-    expect(body).toContain("neznámý");
+    expect(body).toContain("Vztah nelze určit");
     expect(body).toContain("málo lidí hodnotilo oba objekty");
     expect(body).not.toMatch(/[+−-]?0,00/);
+  });
+
+  it("says the map is still loading before the stage has read it", () => {
+    render(<MapInspect target={pair} />);
+    expect(screen.getByText("Mapa se ještě načítá.")).toBeTruthy();
   });
 
   it("says the item is not on this run's map rather than guess one", () => {

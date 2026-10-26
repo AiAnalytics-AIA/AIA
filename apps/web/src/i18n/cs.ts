@@ -3805,7 +3805,7 @@ export const cs = {
       // The Sociomapa stage (artifact-sociomap SOC9-SOC11): the map first, below it what explains it, in plain words.
       mapInspect: {
         missing: "Tato položka na mapě tohoto běhu není.",
-        unknown: "neznámý",
+        loading: "Mapa se ještě načítá.",
         frozen: "Ze zmrazené mapy běhu; nic se nepřepočítává.",
       },
       mapStage: {

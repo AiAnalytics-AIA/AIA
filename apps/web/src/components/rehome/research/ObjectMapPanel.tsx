@@ -960,7 +960,7 @@ const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
@@ -1005,7 +1005,7 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
 /** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
  *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
  *  missing one); the verdict reads the stored status. "zřetelný" from the declared |r| (Metodika; 0,3 as the panel). */
-function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
+export function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
   const p = "research.exec.objectMap.panel";
   let verdict: ReactNode;
   if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });
