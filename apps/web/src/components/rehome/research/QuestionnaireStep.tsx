@@ -2,52 +2,38 @@
 
 // 3. Dotazník, rebuilt (research-flow-rehome.md, chunk 4) and drawn as Studio v3
 // (studio-v3.md, chunk 5): the classic renderQuestionnaire (:341) under its
-// wizard wrapper (:960) -- the three paths, the XLSX/CSV import, the AI build,
-// the respondent preview, the guided editor and the final optimisation. A method
-// switcher replaces "změnit způsob", an outline sits beside the editor, the
-// preview is a tab of it, and the way on is the step's dock. What each control
+// wizard wrapper (:960) -- the respondent preview, the guided editor and the final
+// optimisation. One editor, one way in (the product owner, 2026-10-26): 18.6.6's
+// three paths (XLSX/CSV import, manual, AI build) are gone; a file or a draft comes
+// from the Lead. An outline sits beside the editor, the preview is a tab of it, and
+// the way on is the step's dock. What each control
 // does to the project is src/research/questionnaire.ts, parity-tested against the
 // original; this file only draws it. The block's "AI: zlepšit blok" is not drawn:
 // it does nothing in the classic interface (OI-49).
 
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
-import { ApiError, workspace } from "@/lib/api";
-import { fileProblem, uploadProblem } from "@/research/brief-upload";
-import { saveBlob } from "@/lib/download";
-import { fileToBase64 } from "@/research/brief";
 import {
-  BUILD_FAILED_SUFFIX,
-  BUILD_TITLE,
-  BUILD_WARN_MS,
   type GuidedKind,
   OPTIMIZE_DONE,
   OPTIMIZE_TITLE,
   type PreviewItem,
   type Question,
-  type QuestionnairePath,
   type Section,
-  TEMPLATE_FILENAME,
-  UPLOAD_NO_FILE,
   addGuidedQuestion,
   addNamedSection,
   addNamedTrackedSet,
   addQuestionTo,
-  applyBuilt,
-  applyImport,
   applyOptimized,
-  buildPayload,
   changeQType,
   optimizePayload,
   questionnaireCounts,
-  hasQuestionnaire,
   countWords,
   countsWords,
   questionnaireHasQuestions,
-  questionnaireView,
   removeQuestion,
   removeSection,
   restoreOption,
@@ -65,7 +51,6 @@ import {
   setPriceBandList,
   setQuestionOptions,
   setQuestionText,
-  setQuestionnairePath,
   setQuestionScale,
   setSetScaleLabels,
   setSectionField,
@@ -78,7 +63,7 @@ import {
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
-import { Icon, type IconName } from "../icons";
+import { Icon } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
@@ -97,9 +82,8 @@ import { QuestionnaireStrip } from "./QuestionnaireStrip";
 import { QuestionCondition } from "./QuestionCondition";
 import { InspectorSlot } from "./Inspector";
 import { questionnaireIssues } from "@/research/lane";
-import { AskLead, useAskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
-import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
 import { DeepResearchPanel } from "./DeepResearchPanel";
 import { ScaleEditor, ScaleUndoProvider, useEditorUndo } from "./ScaleEditor";
 
@@ -173,47 +157,19 @@ export function QuestionnaireStep() {
   const router = useRouter();
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
-  const analysis = useAnalysis();
   const step = useAiStep();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const p = state.project;
-  const view = questionnaireView(p);
   const [tab, setTab] = useState<"edit" | "preview">("edit");
   const setLimits = readySetLimits(useSampleLimits(useFrame().studyId));
 
   const update = (next: (p: ResearchProject) => ResearchProject, reason?: string) =>
     store.update(({ project }) => ({ project: next(project) }), reason ? { reason } : {});
-  const path = (x: QuestionnairePath) =>
-    store.update(({ project }) => ({ project: setQuestionnairePath(project, x) }), { reason: "questionnaire_path", invalidateCheck: false });
 
   // continueQuestionnaireToAudience: the run check and the final review are cleared.
   const toAudienceStep = () => {
     store.update(({ project }) => ({ project: toAudience(project) }), { reason: "questionnaire_done" });
     if (frameNav?.next) frameNav.next.go(); else router.push(stepHref("audience"));
-  };
-
-  // buildQuestionnaire: the analysis first (reused when the brief is the same), then the job.
-  const buildJob = () =>
-    step.run(async () => {
-      if (!(await step.providerOk())) return;
-      await step.saved();
-      const s = store.get();
-      const result = await runJob("researchBuildQuestionnaire", buildPayload(s.project, s.analysis), { title: BUILD_TITLE, warnMs: BUILD_WARN_MS });
-      if (isNativeResult(result)) return;
-      store.update(({ project: before }) => ({ project: applyBuilt(result, template, before) }), { reason: "questionnaire_ai_1776" });
-    }, (m) => m + BUILD_FAILED_SUFFIX);
-  const build = async () => {
-    step.setFailure(null);
-    if (!(await analysis.analyse())) return;
-    await buildJob();
-  };
-  // The build's analysis waited for budget and was lifted: the same analysis job goes on, and on
-  // its accept the build the person asked for follows, as it does after `analyse` (CR-2). The
-  // analysis is not asked again.
-  const continueBuild = async (jobId: string) => {
-    step.setFailure(null);
-    if (!(await analysis.resume(jobId))) return;
-    await buildJob();
   };
 
   // The optimisation remains an agent proposal; Deep Research has its own durable panel.
@@ -229,13 +185,11 @@ export function QuestionnaireStep() {
 
   const has = questionnaireHasQuestions(p);
   const xs = sections(p);
-  const editor = view === "editor" || (view === "upload" && xs.length > 0);
   // A link to a place in the questionnaire (#qedit_<id>, #qset_<id>, #q-comparisons: the Run
   // stage's gaps, lib/answerability.ts gapFixes) opens the editor there, once it is drawn; a place
   // it no longer has opens the editor itself. A question or set is named by the id the server
   // compiled, which is not the one drawn here (questionnairePlace).
   useEffect(() => {
-    if (!editor) return;
     const read = () => {
       const id = hashTarget(window.location.hash);
       if (!id) return;
@@ -247,10 +201,7 @@ export function QuestionnaireStep() {
     read();
     window.addEventListener("hashchange", read);
     return () => window.removeEventListener("hashchange", read);
-  }, [editor, store]);
-  // The classic screen went on from two places: "Další" once a regular question exists,
-  // and "Dotazník mám → Koho se ptát" whenever the editor was open. The dock keeps both.
-  const canGo = has || editor;
+  }, [store]);
   const emptyQuestions = xs.reduce((n, s) => n + (s.type === "questions" ? (s.questions || []).filter((q) => !String(q.text || "").trim()).length : 0), 0);
   const badSets = xs.filter((s) => s.type === "object_battery" && setInvalid(s, setLimits)).length;
   const dock = (
@@ -258,9 +209,7 @@ export function QuestionnaireStep() {
       back={{ href: stepHref("plan"), label: `2. ${t("aia.stages.plan")}` }}
       ready={has && !emptyQuestions && !badSets}
       note={
-        !canGo
-          ? t("research.questionnaire.nextHint")
-          : !has
+        !has
             // Tracked sets alone are no questionnaire (OI-52 (b)); readiness fails it too.
             ? t(questionnaireCounts(p).sets ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
             : emptyQuestions
@@ -270,100 +219,61 @@ export function QuestionnaireStep() {
               : t("research.questionnaire.dockReady")
       }
     >
-      <Button variant="primary" className="!rounded-control" onClick={toAudienceStep} disabled={!canGo}>
+      <Button variant="primary" className="!rounded-control" onClick={toAudienceStep}>
         {t("research.questionnaire.next")}
         <Icon name="next" size={14} />
       </Button>
     </ActionDock>
   );
 
-  if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
-
-  const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
   // React commits the tab before the frame, so the place is drawn when it opens (as for a hash).
   const open = (id: string) => {
     setTab("edit");
     window.requestAnimationFrame(() => openPlace(id, "center"));
   };
-  // Around the whole stage: a delete's Vrátit outlives the preview tab, and the editor itself when
-  // the last block goes on the upload or AI path.
+  // Around the whole stage: a delete's Vrátit outlives the preview tab.
   return (
     <OpenPlace.Provider value={open}>
     <SetLimitsContext.Provider value={setLimits}>
     <ScaleUndoProvider>
     <div className="flex max-w-[82.5rem] flex-col gap-4">
-      {editor ? (
-        <InspectorSlot>
-          <QuestionnaireReadiness />
-        </InspectorSlot>
-      ) : null}
-      {/* One toolbar: where the questionnaire comes from, how it is seen, and the AI that improves it. */}
+      <InspectorSlot>
+        <QuestionnaireReadiness />
+      </InspectorSlot>
+      {/* One editor, one way in (the product owner, 2026-10-26): a file or a draft comes from the Lead
+          as a proposal; the toolbar is how the questionnaire is seen and the AI that improves it. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-card border border-border bg-surface-raised px-3 py-2">
-        <span className={LABEL}>{t("research.questionnaire.method")}</span>
         <Segmented
-          label={t("research.questionnaire.method")}
-          value={current === "choose" ? "manual" : current}
+          label={t("research.questionnaire.viewLabel")}
+          value={tab}
           options={[
-            { key: "upload", label: t("research.questionnaire.pathUpload") },
-            { key: "manual", label: t("research.questionnaire.pathManual") },
-            { key: "ai", label: t("research.questionnaire.pathAi") },
+            { key: "edit", label: t("research.questionnaire.viewEdit") },
+            { key: "preview", label: t("research.questionnaire.viewPreview") },
           ]}
-          onChange={path}
+          onChange={setTab}
         />
-        {editor ? (
-          <>
-            <span aria-hidden="true" className="hidden h-6 w-px bg-border sm:block" />
-            <Segmented
-              label={t("research.questionnaire.viewLabel")}
-              value={tab}
-              options={[
-                { key: "edit", label: t("research.questionnaire.viewEdit") },
-                { key: "preview", label: t("research.questionnaire.viewPreview") },
-              ]}
-              onChange={setTab}
-            />
-            <span className="flex-1" />
-            {!leadOwnsAiStarts ? (
-              <AiButton small disabled={step.busy} onClick={() => void optimize()}>
-                {t("research.questionnaire.optimizeAction")}
-              </AiButton>
-            ) : null}
-          </>
+        <span className="flex-1" />
+        {!leadOwnsAiStarts ? (
+          <AiButton small disabled={step.busy} onClick={() => void optimize()}>
+            {t("research.questionnaire.optimizeAction")}
+          </AiButton>
         ) : null}
       </div>
-      {editor && current === "ai" ? <AiOnExisting /> : null}
-      {analysis.failure ? <AnalysisFailureCard failure={analysis.failure} onRetry={() => void build()} onContinue={(id) => void continueBuild(id)} /> : null}
       {step.failure ? <AiFailureCard failure={step.failure} title={t("research.questionnaire.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id)} /> : null}
-      {view === "upload" ? <Upload /> : null}
-      {view === "ai" ? (
-        <section className={CARD} aria-labelledby="q-ai">
-          <h2 id="q-ai" className="text-lg font-semibold">{t("research.questionnaire.aiTitle")}</h2>
-          <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.aiIntro")}</p>
-          {!leadOwnsAiStarts ? (
-            <AiButton variant="primary" className="mt-4" disabled={step.busy || analysis.busy} onClick={() => void build()}>
-              {t("research.questionnaire.aiBuild")}
-            </AiButton>
-          ) : <AskLead className="mt-4" what="Návrh dotazníku i jeho úpravu" />}
-        </section>
-      ) : null}
-      {editor ? (
-        <>
-          <div className="flex flex-wrap items-start gap-4">
-            <Outline />
-            <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
-            </div>
-          </div>
-          <section className={CARD} aria-labelledby="q-final">
-            <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
-            <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
-            <details className="mt-3 rounded-control border border-border bg-surface px-3 py-2" open>
-              <summary className="cursor-pointer text-[13px] font-medium">{t("research.questionnaire.deepTitle")}</summary>
-              <div className="mt-2"><DeepResearchPanel /></div>
-            </details>
-          </section>
-        </>
-      ) : null}
+      <div className="flex flex-wrap items-start gap-4">
+        <Outline />
+        <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
+          {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+        </div>
+      </div>
+      <section className={CARD} aria-labelledby="q-final">
+        <h2 id="q-final" className="text-base font-semibold">{t("research.questionnaire.finalTitle")}</h2>
+        <p className="mt-1 text-[13px] leading-5 text-ink-muted">{t("research.questionnaire.finalIntro")}</p>
+        <details className="mt-3 rounded-control border border-border bg-surface px-3 py-2" open>
+          <summary className="cursor-pointer text-[13px] font-medium">{t("research.questionnaire.deepTitle")}</summary>
+          <div className="mt-2"><DeepResearchPanel /></div>
+        </details>
+      </section>
       {dock}
     </div>
     </ScaleUndoProvider>
@@ -403,191 +313,6 @@ function QuestionnaireReadiness() {
         ))}
       </ul>
     </section>
-  );
-}
-
-const PATHS: { key: QuestionnairePath; icon: IconName; title: string; text: string; when: string; chip?: string }[] = [
-  { key: "upload", icon: "attach", title: "research.questionnaire.pathUpload", text: "research.questionnaire.pathUploadText", when: "research.questionnaire.whenUpload" },
-  { key: "manual", icon: "plus", title: "research.questionnaire.pathManual", text: "research.questionnaire.pathManualText", when: "research.questionnaire.whenManual" },
-  { key: "ai", icon: "assistant", title: "research.questionnaire.pathAi", text: "research.questionnaire.pathAiText", when: "research.questionnaire.whenAi", chip: "aia.settings.aiDesignPending" },
-];
-
-function Choose({ onPick, children }: { onPick: (x: QuestionnairePath) => void; children: ReactNode }) {
-  return (
-    <div className="flex max-w-5xl flex-col gap-4">
-      <section className={CARD} aria-labelledby="q-choose">
-        <h2 id="q-choose" className="text-lg font-semibold">{t("research.questionnaire.chooseTitle")}</h2>
-        <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.chooseIntro")}</p>
-        <div className="mt-4 grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-          {PATHS.map((x) => (
-            <button
-              key={x.key}
-              type="button"
-              onClick={() => onPick(x.key)}
-              className={`flex flex-col items-start gap-2 rounded-card border border-border bg-surface p-4 text-left hover:border-signal hover:bg-signal-tint ${FOCUS}`}
-            >
-              <span aria-hidden="true" className={`inline-flex size-9 items-center justify-center rounded-control ${x.key === "ai" ? "bg-ai-wash text-ai-ink" : "bg-signal-wash text-signal"}`}>
-                <Icon name={x.icon} size={18} />
-              </span>
-              <span className="text-[15px] font-semibold">{t(x.title)}</span>
-              <span className="text-[13px] leading-5 text-ink-muted">{t(x.text)}</span>
-              <span className="text-xs text-ink-faint">{t(x.when)}</span>
-              {x.chip ? <span className="rounded-md border border-border bg-surface-raised px-1.5 py-0.5 text-xs text-ink-muted">{t(x.chip)}</span> : null}
-            </button>
-          ))}
-        </div>
-      </section>
-      {children}
-    </div>
-  );
-}
-
-/** Why a file did not import, in Czech, named by the file. A 422 the import itself gave carries the
- * person's Czech words (questionnaire_import.py); the schema's and base64's refusals, an empty or too
- * large file and a connection that failed are said in the Brief's upload words (brief-upload.ts). */
-function importProblem(e: unknown, filename: string): string {
-  if (e instanceof ApiError && e.status === 422 && e.code !== "validation_error" && e.code !== "not_base64") return e.message;
-  return `${filename}: ${uploadProblem(e)}`;
-}
-
-/**
- * uploadQuestionnaireFile: AIA reads the file (ADR 0018), and its sections replace
- * this questionnaire's. The template is AIA's own workbook; its second sheet, NAVOD,
- * is the guide the classic interface's missing methodology link pointed at nothing for.
- */
-function Upload() {
-  const { store, template, toast, frame, state } = useResearch();
-  const undo = useEditorUndo();
-  const input = useRef<HTMLInputElement>(null);
-  // What a file would replace (the browser audit, QF-15): said before, and taken back with Vrátit after.
-  const replaces = hasQuestionnaire(state.project);
-  const [status, setStatus] = useState<{ kind: "loading" } | { kind: "error"; message: string } | null>(null);
-  const [over, setOver] = useState(false);
-
-  const load = async (f: File | undefined) => {
-    // The same file picked again must fire a change, whatever happened to this one.
-    if (input.current) input.current.value = "";
-    if (!f) return setStatus({ kind: "error", message: UPLOAD_NO_FILE });
-    // An empty or too large file is said before its bytes are sent: the API's refusal of one is English.
-    const refused = fileProblem(f.size);
-    if (refused) return setStatus({ kind: "error", message: importProblem(refused, f.name) });
-    setStatus({ kind: "loading" });
-    let read = false;
-    try {
-      const data_b64 = await fileToBase64(f);
-      read = true;
-      const r = await workspace.importQuestionnaire(frame.studyId, { filename: f.name, data_b64 });
-      const before = store.get().project;
-      const imported = applyImport(before, r, template);
-      store.update(() => ({ project: imported.project }), { reason: "questionnaire_import" });
-      if (undo && hasQuestionnaire(before)) {
-        // The import as the store holds it: with stable item ids on, the update gave its items ids.
-        const held = JSON.stringify(store.get().project.sections);
-        undo.offer({
-          message: imported.toast,
-          undo: () => {
-            // Only while the questionnaire is still the file's: never over an edit, a Lead's change or a
-            // reload made since. The plan keeps everything but the status the import set.
-            if (JSON.stringify(store.get().project.sections) !== held) return toast(t("research.questionnaire.importUndoStale"));
-            store.update(
-              ({ project }) => {
-                const plan = { ...project.research_plan };
-                // Only the status the import set goes back; one set since is a later decision and stays.
-                if (plan.status === imported.project.research_plan.status) {
-                  if (before.research_plan.status === undefined) delete plan.status;
-                  else plan.status = before.research_plan.status;
-                }
-                return { project: { ...project, sections: before.sections, research_plan: plan, ui_state: { ...project.ui_state, questionnaire_path: "upload" } } };
-              },
-              { reason: "questionnaire_import_undone" },
-            );
-          },
-        });
-      } else {
-        toast(imported.toast);
-      }
-      setStatus(null);
-    } catch (e) {
-      // A file the browser could not read was never sent: no connection is to blame.
-      setStatus({ kind: "error", message: read ? importProblem(e, f.name) : `${f.name}: ${t("research.questionnaire.fileUnreadable")}` });
-    }
-  };
-
-  const downloadTemplate = async () => {
-    try {
-      saveBlob(await workspace.questionnaireTemplate(frame.studyId), TEMPLATE_FILENAME);
-    } catch (e) {
-      const message = e instanceof ApiError ? tv("research.questionnaire.templateRefused", { code: e.code }) : t("research.brief.uploadUnreachable");
-      setStatus({ kind: "error", message });
-    }
-  };
-  const loading = status?.kind === "loading";
-
-  return (
-    <section className={CARD} aria-labelledby="q-upload">
-      <h2 id="q-upload" className="text-lg font-semibold">{t("research.questionnaire.uploadTitle")}</h2>
-      <p className="mt-1 text-sm text-ink-muted">{t("research.questionnaire.uploadIntro")}</p>
-      {replaces ? <p className="mt-2 text-sm text-status-you-ink">{t("research.questionnaire.uploadReplaces")}</p> : null}
-      <ol className="mt-4 flex flex-col gap-4">
-        <li className="flex gap-3">
-          <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-wash font-mono text-xs font-semibold text-signal">1</span>
-          <div>
-            <Button className="!rounded-control" icon="data" onClick={() => void downloadTemplate()}>{t("research.questionnaire.template")}</Button>
-          </div>
-        </li>
-        <li className="flex gap-3">
-          <span aria-hidden="true" className="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-signal-wash font-mono text-xs font-semibold text-signal">2</span>
-          <div className="min-w-0 flex-1">
-            <input ref={input} type="file" hidden accept=".xlsx,.csv" aria-label={t("research.questionnaire.fileLabel")} onChange={(e) => void load(e.target.files?.[0])} />
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => input.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setOver(true);
-              }}
-              onDragLeave={() => setOver(false)}
-              onDrop={(e: DragEvent) => {
-                e.preventDefault();
-                setOver(false);
-                if (!loading) void load(e.dataTransfer.files[0]);
-              }}
-              className={`flex w-full flex-col items-center gap-1.5 rounded-card border-[1.5px] border-dashed p-5 hover:border-signal hover:bg-signal-wash disabled:opacity-50 ${FOCUS} ${over ? "border-signal bg-signal-wash" : "border-border-strong bg-surface"}`}
-            >
-              <Icon name="attach" size={20} className="text-signal" />
-              <span className="text-sm font-semibold">{t("research.questionnaire.load")}</span>
-              <span className="text-xs text-ink-muted">{t("research.questionnaire.fileLabel")}</span>
-            </button>
-          </div>
-        </li>
-      </ol>
-      <div aria-live="polite">
-        {loading ? (
-          <p className="mt-3 flex items-center gap-2 text-sm text-status-running">
-            <Icon name="running" size={14} className="animate-spin" />
-            <b>{t("research.questionnaire.loading")}</b> {t("research.questionnaire.loadingSub")}
-          </p>
-        ) : null}
-        {status?.kind === "error" ? <p role="alert" className="mt-3 text-sm text-status-fault">{status.message}</p> : null}
-      </div>
-    </section>
-  );
-}
-
-/**
- * "Sestavit s AI" on a questionnaire that already has items (QF-4): the AI does not build it anew
- * (questionnaireView keeps the editor), so the choice says what AI does here instead and, in the
- * workbench, asks the Lead in one click; elsewhere the toolbar's optimize button is the way.
- */
-function AiOnExisting() {
-  const leadOwns = useLeadOwnsAiStarts();
-  const ask = useAskLead();
-  return (
-    <div role="status" className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-4 py-3 text-sm">
-      <span className="min-w-0 flex-1">{t(leadOwns ? "research.questionnaire.aiExisting.lead" : "research.questionnaire.aiExisting.optimize")}</span>
-      {leadOwns && ask ? <Button small onClick={() => ask(t("research.questionnaire.aiExisting.message"))}>{t("research.questionnaire.aiExisting.ask")}</Button> : null}
-    </div>
   );
 }
 

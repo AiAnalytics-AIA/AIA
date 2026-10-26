@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-// "Sestavit s AI" on a questionnaire that already has items (artifact-questionnaire QF-4): the AI
-// does not build it anew, so the choice says so and, in the workbench, asks the Lead in one click.
-// A file of its own: the workbench switch, once read, is kept for the page.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+// Dotazník in the workbench: one editor, one way in (the product owner, 2026-10-26). Whatever path a
+// study stored, the stage draws the editor; a file or a draft comes from the Lead, and the stage
+// starts no AI of its own. A file of its own: the workbench switch, once read, is kept for the page.
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ResearchScreen } from "./ResearchScreen";
@@ -54,27 +54,16 @@ afterEach(() => {
 
 const SECTIONS = [{ id: "sec_a", type: "questions", title: "Hlavní otázky", questions: [{ id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["Denně", "Týdně"] }] }];
 
-beforeEach(() => {
-  signedIn();
-  api({ title: "Alfa", goal: "Zjistit zájem.", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
-});
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-  sessionStorage.clear();
-});
-
-describe("Sestavit s AI on a questionnaire with items, in the workbench", () => {
-  it("says the AI will not build it anew and asks the Lead for changes in words", async () => {
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByText("Bára");
-    expect(screen.queryByText(/takže ho AI znovu nesestaví/)).toBeNull();
-    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
-    expect(await screen.findByText(/úpravy těch, které tu jsou, navrhne Vedoucí výzkumu/)).toBeTruthy();
-    // The questionnaire stays as it was, in the editor.
-    expect(screen.getByDisplayValue("Jak často?")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
-    await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Navrhni úpravy dotazníku.")).toBe(true));
-    expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
-  });
+describe("Dotazník in the workbench", () => {
+  for (const path of ["choose", "upload", "ai"]) {
+    it(`draws the editor for a study stored at "${path}", with no path, file or build of its own`, async () => {
+      api({ title: "Alfa", goal: "Zjistit zájem.", sections: SECTIONS, ui_state: { questionnaire_path: path } });
+      render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+      await screen.findByText("Bára");
+      expect(await screen.findByDisplayValue("Jak často?")).toBeTruthy();
+      for (const gone of ["Nahrát Excel", "Sestavit ručně", "Sestavit s AI", "Optimalizovat dotazník s AI"]) expect(screen.queryByText(gone)).toBeNull();
+      expect(screen.queryByLabelText("Vyplněný XLSX / CSV")).toBeNull();
+      expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.includes("questionnaire-import")))).toBe(false);
+    });
+  }
 });

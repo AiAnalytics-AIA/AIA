@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { type ResearchProject, type Template, defaultsMerge } from "./model";
-import { applyBuilt, applyOptimized, previewBattery, previewQuestion } from "./questionnaire";
+import { applyOptimized, previewBattery, previewQuestion } from "./questionnaire";
 import { keepPointLabels } from "./scale-labels";
 
 const POINTS = ["vůbec", "spíše ne", "nevím", "spíše ano", "zcela"];
@@ -48,9 +48,6 @@ describe("the classic rewrites keep labels on every point", () => {
     expect(labelsOf(applyOptimized(rewritten, null, TEMPLATE, before).project.sections)).toEqual(POINTS);
     // Without the copy it rewrote, as the parity port reads it: as written.
     expect(labelsOf(applyOptimized(rewritten, null, TEMPLATE).project.sections)).toEqual(["vůbec", "zcela"]);
-  });
-  it("a build over the questionnaire keeps them too", () => {
-    expect(labelsOf(applyBuilt(rewritten, TEMPLATE, before).sections)).toEqual(POINTS);
   });
 });
 

@@ -69,11 +69,6 @@ export function questionnaireCounts(p: ResearchProject): { questions: number; se
   };
 }
 
-/** Whether there is a questionnaire a file would replace: any section, even a block with no questions yet. */
-export function hasQuestionnaire(p: ResearchProject): boolean {
-  return sections(p).length > 0;
-}
-
 /** A Czech count of `kind`, the word by its number: 1 otázka, 2–4 otázky, 0 and 5+ otázek. */
 export function countWords(kind: "questions" | "sets", n: number): string {
   const form = n === 1 ? "one" : n >= 2 && n <= 4 ? "few" : "many";
@@ -83,23 +78,6 @@ export function countWords(kind: "questions" | "sets", n: number): string {
 /** The questionnaire's counts in words: "4 otázky · 1 sledovaná sada". */
 export function countsWords(c: { questions: number; sets: number }): string {
   return tv("research.questionnaire.editorCounts", { questions: countWords("questions", c.questions), sets: countWords("sets", c.sets) });
-}
-
-export type QuestionnairePath = "choose" | "upload" | "manual" | "ai";
-export type QuestionnaireView = "choose" | "upload" | "ai" | "editor";
-
-/** Which screen renderQuestionnaire draws for the project's path. */
-export function questionnaireView(p: ResearchProject): QuestionnaireView {
-  const path = String(p.ui_state?.questionnaire_path || "choose");
-  if (path === "choose") return "choose";
-  if (path === "upload") return "upload";
-  if (path === "ai" && !sections(p).length) return "ai";
-  return "editor";
-}
-
-/** setQuestionnairePath (save 'questionnaire_path', the run check kept). */
-export function setQuestionnairePath(p: ResearchProject, x: QuestionnairePath): ResearchProject {
-  return { ...p, ui_state: { ...p.ui_state, questionnaire_path: x } };
 }
 
 // ---- the respondent preview ------------------------------------------------
@@ -755,61 +733,7 @@ export function setPriceBands(p: ResearchProject, si: number, v: string): Resear
   });
 }
 
-// ---- import and the AI steps ----------------------------------------------
-
-export const UPLOAD_NO_FILE = "Vyberte XLSX nebo CSV.";
-export const TEMPLATE_FILENAME = "AIA_dotaznik_sablona.xlsx";
-
-/**
- * uploadQuestionnaireFile, after AIA read the file (ADR 0018): its sections, on the
- * editor, and the plan marked questionnaire_ready, as the unit's import left them.
- * The rest of the project is the person's own; the unit also re-normalized it, as a
- * side effect of returning a whole project, and AIA does not.
- */
-export function applyImport(
-  current: ResearchProject,
-  result: unknown,
-  template: Template,
-): { project: ResearchProject; toast: string } {
-  const r = (result || {}) as { sections?: unknown; summary?: { question_count?: unknown; tracked_sets?: unknown } };
-  const plan = (current.research_plan || {}) as Obj;
-  const project = defaultsMerge(
-    { ...current, sections: (Array.isArray(r.sections) ? r.sections : []) as Json[], research_plan: { ...plan, status: "questionnaire_ready" } },
-    template,
-  );
-  project.ui_state.questionnaire_path = "manual";
-  // What was loaded, counted from the sections kept: a summary missing from the answer never prints
-  // "undefined". The unit wrote "otázek · sledovaných sad" whatever the number; the words here
-  // follow it (countWords), so the two read the same from 5 and at 0 and differ only where it erred.
-  return { project, toast: tv("research.questionnaire.imported", { counts: countsWords(questionnaireCounts(project)) }) };
-}
-
-export const BUILD_TITLE = "AI tvoří dotazník";
-export const BUILD_WARN_MS = 50_000;
-export const BUILD_FAILED_SUFFIX = "\n\nProjekt zůstává uložený. Pokud se chyba opakuje, použijte Diagnostiku.";
-
-/** buildQuestionnaire's body for /api/research/build_questionnaire. */
-export function buildPayload(p: ResearchProject, analysis: Analysis | null): Record<string, unknown> {
-  return {
-    analysis,
-    briefing: { ...p.briefing, goal: p.goal, decision_use: p.decision_use },
-    project: p,
-    n: p.n,
-    model: "sonnet",
-    provider: PROVIDER_FORCED,
-  };
-}
-
-/** What buildQuestionnaire does with the job's result: the AI's project, whole, on the editor. */
-export function applyBuilt(result: unknown, template: Template, before?: ResearchProject): ResearchProject {
-  const r = (result || {}) as { project?: unknown };
-  const project = defaultsMerge(r.project, template);
-  // A build over a questionnaire keeps its scales' labels on every point, as the optimiser does (#559).
-  if (before) project.sections = keepPointLabels(project.sections, before.sections);
-  project.run_policy = { ...(project.run_policy || {}), provider: PROVIDER_FORCED, allow_provider_fallback: false };
-  project.ui_state = { ...(project.ui_state || {}), questionnaire_path: "manual" };
-  return project;
-}
+// ---- the AI steps -----------------------------------------------------------
 
 export const OPTIMIZE_TITLE = "Hloubkový research + optimalizace dotazníku";
 export const OPTIMIZE_DONE = "Dotazník byl optimalizován s Evidence Packem";
