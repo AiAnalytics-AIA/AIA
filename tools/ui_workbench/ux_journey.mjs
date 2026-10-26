@@ -161,7 +161,7 @@ try {
   assert.equal(unexpected.length, 0, JSON.stringify(unexpected));
   const riskyWrites = writes.filter(r => r.method !== "PUT" || !r.path.endsWith("/workspace/stage"));
   // Opening Run freezes the existing design through the normal API; it never starts paid work. The
-  // mounted report view asks to open the report editor (artifact-report RPT8c), refused while it is off.
+  // report view, once on screen, asks to open the report editor (artifact-report RPT8c, #964): no work.
   const noWork = (r) => r.method === "POST" && (r.path.endsWith("/design/revisions") || r.path.endsWith("/report/editor"));
   assert.equal(riskyWrites.filter(r => !noWork(r)).length, 0, JSON.stringify(riskyWrites));
   writeFileSync(join(out, "journey.json"), JSON.stringify({ result: "PASS", checks, records, errors, httpErrors, writes, consoleErrors, failedRequests, abortedStageMarkers }, null, 2));

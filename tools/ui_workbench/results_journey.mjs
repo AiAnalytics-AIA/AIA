@@ -170,10 +170,7 @@ try {
 
   // The journey only reads: the one write is the study's open stage, kept as a stage opens. Any other
   // (a run, a retry, a Lead turn, a budget lift) is a defect.
-  // Two writes are no work: the open stage, kept as a stage opens, and the report editor's open
-  // (artifact-report RPT8c), which the mounted report view asks for and the API refuses while it is off.
-  const reads = (w) => (w.method === "PUT" && w.path.endsWith("/workspace/stage")) || (w.method === "POST" && w.path.endsWith("/report/editor"));
-  assert.deepEqual(writes.filter((w) => !reads(w)), [], "nothing but the open stage written, so nothing paid started");
+  assert.deepEqual(writes.filter((w) => !(w.method === "PUT" && w.path.endsWith("/workspace/stage"))), [], "nothing but the open stage written, so nothing paid started");
   check("nothing but the open stage written, so nothing paid started");
   assert.deepEqual(errors, [], "no page error");
   check("no page error");
