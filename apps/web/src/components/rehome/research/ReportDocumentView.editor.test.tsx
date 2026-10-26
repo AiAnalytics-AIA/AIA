@@ -75,6 +75,9 @@ beforeEach(() => {
   editor.shows = null;
   vi.mocked(deepResearch.runs).mockResolvedValue([]);
   vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+  // The doc bar's read of its PDF (RPT3c).
+  vi.mocked(research.report).mockResolvedValue({ artifact_id: STORED.report_artifact_id, pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+  vi.mocked(deepResearch.contextReport).mockResolvedValue({ state: "READY", artifact_id: "ART-context", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
 });
 
 afterEach(() => {
@@ -211,9 +214,11 @@ describe("the doc bar while the editor shows the document", () => {
     versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
     const READY = { artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false };
     let answer: (value: unknown) => void = () => undefined;
-    vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
     const { container } = show();
-    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
+    const approve = await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" });
+    // The approval's own read of the status, held open (the doc bar read its PDF before the editor showed).
+    vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
+    fireEvent.click(approve);
     act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true, seen: () => null })); // typed while the status is read
     await act(async () => { answer(READY); });
     expect(await screen.findByText(/V editoru jsou úpravy, které AIA ještě neuložila/)).toBeTruthy();

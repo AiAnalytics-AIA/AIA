@@ -20,6 +20,7 @@ import { useFrame } from "./frame-hook";
 import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
 import { EditorDocBar } from "./EditorDocBar";
+import { ReportExports } from "./ReportDocBar";
 import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
@@ -388,6 +389,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
               <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
               {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
               {controls.button}
+              {/* Every export of the document on screen, from where it is read (RPT3c). */}
+              <ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={stored} canAct={mayReview} />
             </>
           )}
         </div>
