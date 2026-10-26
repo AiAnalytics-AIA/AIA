@@ -54,12 +54,41 @@ describe("the audit", () => {
     const row = rows[0] as HTMLElement;
     expect(within(row).getByText("Změna rozpočtu studie")).toBeTruthy();
     expect(within(row).getByText("Petr Kolář")).toBeTruthy();
-    expect(within(row).getByText("Vnímání značky")).toBeTruthy();
+    expect(row.querySelector("[data-audit-concerns]")?.textContent).toBe(" · Vnímání značky");
     expect(within(row).getByText("100 → 120 USD")).toBeTruthy();
     fireEvent.click(document.querySelector('[data-audit-category="all"]') as HTMLElement);
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Období" })).getByRole("radio", { name: "Vše" }));
     expect(document.querySelectorAll("[data-audit-entry]")).toHaveLength(3);
     expect(count("method")).toBe("Metodika1");
+  });
+
+  it("draws prototype v99's four columns, the change in words with the person's reason under it (F10)", () => {
+    draw([
+      entry(1, "STUDY_BUDGET_CHANGED", ago(0), { study_id: "STU-1", reason: "100.0 -> 120.0" }),
+      entry(2, "METHODOLOGY_ACTIVATED", ago(0), { reason: "sociomap v1 -> v2", payload: { module: "sociomap", from: 1, to: 2, why: "Práh páru 12 místo 10." } }),
+      entry(3, "MEMBER_DEACTIVATED", ago(0), { reason: "Odchod z agentury" }),
+      entry(4, "CLIENT_CREATED", ago(0)),
+    ]);
+    expect(screen.getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Kdy", "Kdo", "Událost", "Důvod / změna"]);
+    const row = (id: number) => document.querySelector(`[data-audit-entry="${id}"]`) as HTMLElement;
+    // The money change in words; the stored "a -> b" never shown again as a reason.
+    expect(row(1).querySelector("[data-audit-change]")?.textContent).toBe("100 → 120 USD");
+    expect(row(1).querySelector("[data-audit-why]")).toBeNull();
+    expect(row(2).querySelector("[data-audit-change]")?.textContent).toBe("e1 → e2");
+    // An organization's record names what changed (the module), never a trailing " · —".
+    expect(row(2).querySelector("[data-audit-concerns]")?.textContent).not.toMatch(/—/);
+    expect(row(2).querySelector("[data-audit-concerns]")?.textContent?.length).toBeGreaterThan(3);
+    expect(row(4).querySelector("[data-audit-concerns]")).toBeNull();
+    expect(row(2).querySelector("[data-audit-why]")?.textContent).toBe("Práh páru 12 místo 10.");
+    // A reason alone stays the reason; nothing at all is a dash, never invented.
+    expect(row(3).querySelector("[data-audit-change]")).toBeNull();
+    expect(row(3).querySelector("[data-audit-why]")?.textContent).toBe("Odchod z agentury");
+    expect(row(4).lastElementChild?.textContent).toBe("—");
+    // The category is named for a reader in the event's cell, its dot decoration.
+    expect(row(1).textContent).toContain("Peníze: ");
+    // The search reads the change as it is shown.
+    fireEvent.change(screen.getByRole("searchbox", { name: "Hledat v historii" }), { target: { value: "120 USD" } });
+    expect([...document.querySelectorAll("[data-audit-entry]")].map((r) => r.getAttribute("data-audit-entry"))).toEqual(["1"]);
   });
 
   it("finds a person's records by their e-mail as well as their name", () => {

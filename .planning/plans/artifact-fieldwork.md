@@ -19,7 +19,7 @@ chunks:
   - "[ ] FLD8b. The fieldwork disc's journey at four widths, zero paid (reopens FLD8; spec sber D6; W1)"
   - "[ ] FLD9. Sběr dat one stage with two views, Kontrola and Průběh; a start opens Průběh, and the stage's link goes to Průběh while a run moves (spec sber F1 + P6; Nigel P5, 26 Oct 2026; W1)"
   - "[x] FLD10. budget_need: a parked step answers what it needs to continue, read by the park note's '+Δ USD a pokračovat' and the Lead's lift card (spec sber P3 / G2, lead B4; W1)"
-  - "[ ] FLD11. Průběh's feed in words without raw codes, with a STEP_RESUMED line (spec sber P5; W1)"
+  - "[x] FLD11. Průběh's feed in words without raw codes, with a STEP_RESUMED line (spec sber P5; W1)"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
 

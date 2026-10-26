@@ -17,11 +17,11 @@ import { AnalysisInspect } from "./AnalysisInspect";
 import { LeadAskContext } from "./AskLead";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { ItemInspectBody } from "@/components/workbench/ItemInspectBody";
-import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
+import { sendLeadMapView, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults, fixStep } from "./ExecutionSteps";
+import { RunResults, checkHref, fixStep } from "./ExecutionSteps";
 import { REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
@@ -187,11 +187,24 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+describe("checkHref", () => {
+  it("opens Vzorek for n and its support in the workbench, the persona step outside it", () => {
+    const href = (step: string) => `/s/${step}`;
+    for (const id of ["sample_size", "support_forecast", "sociomap_support"]) {
+      expect(checkHref(id, href, true)).toBe("/s/persona#sample");
+      expect(checkHref(id, href, false)).toBe("/s/persona");
+    }
+    // Every other check goes where fixStep sends it, in the workbench too.
+    expect(checkHref("dimensions", href, true)).toBe("/s/persona");
+    expect(checkHref("audience", href, true)).toBe("/s/audience");
+  });
+});
+
 describe("fixStep", () => {
   it("sends each readiness check to the stage where it is fixed", () => {
     // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
-    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
-    // the audience on its own stage.
+    // research_trace), a prefixed one standing for its kind; n and its support on the persona step
+    // (the workbench links them to Vzorek, checkHref), the audience on its own stage.
     const where = {
       sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
       audience: "audience",
@@ -2471,7 +2484,7 @@ describe("Results", () => {
         return stage;
       };
       const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
-      afterEach(() => { takeLeadMapView(); });
+      afterEach(() => { takeLeadMapViews(); });
 
       it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
         sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
@@ -2479,6 +2492,17 @@ describe("Results", () => {
         const stage = await drawn(1);
         await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
         expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies every view sent before the stage drew its maps, in order, not the last alone", async () => {
+        // Codex on #992: a Lead turn with two map views, answered on another stage, kept only the second.
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(JSON.parse(canvases(stage)[0].getAttribute("data-camera")!).pitch).toBe(0);
+        expect(takeLeadMapViews()).toEqual([]);
       });
 
       it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {

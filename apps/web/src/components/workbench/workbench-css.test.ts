@@ -63,4 +63,11 @@ describe("workbench.css", () => {
     expect(left).not.toContain("select");
     expect(left).toContain(".x { margin: 0; }");
   });
+
+  it("makes the Lead pane's Vidí chip a 44 px target at a phone's width, as every frame control", () => {
+    // workbench_journey.mjs's frame-target check at 390 px found the chip 16 px high (Zadání owner).
+    const phone = CSS.match(/@media \(max-width: 639\.98px\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    const rule = phone.split("\n").find((l) => l.includes("min-height: 44px")) ?? "";
+    expect(rule).toContain(".conv__sees--chip");
+  });
 });

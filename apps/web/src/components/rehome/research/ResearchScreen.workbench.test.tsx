@@ -85,15 +85,42 @@ describe("the workbench: the Lead owns the AI starts", () => {
     });
   }
 
-  it("goes on from Zadání to Návrh through the frame, so Návrh's heading takes the focus (Codex stand-in on #714)", async () => {
+  it("goes on from Zadání to Návrh through the header's frame button, so Návrh's heading takes the focus (Codex stand-in on #714; v73 H1)", async () => {
     push.mockClear();
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     await screen.findByText("Bára");
-    fireEvent.click(screen.getByRole("button", { name: /Připravenost a pomoc/ }));
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
     // A button the frame answers, not a bare link: a link would skip the frame's heading focus.
-    fireEvent.click(await screen.findByRole("button", { name: "Pokračovat na Návrh" }));
+    fireEvent.click(await within(header).findByRole("button", { name: /^Návrh/ }));
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+    // The stage's own "Pokračovat na Návrh" is gone: the header holds the one way on.
+    expect(screen.queryByRole("button", { name: "Pokračovat na Návrh" })).toBeNull();
+  });
+
+  it("offers the header's ask only to someone who may edit, and only for a brief the analysis would take (code review on #986)", async () => {
+    const view = render(<ResearchScreen step="brief" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    await screen.findByText("Bára");
+    const ask = async () => (await within(document.querySelector("[data-workbench] .arthead") as HTMLElement).findByRole("button", { name: "Požádat Vedoucího o analýzu" })) as HTMLButtonElement;
+    expect((await ask()).disabled).toBe(true);
+    view.unmount();
+    // A brief the analysis would refuse (no goal, nothing to research): the ask waits too.
+    api({ title: "Alfa" });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    expect((await ask()).disabled).toBe(true);
+    expect(bodies.some((b) => b.body.text === "Analyzuj zadání")).toBe(false);
+  });
+
+  it("asks the Lead for the brief's analysis from the header, and the stage starts nothing itself (spec navrh B7)", async () => {
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
+    fireEvent.click(await within(header).findByRole("button", { name: "Požádat Vedoucího o analýzu" }));
+    await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Analyzuj zadání")).toBe(true));
+    expect(urls.some((u) => u.startsWith("POST") && u.includes("/agent-jobs"))).toBe(false);
+    // The readiness chips stand in the header's status line.
+    expect(document.querySelector("[data-stage-status]")!.querySelector("nav[aria-label='Připravenost']")).not.toBeNull();
   });
 
   it("opens on its own stage a proposal the Lead's show_diff found older than the newest page (stand-in review on #809)", async () => {

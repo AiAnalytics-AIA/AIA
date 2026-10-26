@@ -14,7 +14,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
 import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
-import { stageOf } from "@/lib/workbench-stages";
+import { stageHref, stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import { LEAD_REVEAL } from "@/lib/lead";
 import {
@@ -108,7 +108,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, Switch } from "../step";
+import { ActionDock, FrameNavigation, Switch } from "../step";
 import { AiButton, Button, Chip } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
@@ -431,6 +431,14 @@ export function fixStep(checkId: string): StepKey {
   return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
+// The checks n fixes: in the workbench n is set on Vzorek (#945); the classic layout keeps it on persona.
+const FIXED_BY_N: ReadonlySet<string> = new Set(["sample_size", "support_forecast", "sociomap_support"]);
+
+/** Where a readiness check is fixed, as a link: Vzorek for the checks n fixes inside the workbench. */
+export function checkHref(checkId: string, stepHref: (step: StepKey) => string, workbench: boolean): string {
+  return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
+}
+
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
 function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
   const { state, stepHref } = useResearch();
@@ -644,6 +652,7 @@ const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
+  const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -842,7 +851,7 @@ export function RunStep() {
                   <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
+                    <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
                       {t("research.exec.fix")}
                     </Link>
                   ) : null}
