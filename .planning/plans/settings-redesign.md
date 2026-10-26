@@ -33,7 +33,7 @@ chunks:
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
   - "[x] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
-  - "[ ] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
+  - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
   - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
   - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
@@ -155,6 +155,15 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   worker's record alone: a route it did not compose recorded no price, so its approval reads "—",
   never "nepotřebuje". With no record the table is drawn with one row saying why; no route is named
   by hand ("No screen or document names a route set by hand", domain/deep_research_reach.py).
+- F13: none of the editable modules' specification models declares a range in its type (no pydantic
+  constraint), so the bounds come from the checks themselves: `require_supported` and its helpers,
+  `readiness_problems`, the support, aggregation and response validators. 77 fields carry one
+  (`MethodModule.bounds`), each naming its guard and proved by `test_methodology_bounds.py` under every
+  preset that gives it a number. Left without one: fields held only to be finite (the response
+  coefficients), fields whose range depends on the preset (`relation.confidence` and SMACOF's
+  iterations and tolerance, held to one value under the signed-off layout; `layout.min_objects`, two
+  or three by layout), and pairs checked as one (quantiles, stress bands). A null line in a preset
+  (support's results.min_cell) has no bound shown: no preset lets the test prove it.
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
