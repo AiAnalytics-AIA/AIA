@@ -89,6 +89,7 @@ describe("focusSelector", () => {
     expect(focusSelector("plan:sets")).toBe('[id="plan-sets"]');
     expect(focusSelector("plan:variants")).toBe('[id="plan-variants"]');
     expect(focusSelector("plan:questions")).toBe('[id="plan-questions"]');
+    expect(focusSelector("plan:hypotheses")).toBe('[id="plan-hypotheses"]');
     expect(focusSelector("section:sec_1")).toBe('[data-aia="section:sec_1"], [id="qblock_sec_1"]');
     expect(focusSelector('odd"one')).toBe('[data-aia="odd\\"one"], [id="odd\\"one"]');
   });
@@ -103,6 +104,14 @@ describe("targetOfElement", () => {
     expect(targetOfElement(document.getElementById("hit"))).toEqual({ id: "question:Q_1", label: "Otázka Q_1: Jak jste spokojeni?" });
     expect(targetOfElement(document.getElementById("g"))).toEqual({ id: "brief:goal", label: "Zadání: Co potřebujete zjistit" });
     expect(targetOfElement(document.getElementById("n"))).toBeNull();
+  });
+
+  it("names Návrh's hypotheses section, its own since artifact-design DSN12", async () => {
+    const { targetOfElement, targetLabel } = await import("./lead");
+    const { JSDOM } = await import("jsdom");
+    const { document } = new JSDOM(`<section id="plan-hypotheses"><h2>Hypotézy</h2><button id="add">Přidat</button></section>`).window;
+    expect(targetOfElement(document.getElementById("add"))).toEqual({ id: "plan:hypotheses", label: "Návrh: hypotézy" });
+    expect(targetLabel("plan:hypotheses")).toBe("Návrh: hypotézy");
   });
 
   it("names any element a screen marked with data-aia, nearest first, and ignores other marks", async () => {
