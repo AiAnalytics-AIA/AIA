@@ -35,7 +35,7 @@ chunks:
   - "[ ] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
   - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
-  - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
+  - "[x] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
   - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
 ---
 # Settings redesign (Nastavení)
@@ -164,6 +164,11 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   iterations and tolerance, held to one value under the signed-off layout; `layout.min_objects`, two
   or three by layout), and pairs checked as one (quantiles, stress bands). A null line in a preset
   (support's results.min_cell) has no bound shown: no preset lets the test prove it.
+- F15: the cards' names are the web's (`methodology.name`, as the one lines already were): the domain's
+  `title_cs` says what a module computes ("Podpora a potlačení: kdy se číslo smí ukázat") and stays
+  the API's and the fallback. The cards stand in the prototype's order (the map, Práh zobrazení,
+  Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), which puts the check
+  before a run last where 10a had it second.
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
