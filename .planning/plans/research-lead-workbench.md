@@ -2133,3 +2133,11 @@ Relayed from the Sběr dat session (#974).
 
 Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
 to the steps it owns).
+
+### The Vidí chip is a 44 px target at a phone's width (2026-10-26, `fix/lead-pane-sees-chip`)
+
+Reported by the Zadání owner: `workbench_journey.mjs` failed on develop 01babfb2 with "frame targets under
+44 px @390 (conversation)". The Lead pane's "Vidí: …" chip (`LeadPane.tsx:304`, a button since LC2) was 16 px
+high, outside the phone-width rule that gives every frame control 44 px (input-interactions I11). It joins
+that rule (`workbench.css`). Test: `workbench-css.test.ts` "makes the Lead pane's Vidí chip a 44 px target…",
+which fails without the change.
