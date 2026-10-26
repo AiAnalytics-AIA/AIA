@@ -9,9 +9,12 @@
 import { useEffect, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, type ErrorTracking, settingsStatus } from "@/lib/api";
+import { ApiError, type ErrorTracking, type SystemStatus, admin, population, settingsStatus } from "@/lib/api";
+import { loadConfig } from "@/lib/auth";
+import { type EnvKey, diagnosticsText, environmentRows } from "@/lib/system-environment";
 import { relative } from "@/lib/format";
 import { FOCUS } from "../../ui/parts";
+import { InfoButton } from "./InfoButton";
 import { describeError } from "./errors";
 import { Technical } from "./technical";
 
@@ -54,8 +57,7 @@ function Unread({ read }: { read: Exclude<Read<unknown>, { state: "ready" }> }) 
   return <p role="alert" className="mt-2 text-sm text-status-fault">{read.message}</p>;
 }
 
-function Readiness() {
-  const read = useRead(() => settingsStatus.system());
+function Readiness({ read }: { read: Read<SystemStatus> }) {
   return (
     <section data-system-readiness aria-labelledby="sys-ready-h" className={CARD}>
       <h3 id="sys-ready-h" className="text-base font-semibold">{t(`${S}.readiness`)}</h3>
@@ -84,6 +86,73 @@ function Readiness() {
           </ul>
         </>;
       })()}
+    </section>
+  );
+}
+
+/** The readiness count the diagnostics carry: only from a smoke run that was read. */
+function readyOf(read: Read<SystemStatus>): { ready: number; total: number } | null {
+  if (read.state !== "ready" || !read.data.latest || !Array.isArray(read.data.latest.checks)) return null;
+  const checks = read.data.latest.checks;
+  return { ready: checks.filter((c) => c.status === "ok").length, total: checks.length };
+}
+
+/** A read that fails is unknown: its rows say "nezjištěno", never a guess, and the card still draws. */
+const orNull = <T,>(p: Promise<T>): Promise<T | null> => p.then((v) => v, () => null);
+
+/**
+ * Prostředí a verze (F21, prototype v99): what this deployment runs, from the settings document,
+ * the population registry and the web's own build (/config), and "Kopírovat diagnostiku": those
+ * rows and the readiness count as text, nothing else. A copy the browser refuses shows the text to
+ * select by hand, never "Zkopírováno".
+ */
+function Environment({ system }: { system: Read<SystemStatus> }) {
+  const E = `${S}.env`;
+  const [rows, setRows] = useState<ReturnType<typeof environmentRows> | null>(null);
+  const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
+  const [about, setAbout] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([orNull(admin.settings()), orNull(population.registry()), orNull(loadConfig())]).then(([doc, registry, config]) => {
+      if (live) setRows(environmentRows(doc, registry, config?.build?.sha ?? null));
+    });
+    return () => { live = false; };
+  }, []);
+  const label = (k: EnvKey) => t(`${E}.row.${k}`);
+  const text = rows ? diagnosticsText(rows, label, t(`${E}.unknown`), readyOf(system), t(`${E}.ready`)) : "";
+  const doCopy = async () => {
+    try {
+      if (!navigator.clipboard) throw new Error("no clipboard");
+      await navigator.clipboard.writeText(text);
+      setCopy("copied");
+    } catch { setCopy("failed"); }
+  };
+  return (
+    <section data-system-environment aria-labelledby="sys-env-h" className={CARD}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <h3 id="sys-env-h" className="text-base font-semibold">{t(`${E}.title`)}</h3>
+          <InfoButton label={t(`${E}.info`)} controls="sys-env-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${E}.help`)} />
+        </div>
+        <button type="button" data-copy-diagnostics disabled={!rows} onClick={() => void doCopy()}
+          className={`inline-flex min-h-9 items-center rounded-sm border border-border-strong px-3 text-sm disabled:opacity-50 ${FOCUS}`}>{t(`${E}.copy`)}</button>
+      </div>
+      <p id="sys-env-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${E}.help`)}</p>
+      {!rows ? <p className="mt-2 text-sm text-ink-muted">{t(`${S}.loading`)}</p> : (
+        <dl className="mt-3 grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+          {rows.map((r) => (
+            <div key={r.key} data-env-row={r.key} className="contents">
+              <dt className="text-ink-muted">{label(r.key)}</dt>
+              <dd className={`min-w-0 break-words ${r.value === null ? "text-ink-muted" : "font-mono text-[13px]"}`}>{r.value ?? t(`${E}.unknown`)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {copy === "copied" ? <p role="status" data-copied className="mt-2 text-xs text-ink-muted">{t(`${E}.copied`)}</p> : null}
+      {copy === "failed" ? <div role="status" className="mt-2">
+        <p className="text-xs text-ink-muted">{t(`${E}.copyFailed`)}</p>
+        <pre data-diagnostics-text className="mt-1 overflow-x-auto rounded-sm border border-border bg-surface px-3 py-2 text-xs">{text}</pre>
+      </div> : null}
     </section>
   );
 }
@@ -155,5 +224,11 @@ function Errors() {
 
 export function SystemPanel({ mayAdminister }: { mayAdminister: boolean }) {
   if (!mayAdminister) return <section className={CARD}><p className="text-sm text-ink-muted">{t(`${S}.adminOnly`)}</p></section>;
-  return <div className="flex flex-col gap-4"><Readiness /><Errors /></div>;
+  return <Board />;
+}
+
+/** The smoke run is read once: Připravenost draws it and the diagnostics count it. */
+function Board() {
+  const system = useRead(() => settingsStatus.system());
+  return <div className="flex flex-col gap-4"><Readiness read={system} /><Environment system={system} /><Errors /></div>;
 }

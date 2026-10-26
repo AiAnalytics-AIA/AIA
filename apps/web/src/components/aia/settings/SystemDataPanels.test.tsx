@@ -23,7 +23,7 @@ function fake(routes: Record<string, (body: unknown) => Response | unknown>) {
     const method = init?.method ?? "GET";
     const body = init?.body ? JSON.parse(String(init.body)) : null;
     calls.push({ method, url: u, body });
-    if (u === "/config") return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
+    if (u === "/config" && !routes["GET /config"]) return new Response(JSON.stringify({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: null } }));
     const answer = routes[`${method} ${u}`]?.(body);
     // A path no route answers, as the API's error contract says it (observability.py: http_<status>).
     if (answer === undefined) return new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
@@ -108,6 +108,69 @@ describe("Stav systému", () => {
     fake({ "GET /api/v1/settings/system-status": shared, "GET /api/v1/settings/error-tracking": shared });
     render(<SystemPanel mayAdminister />);
     expect((await screen.findAllByText("Stav nasazení a chyby z GlitchTipu patří celému nasazení.")).length).toBe(2);
+  });
+  it("shows Prostředí a verze from what AIA serves and copies only those rows and the readiness count (F21)", async () => {
+    const item = (key: string, value: unknown) => ({ key, value, control: "DEPLOYMENT", source: "X", unit: null });
+    fake({
+      "GET /config": () => ({ apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", build: { sha: "a1c4e9f0123456789", built_at: null } }),
+      "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc1234def", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 0, checks: [
+        { check: "Sign-in", status: "ok" }, { check: "Bedrock fieldwork", status: "FAIL" },
+      ] } }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+      "GET /api/v1/settings": () => ({ groups: [
+        { key: "deployment", items: [item("env", "develop"), item("version", "0.42.0"), item("database_backend", "postgresql"), item("identity_provider", "cognito"), item("cors_origins", ["https://secret.example"])] },
+        { key: "population", items: [item("field_policy_version", "v17")] },
+      ] }),
+      // The registry is not read: its two rows are unknown, said so, never guessed.
+    });
+    const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText } });
+    render(<SystemPanel mayAdminister />);
+    const card = await waitFor(() => {
+      const c = document.querySelector("[data-system-environment]") as HTMLElement | null;
+      if (!c?.querySelector('[data-env-row="build"]')) throw new Error("not read yet");
+      return c;
+    });
+    expect(within(card).getByRole("heading", { name: "Prostředí a verze" })).toBeTruthy();
+    const value = (k: string) => card.querySelector(`[data-env-row="${k}"] dd`)?.textContent;
+    expect(value("environment")).toBe("develop");
+    expect(value("build")).toBe("a1c4e9f");
+    expect(value("api_version")).toBe("0.42.0");
+    expect(value("live")).toBe("nezjištěno");
+    expect(value("field_rules")).toBe("v17");
+    // The card sits between Připravenost and Hlášení chyb.
+    const order = [...document.querySelectorAll("[data-system-readiness], [data-system-environment], [data-system-errors]")].map((n) => n.getAttribute("aria-labelledby"));
+    expect(order).toEqual(["sys-ready-h", "sys-env-h", "sys-err-h"]);
+    await waitFor(() => expect(document.querySelectorAll("[data-smoke-check]")).toHaveLength(2));
+    fireEvent.click(within(card).getByRole("button", { name: "Kopírovat diagnostiku" }));
+    expect(await within(card).findByText("Zkopírováno.")).toBeTruthy();
+    const copied = writeText.mock.calls[0]?.[0] ?? "";
+    expect(copied.split("\n")).toEqual([
+      "Prostředí: develop", "Sestava webu: a1c4e9f", "Verze API: 0.42.0", "Databáze: postgresql", "Přihlášení: cognito",
+      "Populace LIVE: nezjištěno", "Populace STATIC: nezjištěno", "Pravidla polí: v17", "Připravenost: 1/2",
+    ]);
+    expect(copied).not.toContain("secret.example");
+  });
+
+  it("shows the diagnostics to select by hand when the browser refuses the copy, never 'Zkopírováno'", async () => {
+    fake({
+      "GET /api/v1/settings/system-status": () => ({ latest: null }),
+      "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
+    });
+    vi.stubGlobal("navigator", { ...navigator, clipboard: { writeText: vi.fn(async () => { throw new Error("denied"); }) } });
+    render(<SystemPanel mayAdminister />);
+    const button = await screen.findByRole("button", { name: "Kopírovat diagnostiku" });
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(button);
+    const pre = await waitFor(() => {
+      const n = document.querySelector("[data-diagnostics-text]");
+      if (!n) throw new Error("no text");
+      return n;
+    });
+    // Nothing was read: every row unknown, and the readiness count too.
+    expect(pre.textContent).toContain("Prostředí: nezjištěno");
+    expect(pre.textContent).toContain("Připravenost: nezjištěno");
+    expect(screen.queryByText("Zkopírováno.")).toBeNull();
   });
 });
 

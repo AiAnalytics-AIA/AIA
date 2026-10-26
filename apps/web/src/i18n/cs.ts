@@ -1655,6 +1655,17 @@ export const cs = {
         },
         notYet: "V AIA zatím není",
         system: {
+          env: {
+            title: "Prostředí a verze",
+            info: "Co je Prostředí a verze",
+            help: "Co toto nasazení běží: prostředí, sestava webu, verze API, databáze, přihlášení, populace a pravidla polí. Čteno z nastavení, registru populace a konfigurace webu; co se přečíst nepodařilo, je nezjištěno. Kopírovat diagnostiku zkopíruje jen tyto řádky a počet připravených kontrol, žádný klíč, adresu ani e-mail.",
+            copy: "Kopírovat diagnostiku",
+            copied: "Zkopírováno.",
+            copyFailed: "Prohlížeč kopírování nedovolil. Text je níže, označte ho a zkopírujte ručně.",
+            unknown: "nezjištěno",
+            ready: "Připravenost",
+            row: { environment: "Prostředí", build: "Sestava webu", api_version: "Verze API", database: "Databáze", sign_in: "Přihlášení", live: "Populace LIVE", static: "Populace STATIC", field_rules: "Pravidla polí" },
+          },
           readiness: "Připravenost po nasazení",
           readinessHolds: "Výsledek kontrol po každém nasazení: co je připravené, co ne a proč, nepřipravené nahoře.",
           errors: "Hlášení chyb",
