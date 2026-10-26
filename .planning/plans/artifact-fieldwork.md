@@ -107,6 +107,8 @@ V2: `FieldworkArt` (`EvidenceStages.tsx:27-90`).
 
 **FLD2. Run head and steps.** Test: `ExecutionSteps.test.tsx`: a model step reads "AI", aggregate
 reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
+FLD2b (research build spec `sber/F6`, prototype decision R11) changes the tags' words to "AI model" and
+"kód" (`i18n/cs.ts` `research.exec.stepWork`); the same test pins them.
 
 **FLD3. Progress.**
 - Test: counts only as reported (`step-activity.ts`), never a percentage guessed.

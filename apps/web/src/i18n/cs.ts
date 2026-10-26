@@ -3499,8 +3499,8 @@ export const cs = {
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",
       stepWork: {
-        ai: "AI · ModelGateway",
-        running: "deterministické",
+        ai: "AI model",
+        running: "kód",
       },
       fix: "Opravit →",
       dockReady: "Návrh je připravený ke spuštění",
