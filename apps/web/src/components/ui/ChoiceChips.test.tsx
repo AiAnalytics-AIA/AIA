@@ -53,10 +53,14 @@ describe("ChoiceChips (I3, I11)", () => {
     expect(screen.getAllByRole("radio").map((r) => r.tabIndex)).toEqual([0, -1, -1, -1]);
   });
 
-  it("is touch-sized at phone width (44 px), comfortable from 640 px", () => {
-    render(<ChoiceChips label="Věk" options={AGES} value={null} onChange={() => {}} />);
-    expect(screen.getAllByRole("radio")[0].className).toContain("min-h-11");
-    expect(screen.getAllByRole("radio")[0].className).toContain("sm:min-h-8");
+  it("is touch-sized at phone width (44 px), the look contract's 24 px chip at radius 6 from 640 px", () => {
+    render(<ChoiceChips label="Věk" options={AGES} value="a" onChange={() => {}} />);
+    const [chosen, other] = screen.getAllByRole("radio");
+    expect(other.className).toContain("min-h-11");
+    expect(other.className).toContain("sm:min-h-6");
+    expect(other.className).toContain("rounded-control");
+    expect(other.className).not.toContain("rounded-pill");
+    expect(chosen.className).toContain("bg-signal");
   });
 
   it("segmented: one bordered bar, the chosen segment filled, the same radio group and keys, touch-sized on a phone", () => {

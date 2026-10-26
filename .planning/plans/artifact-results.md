@@ -12,6 +12,9 @@ chunks:
   - "[x] RES7a. Journey: Výsledky's Data view at 1440, 1100, 768 and 390 px on a fictional run (layout, the Lead's ids, a measure by hash), zero paid jobs"
   - "[ ] RES7b. The journey's Lead half: the Lead focusing measure:<id>, an Interpretation Research card on 12a's recorded web (after RES6)"
   - "[ ] RES8. CSV and XLSX export of the run's per-question tables, every cell an admitted claim, from the aggregate (report-delivery#RD12, moved here by the PM 2026-10-21)"
+  - "[ ] RES4c. Výsledky's header pill 'Běh z … · revize n', the revision-moved link and 'Sociomapa ›' (reopens RES4a; spec sber V2; W2)"
+  - "[ ] RES9. Výsledky without inner tabs in the workbench (spec sber V1; W2)"
+  - "[ ] RES10. Research-question tiles VO1…VOn (spec sber V4; W2)"
 ---
 # Artifact: Výsledky (Results)
 
@@ -249,3 +252,22 @@ deliverable.
 
 - Register this plan and its chunks.
 - `report-delivery`: RD12 (the CSV/XLSX export) is built here as RES8; RD12 points to it.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RES4c. Header pill** (spec `sber/V2`; reopens RES4a; W2, lane F). On `research-lead-workbench#36`.
+
+**RES9. No inner tabs** (spec `sber/V1`; W2, lane F).
+
+**RES10. Research-question tiles** (spec `sber/V4`; W2, lane F). Pairs with `artifact-analysis#ANL2b`; the research-question list on the compiled specification is a hypothesis until anchored.
+
+**Notes.**
+- RES3 carries `sber/V5`, `V6`, `V7`; RES4b `V3`, `V8`; RES2 `V9`; RES6 `V10`.
+- Awaiting the methodology owner: "Efektivní n" is Kish's, as RES3 says (OQ8), and a set's scale follows the board's presets (OQ9).

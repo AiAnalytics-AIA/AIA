@@ -30,13 +30,22 @@ describe("SampleArtifact", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 450, persona_dimensions: { approved: ["media", "cena"] }, audience: { description: "Dojíždějící", filters: { kraj: ["A"], vek: { min: 25 } } } })} readiness={{ kind: "loading" }} onOpen={onOpen} />);
     expect(screen.getByText("N = 450")).toBeTruthy();
-    expect(screen.getByText("Dojíždějící · 2 filtry")).toBeTruthy();
-    expect(screen.getByText("Média a informační chování")).toBeTruthy();
+    expect(screen.getByText("Dojíždějící · 2 faktory")).toBeTruthy();
+    expect(screen.getByText("Média a informační chování, Cena / value for money")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Upravit v Dimenzích" }));
+    // The two link cards (spec vzorek V6) open the stage where each part is set.
+    fireEvent.click(screen.getByRole("button", { name: /^Cílová skupina/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Dimenze/ }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa" }));
     fireEvent.click(screen.getByRole("button", { name: "Pokračovat na Sběr dat" }));
-    expect(onOpen.mock.calls).toEqual([["dimensions"], ["sociomap"], ["fieldwork"]]);
+    expect(onOpen.mock.calls).toEqual([["dimensions"], ["audience"], ["dimensions"], ["sociomap"], ["fieldwork"]]);
+  });
+
+  it("names a client's library dimension by its title, never its id", () => {
+    render(<SampleArtifact project={project({ n: 200, persona_dimensions: { approved: ["KNI-7", "media"] } })} readiness={{ kind: "loading" }} onOpen={vi.fn()} labels={{ media: "Média a informační chování", "KNI-7": "Vztah ke značkám" }} />);
+    expect(screen.getByRole("button", { name: /^Dimenze/ }).textContent).toContain("Vztah ke značkám, Média a informační chování");
+    expect(screen.getByRole("button", { name: /^Dimenze/ }).textContent).not.toContain("KNI-7");
   });
 
   it("says what is not set, rather than a default", () => {
@@ -51,11 +60,33 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "PASS", message: "Běh bude mít 67 různých dárců na 200 respondentů: opora stačí." }],
       question_outlook: [{ question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: [] }],
     })} />);
-    expect(screen.getByText("odhad, ne výsledek")).toBeTruthy();
+    expect(screen.getByText("odhad před během, ne výsledek")).toBeTruthy();
     expect(screen.getByText("Podle pracovní kopie, revize 7")).toBeTruthy();
     expect(screen.getByText("Opora výsledků")).toBeTruthy();
     expect(screen.getByText("Běh bude mít 67 různých dárců na 200 respondentů: opora stačí.")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Odhad podpory před během" }).querySelector('[data-aia="sample:forecast:outlook"]')?.textContent).toContain("1 S rizikem");
+    // The board's tiles (spec vzorek V4): the server's counts, unanswerable left out at zero.
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect([...outlook.querySelectorAll("[data-verdict]")].map((t) => t.getAttribute("data-verdict"))).toEqual(["ANSWERABLE", "AT_RISK", "UNKNOWN"]);
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1");
+  });
+
+  it("names each tile's commonest reason in a few words, and shows unanswerable only when an item is", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({
+      question_outlook: [
+        { question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: ["open_ended", "support_unknown"] },
+        { question_id: "q2", text: "", section_id: "s", battery_id: null, verdict: "UNANSWERABLE", reasons: ["fidelity_refused", "support_unknown"] },
+      ],
+    })} />);
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1otevřená otázka");
+    expect(outlook.querySelector('[data-verdict="UNANSWERABLE"]')!.textContent).toBe("Bez odpovědi1ptá se na absolutní hodnotu");
+  });
+
+  it("forecasts no brand pair: the map's pairs are checked from the data, never counted here", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({})} />);
+    const section = screen.getByRole("region", { name: "Kolik dat bude za čísly" });
+    expect(section.textContent).toContain("Mapa značek: podporu dvojic AIA před během neodhadne; ověří se až z dat");
+    expect(section.textContent).not.toMatch(/\d+ z \d+ dvojic/);
   });
 
   it("reads a panel run's unknown forecast as neznámé, never good", () => {
@@ -64,7 +95,7 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "WARN", message: "Kolik různých dárců běh bude mít, se ukáže až při výběru respondentů z populace." }],
     })} />);
     expect(screen.getByText("Opora výsledků: neznámé")).toBeTruthy();
-    expect(screen.getByText("Na co běh odpoví: neznámé")).toBeTruthy();
+    expect(screen.getByText(/^Na co běh odpoví: neznámé/)).toBeTruthy();
     expect(container.querySelector('[data-aia="sample:forecast:support"] [aria-label="neznámé"]')).toBeTruthy();
   });
 
@@ -251,14 +282,16 @@ describe("Složení podle kvót", () => {
   it("lists a panel run's quota cells, largest first, each a target, the rest folded away", () => {
     const { container } = render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: composition })} />);
     const section = screen.getByRole("region", { name: "Velikost a složení" });
-    expect(section.textContent).toContain("Podle: Pohlaví × Kraj. 12 buněk s respondenty, 40 různých dárců.");
+    expect(screen.getByRole("heading", { name: "Složení podle kvót · pohlaví × kraj" })).toBeTruthy();
+    expect(section.textContent).toContain("Kvóta říká, kolik lidí každé skupiny vytáhneme; neříká, že odpoví na každou otázku.");
+    expect([...section.querySelectorAll("thead th")].map((th) => th.textContent).slice(0, 3)).toEqual(["Skupina", "Podíl", "Respondentů"]);
     const rows = [...container.querySelectorAll('[data-aia^="sample:quota:"]')].map((r) => r.getAttribute("data-aia"));
     expect(rows).toHaveLength(12);
     expect(rows[0]).toBe("sample:quota:zena/k0");
     expect(container.querySelector('[data-aia="sample:quota:zena/k0"]')!.textContent).toContain("15,4 %");
-    // Ten shown, two under "Dalších", nothing on the page to press but navigation.
-    expect(section.querySelector("details")!.textContent).toContain("Dalších 2 buňky");
-    expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(2);
+    // Six shown, as the v73 board draws, the other six under "Dalších", nothing to press but navigation.
+    expect(section.querySelector("details")!.textContent).toContain("Dalších 6 skupin");
+    expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(6);
   });
 
   it("prints every share with one decimal, so the column reads aligned", () => {

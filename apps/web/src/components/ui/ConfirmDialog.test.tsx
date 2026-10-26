@@ -40,4 +40,13 @@ describe("ConfirmDialog (I7b)", () => {
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("alert").textContent).toBe("HTTP 403 · forbidden");
   });
+
+  it("is the look contract's dialog: 560 px, radius 10, padding 24, over a 10 % ink scrim", () => {
+    render(<ConfirmDialog open title="T" text="x" confirmLabel="Ano" onConfirm={() => {}} onCancel={() => {}} />);
+    const d = document.querySelector("dialog") as HTMLDialogElement;
+    expect(d.className).toContain("w-[min(35rem,calc(100vw-2rem))]");
+    expect(d.className).toContain("rounded-panel");
+    expect(d.className).toContain("backdrop:bg-ink/10");
+    expect((d.firstElementChild as HTMLElement).className).toContain("p-6");
+  });
 });

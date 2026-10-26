@@ -19,6 +19,16 @@ chunks:
   - "[x] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
+  - "[ ] RPT3c. One document bar: document, status, Připravit, approve, DOCX and PDF; every download moves into it, and 'Zpráva s rešerší' leaves the pane (follows RPT3 and RPT3a, with RPT5; spec szz Z2; Nigel P3, 26 Oct 2026; W3)"
+  - "[ ] RPT3d. The approval dialog: name, saved time, 'stáhnete přesně tuto verzi', the accepted-findings count (follows RPT3a; spec szz Z4; W3)"
+  - "[ ] RPT8b.1. A prose number's change shown inline as 'Upraveno ručně'; no 'Vrátit' inside the open editor (follows RPT8b; spec szz Z6; W3)"
+  - "[ ] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
+  - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
+  - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
+  - "[ ] RPT12. No ids on the stage (spec szz Z3; W3)"
+  - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
+  - "[ ] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
+  - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
 ---
 # Artifact: Zpráva (Report)
 
@@ -848,3 +858,40 @@ CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A mo
 ## Doc follow-up
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
+
+**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`.
+
+**RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
+
+**RPT8c.1. Editor config** (spec `szz/Z5`; follows RPT8c; W3, lane G). With RPT14.
+
+**RPT8d.1. Number detail** (spec `szz/Z7`; follows RPT8d, partly new; W3, lane G). After RPT8a part 3.
+
+**RPT11. Its own stage** (spec `szz/Z1`; W3, lane G).
+
+**RPT12. No ids** (spec `szz/Z3`; W3, lane G).
+
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+
+**RPT14. uiTheme** (spec `szz/T5`; W3, lane G).
+
+**RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded. *Built (`feature/editor-docx-fonts`):* `report_docx/embed.py` `reembed_fonts` puts back every face `FACES` names that
+the package lacks, changing only the font table, its relationships, settings and content types (every other part byte for
+byte, written deterministically); the editor version download (`routers/report_editor.py`) re-embeds after the stamp and
+answers `X-AIA-Fonts-Reembedded: true`, the other headers naming the stored version. Tests:
+`test_an_editor_saved_version_downloads_with_its_brand_fonts_embedded_again`, `test_report_fonts.py`,
+`test_an_approved_editor_saved_version_exports_stamped_with_its_fonts_back`.
+
+**Notes.**
+- RPT10 carries `szz/Z9` (literature only from the Lead card); RPT9 `szz/Z10`; RPT7 `szz/Z11`; RPT8e with `report-editor-hosting#4` carry `szz/T8`.

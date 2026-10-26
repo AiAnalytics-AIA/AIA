@@ -7,6 +7,9 @@ chunks:
   - "[ ] DIM4. Vlastní dimenze klienta: a requested dimension materialized as the client's owned child, its outcome, and the run it feeds"
   - "[ ] DIM5. The Lead on Dimenze: suggest_dimensions as a card, its proposal inline, the stage's AI start removed"
   - "[ ] DIM6. Journey: Dimenze at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[ ] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
+  - "[ ] DIM7. 'podpoří …' per dimension and §01 'Co dimenze podpoří', from the persona-topic feeds (spec vzorek D3; W2, blocked on master I5)"
+  - "[ ] DIM8. The dead 'Faktory společnosti' card and the AI suggestion card removed (spec vzorek D6; W2)"
 ---
 # Artifact: Dimenze (Dimensions)
 
@@ -214,6 +217,19 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   puts it back on Vrátit…", `research/persona-undo.test.ts`, `dimensions_journey.mjs` (removed by keyboard,
   put back by Vrátit, focus on it).
 
+- **DIM-F11 (fixed in its own PR).** The dock's note said "{d} dimenzí" for every count ("0 dimenzí",
+  "1 dimenzí", "3 dimenzí"; `cs.ts:3028 @ bd0d1ad6`), where the stage track beside it already says
+  "Bez dimenzí" and "2 dimenze" (`lane.ts:83 @ bd0d1ad6`). Both now read `dimensionsChosen` (lane.ts), one
+  wording. Test: "the dock counts the chosen dimensions in Czech, as the stage track does" (0, 1, 2, 5). The
+  Run stage's receipt has the same wording (`receiptDims`, `cs.ts:3374 @ bd0d1ad6`, `ExecutionSteps.tsx:446
+  @ bd0d1ad6`); that screen is another owner's, told through the PM, and can read `dimensionsChosen` too.
+
+- **DIM-F12 (fixed in the same PR).** The way to "Populace běhu" under Vlastní dimenze klienta stands on
+  its own but was a bare underlined link, 15 px tall at 390 px (`OwnDimensions.tsx:49 @ bd0d1ad6`). It
+  takes the shared stand-alone link class (`TOUCH_LINK`: 44 px on a phone, the focus ring). Tests: "the
+  way to the run's population is a stand-alone link with the touch target", `dimensions_journey.mjs` (44 px
+  at 390).
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
@@ -221,3 +237,22 @@ None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-dec
 ## Doc follow-up
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**DIM3b. N leaves Dimenze** (spec `vzorek/D1`; reverses DIM3, which stays ticked; W1, lane F). Nigel, 26 Oct 2026 (P1). One PR with `artifact-sample#SMP7`.
+
+**DIM7. What a dimension supports** (spec `vzorek/D3`, no backend; W2, lane F). Blocked on the methodology interface (master I5) and `research_trace`.
+
+**DIM8. Dead cards removed** (spec `vzorek/D6`; W2, lane F). With `research-lead-workbench#26f`.
+
+**Notes.**
+- DIM2 carries `vzorek/D2`; DIM5 `vzorek/D5`; DIM6 `vzorek/D7` (its stepper steps move to Vzorek).
+- DIM4 carries `vzorek/D4`. Decided by default (planning, 26 Oct 2026, open to Nigel's override): the own dimension is chosen on Dimenze, shipped after master G28 (register contradiction 11 with SMP5 and today's code).

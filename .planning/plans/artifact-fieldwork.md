@@ -13,6 +13,13 @@ chunks:
   - "[ ] FLD6. Spuštění: the Start stays with its gates and one spend dialog; the run also a Lead card; retries, resume and budget lift through the Lead's cards or a person's own gate"
   - "[x] FLD7. Kdo odpovídal: the receipt, source, population recorded and read, dimensions passed, the data's origin"
   - "[x] FLD8. Journey: Sběr dat at 1440, 1100, 768 and 390 px on fictional fieldwork, zero paid jobs"
+  - "[ ] FLD2b. Step tags 'AI model' / 'kód' on Průběh's steps (reopens FLD2; spec sber F6; W1)"
+  - "[ ] FLD2c. Kroky běhu as one ordered list from run.steps, never a fixed sixteen (reopens FLD2; spec sber P2; W1)"
+  - "[ ] FLD4e. Náklady as KPI tiles, 'Bez známé ceny' kept (reopens FLD4b; spec sber P1; W1)"
+  - "[ ] FLD8b. The fieldwork disc's journey at four widths, zero paid (reopens FLD8; spec sber D6; W1)"
+  - "[ ] FLD9. Sběr dat one stage with two views, Kontrola and Průběh; a start opens Průběh, and the stage's link goes to Průběh while a run moves (spec sber F1 + P6; Nigel P5, 26 Oct 2026; W1)"
+  - "[ ] FLD10. budget_need: a parked step answers what it needs to continue, read by the park note's '+Δ USD a pokračovat' and the Lead's lift card (spec sber P3 / G2, lead B4; W1)"
+  - "[ ] FLD11. Průběh's feed in words without raw codes, with a STEP_RESUMED line (spec sber P5; W1)"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
 
@@ -107,6 +114,8 @@ V2: `FieldworkArt` (`EvidenceStages.tsx:27-90`).
 
 **FLD2. Run head and steps.** Test: `ExecutionSteps.test.tsx`: a model step reads "AI", aggregate
 reads "deterministické"; an unknown state reads UNKNOWN (`run-state.ts`).
+FLD2b (research build spec `sber/F6`, prototype decision R11) changes the tags' words to "AI model" and
+"kód" (`i18n/cs.ts` `research.exec.stepWork`); the same test pins them.
 
 **FLD3. Progress.**
 - Test: counts only as reported (`step-activity.ts`), never a percentage guessed.
@@ -241,3 +250,30 @@ None new (replacement is MVPQ-10, already open).
 - `CLAUDE.md` § 2, `routers/`: research's run answers `cost_ceiling` (`usd`, `unknown`; with `VIEW_COSTS`; null for a run started before FLD4d), recorded at start by `application/research.py` for every new run; `run-spend.ts` adds Náklady's "Strop běhu" (FLD4d).
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**FLD2b. Step tags** (spec `sber/F6`, R11; reopens FLD2; W1, lane E).
+
+**FLD2c. One step list** (spec `sber/P2`; reopens FLD2; W1, lane E).
+
+**FLD4e. Náklady tiles** (spec `sber/P1`; reopens FLD4b; W1, lane E). Unknown never zero.
+
+**FLD8b. Disc journey** (spec `sber/D6`; reopens FLD8; W1, lane E). Fictional fieldwork writes no progress (sber G7): the journey needs a recorded panel run, or says what it cannot show.
+
+**FLD9. One stage, two views** (spec `sber/F1` and `sber/P6`, one chunk; W1, lane E). Nigel, 26 Oct 2026 (P5): one stage with two views, Kontrola and Průběh, "once it starts, it automatically loads to the prubeh page". Kontrola reads working readiness and submits nothing on a visit (FLD6, `sber/F2`). Decided by default (planning, open to Nigel's override): starting fieldwork keeps the answerability acknowledgement. On `research-lead-workbench#36`.
+
+**FLD10. The parked step's need** (spec `sber/P3`, no backend; W1, lane E, a money API moved into W1 by the register §6.3). One API for `sber/P3`, `sber/G2` and lead gap B4 (built once, contradiction 18): the step waiting for budget answers `budget_need` (USD, or unknown, never zero). Read by FLD6's park note and `research-lead-workbench#43`. Test: a step parked at the cap answers its need; an unpriced need reads unknown.
+
+**FLD11. Feed in words** (spec `sber/P5`; W1, lane E). A follow-up of FLD3.
+
+**Notes.**
+- FLD6 carries `sber/F2` to `sber/F5` and `sber/P3`'s note (contradiction 12: WCE7b's text gives Kontrola's no-submit to FLD6). Its spend dialog is `input-interactions#6` (W2; contradiction 5): FLD6 ships with today's confirmation in W1 and moves onto SpendDialog when #6 lands.
+- `sber/P4` and `sber/D1`-`D4` (the fieldwork disc) are `run-qc-and-checkpoint#RQC7c`, re-scoped to counts.
