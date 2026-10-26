@@ -147,13 +147,15 @@ export function ReportEditor({
   const seen = useCallback(() => (onScreen.current ? last.current.get(onScreen.current) ?? null : null), []);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
   // Opened once its panel is first on screen, never from a hidden one (a results tab the person did
-  // not open), and kept open after: switching tabs away closes nothing.
+  // not open), and kept open after: switching tabs away closes nothing. A document asked for while
+  // hidden (another line, or the width crossing into view mode) waits until the panel is shown.
   const shown = usePanelShown();
   const [wanted, setWanted] = useState(shown);
   if (shown && !wanted) setWanted(true);
+  const asked = wanted && (shown || state.at === at);
 
   useEffect(() => {
-    if (!wanted) return;
+    if (!asked) return;
     let live = true;
     open(studyId, runId, { variant, deep_research_run_id: variant === "context" ? review : null, line, mode }).then(
       (opened) => {
@@ -180,7 +182,7 @@ export function ReportEditor({
       },
     );
     return () => { live = false; };
-  }, [wanted, at, studyId, runId, variant, review, line, mode, open, ticket, spend]);
+  }, [asked, at, studyId, runId, variant, review, line, mode, open, ticket, spend]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
   useEffect(() => { onScreen.current = opened ? documentKeyOf(opened.opened.config) : null; }, [opened]);
@@ -261,7 +263,7 @@ export function ReportEditor({
   useEffect(() => {
     onShown?.(shownOpened ? { opened: shownOpened, startedAt: started, dirty: unsent, seen } : null);
   }, [shownOpened, started, unsent, onShown, seen]);
-  if (current.kind === "off" || !wanted) return <>{children}</>;
+  if (current.kind === "off" || !asked) return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (
       <>
