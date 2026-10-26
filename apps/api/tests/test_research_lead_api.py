@@ -108,7 +108,12 @@ def _turn(client: TestClient, world: Any, app: FastAPI, output: dict[str, Any]) 
 
 
 def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
-    assert researcher.get("/api/v1/lead").json() == {"hatched": False, "lead": None}
+    assert researcher.get("/api/v1/lead").json() == {
+        "hatched": False,
+        "lead": None,
+        "pending_hatch": None,
+        "greeting": None,
+    }
     hatched = researcher.post("/api/v1/lead")
     assert hatched.status_code == 201
     lead = hatched.json()["lead"]
@@ -127,7 +132,12 @@ def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
     assert set(lead["files"]) == {"soul", "user"} and lead["files"]["user"] == ""
     again = researcher.post("/api/v1/lead")
     assert again.status_code == 409 and again.json()["code"] == "lead_already_hatched"
-    assert researcher.get("/api/v1/lead").json() == {"hatched": True, "lead": lead}
+    assert researcher.get("/api/v1/lead").json() == {
+        "hatched": True,
+        "lead": lead,
+        "pending_hatch": None,
+        "greeting": None,
+    }
     # Read-only: nothing over HTTP writes the files or the notes.
     assert researcher.put("/api/v1/lead", json={"name": "x"}).status_code == 405
     assert researcher.post("/api/v1/lead/memories", json={"text": "x"}).status_code == 404
@@ -135,7 +145,37 @@ def test_a_lead_is_hatched_once_and_read_only(researcher: TestClient) -> None:
 
 def test_each_researcher_has_their_own_lead(researcher: TestClient, viewer: TestClient) -> None:
     _hatched(researcher)
-    assert viewer.get("/api/v1/lead").json() == {"hatched": False, "lead": None}
+    assert viewer.get("/api/v1/lead").json() == {
+        "hatched": False,
+        "lead": None,
+        "pending_hatch": None,
+        "greeting": None,
+    }
+
+
+_TRAITS = {"tone": "vecny", "answers": "strucne", "initiative": "ceka", "numbers": "vzdy_nejistota"}
+
+
+def test_hatching_by_the_model_is_refused_by_name_until_it_has_a_payer(
+    researcher: TestClient,
+) -> None:
+    """lead-identity LI1: no payer outside a client exists yet, so asking is refused before
+    anything is sent or kept, and no code writes the files instead."""
+    asked = researcher.post(
+        "/api/v1/lead/hatches", json={"name": "Ada", "traits": _TRAITS, "brief": "Věcně."}
+    )
+    assert asked.status_code == 409 and asked.json()["code"] == "lead_hatch_unavailable"
+    assert researcher.get("/api/v1/lead").json()["pending_hatch"] is None
+    wrong = researcher.post("/api/v1/lead/hatches", json={"name": "Ada", "traits": {}})
+    assert wrong.status_code == 422
+
+
+def test_accepting_or_discarding_a_hatch_needs_one_of_the_callers(
+    researcher: TestClient,
+) -> None:
+    for action in ("accept", "discard"):
+        r = researcher.post(f"/api/v1/lead/hatches/LHT-0000000000/{action}")
+        assert r.status_code == 409 and r.json()["code"] == "lead_hatch_not_pending"
 
 
 # --------------------------------------------------------------------------- the conversation
@@ -350,6 +390,9 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/self-update",
         "/api/v1/lead",
         "/api/v1/lead/preferences",
+        "/api/v1/lead/hatches",
+        "/api/v1/lead/hatches/{hatch_id}/accept",
+        "/api/v1/lead/hatches/{hatch_id}/discard",
     }
 
 

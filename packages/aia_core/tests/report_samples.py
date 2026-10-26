@@ -398,3 +398,34 @@ def build(kind: str, report_ledger: Any, *, stress: float = 1.0) -> ReportDocume
             meta(ReportKind.DOCUMENTATION), doc, audit, ledger, sources=sources, outputs=OUTPUTS
         )
     raise ValueError(f"no sample for {kind!r}")
+
+
+def without_embedded_fonts(docx: bytes) -> bytes:
+    """``docx`` as an editor that writes the package anew saves it (ONLYOFFICE; RPT15): the font
+    table keeps every name, and every embedded face, its relationship and its part are gone."""
+    import io
+    import zipfile
+
+    from lxml import etree
+
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    source = zipfile.ZipFile(io.BytesIO(docx))
+    table = etree.fromstring(source.read("word/fontTable.xml"))
+    for font in table.iter(f"{w}font"):
+        for child in [c for c in font if c.tag.startswith(f"{w}embed")]:
+            font.remove(child)
+    rels = etree.fromstring(source.read("word/_rels/fontTable.xml.rels"))
+    for rel in [r for r in rels if r.get("Target", "").startswith("fonts/")]:
+        rels.remove(rel)
+    rewritten = {
+        "word/fontTable.xml": etree.tostring(table, xml_declaration=True, encoding="UTF-8"),
+        "word/_rels/fontTable.xml.rels": etree.tostring(
+            rels, xml_declaration=True, encoding="UTF-8"
+        ),
+    }
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as dst:
+        for name in source.namelist():
+            if not name.startswith("word/fonts/"):
+                dst.writestr(name, rewritten.get(name, source.read(name)))
+    return out.getvalue()

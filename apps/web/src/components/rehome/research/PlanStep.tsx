@@ -46,7 +46,6 @@ import {
 import { type SetLimits, setAboveRecommended, setSizeRefused, setWords } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
-import { DesignCoverage } from "./DesignCoverage";
 import { PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
@@ -236,7 +235,6 @@ export function PlanStep() {
         void resume(id).then((ok) => { if (ok && comments) toast(t("research.plan.commentsDone")); });
       }} /> : null}
       {variantSection}
-      <DesignCoverage />
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
           <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
@@ -584,7 +582,7 @@ function SetCard({ set, limits, onAddObject, onRename, onRemove, onRemoveObject,
             <span>{first.low}</span>
             <span aria-hidden="true" className="flex flex-1 gap-0.5">
               {Array.from({ length: 10 }, (_, i) => (
-                <i key={i} className="block h-2 flex-1 rounded-sm border border-border-strong bg-surface-raised" />
+                <i key={i} className="block h-2 flex-1 rounded-mark border border-border-strong bg-surface-raised" />
               ))}
             </span>
             <span>{first.high}</span>
@@ -672,6 +670,10 @@ function FollowUps({ n, questions, answers, answered, setAnswers, busy, onSubmit
  */
 type Draft = { key: number; quote: string; text: string };
 
+/** Whether a selection reaches words AIA wrote beside the design (data-no-quote), at either end or between. */
+const touchesNoQuote = (root: Element, range: Range): boolean =>
+  [...root.querySelectorAll("[data-no-quote]")].some((el) => range.intersectsNode(el));
+
 function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
   const [sel, setSel] = useState<{ text: string; x: number; y: number } | null>(null);
@@ -680,7 +682,7 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
     const s = window.getSelection();
     const text = commentableSelection(s?.toString() || "");
     const node = s?.anchorNode?.parentElement;
-    if (!text || !s?.rangeCount || !node || !root.current?.contains(node) || node.closest("input,textarea,button,select")) {
+    if (!text || !s?.rangeCount || !node || !root.current?.contains(node) || node.closest("input,textarea,button,select") || touchesNoQuote(root.current, s.getRangeAt(0))) {
       setSel(null);
       return;
     }
