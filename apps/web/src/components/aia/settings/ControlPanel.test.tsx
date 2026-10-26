@@ -1211,7 +1211,9 @@ describe("the settings tabs", () => {
       expect(isOpen(other)).toBe(false);
     }
     // Each section is named by its own h1.
-    expect(panelOf("Metodika").getAttribute("aria-labelledby")).toBe("section-methodology-h");
+    // The section is named by its title, which its hero (F18) draws as the page's one h1.
+    expect(panelOf("Metodika").getAttribute("aria-label")).toBe("Metodika");
+    expect(within(panelOf("Metodika")).getByRole("heading", { level: 1 }).textContent).toBe("Metodika");
   });
 
   it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
@@ -1478,6 +1480,53 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     expect(screen.getByText(/zbývá 7,29 USD/)).toBeTruthy();
     expect(screen.queryByText("12.714524700000009")).toBeNull();
   });
+
+describe("each page's hero (F18)", () => {
+  beforeEach(() => { window.history.replaceState(null, "", "/app/settings"); });
+  const figures = (name: string) => [...panelOf(name).querySelectorAll("[data-hero] dl > div")].map((d) => `${d.querySelector("dt")?.textContent}=${d.querySelector("dd")?.textContent}`);
+
+  it("heads Přístup with its group, title, lede and the figures its reads give", async () => {
+    api({
+      "GET /api/v1/members": () => [
+        { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER", methodologist: true },
+        { user_id: "USR-2", email: "b@example.test", display_name: "", is_active: true, organization_role: "RESEARCHER", methodologist: false, deactivated_at: "2026-10-20T10:00:00Z" },
+      ],
+      "GET /api/v1/self-approval": () => ({ organization: true, clients: [], studies: [] }),
+    });
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    await waitFor(() => expect(figures("Přístup a schvalování")).toEqual([
+      "Aktivní členové=1", "Deaktivovaní=1", "Metodik=1", "Klienti=1", "Samoschválení v organizaci=povoleno",
+    ]));
+    const hero = panelOf("Přístup a schvalování").querySelector("[data-hero]") as HTMLElement;
+    expect(hero.querySelector("[data-hero-eyebrow]")?.textContent).toBe("Tým a peníze");
+    expect(within(hero).getByRole("heading", { level: 1 }).textContent).toBe("Přístup a schvalování");
+    // The head keeps its one lede, its chips and the page's one switch.
+    expect(hero.querySelectorAll("[data-tab-lede]")).toHaveLength(1);
+    expect(hero.querySelector("[data-tab-chips]")).toBeTruthy();
+  });
+
+  it("says unknown for a figure whose read failed, never 0, and draws no figures where none are wired", async () => {
+    api({ "GET /api/v1/clients": () => new Response('{"code":"http_500","message":"x"}', { status: 500 }) });
+    render(<ControlPanel />);
+    await openSection("Přístup a schvalování");
+    await waitFor(() => expect(figures("Přístup a schvalování")).toContain("Klienti=neznámé"));
+    expect(panelOf("Přístup a schvalování").querySelector('[data-hero-figure="unknown"]')).toBeTruthy();
+    // Metodika's figures are its own panel's, not wired yet: no row, nothing claimed.
+    expect(panelOf("Metodika").querySelector("[data-hero] dl")).toBeNull();
+  });
+
+  it("counts the audit's week only when the page read it whole", async () => {
+    const now = Date.now();
+    api({ "GET /api/v1/access-audit": () => [
+      { event_id: 2, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at: new Date(now - 60_000).toISOString() },
+      { event_id: 1, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-2", role: null, reason: "", payload: {}, created_at: new Date(now - 30 * 86_400_000).toISOString() },
+    ] });
+    render(<ControlPanel />);
+    await openSection("Audit");
+    await waitFor(() => expect(figures("Audit").slice(0, 3)).toEqual(["Události · 7 dní=1", "Dnes=1", "Kdo měnil=1"]));
+  });
+});
 
 describe("usable settings controls", () => {
   it("changes a member's role where it is shown, offers Vrátit, and adds a new member as a researcher", async () => {

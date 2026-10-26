@@ -25,6 +25,10 @@ describe("Přístup's hero figures (F18)", () => {
     const unset = accessFigures({ ok: true, data: [member({})] }, { ok: true, data: [] }, { ok: true, data: { organization: null, clients: [], studies: [] } }, AW);
     expect(value(unset, "Samoschválení v organizaci")).toBe("výchozí");
     expect(value(unset, "Klienti")).toBe("0");
+    // A member read without the Metodik mark: that count unknown, the others still known.
+    const older = accessFigures({ ok: true, data: [{ ...member({}), methodologist: undefined as unknown as boolean }] }, { ok: true, data: [] }, null, AW);
+    expect(value(older, "Metodik")).toBeNull();
+    expect(value(older, "Aktivní členové")).toBe("1");
   });
 });
 

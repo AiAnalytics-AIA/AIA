@@ -32,7 +32,9 @@ export function accessFigures(members: Read<Member[]>, clients: Read<AdminClient
   const figures: Figure[] = [{ label: w.active, value: list ? n(list.filter(active).length) : null }];
   const deactivated = list ? list.filter((m) => !active(m)).length : null;
   if (deactivated) figures.push({ label: w.deactivated, value: n(deactivated) });
-  figures.push({ label: w.methodologist, value: list ? n(list.filter((m) => active(m) && m.methodologist).length) : null });
+  // A member record without the Metodik mark (an older API) leaves the count unknown, never 0.
+  const marked = list && list.every((m) => typeof m.methodologist === "boolean") ? list : null;
+  figures.push({ label: w.methodologist, value: marked ? n(marked.filter((m) => active(m) && m.methodologist).length) : null });
   const known = data(clients);
   figures.push({ label: w.clients, value: known ? n(known.length) : null });
   const rule = data(levels);
