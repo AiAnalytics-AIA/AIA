@@ -1716,7 +1716,7 @@ export const cs = {
           keptKind: { usage_rows: "Záznamy útraty AI", approval_rows: "Záznamy schválení", audit_rows: "Audit (kdo co změnil, i toto smazání)" },
           sdl2: { population_children: "Odvozené populace klienta", replaced_source_readings: "Nahrazená čtení zdrojů" },
           typeName: "Smazání nelze vrátit. Pro potvrzení napište název klienta: {name}",
-          runningNow: "Klientovi právě běží {n} běhů ({runs}). Smazat ho lze, až skončí, nebo je nejdřív zrušte.",
+          runningNow: "Klientovi právě běží {count} ({runs}). Smazat ho lze, až skončí, nebo je nejdřív zrušte.",
           confirm: "Smazat natrvalo",
           cancel: "Zrušit",
           deleted: "Klient {name} je smazán. Záznamy útraty, schválení a audit zůstaly.",

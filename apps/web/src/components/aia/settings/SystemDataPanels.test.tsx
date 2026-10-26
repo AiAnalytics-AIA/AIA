@@ -235,7 +235,7 @@ describe("Správa dat", () => {
     render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
     const dialog = await openDialog();
     const block = dialog.querySelector("[data-active-work]") as HTMLElement;
-    expect(block.textContent).toBe("Klientovi právě běží 2 běhů (RUN-7, RUN-9). Smazat ho lze, až skončí, nebo je nejdřív zrušte.");
+    expect(block.textContent).toBe("Klientovi právě běží 2 běhy (RUN-7, RUN-9). Smazat ho lze, až skončí, nebo je nejdřív zrušte.");
     // A person awaited, not a fault: never fault-red.
     expect(block.className).not.toMatch(/status-fault/);
     const field = within(dialog).getByRole("textbox", { name: /napište název klienta/ }) as HTMLInputElement;
@@ -244,6 +244,30 @@ describe("Správa dat", () => {
     expect(act.disabled).toBe(true);
     fireEvent.click(act);
     expect(calls.filter((c) => c.method === "DELETE")).toEqual([]);
+  });
+
+  it("declines the running count: one běh, two to four běhy, five běhů (review of #980)", async () => {
+    for (const [ids, words] of [[["RUN-1"], "1 běh"], [["A", "B", "C", "D", "E"], "5 běhů"]] as const) {
+      fake({
+        "POST /api/v1/clients/CLI-a/deletion": () => ({ ...PREVIEW, active_run_ids: [...ids] }),
+        "GET /api/v1/settings/kept-records": () => [],
+      });
+      render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+      const dialog = await openDialog();
+      expect((dialog.querySelector("[data-active-work]") as HTMLElement).textContent).toContain(`běží ${words} (`);
+      cleanup();
+    }
+  });
+
+  it("opens the act on no typed name for a client whose name is blank", async () => {
+    fake({
+      "POST /api/v1/clients/CLI-a/deletion": () => ({ ...PREVIEW, name: "  " }),
+      "GET /api/v1/settings/kept-records": () => [],
+    });
+    render(<DataPanel mayAdminister clients={CLIENTS} reload={() => {}} />);
+    const dialog = await openDialog();
+    typeName(dialog, "   ");
+    expect((within(dialog).getByRole("button", { name: "Smazat natrvalo" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("names the runs that still run, and says files still waiting are retried by a repeat", async () => {

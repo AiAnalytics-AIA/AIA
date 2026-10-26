@@ -17,6 +17,7 @@ import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Button, Select } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
+import { plural } from "@/lib/format";
 import { InfoButton } from "./InfoButton";
 import { FOCUS } from "../../ui/parts";
 import { Icon } from "../../rehome/icons";
@@ -103,9 +104,12 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
     } finally { setBusy(false); }
   };
   const [about, setAbout] = useState(false);
+  // An older API sends no list: no block is drawn, and nothing says the client is idle. That path
+  // relies on the deletion's own 409 client_has_active_work, said in the dialog when it comes.
   const running = preview?.active_run_ids ?? [];
-  // The exact name, as the server named the client; spaces around it are not part of it.
-  const nameMatches = preview !== null && typed.trim() === preview.name.trim();
+  // The exact name, as the server named the client; spaces around it are not part of it. A client
+  // whose name is blank has nothing to type, so nothing typed matches it.
+  const nameMatches = preview !== null && preview.name.trim() !== "" && typed.trim() === preview.name.trim();
   return (
     <section data-client-delete aria-labelledby="data-del-h" className={CARD}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -178,7 +182,7 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
             {running.length ? (
               // Runs that have not ended hold the deletion back: said before the name is typed.
               <p data-active-work className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash px-3 py-2 text-[13px] leading-5">
-                {tv(`${D}.runningNow`, { n: running.length, runs: running.join(", ") })}
+                {tv(`${D}.runningNow`, { count: plural(running.length, "běh", "běhy", "běhů"), runs: running.join(", ") })}
               </p>
             ) : null}
             <label className="mt-3 block text-[13px] leading-5">
