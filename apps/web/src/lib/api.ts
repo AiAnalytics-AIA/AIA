@@ -9,7 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
 import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision, WorkingEdit } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
@@ -506,6 +506,8 @@ export type WorkingContent = {
 };
 
 export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
+/** A batch of edits saved (POST …/workspace/ops, WCE3a): the save, and the copy as AIA now holds it. */
+export type WorkingOpsSave = WorkingSave & { content: Record<string, unknown>; analysis: Record<string, unknown> | null };
 
 /** A filled-in questionnaire template, read by AIA (QuestionnaireImportResponse). */
 export type QuestionnaireImport = {
@@ -911,6 +913,9 @@ export const workspace = {
     studyId: string,
     body: { content: unknown; analysis: unknown; base_revision: number | null; reason: string },
   ) => request<WorkingSave>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/content`, body),
+  /** A person's edits in the working copy's vocabulary, applied in order as one batch, all or none (WCE3a). */
+  applyOps: (studyId: string, body: { ops: WorkingEdit[]; base_revision: number | null; reason: string }) =>
+    request<WorkingOpsSave>("POST", `/api/v1/studies/${enc(studyId)}/workspace/ops`, body),
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
   attach: (studyId: string, body: { filename: string; data_b64: string }) =>
