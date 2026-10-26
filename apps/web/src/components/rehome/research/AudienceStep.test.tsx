@@ -322,6 +322,21 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
+    it("editing a chosen subpanel's filter leaves the subpanel behind, and it can be chosen again (Codex on #1000)", async () => {
+      const young = { strategy: "filters", source_mode: "population", builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29" };
+      aiaStub({ ui_state: ANALYTICS, n: 500, audience: young }, live());
+      render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
+      expect(await screen.findByRole("radio", { name: /Mladí 18–29/, checked: true })).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: /Odebrat filtr Věk/ }));
+      await saved();
+      expect(lastSave().content.audience).toMatchObject({ filters: {}, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {}, description: "Mladí 18–29" });
+      // No longer the subpanel: it reads unchosen, and choosing it restores its filter.
+      const again = await screen.findByRole("radio", { name: /Mladí 18–29/, checked: false });
+      fireEvent.click(again);
+      await waitFor(() => expect(lastSave().content.audience).toMatchObject({ builtin_subpanel: "young_18_29", filters: { vek: [18, 29] } }));
+      noUnitCalls();
+    });
+
     it("names the description, the filters, each stored filter and the preview for the Lead to focus", async () => {
       // prijem is outside the category the editor opens on, so its editor is not drawn: its
       // target is the chip every stored filter has.

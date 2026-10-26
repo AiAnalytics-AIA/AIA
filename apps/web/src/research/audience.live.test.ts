@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription, chooseStrategy } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription, chooseStrategy, detachSubpanel } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -242,6 +242,7 @@ describe("what a preset change clears (OI-51 (a))", () => {
 });
 
 describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
+  const ANALYTICS_UI = { audience_entry: "analytics", analytics_choice: "cz18" };
   const study = (ui_state: Record<string, unknown>, audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state }) as unknown as ResearchProject;
 
   it("writes the one entry AIA has on a choice, and leaves a study already there as it is", () => {
@@ -285,6 +286,15 @@ describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
     // Nothing to do: the same choice, or the path AIA cannot run.
     expect(chooseStrategy(narrowed, "filters")).toBeNull();
     expect(chooseStrategy(study({}), "discover")).toBeNull();
+  });
+
+  it("a filter edit leaves a chosen subpanel behind: its name and support go, the description stays", () => {
+    const young = study(ANALYTICS_UI, { strategy: "filters", builtin_subpanel: "young_18_29", filters: {}, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29" });
+    const edit = { project: young, reason: "audience_filter", invalidateCheck: false };
+    expect(detachSubpanel(edit)).toEqual({ ...edit, invalidateCheck: true, project: { ...young, audience: { ...young.audience, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} } } });
+    // Nothing chosen: the edit passes through as it is.
+    const plain = { project: study(ANALYTICS_UI, { filters: { kraj: ["A"] } }), reason: "audience_filter", invalidateCheck: false };
+    expect(detachSubpanel(plain)).toBe(plain);
   });
 
   it("writes the description as typed, nothing else", () => {

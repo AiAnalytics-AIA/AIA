@@ -43,6 +43,7 @@ import {
   boundOf,
   endUnreadable,
   chooseStrategy,
+  detachSubpanel,
   factorRefusal,
   filterCategories,
   filterChips,
@@ -230,7 +231,11 @@ function FilterEditor({ live }: { live: Live }) {
   const version = live.state === "ready" ? live.api.version_label : null;
   const problems = live.state === "ready" ? filterProblems(state.project, live.catalog) : [];
   const problemOf = new Map(problems.map((x) => [x.id, x]));
-  const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  // Every filter edit here, the AI proposal's too, leaves a chosen subpanel behind (detachSubpanel).
+  const change = (raw: Change) => {
+    const c = detachSubpanel(raw);
+    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  };
 
   // proposeAudience: the job; the model proposes a description, never filters (research_agents).
   const propose = () =>
@@ -313,7 +318,11 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
   const [query, setQuery] = useState("");
   const { categories, sensitive } = filterCategories(live.catalog);
   const { shown, total } = filterableFactors(live.catalog, category, searchKey(query));
-  const change = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  // Every filter edit here, the AI proposal's too, leaves a chosen subpanel behind (detachSubpanel).
+  const change = (raw: Change) => {
+    const c = detachSubpanel(raw);
+    store.update(() => ({ project: c.project }), { reason: c.reason, invalidateCheck: c.invalidateCheck });
+  };
   return (
     <section className="rounded-control border border-border bg-surface p-4" aria-labelledby="aud-live-filters">
       <div className={EYEBROW}>{t("research.audience.filterTag")}</div>
