@@ -14,7 +14,8 @@ describe("ceilingOf", () => {
     expect(ceilingOf(readiness({ n: 300, cost_ceiling_usd: 2.25 }))).toEqual({ known: true, usd: 2.25, n: 300 });
     expect(ceilingOf(readiness({ cost_ceiling_usd: 0 }))).toEqual({ known: true, usd: 0, n: 200 });
     expect(ceilingOf(readiness({ cost_ceiling_unknown: "fieldwork_reservation_missing" }))).toEqual({ known: false, code: "fieldwork_reservation_missing" });
-    expect(ceilingOf(readiness({ n: null }))).toEqual({ known: false, code: "sample_size_missing" });
+    // A design that did not compile has no ceiling and no reason: none is guessed, n or no n.
+    expect(ceilingOf(readiness({ n: 200 }))).toEqual({ known: false, code: null });
   });
 });
 

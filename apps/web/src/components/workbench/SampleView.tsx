@@ -155,11 +155,10 @@ function Composition({ readiness }: { readiness: SampleReadiness }) {
 const STATUS_TONE: Record<string, GlyphTone> = { PASS: "done", WARN: "done-warn", FAIL: "fault" };
 const VERDICT_TONE: Record<OutlookVerdict, GlyphTone> = { ANSWERABLE: "done", UNKNOWN: "inert", AT_RISK: "you", UNANSWERABLE: "fault" };
 
-/** A link to the stage where a part of the sample is set: its name, what is set there, and the way. */
 /**
  * The run's ceiling at the n the server read, and what the study has left beside it (spec vzorek V2,
- * SMP8): the ceiling an upper bound, never an estimate; unknown in the server's words, never 0,00
- * USD; the remainder in budget-line's words, said once it is read. Nothing until readiness is read.
+ * SMP8): the ceiling an upper bound, never an estimate; unknown in the server's words, or, when it
+ * named no reason, unknown without one, never 0,00 USD; the remainder in budget-line's words, said once it is read. Nothing until readiness is read.
  */
 function Ceiling({ readiness, budget }: { readiness: SampleReadiness; budget: StudyBudget | null | undefined }) {
   if (readiness.kind !== "ready") return null;
@@ -168,7 +167,11 @@ function Ceiling({ readiness, budget }: { readiness: SampleReadiness; budget: St
   if (c.known) {
     const { value, note } = ceilingWords(c.usd);
     ceiling = <span className="text-ink">{c.n !== null ? `Strop běhu při N ${c.n}: ` : "Strop běhu: "}<span className="tabular-nums">{value}</span> ({note})</span>;
-  } else ceiling = <CodedWords inline coded={codeWords("research.exec.cost.unknown", c.code)} />;
+  } else if (c.code !== null) ceiling = <CodedWords inline coded={codeWords("research.exec.cost.unknown", c.code)} />;
+  else {
+    const { value, note } = ceilingWords(null);
+    ceiling = `Strop běhu: ${value} (${note})`;
+  }
   return (
     <p className="mt-2 text-sm text-ink-muted" data-ceiling>
       {ceiling}
@@ -177,6 +180,7 @@ function Ceiling({ readiness, budget }: { readiness: SampleReadiness; budget: St
   );
 }
 
+/** A link to the stage where a part of the sample is set: its name, what is set there, and the way. */
 function LinkCard({ title, caption, done, onClick }: { title: string; caption: string; done: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className={`flex items-start gap-2 rounded-card border border-border px-3 py-2 text-left hover:bg-surface ${TOUCH}`}>

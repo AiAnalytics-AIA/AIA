@@ -43,6 +43,13 @@ describe("SampleArtifact", () => {
     expect(line).not.toMatch(/0,00/);
   });
 
+  it("says an unknown ceiling without a cause when the server gave none, never one it did not state", () => {
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ n: 200, cost_ceiling_usd: null, cost_ceiling_unknown: null })} />);
+    const line = container.querySelector("[data-ceiling]")!.textContent!;
+    expect(line).toBe("Strop běhu: nelze předem určit (neznámá cena se nikdy nepočítá jako nula)");
+    expect(line).not.toMatch(/velikost vzorku|0,00/);
+  });
+
   it("says nothing of the ceiling before readiness is read, and nothing of the budget while it is", () => {
     const { container, rerender } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={{ kind: "loading" }} />);
     expect(container.querySelector("[data-ceiling]")).toBeNull();
