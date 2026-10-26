@@ -950,6 +950,40 @@ describe("what powers AIA", () => {
     expect(history.querySelector('[data-provider="aws_bedrock"]')).toBeNull();
   });
 
+  it("says when each activity last answered, from the ledger, for an administrator: a fact about the past, never 'works'", async () => {
+    const at = new Date(Date.now() - 3 * 3_600_000).toISOString();
+    api({ "GET /api/v1/settings/ai-activity": () => ({ activities: [
+      { key: "respondent_fieldwork", last_answered: { at, model: "eu.anthropic.claude-sonnet", build: "0123456789abcdef" } },
+      { key: "design_agents", last_answered: null },
+    ] }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork").querySelector('[data-answered="at"]')).toBeTruthy());
+    const line = card("respondent_fieldwork").querySelector('[data-answered="at"]') as HTMLElement;
+    expect(line.textContent).toBe("Naposledy odpověděl před 3 h · model eu.anthropic.claude-sonnet · build 0123456");
+    expect(line.querySelector("time")?.getAttribute("dateTime")).toBe(at);
+    // None recorded is said as such: neither working nor broken.
+    expect(card("design_agents").querySelector('[data-answered="none"]')?.textContent).toBe("Zatím žádné zaznamenané odpovězené volání.");
+    expect(card("design_agents").getAttribute("data-state")).not.toBe("working");
+    expect(section("ai").textContent).not.toMatch(OVERCLAIM);
+    expect(called("GET", "/api/v1/settings/ai-activity")).toHaveLength(1);
+  });
+
+  it("says the last answers could not be read, and claims none, when the read fails", async () => {
+    api({ "GET /api/v1/settings/ai-activity": () => new Response('{"code":"internal","message":"Boom"}', { status: 500 }) });
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork").querySelector('[data-answered="unread"]')?.textContent).toBe("Poslední odpověď se nepodařilo načíst."));
+    expect(document.querySelector('[data-answered="at"]')).toBeNull();
+  });
+
+  it("asks a member nothing of the last answers and shows none", async () => {
+    api({}, false);
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    await new Promise((r) => setTimeout(r, 30));
+    expect(called("GET", "/api/v1/settings/ai-activity")).toHaveLength(0);
+    expect(document.querySelector("[data-answered]")).toBeNull();
+  });
+
   it("a member reads what powers AIA too, without the deployment group", async () => {
     api({}, false);
     render(<ControlPanel />);
