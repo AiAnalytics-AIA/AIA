@@ -1,12 +1,22 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
   fieldwork_source: "ai_runtime", cost_ceiling_usd: null, cost_ceiling_unknown: null, fieldwork_requests: 0, analysis_calls: 0,
   spend_confirm_usd: null, confirmation_required: false, ...over,
+});
+
+describe("ceilingOf", () => {
+  it("is the server's ceiling at the n it read, or its reason, never a zero", () => {
+    expect(ceilingOf(readiness({ n: 300, cost_ceiling_usd: 2.25 }))).toEqual({ known: true, usd: 2.25, n: 300 });
+    expect(ceilingOf(readiness({ cost_ceiling_usd: 0 }))).toEqual({ known: true, usd: 0, n: 200 });
+    expect(ceilingOf(readiness({ cost_ceiling_unknown: "fieldwork_reservation_missing" }))).toEqual({ known: false, code: "fieldwork_reservation_missing" });
+    // A design that did not compile has no ceiling and no reason: none is guessed, n or no n.
+    expect(ceilingOf(readiness({ n: 200 }))).toEqual({ known: false, code: null });
+  });
 });
 
 describe("supportForecastOf", () => {

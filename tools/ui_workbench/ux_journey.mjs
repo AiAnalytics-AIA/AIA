@@ -88,13 +88,29 @@ try {
   assert(await page.getByRole("tabpanel", { name: "Data" }).locator("table").count() > 0);
   await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
   const map = page.getByTestId("object-map-sec_wb_set");
-  await map.getByRole("button", { name: "3D terén", exact: true }).click();
-  const terrain = map.getByTestId("object-map-3d");
+  // A signed-off map (aia-sociomap-5, the workbench's fixture) is drawn by the AIA panel since
+  // 72627bfb: 2D / 3D on its view rail ("3D prostor"), the camera on its canvas, turned by a drag
+  // (73560398 took the old "3D terén" view and its rotate buttons).
+  await map.getByRole("button", { name: "3D prostor", exact: true }).click();
+  const terrain = map.getByTestId("object-map-canvas");
   await terrain.waitFor();
   const initial = await terrain.getAttribute("data-camera");
-  // The camera controls sit in a disclosure since the approved composition (1eb36ab).
-  await map.locator("details summary").filter({ hasText: "Ovládání 3D pohledu" }).first().click();
-  await map.getByRole("button", { name: "Otočit vpravo", exact: true }).click();
+  // A drag on the canvas turns the map. The panel's bars and chips lie over parts of it, so the drag
+  // starts where the canvas itself is under the pointer.
+  const start = await terrain.evaluate((c) => {
+    const r = c.getBoundingClientRect();
+    for (let fy = 0.5; fy < 0.9; fy += 0.05) for (let fx = 0.3; fx < 0.7; fx += 0.05) {
+      const x = r.left + r.width * fx, y = r.top + r.height * fy;
+      if (document.elementFromPoint(x, y) === c) return { x, y };
+    }
+    return null;
+  });
+  assert(start, "no point of the map's canvas is free to drag");
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 140, start.y, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForFunction(([el, before]) => el.getAttribute("data-camera") !== before, [await terrain.elementHandle(), initial], { timeout: 5000 }).catch(() => {});
   const rotated = await terrain.getAttribute("data-camera");
   assert.notEqual(rotated, initial, "3D rotation must change the view");
   await page.getByRole("tab", { name: "Data", exact: true }).click();

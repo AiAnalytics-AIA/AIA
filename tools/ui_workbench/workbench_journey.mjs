@@ -419,6 +419,12 @@ try {
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {
       assert.equal(await sample.locator(`[data-aia="${id}"]`).count(), 1, `${id} @${width}`);
     }
+    // The run's ceiling beside N (SMP8): the server's figure or its reason, never a zero for unknown.
+    const ceiling = sample.locator('[data-aia="sample:n"] [data-ceiling]');
+    await ceiling.waitFor();
+    const ceilingText = (await ceiling.innerText()).replace(/\u00a0/g, " ");
+    assert.match(ceilingText, /^(Strop běhu|Strop nelze spočítat)/, `the ceiling beside N @${width}: ${ceilingText}`);
+    if (ceilingText.startsWith("Strop nelze")) assert.doesNotMatch(ceilingText, /0,00 USD/, `an unknown ceiling is no zero @${width}`);
     // Připravenost ke spuštění (SMP4): the server's checks on the working copy, each its own target.
     const ready = page.getByRole("region", { name: "Připravenost ke spuštění" });
     await ready.locator('[data-aia^="sample:ready:"]').first().waitFor({ timeout: 30000 });

@@ -2269,6 +2269,32 @@ export const cs = {
           event: "Událost",
           concerns: "Čeho se týká",
           reason: "Důvod / změna",
+          // An audit record's change in words (F10, lib/audit-change.ts).
+          change: {
+            noThreshold: "bez prahu",
+            joinedAs: "nový člen: {role}",
+            proposalVersion: "návrh {version}",
+            // A refused change of an OWNER's membership (MEMBER_ROLE_DENIED payload.change).
+            denied: { deactivate: "deaktivace vlastníka", reactivate: "obnovení vlastníka" },
+            level: { organization: "Organizace", client: "Klient", study: "Studie" },
+            allowed: "povoleno",
+            forbidden: "zakázáno",
+            inherits: "dědí",
+            posture: "Postoj dat",
+            unset: "nenastaveno",
+            ceiling: "Strop peněženky",
+            noCeiling: "bez stropu",
+            fromCode: "z kódu",
+            default: "výchozí",
+            // A reason a writer fills with its own code, in words.
+            code: {
+              identity_mismatch: "přihlášení neodpovídá účtu, ke kterému e-mail patří",
+              not_a_member: "není členem organizace",
+              user_deactivated: "člen je deaktivován",
+              unknown_user: "neznámý uživatel",
+            },
+            decision: { APPROVED: "schváleno", REJECTED: "zamítnuto" },
+          },
           when: "Kdy",
           action: "Akce",
           actor: "Kdo",
@@ -2403,7 +2429,7 @@ export const cs = {
       chipWaits: "čeká na vás",
       chipDone: "hotovo",
       chipUnknown: "nelze přečíst",
-      decisionMissing: "chybí",
+      askLead: "Požádat Vedoucího o analýzu",
       decisionStartWith: "Začít od",
       decisionStarters: {
         0: { label: "Volba varianty", text: "Vybrat variantu A, nebo B?" },
