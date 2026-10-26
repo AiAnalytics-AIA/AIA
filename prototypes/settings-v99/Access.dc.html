@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Nastavení – Přístup a schvalování</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="../shared/aia-core.css"><link rel="stylesheet" href="assets/aia-settings.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+.tbl{min-width:max-content}
+.tbl .seg{flex-wrap:nowrap}
+.tbl .td{align-self:stretch;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+.info{color:var(--faint);font-size:12px;font-weight:400;cursor:help}
+</style>
+</helmet>
+<div class="sa aia" data-theme="{{theme}}">
+  <nav class="asb" aria-label="Hlavní navigace">
+    <a class="as-brand" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><rect width="40" height="40" rx="7.2" fill="#0f1215"></rect><circle cx="8" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="8" r="2.3" fill="#6ac5e8"></circle><circle cx="26" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="26" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="8" cy="32" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="32" r="2.3" fill="#ece9e4"></circle></svg><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+    <div class="as-sec" aria-hidden="true">Pracovní prostor</div>
+    <ul class="as-nav">
+      <li><a href="#"><span class="as-tile blue"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1"/></svg></span><span class="as-l">Klienti</span></a></li>
+      <li><a href="#"><span class="as-tile green"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6"/></svg></span><span class="as-l">Společenská inteligence</span></a></li>
+      <li><a href="#"><span class="as-tile violet"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14a6 6 0 1 0-6-6M2 8l-1.5-1.5M2 8l1.5-1.5M8 4.5V8l2.5 1.5"/></svg></span><span class="as-l">Projektová paměť</span></a></li>
+      <li><button class="as-set on {{railCls}}" aria-haspopup="dialog" aria-expanded="{{railOpen}}" aria-current="page" onClick="{{railMenu}}"><span class="as-tile slate"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span><span class="as-t as-l">Nastavení<small>{{curT}}</small></span><sc-if value="{{menuBadge}}" hint-placeholder-val="{{ false }}"><span class="nb" title="Čeká na vás">{{menuBadge}}</span></sc-if><span class="chev" aria-hidden="true">›</span></button></li>
+    </ul>
+    <div class="as-gap"></div>
+    <a class="as-lead" href="{{leadHref}}"><span class="as-tile"><span style="width: 18px; height: 18px; display: inline-grid"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle cx="27" cy="16" r="2.40" fill="var(--ai)" fill-opacity="1.00"></circle></svg></span></span><span class="as-l">Můj Vedoucí</span></a>
+    <div class="as-foot"><span class="as-av" aria-hidden="true">{{me.init}}</span><span class="as-l" style="min-width: 0; flex: 1"><b title="{{me.name}}">{{me.name}}</b><a href="#">Účet a nastavení</a></span><button class="as-out" type="button" aria-label="Odhlásit se" title="Odhlásit se"><svg width="15" height="15" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg></button></div>
+  </nav>
+  <div class="main">
+    <header class="as-top">
+      <div class="as-bar">
+        <nav aria-label="Kde jste" style="flex: 1"><ol class="as-crumbs"><li>Organizace <b>Delta (fiktivní)</b></li><li><span class="sep" aria-hidden="true">/</span>Nastavení</li><li><span class="sep" aria-hidden="true">/</span><b aria-current="page">{{curT}}</b></li></ol></nav>
+<div class="proto" role="group" aria-label="Prototyp: prohlížet jako">Prototyp · prohlížet jako
+        <span class="seg sm"><sc-for list="{{roleOpts}}" as="o" hint-placeholder-count="4"><button class="{{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span>
+        <span class="seg sm" role="group" aria-label="Prototyp: Vedoucí"><sc-for list="{{leadOpts}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span>
+      </div>
+      </div>
+    </header>
+    <sc-if value="{{menuOpen}}" hint-placeholder-val="{{ false }}">
+      <div class="lm-back" onClick="{{closeMenu}}"></div>
+      <div class="{{lmCls}}" role="dialog" aria-label="Nastavení – přejít na">
+        <div class="lm-search"><span class="ic i-find" aria-hidden="true"></span><input type="text" autofocus="autofocus" aria-label="Hledat v nastavení" placeholder="Kam chcete jít? Zkuste práh, Brave, rozpočet…" value="{{mq}}" onChange="{{setMq}}"><kbd>Esc</kbd></div>
+        <div class="lm-cols">
+          <div class="lm-groups">
+          <sc-for list="{{menuGroups}}" as="g" hint-placeholder-count="3"><div class="lm-col"><div class="lm-grp">{{g.n}}</div>
+            <sc-for list="{{g.items}}" as="i" hint-placeholder-count="3"><a class="it {{i.cls}}" href="{{i.href}}"><span class="ic {{i.ic}}" aria-hidden="true"></span><span class="tx"><b>{{i.t}}</b><span>{{i.s}}</span></span><sc-if value="{{i.badge}}" hint-placeholder-val="{{ false }}"><span class="nb" title="Čeká na vás">{{i.badge}}</span></sc-if></a></sc-for>
+          </div></sc-for>
+          </div>
+          <div class="lm-lead">
+            <sc-if value="{{hasLead}}" hint-placeholder-val="{{ true }}"><a class="leadbtn" href="LeadSettings.dc.html"><span class="lb-orb"><span class="lb-ring" aria-hidden="true"></span><span class="lb-mk" aria-hidden="true"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle r="1.49" fill="var(--ai)" fill-opacity="0.11"><animateMotion dur="6.00s" repeatCount="indefinite" begin="-0.450s" path="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0"/></circle><circle r="1.49" fill="var(--ai)" fill-opacity="0.24"><animateMotion dur="6.00s" repeatCount="indefinite" begin="-0.300s" path="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0"/></circle><circle r="1.49" fill="var(--ai)" fill-opacity="0.37"><animateMotion dur="6.00s" repeatCount="indefinite" begin="-0.150s" path="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0"/></circle><circle r="2.40" fill="var(--ai)" fill-opacity="1.00"><animateMotion dur="6.00s" repeatCount="indefinite" begin="-0.000s" path="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0"/></circle></svg></span></span><b>Můj Vedoucí</b><span>Ada · soubory a povaha</span></a></sc-if>
+            <sc-if value="{{noLead}}" hint-placeholder-val="{{ false }}"><a class="leadbtn grow" href="Hatch.dc.html"><span class="lb-orb"><span class="lb-ring" aria-hidden="true"></span><span class="lb-tube"><svg class="tube" viewBox="0 0 200 270" width="52" height="70" aria-hidden="true" style="overflow:visible"><defs><clipPath id="tbc-m"><path d="M72 40 V192 A28 28 0 0 0 128 192 V40 Z"/></clipPath><linearGradient id="tbl-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--ai)" stop-opacity=".55"/><stop offset="1" stop-color="var(--signal)" stop-opacity=".9"/></linearGradient><radialGradient id="tbg-m"><stop offset="0" stop-color="var(--ai)" stop-opacity=".45"/><stop offset="1" stop-color="var(--ai)" stop-opacity="0"/></radialGradient><radialGradient id="tbs-m"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="var(--ai)"/><stop offset="1" stop-color="var(--ai)" stop-opacity="0"/></radialGradient></defs><ellipse class="tb-glow" cx="100" cy="175" rx="80" ry="80" fill="url(#tbg-m)"/><ellipse cx="100" cy="252" rx="42" ry="6" fill="var(--ink)" opacity=".08"/><g clip-path="url(#tbc-m)"><rect x="60" y="20" width="80" height="220" fill="var(--raised)" opacity=".6"/><g class="tb-liq" style="transform: translateY(30px)"><g transform="translate(0 112)"><path d="M20 0 Q30 -7 40 0 T60 0 T80 0 T100 0 T120 0 T140 0 T160 0 T180 0 T200 0 T220 0 V140 H20 Z" fill="url(#tbl-m)"><animateTransform attributeName="transform" type="translate" from="0 0" to="-40 0" dur="2.6s" repeatCount="indefinite"/></path><path d="M20 0 Q30 -7 40 0 T60 0 T80 0 T100 0 T120 0 T140 0 T160 0 T180 0 T200 0 T220 0 V140 H20 Z" fill="var(--ai)" opacity=".35" transform="translate(-20 4)"><animateTransform attributeName="transform" type="translate" from="-20 4" to="20 4" dur="3.8s" repeatCount="indefinite"/></path></g></g><circle class="tb-b" cx="86" cy="214" r="3.2" style="animation-delay:-0.00s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="104" cy="220" r="2.4" style="animation-delay:-0.70s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="114" cy="212" r="3.6" style="animation-delay:-1.40s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="94" cy="206" r="2.0" style="animation-delay:-2.10s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="108" cy="216" r="2.8" style="animation-delay:-2.80s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="98" cy="222" r="1.8" style="animation-delay:-0.35s; animation-duration: calc(1s * 3.2)"/><circle class="tb-b" cx="118" cy="218" r="2.2" style="animation-delay:-1.75s; animation-duration: calc(1s * 3.2)"/><path d="M115.0 182.0 L114.8 183.1 L114.3 184.3 L113.4 185.4 L112.1 186.5 L110.6 187.5 L108.8 188.5 L106.8 189.4 L104.6 190.2 L102.3 190.9 L100.0 191.5 L97.7 192.0 L95.4 192.5 L93.2 192.8 L91.2 192.9 L89.4 193.0 L87.9 192.9 L86.6 192.8 L85.7 192.5 L85.2 192.0 L85.0 191.5 L85.2 190.9 L85.7 190.2 L86.6 189.4 L87.9 188.5 L89.4 187.5 L91.2 186.5 L93.2 185.4 L95.4 184.3 L97.7 183.1 L100.0 182.0 L102.3 180.9 L104.6 179.7 L106.8 178.6 L108.8 177.5 L110.6 176.5 L112.1 175.5 L113.4 174.6 L114.3 173.8 L114.8 173.1 L115.0 172.5 L114.8 172.0 L114.3 171.5 L113.4 171.2 L112.1 171.1 L110.6 171.0 L108.8 171.1 L106.8 171.2 L104.6 171.5 L102.3 172.0 L100.0 172.5 L97.7 173.1 L95.4 173.8 L93.2 174.6 L91.2 175.5 L89.4 176.5 L87.9 177.5 L86.6 178.6 L85.7 179.7 L85.2 180.9 L85.0 182.0 L85.2 183.1 L85.7 184.3 L86.6 185.4 L87.9 186.5 L89.4 187.5 L91.2 188.5 L93.2 189.4 L95.4 190.2 L97.7 190.9 L100.0 191.5 L102.3 192.0 L104.6 192.5 L106.8 192.8 L108.8 192.9 L110.6 193.0 L112.1 192.9 L113.4 192.8 L114.3 192.5 L114.8 192.0 L115.0 191.5 L114.8 190.9 L114.3 190.2 L113.4 189.4 L112.1 188.5 L110.6 187.5 L108.8 186.5 L106.8 185.4 L104.6 184.3 L102.3 183.1 L100.0 182.0 L97.7 180.9 L95.4 179.7 L93.2 178.6 L91.2 177.5 L89.4 176.5 L87.9 175.5 L86.6 174.6 L85.7 173.8 L85.2 173.1 L85.0 172.5 L85.2 172.0 L85.7 171.5 L86.6 171.2 L87.9 171.1 L89.4 171.0 L91.2 171.1 L93.2 171.2 L95.4 171.5 L97.7 172.0 L100.0 172.5 L102.3 173.1 L104.6 173.8 L106.8 174.6 L108.8 175.5 L110.6 176.5 L112.1 177.5 L113.4 178.6 L114.3 179.7 L114.8 180.9 L115.0 182.0 Z" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1"/><circle r="9" fill="url(#tbs-m)"><animateMotion dur="4.8s" repeatCount="indefinite" path="M115.0 182.0 L114.8 183.1 L114.3 184.3 L113.4 185.4 L112.1 186.5 L110.6 187.5 L108.8 188.5 L106.8 189.4 L104.6 190.2 L102.3 190.9 L100.0 191.5 L97.7 192.0 L95.4 192.5 L93.2 192.8 L91.2 192.9 L89.4 193.0 L87.9 192.9 L86.6 192.8 L85.7 192.5 L85.2 192.0 L85.0 191.5 L85.2 190.9 L85.7 190.2 L86.6 189.4 L87.9 188.5 L89.4 187.5 L91.2 186.5 L93.2 185.4 L95.4 184.3 L97.7 183.1 L100.0 182.0 L102.3 180.9 L104.6 179.7 L106.8 178.6 L108.8 177.5 L110.6 176.5 L112.1 175.5 L113.4 174.6 L114.3 173.8 L114.8 173.1 L115.0 172.5 L114.8 172.0 L114.3 171.5 L113.4 171.2 L112.1 171.1 L110.6 171.0 L108.8 171.1 L106.8 171.2 L104.6 171.5 L102.3 172.0 L100.0 172.5 L97.7 173.1 L95.4 173.8 L93.2 174.6 L91.2 175.5 L89.4 176.5 L87.9 177.5 L86.6 178.6 L85.7 179.7 L85.2 180.9 L85.0 182.0 L85.2 183.1 L85.7 184.3 L86.6 185.4 L87.9 186.5 L89.4 187.5 L91.2 188.5 L93.2 189.4 L95.4 190.2 L97.7 190.9 L100.0 191.5 L102.3 192.0 L104.6 192.5 L106.8 192.8 L108.8 192.9 L110.6 193.0 L112.1 192.9 L113.4 192.8 L114.3 192.5 L114.8 192.0 L115.0 191.5 L114.8 190.9 L114.3 190.2 L113.4 189.4 L112.1 188.5 L110.6 187.5 L108.8 186.5 L106.8 185.4 L104.6 184.3 L102.3 183.1 L100.0 182.0 L97.7 180.9 L95.4 179.7 L93.2 178.6 L91.2 177.5 L89.4 176.5 L87.9 175.5 L86.6 174.6 L85.7 173.8 L85.2 173.1 L85.0 172.5 L85.2 172.0 L85.7 171.5 L86.6 171.2 L87.9 171.1 L89.4 171.0 L91.2 171.1 L93.2 171.2 L95.4 171.5 L97.7 172.0 L100.0 172.5 L102.3 173.1 L104.6 173.8 L106.8 174.6 L108.8 175.5 L110.6 176.5 L112.1 177.5 L113.4 178.6 L114.3 179.7 L114.8 180.9 L115.0 182.0 Z"/></circle><circle r="3.4" fill="#fff"><animateMotion dur="4.8s" repeatCount="indefinite" path="M115.0 182.0 L114.8 183.1 L114.3 184.3 L113.4 185.4 L112.1 186.5 L110.6 187.5 L108.8 188.5 L106.8 189.4 L104.6 190.2 L102.3 190.9 L100.0 191.5 L97.7 192.0 L95.4 192.5 L93.2 192.8 L91.2 192.9 L89.4 193.0 L87.9 192.9 L86.6 192.8 L85.7 192.5 L85.2 192.0 L85.0 191.5 L85.2 190.9 L85.7 190.2 L86.6 189.4 L87.9 188.5 L89.4 187.5 L91.2 186.5 L93.2 185.4 L95.4 184.3 L97.7 183.1 L100.0 182.0 L102.3 180.9 L104.6 179.7 L106.8 178.6 L108.8 177.5 L110.6 176.5 L112.1 175.5 L113.4 174.6 L114.3 173.8 L114.8 173.1 L115.0 172.5 L114.8 172.0 L114.3 171.5 L113.4 171.2 L112.1 171.1 L110.6 171.0 L108.8 171.1 L106.8 171.2 L104.6 171.5 L102.3 172.0 L100.0 172.5 L97.7 173.1 L95.4 173.8 L93.2 174.6 L91.2 175.5 L89.4 176.5 L87.9 177.5 L86.6 178.6 L85.7 179.7 L85.2 180.9 L85.0 182.0 L85.2 183.1 L85.7 184.3 L86.6 185.4 L87.9 186.5 L89.4 187.5 L91.2 188.5 L93.2 189.4 L95.4 190.2 L97.7 190.9 L100.0 191.5 L102.3 192.0 L104.6 192.5 L106.8 192.8 L108.8 192.9 L110.6 193.0 L112.1 192.9 L113.4 192.8 L114.3 192.5 L114.8 192.0 L115.0 191.5 L114.8 190.9 L114.3 190.2 L113.4 189.4 L112.1 188.5 L110.6 187.5 L108.8 186.5 L106.8 185.4 L104.6 184.3 L102.3 183.1 L100.0 182.0 L97.7 180.9 L95.4 179.7 L93.2 178.6 L91.2 177.5 L89.4 176.5 L87.9 175.5 L86.6 174.6 L85.7 173.8 L85.2 173.1 L85.0 172.5 L85.2 172.0 L85.7 171.5 L86.6 171.2 L87.9 171.1 L89.4 171.0 L91.2 171.1 L93.2 171.2 L95.4 171.5 L97.7 172.0 L100.0 172.5 L102.3 173.1 L104.6 173.8 L106.8 174.6 L108.8 175.5 L110.6 176.5 L112.1 177.5 L113.4 178.6 L114.3 179.7 L114.8 180.9 L115.0 182.0 Z"/></circle></g><path d="M72 40 V192 A28 28 0 0 0 128 192 V40" fill="none" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2.5" stroke-linejoin="round"/><path d="M80 50 V186" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/><rect x="64" y="30" width="72" height="12" rx="6" fill="var(--raised)" stroke="var(--ink)" stroke-opacity=".55" stroke-width="2.5"/><path class="tb-sp" d="M70 8 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="var(--ai)" style="animation-delay:-0.0s"/><path class="tb-sp" d="M122 0 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="var(--ai)" style="animation-delay:-0.9s"/><path class="tb-sp" d="M98 -14 l2 6 6 2 -6 2 -2 6 -2 -6 -6 -2 6 -2z" fill="var(--ai)" style="animation-delay:-1.7s"/></svg></span></span><b>Vypěstujte si Vedoucího</b><span>ze zkumavky · minuta</span></a></sc-if>
+          </div>
+        </div>
+        <sc-if value="{{noHits}}" hint-placeholder-val="{{ false }}"><p class="cap" style="padding: 8px 20px 16px">Nic nenalezeno pro „{{mq}}“.</p></sc-if>
+        <div class="lm-foot"><span><kbd>⌘K</kbd> odkudkoli</span><span><kbd>Enter</kbd> první výsledek</span><span><kbd>Esc</kbd> zavřít</span></div>
+      </div>
+    </sc-if>
+    <div class="page">
+      <main class="content">
+        <header class="hero">
+          <div class="hero-top"><span class="eyebrow"><i class="ph ph-users" aria-hidden="true"></i> Tým a peníze</span><span class="chip {{adminChipCls}}"><i class="ph {{adminIc}}" aria-hidden="true"></i> {{adminChip}}</span></div>
+          <h1 class="hero-h">Přístup a schvalování</h1>
+          <p class="hero-lede">Členství je přístup: člen organizace vidí všechny její klienty a studie. Tady spravujete členy, jejich role a to, kdo smí schválit vlastní návrh.</p>
+          <dl class="hero-meta"><div><dt>Aktivní členové</dt><dd>{{activeCount}}</dd></div><sc-if value="{{inactiveCount}}" hint-placeholder-val="{{ true }}"><div><dt>Deaktivovaní</dt><dd><i class="ph ph-prohibit" aria-hidden="true"></i>{{inactiveCount}}</dd></div></sc-if><div><dt>Metodik</dt><dd><i class="ph ph-sparkle" aria-hidden="true"></i>{{metodikCount}}</dd></div><div><dt>Klienti</dt><dd>{{clientCount}}</dd></div><div><dt>Samoschválení v organizaci</dt><dd>{{orgSelfWord}}</dd></div></dl>
+        </header>
+        <div class="card" style="padding: 18px 24px; margin-bottom: 16px">
+          <div class="between"><h2>Členové <span class="info" title="Roli a štítek měníte přímo v řádku; změna platí hned a jde vrátit. Deaktivovaní jsou dole."><i class="ph ph-info" aria-hidden="true"></i></span></h2></div>
+          <div class="tbl" role="table" aria-label="Členové" style="margin-top: 8px; grid-template-columns: minmax(220px, 1.4fr) max-content max-content max-content minmax(150px, 1fr) max-content">
+            <div class="tr" role="row"><div class="th" role="columnheader">Člen</div><div class="th" role="columnheader" title="Vlastník: vše co správce + spravuje organizaci a přiděluje štítek Metodik. Správce: členové, stav klientů, samoschválení, systémové prompty, pravidla rešerše, rozpočty studií, smazání klienta. Výzkumník: pracuje ve všech studiích, má v každé vlastního Vedoucího, nastavení čte.">Role <span class="info" aria-hidden="true"><i class="ph ph-info" aria-hidden="true"></i></span></div><div class="th" role="columnheader" title="Štítek ke kterékoli roli. Ukládá a aktivuje verze metodiky. Přiděluje jen vlastník."><i class="ph ph-sparkle" aria-hidden="true"></i>Metodik <span class="info" aria-hidden="true"><i class="ph ph-info" aria-hidden="true"></i></span></div><div class="th" role="columnheader">Naposledy</div><div class="th" role="columnheader">Stav</div><div class="th" role="columnheader"><span class="sr-only">Akce</span></div></div>
+            <sc-for list="{{members}}" as="m" hint-placeholder-count="6">
+              <div class="tr {{m.rowCls}}" role="row">
+                <div class="td" role="cell"><div class="row" style="gap: 8px"><div class="av lt">{{m.init}}</div><div>{{m.name}}<div class="cap">{{m.email}}</div></div></div></div>
+                <div class="td" role="cell"><span class="seg sm" role="group" aria-label="Role"><sc-for list="{{m.roleOpts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" aria-pressed="{{o.on}}" disabled="{{m.roleLocked}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span></div>
+                <div class="td" role="cell"><button class="switch {{m.markCls}}" role="switch" aria-checked="{{m.metodik}}" aria-label="Štítek Metodik" disabled="{{m.markLocked}}" onClick="{{m.toggleMark}}"></button></div>
+                <div class="td muted" role="cell">{{m.last}}</div>
+                <div class="td" role="cell"><span class="row" style="gap: 6px"><span class="dot {{m.stateDot}}"></span>{{m.stateLabel}}</span><sc-if value="{{m.inactive}}" hint-placeholder-val="{{ false }}"><div class="hint" title="Nikdo ho nečte ani nepřebírá; smaže se po 365 dnech. Nový člen si vypěstuje vlastního."><i class="ph ph-lock-simple" aria-hidden="true"></i>Vedoucí zapečetěn</div></sc-if><sc-if value="{{m.saved}}" hint-placeholder-val="{{ false }}"><div class="hint" role="status"><i class="ph ph-check" aria-hidden="true"></i> Uloženo</div></sc-if></div>
+                <div class="td" role="cell"><div class="row" style="gap: 4px">
+                  <sc-if value="{{m.active}}" hint-placeholder-val="{{ true }}"><button class="btn sm danger" disabled="{{m.roleLocked}}" onClick="{{m.deactivate}}"><i class="ph ph-prohibit" aria-hidden="true"></i>Deaktivovat</button></sc-if>
+                  <sc-if value="{{m.inactive}}" hint-placeholder-val="{{ false }}"><button class="btn sm" disabled="{{noAdmin}}" onClick="{{m.restore}}"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Obnovit</button></sc-if>
+                </div></div>
+              </div>
+            </sc-for>
+            <sc-if value="{{adding}}" hint-placeholder-val="{{ false }}">
+              <div class="tr newrow" role="row">
+                <div class="td" role="cell"><input class="ipt" type="text" aria-label="E-mail nového člena" placeholder="jmeno@delta.example" autoFocus="{{ true }}" value="{{newEmail}}" onChange="{{setEmail}}" onKeyDown="{{newKey}}"><div class="hint">Enter přidá · Esc zruší</div></div>
+                <div class="td" role="cell"><span class="seg sm" role="group" aria-label="Role nového člena"><sc-for list="{{newRoleOpts}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span></div>
+                <div class="td cap" role="cell" style="grid-column: span 3"><i class="ph ph-arrow-elbow-down-right" aria-hidden="true"></i>hned uvidí vše v organizaci</div>
+                <div class="td" role="cell"><div class="row" style="gap: 4px"><button class="btn sm primary" disabled="{{noEmail}}" onClick="{{confirmAdd}}">Přidat</button><button class="btn sm quiet" onClick="{{cancelAdd}}">Zrušit</button></div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{notAdding}}" hint-placeholder-val="{{ true }}">
+              <div class="tr" role="row"><div class="td span" role="cell"><button class="btn sm quiet" disabled="{{noAdmin}}" onClick="{{startAdd}}"><i class="ph ph-plus" aria-hidden="true"></i>Přidat člena</button></div></div>
+            </sc-if>
+          </div>
+        </div>
+        <div class="card" style="padding: 16px 24px; margin-bottom: 16px">
+          <div class="between"><div class="row" style="gap: 14px"><h2>Samoschválení <span class="info" title="Zda autor smí schválit vlastní návrh; druhá osoba není povinná. Pravidlo organizace platí tam, kde klient ani studie nemají vlastní. Pravidlo klienta je v tabulce níže, pravidlo studie ve studii."><i class="ph ph-info" aria-hidden="true"></i></span></h2><span class="cap">Organizace</span><span class="seg sm" role="group" aria-label="Samoschválení organizace"><sc-for list="{{orgSelfOpts}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" aria-pressed="{{o.on}}" disabled="{{noAdmin}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span></div><div class="row" style="gap: 6px" title="Vyhrává nejpřesnější pravidlo"><span class="cap">Přednost:</span><span class="chip">studie</span><span class="cap">›</span><span class="chip">klient</span><span class="cap">›</span><span class="chip">organizace</span></div></div>
+        </div>
+        <div class="card" style="padding: 18px 24px">
+          <div class="between"><h2>Klienti <span class="info" title="Stav a samoschválení měníte zde. „Dědit“ přebírá pravidlo organizace. Postoj dat a strop peněženky se nastavují u klienta v Profil → Pravidla."><i class="ph ph-info" aria-hidden="true"></i></span></h2></div>
+          <div class="tbl" role="table" aria-label="Klienti" style="margin-top: 8px; grid-template-columns: minmax(170px, 1fr) max-content max-content minmax(170px, 1fr)">
+            <div class="tr" role="row"><div class="th" role="columnheader">Klient</div><div class="th" role="columnheader">Stav</div><div class="th" role="columnheader">Samoschválení</div><div class="th" role="columnheader">Postoj dat · peněženka <span class="info" title="Jen ke čtení; mění se u klienta"><i class="ph ph-lock-simple" aria-hidden="true"></i></span></div></div>
+            <sc-for list="{{clients}}" as="c" hint-placeholder-count="4">
+              <div class="tr" role="row">
+                <div class="td" role="cell"><span class="row" style="gap: 8px"><span class="dot" style="background: {{c.color}}"></span>{{c.name}}</span></div>
+                <div class="td" role="cell"><span class="seg sm" role="group" aria-label="Stav klienta"><sc-for list="{{c.statusOpts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" aria-pressed="{{o.on}}" disabled="{{noAdmin}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span></div>
+                <div class="td" role="cell"><span class="seg sm" role="group" aria-label="Samoschválení klienta"><sc-for list="{{c.selfOpts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" aria-pressed="{{o.on}}" disabled="{{noAdmin}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span></div>
+                <div class="td" role="cell"><span class="row" style="gap: 6px"><span class="chip mono {{c.postureCls}}">{{c.posture}}</span><span>{{c.ceil}}</span><a href="#" title="Změnit v Profil → Pravidla" aria-label="Změnit v Profil → Pravidla">Pravidla <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast row" role="status" style="gap: 12px">{{toast}}<sc-if value="{{undo}}" hint-placeholder-val="{{ false }}"><button class="btn sm" onClick="{{undo}}">Vrátit</button></sc-if></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1130}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.setState({ menu: !this.state.menu, from: 'rail', mq: '' }); }
+        else if (e.key === 'Escape' && this.state.menu) this.setState({ menu: false });
+        else if (e.key === 'Enter' && this.state.menu) { const a = document.querySelector('.lm a.it'); if (a) a.click(); }
+      });
+    }
+   
+    this.state = {
+      role: 'metodik', toast: null, dlgDeact: null, openLead: null, adding: false, newEmail: '', newRole: 'Výzkumník', orgSelf: 'Povolit',
+      members: [
+        { id: 'u1', name: 'Petr Kolář', email: 'petr.kolar@delta.example', role: 'Vlastník', metodik: false, active: true, last: 'dnes 9:12' },
+        { id: 'u2', name: 'Alena Horáková', email: 'alena.horakova@delta.example', role: 'Správce', metodik: true, active: true, last: 'dnes 10:40' },
+        { id: 'u3', name: 'Tomáš Beneš', email: 'tomas.benes@delta.example', role: 'Správce', metodik: false, active: true, last: 'včera' },
+        { id: 'u4', name: 'Jana Malá', email: 'jana.mala@delta.example', role: 'Výzkumník', metodik: false, active: true, last: 'dnes 8:03' },
+        { id: 'u5', name: 'Ondřej Svoboda', email: 'ondrej.svoboda@delta.example', role: 'Výzkumník', metodik: false, active: true, last: 'před 3 dny' },
+        { id: 'u6', name: 'Lucie Dvořáková', email: 'lucie.dvorakova@delta.example', role: 'Výzkumník', metodik: false, active: false, last: '12. 9.' }
+      ],
+      clients: [
+        { name: 'Pivovar Zlatá Hora', color: 'var(--c1)', status: 'Aktivní', self: 'Dědit', posture: 'OPEN', ceil: '60,00 USD' },
+        { name: 'Moravská pojišťovna', color: 'var(--c5)', status: 'Aktivní', self: 'Zakázat', posture: 'CLASSIFIED', ceil: '80,00 USD' },
+        { name: 'Kavárny Lípa', color: 'var(--c3)', status: 'Neaktivní', self: 'Dědit', posture: 'OPEN', ceil: 'nenastaven' },
+        { name: 'Testovací klient', color: 'var(--c4)', status: 'Aktivní', self: 'Povolit', posture: 'OPEN', ceil: '20,00 USD' }
+      ]
+    };
+  }
+  roles() {
+    return {
+      owner: { name: 'Petr Kolář', init: 'PK', label: 'Vlastník', admin: true, owner: true, metodik: false },
+      metodik: { name: 'Alena Horáková', init: 'AH', label: 'Správce · Metodik', admin: true, owner: false, metodik: true },
+      admin: { name: 'Tomáš Beneš', init: 'TB', label: 'Správce', admin: true, owner: false, metodik: false },
+      researcher: { name: 'Jana Malá', init: 'JM', label: 'Výzkumník', admin: false, owner: false, metodik: false }
+    };
+  }
+  menu(T, cur, r) {
+    const IC = { 'Main.dc.html': 'i-main', 'Prompts.dc.html': 'i-prompts', 'DeepResearch.dc.html': 'i-dr', 'AI.dc.html': 'i-ai', 'Access.dc.html': 'i-access', 'Studies.dc.html': 'i-studies', 'Audit.dc.html': 'i-audit', 'System.dc.html': 'i-system', 'Data.dc.html': 'i-data' };
+    const KW = { 'Main.dc.html': 'sociomapa vzorec parametr verze agregace vážení podpora potlačení připravenost metodik', 'Prompts.dc.html': 'prompt instrukce agent vedoucí verze', 'DeepResearch.dc.html': 'brave wikipedia common crawl rešerše web dosah limit usd', 'AI.dc.html': 'model bedrock respondent analýza přepínač provider', 'Access.dc.html': 'člen role pozvat správce vlastník metodik samoschválení', 'Studies.dc.html': 'rozpočet práh potvrzení peněženka útrata výzkumník usd', 'Audit.dc.html': 'historie změna kdo kdy záznam', 'System.dc.html': 'glitchtip chyby smoke health připravenost fronta zaparkováno pokusy verze sestava prostředí databáze populace diagnostika', 'Data.dc.html': 'smazání klient uchování lhůta gdpr' };
+    const BADGE = { ...(r.admin ? { 'DeepResearch.dc.html': 1 } : {}), ...(r.metodik ? { 'Prompts.dc.html': 1 } : {}) };
+    const q = (this.state.mq || '').toLowerCase().trim();
+    let g = null;
+    const items = T.map((t) => { if (t[0]) g = t[0]; return { grp: g, href: t[1], t: t[2], s: t[3], ic: IC[t[1]], badge: BADGE[t[1]] || null, cls: t[1] === cur ? 'on' : '' }; });
+    const hits = items.filter((i) => !q || (i.t + ' ' + i.s + ' ' + KW[i.href]).toLowerCase().includes(q));
+    const here = items.find((i) => i.href === cur) || items[0];
+    const nb = Object.values(BADGE).reduce((a, b) => a + b, 0);
+    return {
+      menuOpen: !!this.state.menu, mq: this.state.mq || '', noHits: hits.length === 0,
+      toggleMenu: () => this.setState({ menu: !this.state.menu || this.state.from === 'rail', from: 'top', mq: '' }), closeMenu: () => this.setState({ menu: false }),
+      setMq: (e) => this.setState({ mq: e.target.value }),
+      menuGroups: ['Nastavení výzkumu', 'Tým a peníze', 'Provoz'].map((n) => ({ n, items: hits.filter((i) => i.grp === n) })).filter((x) => x.items.length),
+      railMenu: () => this.setState({ menu: !(this.state.menu && this.state.from === 'rail'), from: 'rail', mq: '' }),
+      railOpen: !!this.state.menu && this.state.from === 'rail', railCls: this.state.menu && this.state.from === 'rail' ? 'open' : '',
+      lmCls: 'lm from-rail',
+      curT: here.t, curIc: here.ic, menuBadge: nb || null,
+      leadHref: this.state.noLead ? 'Hatch.dc.html' : 'LeadSettings.dc.html', hasLead: !this.state.noLead, noLead: !!this.state.noLead,
+      leadOpts: [['Vedoucí: Ada', false], ['bez Vedoucího', true]].map(([l, v]) => ({ l, on: !!this.state.noLead === v, cls: !!this.state.noLead === v ? 'on' : '', pick: () => this.setState({ noLead: v, menu: true }) }))
+    };
+  }
+  shell(cur) {
+    const T = [
+      ['Nastavení výzkumu', 'Main.dc.html', 'Metodika', 'Jak se počítají mapy a čísla'], [null, 'Prompts.dc.html', 'Systémové prompty', 'Instrukce agentů'],
+      [null, 'DeepResearch.dc.html', 'Deep Research', 'Dosah, pravidla, schválení'], [null, 'AI.dc.html', 'AI běh', 'Co pohání AI · jen ke čtení'],
+      ['Tým a peníze', 'Access.dc.html', 'Přístup a schvalování', 'Členové, role, samoschválení'], [null, 'Studies.dc.html', 'Studie a rozpočty', 'Rozpočty studií, útrata'],
+      ['Provoz', 'Audit.dc.html', 'Audit', 'Kdo co změnil a kdy'], [null, 'System.dc.html', 'Stav systému', 'Připravenost, fronta, verze, chyby'],
+      [null, 'Data.dc.html', 'Správa dat', 'Smazání klienta, uchovávané záznamy']
+    ];
+    const r = this.roles()[this.state.role];
+    return { theme: this.props.theme ?? 'light', role: this.state.role, me: r, R: r,
+      roleOpts: [['owner', 'Vlastník'], ['metodik', 'Správce + Metodik'], ['admin', 'Správce'], ['researcher', 'Výzkumník']].map(([k, l]) => ({ l, on: k === this.state.role, cls: k === this.state.role ? 'on' : '', pick: () => this.setState({ role: k }) })),
+      ...this.menu(T, cur, r) };
+  }
+  flash(msg, undo) { this.setState({ toast: msg, undoFn: undo || null }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null, undoFn: null }), undo ? 8000 : 2600); }
+  opts(list, cur, pick, label) { return list.map((v) => ({ l: label ? label(v) : v, on: v === cur, cls: v === cur ? 'on' : '', pick: () => pick(v) })); }
+  renderVals() {
+    const s = this.state, sh = this.shell('Access.dc.html'), r = sh.R;
+    const upd = (id, f) => this.setState({ members: this.state.members.map((m) => (m.id === id ? f(m) : m)) });
+    const updC = (i, f) => this.setState({ clients: this.state.clients.map((c, j) => (j === i ? f(c) : c)) });
+    const addMember = () => {
+      const e = this.state.newEmail.trim(); if (!e) return;
+      const name = e.split('@')[0].split('.').map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+      this.setState({ members: [...this.state.members, { id: 'n' + Date.now(), name, email: e, role: this.state.newRole, metodik: false, active: true, last: 'pozván' }], adding: false, newEmail: '' });
+      this.flash('Pozvánka odeslána (prototyp).');
+    };
+    return {
+      ...sh, noAdmin: !r.admin,
+      adminChip: r.admin ? 'Spravujete členy' : 'Jen ke čtení', adminIc: r.admin ? 'ph-pencil-simple' : 'ph-lock-simple', adminChipCls: r.admin ? 'inapp' : '',
+      activeCount: s.members.filter((m) => m.active).length,
+      inactiveCount: s.members.filter((m) => !m.active).length || null,
+      metodikCount: s.members.filter((m) => m.metodik).length,
+      clientCount: s.clients.length, orgSelfWord: s.orgSelf === 'Povolit' ? 'Povoleno' : 'Zakázáno',
+      members: [...s.members.filter((m) => m.active), ...s.members.filter((m) => !m.active)].map((m) => ({
+        ...m, init: m.name.split(' ').map((x) => x[0]).join(''), inactive: !m.active,
+        rowCls: m.active ? '' : 'inactive', stateLabel: m.active ? 'Aktivní' : 'Deaktivovaný', stateDot: m.active ? 'on' : 'off',
+        roleLocked: !r.admin || m.role === 'Vlastník', markLocked: !r.owner || !m.active, markCls: m.metodik ? 'on' : '',
+        saved: s.savedId === m.id,
+        roleOpts: this.opts(['Vlastník', 'Správce', 'Výzkumník'], m.role, (v) => { if (v === 'Vlastník' || v === m.role) return; const before = m.role; upd(m.id, (x) => ({ ...x, role: v })); this.setState({ savedId: m.id }); this.flash('Role: ' + m.name + ' je ' + v + ' · zapsáno do auditu', () => { upd(m.id, (x) => ({ ...x, role: before })); this.setState({ toast: null, undoFn: null }); }); }),
+        toggleMark: () => { upd(m.id, (x) => ({ ...x, metodik: !x.metodik })); this.setState({ savedId: m.id }); this.flash(m.metodik ? 'Štítek Metodik odebrán · zapsáno do auditu' : 'Štítek Metodik přidělen · zapsáno do auditu', () => { upd(m.id, (x) => ({ ...x, metodik: m.metodik })); this.setState({ toast: null, undoFn: null }); }); },
+        deactivate: () => { upd(m.id, (x) => ({ ...x, active: false })); this.flash(m.name + ' je deaktivovaný: nepřihlásí se, jeho studie zůstávají. Jeho Vedoucí je zapečetěn; nečte ho nikdo, ani správce, a smaže se po 365 dnech. Nový člen si vypěstuje vlastního.', () => { upd(m.id, (x) => ({ ...x, active: true })); this.setState({ toast: null, undoFn: null }); }); },
+        restore: () => upd(m.id, (x) => ({ ...x, active: true }))
+      })),
+      adding: s.adding, notAdding: !s.adding, newEmail: s.newEmail, noEmail: !s.newEmail.trim(),
+      startAdd: () => this.setState({ adding: true }),
+      cancelAdd: () => this.setState({ adding: false, newEmail: '' }),
+      setEmail: (e) => this.setState({ newEmail: e.target.value }),
+      newKey: (e) => { if (e.key === 'Enter') addMember(); if (e.key === 'Escape') this.setState({ adding: false, newEmail: '' }); },
+      newRoleOpts: this.opts(['Výzkumník', 'Správce'], s.newRole, (v) => this.setState({ newRole: v })),
+      confirmAdd: addMember,
+      clients: s.clients.map((c, i) => ({ ...c, postureCls: c.posture === 'OPEN' ? '' : 'op',
+        statusOpts: this.opts(['Aktivní', 'Neaktivní', 'Archivovaný'], c.status, (v) => updC(i, (x) => ({ ...x, status: v }))),
+        selfOpts: this.opts(['Dědit', 'Povolit', 'Zakázat'], c.self, (v) => updC(i, (x) => ({ ...x, self: v }))) })),
+      orgSelfOpts: this.opts(['Povolit', 'Zakázat'], s.orgSelf, (v) => this.setState({ orgSelf: v })),
+      toast: s.toast, undo: s.undoFn
+    };
+  }
+}
+</script>
+</body>
+</html>
