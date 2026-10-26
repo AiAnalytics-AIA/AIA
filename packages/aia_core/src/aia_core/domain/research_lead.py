@@ -170,7 +170,9 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 #: 2: the task describes Deep Research's two purposes, its presets and targets (LO5a.1).
-LEAD_PROMPT_VERSION: Final = "2"
+#: 3: the task says the Lead may select what the person pointed at on Sociomapa and set its
+#: display filters (#992; the product owner, 2026-10-26).
+LEAD_PROMPT_VERSION: Final = "3"
 #: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
 #: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
 LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
