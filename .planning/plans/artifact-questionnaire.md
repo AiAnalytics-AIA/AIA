@@ -11,7 +11,7 @@ chunks:
   - "[x] QST8. Závislosti: what reads each set and question downstream (Sociomap, Results, Analysis), from the specification"
   - "[ ] QST9. Journey: Dotazník at 1440, 1100, 768 and 390 px, zero paid jobs"
   - "[ ] QST10. One comparison set shared by Návrh and Dotazník ('Objekty', data-aia set:<id>), seen from both stages (spec navrh D6 + Q8; W2, after working-copy-edit-ops WCE8b)"
-  - "[ ] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
+  - "[x] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
   - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
   - "[ ] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
 ---
