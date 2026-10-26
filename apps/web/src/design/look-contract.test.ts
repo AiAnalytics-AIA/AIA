@@ -28,9 +28,10 @@ describe("the look contract's radii", () => {
     expect(radius("radius-0")).toBe("0px");
   });
 
-  it("keeps round for what is round by nature, and nothing between 10 and round", () => {
+  it("keeps round for what is round by nature, and nothing between 10 and round but the Lead's composer", () => {
     expect(radius("radius-pill")).toBe("999px");
-    const px = tokensJson.radius.tokens.map((t) => Number.parseFloat(t.value)).filter((v) => v < 999);
+    // The Lead chat's composer is the one 12 (UI-3, prototype-build PBA7), named for what it draws.
+    const px = tokensJson.radius.tokens.filter((t) => t.name !== "radius-composer").map((t) => Number.parseFloat(t.value)).filter((v) => v < 999);
     expect(Math.max(...px)).toBe(10);
   });
 
