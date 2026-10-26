@@ -2798,6 +2798,8 @@ describe("Results", () => {
     expect(report.getByText("není součástí")).toBeTruthy();
     const variant = await report.findByRole("combobox", { name: "Varianta zprávy" });
     await waitFor(() => expect(within(variant).getAllByRole("option")).toHaveLength(2));
+    // A review is named by its date, never its run id (RPT12).
+    expect(variant.textContent).not.toContain("RUN-");
     fireEvent.change(variant, { target: { value: "RUN-deep" } });
     const prepare = await report.findByRole("button", { name: /Připravit zprávu s rešerší/ });
     // A PDF is promised only where one will be made (review 2, F35), never as "DOCX i PDF".

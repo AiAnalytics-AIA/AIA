@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Answerability, AnswerabilityGap } from "@/lib/api";
+import { t } from "@/i18n/t";
 import { coverageRecord, type CoverageLine } from "./report-coverage";
 
 const gap = (question: string, reasons: string[], verdict: AnswerabilityGap["verdict"] = "UNANSWERABLE"): AnswerabilityGap =>
   ({ kind: "not_answerable", research_question: question, verdict, reasons, measures: ["q1"] });
 const answer = (gaps: AnswerabilityGap[], pending: string[] = []): Answerability =>
   ({ rules: "r", capable: !gaps.length, digest: "d", gaps, pending });
-const words = (lines: CoverageLine[]) => lines.map((l) => `${l.label}: ${l.state}${l.why ? ` — ${l.why}` : ""}${l.ref ? ` · ${l.ref}` : ""}`);
+const words = (lines: CoverageLine[]) => lines.map((l) => `${l.label}: ${l.state}${l.why ? ` — ${l.why}` : ""}`);
 
 describe("Záznam pokrytí (RPT4)", () => {
   it("lists a design's segment comparison as Segmenty: neprovedeno once, each question keeping its own line and reasons", () => {
@@ -50,15 +51,15 @@ describe("Záznam pokrytí (RPT4)", () => {
     expect(words(coverageRecord({ answerability: answer([]) }, []))[0]).toBe("Výzkumné otázky: při spuštění běh nezaznamenal žádnou mezeru");
   });
 
-  it("names the run's outputs no section read, by words where it has them, else by type", () => {
+  it("names the run's outputs no section read in words, never by id or raw type (RPT12)", () => {
     const lines = coverageRecord({ answerability: answer([]) }, [
       { kind: "artifact", artifact_type: "research_sociomapping_docx", artifact_id: "ART-s", sha256: "a" },
       { kind: "artifact", artifact_type: "research_unknown_kind" },
       { kind: "beside", node_key: "sociomapping", step_kind: "sociomapping" },
     ]);
     expect(words(lines).slice(1)).toEqual([
-      "Zpráva Sociomappingu (interní koncept): uloženo, žádná kapitola z něj nečte · ART-s",
-      "research_unknown_kind: uloženo, žádná kapitola z něj nečte",
+      "Zpráva Sociomappingu (interní koncept): uloženo, žádná kapitola z něj nečte",
+      `Další uložený výstup (${t("research.exec.code.technical")}: research_unknown_kind): uloženo, žádná kapitola z něj nečte`,
       "Sociomapping (experimentální metoda AIA): souběžný krok, zpráva z něj nečte",
     ]);
   });
