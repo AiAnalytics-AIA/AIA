@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Answerability, AnswerabilityGap } from "@/lib/api";
+import { t } from "@/i18n/t";
 import { coverageRecord, type CoverageLine } from "./report-coverage";
 
 const gap = (question: string, reasons: string[], verdict: AnswerabilityGap["verdict"] = "UNANSWERABLE"): AnswerabilityGap =>
@@ -58,7 +59,7 @@ describe("Záznam pokrytí (RPT4)", () => {
     ]);
     expect(words(lines).slice(1)).toEqual([
       "Zpráva Sociomappingu (interní koncept): uloženo, žádná kapitola z něj nečte",
-      "Další uložený výstup: uloženo, žádná kapitola z něj nečte",
+      `Další uložený výstup (${t("research.exec.code.technical")}: research_unknown_kind): uloženo, žádná kapitola z něj nečte`,
       "Sociomapping (experimentální metoda AIA): souběžný krok, zpráva z něj nečte",
     ]);
   });

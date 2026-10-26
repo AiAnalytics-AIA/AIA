@@ -5,14 +5,15 @@
 // never read as covered.
 import type { Answerability } from "@/lib/api";
 import { gapWords } from "@/lib/answerability";
+import { codedText } from "@/lib/reason-words";
 import { stepLabel } from "@/lib/research-execution";
 import type { RunOutput } from "./report";
 
-/** One line: what (a research question, "Segmenty", an output), its state, why, and the stored
- *  output it names, if any. */
+/** One line: what (a research question, "Segmenty", an output), its state and why. */
 export type CoverageLine = { kind: "question" | "output"; label: string; state: string; why: string | null };
 
-/** The step whose words name a stored output; any other type keeps its type, never hidden. */
+/** The step whose words name a stored output; any other is "Další uložený výstup" with its type kept
+ *  as a technical code (codedText), never hidden and never its id (RPT12). */
 const OUTPUT_STEP: Record<string, string> = {
   research_aggregate: "aggregate",
   research_sociomap: "sociomap",
@@ -52,8 +53,7 @@ function outputLines(unread: unknown): CoverageLine[] {
   if (!unread.length) return [line("Výstupy běhu", "zpráva čte ze všech uložených")];
   return (unread as RunOutput[]).map((o) => (o.kind === "beside"
     ? line(stepLabel(o.node_key), "souběžný krok, zpráva z něj nečte")
-    // In words, never by its id or a raw type (RPT12): an output the page has no words for is said so.
-    : line(o.artifact_type in OUTPUT_STEP ? stepLabel(OUTPUT_STEP[o.artifact_type]) : "Další uložený výstup", "uloženo, žádná kapitola z něj nečte")));
+    : line(o.artifact_type in OUTPUT_STEP ? stepLabel(OUTPUT_STEP[o.artifact_type]) : codedText({ words: "Další uložený výstup", code: o.artifact_type }), "uloženo, žádná kapitola z něj nečte")));
 }
 
 /** The record: the research questions first, then the run's outputs the draft does not read. */
