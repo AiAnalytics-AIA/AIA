@@ -139,6 +139,7 @@ __all__ = [
     "context_data_class",
     "context_identifiers",
     "context_sha256",
+    "design_research_questions",
     "freeze_context",
     "frozen_sample_size",
     "ground_edits",
@@ -565,17 +566,28 @@ class RequestIds:
     deep_research_runs: frozenset[str] = frozenset()
 
 
+def design_research_questions(content: Mapping[str, Any]) -> list[dict[str, str]]:
+    """The design's research questions with the ids a focus names them by (``item_ids``), as
+    the design layer shows them: a stored copy need not carry its ids, so they are derived and
+    shown, never left for the model to guess (stand-in review of #925). Empty when the plan
+    states none, or its ids do not line up with its list."""
+    plan = with_item_ids(content)[0].get("research_plan")
+    if not isinstance(plan, Mapping):
+        return []
+    ids = list_ids(plan, "research_questions", "research_question_ids") or []
+    texts = plan.get("research_questions") or []
+    return [{"id": i, "text": str(t)} for i, t in zip(ids, texts, strict=False)]
+
+
 def request_ids(context: Mapping[str, Any]) -> RequestIds:
-    """What :class:`RequestIds` a frozen context offers; a layer it does not hold offers none."""
+    """What :class:`RequestIds` a frozen context offers, read from what the model is shown: the
+    design layer's ``research_questions`` list, the candidates and their default, and the Deep
+    Research runs that can be retried. A layer it does not hold offers none."""
     by_name = {entry.get("layer"): entry for entry in context.get("layers") or []}
-    content = (by_name.get("design") or {}).get("content")
-    questions: frozenset[str] = frozenset()
-    if isinstance(content, Mapping):
-        plan = with_item_ids(content)[0].get("research_plan")
-        if isinstance(plan, Mapping):
-            questions = frozenset(
-                list_ids(plan, "research_questions", "research_question_ids") or ()
-            )
+    listed = (by_name.get("design") or {}).get("research_questions") or []
+    questions = frozenset(
+        str(q["id"]) for q in listed if isinstance(q, Mapping) and isinstance(q.get("id"), str)
+    )
     targets_layer = by_name.get("targets") or {}
     targets = targets_layer.get("candidates") or []
     default = targets_layer.get("default")
@@ -585,7 +597,9 @@ def request_ids(context: Mapping[str, Any]) -> RequestIds:
         targets=frozenset(str(t["id"]) for t in targets if isinstance(t, Mapping) and "id" in t),
         default_target=default if isinstance(default, str) else None,
         deep_research_runs=frozenset(
-            str(r["run_id"]) for r in runs if isinstance(r, Mapping) and "run_id" in r
+            str(r["run_id"])
+            for r in runs
+            if isinstance(r, Mapping) and "run_id" in r and r.get("retryable") is True
         ),
     )
 
@@ -607,7 +621,9 @@ def request_refusal(request: Any, ids: RequestIds) -> str | None:
             return f"request.target {request.target} is not a candidate of the targets layer"
     elif isinstance(request, DeepResearchRetryRequest):
         if request.run_id not in ids.deep_research_runs:
-            return f"request.run_id {request.run_id} is not a run of the deep_research layer"
+            return (
+                f"request.run_id {request.run_id} is not a retryable run of the deep_research layer"
+            )
     return None
 
 
@@ -964,7 +980,7 @@ Co děláš:
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli
   request. Spustí ji až člověk; netvrď, že běží.
 - Rešerše (Deep Research) má dva účely. design_research hledá kontext k návrhu před během:
-  focus jsou id výzkumných otázek z návrhu, prázdný focus je celý návrh.
+  focus jsou id z design.research_questions, prázdný focus je celý návrh.
   interpretation_research hledá kontext k jednomu výsledku: target je id kandidáta z vrstvy
   targets (t1, t2 …); bez target platí targets.default. deep_research_retry zopakuje běh
   z vrstvy deep_research podle run_id, jen je-li retryable. preset je QUICK (rychlá) nebo
@@ -1250,6 +1266,16 @@ def context_classification(
     ]
     if design.get("analysis"):
         parts.append(_part("design_analysis", design["analysis"], MaterialRule.DESIGN, approvals))
+    if design.get("research_questions"):
+        # The plan's research questions with their ids: the design's own words.
+        parts.append(
+            _part(
+                "design_research_questions",
+                design["research_questions"],
+                MaterialRule.DESIGN,
+                approvals,
+            )
+        )
     if view.get("message"):
         parts.append(_part("message", view["message"], MaterialRule.LEAD_MESSAGE, approvals))
     # Several queued messages answered together: each the researcher's, each its own part.

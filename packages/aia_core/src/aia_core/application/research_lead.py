@@ -68,6 +68,7 @@ from ..domain.research_lead import (
     ResearcherLead,
     SelfUpdate,
     context_sha256,
+    design_research_questions,
     freeze_context,
     is_text_edit,
     new_turn_id,
@@ -1373,6 +1374,12 @@ class ResearchLead:
                 "design_revision_id": design_revision_id,
                 "content": design_material(content),
                 "analysis": analysis,
+                # The ids a focus names, shown beside the content that may not store them.
+                **(
+                    {"research_questions": listed}
+                    if (listed := design_research_questions(content))
+                    else {}
+                ),
                 # The valid n as readiness reads it (RQC9): what a set_n is grounded against.
                 "readiness": readiness_layer(limits.sample_size, limits.methodology_version),
             },

@@ -104,7 +104,7 @@ LEAD_LAYERS: Final[tuple[LeadLayer, ...]] = (
         DEEP_RESEARCH_MAX_BYTES,
         f"the newest {DEEP_RESEARCH_RUNS} Deep Research runs within {DEEP_RESEARCH_MAX_BYTES} "
         "bytes",
-        "runs past the bound are counted",
+        "runs past the byte bound are counted; older runs are left out",
     ),
     LeadLayer(
         "targets",
@@ -164,6 +164,7 @@ PART_LAYERS: Final[Mapping[str, str]] = {
     "study_name": "study",
     "design": "design",
     "design_analysis": "design",
+    "design_research_questions": "design",
     "message": "view",
     "focus_label": "view",
     "external_context": EXTERNAL_LAYER,

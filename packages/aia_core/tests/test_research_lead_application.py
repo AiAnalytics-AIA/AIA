@@ -1303,6 +1303,13 @@ def test_a_deep_research_run_of_the_study_is_in_the_turns_context(
     before = frozen("Běží rešerše?")
     names = [e["layer"] for e in before["layers"]]
     assert "deep_research" not in names and "targets" not in names
+    # The research questions a focus may name are shown with their ids (review of #925), on a
+    # copy that stores none.
+    from aia_core.domain.research_lead import request_ids
+
+    shown = layer(before, "design")["research_questions"]
+    assert [q["text"] for q in shown] == ["Proč?"]
+    assert request_ids(before).research_questions == {shown[0]["id"]}
     revision = StudyDesignRepository(session, scope).latest()
     assert revision is not None
     started = DeepResearchRuns(session, scope).start(

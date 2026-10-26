@@ -31,6 +31,7 @@ from aia_core.domain.research_lead import (
     RequestIds,
     context_bytes,
     context_classification,
+    design_research_questions,
     freeze_context,
     layer,
     lead_contract,
@@ -263,11 +264,18 @@ def _context(**overrides: Any) -> dict[str, Any]:
         "knowledge": [],
         "omitted_knowledge_ids": [],
         "study": {"name": "S", "client_name": "C", "budget_usd": 25.0, "spent_usd": 0.0},
-        "design": {"design_revision_id": "REV-1", "content": DESIGN, "analysis": None},
+        "design": {
+            "design_revision_id": "REV-1",
+            "content": DESIGN,
+            "analysis": None,
+            "research_questions": design_research_questions(DESIGN),
+        },
         "runs": [],
         "view": {"kind": "message", "stage": "results", "focus": None, "message": "Ahoj"},
         "conversation": [],
-        "deep_research": deep_research_layer([DR_RUN], targets_layer([_run()])["candidates"]),
+        "deep_research": deep_research_layer(
+            [{**DR_RUN, "retryable": True}], targets_layer([_run()])["candidates"]
+        ),
         "targets": targets_layer([_run()]),
     }
     fields.update(overrides)
@@ -376,3 +384,40 @@ def test_the_prompt_says_a_reserse_is_external_context_never_respondent_evidence
     prompt = lead_prompt()
     assert "vnější kontext, nikdy důkaz od respondentů" in prompt
     assert "targets" in prompt and "deep_research_retry" in prompt
+
+
+def test_every_research_question_id_a_focus_may_name_is_shown_to_the_model() -> None:
+    """Stand-in review of #925: the ids were derived for grounding but a copy that stores none
+    showed the model none, so every focused request was a guess and refused."""
+    from aia_core.domain.research_lead import model_message
+
+    assert "research_question_ids" not in DESIGN["research_plan"]
+    listed = design_research_questions(DESIGN)
+    assert [q["text"] for q in listed] == [RQ1, RQ2]
+    context = _context(
+        design={
+            "design_revision_id": "REV-1",
+            "content": DESIGN,
+            "analysis": None,
+            "research_questions": listed,
+        }
+    )
+    ids = request_ids(context).research_questions
+    assert ids == frozenset(q["id"] for q in listed) and ids
+    message = model_message(context)
+    assert all(i in message for i in ids)
+    # What grounds a focus is exactly what the model is shown: a layer without the list
+    # offers no research question to focus on, whatever the content would derive.
+    bare = _context(design={"design_revision_id": "REV-1", "content": DESIGN, "analysis": None})
+    assert request_ids(bare).research_questions == frozenset()
+    # The list is the design's own words: classed as the design is.
+    prompt = PromptPin(**layer(context, "prompt")["pin"])
+    parts = {p["part"]: p for p in context_classification(context, (), prompt)}
+    assert parts["design_research_questions"]["source"] == "rule:design"
+
+
+def test_only_a_run_that_can_be_retried_may_be_named_for_a_retry() -> None:
+    stuck = {**DR_RUN, "run_id": "RUN-dddd0002", "retryable": False}
+    failed = {**DR_RUN, "run_id": "RUN-dddd0003", "retryable": True}
+    context = _context(deep_research=deep_research_layer([stuck, failed]))
+    assert request_ids(context).deep_research_runs == frozenset({"RUN-dddd0003"})
