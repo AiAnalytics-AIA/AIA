@@ -191,6 +191,16 @@ existing guards, check/compare and activation with a reason; the Metodik rule ke
 rozpočty drops the per-study status picker for the design's 6-column table; the global shell
 (gap 22) is not now. Each chunk is its own PR from a fresh develop, with side-by-side screenshots.
 
+**F12, part 1** (built; the chunk stays open). Stav systému's shared deployment (409 deployment_shared)
+reads as a fact, muted, never an alert in fault red. Správa dat as prototype v99: the cards the section's
+h2s with their help behind an ⓘ; "Nelze vrátit" the one fault-toned chip; the client deletion's one
+action a danger button (local to DataPanel: the shared Button primitive is lane A's); what a deletion takes
+and keeps (Smaže se / Zůstane) listed in the open once a client is chosen, the counts still the
+confirmation's, from the server. Left open: the kept records' rows as v99 draws them (each record's line
+under its name; their lhůta is F22's, MVPQ-07), and Systémové prompty's head chips and buttons, which wait
+for the Metodik-only rule (Nigel, 26 Oct ~00:35 UTC: "metodik edits the prompts") to reach the API, since a
+chip saying who may edit must say what the server enforces.
+
 ## From the research build spec (2026-10-26)
 
 Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at

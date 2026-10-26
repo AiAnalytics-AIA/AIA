@@ -1720,6 +1720,8 @@ export const cs = {
           malformed: "API nevrátilo seznam uchovávaných záznamů.",
           irreversible: "Nelze vrátit",
           clientDeleteHelp: "Vyberte klienta a zkontrolujte, co se smaže a co zůstane; smazání se potvrzuje a zapíše do auditu.",
+          deleteInfo: "Jak se klient maže",
+          keptInfo: "Co jsou uchovávané záznamy",
           noClients: "Žádný klient ke smazání.",
           client: "Klient",
           chooseClient: "Vyberte klienta…",
