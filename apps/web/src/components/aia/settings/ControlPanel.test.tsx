@@ -819,8 +819,25 @@ describe("what powers AIA", () => {
       fireEvent.click(button);
       expect((document.getElementById(id) as HTMLElement).hidden).toBe(false);
     }
-    // The smoke test, which verifies a call really goes through, is a link to Stav systému.
-    expect(within(ai).getByRole("link", { name: /smoke test/ }).getAttribute("href")).toBe("#system");
+    // The deploy's smoke test is a link to Stav systému. It makes no model call, and the link says so.
+    const smoke = within(ai).getByRole("link", { name: /smoke test/ });
+    expect(smoke.getAttribute("href")).toBe("#system");
+    expect(smoke.getAttribute("title")).toMatch(/Model nevolá/);
+    // London and Zurich are named eu- by AWS but are not in the EU (review of #961).
+    expect(within(route).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
+  });
+
+  it("reads London and Zurich as outside the EU, though AWS names them eu- (review of #961)", async () => {
+    for (const [region, city] of [["eu-west-2", "Londýn"], ["eu-central-2", "Curych"]] as const) {
+      api({ "GET /config": () => CONFIG({ region }) });
+      render(<ControlPanel />);
+      await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+      const route = section("ai").querySelector("[data-config]") as HTMLElement;
+      await waitFor(() => expect(route.querySelector("[data-region-city]")?.textContent).toBe(city));
+      expect(within(route).getByText("oblast mimo EU")).toBeTruthy();
+      expect(within(route).queryByText("oblast v EU: data zůstávají v EU")).toBeNull();
+      cleanup();
+    }
   });
 
   it("keeps an activity the document comes to list in its own group, once, and marks the group headings as row groups", async () => {
@@ -924,6 +941,10 @@ describe("what powers AIA", () => {
     expect(within(ai).getAllByText(/Konfiguraci nasazení se nepodařilo načíst, takže nic netvrdí/).length).toBe(2);
     expect(within(ai).queryByText("Zapnuto v konfiguraci")).toBeNull();
     expect(within(ai).queryByText("Vypnuto")).toBeNull();
+    // No count of what is on or off: every switch is unknown, never "0 zapnuto" (review of #961).
+    expect(ai.querySelector('[data-count="on"], [data-count="off"]')).toBeNull();
+    expect([...ai.querySelectorAll("[data-count]")].map((c) => c.textContent)).not.toContainEqual(expect.stringMatching(/^0 /));
+    expect(ai.querySelector('[data-count="unknown"]')?.textContent).toBe("zapnuto: nezjištěno");
     expect(screen.getByText("Vnímání značky")).toBeTruthy();
     cleanup();
 

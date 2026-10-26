@@ -208,6 +208,12 @@ grouped them; what powers AI, the credential and who changes the route behind th
 "zapnuto" means behind the activities' ⓘ, and a link to the smoke test on Stav systému. Not drawn,
 because nothing serves them: the route's id, "U poskytovatele" (retention, training) and a Třídy column
 per activity. Reference's part of this chunk is F17's: its categories stay as chips in Stav systému.
+  Review of #961: with /config unreadable the on / off counts are not drawn ("zapnuto: nezjištěno"),
+  never "0 zapnuto"; London (eu-west-2) and Zurich (eu-central-2) read "oblast mimo EU". **Finding
+  (hypothesis until reproduced against a worker):** the worker accepts any `eu-` region as EU
+  residency, London and Zurich included (`apps/executors/src/aia_executors/ai_runtime.py:593 @ c5f1d11d`,
+  `packages/aia_core/src/aia_core/domain/model_invocation.py:98 @ c5f1d11d`); the smallest fix is an
+  explicit EU region set in `domain/residency.py` that both read, with a test that eu-west-2 is refused.
 
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 

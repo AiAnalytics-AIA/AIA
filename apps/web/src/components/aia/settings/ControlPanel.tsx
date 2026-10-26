@@ -422,12 +422,15 @@ function Tile({ label, children, note }: { label: string; children: ReactNode; n
   );
 }
 
-/** The EU regions Bedrock's route may name, by their city (prototype v99's "Frankfurt · EU"). A
- *  region not listed shows its code alone, never a guessed city. */
+/** The regions Bedrock's route may name, by their city (prototype v99's "Frankfurt · EU"). A region
+ *  not listed shows its code alone, never a guessed city. */
 const REGION_CITY: Record<string, string> = {
   "eu-central-1": "Frankfurt", "eu-central-2": "Curych", "eu-west-1": "Irsko", "eu-west-2": "Londýn", "eu-west-3": "Paříž",
   "eu-north-1": "Stockholm", "eu-south-1": "Milán", "eu-south-2": "Španělsko",
 };
+/** AWS names London and Zurich "eu-" too, but the United Kingdom and Switzerland are not in the EU:
+ *  only these regions read "v EU" (review of #961). */
+const EU_REGIONS = new Set(["eu-central-1", "eu-west-1", "eu-west-3", "eu-north-1", "eu-south-1", "eu-south-2"]);
 /** A data class's letter, as v99's chips draw it: CLASS_A_… is "A". */
 const classLetter = (id: string): string => /^CLASS_([A-Z])_/.exec(id)?.[1] ?? id;
 
@@ -465,7 +468,7 @@ function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: Nati
             <Tile label={t(`${R}.provider`)}>{providers}</Tile>
             <Tile label={t(`${R}.region`)} note={<>
               {region !== null && REGION_CITY[region] ? <span data-region-city className="block">{REGION_CITY[region]}</span> : null}
-              {region === null ? null : <span className="block">{region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
+              {region === null ? null : <span className="block">{EU_REGIONS.has(region) ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
               <Technical><code className="break-all">AIA_BEDROCK_REGION</code></Technical>
             </>}><Value value={region} /></Tile>
             <Tile label={t(`${R}.model`)} note={<Technical><code>AIA_BEDROCK_MODEL_ID</code></Technical>}><Value value={config.data.model} /></Tile>
@@ -497,11 +500,16 @@ function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: Nati
             <h2 id="ai-acts-h" className="text-base font-semibold">{t(`${R}.activities`)}</h2>
             <InfoButton label={t(`${R}.activitiesInfo`)} controls="ai-acts-about" expanded={explained === "acts"} onToggle={() => toggle("acts")} title={t(`${R}.activitiesHelp`)} />
           </div>
-          <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
-          <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          {/* Counted only from switches read: with /config unreadable every activity is unknown, and
+              "0 zapnuto" would say a known nothing (review of #961). */}
+          {switches !== null ? <>
+            <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
+            <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          </> : <span data-count="unknown" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t(`${R}.count.unknown`)}</span>}
           <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built && !runtime.activities.some((a) => a.key === e.key)).length })}</span>
-          {/* Whether a call really goes through is the smoke test's, on Stav systému. */}
-          <a href="#system" onClick={sectionLinkClick("system")} className={`ml-auto inline-flex min-h-11 items-center text-xs text-signal hover:underline sm:min-h-6 ${FOCUS}`}>{t(`${R}.smokeLink`)} ↗</a>
+          {/* The deploy's smoke test, on Stav systému: what is ready after a deploy. It makes no model
+              call (AI reads "Nešlo ověřit" there), so it does not verify that a call goes through. */}
+          <a href="#system" onClick={sectionLinkClick("system")} title={t(`${R}.smokeLinkHelp`)} className={`ml-auto inline-flex min-h-11 items-center text-xs text-signal hover:underline sm:min-h-6 ${FOCUS}`}>{t(`${R}.smokeLink`)} ↗</a>
         </div>
         <p id="ai-acts-about" hidden={explained !== "acts"} className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
         <div className="overflow-x-auto"><table className="w-full">
