@@ -3094,7 +3094,7 @@ def test_a_step_waiting_for_budget_says_what_it_needs_and_unknown_is_never_zero(
         {"requested_usd": 0.0, "remaining_usd": 0.0},
         {"requested_usd": 1.0},
         {"requested_usd": 1.0, "remaining_usd": -0.5},
-        {"requested_usd": float("inf"), "remaining_usd": 0.0},
+        {"requested_usd": "1.0", "remaining_usd": 0.0},
         {"requested_usd": True, "remaining_usd": 0.0},
     ],
 )
@@ -3112,6 +3112,14 @@ def test_a_budget_stop_that_names_no_price_reads_unknown(
     )
     assert step["status"] == "AWAITING_BUDGET"
     assert step["budget_need"] is None
+
+
+def test_a_recorded_amount_that_is_not_a_finite_number_reads_unknown() -> None:
+    """What JSONB cannot hold (inf, NaN) never reaches the read from PostgreSQL; the rule still
+    holds for any store that keeps them."""
+    for value in (float("inf"), float("-inf"), float("nan"), True, "1.0", None, -0.01):
+        assert research_router._usd(value) is None, value
+    assert research_router._usd(0) == 0.0 and research_router._usd(1.5) == 1.5
 
 
 def test_a_budget_lift_that_is_refused_changes_nothing(
