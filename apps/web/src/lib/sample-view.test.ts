@@ -112,8 +112,10 @@ describe("sourceChosenOnRun", () => {
 
 describe("checkStage", () => {
   it("sends each known check to the stage that fixes it", () => {
-    expect(checkStage("sample_size")).toBe("dimensions");
-    expect(checkStage("sociomap_support")).toBe("dimensions");
+    // n and its support are set on Vzorek itself since SMP7, never on Dimenze.
+    expect(checkStage("sample_size")).toBe("sample");
+    expect(checkStage("support_forecast")).toBe("sample");
+    expect(checkStage("sociomap_support")).toBe("sample");
     expect(checkStage("dimensions")).toBe("dimensions");
     expect(checkStage("audience")).toBe("audience");
     // A panel sample the sampler refuses: its filters are set on Cílová skupina (RQC6).

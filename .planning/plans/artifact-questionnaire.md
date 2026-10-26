@@ -13,7 +13,7 @@ chunks:
   - "[ ] QST10. One comparison set shared by Návrh and Dotazník ('Objekty', data-aia set:<id>), seen from both stages (spec navrh D6 + Q8; W2, after working-copy-edit-ops WCE8b)"
   - "[x] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
   - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
-  - "[ ] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
+  - "[x] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
 ---
 # Artifact: Dotazník (Questionnaire)
 
@@ -424,6 +424,7 @@ menu inside the page at 1440/1100/768/390) and `workspace_journey.mjs`.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
 - CLAUDE.md § 2 map, QuestionCondition.tsx: with routing known off, a question that could take a condition shows it disabled with the reason (QST4, R9). Tracked sets: no familiarity switch; a stored one says the run refuses it, with Vypnout.
+- CLAUDE.md § map, domain/research_agents.py: "build and optimize read external_context_not_evidence (with_external_context, EXTERNAL_ACTIONS; trimmed to the 64 KB bound, a bundle that does not read named), the newest Design Research findings, never evidence, with EXTERNAL_RAIL on the system prompt whenever the layer is there (QST13)"; application/research.py: "ResearchAgentJobs(external_store=): with the API's AIA_AI_ANALYSIS_EXTERNAL_CONTEXT a questionnaire job freezes the study's pinned Design Research findings, read by analysis_results._external_context".
 
 ## From the research build spec (2026-10-26)
 
@@ -447,3 +448,46 @@ follow-up chunk below.
 **QST12. One questionnaire editor** (Nigel, 26 Oct 2026 ~01:41 UTC, relayed by the PM coordinator: "its important that in the questionnaire there is no nahrat excel, sestavit rucne, sestavit with ai, becuse we only need one interface to create the question, and the user can create it manually, but can also upload an excel to the lead researcehr and the lead researcehr will create the questionnaire, if no excel is used the user can still use the lead researcher to help create it based on the previous stage inputs, client knowledgebase and deep research."). W1, lane E. Dotazník loses its "Způsob" radiogroup (`apps/web/src/i18n/cs.ts:2587-2591 @ 2e7fc1dd`, pathUpload / pathManual / pathAi) and keeps one editor, which also works on an empty questionnaire. Excel import moves to the Lead, as one use of any file given to the Lead (`lead-orchestration#LO18a`-`LO18b`), and AI drafting to the Lead's questionnaire job (`lead-orchestration#LO27`, with QST13). Ships in the same PR as LO18b, or after it, so the Excel import is never missing in between (planning's default and the Lead worker's; Nigel may split them). It belongs with #808 / QF-13, which already hides Dotazník's own workbench start. Test: Dotazník on an empty study shows the editor and no path choice; the import route stays (`apps/api/src/aia_api/routers/workspace.py:2318`).
 
 **QST13. Verified Design Research findings in the questionnaire jobs** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "All verified findings"). W1, for `lead-orchestration#LO27`. The two questionnaire contracts (`domain/research_agents.py`) read every verified finding of the Study's newest finished Design Research run, frozen at enqueue and labelled external context, never respondent evidence, as the Lead's `external_context_not_evidence` layer and Analýza's external context already are. A prompt version and harness bump, the frozen findings in the job's input fingerprint. Today the jobs read Design Research only where a person accepted it into the design. Test: a job enqueued after a sealed run carries its verified findings in the frozen context, and its fingerprint changes when a newer run seals.
+
+*QST13, built (feature/questionnaire-jobs-external-context).*
+- The layer: `with_external_context` (`domain/research_agents.py`) adds `external_context_not_evidence`
+  (`{pin, findings}`) to a build or optimize job's frozen snapshot, so it is in `snapshot_hash` and the
+  job fingerprint. A newer sealed run is a new job.
+- One reader: `ResearchAgentJobs._with_external` reads the pin through `ResearchRuns.design_research_pin`
+  and its lines through `analysis_results._external_context`, the reader Analýza and the Lead use. The
+  pin is the newest finished Design Research bundle, public Class C findings. It is read once per
+  request, so a typed start's probe and its start share one read.
+- A bundle that does not read is said in the layer (`unavailable: <reason>`), as the Lead's is, never
+  read as no research. The job still starts.
+- Findings that would take the context past 64 KB are left out from the end and counted (`omitted`),
+  so turning the switch on never refuses a job the design alone fits.
+- The rule that the findings are not evidence is a fixed rail (`EXTERNAL_RAIL`), appended to the system
+  prompt whenever the layer is present, after the task wording, so a stored prompt edit cannot drop it.
+- No prompt or harness version bump, departing from the PM's "bump the prompt and harness version".
+  - The task wording is unchanged.
+  - The rail rides only with the layer, and the layer only exists with the switch on, so a job queued
+    before is byte for byte what it was.
+  - The layer is already in the fingerprint.
+  - A harness bump fails every queued or budget-parked job of all eight actions ("harness version
+    changed").
+- Provenance: a proposal's provenance records `external_context` (`external_record`): the pin, the
+  findings shown and left out, the reason a bundle did not read; null without the layer.
+- Switch: only with `AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`, which stays off. The stage's start and rebuild
+  routes pass the store. The typed "Navrhni dotazník" (`approve_chat_start`) takes it from its
+  `RunStartSettings` (`external_context`, `store`).
+- Departure from "All verified findings": the shared reader shows at most `MAX_EXTERNAL_ITEMS` (24)
+  findings, each claim cut at 400 characters (`domain/analysis/external.py:33-35`). One reader means
+  the same cap Analýza's modules and the Lead see.
+- The Lead's card approval of a model-prepared job (`application/research_lead.py`
+  `approve_request`) passes the Lead's own `external_store`. That is one line in the coordinator's
+  file, with the integration coordinator's agreement. The Lead's request route (`routers/lead.py`
+  `approve_request`) gives the Lead that store under the switch, as the turn route does; the stand-in
+  found it missing, so the line had no effect in production.
+- Tests:
+  - `test_research_agents.py::test_external_context_frames_the_findings_and_trims_them_to_the_bound`
+  - `test_research_agents.py::test_the_external_rail_rides_the_system_prompt_whenever_the_layer_does`
+  - `test_research_agents.py::test_questionnaire_jobs_freeze_the_pinned_findings_only_when_given_a_store`
+  - `test_research_agent_jobs_api.py::test_a_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
+  - `test_lead_chat_start_api.py::test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
+  - `test_research_lead_application.py::test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store`
+  - `test_research_lead_api.py::test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on`
