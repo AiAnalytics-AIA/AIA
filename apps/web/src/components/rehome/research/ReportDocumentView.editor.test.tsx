@@ -186,6 +186,15 @@ describe("the doc bar while the editor shows the document", () => {
     expect(research.downloadReportEditorVersion).not.toHaveBeenCalled();
   });
 
+  it("offers koncept 1's exports nothing while an edit waits to be stored (delta review of #985)", async () => {
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: true, seen: () => null };
+    versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
+    const { container } = show();
+    expect(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" })).toBeTruthy();
+    expect(container.querySelector("[data-editor-unsaved]")).not.toBeNull();
+    expect(within(editorBar(container)).queryByRole("button", { name: /Stáhnout/ })).toBeNull();
+  });
+
   it("names the version on screen and who saved it, never the composed draft's approval", async () => {
     editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());

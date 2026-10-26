@@ -214,7 +214,9 @@ export function EditorDocBar({
             Schválit koncept {version.koncept}
           </Button>
         ) : null}
-        {version && version.version_artifact_id === composedId ? composedExports : canExport && version ? (
+        {/* Koncept 1 by the pane's own exports, under the same rule as an edited koncept: not while an
+            edit waits to be stored, since the file would not hold it (delta review of #985). */}
+        {version && version.version_artifact_id === composedId ? (waiting ? null : composedExports) : canExport && version ? (
           <Button variant="quiet" className="!min-h-11" disabled={act.busy || waiting} onClick={download}>
             <Icon name="download" size={16} /> Stáhnout koncept {version.koncept} (DOCX)
           </Button>
