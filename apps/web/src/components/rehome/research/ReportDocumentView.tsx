@@ -404,7 +404,8 @@ export function ReportDocumentView({ run, review: held = null, onReview }: { run
           // Read again once the composed draft's review moves (koncept 1 approved through the pane).
           <EditorDocBar
             key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
-            documentName={KIND_NAME[kind]} canApprove={canReview(frame)}
+            documentName={KIND_NAME[kind]} canApprove={canReview(frame)} canExport={mayReview}
+            composedExports={<ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={stored} canAct={mayReview} />}
             approveComposed={(held, seen) => askApproval(stored, { held, seen })} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
           />
         ) : null}

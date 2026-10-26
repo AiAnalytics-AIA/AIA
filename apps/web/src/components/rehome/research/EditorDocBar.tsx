@@ -7,17 +7,20 @@
 // the editor made is approved only once AIA stored it, and a later save, before the ask or before
 // the yes, asks again.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { research } from "@/lib/api";
 import { approvalWords, reviewWords } from "@/lib/artifacts/report";
+import { saveBlob } from "@/lib/download";
 import {
   changeWords, editedApprovalQuestion, editedWords, type EditorLine, type EditorVersionRead, savedWords,
   type SeenEdit, UNSTORED, unsavedWords,
 } from "@/lib/report-editor";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
+import { downloadMismatch } from "@/lib/report-variant";
 import type { EditorShown } from "./ReportEditor";
 import { type Ask, AskDialog, Button } from "../ui";
+import { Icon } from "../icons";
 
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -31,6 +34,10 @@ export type EditorDocBarProps = {
   /** The document by name, for the question ("interní zprávu"). */
   documentName: string;
   canApprove: boolean;
+  /** Whether the reader may download (EXPORT_DELIVERABLE, as the pane's own exports). */
+  canExport: boolean;
+  /** The pane's exports of the composed draft, shown while the editor shows koncept 1 (RPT3c). */
+  composedExports: ReactNode;
   /** Approve the composed draft through the pane's own flow (its PDF and status read on the ask),
    *  as its line's newest: the server refuses once a save moved the line on, and `held` (read on
    *  the pane's own ask and yes) refuses while an edit waits to be stored. */
@@ -58,7 +65,8 @@ async function newestOf(studyId: string, runId: string, id: string, seen: SeenEd
 }
 
 export function EditorDocBar({
-  studyId, runId, shown, composedId, documentName, canApprove, approveComposed, onOpenLine, pollMs = POLL_MS,
+  studyId, runId, shown, composedId, documentName, canApprove, canExport, composedExports, approveComposed, onOpenLine,
+  pollMs = POLL_MS,
 }: EditorDocBarProps) {
   const opened = shown.opened;
   const at = `${opened.line_id}:${opened.version_artifact_id}`;
@@ -164,6 +172,25 @@ export function EditorDocBar({
     );
   };
 
+  // An edited koncept downloaded from where it is read (RPT3c): read again first, so a save since
+  // the bar was read is never handed over as the koncept the bar names; the file is checked to be
+  // that version in that review. Not while an edit waits to be stored: the file would not hold it.
+  const download = () => {
+    if (!version) return;
+    setAct({ ask: null, busy: true, said: null });
+    newestOf(studyId, runId, version.version_artifact_id, shown.seen())
+      .then(async (now) => {
+        setRead({ at, version: now, error: null });
+        if (now.version_artifact_id !== version.version_artifact_id) return setAct({ ask: null, busy: false, said: MOVED(now.koncept) });
+        const got = await research.downloadReportEditorVersion(studyId, runId, now.version_artifact_id);
+        const why = downloadMismatch({ artifactId: got.artifactId, reviewState: got.reviewState }, { artifactId: now.version_artifact_id, reviewState: now.review_state });
+        if (why) return setAct({ ask: null, busy: false, said: why });
+        saveBlob(got.blob, got.filename ?? `zprava-koncept-${now.koncept}.docx`);
+        setAct({ ask: null, busy: false, said: null });
+      })
+      .catch((error: unknown) => setAct({ ask: null, busy: false, said: `Verzi zprávy se nepodařilo stáhnout: ${message(error)}` }));
+  };
+
   const others = opened.lines.filter((l: EditorLine) => l.line_id !== (version?.line_id ?? opened.line_id));
   const edited = version ? editedWords(version) : null;
   const changes = version?.changes?.changes ?? [];
@@ -185,6 +212,11 @@ export function EditorDocBar({
         {canApprove && version && !approved ? (
           <Button className="!min-h-11 ml-auto" disabled={act.busy || waiting} onClick={approve}>
             Schválit koncept {version.koncept}
+          </Button>
+        ) : null}
+        {version && version.version_artifact_id === composedId ? composedExports : canExport && version ? (
+          <Button variant="quiet" className="!min-h-11" disabled={act.busy || waiting} onClick={download}>
+            <Icon name="download" size={16} /> Stáhnout koncept {version.koncept} (DOCX)
           </Button>
         ) : null}
       </div>

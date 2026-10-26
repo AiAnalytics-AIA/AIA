@@ -49,7 +49,7 @@ const storeKoncept = (k: number, holds: boolean) => {
 
 const bar = (startedAt: number | null = null, pollMs = 20, dirty = false, seen: () => SeenEdit | null = () => null) => (
   <EditorDocBar studyId="STU-1" runId="RUN-1" shown={{ opened: OPENED, startedAt, dirty, seen }} composedId="ART-docx" documentName="interní zprávu"
-    canApprove approveComposed={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
+    canApprove canExport composedExports={null} approveComposed={vi.fn()} onOpenLine={vi.fn()} pollMs={pollMs} />
 );
 const approveButton = (koncept: number) => screen.findByRole("button", { name: `Schválit koncept ${koncept}` });
 const isOff = async (koncept: number) => (await approveButton(koncept) as HTMLButtonElement).disabled;
@@ -107,6 +107,12 @@ describe("an edit waiting to be stored", () => {
     await act(async () => { answer(v(2)); });
     await waitFor(async () => expect(await isOff(2)).toBe(false));
     expect(vi.mocked(research.reportEditorVersion)).toHaveBeenCalledWith("STU-1", "RUN-1", "ART-2", seen);
+  });
+
+  it("keeps the download off while an edit waits to be stored: the file would not hold it (RPT3c)", async () => {
+    render(bar(null, 20, true));
+    const download = await screen.findByRole("button", { name: "Stáhnout koncept 2 (DOCX)" });
+    expect((download as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("keeps the approval off while the editor holds an edit not yet sent", async () => {

@@ -11,6 +11,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { deepResearch, research, type ResearchRun } from "@/lib/api";
 import type { ReportDocumentModel, StoredReportDocument } from "@/lib/artifacts/report";
+import { saveBlob } from "@/lib/download";
 import type { EditorOpened, EditorVersionRead } from "@/lib/report-editor";
 import type { EditorShown } from "./ReportEditor";
 import { StudyFrameProvider } from "./frame";
@@ -19,9 +20,11 @@ import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), reportEditorVersion: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), reportEditorVersion: vi.fn(), downloadReportEditorVersion: vi.fn(), downloadReport: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
+
+vi.mock("@/lib/download", () => ({ saveBlob: vi.fn() }));
 
 type Handed = { variant: string; review: string | null; line?: string | null };
 const editor = vi.hoisted(() => ({
@@ -144,6 +147,45 @@ const shownBar = (c: HTMLElement) => waitFor(() => {
 });
 
 describe("the doc bar while the editor shows the document", () => {
+  // Codex on #985: the editor's doc bar downloads the version on screen, never the card's.
+  it("downloads the edited koncept on screen, read again first and checked to be that version (RPT3c)", async () => {
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
+    versions(version());
+    const file = new Blob(["docx"]);
+    vi.mocked(research.downloadReportEditorVersion).mockResolvedValue({ blob: file, filename: "zprava-koncept-2.docx", artifactId: "ART-edit", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(file, "zprava-koncept-2.docx"));
+    expect(research.downloadReportEditorVersion).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit");
+    expect(research.downloadReport).not.toHaveBeenCalled(); // never the composed draft for an edited koncept
+  });
+
+  it("hands over no file that is not the koncept on screen, and none once a later save exists", async () => {
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
+    versions(version());
+    vi.mocked(research.downloadReportEditorVersion).mockResolvedValue({ blob: new Blob(["x"]), filename: null, artifactId: "ART-other", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    expect((await within(await shownBar(container)).findByRole("alert")).textContent).toContain("není verze");
+    versions(version({ newest_in_line: { version_artifact_id: "ART-edit-3", koncept: 3 } }), version({ version_artifact_id: "ART-edit-3", koncept: 3, newest_in_line: { version_artifact_id: "ART-edit-3", koncept: 3 } }));
+    vi.mocked(research.downloadReportEditorVersion).mockClear();
+    fireEvent.click(within(editorBar(container)).getByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    expect(await within(editorBar(container)).findByText("Editor mezitím uložil koncept 3; zkontrolujte jeho změny a schvalte znovu.")).toBeTruthy();
+    expect(research.downloadReportEditorVersion).not.toHaveBeenCalled();
+    expect(saveBlob).not.toHaveBeenCalled();
+  });
+
+  it("offers the pane's own exports while the editor shows koncept 1, the composed draft", async () => {
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: false, seen: () => null };
+    versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
+    const file = new Blob(["docx"]);
+    vi.mocked(research.downloadReport).mockResolvedValue({ blob: file, filename: "zprava.docx", artifactId: "ART-docx", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: /Stáhnout DOCX/ }));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(file, "zprava.docx"));
+    expect(research.downloadReportEditorVersion).not.toHaveBeenCalled();
+  });
+
   it("names the version on screen and who saved it, never the composed draft's approval", async () => {
     editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
