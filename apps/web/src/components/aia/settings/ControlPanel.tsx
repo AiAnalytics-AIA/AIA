@@ -55,7 +55,9 @@ import { SystemPanel } from "./SystemPanel";
 import { SETTING_HELP } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { useSection } from "./SectionMenu";
-import { SECTIONS, SECTION_GROUPS, type SectionId } from "./sections";
+import { SECTIONS, SECTION_GROUPS, type SectionId, sectionLinkClick } from "./sections";
+import { InfoButton } from "./InfoButton";
+import { FOCUS } from "../../ui/parts";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Chip, Tag, TextInput } from "../../rehome/ui";
@@ -353,12 +355,8 @@ function ActivityRow({ runtime, activity, switches, answered }: { runtime: Nativ
       <td className={`${TD} min-w-48`}>
         <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
-      </td>
-      <td className={`${TD} whitespace-nowrap`}><Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip></td>
-      <td className={`${TD} break-all font-mono text-xs`}>{(own.length ? own : [runtime.switch]).join(" + ")}</td>
-      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
-      <td className={TD}>
-        <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
+        {/* Why it stands as it does, and its last answered call, under the activity (prototype v99). */}
+        <p data-reason className="mt-1 break-words text-xs leading-5 text-ink">{reasonFor(state, activity)}</p>
         <LastAnswered answered={answered} activity={activity.key} />
         <Technical>
           <dl data-technical className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
@@ -371,6 +369,9 @@ function ActivityRow({ runtime, activity, switches, answered }: { runtime: Nativ
           </dl>
         </Technical>
       </td>
+      <td className={`${TD} whitespace-nowrap`}><Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip></td>
+      <td className={`${TD} break-all font-mono text-xs`}>{(own.length ? own : [runtime.switch]).join(" + ")}</td>
+      <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
     </tr>
   );
 }
@@ -405,11 +406,11 @@ function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
       <td className={`${TD} min-w-48`}>
         <h3 className="text-sm font-semibold text-ink">{t(`${A}.title`)}</h3>
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
+        <p data-reason className="mt-1 break-words text-xs leading-5 text-ink-muted">{t(`${R}.reason.${!entry.built ? "notBuilt" : entry.key === "population_personas" ? "unreadApi" : "unread"}`)}</p>
       </td>
       <td className={`${TD} whitespace-nowrap`}><Chip tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</Chip></td>
       <td className={`${TD} break-all font-mono text-xs`}>{entry.switch}</td>
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${entry.key}`)}</td>
-      <td className={TD}><p data-reason className="break-words text-sm text-ink-muted">{t(`${R}.reason.${!entry.built ? "notBuilt" : entry.key === "population_personas" ? "unreadApi" : "unread"}`)}</p></td>
     </tr>
   );
 }
@@ -424,6 +425,18 @@ function Tile({ label, children, note }: { label: string; children: ReactNode; n
   );
 }
 
+/** The regions Bedrock's route may name, by their city (prototype v99's "Frankfurt · EU"). A region
+ *  not listed shows its code alone, never a guessed city. */
+const REGION_CITY: Record<string, string> = {
+  "eu-central-1": "Frankfurt", "eu-central-2": "Curych", "eu-west-1": "Irsko", "eu-west-2": "Londýn", "eu-west-3": "Paříž",
+  "eu-north-1": "Stockholm", "eu-south-1": "Milán", "eu-south-2": "Španělsko",
+};
+/** AWS names London and Zurich "eu-" too, but the United Kingdom and Switzerland are not in the EU:
+ *  only these regions read "v EU" (review of #961). */
+const EU_REGIONS = new Set(["eu-central-1", "eu-west-1", "eu-west-3", "eu-north-1", "eu-south-1", "eu-south-2"]);
+/** A data class's letter, as v99's chips draw it: CLASS_A_… is "A". */
+const classLetter = (id: string): string => /^CLASS_([A-Z])_/.exec(id)?.[1] ?? id;
+
 /** Code facts from the settings document beside the deployment's switches from /config: AI běh. */
 function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies; mayAdminister: boolean }) {
   const switches = config.ok ? config.data.switches : null;
@@ -433,33 +446,49 @@ function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: Nati
   const providers = runtime.providers.map((p) => p.label).join(", ");
   const states = runtime.activities.map((a) => activityState(runtime, a, switches).kind);
   const region = config.ok ? config.data.region : null;
+  const [explained, setExplained] = useState<"route" | "acts" | null>(null);
+  const toggle = (k: "route" | "acts") => setExplained((v) => (v === k ? null : k));
+  // Two flat cards, as prototype v99 draws AI běh (F11): Trasa modelu as tiles, Činnosti as one
+  // table; what each explains behind its ⓘ.
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex max-w-3xl flex-col gap-1 text-sm">
-        <p>{tv(`${R}.powers`, { provider: providers })}</p>
-        <p>{t(`${R}.credential.${runtime.credential}`)}</p>
-      </div>
-      <section data-config aria-labelledby="ai-route-h" className="rounded-md border border-border p-4">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 id="ai-route-h" className="text-sm font-semibold">{t(`${R}.route`)}</h3>
+      <section data-config aria-labelledby="ai-route-h" className={CARD}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <h2 id="ai-route-h" className="text-base font-semibold">{t(`${R}.route`)}</h2>
+            <InfoButton label={t(`${R}.routeInfo`)} controls="ai-route-about" expanded={explained === "route"} onToggle={() => toggle("route")} title={t(`${R}.whoChanges`)} />
+          </div>
           <Technical><span className="text-[11px] text-ink-faint">{t(`${R}.configSource`)}</span></Technical>
+        </div>
+        <div id="ai-route-about" hidden={explained !== "route"} className="mt-1 flex max-w-3xl flex-col gap-1 text-xs leading-5 text-ink-muted">
+          <p>{tv(`${R}.powers`, { provider: providers })}</p>
+          <p>{t(`${R}.credential.${runtime.credential}`)}</p>
+          <p>{t(`${R}.whoChanges`)}</p>
         </div>
         {config.ok ? (
           <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-2.5">
             <Tile label={t(`${R}.switchLabel`)} note={<Technical><code className="break-all">{runtime.switch}</code></Technical>}><SwitchWord value={config.data.switches[runtime.switch]} /></Tile>
             <Tile label={t(`${R}.provider`)}>{providers}</Tile>
             <Tile label={t(`${R}.region`)} note={<>
-              {region === null ? null : <span className="block">{region.startsWith("eu-") ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
+              {region !== null && REGION_CITY[region] ? <span data-region-city className="block">{REGION_CITY[region]}</span> : null}
+              {region === null ? null : <span className="block">{EU_REGIONS.has(region) ? t(`${R}.inEu`) : t(`${R}.notEu`)}</span>}
               <Technical><code className="break-all">AIA_BEDROCK_REGION</code></Technical>
             </>}><Value value={region} /></Tile>
             <Tile label={t(`${R}.model`)} note={<Technical><code>AIA_BEDROCK_MODEL_ID</code></Technical>}><Value value={config.data.model} /></Tile>
             <Tile label={t(`${R}.approved`)} note={<Technical><code className="break-all">AIA_AI_ROUTE_APPROVED_FOR</code></Technical>}>
               {config.data.approvedClasses.length ? (
-                <ul className="flex flex-col gap-0.5">
+                // The classes as v99's chips (A, B, C), each named for a reader and on hover; an unknown
+                // one stands out in words, never as a chip that looks approved.
+                <ul data-approved-classes className="flex flex-wrap gap-1">
                   {approvedClasses(config.data.approvedClasses, vocab.data_classes).map((c) => (
-                    <li key={c.id} className="text-sm font-normal">
-                      <Technical><code className="mr-1 text-xs">{c.id}</code></Technical>
-                      <span className={c.known ? "text-ink" : "text-status-fault"}>{c.known ? t(`${P}.dataClass.${c.id}`) : `${c.id}: ${t(`${R}.unknownClass`)}`}</span>
+                    <li key={c.id} data-class={c.id} className="text-sm font-normal">
+                      {c.known ? (
+                        <span title={t(`${P}.dataClass.${c.id}`)} className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">
+                          <span aria-hidden="true">{classLetter(c.id)}</span>
+                          <span className="sr-only">{t(`${P}.dataClass.${c.id}`)}</span>
+                        </span>
+                      ) : <span className="text-status-fault">{`${c.id}: ${t(`${R}.unknownClass`)}`}</span>}
+                      <Technical><code className="ml-1 text-xs">{c.id}</code></Technical>
                     </li>
                   ))}
                 </ul>
@@ -467,21 +496,30 @@ function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: Nati
             </Tile>
           </div>
         ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
-        <p className="mt-2.5 text-xs leading-5 text-ink-muted">{t(`${R}.whoChanges`)}</p>
       </section>
-      <section aria-labelledby="ai-acts-h" className="flex flex-col gap-2">
+      <section aria-labelledby="ai-acts-h" className={`${CARD} flex flex-col gap-2`}>
         <div className="flex flex-wrap items-center gap-2">
-          <h3 id="ai-acts-h" className="text-sm font-semibold">{t(`${R}.activities`)}</h3>
-          <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
-          <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          <div className="flex items-center gap-1">
+            <h2 id="ai-acts-h" className="text-base font-semibold">{t(`${R}.activities`)}</h2>
+            <InfoButton label={t(`${R}.activitiesInfo`)} controls="ai-acts-about" expanded={explained === "acts"} onToggle={() => toggle("acts")} title={t(`${R}.activitiesHelp`)} />
+          </div>
+          {/* Counted only from switches read: with /config unreadable every activity is unknown, and
+              "0 zapnuto" would say a known nothing (review of #961). */}
+          {switches !== null ? <>
+            <span data-count="on" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.on`, { n: states.filter((k) => k === "configured").length })}</span>
+            <span data-count="off" className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{tv(`${R}.count.off`, { n: states.filter((k) => k === "off").length })}</span>
+          </> : <span data-count="unknown" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t(`${R}.count.unknown`)}</span>}
           <span data-count="new" className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{tv(`${R}.count.notBuilt`, { n: LISTED_ONLY.filter((e) => !e.built && !runtime.activities.some((a) => a.key === e.key)).length })}</span>
+          {/* The deploy's smoke test, on Stav systému: what is ready after a deploy. It makes no model
+              call (AI reads "Nešlo ověřit" there), so it does not verify that a call goes through. */}
+          <a href="#system" onClick={sectionLinkClick("system")} title={t(`${R}.smokeLinkHelp`)} className={`ml-auto inline-flex min-h-11 items-center text-xs text-signal hover:underline sm:min-h-6 ${FOCUS}`}>{t(`${R}.smokeLink`)} ↗</a>
         </div>
-        <p className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
+        <p id="ai-acts-about" hidden={explained !== "acts"} className="max-w-3xl text-xs leading-5 text-ink-muted">{t(`${R}.activitiesHelp`)}</p>
         <div className="overflow-x-auto"><table className="w-full">
-          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${R}.col.switch`)}</th><th className={TH}>{t(`${R}.col.model`)}</th><th className={TH}>{t(`${P}.col.why`)}</th></tr></thead>
+          <thead><tr><th className={TH}>{t(`${P}.col.capability`)}</th><th className={TH}>{t(`${P}.col.state`)}</th><th className={TH}>{t(`${R}.col.switch`)}</th><th className={TH}>{t(`${R}.col.model`)}</th></tr></thead>
           {GROUPS.map((g) => (
             <tbody key={g} data-ai-group={g} className="divide-y divide-border">
-              <tr><th colSpan={5} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
+              <tr><th colSpan={4} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
               {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} answered={answered} />)}
               {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
             </tbody>
@@ -717,6 +755,14 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     // Studie a rozpočty as prototype v51 draws it: the figures, the spend by researcher and the
     // studies straight under the tab's head, in no further card; the settings document's own rows
     // for the group wait under technical details.
+    // AI běh as prototype v99 draws it (F11): its two cards straight under the tab's head, in no
+    // further card; the settings document's own rows for the group, and the prototype's AI history,
+    // under technical details.
+    if (tab === "ai") return <div id="set-ai" className="flex min-w-0 flex-col gap-4">
+      {extra.ai}
+      {groupItems("ai").length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{(byKey.get("ai")?.items ?? []).map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
+      {present("ai_history") ? section("ai_history", tab) : null}
+    </div>;
     if (tab === "studies") return <div id="set-studies" className="flex min-w-0 flex-col gap-4">
       {extra.studies}
       {groupItems("studies").length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{groupItems("studies").map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}

@@ -309,7 +309,7 @@ follow-up chunk below.
 
 **DSN13. Follow-up answers** (spec `navrh/D7`, no backend; W1, lane E). After `working-copy-edit-ops#WCE3a`; analyze_brief harness bump.
 
-**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field).
+**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field). The UI part is built on `feature/design-comments-undo`: a removed comment comes back with Vrátit through the stage's one undo offer, saving comments for the Lead marks nothing "upraveno", and the section says a comment changes nothing (`ResearchScreen.workbench.test.tsx` "a removed comment comes back with Vrátit; saving comments marks nothing changed"). Open: "k sadě … · Jana Malá" needs `{target, author}` on a stored comment, the author from the session (a backend field; the store is `{quote, comment}` in `ui_state`).
 
 **Notes.**
 - DSN5 keeps the Design Research card on Návrh (decided by default by planning, 26 Oct 2026, open to Nigel's override; OQ22); its "+" items in the Lead's menu are disabled with a reason until `lead-orchestration#LO5a.3`.

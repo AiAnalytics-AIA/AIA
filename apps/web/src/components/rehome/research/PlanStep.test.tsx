@@ -154,9 +154,10 @@ describe("Návrh", () => {
     for (const analysis of [ANALYSIS, { ...ANALYSIS, project_variants: [] }]) {
       unitStub(analysis);
       const { unmount } = render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
-      const hint = await screen.findByText(/Označte text v části Porozumění nebo Sady jako ve Wordu/);
+      const hint = await screen.findByText(/Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu/);
       const chips = within(screen.getByRole("navigation", { name: "Oddíly návrhu" })).getAllByRole("button").map((b) => b.textContent ?? "");
       expect(chips.some((c) => c.startsWith("Porozumění"))).toBe(true);
+      expect(chips.some((c) => c.startsWith("Hypotézy"))).toBe(true);
       expect(chips.some((c) => c.startsWith("Sady"))).toBe(true);
       expect(hint.textContent).not.toMatch(/oddílu \d/);
       unmount();

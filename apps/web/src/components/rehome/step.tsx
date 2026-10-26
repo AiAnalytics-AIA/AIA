@@ -6,7 +6,8 @@
 // step and src/research. Token utilities only, as in ui.tsx.
 
 import Link from "next/link";
-import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useRef, useState } from "react";
+import { createContext, type KeyboardEvent, type ReactNode, useContext, useId, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t, tv } from "@/i18n/t";
@@ -15,31 +16,40 @@ import { Icon } from "./icons";
 import { InlineText } from "../ui/InlineText";
 
 /**
- * One section of a step: a card whose header carries the title, its help under it,
- * and anything the section acts with on the right (a count, its own AI action).
- * Optional sections say so; `done` marks a section already answered. The track
- * above the page carries the order, so sections are not numbered
- * (research-lane-redesign); `n` stays for callers and is not drawn.
+ * One section of a step: a card whose header carries its number, the title, its help under it,
+ * its cap at the right ("povinné", "3 otázky") and anything the section acts with (a count, its
+ * own AI action). Optional sections say so; `done` marks a section already answered; `need`
+ * marks one the person still has to fill, with a coral edge and "chybí" said in words (v73 X1,
+ * research-lead-workbench 36). `n` prints as two digits; `num` replaces it ("B1", "S1").
  */
 export function StepSection({
-  id, title, hint, optional = false, done = false, lead = false, aside, children,
+  id, n, num, title, hint, optional = false, done = false, lead = false, cap, need = false, aside, children,
 }: {
   id?: string;
   n?: number;
+  /** The board's own label for the number ("B1", "S1"), in place of `n`. */
+  num?: string;
   title: string;
   hint?: ReactNode;
   optional?: boolean;
   done?: boolean;
   /** The step's lead question: a larger title. */
   lead?: boolean;
+  /** The right-hand caption of the header ("povinné", "volitelné", "3 otázky"). */
+  cap?: ReactNode;
+  /** The person still has to fill this section: a coral edge and a "chybí" pill. */
+  need?: boolean;
   /** Something at the right of the header (a count, an action). */
   aside?: ReactNode;
   children?: ReactNode;
 }) {
   const headingId = useId();
+  const label = num ?? (n === undefined ? null : String(n).padStart(2, "0"));
   return (
-    <section id={id} aria-labelledby={headingId} className={`scroll-mt-40 rounded-card border border-border bg-surface-raised ${FOCUS}`}>
+    <section id={id} aria-labelledby={headingId} data-need={need ? "true" : undefined}
+      className={`scroll-mt-40 rounded-card border bg-surface-raised ${need ? "border-status-you shadow-[inset_3px_0_0_var(--status-you)]" : "border-border"} ${FOCUS}`}>
       <div className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 ${children ? "border-b border-border" : ""}`}>
+        {label ? <span data-step-num className="shrink-0 font-mono text-xs text-ink-faint">{label}</span> : null}
         {done ? (
           <span aria-hidden="true" className="inline-flex size-[18px] shrink-0 items-center justify-center rounded-full bg-status-done text-surface-raised">
             <Icon name="done" size={10} />
@@ -52,6 +62,13 @@ export function StepSection({
           </h2>
           {hint ? <p className="text-xs leading-4 text-ink-muted">{hint}</p> : null}
         </div>
+        {need ? (
+          <span className="inline-flex items-center gap-1 rounded-pill bg-status-you-wash px-2 py-0.5 text-xs font-medium text-status-you-ink">
+            <Icon name="you" size={11} />
+            {t("research.step.missing")}
+          </span>
+        ) : null}
+        {cap ? <span className="text-xs text-ink-faint">{cap}</span> : null}
         {aside ? <div className="max-w-full">{aside}</div> : null}
       </div>
       {children ? <div className="px-4 pb-4 pt-3.5">{children}</div> : null}
@@ -77,14 +94,50 @@ export type FrameNext = { label: string; go: () => void };
  */
 export const FrameNavigation = createContext<{ next: FrameNext | null } | null>(null);
 
-export function ActionDock({ back, note, ready = true, children }: {
+/**
+ * The workbench's artifact header (v73 X1 + H1, research-lead-workbench 36): the elements a stage
+ * puts its header actions, its status line and its forward action into. `primary` is claimed by
+ * the stage's ActionDock while it is mounted, so the header shows the stage's own forward action
+ * (its label, its conditions, what it saves on the way) and not the frame's plain "next stage".
+ * Null outside the workbench.
+ */
+export type StageHeaderSlots = {
+  actions: HTMLElement | null;
+  status: HTMLElement | null;
+  primary: HTMLElement | null;
+  claimPrimary: () => () => void;
+};
+export const StageHeader = createContext<StageHeaderSlots | null>(null);
+
+/** A stage's header part: in the workbench, put into the header's slot; elsewhere, where it stands. */
+export function StageHeaderSlot({ slot, children }: { slot: "actions" | "status"; children: ReactNode }) {
+  const header = useContext(StageHeader);
+  if (!header) return <>{children}</>;
+  const target = header[slot];
+  return target ? createPortal(children, target) : null;
+}
+
+export function ActionDock({ back, note, ready = true, inHeader = true, children }: {
   back?: { href: string; label: string };
   note?: ReactNode;
   /** false: the note is a reason the step is not ready yet. */
   ready?: boolean;
+  /** false: the action is not the stage's way on (Sběr dat's paid start) and stays here, with its
+   *  conditions and its money, in the workbench too (v73 Fieldwork; stand-in review on #936). */
+  inHeader?: boolean;
   children: ReactNode;
 }) {
   const framed = useContext(FrameNavigation) !== null;
+  // In the workbench the dock's action is the header's primary (H1); the dock keeps its note.
+  // Claimed before paint, so the frame's own next stage never shows for a frame first.
+  const slots = useContext(StageHeader);
+  const header = inHeader ? slots : null;
+  const claim = header?.claimPrimary;
+  useLayoutEffect(() => claim?.(), [claim]);
+  const action = <div className="flex shrink-0 items-center gap-2">{children}</div>;
+  const moved = header ? (header.primary ? createPortal(action, header.primary) : null) : null;
+  // With its action in the header and nothing else to say, the dock draws no empty card.
+  if (header && !note && !(back && !framed)) return moved;
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
       {back && !framed ? (
@@ -96,7 +149,7 @@ export function ActionDock({ back, note, ready = true, children }: {
       <span aria-live="polite" className={`ml-auto min-w-0 flex-[1_1_160px] text-right text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>
         {note}
       </span>
-      <div className="flex shrink-0 items-center gap-2">{children}</div>
+      {header ? moved : action}
     </div>
   );
 }
