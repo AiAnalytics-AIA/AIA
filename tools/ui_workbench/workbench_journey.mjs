@@ -302,17 +302,28 @@ try {
   }
   check("Zadání shows Cíle, Rozhodnutí and Kontext, edited in place, at 1440, 1100, 768 and 390, no overflow");
 
-  // Návrh: each research question with its coverage (artifact-design DSN2), at every width, in the
+  // Návrh: each research question with its coverage on its row (artifact-design DSN2, DSN2b), at every width, in the
   // workbench at each. Reading it is a GET.
   const planSubmitsBefore = writes.filter((w) => w.path.endsWith("/design/revisions")).length;
+  const planSavesBefore = writes.filter((w) => w.path.endsWith("/workspace/content")).length;
+  const dr = fixtures.deep_research;
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(base + stagePath("plan"));
-    const coverage = page.getByRole("region", { name: "Výzkumné otázky a jejich pokrytí" });
+    await page.goto(base + `/app/clients/${dr.client}/research/${dr.study}/plan`);
+    const coverage = page.getByRole("region", { name: "Výzkumné otázky a co je měří" });
     await coverage.waitFor({ timeout: 30000 });
-    await coverage.getByText(/Podle pracovní kopie, revize \d+|Návrh zatím není uložený|nedá sestavit/).first().waitFor({ timeout: 30000 });
+    // DSN2b: the coverage is read under the research questions. The deep_research fixture states two
+    // in research_plan and none in its analysis, the list's source: the server traces them anyway, so
+    // they are listed with their coverage under the list, never hidden (each row's own coverage is
+    // PlanStep.test's). Every width reads it without writing anything.
+    await coverage.getByText(/Podle pracovní kopie, revize \d+\. Po/).waitFor({ timeout: 30000 });
+    const elsewhere = coverage.getByRole("group", { name: "Co AIA čte jako výzkumné otázky mimo tento seznam" });
+    await elsewhere.waitFor({ timeout: 30000 });
+    assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
+    await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
     await noOverflow(`plan @${width}`);
     assert.equal(writes.filter((w) => w.path.endsWith("/design/revisions")).length, planSubmitsBefore, `plan @${width}: Návrh's coverage submitted a design`);
+    assert.equal(writes.filter((w) => w.path.endsWith("/workspace/content")).length, planSavesBefore, `plan @${width}: reading Návrh's coverage saved the working copy`);
     // WCAG 2.5.8: a remove control on Návrh is at least 24 × 24 px (a set item's × was 12 × 20).
     const small = await page.evaluate(() => [...document.querySelectorAll('button[aria-label^="Odebrat "]')]
       .map((e) => [e.getAttribute("aria-label"), e.getBoundingClientRect()])
@@ -321,7 +332,7 @@ try {
     assert.deepEqual(small, [], `plan @${width}: remove targets under 24 px`);
     await coverage.screenshot({ path: join(out, `${width}-plan-coverage.png`) });
   }
-  check("Návrh shows its research questions' coverage at 1440, 1100, 768 and 390, no overflow");
+  check("Návrh shows the coverage of every research question the server reads at 1440, 1100, 768 and 390, nothing saved, no overflow");
 
   // Cílová skupina names what the Lead can focus (data-aia, the artifact contract's row `audience`):
   // the description, the filters, each factor by its catalogue id and the preview, at every width.
