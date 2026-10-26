@@ -14,7 +14,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
 import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
-import { stageOf } from "@/lib/workbench-stages";
+import { stageHref, stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import { LEAD_REVEAL } from "@/lib/lead";
 import {
@@ -107,7 +107,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, Switch } from "../step";
+import { ActionDock, FrameNavigation, Switch } from "../step";
 import { AiButton, Button, Chip } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
@@ -430,6 +430,14 @@ export function fixStep(checkId: string): StepKey {
   return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
 }
 
+// The checks n fixes: in the workbench n is set on Vzorek (#945); the classic layout keeps it on persona.
+const FIXED_BY_N: ReadonlySet<string> = new Set(["sample_size", "support_forecast", "sociomap_support"]);
+
+/** Where a readiness check is fixed, as a link: Vzorek for the checks n fixes inside the workbench. */
+export function checkHref(checkId: string, stepHref: (step: StepKey) => string, workbench: boolean): string {
+  return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
+}
+
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
 function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
   const { state, stepHref } = useResearch();
@@ -643,6 +651,7 @@ const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
+  const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -841,7 +850,7 @@ export function RunStep() {
                   <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
+                    <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
                       {t("research.exec.fix")}
                     </Link>
                   ) : null}
@@ -1971,19 +1980,20 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          {/* What waits on the person comes first: blocked modules and modules without a finding, with the way out (ANL4). */}
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky výše. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : withoutSupport.length && !Object.keys(analysis.pending).length
                   ? holdingWords(withoutSupport)
                   : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
-          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
             <h3 id="key-findings-title" className="text-base font-semibold">Zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>

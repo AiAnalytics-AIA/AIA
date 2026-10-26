@@ -1739,9 +1739,9 @@ export const cs = {
           deletedKind: { studies: "Studie", working_revisions: "Pracovní verze studií", knowledge_items: "Znalosti klienta", sources: "Zdroje klienta", files: "Soubory", runs: "Běhy", artifacts: "Výsledky a zprávy" },
           keptKind: { usage_rows: "Záznamy útraty AI", approval_rows: "Záznamy schválení", audit_rows: "Audit (kdo co změnil, i toto smazání)" },
           sdl2: { population_children: "Odvozené populace klienta", replaced_source_readings: "Nahrazená čtení zdrojů" },
-          ack: "Rozumím, že smazání nelze vrátit.",
-          ackNeeded: "Potvrďte přepínačem, že smazání nelze vrátit.",
-          confirm: "Smazat klienta",
+          typeName: "Smazání nelze vrátit. Pro potvrzení napište název klienta: {name}",
+          runningNow: "Klientovi právě běží {count} ({runs}). Smazat ho lze, až skončí, nebo je nejdřív zrušte.",
+          confirm: "Smazat natrvalo",
           cancel: "Zrušit",
           deleted: "Klient {name} je smazán. Záznamy útraty, schválení a audit zůstaly.",
           deletedSomeWaiting: "Klient {name} je smazán, ale {n} souborů ještě čeká na smazání.",
@@ -2269,6 +2269,32 @@ export const cs = {
           event: "Událost",
           concerns: "Čeho se týká",
           reason: "Důvod / změna",
+          // An audit record's change in words (F10, lib/audit-change.ts).
+          change: {
+            noThreshold: "bez prahu",
+            joinedAs: "nový člen: {role}",
+            proposalVersion: "návrh {version}",
+            // A refused change of an OWNER's membership (MEMBER_ROLE_DENIED payload.change).
+            denied: { deactivate: "deaktivace vlastníka", reactivate: "obnovení vlastníka" },
+            level: { organization: "Organizace", client: "Klient", study: "Studie" },
+            allowed: "povoleno",
+            forbidden: "zakázáno",
+            inherits: "dědí",
+            posture: "Postoj dat",
+            unset: "nenastaveno",
+            ceiling: "Strop peněženky",
+            noCeiling: "bez stropu",
+            fromCode: "z kódu",
+            default: "výchozí",
+            // A reason a writer fills with its own code, in words.
+            code: {
+              identity_mismatch: "přihlášení neodpovídá účtu, ke kterému e-mail patří",
+              not_a_member: "není členem organizace",
+              user_deactivated: "člen je deaktivován",
+              unknown_user: "neznámý uživatel",
+            },
+            decision: { APPROVED: "schváleno", REJECTED: "zamítnuto" },
+          },
           when: "Kdy",
           action: "Akce",
           actor: "Kdo",
@@ -2403,7 +2429,7 @@ export const cs = {
       chipWaits: "čeká na vás",
       chipDone: "hotovo",
       chipUnknown: "nelze přečíst",
-      decisionMissing: "chybí",
+      askLead: "Požádat Vedoucího o analýzu",
       decisionStartWith: "Začít od",
       decisionStarters: {
         0: { label: "Volba varianty", text: "Vybrat variantu A, nebo B?" },
@@ -3139,6 +3165,9 @@ export const cs = {
       sampleStoredOutside: "Uložené N={n} je mimo platný rozsah {range}; spuštění ho odmítne. Zvolte jiné N.",
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
       dockNote: "{d} · N={n}",
+      dockNoteDims: "{d} včetně sociodemografie",
+      nOnSample: "Dimenze říkají, podle čeho AI respondenti odpovídají. Velikost vzorku se nastavuje na Vzorku.",
+      nOnSampleLink: "Otevřít Vzorek",
     },
     deep: {
       searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",
@@ -3222,6 +3251,12 @@ export const cs = {
       },
       // Why the evidence gate refused an analysis output (domain/evidence/gate.py ViolationCode),
       // one line per code; a code without words keeps its code on screen (reason-words).
+      /** A way out of a module that states no supported finding, as the server names it (evidence-integrity 9a). */
+      resolution: {
+        same_data_retry: "zopakovat analýzu nad stejnými daty",
+        changed_design: "upravit návrh a spustit nový běh",
+        more_data: "získat víc dat (větší vzorek)",
+      },
       violation: {
         FIELD_UNDECLARED: "opírá se o údaj, který slovník populace nezná",
         FIELD_AUDIT_ONLY: "opírá se o údaj určený jen pro audit",
@@ -3871,6 +3906,12 @@ export const cs = {
         sociomapping: "Sociomapping · experimentální metoda AIA",
       },
       // The Sociomapa stage (artifact-sociomap SOC9-SOC11): the map first, below it what explains it, in plain words.
+      mapInspect: {
+        missing: "Tato položka na mapě tohoto běhu není.",
+        loading: "Mapa se ještě načítá.",
+        unread: "Mapu tohoto běhu se nepodařilo načíst.",
+        frozen: "Ze zmrazené mapy běhu; nic se nepřepočítává.",
+      },
       mapStage: {
         info: "Co mapa ukazuje, jak spolehlivá je a jak byla spočtena, najdete pod mapou.",
         approved: "Metodika schválena pro zprávy",

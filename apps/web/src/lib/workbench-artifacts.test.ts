@@ -78,4 +78,9 @@ describe("aiaId / parseAiaId", () => {
     expect(allowsView("dimensions", "show_diff")).toBe(true);
     expect(ARTIFACTS.dimensions.edits).toBe(true);
   });
+
+  it("lets the Lead propose n on Vzorek and show the change there (artifact-sample SMP7)", () => {
+    expect(ARTIFACTS.sample.edits).toBe(true);
+    expect(allowsView("sample", "show_diff")).toBe(true);
+  });
 });

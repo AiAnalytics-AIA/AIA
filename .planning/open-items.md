@@ -3009,6 +3009,7 @@ only once" (option 2). The owner's note, verbatim: "lets delete old studies"; th
 asking what it means, and it is recorded here unapplied until clarified. Open until
 `delivered_at` is stamped on the first delivery only, with a test; no chunk builds it yet. The gate stays where it is; deleting old studies is the plan `study-deletion.md`.
 **2026-10-25:** "Smazat studii" is planned in `study-deletion.md` (#894, merged as `b2606edc`), with ADR 0043 (`docs/architecture/adr/0043-study-deletion.md`) Proposed; nothing built until the owner answers its SD0. The `delivered_at` fix above is unchanged.
+**2026-10-26:** the owner answered `study-deletion` Q1-Q8 (Q1 (b), a 7-day window; Q2-Q8 as recommended) and accepted ADR 0043; SD0 is done, SD1-SD11 wait on scheduling.
 
 ## OI-82 · Requirement · A Knowledge change an AI writes will need its own approval-ledger row
 

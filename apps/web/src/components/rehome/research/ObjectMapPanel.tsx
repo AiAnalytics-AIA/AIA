@@ -600,7 +600,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                   <span className="omx-filter" data-testid="object-map-filter-bar" data-aia-filters={changes.map((c) => `${c.key}:${c.value}`).join(" ")}
                     title={`${t(`${p}.filterTitle`)} ${changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}. ${t(`${p}.filterUnchanged`)}`}>
                     <b>{t(`${p}.filterChip`)}</b> {changes.map((c) => t(CHANGE_WORDS[`${c.key}:${c.value}`]!)).join(", ")}<span className="sr-only">. {t(`${p}.filterUnchanged`)}</span>
-                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}>×</button>
+                    <button type="button" aria-label={t(`${p}.filterReset`)} title={t(`${p}.filterReset`)} onClick={resetDisplay}><PhosphorIcon name="x" size={14} /></button>
                   </span>
                 ) : null}
               </span>
@@ -645,7 +645,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             {legendOpen ? (
               <div className="omx-legendwrap">
                 {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
-                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}>×</button>
+                <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}><PhosphorIcon name="x" size={14} /></button>
               </div>
             ) : (
               <button type="button" className="omx-legendchip omx-glass" aria-expanded={false} title={`${t(`${p}.legend`)} (L)`} onClick={() => setLegendOpen(true)}>
@@ -671,7 +671,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
                     </div>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={t(`${p}.sheetFold`)} title={t(`${p}.sheetFold`)} onClick={() => setFolded(true)}>›</button>
                     <button type="button" className="omx-icon omx-icon--sm" aria-label={tv(`${p}.closeWindow`, { title: sheetTab === "detail" ? detailTitle : t(`${p}.objectManager`) })} title={`${t(`${p}.sheetClose`)} (Esc)`}
-                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}>×</button>
+                      onClick={() => { if (sheetTab === "detail") { closeDetail(true); if (work !== "objects") setTab("objects"); } else closeWork(); }}><PhosphorIcon name="x" size={14} /></button>
                   </div>
                   <div className="omx-sheetbody" id={`${described}-sheet`} role="tabpanel" aria-labelledby={`${described}-tab-${sheetTab}`} data-testid={sheetTab === "detail" ? "object-map-detail" : undefined}>
                     {sheetTab === "detail" ? <h3 className="omx-sheettitle">{detailTitle}</h3> : null}
@@ -956,7 +956,7 @@ const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation?: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
@@ -980,7 +980,7 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
         <div data-testid="object-map-detail-relations">
           {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <button key={x.id} type="button" className="omw-answer" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+            <button key={x.id} type="button" className="omw-answer" aria-pressed={relation === undefined ? undefined : isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
               <span>{x.label}</span>{" "}<b>{signed(x.r)}</b>
               <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
             </button>
@@ -1001,7 +1001,7 @@ function ObjectCard({ battery, map, selected, relation, onRelation }: { battery:
 /** The panel's "Vybraný vztah" (`relationHtml66`) without the p-value and the noise level, which
  *  the map does not store (nor, under this estimator, an interval: "95 % —" as the panel prints a
  *  missing one); the verdict reads the stored status. "zřetelný" from the declared |r| (Metodika; 0,3 as the panel). */
-function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
+export function RelationBlock({ detail: d }: { detail: ReturnType<typeof relationDetail> }) {
   const p = "research.exec.objectMap.panel";
   let verdict: ReactNode;
   if (d.r === null) verdict = tv(`${p}.${d.verdict === "noSpread" ? "relationNoSpread" : "relationFewRatings"}`, { n: d.n ?? 0 });

@@ -40,6 +40,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
       : u === CONTENT_PATH ? { state: "NATIVE", revision: 3, revision_id: "REV-3", deduplicated: false }
       : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
+      : u.endsWith("/research/limits") ? { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } }
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
       : u.endsWith("/research/agent-jobs") ? (String(url).includes("pending=true") ? pendingAnswer : [])
@@ -84,15 +85,42 @@ describe("the workbench: the Lead owns the AI starts", () => {
     });
   }
 
-  it("goes on from Zadání to Návrh through the frame, so Návrh's heading takes the focus (Codex stand-in on #714)", async () => {
+  it("goes on from Zadání to Návrh through the header's frame button, so Návrh's heading takes the focus (Codex stand-in on #714; v73 H1)", async () => {
     push.mockClear();
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     await screen.findByText("Bára");
-    fireEvent.click(screen.getByRole("button", { name: /Připravenost a pomoc/ }));
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
     // A button the frame answers, not a bare link: a link would skip the frame's heading focus.
-    fireEvent.click(await screen.findByRole("button", { name: "Pokračovat na Návrh" }));
+    fireEvent.click(await within(header).findByRole("button", { name: /^Návrh/ }));
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/plan$/);
+    // The stage's own "Pokračovat na Návrh" is gone: the header holds the one way on.
+    expect(screen.queryByRole("button", { name: "Pokračovat na Návrh" })).toBeNull();
+  });
+
+  it("offers the header's ask only to someone who may edit, and only for a brief the analysis would take (code review on #986)", async () => {
+    const view = render(<ResearchScreen step="brief" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    await screen.findByText("Bára");
+    const ask = async () => (await within(document.querySelector("[data-workbench] .arthead") as HTMLElement).findByRole("button", { name: "Požádat Vedoucího o analýzu" })) as HTMLButtonElement;
+    expect((await ask()).disabled).toBe(true);
+    view.unmount();
+    // A brief the analysis would refuse (no goal, nothing to research): the ask waits too.
+    api({ title: "Alfa" });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    expect((await ask()).disabled).toBe(true);
+    expect(bodies.some((b) => b.body.text === "Analyzuj zadání")).toBe(false);
+  });
+
+  it("asks the Lead for the brief's analysis from the header, and the stage starts nothing itself (spec navrh B7)", async () => {
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
+    fireEvent.click(await within(header).findByRole("button", { name: "Požádat Vedoucího o analýzu" }));
+    await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Analyzuj zadání")).toBe(true));
+    expect(urls.some((u) => u.startsWith("POST") && u.includes("/agent-jobs"))).toBe(false);
+    // The readiness chips stand in the header's status line.
+    expect(document.querySelector("[data-stage-status]")!.querySelector("nav[aria-label='Připravenost']")).not.toBeNull();
   });
 
   it("opens on its own stage a proposal the Lead's show_diff found older than the newest page (stand-in review on #809)", async () => {
@@ -177,6 +205,31 @@ describe("the workbench: the Lead owns the AI starts", () => {
     // The Lead answers with its card; nothing paid starts from the stage.
     expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
   });
+
+  it("sets n on Vzorek, within the server's limits, and not on Dimenze (artifact-sample SMP7, artifact-dimensions DIM3b)", async () => {
+    api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", n: 350 });
+    window.location.hash = "#sample";
+    try {
+      render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      const view = await screen.findByLabelText("Vzorek", { selector: "[data-sample-view]" });
+      const field = () => within(view).getByRole("spinbutton", { name: "Počet respondentů" });
+      await within(view).findByRole("spinbutton", { name: "Počet respondentů" });
+      expect(field().closest("[data-aia='sample:n']")).not.toBeNull();
+      expect(document.querySelectorAll("[data-aia='sample:n']")).toHaveLength(1);
+      expect(within(view).queryByRole("button", { name: "Upravit v Dimenzích" })).toBeNull();
+      fireEvent.click(within(view).getByRole("button", { name: "Zvýšit: Počet respondentů" }));
+      await waitFor(() => expect((bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { n?: unknown } | undefined)?.n).toBe(400), { timeout: 10_000 });
+      // The Stepper remounts on the saved value; the field is read again.
+      const puts = bodies.length;
+      fireEvent.change(field(), { target: { value: "10001" } });
+      fireEvent.blur(field());
+      expect((await within(field().closest("[data-aia='sample:n']") as HTMLElement).findByRole("alert")).textContent).toMatch(/neuloženo/);
+      await new Promise((r) => setTimeout(r, 2_100)); // past the store's 1.8 s save
+      expect(bodies.slice(puts).filter((b) => b.url === `PUT ${CONTENT_PATH}` && (b.body.content as { n?: unknown }).n === 10001)).toEqual([]);
+    } finally {
+      window.location.hash = "";
+    }
+  }, 30_000);
 
   it("a removed comment comes back with Vrátit; saving comments marks nothing changed", async () => {
     api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", ui_state: { plan_comments26: [{ quote: "cíl", comment: "zúžit na Prahu" }, { quote: "test", comment: "upřesnit" }] } }, { problem_summary: "Jde o test.", objectives: ["Změřit zájem"], hypotheses: [], research_questions: [], tracked_sets: [] });

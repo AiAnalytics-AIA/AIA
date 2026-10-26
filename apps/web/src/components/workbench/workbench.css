@@ -620,7 +620,7 @@
 @media (max-width: 639.98px) {
   .iconbtn { width: 44px; height: 44px; }
   .composer__send { width: 44px; height: 44px; border-radius: 22px; }
-  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip, .arthead__actions button { min-height: 44px; }
+  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip, .arthead__actions button, .conv__sees--chip { min-height: 44px; }
   .refchip__clear { flex: none; }
   .nav--sheet { height: 48px; }
 }
