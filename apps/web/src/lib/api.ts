@@ -1106,6 +1106,9 @@ export type ResearchStep = {
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
   /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
   recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
+  /** A step waiting for budget: the hold it asked for and what the study had left (FLD10); null when
+   *  not waiting, its attempts were not read, or the stop named no price -- unknown, never zero. */
+  budget_need?: { requested_usd: number; remaining_usd: number } | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };

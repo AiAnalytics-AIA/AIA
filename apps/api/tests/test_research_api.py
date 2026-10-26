@@ -2980,7 +2980,9 @@ def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
 # --------------------------------------------------------------------------- #
 
 
-def _park_first_step_on_budget(app: FastAPI, world: Any, who: str = "researcher") -> str:
+def _park_first_step_on_budget(
+    app: FastAPI, world: Any, who: str = "researcher", error: dict[str, Any] | None = None
+) -> str:
     """Claim the run's first step as a worker would, and stop it at the budget cap."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
@@ -2992,7 +2994,10 @@ def _park_first_step_on_budget(app: FastAPI, world: Any, who: str = "researcher"
         claimed = workflow.claim_next(worker_id="budget-fixture")
         assert claimed is not None
         workflow.fail_attempt(
-            claimed.attempt_id, worker_id="budget-fixture", failure=FailureClass.BUDGET_EXCEEDED
+            claimed.attempt_id,
+            worker_id="budget-fixture",
+            failure=FailureClass.BUDGET_EXCEEDED,
+            error=error,
         )
         session.commit()
         return str(claimed.node_key)
@@ -3057,6 +3062,56 @@ def test_the_runs_budget_lift_releases_the_run_and_is_refused_when_nothing_waits
         ).status_code
         == 404
     )
+
+
+def test_a_step_waiting_for_budget_says_what_it_needs_and_unknown_is_never_zero(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """FLD10: the worker records the refused hold (worker.py's BudgetExceeded); the run's read
+    serves it, so the park note can say what the step needs. A stop with no price is unknown."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(
+        app, world, error={"requested_usd": 1.25, "remaining_usd": 0.4, "budget_usd": 5.0}
+    )
+    read = researcher.get(f"{_runs(world)}/{run_id}").json()
+    step = next(s for s in read["steps"] if s["node_key"] == node)
+    assert step["status"] == "AWAITING_BUDGET"
+    assert step["budget_need"] == {"requested_usd": 1.25, "remaining_usd": 0.4}
+    # A listing reads no attempts: unknown there, never a guess.
+    listed = researcher.get(_runs(world)).json()
+    listed_run = next(r for r in listed["items"] if r["run_id"] == run_id)
+    assert all(s["budget_need"] is None for s in listed_run["steps"])
+    # Every other step needs nothing.
+    assert all(s["budget_need"] is None for s in read["steps"] if s["node_key"] != node)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        {},  # a park that recorded only that it stopped (the gateway's reservation_exhausted)
+        {"requested_usd": 0.0, "remaining_usd": 0.0},
+        {"requested_usd": 1.0},
+        {"requested_usd": 1.0, "remaining_usd": -0.5},
+        {"requested_usd": float("inf"), "remaining_usd": 0.0},
+        {"requested_usd": True, "remaining_usd": 0.0},
+    ],
+)
+def test_a_budget_stop_that_names_no_price_reads_unknown(
+    app: FastAPI, researcher: TestClient, world: Any, error: dict[str, Any]
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(app, world, error=error)
+    step = next(
+        s
+        for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+        if s["node_key"] == node
+    )
+    assert step["status"] == "AWAITING_BUDGET"
+    assert step["budget_need"] is None
 
 
 def test_a_budget_lift_that_is_refused_changes_nothing(

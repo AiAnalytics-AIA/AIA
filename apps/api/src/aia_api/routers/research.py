@@ -9,6 +9,7 @@ project id: the browser supplies content, never authority.
 
 from __future__ import annotations
 
+import math
 import re
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
@@ -155,7 +156,7 @@ from aia_core.domain.scope import (
     StudyContext,
 )
 from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER, MethodologyStatus
-from aia_core.domain.workflow import StepRunStatus
+from aia_core.domain.workflow import FailureClass, StepRunStatus
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
     ArtifactNotFound,
@@ -349,6 +350,20 @@ class RunRetry(BaseModel):
     acknowledge_research_questions: AnswerabilityAcknowledgementBody | None = None
 
 
+class StepBudgetNeed(BaseModel):
+    """What a step stopped at the study's budget asked for (artifact-fieldwork FLD10), as the worker
+    recorded it at the stop: the hold of the one call that did not fit -- what going on needs at
+    the least, not what finishing costs -- and what the study had left then. A later budget change
+    does not move it; the study's current remainder is read where it is served."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The hold the refused call asked for: the most that one call could cost.
+    requested_usd: float
+    #: What the study's budget had left when the hold was refused (not now).
+    remaining_usd: float
+
+
 class ResearchStepResponse(BaseModel):
     """One step of a research run: its state, its checkpoint, what it produced."""
 
@@ -386,6 +401,10 @@ class ResearchStepResponse(BaseModel):
     #: repeats it) or ``attempts_exhausted``; ``None`` for any other step, or when its attempts
     #: were not read (a listing) -- unknown, never guessed.
     recovery_reason: Literal["paid_call_uncertain", "attempts_exhausted"] | None = None
+    #: A step waiting for budget: what its stopped attempt asked for and what remained
+    #: (FLD10), with ``VIEW_COSTS``; ``None`` without it, for any other step, when its attempts
+    #: were not read (a listing) or when the stop recorded no price -- unknown, never zero.
+    budget_need: StepBudgetNeed | None = None
 
 
 class ResearchRunSpend(BaseModel):
@@ -1097,6 +1116,28 @@ def _recovery_reason(
     return None
 
 
+def _budget_need(s: Mapping[str, Any]) -> StepBudgetNeed | None:
+    """What a step waiting for budget asked for, from its last attempt's recorded stop; ``None``
+    when it is not waiting, its attempts were not read, or the stop names no positive price."""
+    if s["status"] is not StepRunStatus.AWAITING_BUDGET or not s.get("attempts"):
+        return None
+    last = s["attempts"][-1]
+    if last["failure_class"] is not FailureClass.BUDGET_EXCEEDED:
+        return None
+    error = last.get("error") or {}
+    requested, remaining = _usd(error.get("requested_usd")), _usd(error.get("remaining_usd"))
+    if requested is None or remaining is None or requested <= 0:
+        return None
+    return StepBudgetNeed(requested_usd=requested, remaining_usd=remaining)
+
+
+def _usd(value: object) -> float | None:
+    """A recorded amount when it is a finite, non-negative number; anything else is unknown."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value) if math.isfinite(value) and value >= 0 else None
+
+
 _CODE = re.compile(r"[a-z][a-z0-9_:.-]{0,79}")
 
 
@@ -1105,7 +1146,8 @@ def _code(value: object) -> str | None:
     return value if isinstance(value, str) and _CODE.fullmatch(value) else None
 
 
-def _step(s: dict[str, Any]) -> ResearchStepResponse:
+def _step(s: dict[str, Any], *, costs: bool) -> ResearchStepResponse:
+    """One step; with ``costs`` (the caller holds ``VIEW_COSTS``) the amounts it recorded too."""
     attempts = s.get("attempts") or []
     last = attempts[-1] if attempts else None
     error = (last or {}).get("error") or {}
@@ -1131,6 +1173,7 @@ def _step(s: dict[str, Any]) -> ResearchStepResponse:
         if s.get("kind") == ANALYSIS_STEP_KIND and output.get("outcome") in _ANALYSIS_OUTCOMES
         else None,
         recovery_reason=_recovery_reason(s),
+        budget_need=_budget_need(s) if costs else None,
     )
 
 
@@ -1151,11 +1194,12 @@ def _run(
     run: dict[str, Any], scope: StudyContext, *, created: bool | None = None
 ) -> ResearchRunResponse:
     meta = run.get("metadata") or {}
-    steps = [_step(s) for s in run.get("steps", [])]
+    costs = scope.has(Permission.VIEW_COSTS)
+    steps = [_step(s, costs=costs) for s in run.get("steps", [])]
     cost: float | None = None
     # A listed run's steps carry no attempts, so no cost: unknown, never zero.
     listed = "steps" in run and any("attempts" not in s for s in run["steps"])
-    if scope.has(Permission.VIEW_COSTS) and "steps" in run and not listed:
+    if costs and "steps" in run and not listed:
         cost = sum(
             float(a.get("actual_cost_usd") or 0.0)
             for s in run["steps"]
@@ -1183,7 +1227,7 @@ def _run(
         actual_cost_usd=cost,
         cost_ceiling=(
             ResearchRunCeiling.model_validate(meta["cost_ceiling"])
-            if scope.has(Permission.VIEW_COSTS) and isinstance(meta.get("cost_ceiling"), dict)
+            if costs and isinstance(meta.get("cost_ceiling"), dict)
             else None
         ),
         population=(
@@ -3781,6 +3825,7 @@ def _agent_response(
     run: dict[str, Any], scope: StudyContext, state: str | None = None
 ) -> AgentJobResponse:
     meta = run["metadata"]
+    costs = scope.has(Permission.VIEW_COSTS)
     return AgentJobResponse(
         run_id=run["run_id"],
         design_revision_id=meta["design_revision_id"],
@@ -3793,11 +3838,11 @@ def _agent_response(
         prompt_version=meta.get("prompt_version"),
         prompt_origin=meta.get("prompt_origin"),
         created_at=run.get("created_at"),
-        steps=[_step(s) for s in run["steps"]],
+        steps=[_step(s, costs=costs) for s in run["steps"]],
         actual_cost_usd=sum(
             float(a.get("actual_cost_usd") or 0) for s in run["steps"] for a in s["attempts"]
         )
-        if scope.has(Permission.VIEW_COSTS)
+        if costs
         else None,
         proposal_state=state,
         rebuild_of=meta.get("rebuild_of"),
