@@ -28,6 +28,17 @@ describe("designLane", () => {
     expect(designLane({ project: chosen, analysis: null }).persona).toEqual({ tone: "done", line: "2 dimenze · N=300" });
   });
 
+  it("gives the workbench's Dimenze its dimensions alone and Vzorek its N, so neither waits on the other (#945)", () => {
+    const chosen = project({ persona_dimensions: { approved: ["media", "cena"] } });
+    const lane = designLane({ project: { ...chosen, n: undefined } as ResearchProject, analysis: null });
+    // N is set on Vzorek now: Dimenze is done with its dimensions, whatever N is.
+    expect(lane.dimensions).toEqual({ tone: "done", line: "2 dimenze" });
+    expect(lane.sample).toEqual({ tone: "idle", line: "N nezadáno" });
+    const set = designLane({ project: chosen, analysis: null });
+    expect(set.sample).toEqual({ tone: "done", line: "N=300" });
+    expect(designLane({ project: project(), analysis: null }).dimensions).toEqual({ tone: "idle", line: "Bez dimenzí" });
+  });
+
   it("marks the brief done once it has a goal", () => {
     expect(designLane({ project: project({ goal: "Jak nás vnímají" }), analysis: null }).brief.tone).toBe("done");
   });

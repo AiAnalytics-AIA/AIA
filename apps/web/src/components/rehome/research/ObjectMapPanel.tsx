@@ -198,7 +198,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
-  // "Top vztahy" follows the selection, in full screen as on the page: the selected object's five
+  // "Nejsilnější vztahy" (the panel's Top) follows the selection, in full screen as on the page: the selected object's five
   // strongest, or the map's five strongest with nothing selected (the panel's rule).
   const pairs = useMemo(() => relationPairs(map, mode, selected).map((p) => ({ ...p, k: relationStrength(p.v, norm, strongest) })), [map, mode, selected, norm, strongest]);
   // The node size follows the mapped objects; an object nobody rated is left out of the map, as the panel counts it.
@@ -1037,7 +1037,7 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
   if (!d) return <p className="omw-tip py-4 text-center">{t(`${p}.personEmpty`)}</p>;
   return (
     <div className="flex items-center gap-[9px]">
-      <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-extrabold text-white">{d.id.slice(-2)}</div>
+      <div aria-hidden className="grid h-[46px] w-[46px] flex-none place-items-center rounded-full bg-[#1d2b33] font-semibold text-white">{d.id.slice(-2)}</div>
       <div>
         <b data-testid="object-map-detail-person">{d.id}</b>
         <p className="omw-tip">

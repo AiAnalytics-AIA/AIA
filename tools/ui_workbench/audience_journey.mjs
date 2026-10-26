@@ -175,7 +175,8 @@ await presetSave;
 // OI-51 (a): a preset change starts afresh; the region and age chosen above are not carried over.
 const afterPreset = (await content()).content.audience;
 if (JSON.stringify(afterPreset.filters) !== "{}" || afterPreset.builtin_subpanel) fail(`Speciální skupiny kept the previous audience: ${JSON.stringify({ filters: afterPreset.filters, builtin_subpanel: afterPreset.builtin_subpanel })}`);
-ok("Speciální skupiny: the region and age chosen before are cleared, not carried into the new preset (OI-51 (a))");
+if (afterPreset.strategy !== "population") fail(`Speciální skupiny kept the previous strategy "${afterPreset.strategy}"`);
+ok("Speciální skupiny: the region and age chosen before are cleared, and the strategy is the whole population again (OI-51 (a))");
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
