@@ -1275,6 +1275,8 @@ export type ReportVariant = {
    * footers (D2: approved, DOCX and PDF say SCHVÁLENO; false: stored before that layout). */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** When the draft was stored (RPT3d); null where its record has none, absent from an older API. */
+  stored_at?: string | null;
   internal_only: true;
   pdf?: ReportPdf | null;
   /** Whether approving the draft now gives its approved version a PDF too: approving asks for one
@@ -1298,6 +1300,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** As ReportVariant's: when it was stored (RPT3d). */
+  stored_at?: string | null;
   /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
   artifact_id?: string;

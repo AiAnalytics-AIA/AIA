@@ -36,7 +36,7 @@ chunks:
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
   - "[x] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
-  - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
+  - "[x] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
   - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
   - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
@@ -209,6 +209,14 @@ confirmation's, from the server. Left open: the kept records' rows as v99 draws 
 under its name; their lhůta is F22's, MVPQ-07), and Systémové prompty's head chips and buttons, which wait
 for the Metodik-only rule (Nigel, 26 Oct ~00:35 UTC: "metodik edits the prompts") to reach the API, since a
 chip saying who may edit must say what the server enforces.
+
+**F16. Studie a rozpočty compacted** (built). The studies card as prototype v52 draws it: its title the
+tab's h2 with the count and an ⓘ; each money column's ⓘ a real button (it was an aria-hidden title,
+#892's rule for every ⓘ) that opens the one explanation -- who may change a budget, then the four
+D-01 names with where each is set -- which replaces the paragraph and the "Co znamenají částky" button
+under the table; a client filter ("Všichni klienti (n)", each client with its count) beside the search
+when the studies span more than one client, a filtered row hidden, never unmounted. The spend card
+(#892) is already compact: its ⓘ, legend and bars stay.
 
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 

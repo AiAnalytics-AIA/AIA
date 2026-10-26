@@ -178,14 +178,30 @@ def _config(
             "key": key,
             "title": f"Zpráva, koncept {opened.version.koncept}.docx",
             "url": f"{base}/document?token={document}",
-            "permissions": {"edit": edit, "download": True, "print": True, "comment": edit},
+            # The doc bar is the only way out of the editor (Z5): its downloads name the stored
+            # version, its approval and its fonts; the editor's own would name none of them.
+            "permissions": {"edit": edit, "download": False, "print": False, "comment": edit},
         },
         "editorConfig": {
             "callbackUrl": f"{base}/callback?token={callback}",
             "lang": "cs",
+            "region": "cs-CZ",
             "mode": mode,
             "user": {"id": scope.actor_id, "name": name or "Člen týmu"},
-            "customization": {"forcesave": True},
+            # The board's editor (Z5, T5). modifyContentControl is left at the server's default:
+            # unlocking a control stays allowed (amended ADR 0035).
+            "customization": {
+                "uiTheme": "theme-aia",
+                "compactHeader": True,
+                "compactToolbar": True,
+                "toolbarHideFileName": True,
+                "unit": "cm",
+                "zoom": 90,
+                "plugins": False,
+                "chat": False,
+                "help": False,
+                "forcesave": True,
+            },
             "coEditing": {"mode": "fast", "change": False},
         },
     }

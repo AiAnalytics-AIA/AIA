@@ -296,6 +296,7 @@ INSPECT_COPY: dict[str, Any] = {
         ("rq:rq_tea", None),  # Návrh allows inspect, and the copy holds it
         ("hypothesis:hyp_tea", None),
         ("plan:sets", None),  # a Návrh section by its name
+        ("plan:hypotheses", None),  # the hypotheses' own section (artifact-design DSN12)
         ("rq:rq_made_up", "unknown_item"),  # an id the copy does not hold
         ("hypothesis:hyp_x", "unknown_item"),
         ("plan:everything", "unknown_item"),
