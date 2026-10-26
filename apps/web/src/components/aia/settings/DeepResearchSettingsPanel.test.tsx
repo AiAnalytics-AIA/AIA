@@ -661,6 +661,25 @@ describe("Deep Research settings", () => {
     expect(approval("common-crawl-athena-index")).toBe("čeká na pravidla");
   });
 
+  it("compacts the cards as prototype v55: each card's explanation behind a real ⓘ, no caption left (F8b)", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    for (const [label, id] of [["Jak se pravidlo navrhuje a schvaluje", "dr-rules-about"], ["Jak číst Dosah", "dr-reach-about"], ["Co znamenají pevné ochrany", "dr-protections-about"]] as const) {
+      const button = await screen.findByRole("button", { name: label });
+      const text = document.getElementById(id) as HTMLElement;
+      expect(button.getAttribute("aria-controls")).toBe(id);
+      expect(text.hidden).toBe(true);
+      fireEvent.click(button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
+      expect(text.hidden).toBe(false);
+    }
+    // The two cards are the section's h2s; their parts are h3s under them.
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(expect.arrayContaining(["Dosah", "Pravidla rešerše"]));
+    // Nothing amber: a waiting rule is coral for who can approve it, never a warning colour.
+    expect(document.body.innerHTML).not.toMatch(/amber|yellow/);
+  });
+
   it("opens a rule's purpose from its ⓘ by keyboard or touch, not on hover alone", async () => {
     fakeApi();
     render(<DeepResearchSettingsPanel people={people} />);
