@@ -146,6 +146,8 @@ afterEach(() => {
   cleanup();
   resetConfigCache();
   vi.unstubAllGlobals();
+  // The posture's link moves the address; the next test starts from none.
+  window.history.replaceState(null, "", "/");
 });
 
 describe("Deep Research settings", () => {
@@ -332,7 +334,33 @@ describe("Deep Research settings", () => {
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
     expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
     const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
-    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("/app/settings#access");
+    // A same-page anchor (a next/link to the same page wrote "#deep_research#access" and opened no
+    // section): its href serves a new tab; a plain click pushes an entry that keeps the framework's
+    // history state, so Back from another page lands on Přístup (review of #900).
+    const access = within(posture).getByRole("link", { name: "Přístup a schvalování" });
+    expect(access.getAttribute("href")).toBe("#access");
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    const entries = window.history.length;
+    const changes: string[] = [];
+    window.addEventListener("hashchange", () => changes.push(window.location.hash), { once: true });
+    expect(fireEvent.click(access)).toBe(false); // prevented: the page, not the browser, navigates
+    expect(window.location.hash).toBe("#access");
+    expect(window.history.state).toMatchObject({ __NA: true });
+    expect(window.history.length).toBe(entries + 1);
+    expect(changes).toEqual(["#access"]);
+    // A click for a new tab is the browser's: not prevented by the page. jsdom has no new tab and would
+    // follow the href in this page a task later, into another test, so its default is cancelled
+    // after the page has decided (window listeners run after React's root).
+    const verdicts: boolean[] = [];
+    const listen = (e: MouseEvent) => { verdicts.push(e.defaultPrevented); e.preventDefault(); };
+    window.addEventListener("click", listen);
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    fireEvent.click(access, { metaKey: true });
+    fireEvent.click(access, { ctrlKey: true });
+    window.removeEventListener("click", listen);
+    expect(verdicts).toEqual([false, false]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(window.location.hash).toBe("#deep_research");
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",
