@@ -351,8 +351,8 @@ def test_an_inspect_target_is_held_to_the_focus_grammar() -> None:
 
 
 def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
-    """Návrh, Dotazník and Dimenze show their waiting changes; Zpráva declares show_diff for a
-    draft's tracked changes, which do not exist yet; Zadání declares none."""
+    """Návrh, Dotazník, Dimenze and Vzorek show their waiting changes; Zpráva declares show_diff
+    for a draft's tracked changes, which do not exist yet; Zadání declares none."""
     output = LeadOutput.model_validate(
         _output(
             view=[
@@ -370,6 +370,10 @@ def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
         {"index": 1, "op": "show_diff", "reason": "not_available"},
         {"index": 2, "op": "show_diff", "reason": "not_available"},
     ]
+    sample = LeadOutput.model_validate(_output(view=[{"op": "show_diff", "stage": "sample"}]))
+    assert (
+        ground_view(sample, INSPECT_COPY)[0].view == sample.view
+    )  # a set_n waits on Vzorek (SMP7)
     assert not _valid(_output(view=[{"op": "show_diff", "stage": "nowhere"}])).ok
 
 
@@ -421,6 +425,17 @@ def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
     assert not _valid(_output(view=[{"op": "filter", "name": "labels", "value": "off"}])).ok
     assert not _valid(_output(view=[{"op": "filter", "name": "hide_weak", "value": "on"}])).ok
     assert not _valid(_output(view=[{"op": "filter", "name": "view", "value": "a b"}])).ok
+
+
+def test_every_stage_the_contract_lets_show_diff_shows_it_or_waits() -> None:
+    """The contract and the gate cannot drift: a stage whose row declares show_diff is shown, or is
+    Zpráva, whose tracked changes wait for RD5."""
+    from aia_core.domain.lead_artifacts import ARTIFACTS, allows_view
+    from aia_core.domain.research_lead import SHOW_DIFF_STAGES
+
+    declared = {stage for stage in ARTIFACTS if allows_view(stage, "show_diff")}
+    assert declared - SHOW_DIFF_STAGES == {"report"}
+    assert declared >= SHOW_DIFF_STAGES
 
 
 def test_bounds_on_lists_reply_and_follow() -> None:

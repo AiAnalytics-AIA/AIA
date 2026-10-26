@@ -560,10 +560,11 @@
     {
       "stage": "sample",
       "artifact": "working",
-      "edits": false,
+      "edits": true,
       "view_ops": [
         "open_stage",
         "focus",
+        "show_diff",
         "inspect"
       ],
       "targets": [

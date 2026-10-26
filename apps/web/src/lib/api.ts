@@ -1241,6 +1241,9 @@ export type ResearchAnalysis = {
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
+    /** What a module that states nothing says beside it (evidence-integrity 9a): `no_supported_finding` (it
+     *  holds the report) or `context_missing` (it holds nothing), with the server's ways out; null otherwise. */
+    diagnostic?: { reason: string; resolutions: string[] } | null;
   }>;
 };
 

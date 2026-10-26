@@ -26,7 +26,6 @@ import {
   type ActiveDimensions,
   type Change,
   type NewDimension,
-  type SampleRefusal,
   PROPOSAL_AI_DONE,
   PROPOSAL_DONE,
   REQUEST_EMPTY,
@@ -44,7 +43,6 @@ import {
   dimensionProposal,
   dimensionTopic,
   dimensionTopicWords,
-  isSampleRefusal,
   matchesDimensionSearch,
   personaDone,
   recommendedSample,
@@ -54,27 +52,24 @@ import {
   requestLabel,
   requestedLabels,
   requestProblem,
-  sampleRefusalMessage,
-  setSampleSize,
   suggestPayload,
   suggestedPersonaDims,
   suggestedRequest,
-  applyRecommendedSample,
 } from "@/research/persona";
 import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
-import { Stepper } from "@/components/ui/Stepper";
 import { UndoToast, useUndo } from "@/components/ui/UndoToast";
-import { rangeWords } from "@/lib/number-input";
+import { plural } from "@/lib/format";
 import { dimensionsChosen } from "@/research/lane";
 import { dimensionAia } from "@/lib/artifacts/dimensions";
 import { sampleAia } from "@/lib/artifacts/sample";
+import { STAGES } from "@/lib/workbench-stages";
 import { useResearch, useSessionState } from "./context";
 import { OwnDimensions } from "./OwnDimensions";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
-import { readyLimits, useSampleLimits } from "./useSampleLimits";
+import { SampleSize } from "./SampleSize";
 
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -124,8 +119,6 @@ export function PersonaStep() {
   const step = useAiStep();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
   const active = useClientDimensions(frame.studyId);
-  const sampleLimits = useSampleLimits(frame.studyId);
-  const limits = readyLimits(sampleLimits);
   const [suggestion, setSuggestion] = useSessionState<Suggestion | null>("persona.suggestion", null);
   const [query, setQuery] = useState("");
   const [custom, setCustom] = useState("");
@@ -140,15 +133,8 @@ export function PersonaStep() {
   const suggested = new Set(suggestedPersonaDims(p));
   const entries = catalogEntries(active, CLIENT_LIBRARY_LABEL);
   const requested = requestedLabels(p);
-  const r = recommendedSample(p);
 
   const apply = (c: Change) => store.update(() => ({ project: c.project }), { reason: c.reason });
-  /** A sample size the Stepper already checked; a refusal still throws, and the Stepper says Neuloženo. */
-  const applySample = (c: Change | SampleRefusal) => {
-    if (isSampleRefusal(c)) throw new Error(c.message);
-    apply(c);
-  };
-  const allowed = (x: number) => limits !== null && x >= limits.min && x <= limits.max;
 
   // suggestPersonaAI: the provider check, then the job; the model's dimensions become the approval.
   const suggest = () =>
@@ -204,6 +190,9 @@ export function PersonaStep() {
   // Inside the workbench the next stage is the frame's (its navigator's order and focus); a frame
   // with none leaves the dock without a forward action, never the classic run step.
   const nav = useContext(FrameNavigation);
+  // In the workbench the sample size is Vzorek's (artifact-dimensions DIM3b, artifact-sample SMP7; Nigel,
+  // 26 Oct 2026). The classic layout has no Vzorek, so there it stays here: n is never on neither.
+  const nOnVzorek = nav !== null;
   const toNext = () => {
     apply(personaDone(store.get().project));
     if (nav) nav.next?.go();
@@ -263,12 +252,21 @@ export function PersonaStep() {
     applyUndoable(change, dropped.length ? tv("research.persona.autofillDropped", { list: dropped.join(", ") }) : t("research.persona.autofillDone"));
   };
   const toggle = (id: string) => apply(chosen.has(id) ? removeDimension(store.get().project, id) : addDimension(store.get().project, id));
-  const storedN = Number(p.n) > 0 ? Number(p.n) : null;
-  const n = storedN ?? r.n;
 
   return (
     <div className="flex max-w-[82.5rem] flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-4">
+        {nOnVzorek ? (
+          <p className="text-sm text-ink-muted">
+            {t("research.persona.nOnSample")}
+            {nav.next?.label === STAGES.sample.label ? (
+              <>
+                {" "}
+                <button type="button" className="text-signal underline" onClick={nav.next.go}>{t("research.persona.nOnSampleLink")}</button>
+              </>
+            ) : null}
+          </p>
+        ) : null}
         {step.failure ? <AiFailureCard failure={step.failure} title={t("research.persona.failedTitle")} onRetry={() => step.setFailure(null)} onContinue={(id) => void step.resume(id, (r) => setSuggestion(r as Suggestion))} /> : null}
 
         <StepSection title={t("research.persona.chosenTitle")} hint={t("research.persona.selectedHint")} aside={<span className="font-mono text-xs text-ink-muted">{approved.length}</span>}>
@@ -373,45 +371,10 @@ export function PersonaStep() {
           </section>
         ) : null}
 
-        <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
+        {nOnVzorek ? null : <section aria-labelledby="per-sample" className="rounded-card border border-border bg-surface-raised p-4">
           <h2 id="per-sample" className="text-sm font-semibold">{t("research.persona.sampleTitle")}</h2>
-          <div className="mt-3" data-aia={sampleAia.n()}>
-            {limits ? (
-              <Stepper
-                key={n}
-                label={t("research.persona.sampleLabel")}
-                value={n}
-                min={limits.min}
-                max={limits.max}
-                step={50}
-                onCommit={(v) => applySample(setSampleSize(store.get().project, String(v), limits))}
-              />
-            ) : sampleLimits.state === "failed" ? (
-              <p role="alert" className="text-xs text-status-fault">
-                {tv("research.persona.sampleStored", { n })} {sampleRefusalMessage("limits_unknown", null)}
-              </p>
-            ) : (
-              <p className="text-xs text-ink-muted">{t("research.persona.sampleLoading")}</p>
-            )}
-          </div>
-          {limits && storedN !== null && !allowed(storedN) ? (
-            <p role="alert" className="mt-1 text-xs text-status-fault">{tv("research.persona.sampleStoredOutside", { n: storedN, range: rangeWords(limits) })}</p>
-          ) : null}
-          <div className="mt-3">
-            <button
-              type="button"
-              disabled={!allowed(r.n) || storedN === r.n}
-              // Offered only within the valid n (disabled otherwise), so it is stored as it is.
-              onClick={() => apply(applyRecommendedSample(store.get().project))}
-              className={PRESET}
-            >
-              {tv("research.persona.sampleUse", { n: r.n })}
-            </button>
-          </div>
-          <p className={`mt-3 text-xs leading-[18px] ${n < r.n ? "text-status-you-ink" : "text-ink-muted"}`}>
-            {n < r.n ? tv("research.persona.sampleBelow", { n: r.n }) : r.why}
-          </p>
-        </section>
+          <div className="mt-3" data-aia={sampleAia.n()}><SampleSize /></div>
+        </section>}
         <StepSection n={2} optional title={t("research.persona.customSummary")} hint={t("research.persona.customHelper")}>
           <form
             className="flex flex-wrap items-end gap-2"
@@ -454,7 +417,7 @@ export function PersonaStep() {
         <UndoToast offer={undo.current} onDone={undo.clear} />
         <ActionDock
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
-          note={tv("research.persona.dockNote", { d: dimensionsChosen(approved.length), n })}
+          note={nOnVzorek ? tv("research.persona.dockNoteDims", { d: plural(approved.length + 1, "dimenze", "dimenze", "dimenzí") }) : tv("research.persona.dockNote", { d: dimensionsChosen(approved.length), n: Number(p.n) > 0 ? Number(p.n) : recommendedSample(p).n })}
         >
           {!nav || nav.next ? (
             <Button variant="primary" className="!rounded-control" onClick={toNext}>
@@ -468,7 +431,6 @@ export function PersonaStep() {
   );
 }
 
-const PRESET = "rounded-pill border border-border bg-surface px-2.5 font-mono text-xs leading-6 text-ink hover:border-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
 /** One group of the catalogue as a checklist: a row per dimension, toggled by a click. */
 function DimensionGroup({ title, action, rows, chosen, suggested, onToggle }: {

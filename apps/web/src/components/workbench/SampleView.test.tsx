@@ -26,20 +26,21 @@ const readiness = (over: Partial<WorkingReadiness>): WorkingReadiness => ({
 const ready = (over: Partial<WorkingReadiness>): SampleReadiness => ({ kind: "ready", revision: 7, readiness: readiness(over) });
 
 describe("SampleArtifact", () => {
-  it("shows the size, the audience and the dimensions as set, and edits none of them", () => {
+  it("shows the size, the audience and the dimensions as set; without its control, n is read only", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 450, persona_dimensions: { approved: ["media", "cena"] }, audience: { description: "Dojíždějící", filters: { kraj: ["A"], vek: { min: 25 } } } })} readiness={{ kind: "loading" }} onOpen={onOpen} />);
     expect(screen.getByText("N = 450")).toBeTruthy();
     expect(screen.getByText("Dojíždějící · 2 faktory")).toBeTruthy();
     expect(screen.getByText("Média a informační chování, Cena / value for money")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Upravit v Dimenzích" }));
+    // n is set on Vzorek itself (SMP7), so nothing sends it back to Dimenze but the link card.
+    expect(screen.queryByRole("button", { name: "Upravit v Dimenzích" })).toBeNull();
     // The two link cards (spec vzorek V6) open the stage where each part is set.
     fireEvent.click(screen.getByRole("button", { name: /^Cílová skupina/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Dimenze/ }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa" }));
     fireEvent.click(screen.getByRole("button", { name: "Pokračovat na Sběr dat" }));
-    expect(onOpen.mock.calls).toEqual([["dimensions"], ["audience"], ["dimensions"], ["sociomap"], ["fieldwork"]]);
+    expect(onOpen.mock.calls).toEqual([["audience"], ["dimensions"], ["sociomap"], ["fieldwork"]]);
   });
 
   it("names a client's library dimension by its title, never its id", () => {

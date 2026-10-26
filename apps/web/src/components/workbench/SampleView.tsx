@@ -1,10 +1,10 @@
 "use client";
 
 // Vzorek (plan artifact-sample; research-lead-workbench D2): the prototype's sample stage over what
-// AIA keeps elsewhere. The sample size and the dimensions are Dimenze's, the audience is Cílová
-// skupina's, and the forecast and readiness are the server's, read on the design as it stands. So
-// this view edits nothing and decides nothing: it shows what is set, what the server forecasts,
-// and links to where each is set.
+// AIA keeps elsewhere. The sample size is set here (SMP7; Nigel, 26 Oct 2026: N is set on Vzorek); the
+// dimensions are Dimenze's, the audience is Cílová skupina's, and the forecast and readiness are the
+// server's, read on the design as it stands. Beyond n this view edits nothing and decides nothing: it
+// shows what is set, what the server forecasts, and links to where each is set.
 
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -22,6 +22,7 @@ import type { ResearchProject } from "@/research/model";
 import { chosenDimensions, clientDimensions, dimensionLabels, recommendedSample } from "@/research/persona";
 import { workspace } from "@/lib/api";
 import { CodedWords } from "../rehome/research/CodedWords";
+import { SampleSize } from "../rehome/research/SampleSize";
 import { useResearch } from "../rehome/research/context";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { useSampleReadiness, type SampleReadiness } from "./useSampleReadiness";
@@ -32,7 +33,7 @@ export function SampleView({ project, onOpen }: { project: ResearchProject; onOp
   const { store, frame, state } = useResearch();
   const readiness = useSampleReadiness(store, frame.studyId, frame.canEdit, state.revision);
   const labels = useDimensionLabels(frame.studyId);
-  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} labels={labels} />;
+  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} labels={labels} size={<SampleSize />} />;
 }
 
 /**
@@ -148,7 +149,8 @@ function LinkCard({ title, caption, done, onClick }: { title: string; caption: s
   );
 }
 
-export function SampleArtifact({ project, readiness, onOpen, labels = dimensionLabels({}) }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open; labels?: Record<string, string> }) {
+/** `size` is the sample size's control (SampleSize); without one, n is read only. */
+export function SampleArtifact({ project, readiness, onOpen, labels = dimensionLabels({}), size }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open; labels?: Record<string, string>; size?: ReactNode }) {
   const n = Number(project.n) || 0;
   const dims = chosenDimensions(project);
   const rec = recommendedSample(project);
@@ -157,13 +159,16 @@ export function SampleArtifact({ project, readiness, onOpen, labels = dimensionL
   const filters = audience.filters && typeof audience.filters === "object" ? Object.keys(audience.filters).length : 0;
   return (
     <div className="flex max-w-3xl flex-col gap-4" aria-label="Vzorek" data-sample-view>
-      <p className="text-sm text-ink-muted">Přehled vzorku jen ke čtení. Velikost a dimenze se nastavují v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, říká server níže. Běh se spouští ve Sběru dat.</p>
+      <p className="text-sm text-ink-muted">Velikost vzorku nastavujete tady; dimenze v Dimenzích, cílová skupina ve svém kroku; zda vzorek stačí, říká server níže. Běh se spouští ve Sběru dat.</p>
       <Sec n={1} title="Velikost a složení" aside={n ? `n ${n}` : undefined} aia={sampleAia.section("size")}>
         <div data-aia={sampleAia.n()}>
           <div className="flex items-center gap-2"><Glyph tone={n ? "done" : "inert"} size={12} /><h3 className="text-sm font-semibold">Velikost vzorku</h3></div>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
-          <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
-          <button type="button" className={`mt-1 text-sm ${TOUCH_LINK}`} onClick={() => onOpen("dimensions")}>Upravit v Dimenzích</button>
+          {size ? <div className="mt-2">{size}</div> : (
+            <>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">{n ? `N = ${n}` : "Nenastaveno"}</p>
+              <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
+            </>
+          )}
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
           <LinkCard
