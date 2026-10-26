@@ -28,7 +28,7 @@ chunks:
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[ ] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[ ] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
-  - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
+  - "[x] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
@@ -199,6 +199,15 @@ develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded 
 A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
+
+**F10. Audit's Důvod / změna** (built). The table as prototype v99 draws it: Kdy, Kdo, Událost (the
+category's dot with its name for a reader, the event, what it concerns) and Důvod / změna: the change in
+words from what its writer stored (`apps/web/src/lib/audit-change.ts`): the scope repository's
+"a -> b" reasons as money ("100 → 120 USD", "bez prahu"), status codes and roles in Czech, the
+self-approval rule, a client's posture and wallet ceiling, methodology, prompt and Deep Research
+versions; the person's reason (payload `why`, or the reason where the code writes none) under it. A
+shape it does not know keeps its reason as written and invents no change; nothing at all is "—". The
+category chips with their counts stay as chunk 8 built them; the search reads the change as shown.
 
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
 
