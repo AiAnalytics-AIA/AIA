@@ -17,7 +17,8 @@ import { useSession } from "@/lib/auth";
 import { hatchedRemembered, LEAD_HATCHED_EVENT, type LeadPresence, leadPresence, railLeadItem, rememberPresence } from "@/lib/rail-lead";
 import { signOut } from "@/lib/session";
 
-import { Icon, type IconName } from "../rehome/icons";
+import { PhosphorIcon } from "../icons/PhosphorIcon";
+import { RailIcon, type RailIconName } from "./rail-icons";
 import { Mark } from "../workbench/Icons";
 import "./dock-rail.css";
 
@@ -25,7 +26,7 @@ export type RailClient = { id: string; name: string };
 
 // Wayfinding tints (tokens hue-*, shell-hue-*): an active item's tile is filled with its hue, an
 // inactive one shows the hue on the graphite. Never a status.
-const NAV: { key: string; icon: IconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
+const NAV: { key: string; icon: RailIconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
   { key: "navClients", icon: "client", href: appRoutes.clients(), tile: "bg-hue-blue text-shell-strong", idle: "text-shell-hue-blue", match: (p) => p === "/app" || p.startsWith("/app/clients") },
   { key: "navIntelligence", icon: "intelligence", href: appRoutes.intelligence(), tile: "bg-hue-green text-shell-strong", idle: "text-shell-hue-green", match: (p) => p.startsWith("/app/intelligence") },
   { key: "navMemory", icon: "memory", href: appRoutes.memory(), tile: "bg-hue-violet text-shell-strong", idle: "text-shell-hue-violet", match: (p) => p.startsWith("/app/memory") },
@@ -46,12 +47,13 @@ function useLeadPresence(): LeadPresence {
     if (hatchedRemembered()) return;
     researcherLead.get().then(
       (answer) => {
-        const p = leadPresence(answer);
+        // A Lead grown while this read was in flight is not taken back by its older answer.
+        const p = hatchedRemembered() ? "hatched" : leadPresence(answer);
         rememberPresence(p);
         if (live) setPresence(p);
       },
       () => {
-        if (live) setPresence("unknown");
+        if (live && !hatchedRemembered()) setPresence("unknown");
       },
     );
     const hatched = () => {
@@ -74,6 +76,19 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
   // Escape puts the opened rail away while the pointer or focus is still on it (WCAG 1.4.13): it
   // stays put until the pointer comes back onto the rail or focus leaves it.
   const [dismissed, setDismissed] = useState(false);
+  // Escape reaches the rail the pointer holds open even when focus is on the page. It keeps the one
+  // Escape order (D21, lib/workbench-layout.ts): an Escape another handler took is not read again,
+  // and the one the rail takes is marked taken, so a layer under it closes on the next Escape.
+  useEffect(() => {
+    if (!pointer || dismissed) return;
+    const away = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      setDismissed(true);
+    };
+    document.addEventListener("keydown", away);
+    return () => document.removeEventListener("keydown", away);
+  }, [pointer, dismissed]);
   const session = useSession();
   const email = session?.email ?? null;
   const lead = railLeadItem(useLeadPresence());
@@ -88,7 +103,9 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
         data-pointer={pointer ? "" : undefined}
         data-dismissed={dismissed ? "" : undefined}
         onKeyDown={(e) => {
-          if (e.key === "Escape") setDismissed(true);
+          if (e.key !== "Escape" || e.defaultPrevented || dismissed) return;
+          e.preventDefault();
+          setDismissed(true);
         }}
         onPointerEnter={(e) => {
           if (e.pointerType !== "touch") setDismissed(false);
@@ -132,7 +149,7 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
                 <li key={item.key}>
                   <Link href={item.href} aria-current={active ? "page" : undefined} title={label} className="dock__item">
                     <span aria-hidden="true" className={`dock__tile ${active ? item.tile : item.idle}`}>
-                      <Icon name={item.icon} size={16} />
+                      <RailIcon name={item.icon} />
                     </span>
                     <span className="dock__label" style={{ ["--i" as string]: i++ }}>{label}</span>
                   </Link>
@@ -156,7 +173,7 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
             </span>
           </Link>
           <button type="button" onClick={() => void signOut()} aria-label={t("aia.signOut")} title={t("aia.signOut")} className="dock__out" style={{ ["--i" as string]: 7 }}>
-            <span aria-hidden="true">⎋</span>
+            <PhosphorIcon name="sign-out" />
           </button>
         </div>
       </div>

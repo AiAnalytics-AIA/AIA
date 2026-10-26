@@ -15,6 +15,7 @@ import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
+import { ItemInspectBody } from "@/components/workbench/ItemInspectBody";
 import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
@@ -2506,6 +2507,21 @@ describe("Results", () => {
       expect([...explained.querySelectorAll("[data-map-section]")].map((n) => n.getAttribute("data-map-section")))
         .toEqual(["what", "rel", "obj", "resp", "rely", "how"].map((k) => `${battery.battery_id}-${k}`));
       expect((explained.querySelector("details.fx-how") as HTMLDetailsElement).open).toBe(false);
+    });
+
+    // SOC4 (spec szz S3): the drawer opens an object or a relation of the map the stage draws, and of no other.
+    it("lets the item inspector open a relation of the map it draws, until it leaves", async () => {
+      const shown = open(signedOff, true);
+      const stage = await screen.findByTestId("sociomap-stage");
+      await waitFor(() => expect(within(stage).getByTestId("object-map-stage")).toBeTruthy());
+      const ids = (battery.maps as Record<string, { artifact: { object_ids: string[] } }>)[methodId].artifact.object_ids;
+      const pair = `pair:${battery.battery_id}/${[ids[0], ids[1]].sort().join("~")}`;
+      const drawer = render(<ItemInspectBody entry={{ id: pair, title: "Dvojice" }} />);
+      expect(drawer.getByTestId("map-inspect-pair")).toBeTruthy();
+      // The register is not read here, so the map is internal, in the drawer as on the stage.
+      expect(drawer.getByTestId("map-inspect-approval").textContent).toBe(t("research.exec.mapStage.internal"));
+      shown.unmount();
+      expect(drawer.getByText("Tato položka na mapě tohoto běhu není.")).toBeTruthy();
     });
 
     it("says it in plain words: no artifact, run or method id outside Technické údaje", async () => {
