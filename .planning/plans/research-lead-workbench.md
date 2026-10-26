@@ -2019,3 +2019,20 @@ dimensions alone, done once one is chosen) and `sample` (`N=…`, else "N nezad�
 them for the two stages. The classic track's `persona` line is unchanged. Tests: `lane.test.ts` "gives
 the workbench's Dimenze its dimensions alone and Vzorek its N…"; `workbench-stages.test.ts` "read their
 state from the lane…". Each fails without the change.
+
+### A parked Lead turn's hold that is not a number stays parked (2026-10-26, `fix/lead-budget-hold-unknown`)
+
+Relayed from the Sběr dat session (#974).
+1. Claim: `release_lead_budget_waits` sent a parked turn whose recorded hold was NaN, `True` or
+   negative, as if it fit the raised budget.
+2. Anchor: `application/research_lead.py:482 @ 8fb1e2ce`. `isinstance(True, int)` holds, and
+   `nan > remaining` is false.
+3. Reproduction: `test_research_lead_application.py::test_a_parked_turn_whose_hold_is_unknown_stays_parked`
+   `[nan]`, `[True]` and `[-1.0]`.
+4. Consequence: a turn whose hold is unknown was sent on a budget raise and counted against nothing.
+5. Fix: `_recorded_hold` reads a hold only as a finite, non-negative number of USD; anything else is
+   unknown and stays parked.
+6. Test: that parametrised test; the three cases fail without the change.
+
+Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
+to the steps it owns).

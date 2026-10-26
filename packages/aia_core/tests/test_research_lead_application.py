@@ -265,7 +265,7 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def _park_on_budget(session: Any, scope: Any, requested: float | None = 0.5) -> Any:
+def _park_on_budget(session: Any, scope: Any, requested: Any = 0.5) -> Any:
     """The worker's side of a turn whose reservation passes the study's budget, with the error
     the worker records (``requested_usd``: the hold the turn asked for)."""
     workflows = WorkflowRepository(session, scope)
@@ -408,12 +408,17 @@ def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
     assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
 
 
-def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
+@pytest.mark.parametrize("requested", [None, float("nan"), True, -1.0, "0.5"])
+def test_a_parked_turn_whose_hold_is_unknown_stays_parked(
+    scoped: Any, session: Any, requested: Any
+) -> None:
+    """A hold the attempt did not record as a number of USD is unknown, and unknown never fits:
+    NaN compared as "not more than what remains", and a bool or a negative hold passed as one."""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     _message(_lead(scope, session))
-    _park_on_budget(session, scope, requested=None)
+    _park_on_budget(session, scope, requested=requested)
     assert set_study_budget(session, scope, 500.0)[1] == []
     assert _lead(scope, session).state()["turns"][-1]["status"] == "WAITING"
 

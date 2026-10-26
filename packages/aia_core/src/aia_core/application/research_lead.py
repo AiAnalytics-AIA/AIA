@@ -27,6 +27,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -478,8 +479,8 @@ def release_lead_budget_waits(
     asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
     released: list[str] = []
     for run_id, step_id in waiting:
-        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
-        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+        requested = _recorded_hold((asked.get(step_id) or {}).get("error", {}).get("requested_usd"))
+        if requested is None or requested > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
         try:
@@ -491,9 +492,19 @@ def release_lead_budget_waits(
             )
         except BudgetWaitNotLiftable:
             continue  # superseded or cancelled since it was listed
-        remaining -= float(requested)
+        remaining -= requested
         released.append(run_id)
     return released
+
+
+def _recorded_hold(value: object) -> float | None:
+    """A parked attempt's ``requested_usd`` as a hold, or None when it is not a finite,
+    non-negative number of USD: NaN compares as fitting anything and a bool is an int, so either
+    would be taken to fit, which is unknown scored as good."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    hold = float(value)
+    return hold if math.isfinite(hold) and hold >= 0 else None
 
 
 def set_study_budget(
