@@ -17,6 +17,7 @@ import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
 import { ActionDock, FrameNavigation, StageHeaderSlot } from "@/components/rehome/step";
+import { useAskLead } from "../rehome/research/AskLead";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
@@ -1057,5 +1058,66 @@ describe("a typed analysis retry (the PM on #744)", () => {
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(sent.map((b) => b.retry_run_id)).toEqual(["RUN-a1", "RUN-b2"]);
     expect(confirm).toHaveBeenCalledWith(expect.stringMatching(/novější běh s AI analýzou/));
+  });
+});
+
+describe("a stage's \"Požádat Vedoucího\" (the Zadání owner's review on #986)", () => {
+  let turnPosts: string[] = [];
+  let release: (() => void) | null = null;
+  function Asker() {
+    const ask = useAskLead();
+    return <button type="button" onClick={() => ask?.("Aktualizuj návrh podle mých komentářů.")}>Požádat Vedoucího</button>;
+  }
+  beforeEach(() => {
+    turnPosts = [];
+    release = null;
+    const base = fetch as unknown as (url: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      const body = init?.method === "POST" && String(url).endsWith("/lead/turns") ? (JSON.parse(String(init.body)) as { kind: string; text?: string }) : null;
+      if (body?.kind === "greeting") return new Response(JSON.stringify({}));
+      if (body?.kind === "message") {
+        turnPosts.push(String(body.text));
+        await new Promise<void>((r) => (release = r));
+        return new Response(JSON.stringify({}));
+      }
+      return base(url, init);
+    }));
+  });
+
+  it("opens the conversation below 1100 px, where its answer and card are", async () => {
+    bench(<Asker />);
+    setWidth(900);
+    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i, hidden: true }) as HTMLTextAreaElement).disabled).toBe(false));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
+    expect(screen.getByRole("dialog", { name: "Vedoucí výzkumu" })).toBeTruthy();
+    await waitFor(() => expect(turnPosts).toEqual(["Aktualizuj návrh podle mých komentářů."]));
+  });
+
+  it("sends nothing while the Lead does not answer, as the composer is shut then", async () => {
+    leadReads = [leadState({ available: false, unavailable_reason: "research_lead_disabled" })];
+    bench(<Asker />);
+    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i }) as HTMLTextAreaElement).placeholder).not.toBe(""));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
+      await Promise.resolve();
+    });
+    expect(turnPosts).toEqual([]);
+  });
+
+  it("asks once however many times it is clicked while the same ask is on its way", async () => {
+    bench(<Asker />);
+    await waitFor(() => expect((screen.getByRole("textbox", { name: /vedoucí/i }) as HTMLTextAreaElement).disabled).toBe(false));
+    const ask = screen.getByRole("button", { name: "Požádat Vedoucího" });
+    fireEvent.click(ask);
+    await waitFor(() => expect(turnPosts).toHaveLength(1));
+    fireEvent.click(ask);
+    fireEvent.click(ask);
+    await act(async () => release?.());
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 50));
+      release?.();
+    });
+    expect(turnPosts).toHaveLength(1);
   });
 });

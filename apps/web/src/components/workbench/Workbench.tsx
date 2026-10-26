@@ -736,7 +736,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
   const leadSend = useRef<((text: string) => void) | null>(null);
   const registerSend = useCallback((send: (text: string) => void) => { leadSend.current = send; }, []);
-  const askLead = useCallback((text: string) => leadSend.current?.(text), []);
+  // A stage's ask opens the conversation where its answer and card will be: the drawer or the sheet
+  // below 1100 px, the split's pane when the artifact had the whole width.
+  const askLead = useCallback((text: string) => {
+    if (compact) drawerEvent({ type: "open" });
+    else setMode((m) => (m === "artifact" ? "split" : m));
+    leadSend.current?.(text);
+  }, [compact, drawerEvent]);
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).

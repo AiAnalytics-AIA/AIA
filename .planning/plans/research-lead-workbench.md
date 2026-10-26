@@ -2133,3 +2133,14 @@ Relayed from the Sběr dat session (#974).
 
 Left to the Lead's later chunk: a Lead turn parked at the cap carries no `budget_need` yet (#974 adds it
 to the steps it owns).
+
+### A stage's "Požádat Vedoucího" opens the conversation, asks only when the Lead answers, and once (2026-10-26, `fix/lead-ask-from-stage`)
+
+From the Zadání owner's `/code-review` on #986, three defects in `LeadPane.tsx` `fromStage` and
+`Workbench.tsx` `askLead` (every stage's ask through `useAskLead`):
+- below 1100 px the ask was sent with the conversation closed, so its answer and approval card went unseen; the
+  ask now opens the drawer or the sheet (and, in the split, brings the pane back from the artifact's focus mode);
+- it was sent while the composer was shut (Lead not hatched, unavailable, or read only); now nothing is sent,
+  and the open pane shows the composer's reason;
+- each click queued another copy; the same ask on its way, queued here or waiting on the server is dropped.
+Tests: `Workbench.layout.test.tsx` "a stage's 'Požádat Vedoucího'…" (three cases), each failing without the change.
