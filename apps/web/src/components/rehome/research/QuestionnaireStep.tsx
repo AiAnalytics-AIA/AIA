@@ -433,7 +433,10 @@ function DesignResearchBeforeEditor() {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     let live = true;
-    deepResearch.runs(frame.studyId).then((all) => { if (live && all.some(isDesignRun)) setShown(true); }, () => {});
+    // Read as a list only when it is one; neither a refusal nor an odd answer reaches the page.
+    deepResearch.runs(frame.studyId)
+      .then((all) => { if (live && Array.isArray(all) && all.some(isDesignRun)) setShown(true); })
+      .catch(() => {});
     return () => { live = false; };
   }, [frame.studyId]);
   useEffect(() => onDeepResearchStarted(({ purpose }) => { if (purpose === "DESIGN_RESEARCH") setShown(true); }), []);
