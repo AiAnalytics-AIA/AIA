@@ -2610,3 +2610,82 @@ def test_sources_that_do_not_describe_one_computation_fail_the_step_before_any_c
     error = failed[0]["attempts"][-1]
     assert error["failure_class"] is FailureClass.SCHEMA_VIOLATION
     assert error["error"]["reason"] == "aggregate_lineage"
+
+
+def test_a_person_reviews_a_key_finding_and_the_newest_decision_stands(
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
+) -> None:
+    """artifact-analysis ANL11 (spec szz/A7): accept, edit, drop and undo are rows in the approval
+    ledger, read newest first; an edit keeps the finding's claims and may not bring a number they
+    do not back."""
+    from aia_core.application.analysis_review import (
+        FindingReviewRefused,
+        finding_reviews,
+        review_finding,
+    )
+    from aia_core.domain.analysis.review import FindingDecision, FindingKey
+    from aia_core.domain.approval_ledger import ApprovalSubject
+
+    run_id = _started_with_analysis(world)
+    _drain(run_with(RecordedModels()))
+    analysis = _reconstruct(world, store, run_id)
+    executive = analysis.modules[AnalysisModuleId.EXECUTIVE].result
+    assert executive is not None and executive.key_findings
+    key = FindingKey(AnalysisModuleId.EXECUTIVE, 0)
+    original = executive.key_findings[0].text
+
+    def review(decision: FindingDecision, wording: str | None = None) -> Any:
+        with world.sessions() as session:
+            scope = world.lead_scope(session)
+            out = review_finding(
+                session, scope, store, run_id=run_id, key=key, decision=decision, wording=wording
+            )
+            session.commit()
+            return out
+
+    def in_force() -> Any:
+        with world.sessions() as session:
+            return finding_reviews(session, world.lead_scope(session), run_id=run_id).get(key)
+
+    assert in_force() is None, "a finding no one decided is unknown, never accepted"
+    assert review(FindingDecision.UNDONE) is None, "an undo of nothing writes nothing"
+    assert review(FindingDecision.ACCEPTED).decision is FindingDecision.ACCEPTED
+
+    # A number no claim of the finding backs is refused by name, and nothing is written.
+    with pytest.raises(FindingReviewRefused) as refused:
+        review(FindingDecision.EDITED, "Shrnuto: 987654 respondentů.")
+    assert (refused.value.reason, refused.value.numbers) == ("wording_numbers", (987654.0,))
+    assert in_force().decision is FindingDecision.ACCEPTED
+
+    edited = review(FindingDecision.EDITED, f"  Přeformulováno: {original}  ")
+    assert (edited.decision, edited.wording) == (
+        FindingDecision.EDITED,
+        f"Přeformulováno: {original}",
+    )
+    assert review(FindingDecision.DROPPED).decision is FindingDecision.DROPPED
+    assert review(FindingDecision.UNDONE) is None
+    assert in_force() is None
+
+    # A finding the module does not hold is refused before anything is written.
+    with (
+        world.sessions() as session,
+        pytest.raises(FindingReviewRefused, match="finding_not_found"),
+    ):
+        review_finding(
+            session,
+            world.lead_scope(session),
+            store,
+            run_id=run_id,
+            key=FindingKey(AnalysisModuleId.EXECUTIVE, len(executive.key_findings)),
+            decision=FindingDecision.ACCEPTED,
+        )
+    # Every decision is its own row in the ledger, under the run.
+    with world.sessions() as session:
+        rows = WorkflowRepository(session, world.lead_scope(session)).ledger(
+            [ApprovalSubject.ANALYSIS_FINDING]
+        )
+    assert [r.decision for r in rows] == ["accepted", "edited", "dropped", "undone"]
+    assert {(r.subject_id, r.run_id) for r in rows} == {(f"{run_id}:executive:0", run_id)}
+    # Each names the module outcome it was made on.
+    outcome = analysis.modules[AnalysisModuleId.EXECUTIVE].artifact_id
+    assert all(json.loads(r.comment)["artifact_id"] == outcome for r in rows)

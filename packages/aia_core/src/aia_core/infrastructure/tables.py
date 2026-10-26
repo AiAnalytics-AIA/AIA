@@ -2113,7 +2113,7 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         # Exactly the closed set of subjects (domain/approval_ledger.py); migration
-        # 5054d4d610c2 is the last to change it (lead-orchestration LO16, lane M3).
+        # b7d1f3a5c9e2 is the last to change it (artifact-analysis ANL11).
         CheckConstraint(subject_check_sql(), name="approval_subject_type_known"),
         CheckConstraint(
             "self_approval_source in ('default','organization','client','study')",
