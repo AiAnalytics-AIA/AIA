@@ -6,9 +6,16 @@
 // screen can say "Neuloženo" and offer a retry. And every save names the revision
 // it was edited from: when someone else saved in between, the API refuses it
 // (409 stale_revision) and the store says so, instead of overwriting their work.
+//
+// A stage's change in the working copy's vocabulary (`apply`: domain/edit_ops.py's operations,
+// working-copy-edit-ops WCE3a) is applied here as the server applies it (lib/lead.ts `applyEdit`,
+// held to it by the shared case file) and, behind AIA_WEB_EDIT_OPS, saved as those operations
+// (POST …/workspace/ops), each logged under its own name. Any other change (`update`) saves the
+// copy whole, as before, and carries the operations made beside it.
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, type ContentState, type DesignRevision, type WorkingContent, research, workspace } from "@/lib/api";
+import { ApiError, type ContentState, type DesignRevision, type WorkingContent, type WorkingSave, research, workspace } from "@/lib/api";
+import { applyEdit, type EditRefusal, type WorkingEdit } from "@/lib/lead";
 import { settleItemIds, withItemIds } from "./item-ids";
 import { restoreLocked } from "./sociomap-lock";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
@@ -108,6 +115,22 @@ export function originNotice(state: ContentState, lineage: Record<string, unknow
  */
 export type ItemIdsOption = { itemIds?: boolean };
 
+/**
+ * Whether a stage's edits are saved as the vocabulary's operations (WCE3a; /config's editOps,
+ * AIA_WEB_EDIT_OPS, off by default). Off, `apply` changes the copy the same way and the copy is
+ * saved whole, as every change was before.
+ */
+export type EditOpsOption = { editOps?: boolean };
+
+type WithoutWhy<E> = E extends unknown ? Omit<E, "why"> : never;
+/** A person's edit on a stage: the vocabulary's, without the reason a Lead gives its own (`apply` adds it). */
+export type PersonEdit = WithoutWhy<WorkingEdit>;
+/** The reason every edit of a person carries: the vocabulary asks one of each edit, the log keeps none. */
+const BY_HAND = "person";
+
+/** The most operations one batch carries (the API's OPS_PER_BATCH); a store holding more saves the copy whole. */
+const OPS_PER_BATCH = 100;
+
 /** What a load of the study's working content means for its stages. */
 export function readWorkingContent(r: WorkingContent, { itemIds = false }: ItemIdsOption = {}): LoadResult {
   if (r.state === "AWAITING_MIGRATION") return { kind: "awaiting_migration" };
@@ -147,6 +170,8 @@ export async function loadResearch(
 }
 
 type SaveContent = typeof workspace.saveContent;
+type ApplyOps = typeof workspace.applyOps;
+type Copy = { project: ResearchProject; analysis: Analysis | null };
 
 type Listener = () => void;
 
@@ -163,11 +188,15 @@ export class ResearchStore {
   private inflight: Promise<void> | null = null;
   /** The project as AIA last held it: what a refused change to a locked input is put back to. */
   private lastSaved: ResearchProject | null;
+  /** The vocabulary's edits made since the last save, in order: what the next save sends, unless the copy goes whole. */
+  private ops: WorkingEdit[] = [];
+  /** A change outside the vocabulary waits: the next save is the copy, which carries `ops` too. */
+  private whole = false;
 
   constructor(
     initial: ResearchState,
     private readonly studyId: string,
-    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; readOnly?: boolean } & ItemIdsOption = {},
+    private readonly opts: { onSaved?: (revision: number) => void; save?: SaveContent; applyOps?: ApplyOps; readOnly?: boolean } & ItemIdsOption & EditOpsOption = {},
   ) {
     this.state = opts.readOnly ? { ...initial, save: { kind: "readonly" } } : initial;
     this.lastSaved = initial.revision !== null ? initial.project : null;
@@ -202,7 +231,37 @@ export class ResearchStore {
   ): void {
     // Content that may not change here is never changed, so nothing on screen reads as edited.
     if (this.opts.readOnly) return;
-    const r = this.settled(change({ project: this.state.project, analysis: this.state.analysis }));
+    this.commit(change({ project: this.state.project, analysis: this.state.analysis }), { reason, invalidateCheck }, null);
+  }
+
+  /**
+   * Edits in the working copy's vocabulary, applied in order as the server applies them, then saved
+   * as `update` saves (WCE3a). All or none: the reason the first refused edit cannot apply (its item
+   * gone, already there), and nothing changed.
+   */
+  apply(
+    personEdits: readonly PersonEdit[],
+    { reason = "autosave", invalidateCheck = true }: { reason?: string; invalidateCheck?: boolean } = {},
+  ): EditRefusal | null {
+    if (this.opts.readOnly) return null;
+    const edits = personEdits.map((e) => ({ ...e, why: BY_HAND }) as WorkingEdit);
+    let copy: Copy = { project: this.state.project, analysis: this.state.analysis };
+    for (const edit of edits) {
+      const r = applyEdit(copy, edit);
+      if ("refused" in r) return r.reason;
+      copy = r.content;
+    }
+    this.commit(copy, { reason, invalidateCheck }, edits);
+    return null;
+  }
+
+  /** One change made: shown at once, its save armed. `edits`: the vocabulary's edits it is, or null (the copy goes whole). */
+  private commit(
+    change: { project: ResearchProject; analysis?: Analysis | null },
+    { reason, invalidateCheck }: { reason: string; invalidateCheck: boolean },
+    edits: readonly WorkingEdit[] | null,
+  ): void {
+    const r = this.settled(change);
     const blocked = this.blocked();
     this.set({
       ...this.state,
@@ -213,9 +272,30 @@ export class ResearchStore {
       checkEpoch: invalidateCheck ? this.state.checkEpoch + 1 : this.state.checkEpoch,
     });
     this.reason = reason;
+    this.queue(edits);
     if (blocked) return;
     if (this.timer) clearTimeout(this.timer);
     this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
+  }
+
+  /**
+   * Edits kept for the next save; null, or the switch off, and the copy goes whole. A wording typed
+   * into one field replaces the one typed just before it, so a field edited key by key is one edit.
+   */
+  private queue(edits: readonly WorkingEdit[] | null): void {
+    if (edits === null || !this.opts.editOps) return this.goWhole();
+    if (this.whole) return;
+    for (const edit of edits) {
+      const last = this.ops[this.ops.length - 1];
+      if (edit.op === "set_text" && last?.op === "set_text" && last.field === edit.field) this.ops[this.ops.length - 1] = edit;
+      else this.ops.push(edit);
+    }
+    if (this.ops.length > OPS_PER_BATCH) this.goWhole();
+  }
+
+  private goWhole(): void {
+    this.whole = true;
+    this.ops = [];
   }
 
   /** A copy that lost a conflict, or whose locked change could not be put back, saves nothing more. */
@@ -299,18 +379,45 @@ export class ResearchStore {
       base_revision: s.revision,
       reason: saveReason(reason ?? this.reason),
     };
+    // Sent as operations only when they are the whole change from a revision AIA holds as it is.
+    const ops = !this.whole && this.ops.length > 0 && s.revision !== null && !s.completed ? this.ops : null;
+    this.ops = [];
+    this.whole = false;
     this.set({ ...this.state, save: { kind: "saving" } });
+    let whole = !ops;
+    const put = () => {
+      whole = true;
+      return (this.opts.save ?? workspace.saveContent)(this.studyId, body);
+    };
     const flight = (async () => {
       try {
-        const r = await (this.opts.save ?? workspace.saveContent)(this.studyId, body);
-        this.lastSaved = s.project;
+        let r: WorkingSave;
+        let held: Copy | null = null;
+        if (ops) {
+          try {
+            const o = await (this.opts.applyOps ?? workspace.applyOps)(this.studyId, { ops, base_revision: body.base_revision, reason: body.reason });
+            r = o;
+            held = { project: o.content as unknown as ResearchProject, analysis: (o.analysis as Analysis | null) ?? null };
+          } catch (e) {
+            // AIA's copy did not take the batch whole, or the vocabulary cannot carry it (a wording past
+            // its bound): the copy goes whole instead, under the save's own checks.
+            if (!(e instanceof ApiError && (e.status === 422 || (e.status === 409 && e.code === "edit_refused")))) throw e;
+            r = await put();
+          }
+        } else {
+          r = await put();
+        }
+        const untouched = this.state.project === s.project && this.state.analysis === s.analysis;
+        const kept = held ? this.adopt(held, untouched) : null;
+        this.lastSaved = held ? held.project : s.project;
         this.set({
           ...this.state,
+          ...kept,
           revision: r.revision,
           // What was sent is now stored as it is: no longer only the template's completion.
-          completed: this.state.project === s.project ? false : this.state.completed,
+          completed: this.state.project === s.project || kept ? false : this.state.completed,
           // A change made while this save was in flight is still unsaved.
-          save: this.state.project === s.project && this.state.analysis === s.analysis ? { kind: "saved" } : { kind: "pending" },
+          save: untouched ? { kind: "saved" } : { kind: "pending" },
         });
         this.opts.onSaved?.(r.revision);
         if (this.state.save.kind === "pending" && !this.timer) {
@@ -325,6 +432,8 @@ export class ResearchStore {
           const project = this.lastSaved ? restoreLocked(this.lastSaved, this.state.project) : this.state.project;
           const reverted = project !== this.state.project;
           this.set({ ...this.state, project, save: { kind: "locked", reverted } });
+          // The copy put back is no longer the edits from AIA's: it goes whole.
+          this.goWhole();
           // What is left differs from AIA's copy only in unlocked items: it is saved on its own.
           if (reverted && !this.timer) this.timer = setTimeout(() => this.autosave(), SAVE_DEBOUNCE_MS);
         } else if (e instanceof ApiError && e.code === "study_closed") {
@@ -333,6 +442,9 @@ export class ResearchStore {
         } else {
           this.set({ ...this.state, save: { kind: "failed", message: e instanceof Error ? e.message : String(e) } });
         }
+        // Nothing was saved: what was owed is owed again, before anything made meanwhile.
+        if (whole || this.whole) this.goWhole();
+        else this.ops = [...ops!, ...this.ops];
         throw e;
       } finally {
         this.inflight = null;
@@ -342,8 +454,33 @@ export class ResearchStore {
     return flight;
   }
 
+  /**
+   * AIA's copy after a batch it applied: what this copy becomes. Unchanged meanwhile, AIA's (the ids
+   * it gave what the batch added) unless it reads the same. Changed meanwhile by edits alone, those
+   * edits applied again on AIA's copy; by anything else, or an edit that no longer applies, this copy
+   * stays and is saved whole next, so AIA ends up holding what is on screen.
+   */
+  private adopt(held: Copy, untouched: boolean): Copy | null {
+    if (untouched) return canonical([held.project, held.analysis]) === canonical([this.state.project, this.state.analysis]) ? null : held;
+    if (this.whole) return null;
+    let copy = held;
+    for (const edit of this.ops) {
+      const r = applyEdit(copy, edit);
+      if ("refused" in r) {
+        this.goWhole();
+        return null;
+      }
+      copy = r.content;
+    }
+    if (!this.opts.itemIds) return copy;
+    const [project, analysis] = settleItemIds([held.project, held.analysis], [copy.project, copy.analysis]);
+    return { project, analysis };
+  }
+
   /** Replace the project and analysis with what an AI step returned (no autosave of its own). */
   replace(next: { project?: ResearchProject; analysis?: Analysis | null }): void {
+    // Not an edit of the vocabulary: the next save is the copy.
+    this.goWhole();
     const r = this.settled({ project: next.project ?? this.state.project, analysis: next.analysis });
     this.set({
       ...this.state,
@@ -401,6 +538,8 @@ export class ResearchStore {
       return false;
     }
     this.lastSaved = loaded.state.revision !== null ? loaded.state.project : null;
+    this.ops = [];
+    this.whole = false;
     this.set({
       ...loaded.state,
       save: this.opts.readOnly ? { kind: "readonly" } : loaded.state.save,

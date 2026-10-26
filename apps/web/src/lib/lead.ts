@@ -248,6 +248,8 @@ export type LeadPreferences = { auto_accept_text_edits: boolean };
 
 type Content = { project: ResearchProject; analysis: Analysis | null };
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
+/** Whether `text` names exactly one of `items` as a list edit compares them (whitespace collapsed, case aside). */
+export const namesOne = (items: readonly string[], text: string): boolean => items.filter((x) => norm(x) === norm(text)).length === 1;
 const LIST_KEY: Record<PlanList, "objectives" | "research_questions" | "hypotheses"> = {
   "plan.objectives": "objectives",
   "plan.research_questions": "research_questions",

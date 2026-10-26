@@ -2,10 +2,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, type WorkingContent, type WorkingSave } from "@/lib/api";
-import { type ResearchProject, type Template, defaultsMerge } from "./model";
+import { ApiError, type WorkingContent, type WorkingOpsSave, type WorkingSave } from "@/lib/api";
+import { applyEdit, type WorkingEdit } from "@/lib/lead";
+import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
+import { withItemIds } from "./item-ids";
 import { t, tv } from "@/i18n/t";
-import { FlushIncomplete, MAX_FLUSH_ROUNDS, ResearchStore, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
+import { type Analysis, FlushIncomplete, MAX_FLUSH_ROUNDS, ResearchStore, type ResearchState, SAVE_DEBOUNCE_MS, canonical, loadResearch, newResearch, originNotice, readWorkingContent, saveReason, submitWorkingDesign } from "./store";
 
 const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
 const TEMPLATE: Template = { empty_project: EMPTY };
@@ -469,5 +471,172 @@ describe("stable item ids (working-copy-edit-ops WCE1, behind AIA_WEB_STABLE_ITE
     expect(before).not.toContain(after[0]);
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
     expect(rqIds(bodies[0].content)).toEqual(after);
+  });
+});
+
+describe("edits saved as the vocabulary's operations (working-copy-edit-ops WCE3a, behind AIA_WEB_EDIT_OPS)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  type OpsBody = { ops: WorkingEdit[]; base_revision: number | null; reason: string };
+  const atRevision = (revision = 2): ResearchState => ({ ...newResearch(TEMPLATE), revision, save: { kind: "saved" } });
+  /** AIA applying each batch as the server does (the same rules: lib/lead.ts applyEdit, held to edit_ops.py). */
+  function aiaOps(from: ResearchState, answer?: (body: OpsBody, n: number) => Error | Promise<never> | null, decorate: (p: Record<string, unknown>) => Record<string, unknown> = (p) => p) {
+    let copy: { project: ResearchProject; analysis: Analysis | null } = { project: from.project, analysis: from.analysis };
+    let revision = from.revision ?? 0;
+    const batches: OpsBody[] = [];
+    const applyOps = vi.fn(async (_studyId: string, body: OpsBody): Promise<WorkingOpsSave> => {
+      batches.push(body);
+      const refused = answer?.(body, batches.length);
+      if (refused instanceof Error) throw refused;
+      if (refused) return refused;
+      for (const e of body.ops) {
+        const r = applyEdit(copy, e);
+        if ("refused" in r) throw new ApiError(409, "edit_refused", "refused", null, { refused: { 0: r.reason } });
+        copy = r.content;
+      }
+      revision += 1;
+      return { ...saved(revision), content: decorate(copy.project as unknown as Record<string, unknown>), analysis: copy.analysis };
+    });
+    return { batches, applyOps };
+  }
+  const title = (value: string): WorkingEdit => ({ op: "set_text", field: "title", value, why: "person" });
+  const objective = (value: string): WorkingEdit => ({ op: "list_add", list: "plan.objectives", value, why: "person" });
+
+  it("sends a stage's edits as one batch from the revision it holds, a field typed key by key as one edit", async () => {
+    const start = atRevision();
+    const { batches, applyOps } = aiaOps(start);
+    const { bodies, save } = aia(() => saved(9));
+    const store = new ResearchStore(start, "STU-1", { save, applyOps, editOps: true });
+    expect(store.apply([title("A")], { reason: "brief" })).toBeNull();
+    expect(store.apply([title("Al")], { reason: "brief" })).toBeNull();
+    expect(store.apply([objective("Poznat")], { reason: "brief_objective_add" })).toBeNull();
+    // Shown at once, as any change is.
+    expect(store.get().project.title).toBe("Al");
+    expect(store.get().save.kind).toBe("pending");
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(bodies).toHaveLength(0);
+    expect(batches).toEqual([{ ops: [title("Al"), objective("Poznat")], base_revision: 2, reason: "brief_objective_add" }]);
+    expect(store.get()).toMatchObject({ revision: 3, save: { kind: "saved" } });
+  });
+
+  it("keeps AIA's copy after a batch: the ids it gave what the batch added", async () => {
+    const start = atRevision();
+    const { applyOps } = aiaOps(start, undefined, (p) => ({ ...p, research_plan: { ...(p.research_plan as object), objective_ids: [{ id: "OBJ_server", bound: "Poznat" }] } }));
+    const store = new ResearchStore(start, "STU-1", { save: aia(() => saved(9)).save, applyOps, editOps: true });
+    store.apply([objective("Poznat")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect((store.get().project.research_plan as Record<string, unknown>).objective_ids).toEqual([{ id: "OBJ_server", bound: "Poznat" }]);
+    // What a submit names is exactly what AIA stores.
+    expect(store.get().completed).toBe(false);
+  });
+
+  it("changes nothing for an edit that does not apply, and says why", () => {
+    const store = new ResearchStore(atRevision(), "STU-1", { editOps: true });
+    const before = store.get();
+    expect(store.apply([title("A"), { op: "list_remove", list: "plan.objectives", old: "Žádný", why: "person" }])).toBe("unknown_item");
+    expect(store.get()).toBe(before);
+  });
+
+  it("off, changes the copy the same way and saves it whole", async () => {
+    const { applyOps } = aiaOps(atRevision());
+    const { bodies, save } = aia(() => saved(3));
+    const store = new ResearchStore(atRevision(), "STU-1", { save, applyOps });
+    store.apply([title("A")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(applyOps).not.toHaveBeenCalled();
+    expect(bodies.map((b) => [b.content.title, b.base_revision])).toEqual([["A", 2]]);
+  });
+
+  it("saves the copy whole when a change outside the vocabulary waits beside the edits", async () => {
+    const { applyOps } = aiaOps(atRevision());
+    const { bodies, save } = aia(() => saved(3));
+    const store = new ResearchStore(atRevision(), "STU-1", { save, applyOps, editOps: true });
+    store.apply([title("A")]);
+    store.update(({ project }) => ({ project: { ...project, problem_types: ["x"] } }));
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(applyOps).not.toHaveBeenCalled();
+    expect(bodies.map((b) => [b.content.title, b.content.problem_types])).toEqual([["A", ["x"]]]);
+    // Saved whole once, the edits after it go as operations again.
+    store.apply([title("B")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(applyOps).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["did not take the batch whole", new ApiError(409, "edit_refused", "refused", null, { refused: { 0: "unknown_item" } })],
+    ["cannot carry it in the vocabulary", new ApiError(422, "validation_error", "too long", null)],
+  ])("saves the copy whole when AIA %s", async (_why, refusal) => {
+    const { batches, applyOps } = aiaOps(atRevision(), () => refusal);
+    const { bodies, save } = aia(() => saved(3));
+    const store = new ResearchStore(atRevision(), "STU-1", { save, applyOps, editOps: true });
+    store.apply([title("A")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(batches).toHaveLength(1);
+    expect(bodies.map((b) => [b.content.title, b.base_revision])).toEqual([["A", 2]]);
+    expect(store.get()).toMatchObject({ revision: 3, save: { kind: "saved" } });
+  });
+
+  it("applies edits made during a batch's flight again on AIA's copy and sends them next, from its revision", async () => {
+    let release: () => void = () => {};
+    const start = atRevision();
+    const { batches, applyOps } = aiaOps({ ...start, project: { ...start.project, title: "A" } as ResearchProject, revision: 3 });
+    // The first batch is held, then answered as AIA would answer it, with a mark of its own.
+    let first = true;
+    const held = vi.fn(async (studyId: string, body: OpsBody) => {
+      if (!first) return applyOps(studyId, body);
+      first = false;
+      await new Promise<void>((r) => (release = r));
+      return { ...saved(3), content: { ...(start.project as unknown as Record<string, unknown>), title: "A", server_mark: true }, analysis: null };
+    });
+    const store = new ResearchStore(start, "STU-1", { save: aia(() => saved(9)).save, applyOps: held, editOps: true });
+    store.apply([title("A")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    store.apply([objective("Poznat")]);
+    release();
+    await vi.advanceTimersByTimeAsync(0);
+    // AIA's copy, with the edit made meanwhile on it, still owed.
+    expect(store.get().project).toMatchObject({ title: "A", server_mark: true, research_plan: { objectives: ["Poznat"] } });
+    expect(store.get()).toMatchObject({ revision: 3, save: { kind: "pending" } });
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(held).toHaveBeenCalledTimes(2);
+    expect(batches.at(-1)).toMatchObject({ ops: [objective("Poznat")], base_revision: 3 });
+  });
+
+  it("saves the copy whole after a batch refused for a locked input, never the edits it put back", async () => {
+    // A reworded research question whose link follows onto a declared rating question (the WCE8 edge):
+    // AIA refuses the batch as locked, and the store puts the question back.
+    const declared = {
+      ...newResearch(TEMPLATE).project,
+      research_plan: { ...newResearch(TEMPLATE).project.research_plan, research_questions: ["Kdo kupuje?"] },
+      sections: [{ id: "s", type: "questions", questions: [{ id: "q1", text: "Jak často?", typ: "skala", skala: [1, 5], sociomap_rating: true, research_questions: ["Kdo kupuje?"] }] }],
+    } as unknown as ResearchProject;
+    const [project] = withItemIds(declared as unknown as Record<string, Json>, null);
+    const start: ResearchState = { ...atRevision(), project: project as unknown as ResearchProject };
+    const { applyOps } = aiaOps(start, () => new ApiError(409, "sociomap_input_locked", "locked", null, { current_revision: 2 }));
+    const { bodies, save } = aia(() => saved(3));
+    const store = new ResearchStore(start, "STU-1", { save, applyOps, editOps: true, itemIds: true });
+    store.apply([{ op: "list_replace", list: "plan.research_questions", old: "Kdo kupuje?", value: "Kdo kupuje kávu?" }]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "locked", reverted: true });
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    // What is on screen now differs from AIA's copy by the reword alone, and goes whole.
+    expect(applyOps).toHaveBeenCalledTimes(1);
+    expect(bodies).toHaveLength(1);
+  });
+
+  it("keeps a failed batch owed and sends it again, before anything made since", async () => {
+    let fail = true;
+    const start = atRevision();
+    const { batches, applyOps } = aiaOps(start, () => (fail ? new ApiError(500, "http_500", "Disk plný.", null) : null));
+    const store = new ResearchStore(start, "STU-1", { save: aia(() => saved(9)).save, applyOps, editOps: true });
+    store.apply([title("A")]);
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
+    expect(store.get().save).toEqual({ kind: "failed", message: "Disk plný." });
+    store.apply([objective("Poznat")]);
+    fail = false;
+    await store.flush();
+    expect(batches.at(-1)).toMatchObject({ ops: [title("A"), objective("Poznat")], base_revision: 2 });
+    expect(store.get()).toMatchObject({ revision: 3, save: { kind: "saved" } });
   });
 });

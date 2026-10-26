@@ -12,6 +12,8 @@ import { useId, useMemo } from "react";
 import { t, tv } from "@/i18n/t";
 import { type Edited, type NarrativeList, addItem, addProblem, itemProblem, itemTargets, narrativeOf, removeItem, setItem, setSummary } from "@/research/plan-narrative";
 import type { PlanState } from "@/research/plan";
+import type { PersonEdit } from "@/research/store";
+import { namesOne } from "@/lib/lead";
 import { MAX_RESEARCH_QUESTIONS } from "@/research/trace";
 import { Icon } from "../icons";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
@@ -65,20 +67,30 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
   // Each item's Lead target, by its stable id (never its place); none where no id can be read.
   const targets = useMemo(() => itemTargets(state), [state]);
   const rqHeading = useId();
-  // A change is checked against the copy as it stands now, then written in one update.
-  const apply = (edit: (s: PlanState) => Edited): string | null => {
-    const r = edit(store.get());
+  // A change is checked against the copy as it stands now, by the stage's rules and in its words, then
+  // written as the vocabulary's edit (`op`, WCE3a); one the vocabulary has no edit for (an undone removal
+  // going back to its place), or that the copy cannot take as one, is written whole, as before.
+  const apply = (edit: (s: PlanState) => Edited, op?: (s: PlanState) => PersonEdit): string | null => {
+    const now = store.get();
+    const r = edit(now);
     if ("refused" in r) return r.refused;
-    store.update(() => r.state, { reason: "plan_narrative_edited" });
+    const reason = "plan_narrative_edited";
+    const vocab = op?.(now);
+    // An item the vocabulary names by its words is written whole when another reads the same, so the
+    // edit never lands on the other one.
+    const ambiguous = vocab && "old" in vocab && !namesOne(narrativeOf(now)[vocab.list.slice("plan.".length) as NarrativeList], vocab.old);
+    if (!vocab || ambiguous || store.apply([vocab], { reason })) store.update(() => r.state, { reason });
     return null;
   };
+  // InlineText trims nothing; the stage's rules write an item trimmed, and so does its edit.
+  const itemAt = (s: PlanState, list: NarrativeList, index: number) => narrativeOf(s)[list][index]!;
   // InlineText says a thrown refusal as "Neuloženo"; the rules below catch the ones a person can fix.
-  const commit = (edit: (s: PlanState) => Edited) => {
-    const refused = apply(edit);
+  const commit = (edit: (s: PlanState) => Edited, op: (s: PlanState) => PersonEdit) => {
+    const refused = apply(edit, op);
     if (refused) throw new Error(refused);
   };
   const remove = (list: NarrativeList, index: number, text: string) => {
-    const refused = apply((s) => removeItem(s, list, index));
+    const refused = apply((s) => removeItem(s, list, index), (s) => ({ op: "list_remove", list: `plan.${list}`, old: itemAt(s, list, index) }));
     if (refused) return toast(refused);
     undo.offer({
       message: tv("research.plan.narrative.removed", { text }),
@@ -121,7 +133,7 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
           disabled={disabled}
           rules={{ maxLength: SUMMARY_MAX }}
           className="min-w-0 flex-1 text-[15px] leading-6"
-          onCommit={(v) => commit((s) => setSummary(s, v))}
+          onCommit={(v) => commit((s) => setSummary(s, v), () => ({ op: "set_text", field: "plan.problem_summary", value: v.trim() }))}
         />
         {comment(n.problem_summary)}
         </div>
@@ -156,7 +168,7 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
                       disabled={disabled}
                       rules={{ maxLength: ITEM_MAX, validate: (v) => itemProblem(narrativeOf(store.get()), list, v, i) }}
                       className="min-w-0 flex-1"
-                      onCommit={(v) => commit((s) => setItem(s, list, i, v))}
+                      onCommit={(v) => commit((s) => setItem(s, list, i, v), (s) => ({ op: "list_replace", list: `plan.${list}`, old: itemAt(s, list, i), value: v.trim() }))}
                     />
                     {comment(text)}
                     <button
@@ -211,7 +223,7 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
               maxLength={ITEM_MAX}
               disabled={addProblem(n, list) !== null}
               className="mt-1"
-              onCreate={(text) => apply((s) => addItem(s, list, text)) ?? undefined}
+              onCreate={(text) => apply((s) => addItem(s, list, text), () => ({ op: "list_add", list: `plan.${list}`, value: text.trim() })) ?? undefined}
             />
           )}
           {addProblem(n, list) ? <p className="mt-1 text-[13px] text-ink-muted">{addProblem(n, list)}</p> : null}
