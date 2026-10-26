@@ -1519,6 +1519,22 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - **Not done here.** A candidate's date on the card (Q44) waits for the targets layer to carry it.
   A ceiling that grows after a confirmation asks once, as an agent job's does today.
 
+- **Review of #1006 (Codex), three fixes.**
+  - *The ceiling charged is the run's.* The start admits again and reads the organization's
+    settings again, so a route allowance changed after the quote moved the pinned ceiling while
+    the charge used the quote's. A created run's row and charge now take its pinned
+    `cost_ceiling_usd`; one over the remainder is refused by the charge and rolled back. Tests:
+    "a card is charged the ceiling its run pinned, not the quote", "a pinned ceiling over the
+    wallet's remainder rolls the start back" (both fail without the fix).
+  - *Where a design run is followed.* The design checkpoint's panel is on Dotazník
+    (`QuestionnaireStep` → `DeepResearchPanel`), not Návrh, and a retry card does not say which
+    checkpoint it retries. The approval answers `purpose`, and `deepResearchStage(card, purpose)`
+    opens Dotazník or Zpráva (a retry without one stays put).
+  - *A panel already open reads the run.* Both panels read their runs on mount and poll only a
+    run they know is moving. `lib/deep-research-started.ts` announces a card's run;
+    `DeepResearchPanel` and `InterpretationResearch` read again and select it. Test:
+    `DeepResearchPanel.test.tsx` (fails without the subscription).
+
 ### Doc follow-up (LO5a.2)
 
 - `CLAUDE.md` map, `application/`: `lead_deep_research.py` — a Lead's Deep Research card started on
@@ -1533,7 +1549,10 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   Research and their retry (409 `live_settings_unapproved`, `outside_wallet`, `ceiling_unknown`,
   `deep_research_start_unavailable`; 404 `deep_research_not_found`); routers `deep research`:
   `deep_research_start_errors`, `study_prices`.
-- `CLAUDE.md` map, `src/lib/lead.ts`: `isDeepResearchCard`, `deepResearchStage`, `deepResearchFacts`.
+- `CLAUDE.md` map, `src/lib/lead.ts`: `isDeepResearchCard`, `deepResearchStage` (by the approval's
+  `purpose`: Dotazník or Zpráva), `deepResearchFacts`; `src/lib/deep-research-started.ts`: a run a
+  card started, announced to the Deep Research panels already on screen.
+- `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card.
 
 ## From the research build spec (2026-10-26)
 
