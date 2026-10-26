@@ -28,7 +28,7 @@ import { useResource } from "./useResource";
 export function IntelligencePage() {
   const [res, retry] = useResource(() => population.registry(), []);
   return (
-    <AppShell title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
+    <AppShell hero title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
       <section className={`${CARD} max-w-2xl`}>
         <p className="text-sm leading-6">{t("aia.intelligence.text")}</p>
         <p role="status" className="mt-4 rounded-sm border border-border bg-surface-sunken p-3 text-sm leading-6 text-ink">
@@ -165,7 +165,7 @@ export function MemoryPage() {
   const [res, retry] = useResource(() => workspace.clients(), []);
   const [clientId, setClientId] = useState("");
   return (
-    <AppShell title={t("aia.memory.title")} sub={t("aia.memory.sub")}>
+    <AppShell hero title={t("aia.memory.title")} sub={t("aia.memory.sub")}>
       <Loaded res={res} retry={retry}>
         {(clients: ClientCard[]) => {
           if (!clients.length) return <Empty>{t("aia.memory.empty")}</Empty>;
