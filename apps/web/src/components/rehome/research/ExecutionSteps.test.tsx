@@ -1219,7 +1219,7 @@ describe("Progress", () => {
     expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
     expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
     // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
-    expect(rows[4].textContent).toContain(`${t("research.exec.code.unknown")} (${t("research.exec.code.technical")}: future_step)`);
+    expect(rows[4].textContent).toContain(tv("research.exec.stepUnnamed", { code: "future_step" }));
     expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
   });
 

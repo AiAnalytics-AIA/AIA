@@ -1484,8 +1484,7 @@ export function ProgressStep() {
               <div className="flex flex-wrap items-center gap-2">
                 <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
-                {/* A step this client has no name for keeps its key as a code, never as a name. */}
-                <span className="font-medium">{codedText(codeWords("research.exec.steps", s.node_key))}</span>
+                <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {researchStepWork(run, s.node_key) ? (
                   <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
                 ) : null}
