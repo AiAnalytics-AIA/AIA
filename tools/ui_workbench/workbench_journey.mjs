@@ -365,7 +365,7 @@ try {
     const editable = "input, select, textarea, [contenteditable]:not([contenteditable='false']), [role=slider], [role=spinbutton], [role=textbox], [role=checkbox], [role=radio], [role=switch], [role=combobox]";
     assert.equal(await sample.locator(editable).count(), 0, `Vzorek has no editable control @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Spuštění", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
+    const NAVIGATION = new Set(["Upravit v Dimenzích", "Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník"]);
     const buttons = (await sample.locator("button, [role=button]").allInnerTexts()).map((b) => b.trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);
     for (const id of ["sample:size", "sample:n", "sample:forecast", "sample:forecast:support", "sample:forecast:outlook"]) {

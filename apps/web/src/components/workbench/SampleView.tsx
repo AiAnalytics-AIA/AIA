@@ -12,7 +12,7 @@ import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { t } from "@/i18n/t";
 import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
-import type { OutlookVerdict } from "@/lib/api";
+import type { OutlookVerdict, PersonaSourceOption } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
 import { VERDICT_ORDER } from "@/lib/research-execution";
 import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
@@ -235,40 +235,60 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
 const R = "research.exec.respondents";
 
 // Kdo bude odpovídat (SMP5, SQ1 = Q54 b): what the server offers and its default, read only. The
-// source is chosen on Spuštění, beside the start that pins it, so nothing here sets it.
+// source is chosen in Sběr dat, beside the start that pins it, so nothing here sets it.
 function Respondents({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
   const sources = readiness.kind === "ready" ? personaSourcesOf(readiness.readiness) : null;
-  // Spuštění offers the choice only for a run AI respondents answer; elsewhere there is none to send the person to.
+  // The choice is made in Sběr dat, beside the start that pins it, and only for a run AI respondents
+  // answer; elsewhere there is none to send the person to.
   const chosen = readiness.kind === "ready" && sourceChosenOnRun(readiness.readiness);
+  if (readiness.kind === "loading") return <p className="text-sm text-ink-muted" role="status">Načítám nabídku ze serveru…</p>;
+  if (readiness.kind === "failed") return <p className="text-sm text-status-fault">Nabídku se nepodařilo načíst.</p>;
+  if (readiness.kind === "ready" && readiness.readiness.fieldwork_source !== "ai_runtime") {
+    return <p className="text-sm">Toto nasazení nesbírá data přes AI respondenty, takže se zdroj respondentů nevolí.</p>;
+  }
+  if (!sources) return <p className="text-sm text-ink-muted">Server zdroje respondentů nevrátil: neznámé.</p>;
+  // One line: the source a run takes unless the person chooses otherwise (spec vzorek V7). The
+  // others, with why one is not offered, stay one click away.
+  const main = sources.find((o) => o.offered && o.default) ?? null;
+  const rest = sources.filter((o) => o !== main);
+  const change = chosen ? <button type="button" className="shrink-0 text-sm text-signal underline" onClick={() => onOpen("fieldwork")}>Změnit ve Sběru dat</button> : null;
   return (
     <>
-      {readiness.kind === "loading" ? <p className="text-sm text-ink-muted" role="status">Načítám nabídku ze serveru…</p>
-        : readiness.kind === "failed" ? <p className="text-sm text-status-fault">Nabídku se nepodařilo načíst.</p>
-        : readiness.kind === "ready" && readiness.readiness.fieldwork_source !== "ai_runtime" ? <p className="text-sm">Toto nasazení nesbírá data přes AI respondenty, takže se zdroj respondentů nevolí.</p>
-        : !sources ? <p className="text-sm text-ink-muted">Server zdroje respondentů nevrátil: neznámé.</p>
-        : (
-          <ul className="flex flex-col gap-2" aria-label="Zdroje respondentů">
-            {sources.map((o) => (
-              <li key={o.source} className={`flex items-start gap-2 text-sm ${o.offered ? "" : "text-ink-muted"}`} data-aia={sampleAia.respondents(o.source) ?? undefined}>
-                <span className="mt-1"><Glyph tone={o.offered ? (o.default ? "done" : "ready") : "inert"} size={12} title={o.offered ? "nabízeno" : "nenabízeno"} /></span>
-                <span className="flex min-w-0 flex-col">
-                  <span>
-                    <span className="font-semibold">{t(`${R}.${o.source}`)}</span>
-                    {o.default ? <span className="text-ink-muted"> · {t(`${R}.default`)}</span> : null}
-                    {o.offered ? null : <span> · nenabízeno</span>}
-                  </span>
-                  <span className="text-xs text-ink-muted">{o.offered ? t(`${R}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${R}.reason`, o.reason ?? "")} />}</span>
-                </span>
-              </li>
-            ))}
+      {main ? (
+        <div className="flex items-start gap-2 text-sm">
+          <SourceRow source={main} />
+          {change}
+        </div>
+      ) : (
+        <div className="flex items-start gap-2 text-sm">
+          <p className="min-w-0 flex-1 text-ink-muted">Server výchozí zdroj respondentů neoznačil: neznámý.</p>
+          {change}
+        </div>
+      )}
+      {rest.length ? (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-ink-muted">Další zdroje ({rest.length})</summary>
+          <ul className="mt-2 flex flex-col gap-2" aria-label="Další zdroje respondentů">
+            {rest.map((o) => <li key={o.source} className="flex"><SourceRow source={o} /></li>)}
           </ul>
-        )}
-      {chosen ? (
-        <p className="text-sm text-ink-muted">
-          Zdroj se volí ve Spuštění, u startu běhu, který ho zapíše.{" "}
-          <button type="button" className="text-signal underline" onClick={() => onOpen("fieldwork")}>Změnit ve Spuštění</button>
-        </p>
+        </details>
       ) : null}
     </>
+  );
+}
+
+function SourceRow({ source: o }: { source: PersonaSourceOption }) {
+  return (
+    <span className={`flex min-w-0 flex-1 items-start gap-2 ${o.offered ? "" : "text-ink-muted"}`} data-aia={sampleAia.respondents(o.source) ?? undefined}>
+      <span className="mt-1"><Glyph tone={o.offered ? (o.default ? "done" : "ready") : "inert"} size={12} title={o.offered ? "nabízeno" : "nenabízeno"} /></span>
+      <span className="flex min-w-0 flex-col">
+        <span>
+          <span className="font-semibold">{t(`${R}.${o.source}`)}</span>
+          {o.default ? <span className="text-ink-muted"> · {t(`${R}.default`)}</span> : null}
+          {o.offered ? null : <span> · nenabízeno</span>}
+        </span>
+        <span className="text-xs text-ink-muted">{o.offered ? t(`${R}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${R}.reason`, o.reason ?? "")} />}</span>
+      </span>
+    </span>
   );
 }
