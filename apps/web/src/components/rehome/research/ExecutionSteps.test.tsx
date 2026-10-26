@@ -5,6 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -1947,6 +1948,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    // A module's answers are read with it chosen (ANL3b).
+    fireEvent.click(await screen.findByRole("button", { name: /^Shrnutí analýzy · / }));
     const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
     expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
@@ -2017,6 +2020,13 @@ describe("Results", () => {
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
     expect(window.location.hash).toBe(before);
     expect(document.activeElement).toBe(finding);
+    // A finding the module filter leaves off the page is brought back first: the list goes back to "Vše" (ANL3b).
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
+    expect(document.getElementById("analysis-finding-research_questions-0")).toBeNull();
+    // Focused by the render that mounts it, not a timer guessing when that render lands (Codex P1 on #962).
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0");
+    expect(screen.getByRole("button", { name: "Vše" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
@@ -2043,7 +2053,7 @@ describe("Results", () => {
     fireEvent.click(chip);
     // The drawer takes it: the page neither scrolls nor moves focus to the finding.
     expect(document.activeElement).toBe(before);
-    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    const keyFindings = screen.getByRole("region", { name: "Zjištění" });
     fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
     const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
     expect(number.tagName).toBe("BUTTON");
@@ -2200,18 +2210,18 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
-        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
+        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }, { question: "Kolik lidí pije čaj?", answer: "Skoro polovina.", claim_ids: ["C4"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }, { claim_id: "C4", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
-    const keyFindings = await screen.findByRole("region", { name: "Hlavní zjištění" });
-    // Both modules' findings, under their module, before the module-by-module view.
-    expect(within(keyFindings).getByText("Shrnutí analýzy")).toBeTruthy();
-    expect(within(keyFindings).getByText("Srovnání objektů")).toBeTruthy();
+    const keyFindings = await screen.findByRole("region", { name: "Zjištění" });
+    // Both modules' findings in one list, each named by its module (ANL3b).
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')?.textContent).toContain("Shrnutí analýzy");
+    expect(keyFindings.querySelector('[data-finding-module="objects"]')?.textContent).toContain("Srovnání objektů");
     expect(within(keyFindings).getByText("Bez čísel.")).toBeTruthy();
     expect(within(keyFindings).getByText("vyrovnané").tagName).toBe("STRONG");
     // Each cited number: value, what, which question, a link to its card; C9 is not a claim and is left out.
@@ -2250,11 +2260,23 @@ describe("Results", () => {
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
-    expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The module's own text, formatted: its summary's list, its answer with the number it cites.
+    // One list (ANL3b): each finding is drawn once, never again in a module-by-module view.
+    expect(document.querySelectorAll("[data-finding-module]")).toHaveLength(3);
+    expect(screen.getAllByText("vyrovnané")).toHaveLength(1);
+    expect(screen.queryByText("Analýza po částech")).toBeNull();
+    // On "Vše" the analysis's summary opens the list, formatted.
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toContain("první bod");
     expect(items).toContain("druhý bod");
+    // The module filter shows only that module's findings; a finding it leaves off, asked for as the Lead's
+    // focus asks (LEAD_REVEAL), brings the whole list back, so the next look finds it.
+    fireEvent.click(screen.getByRole("button", { name: /^Srovnání objektů · / }));
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')).toBeNull();
+    expect(keyFindings.querySelectorAll('[data-finding-module="objects"]')).toHaveLength(2);
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "finding:executive:0" })); });
+    expect(document.querySelectorAll('[data-aia="finding:executive:0"]')).toHaveLength(1);
+    // A module's own answer, with the number it cites, is read with the module chosen.
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
@@ -2262,6 +2284,12 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
     expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
     expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
+    // A claim only a module's answer cites is drawn among that module's answers alone: asked for, its
+    // module is chosen, never "Vše", where no answer is drawn (Codex P2 on #962).
+    expect(document.querySelector('[data-aia="claim:executive:C4"]')).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "claim:executive:C4" })); });
+    expect(document.querySelectorAll('[data-aia="claim:executive:C4"]')).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Shrnutí analýzy · / }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
