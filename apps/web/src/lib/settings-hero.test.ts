@@ -52,6 +52,12 @@ describe("Audit's hero figures (F18)", () => {
     expect(f.map((x) => x.value)).toEqual([null, "1", null, "kdy:2026-10-26T09:00:00Z"]);
   });
 
+  it("counts today as Prague's day, whatever the browser's time zone (review of #983)", () => {
+    // 23:30Z on the 25th is 00:30 on the 26th in Prague (CET, UTC+1): today's at 06:00Z, as in the rows.
+    const f = auditFigures({ ok: true, data: [at("2026-10-25T23:30:00Z")] }, 50, Date.parse("2026-10-26T06:00:00Z"), AUW, when);
+    expect(f[1].value).toBe("1");
+  });
+
   it("says unknown without the read, for a row with no date, and for no event at all", () => {
     expect(auditFigures(null, 50, NOW, AUW, when).every((x) => x.value === null)).toBe(true);
     const undated = auditFigures({ ok: true, data: [{ ...at("2026-10-26T09:00:00Z"), created_at: null }] }, 50, NOW, AUW, when);

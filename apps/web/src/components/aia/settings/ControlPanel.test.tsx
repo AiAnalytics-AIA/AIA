@@ -1517,9 +1517,11 @@ describe("each page's hero (F18)", () => {
   });
 
   it("counts the audit's week only when the page read it whole", async () => {
+    // The newest event is stamped now, not a minute ago: "a minute ago" is yesterday just after
+    // Prague's midnight, and the page counts today in Prague's day (review of #983).
     const now = Date.now();
     api({ "GET /api/v1/access-audit": () => [
-      { event_id: 2, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at: new Date(now - 60_000).toISOString() },
+      { event_id: 2, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at: new Date(now).toISOString() },
       { event_id: 1, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-2", role: null, reason: "", payload: {}, created_at: new Date(now - 30 * 86_400_000).toISOString() },
     ] });
     render(<ControlPanel />);
