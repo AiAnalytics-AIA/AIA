@@ -78,11 +78,13 @@ describe("findingsOf", () => {
 
 describe("analysisHeader", () => {
   it("names the run's day, that it is internal, and its origin (ANL10)", () => {
-    const now = new Date("2026-10-26T09:00:00Z");
-    expect(analysisHeader("2026-10-21T09:00:00Z", "MODELLED", now)).toBe("Běh z 21. 10. · interní · modelováno");
-    expect(analysisHeader("2026-10-21T09:00:00Z", "SIMULATED", now)).toBe("Běh z 21. 10. · interní · fiktivní respondenti");
+    // Built from local parts, so the day is the 21st in every time zone (review of #932).
+    const at = (year: number) => new Date(year, 9, 21, 12).toISOString();
+    const now = new Date(2026, 9, 26, 12);
+    expect(analysisHeader(at(2026), "MODELLED", now)).toBe("Běh z 21. 10. · interní · modelováno");
+    expect(analysisHeader(at(2026), "SIMULATED", now)).toBe("Běh z 21. 10. · interní · fiktivní respondenti");
     // A run from another year says which.
-    expect(analysisHeader("2025-10-21T09:00:00Z", "MODELLED", now)).toBe("Běh z 21. 10. 2025 · interní · modelováno");
+    expect(analysisHeader(at(2025), "MODELLED", now)).toBe("Běh z 21. 10. 2025 · interní · modelováno");
   });
 
   it("leaves out a date it cannot read and never reads an unread origin as known", () => {

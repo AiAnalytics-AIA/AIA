@@ -3157,6 +3157,12 @@ export const cs = {
       },
       // Why the evidence gate refused an analysis output (domain/evidence/gate.py ViolationCode),
       // one line per code; a code without words keeps its code on screen (reason-words).
+      /** A way out of a module that states no supported finding, as the server names it (evidence-integrity 9a). */
+      resolution: {
+        same_data_retry: "zopakovat analýzu nad stejnými daty",
+        changed_design: "upravit návrh a spustit nový běh",
+        more_data: "získat víc dat (větší vzorek)",
+      },
       violation: {
         FIELD_UNDECLARED: "opírá se o údaj, který slovník populace nezná",
         FIELD_AUDIT_ONLY: "opírá se o údaj určený jen pro audit",

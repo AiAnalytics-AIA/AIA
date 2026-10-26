@@ -106,6 +106,13 @@ try {
     const names = await coverage.evaluate((el) => [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length);
     if (width < 768) assert(names >= 3, `@${width}: the stacked cells show their column names`);
     else assert.equal(names, 0, `@${width}: the column names repeat beside the header row`);
+    // What waits on the person (blocked modules, modules without a finding) comes before the milestones (ANL4).
+    const waysFirst = await page.evaluate(() => {
+      const ways = document.querySelector("[data-analysis-ways-out]");
+      const milestones = document.querySelector("[data-analysis-milestones]");
+      return !ways || !milestones || !!(ways.compareDocumentPosition(milestones) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    assert(waysFirst, `@${width}: the blocked note is below the milestones`);
     // A finished run's fieldwork reads done (F1).
     const fieldworkDone = await page.locator("[data-analysis-milestones] li").first().getAttribute("data-done");
     assert.equal(fieldworkDone, "true", `@${width}: Sběr dokončen reads čeká on a finished run`);

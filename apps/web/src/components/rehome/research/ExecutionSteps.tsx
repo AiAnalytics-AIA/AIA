@@ -1932,19 +1932,20 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          {/* What waits on the person comes first: blocked modules and modules without a finding, with the way out (ANL4). */}
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky výše. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : withoutSupport.length && !Object.keys(analysis.pending).length
                   ? holdingWords(withoutSupport)
                   : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
-          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
             <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
