@@ -59,6 +59,7 @@ from .web_retrieval import (
     SearchResponse,
     ToolCallFailed,
     extract_page,
+    fetch_time_left,
 )
 
 __all__ = [
@@ -120,14 +121,20 @@ class UrllibWire:
 
     The read timeout bounds one read, not the answer: a server that sends a byte inside every
     timeout would hold the fetch, and its host's pacing turn, until ``max_bytes``. So the whole
-    request has a deadline, ``deadline_s`` (security-audit-2026-10 S13), past which the fetch
-    fails ``timeout``. Two things keep it:
+    request has a deadline (security-audit-2026-10 S13), past which the fetch fails ``timeout``:
+    ``deadline_s``, or what is left of the fetch in progress (``fetch_time_left``), whichever
+    is less, so a redirect or a robots.txt read never starts a fresh one. A request with no
+    time left is not sent. Two things keep the deadline:
 
-    * a watchdog shuts the connection's socket at the deadline. http.client reads the status
-      and headers, and a chunked body's size lines and trailers, inside calls that never
-      return to this loop; only closing the socket under them stops a trickle there;
+    * a watchdog shuts the connection's socket at the deadline. The TLS handshake, the status
+      and headers, and a chunked body's size lines and trailers are all read inside calls
+      that never return to this loop; only shutting the socket under them stops a trickle
+      there. The socket is watched from the moment it exists (``_new_conn``), through a
+      ``dup()``, because wrapping it for TLS detaches the original object;
     * the body loop checks the clock between reads, and reads with ``read1``, one socket read
       at a time (``read`` would wait to fill its amount).
+
+    A timeout says ``RESPONDED`` once a status line has come, ``UNKNOWN`` before.
     """
 
     def __init__(
@@ -154,6 +161,16 @@ class UrllibWire:
         if max_bytes <= 0:
             raise ValueError("max_bytes must be positive")
         u = self._urllib3
+        budget = self._deadline_s
+        left = fetch_time_left()
+        if left is not None:
+            budget = min(budget, left)
+        if budget <= 0:
+            raise ToolCallFailed(
+                "the fetch's deadline passed before this request",
+                reason="timeout",
+                delivery=Delivery.NOT_SENT,
+            )
         expired = threading.Event()
         sockets: list[Any] = []
         guard = threading.Lock()
@@ -171,14 +188,18 @@ class UrllibWire:
         if base is not None:
 
             class _Watched(base):  # type: ignore[misc, valid-type]
-                """The pool's connection, its socket kept where the watchdog can shut it."""
+                """The pool's connection, its raw socket watched from the moment it exists."""
 
-                def connect(self) -> None:
-                    super().connect()
+                def _new_conn(self) -> Any:
+                    sock = super()._new_conn()
+                    # A dup: TLS wrapping detaches ``sock``, and shutting a detached object
+                    # fails; a shutdown through the dup acts on the connection itself.
+                    watched = sock.dup()
                     with guard:
-                        sockets.append(self.sock)
+                        sockets.append(watched)
                         if expired.is_set():
-                            _shut(self.sock)
+                            _shut(watched)
+                    return sock
 
             pool.ConnectionCls = _Watched
 
@@ -188,7 +209,7 @@ class UrllibWire:
                 for sock in sockets:
                     _shut(sock)
 
-        watchdog = threading.Timer(self._deadline_s, expire)
+        watchdog = threading.Timer(budget, expire)
         watchdog.daemon = True
         response: Any = None
         started = self._clock()
@@ -216,15 +237,15 @@ class UrllibWire:
             read = getattr(response, "read1", None) or response.read
             body = bytearray()
             while len(body) <= max_bytes:
-                if self._clock() - started > self._deadline_s:
-                    raise _deadline_passed()
+                if self._clock() - started > budget:
+                    raise _deadline_passed(answered=True)
                 chunk = read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
                 if not chunk:
                     break
                 body.extend(chunk)
             if expired.is_set():
                 # A socket shut under a read can end it as if the server had: never a page.
-                raise _deadline_passed()
+                raise _deadline_passed(answered=True)
             return FetchedResponse(
                 status=int(response.status),
                 headers=answered,
@@ -236,7 +257,9 @@ class UrllibWire:
             raise
         except Exception as exc:
             if expired.is_set():
-                raise _deadline_passed() from exc
+                # Past the deadline, whatever broke the request broke because its socket was
+                # shut under it (or after it): the deadline is the reason.
+                raise _deadline_passed(answered=response is not None) from exc
             failure = _wire_failure(u, exc)
             if failure is exc:
                 raise
@@ -246,6 +269,10 @@ class UrllibWire:
             if response is not None:
                 response.release_conn()
             pool.close()
+            with guard:
+                for watched in sockets:
+                    with contextlib.suppress(OSError):
+                        watched.close()
 
 
 def _shut(sock: Any) -> None:
@@ -254,11 +281,13 @@ def _shut(sock: Any) -> None:
         sock.shutdown(socket.SHUT_RDWR)
 
 
-def _deadline_passed() -> ToolCallFailed:
+def _deadline_passed(*, answered: bool) -> ToolCallFailed:
+    """The deadline as the fetch's failure: ``RESPONDED`` once a status line came, else
+    ``UNKNOWN`` (the request may have reached the server; nothing came back)."""
     return ToolCallFailed(
         "the answer did not arrive within the fetch's deadline",
         reason="timeout",
-        delivery=Delivery.RESPONDED,
+        delivery=Delivery.RESPONDED if answered else Delivery.UNKNOWN,
     )
 
 

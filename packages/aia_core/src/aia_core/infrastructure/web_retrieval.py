@@ -31,7 +31,10 @@ import codecs
 import hashlib
 import json
 import re
-from collections.abc import Callable, Mapping, Sequence
+import time
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from html.parser import HTMLParser
@@ -72,6 +75,7 @@ from ..domain.deep_research.works import normalise_doi
 from .document_text import read_web_document
 
 __all__ = [
+    "FETCH_DEADLINE_S",
     "FetchTransport",
     "FetchedPage",
     "FetchedResource",
@@ -90,6 +94,7 @@ __all__ = [
     "WebFetcher",
     "extract_links",
     "extract_page",
+    "fetch_time_left",
     "load_recorded_web",
     "page_snapshot",
 ]
@@ -106,6 +111,31 @@ class ToolCallFailed(Exception):
         super().__init__(message)
         self.reason = reason
         self.delivery = delivery
+
+
+#: One fetch's overall deadline, every redirect hop and robots.txt read included
+#: (security-audit-2026-10 S13). A read timeout bounds one read; this bounds the fetch.
+FETCH_DEADLINE_S: Final = 120.0
+
+_TIME_LEFT: ContextVar[Callable[[], float] | None] = ContextVar("aia_fetch_time_left", default=None)
+
+
+def fetch_time_left() -> float | None:
+    """Seconds left of the fetch in progress in this context, or ``None`` outside one.
+
+    A wire bounds its request by it, so a redirect or a robots.txt read never starts a
+    fresh deadline of its own."""
+    left = _TIME_LEFT.get()
+    return None if left is None else left()
+
+
+@contextmanager
+def _fetch_deadline(left: Callable[[], float]) -> Iterator[None]:
+    token = _TIME_LEFT.set(left)
+    try:
+        yield
+    finally:
+        _TIME_LEFT.reset(token)
 
 
 # --------------------------------------------------------------------------- #
@@ -535,11 +565,17 @@ class WebFetcher:
         resolver: Resolver,
         adapter_id: str,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        monotonic: Callable[[], float] = time.monotonic,
+        deadline_s: float = FETCH_DEADLINE_S,
     ) -> None:
+        if deadline_s <= 0:
+            raise ValueError("deadline_s must be positive")
         self._transport = transport
         self._resolver = resolver
         self.adapter_id = adapter_id
         self._clock = clock
+        self._monotonic = monotonic
+        self._deadline_s = deadline_s
 
     @property
     def retrieval_mode(self) -> RetrievalMode:
@@ -576,9 +612,32 @@ class WebFetcher:
         ``host_out_of_scope``, a later hop as ``redirect_out_of_scope`` -- in both
         cases before anything is sent to that host.
         """
+        limit = self._monotonic() + self._deadline_s
+
+        def left() -> float:
+            return limit - self._monotonic()
+
+        with _fetch_deadline(left):
+            return self._hops(url, max_bytes=max_bytes, host_allowed=host_allowed, left=left)
+
+    def _hops(
+        self,
+        url: str,
+        *,
+        max_bytes: int,
+        host_allowed: HostFilter | None,
+        left: Callable[[], float],
+    ) -> tuple[str, list[str], FetchedResponse]:
         redirects: list[str] = []
         current = url
         while True:
+            if left() <= 0:
+                # One deadline for the whole fetch: no hop starts once it has passed.
+                raise ToolCallFailed(
+                    "the fetch's deadline passed before this request",
+                    reason="timeout",
+                    delivery=Delivery.RESPONDED if redirects else Delivery.NOT_SENT,
+                )
             host = check_url(current)
             if host_allowed is not None and not host_allowed(host):
                 raise FetchRefused(
