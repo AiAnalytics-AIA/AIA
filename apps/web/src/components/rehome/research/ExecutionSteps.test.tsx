@@ -5,6 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -14,6 +15,7 @@ import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
+import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -1946,6 +1948,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    // A module's answers are read with it chosen (ANL3b).
+    fireEvent.click(await screen.findByRole("button", { name: /^Shrnutí analýzy · / }));
     const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
     expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
@@ -2016,6 +2020,13 @@ describe("Results", () => {
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
     expect(window.location.hash).toBe(before);
     expect(document.activeElement).toBe(finding);
+    // A finding the module filter leaves off the page is brought back first: the list goes back to "Vše" (ANL3b).
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
+    expect(document.getElementById("analysis-finding-research_questions-0")).toBeNull();
+    // Focused by the render that mounts it, not a timer guessing when that render lands (Codex P1 on #962).
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0");
+    expect(screen.getByRole("button", { name: "Vše" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
@@ -2042,7 +2053,7 @@ describe("Results", () => {
     fireEvent.click(chip);
     // The drawer takes it: the page neither scrolls nor moves focus to the finding.
     expect(document.activeElement).toBe(before);
-    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    const keyFindings = screen.getByRole("region", { name: "Zjištění" });
     fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
     const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
     expect(number.tagName).toBe("BUTTON");
@@ -2199,18 +2210,18 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
-        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
+        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }, { question: "Kolik lidí pije čaj?", answer: "Skoro polovina.", claim_ids: ["C4"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }, { claim_id: "C4", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
-    const keyFindings = await screen.findByRole("region", { name: "Hlavní zjištění" });
-    // Both modules' findings, under their module, before the module-by-module view.
-    expect(within(keyFindings).getByText("Shrnutí analýzy")).toBeTruthy();
-    expect(within(keyFindings).getByText("Srovnání objektů")).toBeTruthy();
+    const keyFindings = await screen.findByRole("region", { name: "Zjištění" });
+    // Both modules' findings in one list, each named by its module (ANL3b).
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')?.textContent).toContain("Shrnutí analýzy");
+    expect(keyFindings.querySelector('[data-finding-module="objects"]')?.textContent).toContain("Srovnání objektů");
     expect(within(keyFindings).getByText("Bez čísel.")).toBeTruthy();
     expect(within(keyFindings).getByText("vyrovnané").tagName).toBe("STRONG");
     // Each cited number: value, what, which question, a link to its card; C9 is not a claim and is left out.
@@ -2249,11 +2260,23 @@ describe("Results", () => {
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
-    expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The module's own text, formatted: its summary's list, its answer with the number it cites.
+    // One list (ANL3b): each finding is drawn once, never again in a module-by-module view.
+    expect(document.querySelectorAll("[data-finding-module]")).toHaveLength(3);
+    expect(screen.getAllByText("vyrovnané")).toHaveLength(1);
+    expect(screen.queryByText("Analýza po částech")).toBeNull();
+    // On "Vše" the analysis's summary opens the list, formatted.
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toContain("první bod");
     expect(items).toContain("druhý bod");
+    // The module filter shows only that module's findings; a finding it leaves off, asked for as the Lead's
+    // focus asks (LEAD_REVEAL), brings the whole list back, so the next look finds it.
+    fireEvent.click(screen.getByRole("button", { name: /^Srovnání objektů · / }));
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')).toBeNull();
+    expect(keyFindings.querySelectorAll('[data-finding-module="objects"]')).toHaveLength(2);
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "finding:executive:0" })); });
+    expect(document.querySelectorAll('[data-aia="finding:executive:0"]')).toHaveLength(1);
+    // A module's own answer, with the number it cites, is read with the module chosen.
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
@@ -2261,6 +2284,12 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
     expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
     expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
+    // A claim only a module's answer cites is drawn among that module's answers alone: asked for, its
+    // module is chosen, never "Vše", where no answer is drawn (Codex P2 on #962).
+    expect(document.querySelector('[data-aia="claim:executive:C4"]')).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "claim:executive:C4" })); });
+    expect(document.querySelectorAll('[data-aia="claim:executive:C4"]')).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Shrnutí analýzy · / }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {
@@ -2372,6 +2401,92 @@ describe("Results", () => {
       });
       return render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     };
+
+    // research-lead-workbench 14 / SOC2: the stage routes the Lead's views. A view sent before the maps
+    // were drawn (the Workbench moves here, then sends) and a live one go to the map that owns them,
+    // every map for a stage-wide filter; a view no map here can apply is refused once, in words.
+    describe("the Lead's map views", () => {
+      const both = { ...signedOff, payload: { sociomap: { ...signedOff.payload.sociomap, batteries: signedOffFixture.batteries } } };
+      const idsOf = (b: (typeof signedOffFixture.batteries)[number]) => (b.maps as Record<string, { artifact: { object_ids: string[] } }>)[Object.keys(b.maps)[0]].artifact.object_ids;
+      const drawn = async (count: number) => {
+        const stage = await screen.findByTestId("sociomap-stage");
+        await waitFor(() => expect(within(stage).getAllByTestId("object-map-canvas")).toHaveLength(count));
+        return stage;
+      };
+      const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
+      afterEach(() => { takeLeadMapView(); });
+
+      it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(both, true);
+        const stage = await drawn(2);
+        await waitFor(() => expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]));
+      });
+
+      it("sends a live view to its own map and a stage-wide one to every map", async () => {
+        const [first, second] = signedOffFixture.batteries;
+        open(both, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "select", target: `object:${second.battery_id}/${idsOf(second)[0]}` }); });
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", idsOf(second)[0]]);
+        act(() => { sendLeadMapView({ op: "filter", name: "view", value: "top" }); });
+        expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]);
+        expect(takeLeadMapView()).toBeNull();
+        expect(first.battery_id).not.toBe(second.battery_id);
+      });
+
+      it("refuses in words a view waiting for a stage that draws no signed-off map, never keeping it", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        await waitFor(() => expect(within(stage).getByTestId("sociomap-lead-note").textContent).toContain(battery.battery_id));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("says a stage-wide filter that no map here would show, sent before or live, never dropping it", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        await waitFor(() => expect(note()).toContain("Mapa: shora"));
+        expect(takeLeadMapView()).toBeNull();
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(note()).toContain("na této stránce není mapa");
+      });
+
+      it("says once on the stage that no map stores a respondent map, not once per map", async () => {
+        const bare = structuredClone(both);
+        for (const b of bare.payload.sociomap.batteries) for (const m of Object.values(b.maps as Record<string, { artifact: { respondents?: unknown } }>)) delete m.artifact.respondents;
+        open(bare, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(within(stage).getByTestId("sociomap-lead-note").textContent).toBe(t("research.exec.objectMap.panel.leadNoRespondents"));
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+
+      it("says once, in words, a view no map here can apply, and changes no map", async () => {
+        open(both, true);
+        const stage = await drawn(2);
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        act(() => { sendLeadMapView({ op: "select", target: "object:neni/x" }); });
+        expect(note()).toContain("object:neni/x");
+        act(() => { sendLeadMapView({ op: "filter", name: "hide_weak", value: "on" }); });
+        expect(note()).toContain("skrýt slabé vztahy");
+        expect(note()).not.toContain("hide_weak");
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", ""]);
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+    });
 
     it("is the map: no results tabs, no guide, no other card, the map before what explains it", async () => {
       open(signedOff, true);

@@ -29,7 +29,7 @@ chunks:
   - "[x] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
   - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
-  - "[ ] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
+  - "[x] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
   - "[x] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
@@ -182,6 +182,21 @@ The order of the remaining chunks (the coordinator, 2026-10-25, after the produc
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
 (decided that day), F15, F16, F8b, then F9-F12 built against prototype v56-v58 (Systémové prompty, AI běh, Přístup compacted). The list above is the chunks' ids, not their order.
 
+**F11. AI běh** (built). Two flat cards as prototype v99 draws them: Trasa modelu as tiles (the master
+switch, the provider, the region with its city and its EU reading, the model, the approved classes as
+A / B / C chips each named for a reader) and Činnosti as four columns (Činnost with its description,
+the reason it stands as it does and its last answered call; Stav; Přepínač; Model), grouped as chunk 7
+grouped them; what powers AI, the credential and who changes the route behind the route's ⓘ, what
+"zapnuto" means behind the activities' ⓘ, and a link to the smoke test on Stav systému. Not drawn,
+because nothing serves them: the route's id, "U poskytovatele" (retention, training) and a Třídy column
+per activity. Reference's part of this chunk is F17's: its categories stay as chips in Stav systému.
+  Review of #961: with /config unreadable the on / off counts are not drawn ("zapnuto: nezjištěno"),
+  never "0 zapnuto"; London (eu-west-2) and Zurich (eu-central-2) read "oblast mimo EU". **Finding
+  (hypothesis until reproduced against a worker):** the worker accepts any `eu-` region as EU
+  residency, London and Zurich included (`apps/executors/src/aia_executors/ai_runtime.py:593 @ c5f1d11d`,
+  `packages/aia_core/src/aia_core/domain/model_invocation.py:98 @ c5f1d11d`); the smallest fix is an
+  explicit EU region set in `domain/residency.py` that both read, with a test that eu-west-2 is refused.
+
 ## Fidelity to the prototype v51 (the product owner, 2026-10-23)
 "Implement the settings pages just as we designed them; the current deploy is far from it."
 The tab-by-tab report (22 ranked gaps, side-by-side shots at 1440 and 390) is the fidelity
@@ -190,6 +205,16 @@ agent's; chunks F1-F12 follow its order. His decisions on it: Metodika follows t
 existing guards, check/compare and activation with a reason; the Metodik rule kept); Studie a
 rozpočty drops the per-study status picker for the design's 6-column table; the global shell
 (gap 22) is not now. Each chunk is its own PR from a fresh develop, with side-by-side screenshots.
+
+**F12, part 1** (built; the chunk stays open). Stav systému's shared deployment (409 deployment_shared)
+reads as a fact, muted, never an alert in fault red. Správa dat as prototype v99: the cards the section's
+h2s with their help behind an ⓘ; "Nelze vrátit" the one fault-toned chip; the client deletion's one
+action a danger button (local to DataPanel: the shared Button primitive is lane A's); what a deletion takes
+and keeps (Smaže se / Zůstane) listed in the open once a client is chosen, the counts still the
+confirmation's, from the server. Left open: the kept records' rows as v99 draws them (each record's line
+under its name; their lhůta is F22's, MVPQ-07), and Systémové prompty's head chips and buttons, which wait
+for the Metodik-only rule (Nigel, 26 Oct ~00:35 UTC: "metodik edits the prompts") to reach the API, since a
+chip saying who may edit must say what the server enforces.
 
 ## From the research build spec (2026-10-26)
 

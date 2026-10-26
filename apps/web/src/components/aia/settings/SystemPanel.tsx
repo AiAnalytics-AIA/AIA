@@ -25,7 +25,7 @@ const CELL = "border-t border-border px-2 py-2 align-top text-sm";
 const when = (iso: string | null) => (iso ? (relative(iso) ?? iso) : "—");
 
 /** A read of one route: its data, or why there is none, in words. */
-type Read<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "not_yet" } | { state: "admin_only" } | { state: "refused"; message: string };
+type Read<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "not_yet" } | { state: "admin_only" } | { state: "shared"; message: string } | { state: "refused"; message: string };
 
 function useRead<T>(load: () => Promise<T>): Read<T> {
   const [read, setRead] = useState<Read<T>>({ state: "loading" });
@@ -39,8 +39,9 @@ function useRead<T>(load: () => Promise<T>): Read<T> {
         // Not deployed: no route answered (http_404).
         if (e instanceof ApiError && e.status === 404 && e.code === "http_404") setRead({ state: "not_yet" });
         else if (e instanceof ApiError && e.status === 403) setRead({ state: "admin_only" });
-        // 409 deployment_shared carries the server's Czech sentence: said as given.
-        else if (e instanceof ApiError && e.code === "deployment_shared") setRead({ state: "refused", message: e.message });
+        // 409 deployment_shared carries the server's Czech sentence: said as given, as a fact about
+        // the deployment, not a fault (F12): nothing broke, the state belongs to the whole deployment.
+        else if (e instanceof ApiError && e.code === "deployment_shared") setRead({ state: "shared", message: e.message });
         else setRead({ state: "refused", message: describeError(e) });
       },
     );
@@ -54,6 +55,7 @@ function Unread({ read }: { read: Exclude<Read<unknown>, { state: "ready" }> }) 
   if (read.state === "loading") return <p className="mt-2 text-sm text-ink-muted">{t(`${S}.loading`)}</p>;
   if (read.state === "not_yet") return <p data-not-yet className="mt-3 inline-flex rounded-sm border border-dashed border-border-strong px-2 py-0.5 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</p>;
   if (read.state === "admin_only") return <p className="mt-2 text-sm text-ink-muted">{t(`${S}.adminOnly`)}</p>;
+  if (read.state === "shared") return <p role="status" data-deployment-shared className="mt-2 text-sm text-ink-muted">{read.message}</p>;
   return <p role="alert" className="mt-2 text-sm text-status-fault">{read.message}</p>;
 }
 

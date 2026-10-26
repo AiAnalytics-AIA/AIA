@@ -15,6 +15,8 @@
  *   * the -5 panel at 1440 and 1100 (the workbench's split) and 768 and 390 px, no page overflow;
  *   * every object listed in Správa objektů (Nastavení mapy) carries its Lead name
  *     `object:<battery>/<object>` (SOC1/SOC2), once, and the Lead's focus selector finds that button;
+ *   * the Lead's map views (the workbench's aia:lead-map-view event; SOC2) at 1440 and 390 px: a pair
+ *     selected opens its detail, a view from above, a control the map lacks said and nothing changed;
  *   * on the workbench's Sociomapa stage (1440): no results tabs, the map before what explains it, no
  *     run or method id outside Technické údaje (artifact-sociomap SOC9-SOC11);
  *   * Objekty / Respondenti opens each map with nothing selected (#562); a pick's detail opens in the
@@ -230,6 +232,37 @@ try {
     assert.deepEqual(found, ["BUTTON"], `${n} is one element, its button`);
   }
   check("every listed object carries its Lead name once, on its button");
+
+  // The Lead's map views (SOC2; research-lead-workbench 14): the event the workbench sends, applied to the
+  // picture only. Not live from the server yet, so sent here as the workbench sends it.
+  assert(names.length >= 2, `a relation needs two listed objects: ${names}`);
+  const [battery, first] = names[0].slice("object:".length).split("/");
+  const second = names[1].slice("object:".length).split("/")[1];
+  const [a, b] = [first, second].sort();
+  const sendView = (view) => page.evaluate((v) => window.dispatchEvent(new CustomEvent("aia:lead-map-view", { detail: v })), view);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await openMap();
+    await canvas.waitFor();
+    await sendView({ op: "select", target: `pair:${battery}/${a}~${b}` });
+    assert.deepEqual((await attr("data-relation")).split("|").sort(), [a, b], `@${width}: the Lead's pair selected`);
+    assert.equal(await page.locator(`[data-aia="pair:${battery}/${a}~${b}"]`).count(), 1, `@${width}: the pair's detail open`);
+    await sendView({ op: "filter", name: "view", value: "top" });
+    assert.equal(JSON.parse(await attr("data-camera")).pitch, 0, `@${width}: the Lead's view from above`);
+    const before = await attr("data-camera");
+    await sendView({ op: "filter", name: "hide_weak", value: "on" });
+    assert((await page.getByTestId("object-map-lead-note").textContent()).includes("skrýt slabé vztahy"), `@${width}: a control the map lacks, said in words`);
+    assert.equal(await attr("data-camera"), before, `@${width}: nothing changed by the refused view`);
+    await noOverflow(`lead views @${width}`);
+    await shot(`${width}-lead-pair`);
+  }
+  // Back to the map as it opens (the same URL: a goto alone would keep the Lead's selection).
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.reload();
+  await panel.waitFor({ timeout: 120000 });
+  await canvas.waitFor();
+  await openWindow("Správa objektů");
+  check("the Lead's map views at 1440 and 390 px: a pair selected with its detail, the view from above, a control the map lacks said");
 
   // The workbench's Sociomapa stage is the map (SOC9-SOC11): no results tabs, the map first, what explains
   // it under it, no id outside Technické údaje.
