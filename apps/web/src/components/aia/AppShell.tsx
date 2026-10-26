@@ -1,8 +1,9 @@
 "use client";
 
-// The AIA shell (ADR 0015), drawn as Studio v3. One global navigation -- Klienti,
-// Společenská inteligence, Projektová paměť, Nastavení -- on a graphite sidebar
-// that also names the client you are in, and a page header that always says
+// The AIA shell (ADR 0015). One global navigation -- Klienti, Společenská
+// inteligence, Projektová paměť, Nastavení, then Můj Vedoucí -- on the graphite Dock
+// rail (DockRail: 64 px of icons, 240 px on hover or focus) that also names the
+// client you are in, on every page, a study's too, and a page header that always says
 // where you are: breadcrumbs from the client down, one title, one primary action.
 // A client's areas are tabs under that header; a study's stages are the
 // `aside` rail, and only inside the study. Nothing anywhere hands off to the
@@ -10,13 +11,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
-import { type ClientArea, appRoutes } from "@/lib/app-routes";
-import { useSession } from "@/lib/auth";
-import { signOut } from "@/lib/session";
+import type { ClientArea } from "@/lib/app-routes";
 import { Icon, type IconName } from "../rehome/icons";
+import { DockRail, initials } from "./DockRail";
+import { Hero, type HeroEdit, type HeroFigure } from "./Hero";
 
 /** A breadcrumb; `prefix` is a muted word before its label ("Organizace" before the name). */
 export type Crumb = { label: string; href?: string; prefix?: string };
@@ -27,15 +28,6 @@ export type Crumb = { label: string; href?: string; prefix?: string };
 export type Tab = { key: string; label: string; href: string; active: boolean; count?: number | null; countLabel?: string; attention?: boolean };
 /** The client a page belongs to: named on the sidebar, its accent across the header. */
 export type ShellClient = { id: string; name: string };
-
-// Wayfinding tints (tokens hue-*, shell-hue-*): an active item's tile is filled
-// with its hue, an inactive one shows the hue on the graphite. Never a status.
-const NAV: { key: string; icon: IconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
-  { key: "navClients", icon: "client", href: appRoutes.clients(), tile: "bg-hue-blue", idle: "text-shell-hue-blue", match: (p) => p === "/app" || p.startsWith("/app/clients") },
-  { key: "navIntelligence", icon: "intelligence", href: appRoutes.intelligence(), tile: "bg-hue-green", idle: "text-shell-hue-green", match: (p) => p.startsWith("/app/intelligence") },
-  { key: "navMemory", icon: "memory", href: appRoutes.memory(), tile: "bg-hue-violet", idle: "text-shell-hue-violet", match: (p) => p.startsWith("/app/memory") },
-  { key: "navSettings", icon: "settings", href: appRoutes.settings(), tile: "bg-hue-slate", idle: "text-shell-hue-slate", match: (p) => p.startsWith("/app/settings") },
-];
 
 // A client area's tab: its icon, its hue filled when active, and a light wash of it otherwise.
 const AREA_LOOK: Record<ClientArea, { icon: IconName; on: string; off: string; edge: string }> = {
@@ -54,12 +46,6 @@ export function clientAccent(clientId: string): (typeof CLIENT_ACCENT)[number] {
   let h = 0;
   for (const ch of clientId) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return CLIENT_ACCENT[h % CLIENT_ACCENT.length];
-}
-
-/** Up to two letters: the first of the first two words ("Banka Horizont" → "BH"). */
-function initials(name: string): string {
-  const words = name.trim().split(/[\s@._-]+/).filter(Boolean);
-  return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
 }
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -100,132 +86,6 @@ function Breadcrumbs({ crumbs, strong = false, end }: { crumbs: Crumb[]; strong?
   );
 }
 
-/** Inside a study the global navigation is icons only: the study gets the width (research-lane-redesign). */
-function CompactSidebar({ path, client }: { path: string; client?: ShellClient }) {
-  const [expanded, setExpanded] = useState(false);
-  const session = useSession();
-  const email = session?.email ?? null;
-  return (
-    <div className="flex w-full shrink-0 flex-col bg-shell text-shell-ink lg:sticky lg:top-0 lg:h-screen lg:w-16">
-      <button type="button" aria-expanded={expanded} aria-controls="aia-main-navigation" onClick={() => setExpanded(!expanded)} className={`flex min-h-12 items-center justify-between px-4 text-sm font-semibold lg:hidden ${FOCUS}`}>
-        <span>AI Analytics · {client?.name ?? t("aia.workspaceLabel")}</span><span>{expanded ? "Zavřít menu" : "Menu"}</span>
-      </button>
-      <nav id="aia-main-navigation" aria-label={t("aia.mainNav")} className={`${expanded ? "flex" : "hidden lg:flex"} min-h-0 flex-1 flex-col gap-1 px-2.5 py-3.5 lg:items-center lg:px-0`}>
-        <Link href={appRoutes.home()} aria-label={t("aia.product")} title={t("aia.product")} className={`mb-2.5 inline-flex rounded-control no-underline ${FOCUS}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}
-          <img src="/skin/brand/aia-mark-on-graphite.svg" alt="" width={30} height={30} />
-        </Link>
-        {NAV.map((item) => {
-          const active = item.match(path);
-          const label = t(`aia.${item.key}`);
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              aria-label={label}
-              title={label}
-              aria-current={active ? "page" : undefined}
-              className={`flex min-h-11 items-center gap-3 rounded-control px-2.5 text-sm no-underline lg:size-11 lg:justify-center lg:px-0 ${FOCUS} ${active ? "bg-shell-strong/12 text-shell-strong" : `${item.idle} hover:bg-shell-strong/8 hover:text-shell-strong`}`}
-            >
-              <Icon name={item.icon} size={18} />
-              <span className="lg:sr-only">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-      <div className={`${expanded ? "flex" : "hidden lg:flex"} flex-col items-center gap-2 px-2 pb-3.5`}>
-        <Link
-          href={appRoutes.settings()}
-          aria-label={`${t("aia.account")}${email ? ` · ${email}` : ""}`}
-          title={email ?? t("aia.account")}
-          className={`inline-flex size-8 items-center justify-center rounded-full bg-shell-avatar text-[11px] font-semibold text-shell-avatar-ink no-underline ${FOCUS}`}
-        >
-          {email ? initials(email.split("@")[0]!) : "?"}
-        </Link>
-        <button type="button" onClick={() => void signOut()} aria-label={t("aia.signOut")} title={t("aia.signOut")} className={`rounded-sm px-1 text-shell-muted hover:text-shell-strong ${FOCUS}`}>
-          <span aria-hidden="true">⎋</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Sidebar({ path, client }: { path: string; client?: ShellClient }) {
-  const [expanded, setExpanded] = useState(false);
-  const session = useSession();
-  const email = session?.email ?? null;
-  return (
-    <div className="flex w-full shrink-0 flex-col bg-shell text-shell-ink lg:sticky lg:top-0 lg:h-screen lg:w-52 xl:w-60">
-      <button type="button" aria-expanded={expanded} aria-controls="aia-main-navigation" onClick={() => setExpanded(!expanded)} className={`flex min-h-12 items-center justify-between px-4 text-sm font-semibold lg:hidden ${FOCUS}`}>
-        <span>AI Analytics · {client?.name ?? t("aia.workspaceLabel")}</span><span>{expanded ? "Zavřít menu" : "Menu"}</span>
-      </button>
-      <nav id="aia-main-navigation" aria-label={t("aia.mainNav")} className={`${expanded ? "flex" : "hidden lg:flex"} min-h-0 flex-1 flex-col overflow-y-auto`}>
-        <Link href={appRoutes.home()} className={`flex items-center gap-2.5 px-[18px] pb-4 pt-5 no-underline ${FOCUS}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}
-          <img src="/skin/brand/aia-mark-on-graphite.svg" alt="" width={30} height={30} />
-          <span className="flex flex-col">
-            <span className="text-[15px] font-semibold leading-5 tracking-[0.01em] text-shell-strong">{t("aia.product")}</span>
-            <span aria-hidden="true" className="text-[11px] leading-[14px] text-shell-muted">{t("aia.productSub")}</span>
-          </span>
-        </Link>
-        {client ? (
-          <div className="mx-3 mt-1 flex items-center gap-2.5 rounded-control border border-shell-strong/8 bg-shell-strong/4 p-2.5">
-            <span aria-hidden="true" className={`inline-flex size-8 shrink-0 items-center justify-center rounded-control text-xs font-semibold text-shell-strong ${clientAccent(client.id)}`}>
-              {initials(client.name)}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-semibold leading-[18px] text-shell-strong">{client.name}</span>
-              <Link href={appRoutes.clients()} className={`block rounded-sm text-xs leading-4 text-shell-muted no-underline hover:text-shell-strong ${FOCUS}`}>
-                {t("aia.changeClient")}
-              </Link>
-            </span>
-          </div>
-        ) : null}
-        <div aria-hidden="true" className="px-5 pb-1.5 pt-5 text-[11px] font-semibold leading-4 tracking-[0.04em] text-shell-faint">{t("aia.workspaceLabel")}</div>
-        <ul className="flex flex-col gap-0.5 px-2.5 pb-2">
-          {NAV.map((item) => {
-            const active = item.match(path);
-            return (
-              <li key={item.key}>
-                <Link
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex min-h-10 items-center gap-3 rounded-control px-2.5 text-sm no-underline ${FOCUS} ${active ? "bg-shell-strong/8 font-semibold text-shell-strong" : "text-shell-item hover:bg-shell-strong/6 hover:text-shell-strong"}`}
-                >
-                  <span aria-hidden="true" className={`inline-flex size-[26px] shrink-0 items-center justify-center rounded-control ${active ? `${item.tile} text-shell-strong` : `bg-shell-strong/6 ${item.idle}`}`}>
-                    <Icon name={item.icon} size={15} />
-                  </span>
-                  {t(`aia.${item.key}`)}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-      <div className={`${expanded ? "flex" : "hidden lg:flex"} items-center gap-2.5 border-t border-shell-strong/8 px-4 py-3.5 text-xs leading-4 text-shell-muted`}>
-        <span aria-hidden="true" className="inline-flex size-[30px] shrink-0 items-center justify-center rounded-full bg-shell-avatar text-[11px] font-semibold text-shell-avatar-ink">
-          {email ? initials(email.split("@")[0]!) : "?"}
-        </span>
-        <span className="min-w-0 flex-1">
-          {email ? <span className="block truncate font-medium text-shell-ink" title={email}>{email}</span> : null}
-          <Link href={appRoutes.settings()} className={`rounded-sm text-shell-muted no-underline hover:text-shell-strong ${FOCUS}`}>
-            {t("aia.account")}
-          </Link>
-        </span>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          aria-label={t("aia.signOut")}
-          title={t("aia.signOut")}
-          className={`rounded-sm px-1 text-shell-muted hover:text-shell-strong ${FOCUS}`}
-        >
-          <span aria-hidden="true">⎋</span>
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export function AppShell({
   crumbs = [],
   title,
@@ -242,6 +102,9 @@ export function AppShell({
   topbar = false,
   crumbEnd,
   bleed = false,
+  hero = false,
+  figures,
+  edit,
   children,
 }: {
   crumbs?: Crumb[];
@@ -274,6 +137,15 @@ export function AppShell({
   crumbEnd?: ReactNode;
   /** The page lays out its own columns and gutters, edge to edge under the header (Settings). */
   bleed?: boolean;
+  /**
+   * A top-level page's header is the hero (UI-1): the serif title at 40/46, the eyebrow, the lede
+   * (`sub`), an edit chip and the figures. Never inside a study: a stage keeps its compact header.
+   */
+  hero?: boolean;
+  /** With `hero`: the figures row; a value the page could not read is null and says "neznámé". */
+  figures?: readonly HeroFigure[];
+  /** With `hero`: whether the person may change what the page shows. */
+  edit?: HeroEdit;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -283,7 +155,7 @@ export function AppShell({
     return (
       <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
         <a href="#aia-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:p-3 focus:text-ink">Přejít k obsahu</a>
-        <CompactSidebar path={path} client={client} />
+        <DockRail path={path} client={client} accent={client ? clientAccent(client.id) : undefined} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
             <div aria-hidden="true" className={`h-[3px] ${accent}`} />
@@ -321,7 +193,7 @@ export function AppShell({
   return (
     <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
       <a href="#aia-main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-surface-raised focus:p-3 focus:text-ink">Přejít k obsahu</a>
-      <Sidebar path={path} client={client} />
+      <DockRail path={path} client={client} accent={client ? clientAccent(client.id) : undefined} />
 
       <div className="flex min-w-0 flex-1 flex-col">
         {topbar ? (
@@ -336,7 +208,8 @@ export function AppShell({
             </div>
           </header>
         ) : (
-        <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+        // A hero scrolls with its page, as the prototype draws it; the plain header stays pinned.
+        <header data-shell-header="" className={`z-20 border-b border-border bg-surface-raised px-4 lg:px-6 xl:px-8 ${hero ? "" : "lg:sticky lg:top-0"}`}>
           <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (
@@ -349,6 +222,11 @@ export function AppShell({
               </Link>
             ) : null}
             <Breadcrumbs crumbs={crumbs} />
+            {hero ? (
+              <div className="pb-[22px] pt-3">
+                <Hero eyebrow={eyebrow} title={title} lede={sub} edit={edit} figures={figures} aside={status} action={action} />
+              </div>
+            ) : (
             <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-4 pb-5 pt-2`}>
               <div className="min-w-0 max-w-3xl">
                 {eyebrow ? (
@@ -364,6 +242,7 @@ export function AppShell({
                 {action}
               </div>
             </div>
+            )}
             {tabs?.length ? (
               <nav aria-label={t("aia.client.tabsLabel")} className="-mb-px flex flex-wrap gap-0.5">
                 {tabs.map((tab) => {

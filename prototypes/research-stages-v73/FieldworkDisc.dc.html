@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Respondenti – Sběr dat</title>
+<script src="./support.js"></script>
+<script src="/_blob/1aa4f92cccca03849efce6807a4b7c3c"></script>
+<link rel="stylesheet" href="../shared/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.fd{--c-done:var(--signal);--c-rep:var(--signal);--c-repfill:var(--swash);--c-live:#9b8bfb;--c-wait:#d9dde4;--c-park:var(--pfill);display:flex;flex-direction:column;gap:20px;padding:28px 32px;width:1100px;min-height:1000px;box-sizing:border-box;background:var(--surface);color:var(--ink)}
+.wb[data-theme=dark] .fd{--c-wait:#2c333d}
+.fd .lc{background:var(--raised);border:1px solid var(--border);border-radius:16px;padding:28px;display:grid;grid-template-columns:440px minmax(0,1fr);gap:36px;align-items:start}
+.fd canvas{display:block}
+.fd .ey{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.fd .live{width:8px;height:8px;border-radius:50%;background:var(--c-live);box-shadow:0 0 0 4px rgba(155,139,251,.22);animation:lv 1.4s ease-in-out infinite}
+.fd .live.off{background:var(--strong);box-shadow:none;animation:none}.fd .live.park{background:var(--c-park);box-shadow:0 0 0 4px rgba(240,180,41,.2);animation:none}
+@keyframes lv{50%{box-shadow:0 0 0 7px rgba(155,139,251,.06)}}
+@media (prefers-reduced-motion:reduce){.fd .live{animation:none}}
+.fd .big{font-size:44px;font-weight:600;line-height:50px;font-variant-numeric:tabular-nums;margin-top:6px}
+.fd .big small{font-size:20px;font-weight:500;color:var(--muted)}
+.fd .sub{font-size:14px;color:var(--muted);margin-top:2px}
+.fd .bar{height:8px;border-radius:999px;background:var(--sunken);overflow:hidden;margin-top:14px;display:flex}.fd .bar i{display:block;height:100%}
+.fd .grp{margin-top:18px;border-top:1px solid var(--border);padding-top:12px}
+.fd .gh{display:flex;align-items:baseline;gap:8px}
+.fd .gh b{font-size:11.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.fd .gh .n{margin-left:auto;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.fd .rw{display:flex;align-items:center;gap:10px;min-height:28px;font-size:13.5px}
+.fd .rw .l{flex:1}.fd .rw .l span{display:block;font-size:12px;color:var(--faint);line-height:15px}
+.fd .rw .n{font-variant-numeric:tabular-nums;font-weight:500;min-width:48px;text-align:right}
+.fd .rw.zero{opacity:.45}
+.fd .sw{width:14px;height:14px;border-radius:50%;flex:none;box-sizing:border-box}
+.fd .sw.done{background:var(--c-done)}
+.fd .sw.rep{background:var(--c-repfill);border:2px solid var(--c-rep)}
+.fd .sw.live{background:var(--c-live);box-shadow:0 0 0 3px rgba(155,139,251,.3)}
+.fd .sw.wait{background:var(--c-wait)}
+.fd .sw.park{background:var(--c-park)}
+.fd .sw.none{background:transparent;border:2px dotted var(--strong)}
+.fd .truth{display:flex;gap:14px;align-items:flex-start;background:var(--stint);border:1px solid var(--sedge);border-radius:14px;padding:16px 18px}
+.fd .truth .ic{width:32px;height:32px;border-radius:50%;background:var(--signal);color:#fff;display:grid;place-items:center;flex:none}
+.fd .truth b{font-size:14px}
+.fd .truth p{font-size:13px;line-height:19px;margin-top:4px;color:var(--ink)}
+.fd .truth .dev{font-size:12px;color:var(--muted);margin-top:8px}
+.fd .fut{display:grid;grid-template-columns:200px minmax(0,1fr);gap:24px;align-items:center;background:var(--raised);border:1px dashed var(--strong);border-radius:16px;padding:16px 24px}
+.fd .ctl{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+</style>
+</helmet>
+<div class="aia wb" data-theme="{{theme}}" style="width: 1100px; min-width: 1100px; display: block">
+<div class="fd">
+  <div class="ctl">
+    <div class="grow"><h1 style="font-size: 20px; font-weight: 600; line-height: 26px">Respondenti při sběru dat</h1><p class="muted" style="font-size: 13px">Ukázka se přehrává sama, po dávkách jako skutečný běh. Na kroku Sběr dat je to sekce Respondenti v pohledu Průběh.</p></div>
+    <span class="seg" role="group" aria-label="Velikost vzorku"><sc-for list="{{nOpts}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" type="button" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span>
+    <span class="seg" role="group" aria-label="Scénář"><sc-for list="{{scen}}" as="o" hint-placeholder-count="3"><button class="{{o.cls}}" type="button" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span>
+  </div>
+
+  <div class="lc">
+    <canvas id="fdisc" width="880" height="880" style="width: 440px; height: 440px" aria-hidden="true"></canvas>
+    <div>
+      <div class="ey"><span class="{{liveCls}}" aria-hidden="true"></span>{{phase}}</div>
+      <div class="big" aria-live="polite">{{done}} <small>z {{total}} AI respondentů</small></div>
+      <div class="sub">{{sub}}</div>
+      <div class="bar" aria-hidden="true"><i style="{{barDone}}"></i></div>
+
+      <div class="grp">
+        <div class="gh"><b>Hotovo v tomto pokusu</b><span class="n">{{gDone}}</span></div>
+        <div class="rw"><i class="sw done" aria-hidden="true"></i><div class="l">Odpověděli<span>běh je zapsal jako hotové</span></div><span class="n">{{gDone}}</span></div>
+        <div class="{{repCls}}"><i class="sw rep" aria-hidden="true"></i><div class="l">Bloky převzaté z deníku<span>počet bloků otázek, ne lidí; bez platby</span></div><span class="n">{{nRep}}</span></div>
+        <div class="rw"><i class="sw none" aria-hidden="true"></i><div class="l">Dotazů modelu<span>bloky odeslané modelu v tomto pokusu</span></div><span class="n">{{nSent}}</span></div>
+      </div>
+      <div class="grp">
+        <div class="gh"><b>Zbývá</b><span class="n">{{gLeft}}</span></div>
+        <div class="{{waitCls}}"><i class="sw wait" aria-hidden="true"></i><div class="l">Čekají na řadu</div><span class="n">{{nWait}}</span></div>
+        <div class="{{parkCls}}"><i class="sw park" aria-hidden="true"></i><div class="l">Zastaveno na rozpočtu<span>krok čeká na navýšení rozpočtu studie</span></div><span class="n">{{nPark}}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="truth" role="note">
+    <span class="ic" aria-hidden="true"><i class="ph ph-check s"></i></span>
+    <div><b>Přesně podle běhu, 1 : 1</b>
+      <p>Každá tečka je jeden AI respondent tohoto běhu. Plná tečka se objeví, až když ho běh zapíše jako hotového; nic se nedopočítává, neodhaduje ani „neběží naoko“. Disk ukazuje jen to, co běh hlásí: kolik respondentů je hotovo z kolika, kolik bloků šlo modelu a kolik se převzalo z deníku. Hlášení chodí v dávkách, takže se disk plní po skocích.</p>
+      <p>Co disk neukazuje, protože to hlášení nenese: kdo se právě zpracovává, kdo z kvótní skupiny odpověděl (bez přepínače kvót) a kolik <i>lidí</i> se převzalo z deníku (hlásí se bloky). Nový pokus po zastavení začíná počítat od nuly. Poloha tečky říká jen pořadí.</p>
+      <p>Fiktivní respondenti (zkušební běh) průběžně nehlásí nic: disk zůstane prázdný a naplní se, až krok skončí.</p>
+      <div class="dev">Pro vývoj: fieldwork_progress {respondents, of, sent, replayed, cells} · fieldwork_events.py:60 @ bd0d1ad6 · hlášení po 10 respondentech a na konci: ai_fieldwork.py:159 (číslo v události není, mezera G3) · stránka se ptá po 1,5 s: useStepActivity.ts:15 · zastavení: STEP_RECOVERY PARK_BUDGET · deník: AIA_AI_FIELDWORK_CHECKPOINT, na develop vypnuto · fiktivní běh: research.py:580-584 · plán RQC7c.</div>
+    </div>
+  </div>
+
+  <div class="fut">
+    <canvas id="fsect" width="400" height="400" style="width: 200px; height: 200px" aria-hidden="true"></canvas>
+    <div><b>Po kvótách (RQC7b): výseče podle skupin</b><p class="muted" style="font-size: 13px; margin-top: 4px">Backend to už umí za přepínačem AIA_AI_FIELDWORK_QUOTA_FILL (na develop vypnutý): každé hlášení nese, kolik odpovědí přibylo v každé kvótní buňce. Stejný disk se pak rozdělí na výseče podle jednoho kvótního pole, třeba věku, a je vidět, která skupina zaostává. Jen panelové běhy; běh bez kvót má prostý disk.</p><p class="cap" style="margin-top: 8px">18–24 · 25–34 · 35–44 · 45–54 · 55–65</p></div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1100,"height":1000}}'>
+class Component extends DCLogic {
+  // Draws only what the run reports: fieldwork_progress {respondents, of, sent, replayed} and the step status.
+  // No in-flight batch, no replayed people (reports count blocks), a new attempt counts from 0.
+  constructor(props) { super(props); this.state = { N: 1600, scen: 'run', resp: 0, hold: 0, phase2: false }; }
+  componentDidMount() {
+    this._i = setInterval(() => {
+      const s = this.state, N = s.N, stop = Math.round(N * 0.62);
+      if (s.scen === 'fict') { if (s.hold < 40) { this.setState({ hold: s.hold + 1 }); return; } if (s.resp < N) { this.setState({ resp: N, hold: 0 }); return; } this.setState({ resp: 0, hold: 0 }); return; }
+      if (s.scen === 'park' && s.resp >= stop) { if (s.hold < 40) { this.setState({ hold: s.hold + 1 }); return; } this.setState({ resp: 0, hold: 0 }); return; }
+      if (s.resp < N) { this.setState({ resp: Math.min(N, s.scen === 'park' ? Math.min(stop, s.resp + 10) : s.resp + 10) }); return; }
+      if (s.hold < 30) { this.setState({ hold: s.hold + 1 }); return; }
+      this.setState({ resp: 0, hold: 0 });
+    }, 90);
+    const GA = Math.PI * (3 - Math.sqrt(5));
+    let last = '';
+    const draw = () => {
+      const s = this.state, N = s.N, m = this.model(), key = N + ':' + m.done + ':' + m.parked + ':' + s.scen;
+      const cv = document.getElementById('fdisc');
+      if (cv && key !== last) {
+        last = key;
+        const g = cv.getContext('2d'), W = cv.width, cs = getComputedStyle(cv.closest('.fd'));
+        const v = (n, d) => cs.getPropertyValue(n).trim() || d;
+        const cDone = v('--signal', '#4b48ce'), cWait = v('--c-wait', '#d9dde4'), cPark = v('--pfill', '#f0b429');
+        const R = W / 2 - 10, c = R / Math.sqrt(N), dr = Math.max(3, c * 0.5);
+        g.clearRect(0, 0, W, W);
+        for (let k = 0; k < N; k++) {
+          const r = c * Math.sqrt(k + 0.5), a = k * GA, x = W / 2 + r * Math.cos(a), y = W / 2 + r * Math.sin(a);
+          g.beginPath();
+          if (k < m.done) { g.arc(x, y, dr, 0, 6.2832); g.fillStyle = cDone; g.fill(); }
+          else { g.arc(x, y, dr * 0.8, 0, 6.2832); g.fillStyle = m.parked ? cPark : cWait; g.fill(); }
+        }
+      }
+      const sv = document.getElementById('fsect');
+      if (sv && sv.dataset.k !== String(Math.floor(s.resp / 40))) {
+        sv.dataset.k = String(Math.floor(s.resp / 40));
+        const g = sv.getContext('2d'), W = sv.width, cs = getComputedStyle(sv.closest('.fd')), M = 420;
+        const cDone = cs.getPropertyValue('--signal').trim() || '#4b48ce', cWait = cs.getPropertyValue('--c-wait').trim() || '#d9dde4';
+        const share = [0.12, 0.19, 0.22, 0.24, 0.23], lag = [0.7, 1, 1.05, 1.1, 0.95], p = s.resp / N, R = W / 2 - 6, c = R / Math.sqrt(M), dr = c * 0.42;
+        const bounds = []; let acc = 0; for (const x of share) { bounds.push([acc, acc + x]); acc += x; }
+        const seen = share.map(() => 0), total = share.map((x) => Math.round(x * M));
+        g.clearRect(0, 0, W, W);
+        for (let k = 0; k < M; k++) {
+          const r = c * Math.sqrt(k + 0.5), a = k * GA, fr = ((a / (2 * Math.PI)) % 1 + 1) % 1;
+          if (bounds.some(([b0]) => Math.abs(fr - b0) < 0.016 || Math.abs(fr - b0 - 1) < 0.016)) continue;
+          const sec = bounds.findIndex(([b0, b1]) => fr >= b0 && fr < b1), i = seen[sec]++, filled = i < Math.min(total[sec], p * lag[sec] * total[sec]);
+          g.beginPath(); g.arc(W / 2 + r * Math.cos(a), W / 2 + r * Math.sin(a), dr, 0, 6.2832);
+          g.fillStyle = filled ? cDone : cWait; g.fill();
+        }
+      }
+      this._raf = requestAnimationFrame(draw);
+    };
+    this._raf = requestAnimationFrame(draw);
+  }
+  componentWillUnmount() { clearInterval(this._i); cancelAnimationFrame(this._raf); }
+  model() {
+    // Demo questionnaire: 3 blocks per respondent. In the product, sent and replayed come from the report as they are.
+    const s = this.state, N = s.N, done = s.resp, B = 3;
+    const parked = s.scen === 'park' && done >= Math.round(N * 0.62);
+    const fict = s.scen === 'fict';
+    const repResp = s.scen === 'resume' ? Math.min(done, Math.round(N * 0.3)) : 0;
+    return { N, done, parked, fict, finished: done >= N, replayed: repResp * B, sent: fict ? 0 : (done - repResp) * B, wait: parked ? 0 : N - done, park: parked ? N - done : 0 };
+  }
+  renderVals() {
+    const s = this.state, m = this.model(), f = (x) => x.toLocaleString('cs-CZ');
+    const phase = m.parked ? 'Krok čeká na rozpočet' : m.finished ? 'Sběr dat hotov' : m.fict ? 'Fiktivní respondenti · průběžně nehlásí' : s.scen === 'resume' ? 'Nový pokus po zastavení' : 'Živě z hlášení běhu';
+    const sub = m.parked ? 'Běh zastavil, protože by překročil rozpočet studie. Po navýšení začne nový pokus od nuly; s deníkem se hotové bloky převezmou bez platby, bez něj se zaplatí znovu (na develop je deník vypnutý).'
+      : m.fict ? (m.finished ? 'Krok skončil: odpovědi vylosoval kód, nic se neplatilo.' : 'Zkušební běh: odpovědi vylosuje kód, nic se neplatí. Disk se naplní, až krok skončí.')
+      : m.finished ? f(m.sent) + ' dotazů modelu' + (m.replayed ? ' · ' + f(m.replayed) + ' bloků z deníku bez platby' : '')
+      : Math.round(m.done / m.N * 100) + ' % · další hlášení přijde po další dávce' + (s.scen === 'resume' ? ' · počítá se od nuly, hotové bloky se berou z deníku' : '');
+    return {
+      theme: this.props.theme ?? 'light',
+      nOpts: [400, 1600, 2000].map((n) => ({ l: 'N ' + f(n), on: s.N === n ? 'true' : 'false', cls: s.N === n ? 'on' : '', pick: () => this.setState({ N: n, resp: 0, hold: 0 }) })),
+      scen: [['run', 'Běží'], ['resume', 'Nový pokus'], ['park', 'Na rozpočtu'], ['fict', 'Fiktivní']].map(([k, l]) => ({ l, on: s.scen === k ? 'true' : 'false', cls: s.scen === k ? 'on' : '', pick: () => this.setState({ scen: k, resp: 0, hold: 0 }) })),
+      phase, liveCls: m.parked ? 'live park' : m.finished || m.fict ? 'live off' : 'live', sub,
+      done: f(m.done), total: f(m.N),
+      barDone: 'width: ' + (m.done / m.N * 100).toFixed(2) + '%; background: var(--signal)',
+      gDone: f(m.done), nRep: f(m.replayed), repCls: m.replayed ? 'rw' : 'rw zero', nSent: f(m.sent),
+      gLeft: f(m.wait + m.park), nWait: f(m.wait), waitCls: m.wait ? 'rw' : 'rw zero', nPark: f(m.park), parkCls: m.park ? 'rw' : 'rw zero'
+    };
+  }
+}
+</script>
+</body>
+</html>

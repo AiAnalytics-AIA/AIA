@@ -34,6 +34,9 @@ describe("run state", () => {
     const stopped = runState(run({ phase: "FAILED", steps: [step("compile"), step("run", { status: "FAILED", error_message: "Brána odmítla." })] }));
     expect(stopped.state).toBe("EVIDENCE_UNAVAILABLE");
     expect(stopped.reason).toContain("Brána odmítla.");
+    // A step this client has no name for is named as unnamed with its code, never by the bare code.
+    const unnamed = runState(run({ phase: "FAILED", steps: [step("compile"), step("future_step", { status: "FAILED" })] }));
+    expect(unnamed.reason).toContain("krok bez názvu (future_step)");
     expect(runState(run({ steps: [step("aggregate")] })).state).toBe("EVIDENCE_UNAVAILABLE");
   });
 

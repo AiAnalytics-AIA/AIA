@@ -1,5 +1,5 @@
 ---
-status: done
+status: in-progress
 chunks:
   - "[x] SMP1. Vzorek's contract as data: view operations, pointable ids (size, quota cell, forecast item, readiness check) and V2's interaction contract"
   - "[x] SMP2. Velikost a složení: n, the dimensions and the audience summarized; the panel's quota cells before a run, and for the fictional roster the words that it has none"
@@ -7,6 +7,15 @@ chunks:
   - "[x] SMP4. Připravenost ke spuštění: every readiness check with its stage link, on the working revision"
   - "[x] SMP5. Kdo bude odpovídat: the persona source offered, its default and why an unoffered one is not, read only here with a link to Spuštění, where it is chosen (SQ1 = Q54 b)"
   - "[x] SMP6. Journey: Vzorek at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[x] SMP2b. Složení: the composition table renamed and folded after six rows, link cards, the own dimension by name (reopens SMP2; spec vzorek V6; W1)"
+  - "[x] SMP3b. §02 'Kolik dat bude za čísly': KPI tiles from the outlook; pair support disabled with its reason, 'ověří se až z dat' (reopens SMP3; spec vzorek V4; W1)"
+  - "[ ] SMP4b. §03 readiness in words, one fix per check, the header pill, the budget row as a warning (reopens SMP4; spec vzorek V5; W1)"
+  - "[x] SMP5b. §04 one line for the default source; 'Sběr dat' as the stage's one name (reopens SMP5; spec vzorek V7; W1)"
+  - "[ ] SMP10. Readiness FAILs while the run's ceiling exceeds what is left of Rozpočet studie, the remedy raising the budget or lowering N (B1 (a), Nigel 2026-10-26; spec vzorek V5, OQ3; W1, on lead-orchestration LO23)"
+  - "[ ] SMP6b. The Vzorek journey extended: N stepped and read back, the Lead's focus, zero paid (reopens SMP6; spec vzorek V8; W1)"
+  - "[x] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"
+  - "[x] SMP8. The run's ceiling and the study's remainder beside N (spec vzorek V2; W1)"
+  - "[ ] SMP9. The server's reportable_n and 'Zvýšit na N x · strop +Δ USD'; the browser's own recommendation removed (spec vzorek V3; W1)"
 ---
 # Artifact: Vzorek (Sample)
 
@@ -199,3 +208,39 @@ field. (a) if the owner wants V2's layout exactly.
   through useSampleReadiness on the working revision".
 - open-items: F-SMP-1 (Spuštění's `fixStep` misroutes `dimensions` and `sociomap_support`; the Sběr
   dat session is fixing it in artifact-fieldwork).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**SMP2b. Composition** (spec `vzorek/V6`; reopens SMP2; W1, lane E).
+
+**SMP3b. Kolik dat bude za čísly** (spec `vzorek/V4`; reopens SMP3; W1, lane E). Decided by default (planning, open to Nigel's override): the brand pair is disabled with its reason (R9), no pair forecast (OQ4).
+
+**SMP4b. Readiness in words** (spec `vzorek/V5`; reopens SMP4; W1, lane E). On `research-lead-workbench#36`. B1 decided (a) (Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator): the study budget stops a run before it starts, "as drawn"; the budget row reads as the FAIL check SMP10 serves, its remedy raising the budget or lowering N.
+
+**SMP5b. Kdo bude odpovídat, one line** (spec `vzorek/V7`; reopens SMP5; W1, lane E).
+
+**SMP10. The budget stops a run** (spec `vzorek/V5`, OQ3; W1, lane E). B1 (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the study budget stops a run before it starts, "as drawn". A readiness check FAILs while the run's ceiling exceeds what is left of Rozpočet studie; its remedy is raising the budget or lowering N. Today the start never consults the budget (register OQ3). Needs the ceiling before a start, `lead-orchestration#LO23` (W1). An unknown ceiling is not a pass. Test: a design whose ceiling exceeds the remainder is not ready, and raising the budget makes it ready.
+
+**SMP6b. Journey** (spec `vzorek/V8`; reopens SMP6; W1, lane E). After SMP7-SMP9.
+
+**SMP7. N on Vzorek** (spec `vzorek/V1`; W1, lane E). Nigel, 26 Oct 2026 (P1): N is set on Vzorek, "this stage has to do with setting up the AI respondents". One PR with `artifact-dimensions#DIM3b`, so N is never on neither stage. The contract's `sample.edits` becomes true and `set_n` is shown here. Bounds from `/research/limits` (server 20-10 000; register contradiction 14 with `input-interactions#5`'s 50-5000), never clamped. Test: a refused n saves nothing; Dimenze has no n control. Done with DIM3b: §01's "Velikost vzorku" is the stepper (`SampleSize.tsx`,
+the one Dimenze used, bounded by `/research/limits`, a refused n saved nothing), "Upravit v Dimenzích" gone;
+`ARTIFACTS.sample.edits` true (`domain/lead_artifacts.py`, `lib/workbench-artifacts.ts`, the contract
+fixture) and the Lead's `set_n` shown on Vzorek (`lib/lead.ts` editStage); `ARTIFACTS.dimensions.edits`
+stays true (WCE10's `dimensions_set`). The browser's recommendation stays beside N until SMP9. Tests:
+"sets n on Vzorek…" (ResearchScreen.workbench), `lead.test.ts` (set_n → sample), `workbench_journey.mjs`
+and `dimensions_journey.mjs` (n stepped on Vzorek, 44 px at 390).
+
+**SMP8. Ceiling beside N** (spec `vzorek/V2`; W1, lane E). Unknown never zero.
+
+**SMP9. Reportable n** (spec `vzorek/V3`; partly no backend; W1, lane E). A readiness `?n=` ceiling query is new. Replaces DIM3's browser recommendation (contradiction 16).
+
+**Notes.**
+- The plan was `done`; it is `in-progress` again because the spec adds open chunks (26 Oct 2026).

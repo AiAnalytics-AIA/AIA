@@ -7,6 +7,7 @@ chunks:
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
   - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
+  - "[ ] BRF7. A brief's files are Class A by rule, like a client's sources; a person marks one Veřejné to make it Class B: material_rules.py and the class pill, an ADR 0008 amendment note (B4 (a), Nigel 2026-10-26; spec navrh B6, OQ18; W1)"
 ---
 # Artifact: Zadání (Brief)
 
@@ -162,6 +163,34 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
   textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
   written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
+- *Landed, the v73 board's body* (spec navrh B1, B2, B3, B5; BriefStep, `research/brief-readiness.ts`):
+  - the order is now the v73 board's: Cíl, Cíle, Rozhodnutí, Typ problému, Kontext, Podklady. This
+    supersedes the order above, and `BRIEF_FIELDS` follows it;
+  - each section carries its cap on the right (povinné / volitelné);
+  - the goal asks only "Co potřebujete zjistit?". Its sentence starters, the 40-character "sentence"
+    rule and "Navrhnout z cíle" are gone, and the title is a plain field;
+  - "Připravenost" is one chip per section in page order. Each chip scrolls to its section and focuses
+    it. A missing required section waits on the person; an optional one never does. There is no
+    percentage, and nothing gates the analysis, which keeps `canAnalyse` (advisory, the 26 Oct default);
+  - an empty Rozhodnutí says "chybí" and offers three starters, which fill an empty field only. A note
+    says what the decision is for;
+  - Kontext keeps all four fields, in a two-column grid (spec B5 owner question: the board shows two).
+  Waiting on `research-lead-workbench#36` (spec X1): the header slot, StepSection's number and need
+  state, and WellItem. Until then the caps use StepSection's `aside`, the chips sit at the top of the
+  body, and the analysis action stays in the inspector without the old panel's rows.
+  Tests: `BriefStep.test.tsx` "sections render in the board's order…", "a readiness chip per
+  section…", "an empty decision shows chybí…", "context fields render in a two-column grid", and
+  `brief-readiness.test.ts`.
+- *Landed, the header* (spec navrh B1, B7; BRF2, BRF4; on `research-lead-workbench#36`, #936):
+  - in the workbench the readiness chips stand in the stage header's status slot;
+  - "Požádat Vedoucího o analýzu" sits in its action slot and sends the typed command "Analyzuj
+    zadání", which the Lead answers with its analysis card. Nothing starts until the person
+    approves that card;
+  - the header's primary is the frame's "Návrh", and the inspector's workbench block is gone;
+  - the sections take StepSection's number, cap and need ("chybí" on an empty decision);
+  - outside the workbench the stage keeps its own analysis button, and the chips stand in place.
+  Tests: `ResearchScreen.workbench.test.tsx` "goes on from Zadání to Návrh through the header's frame
+  button…", "asks the Lead for the brief's analysis from the header…".
 
 - *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
   arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
@@ -282,3 +311,22 @@ drafted, so removing the last one stays allowed there; only Návrh requires an o
 - `open-items.md`: F-BRF-2, `lead_journey.mjs:198` composer-focus timeout at 1099 px (§ 7a), not reproduced in 5 fresh runs after #678; cause unconfirmed.
 - `open-items.md`: F-BRF-3, an empty new objective said as a name (§ 7a), fixed.
 - `CLAUDE.md` § 2, when BRF1 lands: `apps/web/src/lib/artifacts/` (one contract per artifact).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**Notes.**
+**BRF7. A brief's files are Class A by rule** (spec `navrh/B6`, OQ18; W1, lane E). B4 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: a brief's files are Class A by rule, like a client's sources; a person may mark one Veřejné, which makes it Class B. A material-rule change in `domain/material_rules.py` (today a brief's file and link take `MaterialRule.DESIGN`, Class B, `packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 40b16d58`) with BRF3's pill. An ADR 0008 implication: the amendment note goes under Doc follow-up in its PR. Test: an unmarked brief file classes A, a file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one.
+
+Every other Zadání row of the spec maps to an open chunk.
+- BRF2 carries `navrh/B1`, `navrh/B2`, `navrh/B3`, `navrh/B5`, on `research-lead-workbench#36`.
+- BRF3 carries `navrh/B6` (the class sentence and pill, from the class BRF7 gives).
+- BRF4 carries `navrh/B7` and `navrh/B8`.
+- Decided by default (planning, 26 Oct 2026, open to Nigel's override): the brief's "povinné" is advisory, never a gate on analyze_brief.
+- B5 decided (b) (Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator): **keep the ten problem types** (18.6.6's, parity-tested); the board changes to the ten, not the code (spec `navrh/B1`, OQ15).

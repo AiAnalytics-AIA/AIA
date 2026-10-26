@@ -159,7 +159,9 @@ try {
     await approve.click();
     const dialog = page.getByRole("dialog");
     await dialog.waitFor({ timeout: 10000 });
-    assert.match(await dialog.innerText(), /Schválit interní zprávu, uloženou verzi ART-[0-9a-f]{16} \(DOCX[^)]*\)\?/, `@${width}: the question names the version and its format`);
+    // By name and when it was stored, never its id (RPT3d).
+    assert.match(await dialog.innerText(), /Schvalujete tuto verzi: Interní zpráva, vytvořenou \d+\. \d+\. \d{4} \d{2}:\d{2} \(DOCX[^)]*\)\./, `@${width}: the question names the version by its time and its format`);
+    assert.doesNotMatch(await dialog.innerText(), /ART-/, `@${width}: no id in the question`);
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Zrušit", `@${width}: the safe choice holds the focus`);
     await noOverflow(`approval dialog @${width}`);
     await page.screenshot({ path: join(out, `${width}-approval-dialog.png`) });

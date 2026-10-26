@@ -64,6 +64,7 @@ chunks:
   - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
   - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
   - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
+  - "[ ] 59. The Deep Research tool event carries the fetched host and a refusal's reason (spec lead LP-14, lead B9; W1, only as a defect or evaluation finding under the engine freeze)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -1966,3 +1967,14 @@ chunk's tightened wording and Q44-Q48 live).
 - `deploy/develop/README.md` (the switches): the API also receives `AIA_DEEP_RESEARCH_ENABLED`, read
   only for the quote's statement.
 - `open-items.md`: F-DRL-2 and F-DRL-3 closed by this PR (numbered from #553's findings).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**59. Host and reason on the tool event** (spec `lead/LP-14`; W1, lane C). With `research-lead-workbench#23b`. Open contradiction 13: CLAUDE.md freezes the engine "except on a defect or evaluation finding"; this chunk lands only if it is recorded as one, else it is moved.

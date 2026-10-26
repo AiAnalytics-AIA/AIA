@@ -10,9 +10,10 @@ const DESIGN = ARTIFACTS.design;
 /** The kinds Návrh's items carry; each must be in DESIGN.targets (checked by its test). */
 export type DesignKind = Extract<TargetKind, "plan" | "rq" | "hypothesis" | "set" | "assumption">;
 
-/** Návrh's five section anchors, `plan:<part>`, and the element each is drawn as (PlanStep). */
+/** Návrh's six section anchors, `plan:<part>`, and the element each is drawn as (PlanStep). */
 export const PLAN_PARTS = {
   narrative: "plan-understanding",
+  hypotheses: "plan-hypotheses",
   variants: "plan-variants",
   sets: "plan-sets",
   questions: "plan-questions",
@@ -77,6 +78,7 @@ export function designLabel(target: string): string | null {
 
 const PART_WORDS: Readonly<Record<PlanPart, string>> = {
   narrative: "porozumění zadání",
+  hypotheses: "hypotézy",
   variants: "rozsah",
   sets: "sledované sady",
   questions: "otázky AI",

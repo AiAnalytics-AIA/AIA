@@ -88,6 +88,10 @@ class DeletionPreview:
     #: ``replaced_source_readings`` (an older reading of a reread source; ``None``: not counted,
     #: its key is not kept). Nothing here is shown as deleted.
     remains_until_sdl2: dict[str, int | None]
+    #: The client's runs that have not ended, by id (the ones :class:`ClientHasActiveWork`
+    #: would name), so the person sees before confirming that the deletion waits for them
+    #: (settings-redesign F22). Read when the preview is made; the deletion checks again.
+    active_run_ids: list[str]
     confirm_token: str
     expires_at: datetime
 
@@ -153,6 +157,7 @@ def deletion_preview(
             "population_children": client_population_children(session, client_id=client_id),
             "replaced_source_readings": None,
         },
+        active_run_ids=active_client_runs(session, client_id=client_id),
         confirm_token=token,
         expires_at=expires_at,
     )

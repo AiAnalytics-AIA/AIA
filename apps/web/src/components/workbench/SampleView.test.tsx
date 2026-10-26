@@ -26,17 +26,58 @@ const readiness = (over: Partial<WorkingReadiness>): WorkingReadiness => ({
 const ready = (over: Partial<WorkingReadiness>): SampleReadiness => ({ kind: "ready", revision: 7, readiness: readiness(over) });
 
 describe("SampleArtifact", () => {
-  it("shows the size, the audience and the dimensions as set, and edits none of them", () => {
+  it("puts the run's ceiling at the server's N beside what the study has left, following N after the readiness re-read", () => {
+    const budget = { budget_usd: 5, spent_usd: 1, remaining_usd: 4 };
+    const { container, rerender } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} budget={budget} readiness={ready({ n: 200, cost_ceiling_usd: 1.5 })} />);
+    // The amounts print with a no-break space before USD; read here as a plain space.
+    const line = () => container.querySelector("[data-ceiling]")!.textContent!.replace(/\u00a0/g, " ");
+    expect(line()).toBe("Strop běhu při N 200: 1,50 USD (horní mez, ne odhad) · Z rozpočtu studie zbývá 4.00 USD. I při nejvyšší ceně by zbylo 2.50 USD, bez částek, které právě drží běžící kroky.");
+    rerender(<SampleArtifact project={project({ n: 400 })} onOpen={vi.fn()} budget={budget} readiness={ready({ n: 400, cost_ceiling_usd: 4.5 })} />);
+    expect(line()).toMatch(/^Strop běhu při N 400: 4,50 USD \(horní mez, ne odhad\) · Z rozpočtu studie zbývá 4.00 USD\. To je víc, než nyní zbývá/);
+  });
+
+  it("says an unknown ceiling in the server's words, never 0,00 USD, and an unread budget as unknown", () => {
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} budget={null} readiness={ready({ cost_ceiling_unknown: "fieldwork_reservation_missing" })} />);
+    const line = container.querySelector("[data-ceiling]")!.textContent!;
+    expect(line).toBe("Strop nelze spočítat: nasazení neuvádí, kolik worker rezervuje na jeden dotaz respondentovi. · Kolik z rozpočtu studie zbývá, AIA nyní neví.");
+    expect(line).not.toMatch(/0,00/);
+  });
+
+  it("says an unknown ceiling without a cause when the server gave none, never one it did not state", () => {
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ n: 200, cost_ceiling_usd: null, cost_ceiling_unknown: null })} />);
+    const line = container.querySelector("[data-ceiling]")!.textContent!;
+    expect(line).toBe("Strop běhu: nelze předem určit (neznámá cena se nikdy nepočítá jako nula)");
+    expect(line).not.toMatch(/velikost vzorku|0,00/);
+  });
+
+  it("says nothing of the ceiling before readiness is read, and nothing of the budget while it is", () => {
+    const { container, rerender } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={{ kind: "loading" }} />);
+    expect(container.querySelector("[data-ceiling]")).toBeNull();
+    rerender(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ cost_ceiling_usd: 1.5 })} />);
+    expect(container.querySelector("[data-ceiling]")!.textContent!.replace(/\u00a0/g, " ")).toBe("Strop běhu při N 200: 1,50 USD (horní mez, ne odhad)");
+  });
+
+  it("shows the size, the audience and the dimensions as set; without its control, n is read only", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 450, persona_dimensions: { approved: ["media", "cena"] }, audience: { description: "Dojíždějící", filters: { kraj: ["A"], vek: { min: 25 } } } })} readiness={{ kind: "loading" }} onOpen={onOpen} />);
     expect(screen.getByText("N = 450")).toBeTruthy();
-    expect(screen.getByText("Dojíždějící · 2 filtry")).toBeTruthy();
-    expect(screen.getByText("Média a informační chování")).toBeTruthy();
+    expect(screen.getByText("Dojíždějící · 2 faktory")).toBeTruthy();
+    expect(screen.getByText("Média a informační chování, Cena / value for money")).toBeTruthy();
     expect(screen.queryByRole("textbox")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Upravit v Dimenzích" }));
+    // n is set on Vzorek itself (SMP7), so nothing sends it back to Dimenze but the link card.
+    expect(screen.queryByRole("button", { name: "Upravit v Dimenzích" })).toBeNull();
+    // The two link cards (spec vzorek V6) open the stage where each part is set.
+    fireEvent.click(screen.getByRole("button", { name: /^Cílová skupina/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Dimenze/ }));
     fireEvent.click(screen.getByRole("button", { name: "Sociomapa" }));
     fireEvent.click(screen.getByRole("button", { name: "Pokračovat na Sběr dat" }));
-    expect(onOpen.mock.calls).toEqual([["dimensions"], ["sociomap"], ["fieldwork"]]);
+    expect(onOpen.mock.calls).toEqual([["audience"], ["dimensions"], ["sociomap"], ["fieldwork"]]);
+  });
+
+  it("names a client's library dimension by its title, never its id", () => {
+    render(<SampleArtifact project={project({ n: 200, persona_dimensions: { approved: ["KNI-7", "media"] } })} readiness={{ kind: "loading" }} onOpen={vi.fn()} labels={{ media: "Média a informační chování", "KNI-7": "Vztah ke značkám" }} />);
+    expect(screen.getByRole("button", { name: /^Dimenze/ }).textContent).toContain("Vztah ke značkám, Média a informační chování");
+    expect(screen.getByRole("button", { name: /^Dimenze/ }).textContent).not.toContain("KNI-7");
   });
 
   it("says what is not set, rather than a default", () => {
@@ -51,11 +92,33 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "PASS", message: "Běh bude mít 67 různých dárců na 200 respondentů: opora stačí." }],
       question_outlook: [{ question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: [] }],
     })} />);
-    expect(screen.getByText("odhad, ne výsledek")).toBeTruthy();
+    expect(screen.getByText("odhad před během, ne výsledek")).toBeTruthy();
     expect(screen.getByText("Podle pracovní kopie, revize 7")).toBeTruthy();
     expect(screen.getByText("Opora výsledků")).toBeTruthy();
     expect(screen.getByText("Běh bude mít 67 různých dárců na 200 respondentů: opora stačí.")).toBeTruthy();
-    expect(screen.getByRole("region", { name: "Odhad podpory před během" }).querySelector('[data-aia="sample:forecast:outlook"]')?.textContent).toContain("1 S rizikem");
+    // The board's tiles (spec vzorek V4): the server's counts, unanswerable left out at zero.
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect([...outlook.querySelectorAll("[data-verdict]")].map((t) => t.getAttribute("data-verdict"))).toEqual(["ANSWERABLE", "AT_RISK", "UNKNOWN"]);
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1");
+  });
+
+  it("names each tile's commonest reason in a few words, and shows unanswerable only when an item is", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({
+      question_outlook: [
+        { question_id: "q1", text: "", section_id: "s", battery_id: null, verdict: "AT_RISK", reasons: ["open_ended", "support_unknown"] },
+        { question_id: "q2", text: "", section_id: "s", battery_id: null, verdict: "UNANSWERABLE", reasons: ["fidelity_refused", "support_unknown"] },
+      ],
+    })} />);
+    const outlook = screen.getByRole("region", { name: "Kolik dat bude za čísly" }).querySelector('[data-aia="sample:forecast:outlook"]')!;
+    expect(outlook.querySelector('[data-verdict="AT_RISK"]')!.textContent).toBe("Ohrožené1otevřená otázka");
+    expect(outlook.querySelector('[data-verdict="UNANSWERABLE"]')!.textContent).toBe("Bez odpovědi1ptá se na absolutní hodnotu");
+  });
+
+  it("forecasts no brand pair: the map's pairs are checked from the data, never counted here", () => {
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({})} />);
+    const section = screen.getByRole("region", { name: "Kolik dat bude za čísly" });
+    expect(section.textContent).toContain("Mapa značek: podporu dvojic AIA před během neodhadne; ověří se až z dat");
+    expect(section.textContent).not.toMatch(/\d+ z \d+ dvojic/);
   });
 
   it("reads a panel run's unknown forecast as neznámé, never good", () => {
@@ -64,7 +127,7 @@ describe("SampleArtifact", () => {
       checks: [{ id: "support_forecast", status: "WARN", message: "Kolik různých dárců běh bude mít, se ukáže až při výběru respondentů z populace." }],
     })} />);
     expect(screen.getByText("Opora výsledků: neznámé")).toBeTruthy();
-    expect(screen.getByText("Na co běh odpoví: neznámé")).toBeTruthy();
+    expect(screen.getByText(/^Na co běh odpoví: neznámé/)).toBeTruthy();
     expect(container.querySelector('[data-aia="sample:forecast:support"] [aria-label="neznámé"]')).toBeTruthy();
   });
 
@@ -89,16 +152,27 @@ describe("Připravenost ke spuštění", () => {
     const onOpen = vi.fn();
     const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ ready: false, checks })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
-    expect(section.textContent).toContain("1 kontrola brání spuštění");
-    const items = [...section.querySelectorAll("li")].map((li) => li.getAttribute("data-aia"));
+    expect(screen.getByRole("status").textContent).toBe("Nelze spustit · 1 kontrola brání");
+    const items = [...section.querySelectorAll("ul[aria-label='Kontroly připravenosti'] li")].map((li) => li.getAttribute("data-aia"));
     expect(items).toEqual(["sample:ready:conditional_questions", "sample:ready:sociomap_support", "sample:ready:new_server_check", "sample:ready:sample_size"]);
     const fail = container.querySelector('[data-aia="sample:ready:conditional_questions"]')!;
     fireEvent.click(fail.querySelector("button")!);
     expect(onOpen).toHaveBeenCalledWith("questionnaire");
     // n's support is fixed where n is set; a check this client does not know names no stage.
-    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Dimenze");
+    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Opravit v Dimenzích");
+    expect(fail.querySelector("button")!.textContent).toBe("Opravit v Dotazníku");
     expect(container.querySelector('[data-aia="sample:ready:new_server_check"] button')).toBeNull();
-    expect(section.textContent).not.toContain("Lze pokračovat s omezeními");
+  });
+
+  it("reads every check in words, with the legend, and shows no status code", () => {
+    // The support forecast's check too, which §02 shows and §03 leaves out.
+    const forecast = { id: "support_forecast", status: "WARN" as const, message: "Opora bude jen indikativní." };
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ ready: false, checks: [...checks, forecast] })} />);
+    const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
+    expect(screen.getByRole("list", { name: "Vysvětlivky" }).textContent).toBe("V pořádkuUpozornění: běh poběžíBrání spuštění");
+    const titles = [...section.querySelectorAll("[data-aia^='sample:ready:'] [aria-label]")].map((g) => g.getAttribute("aria-label"));
+    expect(titles).toEqual(["Brání spuštění", "Upozornění: běh poběží", "Upozornění: běh poběží", "V pořádku"]);
+    expect(container.innerHTML).not.toMatch(/"(PASS|WARN|FAIL)"/);
   });
 
   it("shows a check the server names outside the id grammar, nameable by no one, without failing the render", () => {
@@ -116,16 +190,15 @@ describe("Připravenost ke spuštění", () => {
     render(<SampleArtifact project={project({ n: 50 })} onOpen={vi.fn()} readiness={ready({ checks: [{ id: "support_forecast", status: "WARN", message: "Čísla budou potlačená." }] })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
     expect(section.querySelector('[data-aia="sample:ready:support_forecast"]')).toBeNull();
-    expect(section.textContent).toContain("1 varování, nic nebrání");
+    expect(section.textContent).toContain("Lze spustit · 1 upozornění");
     expect(section.textContent).toContain("viz oddíl 2");
     expect(screen.getAllByText("Čísla budou potlačená.")).toHaveLength(1);
   });
 
-  it("says a run with only warnings may continue with limits", () => {
+  it("says a run with only warnings can start, and how many warnings it has", () => {
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ checks: checks.filter((c) => c.status !== "FAIL") })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
-    expect(section.textContent).toContain("2 varování, nic nebrání");
-    expect(section.textContent).toContain("Lze pokračovat s omezeními.");
+    expect(screen.getByRole("status").textContent).toBe("Lze spustit · 2 upozornění");
   });
 
   it("takes the server's verdict: not ready with no FAIL still stops the run, and an unknown status allows no 'continue'", () => {
@@ -134,8 +207,8 @@ describe("Připravenost ke spuštění", () => {
     cleanup();
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ checks: [checks[2], { id: "x", status: "SKIPPED" as never, message: "?" }] })} />);
     const section = screen.getByRole("region", { name: "Připravenost ke spuštění" });
-    expect(section.textContent).toContain("stav některých kontrol neznámý");
-    expect(section.textContent).not.toContain("Lze pokračovat");
+    expect(section.textContent).toContain("Stav některých kontrol je neznámý");
+    expect(section.textContent).not.toContain("Lze spustit");
   });
 
   it("names a panel run's unknown forecast as unknown here too, never as a warning", () => {
@@ -165,14 +238,18 @@ describe("Kdo bude odpovídat", () => {
     { source: "panel", offered: false, reason: "panel_personas_disabled", default: false },
   ];
 
-  it("shows the offered sources and the default, sets none of them, and opens Spuštění to change it", () => {
+  it("shows the default source as the one line, sets none of them, and opens Sběr dat to change it", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ persona_sources: sources })} />);
     const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
     expect(section.textContent).toContain("Fiktivní respondenti · výchozí");
     expect(section.querySelectorAll("input, select").length).toBe(0);
+    // The other source is one click away, not a line of its own (spec vzorek V7).
+    const rest = section.querySelector("details");
+    expect(rest?.querySelector("summary")?.textContent).toBe("Další zdroje (1)");
+    expect(rest?.textContent).toContain("AI respondenti z populace");
     expect(screen.queryByRole("radio")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Změnit ve Spuštění" }));
+    fireEvent.click(screen.getByRole("button", { name: "Změnit ve Sběru dat" }));
     expect(onOpen).toHaveBeenCalledWith("fieldwork");
   });
 
@@ -183,11 +260,19 @@ describe("Kdo bude odpovídat", () => {
     expect(panel?.textContent).toContain("Toto nasazení odpovědi z populace zatím nenabízí.");
   });
 
-  it("sends no one to Spuštění for a choice it does not offer: a run not answered by AI respondents", () => {
+  it("sends no one to Sběr dat for a choice it does not offer: a run not answered by AI respondents", () => {
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ fieldwork_source: "synthetic_fixture", persona_sources: sources })} />);
     const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
     expect(section.textContent).toContain("nesbírá data přes AI respondenty");
-    expect(screen.queryByRole("button", { name: "Změnit ve Spuštění" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Změnit ve Sběru dat" })).toBeNull();
+  });
+
+  it("says the default is unknown when the server marks none, and keeps every source one click away", () => {
+    const none = sources.map((o) => ({ ...o, default: false }));
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ persona_sources: none })} />);
+    const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
+    expect(section.textContent).toContain("výchozí zdroj respondentů neoznačil: neznámý");
+    expect(section.querySelector("summary")?.textContent).toBe("Další zdroje (2)");
   });
 
   it("says unknown when the server sent no sources, never a default", () => {
@@ -243,14 +328,16 @@ describe("Složení podle kvót", () => {
   it("lists a panel run's quota cells, largest first, each a target, the rest folded away", () => {
     const { container } = render(<SampleArtifact project={project({ n: 78 })} onOpen={vi.fn()} readiness={ready({ persona_source: "panel", sample_composition: composition })} />);
     const section = screen.getByRole("region", { name: "Velikost a složení" });
-    expect(section.textContent).toContain("Podle: Pohlaví × Kraj. 12 buněk s respondenty, 40 různých dárců.");
+    expect(screen.getByRole("heading", { name: "Složení podle kvót · pohlaví × kraj" })).toBeTruthy();
+    expect(section.textContent).toContain("Kvóta říká, kolik lidí každé skupiny vytáhneme; neříká, že odpoví na každou otázku.");
+    expect([...section.querySelectorAll("thead th")].map((th) => th.textContent).slice(0, 3)).toEqual(["Skupina", "Podíl", "Respondentů"]);
     const rows = [...container.querySelectorAll('[data-aia^="sample:quota:"]')].map((r) => r.getAttribute("data-aia"));
     expect(rows).toHaveLength(12);
     expect(rows[0]).toBe("sample:quota:zena/k0");
     expect(container.querySelector('[data-aia="sample:quota:zena/k0"]')!.textContent).toContain("15,4 %");
-    // Ten shown, two under "Dalších", nothing on the page to press but navigation.
-    expect(section.querySelector("details")!.textContent).toContain("Dalších 2 buňky");
-    expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(2);
+    // Six shown, as the v73 board draws, the other six under "Dalších", nothing to press but navigation.
+    expect(section.querySelector("details")!.textContent).toContain("Dalších 6 skupin");
+    expect(section.querySelectorAll("details tr[data-aia]")).toHaveLength(6);
   });
 
   it("prints every share with one decimal, so the column reads aligned", () => {

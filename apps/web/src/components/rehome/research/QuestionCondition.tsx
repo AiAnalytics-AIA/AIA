@@ -6,7 +6,7 @@
 // (research_design.py condition_refusal); a stored condition the rule refuses, or one 18.6.6 wrote
 // that AIA cannot read, is shown as stored with why, never rewritten here.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
 import { t, tv } from "@/i18n/t";
@@ -26,9 +26,9 @@ const label = (s: ConditionSource) => (s.number === null ? s.id : `Q${s.number}`
 /** /config's routing switch once read, so a card mounted later starts from it (null until then). */
 let routingKnown: boolean | null = null;
 
-/** /config's routing switch (AIA_ROUTING_ENABLED); off until read, and off when it cannot be. */
-function useRouting(): boolean {
-  const [on, setOn] = useState(routingKnown ?? false);
+/** /config's routing switch (AIA_ROUTING_ENABLED); null until read, and while it cannot be (unknown, never off). */
+function useRouting(): boolean | null {
+  const [on, setOn] = useState<boolean | null>(routingKnown);
   useEffect(() => {
     let live = true;
     loadConfig().then(
@@ -58,13 +58,14 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
   const [refocus, setRefocus] = useState(0);
   useEffect(() => {
     if (!refocus || !box.current) return;
-    (box.current.querySelector<HTMLElement>("button:not([disabled])") ?? box.current.closest("[id]")?.querySelector<HTMLElement>("textarea"))?.focus();
+    (box.current.querySelector<HTMLElement>("button:not([disabled]):not([aria-disabled=\"true\"])") ?? box.current.closest("[id]")?.querySelector<HTMLElement>("textarea"))?.focus();
   }, [refocus]);
   const close = () => {
     setEditing(false);
     setRefocus((n) => n + 1);
   };
   const id = String(q.id ?? "").trim();
+  const whyId = useId();
 
   // Held to the rule before it is written; a refusal is said in the form, which stays open.
   const save = (condition: ConditionValue): string | null => {
@@ -85,9 +86,24 @@ export function QuestionCondition({ q, si, qi, update }: { q: Question; si: numb
     if (editing) return <ConditionForm sources={sources} initial={state.kind === "set" ? state : null} onCancel={close} onSave={save} />;
     // Set or edited only behind the switch (off until fieldwork routes, RQC11); a stored one is
     // still shown and can be removed.
-    const editable = canEdit && routing && sources.length > 0;
+    const editable = canEdit && routing === true && sources.length > 0;
     if (state.kind === "none") {
-      // Only where a condition can stand: an earlier selection question with answers.
+      // Only where a condition can stand: an earlier selection question with answers. With the switch
+      // off, what a run cannot do is shown disabled with its reason, never offered (spec navrh/Q4, R9).
+      if (canEdit && routing === false && sources.length > 0) {
+        return (
+          <div data-condition-unavailable className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            <span className="min-w-[min(100%,16rem)] flex-1">
+              <b className="font-semibold text-ink">{t("research.questionnaire.conditionEdit.add")}</b>{" "}
+              <span id={whyId}>{t("research.questionnaire.conditionEdit.unavailable")}</span>
+            </span>
+            {/* aria-disabled, not disabled: it stays in the tab order, so its reason is heard on it. */}
+            <Button small aria-disabled="true" aria-describedby={whyId} className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50">
+              {t("research.questionnaire.conditionEdit.turnOn")}
+            </Button>
+          </div>
+        );
+      }
       if (!editable) return null;
       return (
         <Button small variant="quiet" icon="plus" className="mt-2" onClick={() => setEditing(true)}>

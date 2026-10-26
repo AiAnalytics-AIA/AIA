@@ -51,7 +51,7 @@ describe("research execution", () => {
     expect(phaseTone("FAILED")).toBe("fault");
     expect(phaseTone("COMPLETED")).toBe("done");
     expect(stepLabel("sociomap")).toBe("Sociomapa");
-    expect(stepLabel("something_new")).toBe("something_new");
+    expect(stepLabel("something_new")).toBe("krok bez názvu (something_new)");
   });
 
   it("lists a choice question's answers in the order it asked them, not the stored name order", () => {
@@ -301,6 +301,11 @@ describe("which questions a run will answer (run-recovery-and-truth 2b)", () => 
     expect(outlookByVerdict(items).map((i) => i.question_id)).toEqual(["c", "e", "b", "d", "a"]);
     expect(outlookCounts(items)).toEqual({ UNANSWERABLE: 2, AT_RISK: 1, UNKNOWN: 1, ANSWERABLE: 1 });
     expect(outlookCounts([])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 });
+  });
+
+  it("counts a verdict this client does not know as unknown, never dropping the item", () => {
+    const later = { ...item("f", "ANSWERABLE"), verdict: "LATER" as QuestionOutlook["verdict"] };
+    expect(outlookCounts([later, item("g", "UNKNOWN")])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 2, ANSWERABLE: 0 });
   });
 
   it("never gives unknown the tone of an answer", () => {

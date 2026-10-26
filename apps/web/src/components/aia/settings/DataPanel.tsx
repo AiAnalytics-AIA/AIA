@@ -3,7 +3,8 @@
 // Správa dat (settings-redesign chunk 11, Data board): deleting a client, and the records AIA
 // keeps after it (settings-backends SB5, #850). OWNER or ADMIN. The deletion is one I7 modal: what
 // is deleted and what stays, with the server's counts, a one-time confirmation the server issued
-// for this person, an acknowledgement switch, and the act named, "Smazat klienta". A count the
+// for this person, the client's name typed to confirm, and the act named, "Smazat natrvalo"; runs
+// of the client that have not ended are named in it and hold the act back (F22). A count the
 // server did not establish reads "nezjištěno", never 0. Until the routes are deployed (a 404 no
 // route answers, http_404, or the 405 of the old GET preview), both parts read "V AIA zatím
 // není"; a 404 not_found is a client that no longer exists.
@@ -13,10 +14,13 @@ import { useEffect, useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type AdminClient, ApiError, type ClientDeletionPreview, type KeptRecord, clientDeletion } from "@/lib/api";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
-import { Switch } from "../../ui/Switch";
 import { Button, Select } from "../../rehome/ui";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
+import { plural } from "@/lib/format";
+import { InfoButton } from "./InfoButton";
+import { FOCUS } from "../../ui/parts";
+import { Icon } from "../../rehome/icons";
 
 const D = "aia.settings.panel.data";
 const CARD = "rounded-md border border-border bg-surface-raised px-6 py-5";
@@ -25,7 +29,19 @@ type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 const count = (n: number | null | undefined) => (n === null || n === undefined ? t(`${D}.unknownCount`) : new Intl.NumberFormat("cs-CZ").format(n));
 const DELETED = ["studies", "working_revisions", "knowledge_items", "sources", "files", "runs", "artifacts"] as const;
 const KEPT = ["usage_rows", "approval_rows", "audit_rows"] as const;
+const SDL2 = ["population_children", "replaced_source_readings"] as const;
 const KNOWN_RECORDS = new Set(["usage_rows", "budget_holds", "approval_rows", "audit_rows", "deleted_clients"]);
+
+/** The one destructive action on Settings, drawn as the prototype's danger button: fault-red, so it
+ *  reads apart from every other action (F12). Local, not a shared variant: lane A owns the primitives. */
+function DangerButton({ disabled, onClick, children }: { disabled?: boolean; onClick: () => void; children: string }) {
+  return (
+    <button type="button" data-danger disabled={disabled} onClick={onClick}
+      className={`inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-status-fault bg-surface-raised px-3 text-sm font-medium whitespace-nowrap text-status-fault transition-colors duration-[var(--duration-confirm)] hover:bg-status-fault-wash disabled:opacity-50 ${FOCUS}`}>
+      <Icon name="trash" size={14} />{children}
+    </button>
+  );
+}
 
 /** The route is not deployed: no route answered (http_404), or the old GET preview's 405. */
 const notBuilt = (e: unknown) => e instanceof ApiError && ((e.status === 404 && e.code === "http_404") || e.status === 405);
@@ -40,12 +56,13 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
   const [preview, setPreview] = useState<ClientDeletionPreview | null>(null);
   const [notYet, setNotYet] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [ack, setAck] = useState(false);
+  // The client's name as the person typed it: the act opens only on the exact name (F22).
+  const [typed, setTyped] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const list = clients.ok ? clients.data : [];
   const open = async (clientId: string) => {
-    setError(null); setDone(null); setAck(false); setBusy(true);
+    setError(null); setDone(null); setTyped(""); setBusy(true);
     try { setPreview(await clientDeletion.preview(clientId)); }
     catch (e) {
       if (notBuilt(e)) setNotYet(true);
@@ -86,13 +103,24 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
       } else setError(describeError(e));
     } finally { setBusy(false); }
   };
+  const [about, setAbout] = useState(false);
+  // An older API sends no list: no block is drawn, and nothing says the client is idle. That path
+  // relies on the deletion's own 409 client_has_active_work, said in the dialog when it comes.
+  const running = preview?.active_run_ids ?? [];
+  // The exact name, as the server named the client; spaces around it are not part of it. A client
+  // whose name is blank has nothing to type, so nothing typed matches it.
+  const nameMatches = preview !== null && preview.name.trim() !== "" && typed.trim() === preview.name.trim();
   return (
     <section data-client-delete aria-labelledby="data-del-h" className={CARD}>
-      <div className="flex flex-wrap items-center gap-2">
-        <h3 id="data-del-h" className="text-base font-semibold">{t(`${D}.clientDelete`)}</h3>
-        <span className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs text-ink-muted">{t(`${D}.irreversible`)}</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <h2 id="data-del-h" className="text-base font-semibold">{t(`${D}.clientDelete`)}</h2>
+          <InfoButton label={t(`${D}.deleteInfo`)} controls="data-del-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.clientDeleteHelp`)} />
+        </div>
+        {/* Irreversible is the one fault-toned chip here (prototype v99's "chip bad"). */}
+        <span data-irreversible className="inline-flex min-h-[22px] items-center gap-1 rounded-pill border border-status-fault/50 bg-status-fault-wash px-2 text-xs text-status-fault"><Icon name="fault" size={12} />{t(`${D}.irreversible`)}</span>
       </div>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.clientDeleteHelp`)}</p>
+      <p id="data-del-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.clientDeleteHelp`)}</p>
       {notYet ? <NotYetChip /> : <>
         {!clients.ok ? <p role="alert" className="mt-2 text-sm text-status-fault">{clients.message}</p> : !list.length ? <p className="mt-2 text-sm text-ink-muted">{t(`${D}.noClients`)}</p> : (
           <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -107,9 +135,29 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
                 {list.map((c) => <option key={c.client_id} value={c.client_id}>{c.name}</option>)}
               </Select>
             )}
-            <Button disabled={!chosen || busy} onClick={() => chosen && void open(chosen)}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</Button>
           </div>
         )}
+        {/* What a deletion takes and what it keeps, in the open before the confirmation counts them
+            (prototype v99's Smaže se / Zůstane); the counts are the confirmation's, from the server. */}
+        {chosen ? (
+          <div data-delete-inline className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <h3 className="inline-flex items-center gap-1.5 text-sm font-semibold"><Icon name="trash" size={14} />{t(`${D}.willDelete`)}</h3>
+              <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{DELETED.map((k) => <li key={k}>{t(`${D}.deletedKind.${k}`)}</li>)}</ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold">{t(`${D}.willStay`)}</h3>
+              <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{KEPT.map((k) => <li key={k}>{t(`${D}.keptKind.${k}`)}</li>)}</ul>
+              <h3 className="mt-2 text-sm font-semibold">{t(`${D}.untilSdl2`)}</h3>
+              <ul data-inline-until-sdl2 className="mt-1 text-[13px] leading-6 text-ink-muted">{SDL2.map((k) => <li key={k}>{t(`${D}.sdl2.${k}`)}</li>)}</ul>
+            </div>
+          </div>
+        ) : null}
+        {list.length ? (
+          <div className="mt-3">
+            <DangerButton disabled={!chosen || busy} onClick={() => { if (chosen) void open(chosen); }}>{(() => { const name = list.find((c) => c.client_id === chosen)?.name; return name ? tv(`${D}.deleteThis`, { name }) : t(`${D}.deleteNone`); })()}</DangerButton>
+          </div>
+        ) : null}
         {done ? <p role="status" data-deleted className="mt-3 text-sm">{done}</p> : null}
         {waiting ? <Button className="mt-2" disabled={busy} onClick={() => void retryFiles()}>{t(`${D}.retryFiles`)}</Button> : null}
         {error && !preview ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
@@ -131,10 +179,22 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
               <li className="contents"><span>{t(`${D}.sdl2.population_children`)}</span><span className="text-right font-mono tabular-nums">{count(preview.remains_until_sdl2.population_children)}</span></li>
               <li className="contents"><span>{t(`${D}.sdl2.replaced_source_readings`)}</span><span className="text-right font-mono tabular-nums">{count(preview.remains_until_sdl2.replaced_source_readings)}</span></li>
             </ul>
-            <div className="mt-3 flex items-center gap-2"><Switch on={ack} onChange={setAck} label={t(`${D}.ack`)} showLabel /></div>
+            {running.length ? (
+              // Runs that have not ended hold the deletion back: said before the name is typed.
+              <p data-active-work className="mt-3 rounded-sm border border-status-you-ink/40 bg-status-you-wash px-3 py-2 text-[13px] leading-5">
+                {tv(`${D}.runningNow`, { count: plural(running.length, "běh", "běhy", "běhů"), runs: running.join(", ") })}
+              </p>
+            ) : null}
+            <label className="mt-3 block text-[13px] leading-5">
+              <span className="block">{tv(`${D}.typeName`, { name: preview.name })}</span>
+              <input data-type-name type="text" autoComplete="off" spellCheck={false} value={typed} onChange={(e) => setTyped(e.target.value)}
+                disabled={running.length > 0}
+                className={`mt-1 min-h-9 w-full rounded-sm border border-border-strong bg-surface-raised px-2 text-sm disabled:opacity-50 ${FOCUS}`} />
+            </label>
           </>}
           confirmLabel={t(`${D}.confirm`)} cancelLabel={t(`${D}.cancel`)}
-          onConfirm={() => { if (ack) void remove(); else setError(t(`${D}.ackNeeded`)); }}
+          confirmDisabled={!nameMatches || running.length > 0}
+          onConfirm={() => { if (nameMatches && !running.length) void remove(); }}
           onCancel={() => { setPreview(null); setError(null); }} />
       ) : null}
     </section>
@@ -155,10 +215,14 @@ function KeptRecords({ version }: { version: number }) {
   }, [version]);
   const head = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
   const cell = "border-t border-border px-2 py-2 align-top text-sm";
+  const [about, setAbout] = useState(false);
   return (
     <section data-kept-records aria-labelledby="data-kept-h" className={CARD}>
-      <h3 id="data-kept-h" className="text-base font-semibold">{t(`${D}.keptRecords`)}</h3>
-      <p className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.keptRecordsHelp`)}</p>
+      <div className="flex items-center gap-1">
+        <h2 id="data-kept-h" className="text-base font-semibold">{t(`${D}.keptRecords`)}</h2>
+        <InfoButton label={t(`${D}.keptInfo`)} controls="data-kept-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.keptRecordsHelp`)} />
+      </div>
+      <p id="data-kept-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.keptRecordsHelp`)}</p>
       {read.state === "loading" ? null : read.state === "not_yet" ? <NotYetChip /> : read.state === "refused" ? <p role="alert" className="mt-2 text-sm text-status-fault">{read.message}</p> : (
         <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[32rem] border-collapse">
           <thead><tr><th scope="col" className={head}>{t(`${D}.col.record`)}</th><th scope="col" className={head}>{t(`${D}.col.count`)}</th><th scope="col" className={head}>{t(`${D}.col.keptFor`)}</th><th scope="col" className={head}>{t(`${D}.col.why`)}</th></tr></thead>

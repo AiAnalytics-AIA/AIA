@@ -51,6 +51,7 @@ def test_every_rule_has_the_class_the_owner_decided() -> None:
         MaterialRule.KNOWLEDGE: A,
         MaterialRule.CLIENT_SOURCE: A,
         MaterialRule.INTERNAL_DOCUMENT: C,
+        MaterialRule.LEAD_HATCH: C,
     }
     assert all(rule.value.startswith("rule:") for rule in MaterialRule)
     with pytest.raises(TypeError):
