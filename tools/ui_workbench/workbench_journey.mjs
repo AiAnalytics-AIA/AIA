@@ -412,7 +412,7 @@ try {
     assert.equal((await outsideN(editable)).length, 0, `Vzorek has no editable control but n @${width}`);
     assert.equal(await sample.locator('[data-aia="sample:n"] [role=spinbutton]').count(), 1, `Vzorek sets n @${width}`);
     // The section links, the stage each readiness check is fixed on, and the way on to Sběr dat.
-    const NAVIGATION = new Set(["Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník", "Opravit v Dimenzích", "Opravit v Cílové skupině", "Opravit v Dotazníku"]);
+    const NAVIGATION = new Set(["Upravit cílovou skupinu", "Sociomapa", "Změnit ve Sběru dat", "Pokračovat na Sběr dat", "Dimenze", "Cílová skupina", "Dotazník", "Opravit v Dimenzích", "Opravit v Cílové skupině", "Opravit v Dotazníku", "Opravit velikost vzorku"]);
     // A link card reads its title, then what is set there: the title names where it goes.
     const buttons = (await outsideN("button, [role=button]")).map((b) => b.split("\n")[0].trim());
     assert.deepEqual(buttons.filter((b) => !NAVIGATION.has(b)), [], `Vzorek's buttons only navigate @${width}`);

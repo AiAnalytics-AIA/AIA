@@ -117,6 +117,18 @@ describe("Připravenost ke spuštění", () => {
     { id: "new_server_check", status: "WARN" as const, message: "Něco nového." },
   ];
 
+  it("fixes n's checks here: focuses the size's control, never leaving Vzorek for Dimenze", () => {
+    const onOpen = vi.fn();
+    Element.prototype.scrollIntoView = vi.fn();
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} size={<input aria-label="N" />} readiness={ready({ checks })} />);
+    for (const id of ["sample_size", "sociomap_support"]) {
+      (document.body as HTMLElement).focus();
+      fireEvent.click(container.querySelector(`[data-aia="sample:ready:${id}"] button`)!);
+      expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "N" }));
+    }
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
   it("lists every check worst first; a FAIL names its stage and opens it", () => {
     const onOpen = vi.fn();
     const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ ready: false, checks })} />);
@@ -127,8 +139,8 @@ describe("Připravenost ke spuštění", () => {
     const fail = container.querySelector('[data-aia="sample:ready:conditional_questions"]')!;
     fireEvent.click(fail.querySelector("button")!);
     expect(onOpen).toHaveBeenCalledWith("questionnaire");
-    // n's support is fixed where n is set; a check this client does not know names no stage.
-    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Opravit v Dimenzích");
+    // n's support is fixed where n is set, here; a check this client does not know names no stage.
+    expect(container.querySelector('[data-aia="sample:ready:sociomap_support"] button')?.textContent).toBe("Opravit velikost vzorku");
     expect(fail.querySelector("button")!.textContent).toBe("Opravit v Dotazníku");
     expect(container.querySelector('[data-aia="sample:ready:new_server_check"] button')).toBeNull();
   });
