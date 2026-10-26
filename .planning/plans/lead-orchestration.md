@@ -38,7 +38,7 @@ chunks:
   - "[ ] LO21d. The four request types (agent_job, research_run, design_research, interpretation_research) migrated to actions; a stored request still reads"
   - "[ ] LO21e. The plan kind: one action whose steps reference registered actions, LO4's card (steps shown, one approval, live state per step)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
-  - "[ ] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
+  - "[x] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
   - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
   - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
   - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
@@ -1602,6 +1602,40 @@ ids repeat across sections. A ticked chunk the spec reopens is never unticked: i
 follow-up chunk below.
 
 **LO23. The ceiling before a start** (spec `lead/LP-4`, also `szz/A6` and `lead/LP-13`, one API; W1, a money API moved into W1 by the register §6.3). A prepared request and an analysis retry answer the most they can cost, with LO15's threshold. Test: a prepared run request answers its ceiling; an unknown ceiling reads unknown.
+
+*LO23 delivered (2026-10-26, `feature/lead-request-ceiling`, stacked on #1006):*
+- `routers/lead.py`: every `LeadTurn` answers `ceiling_usd`: a Lead card's `agent_job` request or
+  a typed `agent_job:` command answers the design job's reservation
+  (`AIA_AI_RESEARCH_RESERVATION_USD`, what its start holds and its threshold reads), `null` when
+  that is not configured (unknown, never 0) and on every other turn. A research run's card has
+  its ceiling on its own readiness; a Deep Research card's is its quote (LO5a.2).
+- `GET …/research/runs/{id}/analysis/retryable` answers `ceiling_usd`: the retryable modules,
+  each a draft and its repairs, at the analysis reservation, as the retry's start works it out
+  (`domain/run_cost.py` `analysis_ceiling_usd`, now also what `run_cost_ceiling` counts for its
+  analysis, bit for bit); `null` when the reservation is not configured. Read from the stored
+  outcomes, so not on `GET /lead`, which the pane polls.
+- The web: an agent-job card shows "Cena nejvýše" before approval, an unknown one in words
+  (`usdWords`); `api.ts` `retryableModules` types the field.
+- Tests: `test_research_lead_api.py` "a prepared job answers its ceiling before the start and
+  unknown is null"; `test_lead_chat_start_api.py` "a typed job answers its ceiling before it
+  starts"; `test_product_acceptance.py` (a failed module's retry answers 1 x 3 x 1.0);
+  `test_research_api.py` (null without a reservation); `test_run_cost.py`; `LeadPane.test.tsx`
+  "says the most a prepared job can cost before it starts".
+- Not here: the typed analysis retry's card reading the ceiling (LP-13's card, which lists the
+  modules, reads the same route), and Výsledky's retry button showing it (szz/A6's screen).
+- Stand-in review of #1014:
+  - *P2, fixed:* the retryable route priced only the retryable modules, but the retry's start
+    prices `modules_asked`, which also counts modules the run has no record of. A run missing a
+    module's step showed 3,00 USD and then asked 6,00. `analysis_results.modules_asked` is now
+    the one count both use. Test: `test_analysis_executor.py` "a retry is priced on every module
+    its start asks, not only the failed ones".
+  - *P3, fixed:* a reservation of 0 answered "Cena nejvýše 0,00 USD"; a non-positive reservation
+    is now unknown on the card too, as `analysis_ceiling_usd` reads it.
+  - *P3, a later chunk:* nothing on screen reads the retry's ceiling yet (`api.ts` types it);
+    LP-13's card and szz/A6's button will (above).
+- Doc follow-up: `CLAUDE.md` map, routers `lead`: "each turn's `ceiling_usd` (LO23)"; routers
+  `research`: "`…/analysis/retryable` answers `ceiling_usd`"; `domain/run_cost.py`:
+  `analysis_ceiling_usd`.
 
 **LO24. A job's open hold** (spec `lead/LP-5`, no backend; W2).
 

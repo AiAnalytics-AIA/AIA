@@ -204,6 +204,9 @@ export type LeadTurn = {
   workspace_revision: number | null;
   created_at: string;
   created_by: string | null;
+  /** The most the turn's prepared agent job can cost, before it starts (LO23): its reservation;
+   *  null when unknown (never 0) or when the turn prepares no agent job. */
+  ceiling_usd?: number | null;
   /** What the person decided on each of this turn's edits, from the approval ledger (by index). */
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null; auto?: boolean }>;
   /** The person's approval of this turn's paid request, when given. */

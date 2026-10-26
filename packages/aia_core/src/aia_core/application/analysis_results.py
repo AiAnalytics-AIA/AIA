@@ -157,6 +157,7 @@ __all__ = [
     "dataset_material",
     "harness_summary",
     "module_artifact",
+    "modules_asked",
     "native_sources",
     "prepare_module",
     "reconstruct_module",
@@ -1210,6 +1211,26 @@ class AnalysisNotRetryable(Exception):
         self.reason = reason
 
 
+def modules_asked(analysis: StoredAnalysis) -> int:
+    """How many modules an analysis retry of this run asks a model, the count its start prices
+    (``FrozenDataset.modules_asked``): the retryable ones, every module the run has no record
+    of (asked afresh), and every record the run itself paid for rather than reused. Never fewer
+    than ``len(analysis.retryable)``, so a ceiling priced on it is an upper bound
+    (lead-orchestration LO23: what ``…/analysis/retryable`` answers before the start)."""
+    retried = analysis.retryable
+    return sum(
+        1
+        for m in AnalysisModuleId
+        if m in retried
+        or (
+            m in analysis.records
+            and not _reused(analysis.records[m])
+            and analysis.records[m].attempts > 0
+        )
+        or (m not in analysis.records and m not in retried)
+    )
+
+
 def _reused(record: ModuleArtifact) -> bool:
     """True when a retry will reuse this outcome: a completed module under today's harness."""
     if record.outcome != "COMPLETED":
@@ -1291,17 +1312,7 @@ def retry_failed_modules(
             f"run {run_id} has no analysis module a model failed, left without a finding or an "
             "earlier harness stored",
         )
-    asked = sum(
-        1
-        for m in AnalysisModuleId
-        if m in retried
-        or (
-            m in analysis.records
-            and not _reused(analysis.records[m])
-            and analysis.records[m].attempts > 0
-        )
-        or (m not in analysis.records and m not in retried)
-    )
+    asked = modules_asked(analysis)
     previous = metadata.get("analysis_retry") or {}
     frozen = FrozenDataset(
         run_id=run_id,

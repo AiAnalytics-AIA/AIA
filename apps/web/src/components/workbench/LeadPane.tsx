@@ -15,6 +15,7 @@ import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
+import { usdWords } from "@/lib/spend";
 import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
@@ -463,7 +464,7 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
         <div className="bubble">{t.text}</div>
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
-      {typed ? <RequestCard r={typed} typed approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
       {/* A job found already started is shown where it started, once; this card points to it. */}
       {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
@@ -530,7 +531,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
       </div>
       {o.request?.kind === "research_run" && cards
         ? <RunRequestCard studyId={studyId} why={o.request.why} canEdit={canEdit} prepare={cards.prepareRun} start={cards.startRun} stepHref={cards.stepHref} onStarted={(r) => cards.onRunStarted(t.turn_id, r)} />
-        : o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
+        : o.request ? <RequestCard r={o.request} ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
       {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
       {last && !busy && o.follow?.length ? (
@@ -606,7 +607,9 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
  *  starts here on the deployment's run settings, under the same checks as Spuštění's. */
 const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
 
-function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
+/** `ceiling`: the turn's `ceiling_usd` (LO23), the most its agent job can cost; undefined when
+ *  the server did not say (an older API), null when it is unknown. */
+function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean; ceiling?: number | null }) {
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
@@ -641,7 +644,10 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid
-            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action },
+              // Before the start, the most the job can cost (LO23); unknown said in words, never 0.
+              ...(ceiling === undefined ? [] : [{ label: "Cena nejvýše", value: usdWords(ceiling), key: true }]),
+              { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
             <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
