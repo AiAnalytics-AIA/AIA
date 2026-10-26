@@ -256,11 +256,14 @@ export function QuestionnaireStep() {
   const dock = (
     <ActionDock
       back={{ href: stepHref("plan"), label: `2. ${t("aia.stages.plan")}` }}
-      ready={canGo && !emptyQuestions && !badSets}
+      ready={has && !emptyQuestions && !badSets}
       note={
         !canGo
           ? t("research.questionnaire.nextHint")
-          : emptyQuestions
+          : !has
+            // Tracked sets alone are no questionnaire (OI-52 (b)); readiness fails it too.
+            ? t(questionnaireCounts(p).sets ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
+            : emptyQuestions
             ? tv("research.questionnaire.dockEmpty", { n: emptyQuestions })
             : badSets
               ? tv("research.questionnaire.dockSets", { n: badSets, ...setWords(setLimits) })

@@ -1162,7 +1162,7 @@
       "reading_cs": "{sample_size.min} ≤ n ≤ {sample_size.max}",
       "role_cs": "Kolik respondentů smí studie mít. Mimo rozsah AIA běh nespustí: výzkumník musí vzorek upravit.",
       "source_cs": "n zadané v kroku Dimenze a vzorek",
-      "source_sha256": "cd0da671d26406a380673d7c9f200961847a3c4e0b3522bf1643e01be2fcf3d7",
+      "source_sha256": "5e973cf7040644da7ff7bca27cab18dad2042e75243f49fac9f780715a179d20",
       "symbols": [
        {
         "latex": "n",

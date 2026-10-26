@@ -281,6 +281,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `assumptions-and-open-answer-coding` | S1 (assumption item), S2 (evidence, coding), S3 (report chapters) | I-1, I-3, I-5 | the coding method `MVPQ-02b` before any count; evidence-backed assumption statuses wait for the ADR of `AOC2` |
 | `lead-orchestration` | S1 | I-1, I-3 | money/authority and early worker contracts; card revision binding before the first card |
 | `lead-conversation` | S1 | I-1, I-3 | ADR 0041 accepted (`lead-conversation#LC0`); after `lead-orchestration#LO7`'s first layer |
+| `lead-identity` | S1 (proposed) | I-1 (proposed) | core, W3, after `lead-conversation#LC5b` and `#LC10` (Nigel, 2026-10-25 ~23:47 UTC, relayed by the PM coordinator); LI0's money amount needs its ADR 0028 amendment |
 | `lead-client-knowledge` | S1 | I-1, I-3 | LK0's licence determination (Q60) first; ADR 0042 (Proposed, written in LK1) before the read round |
 | `artifact-questionnaire` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#17` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |
 | `artifact-brief` | S1 | I-1 to I-4 | the umbrella `research-lead-workbench#18` (E26); the artifact contract of `research-lead-workbench#14` and `#16` |

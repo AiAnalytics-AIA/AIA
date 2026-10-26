@@ -593,9 +593,16 @@ replaces whatever the Document Server answers), held by `tools/caddy_routes.py`.
 (`test_cors_anywhere_but_the_editors_script_for_aia_is_refused`); `report_editor_journey.mjs`: a ticket is spent before
 the script loads, api.js finds its base on the editor's origin at every width (the stand-in's api.js computes it as
 ONLYOFFICE's getBasePath does), and a swapped api.js runs nothing under Chromium's own integrity check. Left for activation (infra, with the
-owner's word): the hash taken from the pinned image's own api.js (`docker run --rm <image@digest> cat
-/var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js | openssl dgst -sha384 -binary | base64`), set
-beside `AIA_ONLYOFFICE_URL`, and the page loaded once against the real Document Server; RPT8e is ticked then.
+owner's word): the integrity of the api.js the Document Server serves, set beside `AIA_ONLYOFFICE_URL`, and the page
+loaded once against the real Document Server; RPT8e is ticked then. The pinned image (9.4.0.1) ships no api.js, only
+`api.js.tpl`: at every container start `documentserver-flush-cache.sh` builds api.js with `{{HASH_POSTFIX}}` set from that
+start's date and minute, so a hash read from one running server fails the next restart (the infra session, 2026-10-25).
+The integrity is therefore taken from the api.js built by the pinned copy of that script, whose HASH_POSTFIX is a constant
+per image version (`e2c7b902106f86a68aabb088d5054ee0` for 9.4.0.1; infra's report-editor-hosting PR records it beside the
+image version and changes both together). For 9.4.0.1 that is
+`sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G`, checked after the deploy against the live file:
+`docker exec <the onlyoffice container> cat /var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js |
+openssl dgst -sha384 -binary | base64`, which must print the digest after `sha384-`, and print it again after a restart.
 
 Every rule fails closed but one (the PM, 2026-10-24, choosing the one rule over a clean-report rule that, bound to the
 snapshot, decided nothing the first did not): a Document Server clock running ahead of AIA's by more than the gap between
