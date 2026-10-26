@@ -233,18 +233,26 @@ CASES: tuple[Case, ...] = (
         "removes the question's rows, keeping why",
     ),
     Case(
-        "finding-without-evidence", "evidence_validator.py:47 (coverage >= .95)",
-        "DECISION_OWED",
+        "finding-without-evidence", "evidence_validator.py:47 (coverage >= .95)", "EXACT",
         (ONE, Finding("Fiktivní respondenti preferují kávu.", refs=())),
-        False, True,
-        why="ANL-4: the unit required 95 % of findings to cite evidence; AIA requires every "
-        "number to be cited, and a finding without one to cite nothing",
+        False, False, frozenset({ViolationCode.FINDING_UNCITED}),
+        why="MVP-23: every key finding cites admitted evidence; stricter than the unit's 95 %, "
+        "so both refuse this draft",
+    ),
+    Case(
+        "nineteen-of-twenty-cited", "evidence_validator.py:47 (coverage >= .95)",
+        "INTENTIONAL_DIFFERENCE",
+        (ONE,) * 19 + (Finding("Fiktivní respondenti preferují kávu.", refs=()),),
+        True, False, frozenset({ViolationCode.FINDING_UNCITED}),
+        why="MVP-23: every key finding cites admitted evidence; the unit let one in twenty "
+        "through at its 95 % coverage",
     ),
     Case(
         "no-finding-at-all", "evidence_validator.py:48 (bool(findings))", "DECISION_OWED",
         (), False, True,
         why="ANL-4: the unit refused an analysis with no finding; an AIA module may be its "
-        "summary alone",
+        "summary alone. MVPQ-04 blocks the report on it through evidence-integrity 9a's "
+        "diagnostic, not a gate refusal here",
     ),
 )  # fmt: skip
 

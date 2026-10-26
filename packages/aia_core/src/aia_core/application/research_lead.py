@@ -27,6 +27,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -34,18 +35,31 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
+from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
+from ..domain.lead_research_targets import (
+    DEEP_RESEARCH_RUNS,
+    RUNS_FOR_TARGETS,
+    FinishedRun,
+    ModuleOutcome,
+    deep_research_layer,
+    targets_layer,
+)
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
+    MESSAGE_MAX_BYTES,
     MESSAGE_MAX_CHARS,
+    MESSAGES_NOTE,
+    QUEUE_MAX,
     RUNS_IN_CONTEXT,
     STAGES,
     AgentJobRequest,
@@ -56,28 +70,33 @@ from ..domain.research_lead import (
     ResearcherLead,
     SelfUpdate,
     context_sha256,
+    design_research_questions,
     freeze_context,
     is_text_edit,
     new_turn_id,
     notes_layer,
     readiness_layer,
     stale_files,
+    take_queued,
     target_refusal,
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
-from ..domain.workflow import StepRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..domain.workspace import edited_from_current
+from ..infrastructure.artifact_repository import ArtifactNotFound
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
     LeadAlreadyHatched,
+    LeadHatchNotPending,
     LeadNotHatched,
+    PendingHatch,
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.storage import ArtifactStore
+from ..infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.study_lead_repository import StudyLeadRepository
 from ..infrastructure.study_workspace_repository import (
@@ -86,8 +105,9 @@ from ..infrastructure.study_workspace_repository import (
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
+from .deep_research import DeepResearchRuns
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
-from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
+from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
 
@@ -99,6 +119,9 @@ __all__ = [
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
+    "LeadHatchNotPending",
+    "LeadHatchRefused",
+    "LeadHatchUnavailable",
     "LeadNotHatched",
     "LeadProfile",
     "LeadRejected",
@@ -135,6 +158,29 @@ class LeadUnavailable(Exception):
     """The deployment has not switched the Lead on (``AIA_AI_RESEARCH_LEAD_ENABLED``)."""
 
     reason = "research_lead_unavailable"
+
+
+class LeadHatchUnavailable(Exception):
+    """A hatch cannot be asked of the model yet (lead-identity LI1).
+
+    Its request needs a payer outside any client: the AIA organization the product owner
+    decided on 2026-10-25 ("create the AIA organization for charges spent that dont belong to
+    a single client"), which is not built. Until it is, asking is refused by name, before
+    anything is sent or charged; no code writes the files instead.
+    """
+
+    reason = "lead_hatch_unavailable"
+
+
+class LeadHatchRefused(Exception):
+    """The hatched files hold what a personal file may not (ADR 0030 decision 3): they are
+    not kept, by name, and the person writes again."""
+
+    reason = "client_fact_in_personal_file"
+
+    def __init__(self, files: Mapping[str, str]) -> None:
+        super().__init__(f"refused: {', '.join(sorted(files))}")
+        self.files = dict(files)
 
 
 class LeadDisabled(LeadUnavailable):
@@ -183,6 +229,18 @@ class LeadBusy(Exception):
     """A Lead turn of this researcher in this Study is queued or running."""
 
     reason = "lead_busy"
+
+
+class LeadQueueFull(Exception):
+    """Five of this researcher's messages already wait for the Lead (ADR 0041 decision 7)."""
+
+    reason = "lead_queue_full"
+
+
+class LeadMessageNotQueued(Exception):
+    """A message that is no longer waiting: answered, withdrawn, or not a message."""
+
+    reason = "lead_message_not_queued"
 
 
 class LeadTurnNotFound(LookupError):
@@ -433,8 +491,8 @@ def release_lead_budget_waits(
     asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
     released: list[str] = []
     for run_id, step_id in waiting:
-        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
-        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+        requested = _recorded_hold((asked.get(step_id) or {}).get("error", {}).get("requested_usd"))
+        if requested is None or requested > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
         try:
@@ -446,9 +504,19 @@ def release_lead_budget_waits(
             )
         except BudgetWaitNotLiftable:
             continue  # superseded or cancelled since it was listed
-        remaining -= float(requested)
+        remaining -= requested
         released.append(run_id)
     return released
+
+
+def _recorded_hold(value: object) -> float | None:
+    """A parked attempt's ``requested_usd`` as a hold, or None when it is not a finite,
+    non-negative number of USD: NaN compares as fitting anything and a bool is an int, so either
+    would be taken to fit, which is unknown scored as good."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    hold = float(value)
+    return hold if math.isfinite(hold) and hold >= 0 else None
 
 
 def set_study_budget(
@@ -477,6 +545,9 @@ class ResearchLead:
     #: With the API's ``ai_analysis_external_context`` on, the store a turn reads the Study's
     #: newest Design Research bundle from (evidence-integrity 7); ``None``: no external context.
     external_store: ArtifactStore | None = None
+    #: The store each finished run's specification is read from for the ``targets`` layer
+    #: (lead-orchestration LO5a.1); ``None``: the turn is offered no Interpretation target.
+    store: ArtifactStore | None = None
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
 
     def _turns(self) -> StudyLeadRepository:
@@ -513,24 +584,33 @@ class ResearchLead:
         )
         for turn_id, done in started.items():
             decisions[turn_id] = {"request": {"run_id": done["run_id"], "reused": done["reused"]}}
+        lead_ids = [t.turn_id for t in turns if t.actor == "lead"]
+        answers = self._turns().answers(lead_ids)
+        person_ids = [t.turn_id for t in turns if t.actor == "person" and t.kind == "message"]
+        queued = {t.turn_id for t in self._turns().queued()} if person_ids else set()
+        withdrawn = self._turns().withdrawn(person_ids)
         views = []
         for turn in turns:
             run = runs.get(turn.run_id) if turn.run_id else None
             step_id = run["steps"][0]["step_id"] if run and run.get("steps") else None
-            views.append(
-                _view(
-                    turn,
-                    run=run,
-                    last=last.get(step_id) if step_id else None,
-                    decisions=decisions.get(turn.turn_id),
-                )
+            view = _view(
+                turn,
+                run=run,
+                last=last.get(step_id) if step_id else None,
+                decisions=decisions.get(turn.turn_id),
             )
+            # What waits and what was answered, derived from the rows (ADR 0041 decision 7).
+            view["queued"] = turn.turn_id in queued
+            view["withdrawn"] = turn.turn_id in withdrawn
+            view["answers"] = answers.get(turn.turn_id, [])
+            views.append(view)
         return views
 
     def state(self, *, limit: int = 100) -> dict[str, Any]:
         """This researcher's conversation in the Study, oldest first, and whether a Lead turn
         is queued or running (``busy``)."""
-        turns = self._annotated(self._turns().turns(limit=limit))
+        stored = [t for t in self._turns().turns(limit=limit) if t.kind != "withdrawal"]
+        turns = self._annotated(stored)
         busy = any(_holds(t) for t in turns)
         return {"busy": busy, "turns": turns}
 
@@ -619,58 +699,167 @@ class ResearchLead:
             and latest.created_at > self.clock() - GREETING_WINDOW
         ):
             return []
-        superseded: str | None = None
+        superseded: LeadTurn | None = None
+        busy = False
         if latest is not None:
             current = self._annotated([latest])[0]
             if _holds(current):
-                raise LeadBusy("the Lead is still answering your last message")
-            if current["awaiting_budget"]:
+                # A message waits in the queue, stored and visible in every tab; a greeting
+                # waits for the conversation to be free (ADR 0041 decision 7).
+                if kind == "greeting":
+                    raise LeadBusy("the Lead is still answering your last message")
+                busy = True
+            elif current["awaiting_budget"]:
                 # A greeting never cancels the person's own waiting message.
                 if kind == "greeting":
                     return []
-                superseded = latest.run_id
+                superseded = latest
+        if busy and len(turns.queued()) >= QUEUE_MAX:
+            # A free Lead answers what waits with this message; only a busy one fills up.
+            raise LeadQueueFull(f"{QUEUE_MAX} of your messages already wait for the Lead")
 
+        content, _analysis, workspace_revision = self._working_content()
+        # Against the copy this message is stored with, read once: a focus valid on an earlier
+        # read could name a filter another tab removed since (Codex on #624).
+        self._focus_shown(focus_, content)
+        stored: list[LeadTurn] = []
+        if kind == "message":
+            stored.append(
+                turns.append(
+                    actor="person",
+                    kind=kind,
+                    stage=stage,
+                    text=message,
+                    focus=focus_,
+                    workspace_revision=workspace_revision,
+                )
+            )
+        if busy:
+            return self._annotated(stored)
+        resent: list[LeadTurn] = []
         if superseded is not None:
             # The parked turn sent nothing and holds no reservation (a budget park spends no
-            # attempt): cancelling it pays nothing, and its message stays in the history the
-            # new turn is frozen with. Nothing paid is started without this person's message.
-            self._workflows().request_cancel(superseded, reason="lead_turn_superseded")
-        history = self._annotated(turns.turns(limit=50))
+            # attempt): cancelling it pays nothing, and the messages it held are answered by
+            # the new turn. Nothing paid is started without this person's message.
+            assert superseded.run_id is not None
+            self._workflows().request_cancel(superseded.run_id, reason="lead_turn_superseded")
+            held = turns.answers([superseded.turn_id]).get(superseded.turn_id, [])
+            resent = [t for t in (turns.get(i) for i in held) if t is not None]
+        messages = [*resent, *turns.queued()] if kind == "message" else []
+        return self._annotated([*stored, self._start_turn(lead, kind, stage, focus_, messages)])
+
+    def answer_queued(self) -> list[dict[str, Any]]:
+        """Start the Lead's turn on the messages that wait, once the conversation is free:
+        the next turn after one that ran while they were posted, or after one that left some
+        for later. Nothing waits, the Lead is still at work, or a turn waits on the budget:
+        nothing is started and no turn is returned. Any tab may ask; the researcher's Lead row
+        is locked first, so two asks start one turn."""
+        if not self.enabled:
+            raise LeadUnavailable("the Research Lead is not switched on in this deployment")
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require(Permission.RUN_WORKFLOW)
+        self.scope.require_open_study()
+        lead = ResearcherLeadRepository(self.session, self.scope).lock()
+        if lead is None:
+            raise LeadNotHatched("hatch your Research Lead first")
+        turns = self._turns()
+        latest = turns.latest_lead_turn()
+        if latest is not None:
+            current = self._annotated([latest])[0]
+            if _holds(current) or current["awaiting_budget"]:
+                return []
+        messages = turns.queued()
+        if not messages:
+            return []
+        newest = messages[-1]
+        return self._annotated(
+            [self._start_turn(lead, "message", newest.stage, newest.focus, messages)]
+        )
+
+    def withdraw(self, turn_id: str) -> list[dict[str, Any]]:
+        """Withdraw one of the caller's messages that still waits: a ``withdrawal`` row names
+        it, the message stays stored, and no turn is ever sent it (ADR 0041 decision 7)."""
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require_open_study()
+        ResearcherLeadRepository(self.session, self.scope).lock()
+        turns = self._turns()
+        message = turns.get(turn_id)
+        if message is None or message.actor != "person":
+            raise LeadTurnNotFound(turn_id)
+        if turn_id not in {t.turn_id for t in turns.queued()}:
+            raise LeadMessageNotQueued("this message no longer waits for the Lead")
+        turns.append(
+            actor="person",
+            kind="withdrawal",
+            stage=message.stage,
+            parent_turn_id=turn_id,
+        )
+        return self._annotated([message])
+
+    def _start_turn(
+        self,
+        lead: ResearcherLead,
+        kind: str,
+        stage: str,
+        focus: dict[str, str] | None,
+        messages: Sequence[LeadTurn],
+    ) -> LeadTurn:
+        """Freeze and queue one Lead turn answering the oldest of ``messages`` that fit layer 9
+        (:func:`~aia_core.domain.research_lead.take_queued`); the rest wait, named in its view.
+        One answer row per message it was sent, in its transaction."""
+        turns = self._turns()
+        taken = list(messages[: take_queued([str(m.text or "") for m in messages])])
+        deferred = [m.turn_id for m in messages[len(taken) :]]
+        waiting = {m.turn_id for m in messages}
+        history = [
+            t
+            for t in self._annotated(turns.turns(limit=50))
+            if t["turn_id"] not in waiting and not t.get("queued") and not t.get("withdrawn")
+        ]
         content, analysis, workspace_revision = self._working_content()
+
+        def shown(f: dict[str, str] | None) -> dict[str, str] | None:
+            # A waiting message's focus is checked again against the copy the turn is frozen
+            # with: another tab may have removed what it named since (Codex on #624). One that
+            # no longer shows is left out, never sent to the model; the message still is.
+            return f if f is None or target_refusal(f["id"], content) is None else None
+
+        if taken:
+            stage, focus = taken[-1].stage, shown(taken[-1].focus)
         project_id, design_revision = self._design_project(content, workspace_revision)
         if workspace_revision is None:
             # A Study with no working copy had the template saved as one for its first Design
             # Revision: the turn is frozen from that revision, and names it, so an automatic
             # accept of its text edits is not refused as written from an older copy.
             content, analysis, workspace_revision = self._working_content()
-        # Against the copy this turn is frozen with, read once: a focus valid on an earlier read
-        # could name a filter another tab removed before the freeze (Codex on #624).
-        self._focus_shown(focus_, content)
-        stored: list[LeadTurn] = []
-        person: LeadTurn | None = None
-        if kind == "message":
-            person = turns.append(
-                actor="person",
-                kind=kind,
-                stage=stage,
-                text=message,
-                focus=focus_,
-                workspace_revision=workspace_revision,
-                design_revision_id=design_revision.revision_id,
-            )
-            stored.append(person)
-
+        view_extra: dict[str, Any] = {}
+        if len(taken) > 1:
+            view_extra = {
+                "note": MESSAGES_NOTE,
+                "messages": [
+                    {
+                        "turn_id": m.turn_id,
+                        "stage": m.stage,
+                        "text": m.text,
+                        "focus": shown(m.focus),
+                    }
+                    for m in taken
+                ],
+            }
+        if deferred:
+            view_extra["queued_deferred"] = deferred
         context = self._freeze(
             lead=lead,
             history=history,
             kind=kind,
             stage=stage,
-            focus=focus_,
-            message=message,
+            focus=focus,
+            message=taken[0].text if len(taken) == 1 else None,
             content=content,
             analysis=analysis,
             workspace_revision=workspace_revision,
             design_revision_id=design_revision.revision_id,
+            view_extra=view_extra,
         )
         prompt = dict(context["layers"][0]["pin"])
         lead_turn_id = new_turn_id()
@@ -684,7 +873,8 @@ class ResearchLead:
             idempotency_key=f"{RESEARCH_LEAD}:{lead_turn_id}",
             metadata={
                 "turn_id": lead_turn_id,
-                "person_turn_id": person.turn_id if person else None,
+                "person_turn_id": taken[-1].turn_id if taken else None,
+                "person_turn_ids": [m.turn_id for m in taken],
                 "user_id": self.scope.actor_id,
                 "kind": kind,
                 "stage": stage,
@@ -706,19 +896,18 @@ class ResearchLead:
             },
             owner=DESIGN_PROJECT_OWNER,
         )
-        stored.append(
-            turns.append(
-                turn_id=lead_turn_id,
-                actor="lead",
-                kind=kind,
-                stage=stage,
-                focus=focus_,
-                run_id=started.run_id,
-                workspace_revision=workspace_revision,
-                design_revision_id=design_revision.revision_id,
-            )
+        turn = turns.append(
+            turn_id=lead_turn_id,
+            actor="lead",
+            kind=kind,
+            stage=stage,
+            focus=focus,
+            run_id=started.run_id,
+            workspace_revision=workspace_revision,
+            design_revision_id=design_revision.revision_id,
         )
-        return self._annotated(stored)
+        turns.record_answers(lead_turn_id, [m.turn_id for m in taken])
+        return turn
 
     def _post_command(
         self,
@@ -1103,6 +1292,11 @@ class ResearchLead:
             raise LeadRejected(
                 f"a message is at most {MESSAGE_MAX_CHARS} characters", reason="invalid_lead_turn"
             )
+        if message is not None and len(message.encode("utf-8")) > MESSAGE_MAX_BYTES:
+            raise LeadRejected(
+                f"a message is at most {MESSAGE_MAX_BYTES} bytes of UTF-8",
+                reason="message_too_long",
+            )
         focus_ = None
         if focus is not None:
             focus_ = {"id": str(focus.get("id") or ""), "label": str(focus.get("label") or "")}
@@ -1177,6 +1371,7 @@ class ResearchLead:
         analysis: dict[str, Any] | None,
         workspace_revision: int | None,
         design_revision_id: str,
+        view_extra: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         s = self.scope
         prompt = PromptResolver(self.session, s.organization_id).pin_for(LEAD_PROMPT_ID)
@@ -1195,6 +1390,7 @@ class ResearchLead:
             else []
         )
         digest, digest_classes = self._decision_digest(history, focus)
+        targets = self._targets()
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1218,6 +1414,12 @@ class ResearchLead:
                 "design_revision_id": design_revision_id,
                 "content": design_material(content),
                 "analysis": analysis,
+                # The ids a focus names, shown beside the content that may not store them.
+                **(
+                    {"research_questions": listed}
+                    if (listed := design_research_questions(content))
+                    else {}
+                ),
                 # The valid n as readiness reads it (RQC9): what a set_n is grounded against.
                 "readiness": readiness_layer(limits.sample_size, limits.methodology_version),
             },
@@ -1229,12 +1431,53 @@ class ResearchLead:
                 }
                 for r in runs
             ],
-            view={"kind": kind, "stage": stage, "focus": focus, "message": message},
+            view={
+                "kind": kind,
+                "stage": stage,
+                "focus": focus,
+                "message": message,
+                **dict(view_extra or {}),
+            },
             conversation=_conversation(history),
             external=self._external(),
             memory=digest,
             memory_classes=digest_classes,
+            deep_research=self._deep_research((targets or {}).get("candidates") or ()),
+            targets=targets,
         )
+
+    def _deep_research(self, candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+        """The ``deep_research`` layer: this Study's newest Deep Research runs, read through
+        the Study (``DeepResearchRuns``), with their steps; ``None`` when it has none."""
+        runs = DeepResearchRuns(self.session, self.scope)
+        listed = runs.runs(limit=DEEP_RESEARCH_RUNS)
+        if not listed:
+            return None
+        return deep_research_layer([runs.get(r["run_id"]) for r in listed], candidates)
+
+    def _targets(self) -> dict[str, Any] | None:
+        """The ``targets`` layer: the Interpretation Research candidates over this Study's newest
+        completed research runs, each read from its own pinned specification (verified by its
+        SHA-256 as it is read); ``None`` without a store or a completed run."""
+        if self.store is None:
+            return None
+        research = ResearchRuns(self.session, self.scope)
+        artifacts = research_artifacts(self.session, self.scope, self.store)
+        finished: list[FinishedRun] = []
+        unreadable: list[str] = []
+        # Completed runs are selected in the query, before the limit: newer runs that failed or
+        # still run never hide an older completed one (review of #925).
+        completed = research.runs(limit=RUNS_FOR_TARGETS, statuses=(WorkflowRunStatus.COMPLETED,))
+        for listed in completed:
+            try:
+                finished.append(_finished_run(research.get(listed["run_id"]), artifacts))
+            except (ArtifactNotFound, IntegrityError, ObjectNotFound):
+                # A specification that does not read offers no target and is said so, never a
+                # stop (as the external layer's bundle); its CORRUPT mark commits with the turn.
+                unreadable.append(str(listed["run_id"]))
+        if not finished and not unreadable:
+            return None
+        return targets_layer(finished, unreadable=unreadable)
 
     def _decision_digest(
         self, history: Sequence[Mapping[str, Any]], focus: Mapping[str, str] | None
@@ -1309,6 +1552,35 @@ class ResearchLead:
         return {"pin": pin, "lines": list(lines)}
 
 
+def _finished_run(run: Mapping[str, Any], artifacts: Any) -> FinishedRun:
+    """A completed research run as the candidates read it: the specification its compile step
+    pinned, and the artifacts its aggregate, Sociomap and analysis steps produced."""
+    produced: dict[str, Mapping[str, Any]] = {
+        s["node_key"]: s.get("output") or {}
+        for s in run["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED and (s.get("output") or {}).get("artifact_id")
+    }
+    compiled = produced.get("compile")
+    specification = (
+        artifacts.read_json(str(compiled["artifact_id"])).get("specification") or {}
+        if compiled is not None
+        else {}
+    )
+    modules = [
+        ModuleOutcome(module, str(out["artifact_id"]), str(out.get("outcome") or ""))
+        for key, out in produced.items()
+        if (module := module_of_node(key)) is not None
+    ]
+    aggregate, sociomap = produced.get("aggregate"), produced.get("sociomap")
+    return FinishedRun(
+        run_id=str(run["run_id"]),
+        specification=specification,
+        aggregate_artifact_id=str(aggregate["artifact_id"]) if aggregate else None,
+        sociomap_artifact_id=str(sociomap["artifact_id"]) if sociomap else None,
+        modules=modules,
+    )
+
+
 def _model_prepared(turn: LeadTurn) -> bool:
     """Whether a card is the Lead model's output, read from the stored turn and never from a
     request body (D22): a Lead turn's request is what the worker's model answered."""
@@ -1347,7 +1619,7 @@ class LeadProfile:
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.get()
         if lead is None:
-            return {"hatched": False, "lead": None}
+            return {"hatched": False, "lead": None, "pending_hatch": _hatch(repo.pending_hatch())}
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
     def hatch(self) -> dict[str, Any]:
@@ -1355,12 +1627,61 @@ class LeadProfile:
         lead = repo.hatch()
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
+    # -- hatching (lead-identity LI1) ----------------------------------------
+
+    def request_hatch(self, hatch_input: Mapping[str, Any]) -> dict[str, Any]:
+        """Ask the model to write the caller's Lead files. Refused by name until the AIA
+        organization exists to pay for it; the input is validated first, so a person learns of
+        a wrong input before the payer's absence."""
+        HatchInput.model_validate(hatch_input)
+        if ResearcherLeadRepository(self.session, self.scope).get() is not None:
+            raise LeadAlreadyHatched("the Lead is already hatched")
+        raise LeadHatchUnavailable("hatching has no payer outside a client yet")
+
+    def accept_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2).
+        The model's answer is checked again here, as it is kept: its bounds and ADR 0030
+        decision 3's personal-file check against the organization's clients as they are now,
+        the chosen name included (review of #919)."""
+        repo = ResearcherLeadRepository(self.session, self.scope)
+        pending = repo.pending_hatch()
+        if pending is None or pending.hatch_id != hatch_id or pending.output is None:
+            raise LeadHatchNotPending(hatch_id)
+        hatch = HatchInput.model_validate(pending.input)
+        output = HatchOutput.model_validate(pending.output)
+        refused = hatch_refusals(output, repo.organization_client_names(), name=hatch.name)
+        if refused:
+            raise LeadHatchRefused(refused)
+        lead = repo.accept_hatch(hatch_id, name=hatch.name, soul=output.soul, user=output.user)
+        return {
+            "hatched": True,
+            "lead": _profile(lead, repo.active_notes()),
+            "greeting": output.greeting,
+        }
+
+    def discard_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Zadat znovu": the pending hatch is set aside; the person writes again, and a new
+        request is a new paid request with its own cost shown."""
+        ResearcherLeadRepository(self.session, self.scope).discard_hatch(hatch_id)
+        return self.read()
+
     def set_preferences(self, *, auto_accept_text_edits: bool) -> dict[str, Any]:
         """The caller sets their own Lead's preferences (plan inline-decisions chunk 2): the
         standing choice to have its text edits accepted without a click. Audited."""
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.set_preferences(auto_accept_text_edits=auto_accept_text_edits)
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
+
+
+def _hatch(pending: PendingHatch | None) -> dict[str, Any] | None:
+    if pending is None:
+        return None
+    return {
+        "hatch_id": pending.hatch_id,
+        "input": pending.input,
+        "output": pending.output,
+        "created_at": pending.created_at,
+    }
 
 
 def _profile(lead: ResearcherLead, notes: Sequence[LeadNote]) -> dict[str, Any]:

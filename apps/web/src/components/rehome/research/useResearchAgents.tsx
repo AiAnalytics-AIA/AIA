@@ -169,7 +169,7 @@ export function useResearchAgents(studyId: string, store: ResearchStore, onUpdat
       // The design names the working revision it is: the proposal's baseline (ADR 0026 decision 5).
       const revision = await submitWorkingDesign(store, studyId, sourceOf(action)); check(controller.signal);
       const instruction = String(payload.instruction || payload.popis || "");
-      let job = await withJobCostConfirmation((usd) => researchAgents.start(studyId, revision.revision_id, action, instruction, undefined, usd), confirm); check(controller.signal);
+      let job = await withJobCostConfirmation((usd) => researchAgents.start(studyId, revision.revision_id, action, instruction, usd), confirm); check(controller.signal);
       // A repeated button press is an explicit request to continue a job that
       // parked before any provider call while the runtime was unavailable.
       if (job.status === "WAITING_PROVIDER" && job.steps.some((step) => step.waiting_reason === "ai_runtime_unavailable")) {

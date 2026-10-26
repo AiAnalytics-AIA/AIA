@@ -9,6 +9,12 @@ chunks:
   - "[ ] ANL6. Moduly analýzy and the same-data retry through the Lead's card, the stage's retry buttons removed"
   - "[ ] ANL7. Open-answer coding hosted here: the coded themes as a proposal, the counts as admitted claims"
   - "[ ] ANL8. Journey: Analýza at 1440, 1100, 768 and 390 px on recorded analysis, zero paid jobs"
+  - "[ ] ANL2b. The coverage table as Otázka | Odpověď (the answer's text) | Stav in three words (reopens ANL2; spec szz A3; W3)"
+  - "[ ] ANL3b. One findings list with a module filter (reopens ANL3; spec szz A4; W3)"
+  - "[ ] ANL9. Analýza as a stage of its own, no Výsledky tabs (spec szz A1; W3)"
+  - "[ ] ANL10. The header 'Běh z … · interní · origin'; run and claim ids off the stage (spec szz A2; W3)"
+  - "[ ] ANL11. Finding review on the server: ledger subject analysis_finding, its routes and migration (spec szz A7; W3)"
+  - "[ ] ANL12. Finding review on the web: Přijmout / Upravit / Vyřadit / Vrátit, 'Přijato N z M' (spec szz A8; W3)"
 ---
 # Artifact: Analýza (Analysis)
 
@@ -234,3 +240,27 @@ refusal (`artifact-chain-to-draft-report#CHN10`); it never satisfies the gate.
 ## Doc follow-up
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**ANL2b. Coverage table** (spec `szz/A3`; reopens ANL2; W3, lane G).
+
+**ANL3b. One findings list** (spec `szz/A4`; reopens ANL3; W3, lane G). With ANL5.
+
+**ANL9. Its own stage** (spec `szz/A1`; W3, lane G).
+
+**ANL10. Header** (spec `szz/A2`; W3, lane G).
+
+**ANL11. Finding review, server** (spec `szz/A7`, no backend; W3, lane G). A ledger subject migration on LO16's pattern; analysis draft.check.
+
+**ANL12. Finding review, web** (spec `szz/A8`; W3, lane G). After ANL11 and ANL3b.
+
+**Notes.**
+- ANL4 and ANL6 carry `szz/A5`; ANL6 `szz/A6` (its ceiling from `lead-orchestration#LO23`); ANL8 `szz/A10`.

@@ -13,7 +13,7 @@ chunks:
   - "[ ] 5b.4 Client-facing release: separate approvals for the client report and each map snapshot, exports after approval (F17); built in report-delivery RD2-RD4, closed when they land"
   - "[x] 6. Retire the grants (tables, routes, UI) after one deploy without them"
   - "[x] 7. Any Researcher starts a client (the owner, 2026-10-05); its status stays with the Admin"
-  - "[ ] 8. Deactivating a member from Settings → Přístup: access ends at once, audited (D-27)"
+  - "[x] 8. Deactivating a member from Settings → Přístup: access ends at once, audited (D-27) (#830, merged 2026-10-23)"
 ---
 # Two roles, human-with-AI gates
 
@@ -180,6 +180,9 @@ ADR 0019 lists "create studies" for a Researcher and says nothing about clients.
 should be able to start a client, that is a one-line permission change plus its test; I did not guess.
 
 ## Chunk 5b design (proposed 2026-10-02, awaiting the owner)
+
+*The owner, 2026-10-25 (TWO-ROLES-5b (b), the audit page, relayed by coordinator 3): review 5b against what was built first (5b.1 to
+5b.3 are built, 5b.4 is `report-delivery` RD2-RD4's); the design below is not decided until then.*
 
 Status of what ADR 0019 decision 4 calls the three gates, read against `develop` @ 78c5b9e. The ADR
 fixes **what** the gates are; this section is **how**, using what the engine already has, and
@@ -649,3 +652,7 @@ unless stated.
 - `CLAUDE.md` §2 map, `src/lib/budget-line.ts` line: add "holdsNote: beside a lift, open holds are
   not in the remainder".
 - `open-items.md`: CR-2 and CR-3 filed and closed by this PR.
+
+## Chunk 8 ticked (2026-10-26, docs PR)
+
+Shipped by #830 (merged into develop 2026-10-23, `32475bdc`), the Settings backends' SB2: `POST /members/{user_id}/deactivate` and `/reactivate` (`apps/api/src/aia_api/routers/scope.py:702-750 @ 40b16d58`), the membership resolving no scope from the next request, the Lead sealed, refusals audited; Přístup's row with Vrátit (`apps/web/src/components/aia/settings/AccessPanel.tsx:8 @ 40b16d58`). Tests: `packages/aia_core/tests/test_member_deactivation.py::test_a_deactivated_member_resolves_no_scope_here_but_keeps_their_other_membership`, `apps/api/tests/test_member_deactivation_api.py::test_a_refused_deactivation_is_in_the_access_audit`. The sealed Lead's 365-day deletion is `lead-orchestration#LO11`'s.

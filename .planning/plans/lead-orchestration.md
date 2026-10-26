@@ -14,7 +14,7 @@ chunks:
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
   - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
-  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)"
+  - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
@@ -22,7 +22,7 @@ chunks:
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
-  - "[ ] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
+  - "[x] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
   - "[ ] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
   - "[ ] LO5a.3. Typed Deep Research starts (DRL-8, on LO5): start, retry and stop matched by code with no model in the path, ledger chat_start, a wallet charge at the ceiling; works with the Lead off"
   - "[ ] LO5a.4. Deep Research as plan-step kinds (DRL-9, on LO3/LO4): design_research and interpretation_research steps, a target fixed or relative to an earlier step resolved when the step starts, parked when its module ended BLOCKED"
@@ -31,7 +31,21 @@ chunks:
   - "[ ] LO18. The Lead's turns stream, take a file from the composer, and comment unprompted after the researcher pauses editing, each such comment a paid turn inside the wallet (D-39)"
   - "[ ] LO19. A study's context file: a Markdown file per study, built by code from the study's shared state and refreshed on every change, read by every researcher's Lead in that study as its study layer (Q5)"
   - "[ ] LO20. Hledat na webu: the Lead's governed web search through RetrievalGate, several results with inline citations in the turn, OPEN clients without a card and CLASSIFIED clients behind a plan card, each search charged to the wallet (Q6, Q24)"
+  - "[ ] LO21. Registry-driven actions (CARD-1, Nigel 2026-10-22): the Lead proposes actions: [{worker_id, args}], several per turn, from one registry; split into LO21a-LO21e, this line holds the acceptance"
+  - "[ ] LO21a. The action registry: each action an args schema, a Czech description and an example; LeadOutput's allowed action union generated from it at startup"
+  - "[ ] LO21b. The prompt's action section generated from the registry and filtered per turn: off, over budget or not permitted for the study left out"
+  - "[ ] LO21c. One generic card renderer keyed on card_kind with per-kind slots; each action its own ledger decision and approval route"
+  - "[ ] LO21d. The four request types (agent_job, research_run, design_research, interpretation_research) migrated to actions; a stored request still reads"
+  - "[ ] LO21e. The plan kind: one action whose steps reference registered actions, LO4's card (steps shown, one approval, live state per step)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
+  - "[ ] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
+  - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
+  - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
+  - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
+  - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
+  - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
+  - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
+  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the newest Design Research run (artifact-questionnaire#QST13) (Nigel, 26 Oct; W1)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -105,6 +119,8 @@ scripted Lead prepare an interpretation card. Detail in *Deep Research under the
 
 **LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3**  
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
+*The owner, 2026-10-25 (AUD-1 (a), the audit page, relayed by coordinator 3):* the Lead reads and acts on the result stages and never
+edits results; LO8's read decision is taken within that.
 **Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
 Deep Research provider carries the study's newest sealed bundle(s) by reference (each accepted
 finding's claim, quote, source title and URL, source class, verifier verdict and injection flag;
@@ -160,8 +176,10 @@ The three workers (map interpreter, report writer, straight-liner check) have no
     - `tools/ui_workbench/lead_stale_journey.mjs`: "a card whose design moved asks before it
       starts, and on a yes starts on the current revision".
 
-**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed, then deleted at the retention end (Q14)**  
+**LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)**  
 File revisions have no reader today (`revisions()` has no caller). Turns stay private (Q26). A Lead is never handed over and no admin reads another researcher's Lead files (the owner, 2026-10-20, D-32 to D-34; the earlier "admin read and handover" is withdrawn). Another member's ability to accept a proposal is **not** a Lead-lifecycle matter and is not decided here: Q16 makes proposals shared, and `working-copy-edit-ops#WCE6` builds it (gap G42).
+
+**LO11 amended: seal-only on departure** (Nigel, 26 Oct 2026 ~00:35 UTC, in the Settings session: "lets seal it, a new user gets a new vedouci, lets do 365 days"). A departing member's Lead is sealed, never handed over; a new member grows their own. A sealed Lead is deleted 365 days after sealing, not 30: today `SEAL_DAYS = 30` (`packages/aia_core/src/aia_core/infrastructure/researcher_lead_repository.py:396 @ 40b16d58`), and the deactivate route's docstring says "erased after 30 days" (`apps/api/src/aia_api/routers/scope.py:710-714 @ 40b16d58`); LO11 changes both, with a test that a Lead sealed 364 days ago is kept and one sealed 366 days ago is erased. The sealing itself shipped in #830 (`two-roles-human-ai-gates#8`). The signals, approved updates and file-history half of LO11 is unchanged.
 
 **LO12a. The route-class refusal says who fixes it (W0): static copy on the four surfaces**  
 The refusal surfaces in the job error, the Lead pane, source proposals and Progress, and none says an operator fixes it (the AI route's classes are set in SSM, not on Settings, which is read-only). The copy is keyed by the refusal codes that exist today (`egress_route_not_approved_for_class` and its siblings) and names the operator step and the runbook; it reads nothing and needs no composition record. Test: each code on each surface renders its who-fixes-it line. Interfaces I24.
@@ -350,7 +368,7 @@ the chunks named below.
   server, alpha), and whether AIA adopts it is being asked; nothing here depends on that choice.
 - **LO11 (page Q14: (a)).** A departed member's Lead is **sealed** when the member is deactivated
   (`two-roles-human-ai-gates#8`): no turn runs, nothing is read by anyone, its files and notes stay
-  as they were. It is deleted at the end of MVPQ-07's retention (30 days), through
+  as they were. It is deleted at the end of MVPQ-07's retention (30 days; **amended 26 Oct 2026: 365 days after sealing**, see LO11 above), through
   `study-data-lifecycle`'s delete path, with the content-free usage and audit rows kept. Still no
   handover and no admin read (D-32 to D-34). Test: a deactivated member's Lead refuses a turn and an
   admin read, and is gone after the retention end.
@@ -757,6 +775,187 @@ Decided as engineering in the same plan, not asked:
   (`application/deep_research.py:625-632`), and the Lead never approves one.
 
 ### The chunks
+
+**Standing rule CARD-1: one card, one action** (Nigel, 2026-10-22 ~22:50 UTC, relayed by the
+coordinator). "One card in the Lead researcher chat is for one action: one run (běh) of AI
+respondents, one run of Deep Research", and so on for every kind.
+- A card never bundles two actions, two runs or two jobs.
+- A turn that proposes several gets several cards, each with its own approve and decline, cost,
+  state and result.
+
+Checked against today's cards (develop `b6cd4d9e`):
+- **Conforms:**
+  - the prepared agent job (one job, `approve_request`, `application/research_lead.py:934`);
+  - the research-run card (one run, started on Spuštění);
+  - a typed start (LO5, one start);
+  - the analysis-retry card (one run over the failed modules);
+  - LO5a.1/.2's `design_research` and `interpretation_research` (one run each, as planned);
+  - the budget lift (one parked step);
+  - LC5a's queue: one Lead turn answers several messages, and that is one paid action, not a card.
+- **Breaks it, or cannot yet keep it:**
+  1. **A turn can propose at most one request.** `LeadOutput.request: JobRequest | None`
+     (`domain/research_lead.py:348`), and the prompt says "nejvýše jednu" (`:823`). A turn that
+     would propose two can show only one. The fix is `requests: list[…]` with one card per item,
+     each with its own decision in the ledger, and a prompt version bump.
+  2. **"Pamatovat si" decides a whole `self_update` at once**: notes to remember and to forget,
+     SOUL, USER and the name, in one accept (`decide_self_update`, `:876`). Under CARD-1 each
+     change is its own card.
+  3. **The edits block's "Přijmout vše"** (`apps/web/src/components/workbench/Workbench.tsx:833`)
+     accepts up to 12 edits with one click. Each edit already has its own decision in the ledger
+     (`decide_edits`, `:753`), so the batch button is a convenience over per-item cards. It
+     conforms if edits count as one action each and the batch is only a shortcut; otherwise
+     drop it. Nigel's call.
+  4. **LO4's plan card**, as planned, approves several steps at once ("approved once"). Under
+     CARD-1, LO4 needs one card per step, or Nigel's explicit exception for plans.
+
+Nigel's answers (2026-10-22 ~22:55 UTC):
+- (1) Breaks the rule: chunked as **LO21** (LO20 is the Lead's web lookup, ADR 0040). Nigel then
+  asked for it to be shaped for scale, still systematic and approval-gated. See **LO21,
+  registry-driven actions** below.
+- (2) "Pamatovat si" stays one decision.
+- (3) "Přijmout vše" stays.
+- (4) **A plan is one action**, so one card approves a whole plan. LO4's card must show every
+  step visually and directly inside the card:
+  - each step is its own row with its kind's icon, what it does in plain words, its cost ceiling
+    and its order or dependency;
+  - the card shows the plan's total ceiling and has one approve and decline for the plan;
+  - after approval, each row carries its own live state (queued, running, done, failed, waiting
+    on you);
+  - a step that needs a person surfaces in its row without breaking the card.
+
+  A plan's rows are its registered actions (LO21e). A `research_run` action is one row; under
+  it the card shows that run's own steps, read from its workflow template
+  (`domain/workflow_templates.py`) and, once started, from the run's steps. Those steps are
+  never actions of their own: the Lead cannot propose an aggregation or a report outside a run.
+
+  Example plans:
+  - "Návrh dotazníku": Design Research → questionnaire job; the card then shows the readiness
+    check, read once both finish, which is a read and not a step;
+  - "Pilotní běh": one `research_run` row at n = 50, showing its steps (fieldwork, aggregation,
+    report draft);
+  - "Plný běh": one `research_run` row at n, showing its steps (fieldwork, aggregation,
+    Sociomapa, the 8 analysis modules, report);
+  - "Interpretace výsledků": Interpretation Research on the strongest relations → report with
+    literature;
+  - "Oprava modulů": retry the failed analysis modules.
+
+**LO21. Registry-driven actions** (Nigel, 2026-10-22 ~23:00 UTC, relayed by the coordinator).
+
+What it is:
+- `LeadOutput.request` today is one of four fixed types (`domain/research_lead.py:282-348 @
+  b6cd4d9e`). It becomes `actions: [{worker_id, args}]`, several per turn.
+- The registry is the single source of truth for what the Lead may propose. Adding a card kind
+  is one registry entry, its args schema and its card slot, with no change to the Lead's core
+  schema or prompt.
+- ADR 0026's shape stays: structured output without tools, a frozen context, one schema repair,
+  a predictable cost per turn.
+- Each change of the generated union or prompt section bumps `LEAD_HARNESS_VERSION` and the
+  Lead prompt version (ADR 0020 pin).
+- A bump alone does not keep old turns readable: `ResearchLead._completed` parses every stored
+  output with today's `LeadOutput` (`application/research_lead.py:564-572 @ 689a2d24`). So the
+  registry is append-only by version (Codex review on #818):
+  - an action's `args` schema never changes in place; a change is a new version of the action
+    (`ActionSpec.version`), and every version stays registered for decoding;
+  - removing an action stops *offering* it (LO21b), never decoding it;
+  - a stored action is decoded by its turn's recorded harness version and its own
+    `worker_id`@`version`, never by today's union;
+  - a decoded action whose version is no longer offered can still be declined; approving it
+    re-checks it against today's guards, and one that no longer passes says why, by name.
+
+The registry's shape:
+- `domain/lead_workers.py`'s `LeadWorkerSpec` (`:88-105`) describes a *model* worker today:
+  `output_contract`, `capability`, `prompt_id` and `schema_repairs` are required.
+- A research run or a Deep Research run is an action that calls no model of its own. So
+  LO21a adds an `ActionSpec` beside it:
+  - `worker_id`, `card_kind`, `result_kind` and `switch`;
+  - the cost source (`reservation_key` or a ceiling function);
+  - `material_rules`;
+  - `args` (a Pydantic model), `description_cs` and `example`;
+  - an optional reference to the `LeadWorkerSpec` it runs.
+
+  A model worker's action names its spec, so nothing is said twice.
+
+The chunks, each with its test:
+- **LO21a.** The `ActionSpec` registry and the generated `LeadOutput.actions` union.
+  - Tests: an unknown `worker_id` is refused; each action's args are validated by its schema;
+    the union equals the registry; a duplicate `worker_id`@`version` fails at import; a turn
+    stored under an earlier version decodes, and can be declined, after the action's `args`
+    gain a new version.
+- **LO21b.** The prompt's action section is generated from the registry and filtered per turn,
+  from the frozen context: a switch off, or not permitted (scope, study status). The model sees
+  only what it can propose. `lead_contract` refuses an action the turn was not offered.
+  - Cost depends on the arguments (a focused Deep Research quote is cheaper than a whole
+    design's, a QUICK preset than a STANDARD one, a run by its n), so the budget cannot be
+    judged on the registry entry alone (Codex review on #818):
+    - the amounts are `domain/money.py`'s, in its one precedence (`money.py:31-34 @ c42a73e7`):
+      Rozpočet studie stops spending, Peněženka decides what may start without a card, Práh
+      potvrzení decides what asks again and is never a cap;
+    - approving a Lead card is `StartPath.PERSON` (`start_verdict`, `money.py:319-340`): the
+      person's act is the card Peněženka saves, so Peněženka is not consulted there, and the
+      limit a card is compared with is Rozpočet studie's remainder (the reservation's own check,
+      `BudgetExceeded`, `infrastructure/workflow_repository.py:1344-1348`; shown as
+      `available_usd`, `:1735`). A plan's later steps are `StartPath.PLAN_STEP`: outside
+      Peněženka they park with `outside_wallet`, in their row (LO21e);
+    - an action is left out only when its *cheapest* arguments' ceiling (`domain/run_cost.py`)
+      is known and exceeds that remainder;
+    - otherwise it is offered with that remainder, and each spec's ceiling function prices the
+      arguments the model chose when the turn is grounded;
+    - an action whose ceiling exceeds the remainder keeps its card, but the card shows the
+      refusal, never a way to start it: its cost beside the remainder, and the way to raise
+      Rozpočet studie, named, with who may raise it. Práh potvrzení's confirmation
+      (`threshold_verdict`, `:195`, ADR 0019 gate 2) applies only to a card within the budget;
+    - an unknown ceiling (`total_usd: None`, `CeilingUnknown`: a panel run, an unpriced route)
+      is never compared as 0. Its action is offered and its card says the cost is unknown;
+      approving it is refused wherever a rule needs the ceiling
+      (`ThresholdVerdict.CEILING_UNKNOWN`, `money.py:183`);
+    - card copy uses the names in `money.py` (`MONEY`), never "what is left".
+  - Tests: the section lists exactly the offered actions; an action that was not offered is
+    refused; the section's bytes stay bounded; with Rozpočet studie's remainder covering QUICK
+    or focused work but not STANDARD or whole-design work, the action is offered, a QUICK card
+    is approvable (asking at Práh potvrzení when its ceiling reaches it), and a STANDARD card
+    shows the refusal and the way to raise the budget, with no approve; an action whose
+    cheapest ceiling is unknown is offered, its card says so, and its approval is refused with
+    `ceiling_unknown`.
+- **LO21c.** One generic card renderer (web) keyed on `card_kind`, with small per-kind slots.
+  Each action is its own approve and decline and its own ledger decision (CARD-1); the route
+  becomes `…/turns/{turn_id}/actions/{index}`.
+  - Tests: two actions in one turn give two cards and two ledger rows; deciding one leaves the
+    other waiting; the spend limit, `LiveNotApproved` and classification parking apply per
+    action.
+- **LO21d.** The four request types are migrated: `agent_job`, `research_run`,
+  `design_research` and `interpretation_research`, the last two LO5a.2's.
+  - Tests: a stored single `request` still reads and decides; each type's card behaves as
+    before.
+- **LO21e.** The `plan` kind: one action whose steps reference registered actions. It is LO4's
+  card, with every step shown, one approval, live state per step, and a person's gate in its row.
+  - Tests: a plan naming an unregistered or not-offered action is refused, and so is one naming
+    a workflow step (aggregation, report) as a row; a step outside Peněženka parks in its row
+    with `outside_wallet`, the rest of the plan's card intact; a `research_run` row shows its template's
+    steps before it starts and its run's steps after; the per-step state follows each step's
+    run.
+
+Order: after LO5a.1 and LO5a.2. LO21d migrates their cards; LO21e needs LO3 and LO4.
+
+Later option, not now: native "propose" tools that only create pending cards. Revisit when the
+Lead gains read-only tools (LO20's web lookup), because tools change the cost and repair model
+ADR 0026 fixes.
+
+**First after the feature freeze (Nigel, 2026-10-22, relayed by the coordinator, /pmstatus
+Q80).**
+- Deep Research is started by the Lead: a card in the chat that the person approves. It is never
+  started automatically, and the guards stay those of Deep Research's own start:
+  - `confirm_cost_usd` at the spend threshold;
+  - `LiveNotApproved`;
+  - a ledger row;
+  - classification parking (OI-129).
+- LO5a.1 and LO5a.2 come first after the freeze, after `lead-conversation` LC5a.
+- LO5a.2 covers **both** `design_research` and `interpretation_research`.
+- In the same release:
+  - #808 (Dotazník) hides Dotazník's own workbench start (QF-13). It is held as a draft and
+    merges with LO5a.
+  - Výsledky hides its own workbench Interpretation Research start and retry.
+
+  Until LO5a.2 lands, those stage buttons are the workbench's only way to start either.
 
 **LO5a.1 (DRL-2). The Lead's Deep Research requests and context.**
 - `domain/research_lead.py`. Today both requests carry only `why` (`domain/research_lead.py:250-258`).
@@ -1166,3 +1365,131 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, `application/lead_chat_start.py` (and the commands list): "Zopakuj analýzu"
   starts `retry_failed_modules` on the newest analysed run, `chat_start`, no wallet charge.
 
+## LO5a.1 delivered (2026-10-26, `feature/lead-deep-research-requests`)
+
+- **The requests** (`domain/research_lead.py`). `DesignResearchRequest` gains `preset` (QUICK or
+  STANDARD, STANDARD by default; DEEP and EXHAUSTIVE are not in the type) and `focus` (at most 12
+  research-question ids). `InterpretationResearchRequest` gains `target` (`t1`…`tn`, or none for the
+  layer's default) and `preset`. `DeepResearchRetryRequest` (`deep_research_retry`, a `run_id` in the
+  `RUN-` grammar of ADR 0021's targets) is new. `request_ids(context)` reads what a turn may name
+  (the design's research-question ids through `item_ids`, the candidates and their default, the
+  layer's runs) and `lead_contract(…, ids=)` refuses any other by name ("name only what the context
+  holds"); `lead_request` passes it. An Interpretation request naming no target is refused when the
+  layer has no default (no completed research-questions module), and refused whatever it names when
+  the context offers no target.
+- **The candidates** (`domain/lead_research_targets.py`, pure). Built from each completed run's
+  pinned specification (the compile artifact, SHA-256 verified as it is read) and its steps' outputs
+  only: no aggregate, analysis or Sociomap payload is read, so no respondent number is in a
+  candidate. Order: the completed modules (research questions first, BLOCKED ones left out), each
+  question, each set's map, the objects (rating, then on the map), then the relations, which a set of
+  n objects has n(n-1)/2 of and the bound therefore cuts first. The newest two completed runs, at
+  most 40 candidates and 12 KB; ids are given after the bound, and `omitted` counts the rest. Words
+  are code's, from the specification's wording, at most 160 characters. Connections: the
+  research-questions module answers every research question the run's items declare; a question or
+  set the ones it declares; any other module none. `test_deep_research_interpretation_api.py` "every
+  lead target candidate of a completed run is one the start freezes" runs the real executors and
+  freezes every candidate's ref through `freeze_interpretation`.
+- **The layers** (`_freeze`). `deep_research`: the study's five newest Deep Research runs, read
+  through `DeepResearchRuns.get` (id, purpose, target in words, preset, status, phase, park code,
+  retryable, subjects, steps done, actual cost, ceiling; an unknown cost or ceiling `None`, never 0),
+  4 KB. `targets`: the candidates and the default. Both sit after `runs`, and each is absent when it
+  would be empty, so a study without Deep Research or a completed run freezes the context it did
+  before. Both are classed Class B by `MaterialRule.DESIGN`: they carry the design's own words.
+  `ResearchLead.store` (the API passes the artifact store) is what the candidates are read from;
+  without it no target is offered. A completed run whose specification does not read (missing or
+  corrupt bytes) offers nothing and is named in `unreadable_runs`, never stopping the turn; its
+  CORRUPT mark commits with the turn, as the artifact read protocol says. This closes F-DRL-4.
+- **Versions.** The prompt is 2 (`_TASK`: the two purposes, the presets, a target from `targets`, a
+  retry from `deep_research`, and "Rešerše je vnější kontext, nikdy důkaz od respondentů"); the
+  harness is `aia-research-lead-6`, so a turn queued under 5 is refused by name as before.
+  `test_prompt_upgrade.py`'s pin of the Lead's baseline version moves from 1 to 2 with it.
+- **The scoped freeze.** `DeepResearchRuns.freeze` / `freeze_design` / `start` take `focus`;
+  `focused_subjects` checks every id against the revision first (`FocusUnknown`, 422
+  `focus_unknown` with `details.unknown`) and keeps only the selected research-question subjects, by
+  their `subject_key`, so a focused run is its own request and spec while its tracks reuse the whole
+  design's by fingerprint. The quote and start routes take `focus` (an Interpretation quote takes
+  none). The quote and the start freeze identically; LO5a.2 hands the one spec to both.
+- **The scripted Lead** (`workbench.py`, script 2): "rešerš" prepares `design_research`; "výklad" or
+  "výsledk" prepares `interpretation_research` over the default, only when the layer has one.
+- **The web** only learns the shapes (`lead.ts`, `LeadPane` words for `deep_research_retry`): a
+  card still opens its stage (a retry opens Výsledky) until LO5a.2 starts it on the server.
+- **Tests.** `test_lead_research_targets.py` (candidates, default, bounds, layers, class, every
+  grounding refusal, DEEP refused, STANDARD default, the prompt's words); `test_deep_research_quote.py`
+  "a focused quote equals the focused start and both are smaller than the design", "a focused request
+  holds only the selected research questions", "an unknown focus is refused by name before anything
+  is priced"; `test_deep_research_quote_api.py` "a focus is quoted and started alike and an unknown
+  one is named"; `test_research_lead_application.py` "a deep research run of the study is in the
+  turn's context"; `test_research_lead_workbench.py` "a scripted message about research prepares deep
+  research".
+
+- **Review of #925 (Codex), three fixes.**
+  - *Completed runs before the limit.* `_targets` read the five newest runs and filtered after,
+    so five newer unfinished runs hid an older completed one and every Interpretation request
+    was refused. `WorkflowRepository.list_runs(statuses=)` / `ResearchRuns.runs(statuses=)`
+    select in the query; test: "every lead target candidate…" queues five newer runs.
+  - *The manifest.* `lead_context.LEAD_LAYERS`, `PART_LAYERS`, `_BOUNDED` and `_ids` declare
+    `deep_research` (runs, the rest counted) and `targets` (candidate ids, an unreadable run
+    named `unreadable`), so "Co Vedoucí vidí" shows both (`lead-manifest.ts` words); test:
+    `test_lead_context.py` "the deep research and targets layers name what the lead was shown".
+  - *A focused retry.* A run's focus is recorded in its metadata (only when given) and
+    `retry` freezes the same focus; test: `test_deep_research_quote.py` "a focused run retries
+    on the same research questions".
+
+- **Stand-in review of #925.**
+  - *The ids a focus names are shown* (P2). `request_ids` derived them with `with_item_ids`, but
+    the design layer sends `design_material(content)`, and a stored copy carries no ids unless
+    `AIA_WEB_STABLE_ITEM_IDS` wrote them, so every focused request named a guess and was
+    refused. The design layer now carries `research_questions: [{id, text}]`
+    (`design_research_questions`, classed by `MaterialRule.DESIGN`, part
+    `design_research_questions`), and `request_ids` reads exactly that list: what grounds a focus
+    is what the model was shown. The prompt names `design.research_questions`. Tests:
+    `test_lead_research_targets.py` "every research question id a focus may name is shown to
+    the model"; `test_research_lead_application.py` "a deep research run…" on a copy with no ids.
+  - *A retry names only a retryable run* (P3, taken): `request_ids` offers only runs whose
+    `retryable` is true. Test: "only a run that can be retried may be named for a retry".
+  - *The manifest's words* (P3, taken): `deep_research` counts runs past its byte bound, older
+    runs are left out uncounted, and the bound now says so.
+  - *A candidate's date* (P3, not taken here): Q44's "the research run and its date" waits for
+    LO5a.2, where the card shows it.
+
+### Doc follow-up (LO5a.1)
+
+- `CLAUDE.md` map, `domain/`: `lead_research_targets.py` — the Interpretation candidates
+  (`interpretation_candidates`, `targets_layer`: `t1`…`tn` from each completed run's pinned
+  specification, BLOCKED modules out, 2 runs, 40 / 12 KB) and the `deep_research` layer
+  (`deep_research_layer`, 5 runs, 4 KB).
+- `CLAUDE.md` map, `domain/research_lead.py`: the request's `preset`, `focus`, `target` and
+  `deep_research_retry`, grounded by `request_ids` / `request_refusal`; harness 6, prompt 2.
+- `CLAUDE.md` map, routers `deep research`: the quote and the start take `focus` (422 `focus_unknown`).
+- `CLAUDE.md` map, `application/deep_research.py`: `freeze_design(…, focus=)`, `focused_subjects`,
+  `FocusUnknown`; a run's `focus` in its metadata, kept by its retry.
+- `CLAUDE.md` map, `workflow_repository.py`: `list_runs(statuses=)`, filtered in the query.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**LO23. The ceiling before a start** (spec `lead/LP-4`, also `szz/A6` and `lead/LP-13`, one API; W1, a money API moved into W1 by the register §6.3). A prepared request and an analysis retry answer the most they can cost, with LO15's threshold. Test: a prepared run request answers its ceiling; an unknown ceiling reads unknown.
+
+**LO24. A job's open hold** (spec `lead/LP-5`, no backend; W2).
+
+**LO25. Request dismiss** (spec `lead/LP-7`, no backend; W1). After LO10.
+
+**Notes.**
+- LO22 is left free: OI-53's record names an `LO22` that no plan file holds yet.
+- LO21b is the prompt's action section only; the composer's "+" menu is `research-lead-workbench#41`.
+- LO11 amended to seal-only on departure (Nigel, 26 Oct 2026), in place above.
+
+**LO18a-d. Files to the Lead** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"). LO18's "take a file from the composer", split as the Lead worker proposed (26 Oct, anchors at `2e7fc1dd`). Nigel settled D-a: a file given to the Lead is the client's source and shows under the client's Data. The file's class drops out for the MVP under `prototype-build#PB6` (computed and recorded, never refused); the per-turn class stays the design for when enforcement returns.
+
+- **LO18a. The file in a turn** (W1). Kept as a client source (`infrastructure/client_source_repository.py`, with the study occurrence); the turn carries its ref (source id + SHA-256), never the bytes. Read with `infrastructure/source_reading.py` `read_source`: segments with locators for PDF, DOCX, ODT, PPTX, TXT, MD, DOC, CSV, XLSX, XLS and ODS, a dataset as its preview with personal columns masked. A `files` layer of the 96 KB context with its own share (about 16 KB): the outline, every locator, the segments in order until the share is spent, the rest named. Labelled the client's document, not evidence. Prompt and harness bumps; the web attach in the composer. Its outputs only through what exists: edits through the gate, an agent-job request, LO18b's proposal, LO18c's request. A file never writes the design, knowledge or a Lead file by itself, never starts paid work, never leaves its client, never becomes respondent evidence or Sociomap input, is never marked internal by the model, and is never read whole into one turn. Test: a PDF given on Zadání reaches the turn as its bounded segments with locators and is listed under the client's Data; a turn's manifest names the file and what was left out.
+- **LO18b. A questionnaire table becomes a proposal** (W1, with `artifact-questionnaire#QST12`; Nigel's questionnaire decision of 01:41 UTC, quoted in `prototype-build.md`). `import_questionnaire` (`infrastructure/questionnaire_file.py:187 @ 2e7fc1dd`) reads it with no model call; the result is a no-model questionnaire proposal reviewed in ProposalReview and accepted through `accept_into_working_copy` (`application/proposal_accept.py:113`), not as Lead edits (no applied section operation; at most 12 edits a turn, `domain/research_lead.py:370`). Amending a questionnaire section by section would need the section operations (WCE3b). Test: an XLSX given in a turn files one proposal whose sections match the import; accepting it writes them; no model call is ledgered for the read.
+- **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
+- **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.
+
+**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13`, every verified finding of the newest Design Research run (Nigel, 01:47 UTC: "All verified findings"). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.

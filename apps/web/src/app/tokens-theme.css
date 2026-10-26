@@ -34,6 +34,8 @@
   --color-on-status-you: var(--on-status-you);
   --color-status-you-ink: var(--status-you-ink);
   --color-status-you-wash: var(--status-you-wash);
+  --color-in-force: var(--in-force);
+  --color-in-force-wash: var(--in-force-wash);
   --color-status-world: var(--status-world);
   --color-status-world-wash: var(--status-world-wash);
   --color-status-fault: var(--status-fault);
@@ -135,10 +137,12 @@
   --font-serif: var(--font-serif-stack);
   --font-display: var(--font-display-stack);
   --radius-0: 0px;
-  --radius-sm: 2px;
-  --radius-md: 4px;
+  --radius-mark: 2px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
   --radius-control: 6px;
   --radius-card: 8px;
   --radius-panel: 10px;
+  --radius-composer: 12px;
   --radius-pill: 999px;
 }

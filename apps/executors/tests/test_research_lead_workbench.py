@@ -6,6 +6,7 @@ from typing import Any
 
 from aia_core.application.research_lead import ResearchLead
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.infrastructure.researcher_lead_repository import ResearcherLeadRepository
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -51,7 +52,10 @@ def _setup(world: Any) -> None:
         )
         ResearcherLeadRepository(session, org).hatch()
         StudyWorkspaceRepository(session).save(
-            world.lead_scope(session), content=CONTENT, base_revision=None
+            world.lead_scope(session),
+            content=CONTENT,
+            base_revision=None,
+            by=WriteBy(ActorKind.PERSON, world.lead_scope(session).actor_id, OpSource.UI),
         )
         session.commit()
 
@@ -177,7 +181,10 @@ def test_the_design_update_from_saved_answers_and_comments_goes_through_approve_
     }
     with world.sessions() as session:
         StudyWorkspaceRepository(session).save(
-            world.lead_scope(session), content=saved, base_revision=1
+            world.lead_scope(session),
+            content=saved,
+            base_revision=1,
+            by=WriteBy(ActorKind.PERSON, world.lead_scope(session).actor_id, OpSource.UI),
         )
         session.commit()
     _post(world, kind="message", text="Aktualizuj návrh podle mých komentářů.")
@@ -231,6 +238,22 @@ def test_a_scripted_message_about_the_goal_points_at_the_first_objective() -> No
     assert not without.view[0].model_dump()["target"].startswith("objective:")
 
 
+def test_a_scripted_message_asking_for_the_changes_shows_this_stage_s_waiting_ones() -> None:
+    """research-lead-workbench 14: the journey needs the scripted Lead to run show_diff."""
+    from aia_executors.workbench import scripted_lead_output
+
+    frozen = _frozen("Ukaž mi změny", CONTENT)
+    frozen["layers"][0]["stage"] = "questionnaire"
+    assert [v.model_dump() for v in scripted_lead_output(frozen).view][1:] == [
+        {"op": "show_diff", "stage": "questionnaire"}
+    ]
+    # Zadání shows no changes of its own; without the word, none either.
+    frozen["layers"][0]["stage"] = "brief"
+    assert len(scripted_lead_output(frozen).view) == 1
+    frozen["layers"][0].update(stage="questionnaire", message="Kde jsme?")
+    assert len(scripted_lead_output(frozen).view) == 1
+
+
 def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_question() -> None:
     """research-lead-workbench 14: the journey needs the scripted Lead to run ``inspect``."""
     from aia_core.domain.item_ids import list_ids, with_item_ids
@@ -256,3 +279,26 @@ def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_questio
     # Without the word, or with neither: only the focus it always had.
     assert len(scripted_lead_output(_frozen("Kde jsme?", with_rqs)).view) == 1
     assert len(scripted_lead_output(_frozen("Ukaž mi detail otázky", CONTENT)).view) == 1
+
+
+def test_a_scripted_message_about_research_prepares_deep_research() -> None:
+    """lead-orchestration LO5a.1: the workbench journey needs both Deep Research cards without a
+    model. Interpretation only over a default candidate: with none it would be refused."""
+    from aia_core.domain.research_lead import lead_contract, request_ids
+    from aia_executors.workbench import scripted_lead_output
+
+    design = scripted_lead_output(_frozen("Udělej rešerši trhu", CONTENT))
+    assert design.request is not None and design.request.kind == "design_research"
+    assert design.request.preset == "STANDARD" and design.request.focus == []
+
+    frozen = _frozen("Vysvětli výsledky", CONTENT)
+    no_targets = scripted_lead_output(frozen)
+    assert no_targets.request is not None and no_targets.request.kind == "agent_job"
+    frozen["layers"].append({"layer": "targets", "candidates": [{"id": "t1"}], "default": "t1"})
+    interpretation = scripted_lead_output(frozen)
+    assert interpretation.request is not None
+    assert interpretation.request.kind == "interpretation_research"
+    assert interpretation.request.target is None
+    # What the script prepares is grounded as a model's answer would be.
+    contract = lead_contract("", ids=request_ids(frozen))
+    contract.model_validate(interpretation.model_dump(mode="json"))

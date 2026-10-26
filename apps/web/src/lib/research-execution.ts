@@ -40,9 +40,12 @@ export function phaseLabel(phase: ResearchPhase): string {
   return words === key ? t("research.exec.phase.other") : words;
 }
 
+/** A step by name; a key this client has no name for reads as an unnamed step with its code, short
+ *  enough to sit inside a sentence, never the code as if it were a name. */
 export function stepLabel(nodeKey: string): string {
-  const label = t(`research.exec.steps.${nodeKey}`);
-  return label.startsWith("research.") ? nodeKey : label;
+  const key = `research.exec.steps.${nodeKey}`;
+  const label = t(key);
+  return label === key ? tv("research.exec.stepUnnamed", { code: nodeKey }) : label;
 }
 
 /** An analysis step whose module was stored BLOCKED: finished as a step, not as a result. */
@@ -121,6 +124,8 @@ export function parkedForRuntime(run: ResearchRun): ResearchStep | null {
 }
 
 const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
+/** A step parked or waiting: for budget, a provider, capacity or a person's recovery decision. */
+export const isWaiting = (status: string) => WAITING_STATUS.test(status);
 
 /**
  * Why a step waits, in words, or null when the step is not waiting. What the step recorded
@@ -129,7 +134,7 @@ const WAITING_STATUS = /^(WAITING|AWAITING)_|^RECOVERY_REQUIRED$/;
  * what is known: that the step waits, and why. It promises no action the page cannot take.
  */
 export function waitingDetail(step: Pick<ResearchStep, "status" | "waiting_reason" | "error_message" | "error_reason" | "recovery_reason">): string | null {
-  if (!WAITING_STATUS.test(step.status)) return null;
+  if (!isWaiting(step.status)) return null;
   // A paid call whose outcome is unknown outranks whatever error came with it: it is why nothing
   // repeats the step, and what a person decides on (PC14).
   if (step.status === "RECOVERY_REQUIRED" && step.recovery_reason === "paid_call_uncertain") return t("research.exec.wait.paid_call_uncertain");
@@ -467,7 +472,7 @@ export function sociomapObjects(battery: SociomapBattery): SociomapObject[] {
 // --------------------------------------------------------------------------- //
 
 /** Worst first: what a run will not answer is read before what it will. */
-export const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
+const VERDICT_ORDER: readonly OutlookVerdict[] = ["UNANSWERABLE", "AT_RISK", "UNKNOWN", "ANSWERABLE"];
 
 export function verdictTone(verdict: OutlookVerdict): Tone {
   if (verdict === "UNANSWERABLE") return "fault";
@@ -476,10 +481,11 @@ export function verdictTone(verdict: OutlookVerdict): Tone {
   return "done";
 }
 
-/** How many items carry each verdict; every verdict present, zero when none. */
+/** How many items carry each verdict; every verdict present, zero when none. A verdict this client
+ * does not know counts as unknown, so the item stays counted, never dropped. */
 export function outlookCounts(items: readonly QuestionOutlook[]): Record<OutlookVerdict, number> {
   const counts: Record<OutlookVerdict, number> = { UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 };
-  for (const item of items) counts[item.verdict] += 1;
+  for (const item of items) counts[item.verdict in counts ? item.verdict : "UNKNOWN"] += 1;
   return counts;
 }
 

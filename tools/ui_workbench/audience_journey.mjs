@@ -169,7 +169,14 @@ await page.setViewportSize({ width: 1440, height: 1100 });
 ok("Cílová skupina: factor groups and values are chips at 1440/1100/768/390, 44 px tall on a phone, without overflow");
 
 // 3. Speciální skupiny: the built-in subpanels.
+const presetSave = saved();
 await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
+await presetSave;
+// OI-51 (a): a preset change starts afresh; the region and age chosen above are not carried over.
+const afterPreset = (await content()).content.audience;
+if (JSON.stringify(afterPreset.filters) !== "{}" || afterPreset.builtin_subpanel) fail(`Speciální skupiny kept the previous audience: ${JSON.stringify({ filters: afterPreset.filters, builtin_subpanel: afterPreset.builtin_subpanel })}`);
+if (afterPreset.strategy !== "population") fail(`Speciální skupiny kept the previous strategy "${afterPreset.strategy}"`);
+ok("Speciální skupiny: the region and age chosen before are cleared, and the strategy is the whole population again (OI-51 (a))");
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
@@ -201,6 +208,35 @@ if (left !== 1 || chosenLeft !== 1) fail(`a search that matches nothing should l
 await text("Hledání odpovídá 0 z", "the search's count");
 await search.fill("");
 ok(`Speciální skupiny: ${catalogue.subpanels.length} subpanels under a search at 1440/1100/768/390 without overflow; a search that matches nothing keeps the chosen one and says 0`);
+
+// 4. Najít ideální skupinu: Discover's two values edited in place (input-interactions I1, audit B11), at four widths.
+await page.getByRole("radio", { name: /Česká populace \(\+18\)/ }).click();
+const strategySave = saved(); // the strategy's own save lands before the field's is awaited
+await page.getByRole("radio", { name: /Najít ideální skupinu z výsledků/ }).click();
+await strategySave;
+const SUCCESS = "Co má ideální člověk udělat / jak poznáme úspěch?";
+const successValue = page.getByRole("button", { name: /^Upravit: Co má ideální člověk/ });
+for (const width of [1440, 1100, 768, 390]) {
+  await page.setViewportSize({ width, height: 1000 });
+  await successValue.waitFor({ timeout: 30000 });
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
+}
+await page.setViewportSize({ width: 1440, height: 1100 });
+await successValue.click();
+const successField = page.getByRole("textbox", { name: SUCCESS });
+await successField.fill("Zahodí to");
+await successField.press("Escape");
+if (await successField.count()) fail("Esc did not close the success criterion's field");
+if ((await successValue.innerText()).includes("Zahodí to")) fail("Esc kept the typed value");
+await successValue.click();
+await successField.fill("Koupí a doporučí známým");
+const discoverSave = saved();
+await successField.press("Control+Enter");
+await discoverSave;
+if ((await content()).content.audience.success_definition !== "Koupí a doporučí známým") fail("the success criterion was not saved as typed");
+ok("Najít ideální skupinu: the success criterion edited in place at 1440/1100/768/390 without overflow; Esc restores, Ctrl+Enter saves");
+await shot("4-discover");
 
 await browser.close();
 const toUnit = requests.filter((r) => { try { return UNIT_PATH.test(new URL(r.url).pathname); } catch { return false; } });

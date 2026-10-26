@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
 import { FrameNavigation } from "../step";
+import { TOUCH_LINK } from "@/components/ui/parts";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -163,6 +164,28 @@ describe("Dimenze", () => {
     expect(container.querySelector("[data-aia^='own_dimension:']")).toBeNull();
   });
 
+  it("the dock counts the chosen dimensions in Czech, as the stage track does", async () => {
+    const cases: [string[], RegExp][] = [
+      [[], /^Bez dimenzí · N=\d+$/],
+      [["cena"], /^1 dimenze · N=\d+$/],
+      [["cena", "media"], /^2 dimenze · N=\d+$/],
+      [["cena", "media", "zdravi", "politika", "duvera"], /^5 dimenzí · N=\d+$/],
+    ];
+    for (const [approved, words] of cases) {
+      aiaStub({ ...PLANNED, persona_dimensions: { approved } });
+      const { unmount } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      // The dock's note (its polite live region), not the stage track's line.
+      await waitFor(() => expect([...document.querySelectorAll("span[aria-live='polite']")].map((e) => e.textContent).filter((x) => x?.includes("· N="))).toEqual([expect.stringMatching(words)]));
+      unmount();
+    }
+  }, 30_000);
+
+  it("the way to the run's population is a stand-alone link with the touch target (TOUCH_LINK)", async () => {
+    aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect((await screen.findByRole("link", { name: /Populace běhu/ })).className).toBe(TOUCH_LINK);
+  });
+
   it("without any materialization from this study the section says so, and still leads to the run's population", async () => {
     aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -203,6 +226,28 @@ describe("Dimenze", () => {
     expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
   }, 20_000);
 
+  it("names what \"Použít doporučené\" drops and puts it back on Vrátit; a remove does the same, order kept (DIM-F10)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Použít doporučené" }));
+    await savedWith("persona_autofill");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["zdravi", "media"]);
+    expect(await screen.findByText("Použity doporučené dimenze; odebráno: Cena / value for money")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["cena", "media"]);
+    // A remove takes the row away at once; Vrátit puts it back where it was, not at the end.
+    const chosen = screen.getByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await savedWith("dimension_catalog_remove");
+    expect(await screen.findByText("Dimenze „Cena / value for money“ odebrána")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual(["cena", "media"]);
+    // Focus lands on the dimension put back, not at the page's top.
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Cena / value for money"));
+  }, 20_000);
+
   it("removes a chosen dimension where it is listed and shows a waiting request beside it, not only in the inspector (DIM-F5)", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] }, requested_dimensions: [{ label: "Vztah k tramvajím" }] });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -215,6 +260,67 @@ describe("Dimenze", () => {
     expect(lastSave().content.persona_dimensions.approved).toEqual([]);
     expect(within(chosen).getByText("Zatím není vybraná žádná volitelná dimenze.")).toBeTruthy();
   }, 20_000);
+
+  it("focuses after the render that changes the selection, even when every animation frame runs at once (AGENTS.md)", async () => {
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const chosen = await screen.findByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Média a informační chování"));
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Cena / value for money"));
+  }, 20_000);
+
+  it("Vrátit after \"Použít doporučené\" only added dimensions leaves focus on the selection, not the page", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Použít doporučené" }));
+    await savedWith("persona_autofill");
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual([]);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("list", { name: "Vybrané dimenze" })));
+  }, 20_000);
+
+  it("after a remove, focus goes to the next row's remove, then the previous one's, then the list (DIM-F7)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const chosen = await screen.findByRole("list", { name: "Vybrané dimenze" });
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Cena / value for money" }));
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Média a informační chování"));
+    fireEvent.click(within(chosen).getByRole("button", { name: "Odebrat dimenzi Média a informační chování" }));
+    await waitFor(() => expect(document.activeElement).toBe(chosen));
+  }, 20_000);
+
+  it("says a search that matches nothing in a status the screen reader announces (DIM-F8)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const search = await screen.findByLabelText("Hledat dimenzi");
+    // The live region is mounted, empty, before the search, so its change is what gets announced.
+    const section = search.closest("section") as HTMLElement;
+    const status = within(section).getByRole("status");
+    expect(status.textContent).toBe("");
+    // Never hidden while empty: a live region out of the accessibility tree is not announced (jsdom has no
+    // Tailwind, so the class is what can be checked here; dimensions_journey checks the computed style).
+    expect(status.className).not.toMatch(/hidden/);
+    fireEvent.change(search, { target: { value: "zzz" } });
+    expect(within(section).getByRole("status")).toBe(status);
+    expect(status.textContent).toBe("Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.");
+  });
+
+  it("finds a dimension typed without diacritics or with spaces around it (DIM-F13)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const search = await screen.findByLabelText("Hledat dimenzi");
+    const section = search.closest("section") as HTMLElement;
+    fireEvent.change(search, { target: { value: " duvera " } });
+    expect(within(section).getByRole("button", { name: /^Důvěra/ })).toBeTruthy();
+    expect(within(section).getByRole("status").textContent).toBe("");
+  });
 
   it("reviews new dimensions and proposes one to the client's knowledge, never approving it", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
@@ -257,9 +363,18 @@ describe("Dimenze", () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const input = await screen.findByLabelText("Název dimenze");
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    // An empty name is the field's error, said at the field; nothing failed to save.
     expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(REQUEST_EMPTY);
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByText("Požadavek se nepodařilo uložit")).toBeNull();
     fireEvent.change(input, { target: { value: "  Vztah k AI ve zdravotnictví " } });
-    fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    // Typing clears the field's error.
+    expect(input.getAttribute("aria-invalid")).toBeNull();
+    expect(screen.queryByText(REQUEST_EMPTY)).toBeNull();
+    // Enter in the field sends it, as the button does.
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
     expect(await screen.findByText(PROPOSAL_DONE)).toBeTruthy();
     expect(posted(PROPOSALS_PATH)[0].body).toEqual({
       kind: "DIMENSION",
@@ -276,6 +391,24 @@ describe("Dimenze", () => {
     noUnitCalls();
   }, 20_000);
 
+  it("refuses at the field a request the catalogue already names, sending nothing (DIM-F14)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const input = await screen.findByLabelText("Název dimenze");
+    const add = screen.getByRole("button", { name: "Přidat jako požadavek" });
+    for (const [typed, label] of [["  DUVERA ", "Důvěra"], ["vztah k  ai", "Vztah k AI"]]) {
+      fireEvent.change(input, { target: { value: typed } });
+      fireEvent.click(add);
+      const said = `Dimenze „${label}“ už v katalogu je: vyberte ji v seznamu nahoře.`;
+      expect(await screen.findByText(said)).toBeTruthy();
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(said);
+      expect(document.activeElement).toBe(input);
+    }
+    expect(posted(PROPOSALS_PATH)).toEqual([]);
+    noUnitCalls();
+  });
+
   it("a proposal AIA refuses is shown, and nothing is recorded", async () => {
     aiaStub(PLANNED, { [PROPOSALS_PATH]: () => new Response(JSON.stringify({ code: "forbidden", message: "Your role on this study does not permit proposing knowledge." }), { status: 403 }) });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -283,6 +416,11 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
     expect((await screen.findByRole("alert")).textContent).toContain("does not permit proposing knowledge");
     expect(saves).toEqual([]);
+    // An empty try after it sends nothing, so the earlier failure is no longer said beside its error.
+    fireEvent.change(screen.getByLabelText("Název dimenze"), { target: { value: "" } });
+    fireEvent.click(screen.getByRole("button", { name: "Přidat jako požadavek" }));
+    expect(await screen.findByText(REQUEST_EMPTY)).toBeTruthy();
+    expect(screen.queryByText(/does not permit proposing knowledge/)).toBeNull();
   });
 
   it("the sample is one stepper: a press steps by 50 and saves, and below the recommendation says so (DIM3)", async () => {
@@ -298,7 +436,7 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: /Zvýšit/ }));
     await savedWith("sample_n_1789");
     expect(lastSave().content.n).toBe(350);
-    expect(screen.getByText(/^\d+ dimenzí · N=350$/)).toBeTruthy(); // the dock's note
+    expect(screen.getAllByText(/^Bez dimenzí · N=350$/).some((e) => e.getAttribute("aria-live") === "polite")).toBe(true); // the dock's note, as the track says it
     const stepped = screen.getByRole("spinbutton", { name: "Počet respondentů" });
     expect(stepped).not.toBe(n); // a new stored n redraws the field (key)
     fireEvent.change(stepped, { target: { value: "100" } });
@@ -420,7 +558,23 @@ describe("Dimenze", () => {
   it("inside a frame with no next stage offers no forward action rather than the classic run step", async () => {
     aiaStub(PLANNED);
     render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
-    await screen.findByRole("spinbutton", { name: "Počet respondentů" });
+    await screen.findByRole("heading", { name: "Vybrané dimenze" });
     expect(screen.queryByRole("button", { name: /^Další/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Otevřít Vzorek" })).toBeNull();
+  }, 20_000);
+
+  it("inside the workbench has no sample size control; it links to Vzorek and counts the dimensions with sociodemografie (DIM3b)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    const go = vi.fn();
+    const { container } = render(<FrameNavigation.Provider value={{ next: { label: "Vzorek", go } }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    await screen.findByRole("heading", { name: "Vybrané dimenze" });
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Použít doporučené N=/ })).toBeNull();
+    expect(container.querySelector("[data-aia='sample:n']")).toBeNull();
+    const note = [...container.querySelectorAll("span[aria-live='polite']")].map((x) => x.textContent ?? "");
+    expect(note).toContain("3 dimenze včetně sociodemografie");
+    expect(note.some((x) => x.includes("N="))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít Vzorek" }));
+    expect(go).toHaveBeenCalledOnce();
   }, 20_000);
 });

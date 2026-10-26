@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import zipfile
 from typing import Any
 
 from docx import Document
@@ -23,6 +24,7 @@ from aia_core.domain.report.model import (
     Text,
 )
 from aia_core.domain.research_design import compile_design
+from aia_core.infrastructure.document_text import paragraph_text
 from aia_core.infrastructure.report_docx.lint import lint_docx
 from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
@@ -185,9 +187,9 @@ def test_the_audiences_description_and_subpanel_are_kept_and_printed_when_given(
 
 
 def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences() -> None:
-    """The audience step keeps the last built-in subpanel when the source moves outside AIA's
-    population (OI-51); an external audience did not come from it, so it is neither compiled
-    nor printed (Codex on #587)."""
+    """A design stored before OI-51 (a) (2026-10-25) can keep the last built-in subpanel after
+    the source moved outside AIA's population; an external audience did not come from it, so it
+    is neither compiled nor printed (Codex on #587)."""
     external = {
         **DESIGN,
         "audience": {
@@ -289,10 +291,34 @@ def test_a_control_character_a_person_typed_never_fails_the_render(report_doc: A
 
     assert lint_docx(out) == []
     read = Document(io.BytesIO(out))
-    cells = (c for t in read.tables for row in t.rows for c in row.cells)
-    words = "\n".join([p.text for p in read.paragraphs] + [c.text for c in cells])
+    # Read as AIA's own reader reads it: inside the locked controls too (RPT8a).
+    cells = (p for t in read.tables for row in t.rows for c in row.cells for p in c.paragraphs)
+    words = "\n".join(paragraph_text(p) for p in (*read.paragraphs, *cells))
     assert "Co lidé ráno pijí?" in words  # the research question, its break a space
     assert "Jak často pijete kávu?" in words  # the question as asked, its bell dropped
     assert "\x07" not in words and "\x1f" not in words
     assert read.core_properties.title == "Důvěra  v banky"
     assert 'Co lidé ráno pijí?"' in document_bytes(doc).decode()  # as the DOCX printed it
+
+
+def test_the_designs_numbers_print_under_the_specification_it_came_from(report_doc: Any) -> None:
+    """A scale's ends, a count, the planned n and an audience bound are code's words from the
+    specification the run executed: each block printing one is locked under its fingerprint
+    (artifact-report RPT8a, part 3, P10); what the person wrote alone (a research question, an
+    item's name, the brief) stays as it is."""
+    spec, problems = compile_design(DESIGN)
+    assert spec is not None, problems
+    tag = f"design:{spec.fingerprint()[:16]}"
+    composed = compose_design_sections(
+        spec, ("Co lidé ráno pijí?",), brief=Brief(goal="Zjistit, co lidé pijí.")
+    )
+    for block in (*composed.chapter.blocks, *composed.appendix.blocks):
+        if isinstance(block, Paragraph | BulletList) and any(c.isdigit() for c in _words((block,))):
+            assert block.control == tag, _words((block,))
+    personal = [b for b in composed.chapter.blocks if isinstance(b, BulletList)]
+    assert personal and all(b.control is None for b in personal)  # questions, items: no digits
+
+    out = DocxRenderer().render(report_doc(*composed.chapter.blocks, *composed.appendix.blocks))
+    with zipfile.ZipFile(io.BytesIO(out)) as z:
+        body = z.read("word/document.xml").decode()
+    assert f'w:val="{tag}"' in body and "Návrh počítal s 300 respondenty." in body

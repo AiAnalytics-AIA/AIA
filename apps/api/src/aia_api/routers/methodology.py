@@ -27,6 +27,7 @@ validated by the domain and stored only by
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
 from typing import Annotated, Any, Final
@@ -39,9 +40,11 @@ from aia_core.domain.methodology import (
     MethodModule,
     MethodologyReferenceError,
     StepView,
+    bound_of,
     describe,
     feeds_of,
     module,
+    takes_whole_numbers,
 )
 from aia_core.domain.methodology.aggregation_check import (
     AggregationComparison,
@@ -82,6 +85,7 @@ from aia_core.domain.population.policy import (
 from aia_core.domain.research_design import ReadinessSpec
 from aia_core.domain.research_sociomap import side_tables_of
 from aia_core.domain.scope import ScopeDenied
+from aia_core.domain.sociomap_register import method_status
 from aia_core.infrastructure.methodology_repository import (
     Activation,
     InForce,
@@ -181,6 +185,28 @@ class ValueOut(_Strict):
     #: ``blocks_run``, ``blocks_design`` or ``warns``; ``changes_stored`` where it changes the
     #: numbers a run stores; empty otherwise.
     effect: str
+    #: The range a check holds the field to; ``null`` where none does (the check still runs).
+    bound: BoundOut | None = None
+
+
+class LimitOut(_Strict):
+    """One side of a field's bound: ``value`` a number, or ``reference`` another field of the same
+    specification, whose value in the draft is the limit; ``strict``: the limit is itself
+    outside."""
+
+    side: str
+    value: float | None
+    reference: str | None
+    strict: bool
+
+
+class BoundOut(_Strict):
+    """The range the module's check holds a field to (settings-redesign F13): every limit, each
+    proved against the check; ``whole``: the field takes whole numbers (a strict limit then reads
+    as the next whole one)."""
+
+    limits: list[LimitOut]
+    whole: bool
 
 
 class FormulaVariableOut(_Strict):
@@ -261,6 +287,9 @@ class VersionOut(_Strict):
     note: str
     created_by: str
     created_at: datetime
+    #: The object map only: the Sociomap register's status for the method this version pins
+    #: (an edit is another method, internal until registered). None for every other module.
+    register_status: str | None = None
 
 
 class ActivationOut(_Strict):
@@ -280,16 +309,25 @@ class InForceOut(_Strict):
     preset: str | None
     version_number: int | None
     name: str
+    #: The object map only: the Sociomap register's status for the exact method a run started now
+    #: pins (CLIENT_FACING or INTERNAL_ONLY; a stored version is another method, internal until
+    #: registered). None for every other module, which no register covers.
+    register_status: str | None = None
 
 
 class VersionsOut(_Strict):
     in_force: InForceOut
-    #: Whether the caller may propose and activate (an organization OWNER or ADMIN).
+    #: Whether the caller is an organization OWNER or ADMIN.
     may_administer: bool
+    #: Whether the caller may store and activate versions: the Metodik mark (D-14).
+    may_edit: bool
     #: Each code preset's whole specification, by name: what an edit starts from.
     presets: dict[str, dict[str, Any]]
     versions: list[VersionOut]
     history: list[ActivationOut]
+    #: The object map only: the register's status for the code's preset, whatever is in force
+    #: (Verze a aktivace lists the preset beside the stored versions). None for other modules.
+    code_register_status: str | None = None
 
 
 class EditIn(_Strict):
@@ -558,6 +596,24 @@ def _formula(f: BuiltinFormula) -> FormulaOut:
     )
 
 
+def _bound(found: MethodModule, path: str) -> BoundOut | None:
+    bound = bound_of(found, path)
+    if bound is None:
+        return None
+    return BoundOut(
+        limits=[
+            LimitOut(
+                side=x.side,
+                value=None if isinstance(x.value, str) else float(x.value),
+                reference=x.value if isinstance(x.value, str) else None,
+                strict=x.strict,
+            )
+            for x in bound.limits
+        ],
+        whole=takes_whole_numbers(found, path),
+    )
+
+
 def _step(found: MethodModule, view: StepView) -> StepOut:
     s = view.step
     return StepOut(
@@ -587,6 +643,7 @@ def _step(found: MethodModule, view: StepView) -> StepOut:
                 value=None if v.value is ABSENT else _wire(v.value),
                 absent=v.value is ABSENT,
                 effect=v.effect.value,
+                bound=_bound(found, v.reference),
             )
             for v in view.values
         ],
@@ -600,6 +657,7 @@ def _not_found(code: str, message: str) -> HTTPException:
 
 def _version(v: StoredVersion) -> VersionOut:
     return VersionOut(
+        register_status=_register(v.module_id, v.payload),
         version_number=v.version_number,
         name=v.name,
         base_preset=v.base_preset,
@@ -635,6 +693,21 @@ def _in_force(found: InForce) -> InForceOut:
         version_number=found.version.version_number,
         name=found.version.name,
     )
+
+
+def _register(module_id: str, payload: Mapping[str, Any] | None) -> str | None:
+    """The Sociomap register's status of the method a run under ``payload`` pins (``None``: the
+    code's preset); ``None`` for every module no register covers."""
+    if module_id != "sociomap":
+        return None
+    method = sociomap_methods_for(payload)[-1]
+    return method_status(method.method_id, method.spec_fingerprint, method.formulas).value
+
+
+def _with_register(module_id: str, found: InForce) -> InForceOut:
+    """:func:`_in_force` with the Sociomap register's status of the method it pins."""
+    status = _register(module_id, None if found.version is None else found.version.payload)
+    return _in_force(found).model_copy(update={"register_status": status})
 
 
 def _panel(c: PanelComparison) -> PanelOut:
@@ -783,8 +856,10 @@ def _refused(exc: ScopeDenied | MethodologyRefused) -> HTTPException:
         return HTTPException(
             status_code=403,
             detail={
-                "code": "insufficient_role",
-                "message": "Changing the methodology requires an organization OWNER or ADMIN.",
+                "code": exc.reason
+                if exc.reason == "methodologist_required"
+                else "insufficient_role",
+                "message": "Storing or activating a methodology requires the Metodik mark.",
                 "details": {"reason": exc.reason},
             },
         )
@@ -917,11 +992,13 @@ def read_versions(module_id: ModuleId, org: OrganizationDep, session: SessionDep
     try:
         reader = MethodologyReader(session, org)
         return VersionsOut(
-            in_force=_in_force(reader.in_force(module_id)),
+            in_force=_with_register(module_id, reader.in_force(module_id)),
             may_administer=org.may_administer,
+            may_edit=org.methodologist,
             presets=_presets(module_id),
             versions=[_version(v) for v in reader.versions(module_id)],
             history=[_activation(a) for a in reader.history(module_id)],
+            code_register_status=_register(module_id, None),
         )
     except MethodologyRefused as exc:
         raise _refused(exc) from exc
@@ -1119,10 +1196,11 @@ def activate(
 ) -> InForceOut:
     """Takes effect for runs started afterwards; a run already started keeps its pin."""
     try:
-        return _in_force(
+        return _with_register(
+            module_id,
             MethodologyRepository(session, org).activate(
                 module_id, body.version_number, reason=body.reason
-            )
+            ),
         )
     except (ScopeDenied, MethodologyRefused) as exc:
         raise _refused(exc) from exc

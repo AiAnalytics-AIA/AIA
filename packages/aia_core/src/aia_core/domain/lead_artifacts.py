@@ -79,7 +79,9 @@ class ViewOpKind(StrEnum):
 
 
 #: The view operations the Lead's output carries today (``research_lead.ViewOp``).
-LIVE_VIEW_OPS: Final = frozenset({ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT})
+LIVE_VIEW_OPS: Final = frozenset(
+    {ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT, ViewOpKind.SHOW_DIFF}
+)
 
 
 class TargetKind(StrEnum):
@@ -320,8 +322,8 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
         _row(
             "sample",
             "working",
-            edits=False,
-            view_ops=("inspect",),
+            edits=True,
+            view_ops=("show_diff", "inspect"),
             targets=("sample",),
             starts=(_MEMORY,),
             inputs=("audience", "dimensions"),

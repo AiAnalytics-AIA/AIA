@@ -831,3 +831,23 @@ def test_where_self_approval_is_off_a_checked_source_waits_and_is_not_proposed_t
     again = knowledge.add_source_once(researcher, url=url, title="T", content={}, provenance={})
     assert (again.status, again.proposal_id) == ("exists", first.proposal_id)
     assert len(knowledge.proposals(researcher, status=ProposalStatus.PROPOSED)) == 1
+
+
+def test_a_checked_source_is_refused_under_a_deleted_clients_tombstone(
+    scoped: Any, session: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """Settings-backends SB5: a writer that resolved its scope before a deletion and takes the
+    client's lock after it reads the tombstone and writes nothing."""
+    from datetime import UTC, datetime
+
+    from aia_core.infrastructure.tables import ClientRow
+
+    researcher = client_scope(scoped, "researcher")  # resolved before the deletion
+    session.get(ClientRow, researcher.client_id).deleted_at = datetime.now(UTC)
+    session.flush()
+    with pytest.raises(ScopeDenied) as denied:
+        knowledge.add_source_once(
+            researcher, url="https://stat.example/x", title="X", content={}, provenance={}
+        )
+    assert denied.value.reason == "client_deleted"
+    assert knowledge.items(researcher) == []

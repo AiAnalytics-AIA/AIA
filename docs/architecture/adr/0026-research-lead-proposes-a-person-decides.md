@@ -9,6 +9,14 @@ Revision), [ADR 0018](0018-aia-runs-without-18-6-6.md) (a Study's working conten
 [ADR 0020](0020-runtime-editable-system-prompts.md) (a prompt is pinned at enqueue). **Changes**
 one existing route, the accept of an agent job's proposal (decision 6). **Leaves unchanged** every
 evidence gate, the Sociomap register, the methodology in force and every run's pins.
+**Status note, 2026-10-25 (decision 4 as built):** the command registry lives at
+`packages/aia_core/src/aia_core/domain/lead_commands.py` (#574), not
+`aia_core/application/lead_commands.py`: a closed vocabulary of typed start commands matched by
+code, pinned in `tests/fixtures/lead_commands/commands.json` (`domain/lead_commands.py:122 @
+5d5ed250`, `match_command`), started through `application/lead_chat_start.py`. A human-only command
+is not yet refused with `403 human_gate_required`: no code raises it
+(`git grep human_gate_required 5d5ed250` finds only this ADR and the evidence trace). That gap is
+tracked as an open item. The status is unchanged.
 **Date:** 2026-10-19
 
 ## Context

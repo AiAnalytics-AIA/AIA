@@ -2,18 +2,130 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, RadioCard, Segmented, StepSection, Switch } from "./step";
+import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, RadioCard, Segmented, StageHeader, StageHeaderSlot, StepSection, Switch } from "./step";
+import { WellItem } from "./ui";
 
 afterEach(cleanup);
 
 describe("Studio v3 step pieces", () => {
   it("StepSection is a labelled section that says when it is optional", () => {
-    render(<StepSection id="s" n={3} optional title="Podklady" hint="Dokumenty">tělo</StepSection>);
+    render(<StepSection id="s" optional title="Podklady" hint="Dokumenty">tělo</StepSection>);
     const section = screen.getByRole("region", { name: /^Podklady\s*· volitelné$/ });
     expect(section.id).toBe("s");
-    // The stage track carries the order: a section is not numbered (research-lane-redesign).
-    expect(section.textContent).not.toContain("3");
     expect(section.textContent).toContain("tělo");
+  });
+
+  it("StepSection prints its number and cap, and the need state names what is missing (v73 X1)", () => {
+    render(
+      <>
+        <StepSection n={3} title="Rozhodnutí" cap="povinné" need>tělo</StepSection>
+        <StepSection n={4} num="S1" title="Sada" cap="7 objektů" />
+      </>,
+    );
+    const decision = screen.getByRole("region", { name: "Rozhodnutí" });
+    // The board's number, two digits and mono, beside the title; the cap at the right.
+    expect(decision.querySelector("[data-step-num]")?.textContent).toBe("03");
+    expect(decision.textContent).toContain("povinné");
+    // Needs you: the coral edge, and "chybí" said in words, not by colour alone.
+    expect(decision.getAttribute("data-need")).toBe("true");
+    expect(decision.textContent).toContain("chybí");
+    const set = screen.getByRole("region", { name: "Sada" });
+    expect(set.querySelector("[data-step-num]")?.textContent).toBe("S1");
+    expect(set.getAttribute("data-need")).toBeNull();
+    expect(set.textContent).not.toContain("chybí");
+  });
+
+  it("WellItem is one row: its mono id at the left, its text, its actions at the right", () => {
+    render(<ul><WellItem id="C2" actions={<button type="button">Upravit</button>}>Zjistit cenovou citlivost</WellItem></ul>);
+    const row = screen.getByRole("listitem");
+    expect(row.querySelector("[data-well-id]")?.textContent).toBe("C2");
+    expect(row.textContent).toContain("Zjistit cenovou citlivost");
+    expect(screen.getByRole("button", { name: "Upravit" })).toBeTruthy();
+  });
+
+  it("a stage's header parts stay where they stand outside the workbench, and go to its slots inside it", () => {
+    const view = render(<StageHeaderSlot slot="actions"><button type="button">Akce</button></StageHeaderSlot>);
+    expect(screen.getByRole("button", { name: "Akce" })).toBeTruthy();
+    view.unmount();
+    const actions = document.createElement("div");
+    document.body.appendChild(actions);
+    try {
+      render(
+        <StageHeader.Provider value={{ actions, status: null, primary: null, claimPrimary: () => () => {} }}>
+          <StageHeaderSlot slot="actions"><button type="button">Akce</button></StageHeaderSlot>
+          <StageHeaderSlot slot="status"><span>Stav</span></StageHeaderSlot>
+        </StageHeader.Provider>,
+      );
+      expect(actions.querySelector("button")?.textContent).toBe("Akce");
+      // A slot the header does not offer yet shows nothing, never a stray copy in the body.
+      expect(screen.queryByText("Stav")).toBeNull();
+    } finally {
+      actions.remove();
+    }
+  });
+
+  it("ActionDock keeps an action that is not a way on (a paid start) in its own place, and claims nothing", () => {
+    const primary = document.createElement("div");
+    document.body.appendChild(primary);
+    const claimPrimary = vi.fn(() => () => {});
+    try {
+      render(
+        <StageHeader.Provider value={{ actions: null, status: null, primary, claimPrimary }}>
+          <ActionDock note="Strop 2 USD" inHeader={false}><button type="button">Spustit výzkum</button></ActionDock>
+        </StageHeader.Provider>,
+      );
+      expect(primary.querySelector("button")).toBeNull();
+      expect(screen.getByRole("button", { name: "Spustit výzkum" })).toBeTruthy();
+      expect(claimPrimary).not.toHaveBeenCalled();
+    } finally {
+      primary.remove();
+    }
+  });
+
+  it("ActionDock in the workbench puts its action in the header's primary slot, and claims it while mounted", () => {
+    const primary = document.createElement("div");
+    document.body.appendChild(primary);
+    const released = vi.fn();
+    const claimPrimary = vi.fn(() => released);
+    try {
+      const view = render(
+        <StageHeader.Provider value={{ actions: null, status: null, primary, claimPrimary }}>
+          <ActionDock note="Připraveno"><button type="button">Další</button></ActionDock>
+        </StageHeader.Provider>,
+      );
+      expect(primary.querySelector("button")?.textContent).toBe("Další");
+      expect(screen.getByText("Připraveno")).toBeTruthy();
+      expect(claimPrimary).toHaveBeenCalled();
+      view.unmount();
+      expect(released).toHaveBeenCalled();
+    } finally {
+      primary.remove();
+    }
+  });
+
+  it("ActionDock keeps its moved action, and the focus on it, when its note comes and goes", () => {
+    // Stand-in review on #936: the moved action was the root without a note and the card's child with
+    // one, so a note arriving (PlanStep's, once the analysis loads) remounted a focused header button.
+    const primary = document.createElement("div");
+    document.body.appendChild(primary);
+    const header = { actions: null, status: null, primary, claimPrimary: () => () => {} };
+    const dock = (note: string | null) => (
+      <StageHeader.Provider value={header}>
+        <ActionDock note={note}><button type="button">Další</button></ActionDock>
+      </StageHeader.Provider>
+    );
+    try {
+      const view = render(dock(null));
+      const button = primary.querySelector("button")!;
+      button.focus();
+      view.rerender(dock("Připraveno"));
+      expect(primary.querySelector("button")).toBe(button);
+      expect(document.activeElement).toBe(button);
+      view.rerender(dock(null));
+      expect(primary.querySelector("button")).toBe(button);
+    } finally {
+      primary.remove();
+    }
   });
 
   it("ActionDock says why a step is not ready, beside its way back and its action", () => {

@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { approvalRefusal, reportStatus, reportStatusWords, reviewStatus } from "@/lib/report-status";
 
 import { t, tv } from "@/i18n/t";
-import { ApiError, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
+import { ApiError, type ApprovedEdit, deepResearch, type DeepResearchRun, type ReportVariant, type ResearchReport, type ResearchRun, research } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
 import { resultOriginKind, runOriginKinds, type OriginKind } from "@/lib/research-execution";
 import {
@@ -23,6 +23,7 @@ import {
   pdfStatesReview,
   pdfWhy,
   reportPdfPending,
+  reviewLabel,
   reviewLine,
   reviewsFor,
   variantPdfAskable,
@@ -115,7 +116,7 @@ function Segment<T extends string>({ label, value, options, onChange }: {
           title={o.disabled ?? undefined}
           onClick={() => { if (!o.disabled) onChange(o.id); }}
           className={value === o.id
-            ? "min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--color-border)]"
+            ? "min-h-8 rounded-[4px] bg-surface-raised px-2.5 text-xs font-medium shadow-[0_0_0_1px_var(--border)]"
             : `min-h-8 rounded-[4px] px-2.5 text-xs font-medium ${o.disabled ? "cursor-not-allowed text-ink-faint" : "text-ink-muted"}`}
         >
           {o.text}
@@ -336,6 +337,18 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
       saveBlob(got.blob, got.filename ?? name);
     }
   });
+  // The edited versions a person approved in the pane (RPT8d): the composed draft stays a draft, so
+  // each is downloaded as itself, the file checked to be that version, approved.
+  const approvedEdits = version === "internal" ? (withReview ? current?.approved_edits : report?.approved_edits) ?? [] : [];
+  const downloadEdit = (edit: ApprovedEdit) => run_(async () => {
+    const got = await research.downloadReportEditorVersion(frame.studyId, run.run_id, edit.artifact_id);
+    const why = downloadMismatch(
+      { artifactId: got.artifactId, reviewState: got.reviewState },
+      { artifactId: edit.artifact_id, reviewState: edit.review_state },
+    );
+    if (why) throw new Error(why);
+    saveBlob(got.blob, got.filename ?? `AIA-${frame.studyId}-${run.run_id}-koncept-${edit.koncept}.docx`);
+  });
   // An earlier composition's draft prepared anew under today's: a new draft, which needs its
   // own approval; the earlier one stays downloadable if composing is refused. Never offered for
   // an approved version, which stays the report.
@@ -431,11 +444,10 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 >
                   <option value="">Základní zpráva, bez literární rešerše</option>
                   {/* Chosen, and not (yet) in the list read: shown as chosen, never as another. */}
-                  {review !== null && !reviews?.some((r) => r.run_id === review) ? <option value={review}>S rešerší · {review}</option> : null}
-                  {(reviews ?? []).map((r) => (
-                    <option key={r.run_id} value={r.run_id}>
-                      S rešerší {r.created_at ? new Date(r.created_at).toLocaleDateString("cs-CZ") : ""} · {r.run_id}
-                    </option>
+                  {review !== null && !reviews?.some((r) => r.run_id === review) ? <option value={review}>S rešerší</option> : null}
+                  {(reviews ?? []).map((r, i) => (
+                    // Named as the doc picker names it, never by its run id (RPT12).
+                    <option key={r.run_id} value={r.run_id}>S rešerší · {reviewLabel(r, i)}</option>
                   ))}
                 </Select>
               </label>
@@ -468,6 +480,16 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 ? t("research.exec.results.reportDownloadClient")
                 : withReview && !variantReady ? "Připravit zprávu s rešerší" : "Stáhnout zprávu"}
           </Button>
+          {approvedEdits.length ? (
+            <div data-approved-edits className="flex flex-col gap-1">
+              {approvedEdits.map((edit) => (
+                <Button key={edit.artifact_id} variant="quiet" className="!min-h-11 justify-center" disabled={busy || !mayReview} onClick={() => void downloadEdit(edit)}>
+                  <Icon name="download" size={16} />
+                  Stáhnout schválenou úpravu, koncept {edit.koncept} (DOCX)
+                </Button>
+              ))}
+            </div>
+          ) : null}
           {variantEarlier && approved ? (
             // An approved version stays the report: preparing anew would compose nothing over it
             // (cross-review interactions#5), so it is not offered.

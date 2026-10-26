@@ -141,6 +141,17 @@ case "$catalogue_status" in
   *) log "WARNING: an audience catalogue could not be kept (above); the deploy goes on" ;;
 esac
 
+# Sealed Research Leads past their 30 days (ADR 0030, settings-backends SB2): a deactivated
+# member's Lead, its conversations and what its turns sent and got back, erased. Acts as no
+# one; with nothing due it changes nothing. Optional and bounded like the catalogue: a
+# failure is said, the deploy goes on, and the next deploy picks up what is left.
+log "erasing sealed Leads past their date"
+retention_status=0
+timeout --kill-after=30 300 "${COMPOSE[@]}" run --rm --no-deps -T worker \
+  python -m aia_executors.lead_retention --apply || retention_status=$?
+if [ "$retention_status" -ne 0 ]; then
+  log "WARNING: the sealed-Lead retention sweep did not finish (status $retention_status); the deploy goes on"
+fi
 
 # GlitchTip, the error tracker (errors/docker-compose.yml), when SSM aia_errors_enabled is
 # true: started or updated after AIA is healthy, in a project of its own, so a change to
@@ -155,12 +166,20 @@ fi
 
 # ONLYOFFICE Docs, Zpráva's report editor (docs/docker-compose.yml), when SSM
 # aia_onlyoffice_enabled is true: started or updated after AIA is healthy, in a project of its
-# own. Optional like GlitchTip: without it Zpráva keeps its read-only pane. Its first start
-# generates fonts (about a minute, measured), hence the longer bound.
+# own. Optional like GlitchTip: without it Zpráva keeps its read-only pane. A start runs
+# upstream's whole start sequence (fonts, then gzipping its static files) before api.js takes its
+# fixed tag and the server reports healthy: 274-330 s measured (4 vCPU), hence the longer bound.
 if [ "${AIA_ONLYOFFICE_ENABLED:-false}" = "true" ]; then
   log "starting the Document Server"
-  if ! timeout --kill-after=30 480 "$DEPLOY_DIR/bin/docs.sh" up; then
+  if ! timeout --kill-after=30 660 "$DEPLOY_DIR/bin/docs.sh" up; then
     log "WARNING: the Document Server did not start (above); Zpráva stays read-only; the deploy goes on"
+  fi
+# Switched off while it runs: stopped here, so turning it off needs no hand on the host. Its
+# volumes are kept (bin/docs.sh down).
+elif [ -n "$(docker ps -q --filter label=com.docker.compose.project=aia-docs)" ]; then
+  log "stopping the Document Server: aia_onlyoffice_enabled is not true"
+  if ! timeout --kill-after=30 120 "$DEPLOY_DIR/bin/docs.sh" down; then
+    log "WARNING: the Document Server did not stop (above); the deploy goes on"
   fi
 fi
 

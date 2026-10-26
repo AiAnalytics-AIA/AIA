@@ -11,9 +11,9 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { ApiError, api, lead as leadApi, research, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
+import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
 import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -43,7 +43,7 @@ import type { StudyFrame } from "../rehome/research/frame";
 import { readySetLimits, useSampleLimits } from "../rehome/research/useSampleLimits";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
-import { FrameNavigation } from "@/components/rehome/step";
+import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -54,6 +54,8 @@ import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import { useWorkingImpact } from "./useWorkingImpact";
 import "./workbench.css";
+import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
+import { t, tv } from "@/i18n/t";
 
 const storage = () => {
   try {
@@ -162,7 +164,7 @@ function autoList(memory: Map<string, unknown>): AutoList {
 }
 
 /** The stage whose heading takes the focus once it opens (FrameNavigation's `next.go`); module
- *  scope, because a move to another route remounts the workbench. */
+ *  scope, so it holds whatever the route change keeps mounted. */
 const headingFocus: { pending: { studyId: string; stage: WorkbenchStage } | null } = { pending: null };
 
 /** An item the Lead's `inspect` opens on another stage: opened once that stage is shown, module
@@ -246,6 +248,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     moveFocus(next.focus);
   }, [drawer, layout, moveFocus]);
   const [split, setSplit] = useState(() => readSplit(storage()));
+  // The workbench stays mounted from stage to stage (research-lead-workbench 34): another route's
+  // stage opens at its top, as its own page did; a view of the same route (a hash) keeps its place.
+  const artBody = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (artBody.current) artBody.current.scrollTop = 0;
+  }, [step]);
   // "Připravenost a pomoc" lies over the artifact: opening it takes the focus into it, and Escape
   // closes it before the drawer while it is the layer the person is in, giving the focus back to its
   // button (D21's one Escape order; workbench audit, 2026-10-22: it took neither the focus nor
@@ -384,11 +392,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     return () => window.removeEventListener("focus", onFocus);
   }, [waiting, onRefreshJobs]);
   // The budget meter is read again whenever a run, a design job or a Lead turn changes state: all spend.
+  // By their states, never the list's identity: the runs are read again on every stage (useRuns), and
+  // a stage change alone spends nothing (Codex on #835).
+  const runStates = runs?.map((r) => `${r.run_id}:${r.phase}:${(r.steps ?? []).map((s) => s.status).join("/")}`).join(",") ?? null;
   const jobStates = jobs.map((j) => `${j.run_id}:${j.status}`).join(",");
   const turnStates = turns.map((t) => `${t.turn_id}:${t.status}`).join(",");
   useEffect(() => {
     api.study(frame.studyId).then(setStudy, () => setStudy(null));
-  }, [frame.studyId, runs, jobStates, turnStates]);
+  }, [frame.studyId, runStates, jobStates, turnStates]);
 
 
   /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */
@@ -406,7 +417,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A stage's forward action (FrameNavigation's `next`): the stage after this one in the workbench's
   // order, opened as the navigator opens it, then the focus on the new stage's heading. The pressed
   // button may be hidden by the move (Vzorek hides Dimenze's screen), so the focus would fall to the
-  // body; the heading names where the person is now. Kept across a route change, which remounts.
+  // body; the heading names where the person is now. Kept across a route change.
   const nextStage = STAGE_ORDER[STAGE_ORDER.indexOf(stage) + 1] ?? null;
   const frameNav = useMemo(() => ({
     next: nextStage ? {
@@ -418,6 +429,22 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       },
     } : null,
   }), [nextStage, go, frame.studyId]);
+  // The stage's header parts (research-lead-workbench 36, v73 X1 + H1): the elements its actions,
+  // its status line and its forward action go into. A mounted ActionDock claims the primary, so the
+  // header shows the stage's own forward action; with none, the frame's next stage. Vzorek keeps
+  // Dimenze's screen mounted but hidden: no header for it, or its dock would claim Vzorek's.
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
+  const [headerStatus, setHeaderStatus] = useState<HTMLElement | null>(null);
+  const [headerPrimary, setHeaderPrimary] = useState<HTMLElement | null>(null);
+  const [primaryClaims, setPrimaryClaims] = useState(0);
+  const claimPrimary = useCallback(() => {
+    setPrimaryClaims((n) => n + 1);
+    return () => setPrimaryClaims((n) => n - 1);
+  }, []);
+  const stageHeader = useMemo<StageHeaderSlots | null>(
+    () => (stage === "sample" ? null : { actions: headerActions, status: headerStatus, primary: headerPrimary, claimPrimary }),
+    [stage, headerActions, headerStatus, headerPrimary, claimPrimary],
+  );
   useEffect(() => {
     // Consumed on every stage change, matched or not, and only for this study.
     const want = headingFocus.pending;
@@ -444,13 +471,18 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     if (want?.stage === stage && want.studyId === frame.studyId) nameFromPage(want.entry.id);
   }, [stage, frame.studyId, nameFromPage]);
 
+  // A Lead's show_diff, set once the waiting edits and the jobs' review are known below.
+  const showChanges = useRef<(target: WorkbenchStage, reveal: (selector: string) => void) => void>(() => {});
   const onView = useCallback((ops: LeadView[]) => {
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
-    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" ? last.stage : last.target }, layout).state);
+    if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.op === "filter" ? "sociomap" : last.target }, layout).state);
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
-      else if (v.op === "inspect") {
+      else if (v.op === "select" || v.op === "filter") {
+        // Sociomapa's picture: on another stage the map takes it once shown, if the move was not stopped.
+        if (stage === "sociomap" || go("sociomap")) sendLeadMapView(v);
+      } else if (v.op === "inspect") {
         // The item drawer over the target's own stage, the one a person's click opens; on another
         // stage it opens once that stage is shown (the move remounts on a route change).
         const t = parseAiaId(v.target);
@@ -463,33 +495,42 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           leadInspect.pending = { studyId: frame.studyId, stage: t.stage, entry };
           if (!go(t.stage)) leadInspect.pending = null;
         }
+      } else if (v.op === "show_diff") {
+        showChanges.current(v.stage, reveal);
       } else {
-        // After a stage change the element appears on the next render: look again briefly.
-        let tries = 0;
-        const find = () => {
-          const el = document.querySelector<HTMLElement>(focusSelector(v.target));
-          if (el) {
-            el.scrollIntoView({ block: "center", behavior: "smooth" });
-            // With the conversation stepped aside, focus follows to what the Lead pointed at.
-            // The artifact is inert until the drawer's step aside has rendered: try again briefly.
-            if (compact) {
-              if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
-              let attempts = 0;
-              const take = () => {
-                el.focus({ preventScroll: true });
-                if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
-              };
-              take();
-            }
-            el.classList.add("just");
-            setTimeout(() => el.classList.remove("just"), 2300);
-          } else {
-            if (!tries) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: v.target }));
-            if (tries++ < 10) setTimeout(find, 150);
-          }
-        };
-        find();
+        reveal(focusSelector(v.target), v.target);
       }
+    }
+    // What a view points at, scrolled to and marked; after a stage change it appears on the next
+    // render, so look again briefly. A focus target not on screen is announced (LEAD_REVEAL) once.
+    function reveal(selector: string, target?: string) {
+      let tries = 0;
+      const find = () => {
+        const el = document.querySelector<HTMLElement>(selector);
+        if (el) {
+          // A target folded away (a closed <details>, Vzorek's other sources) is unfolded first, so
+          // the view shows it rather than scrolling to hidden content.
+          for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
+          el.scrollIntoView({ block: "center", behavior: "smooth" });
+          // With the conversation stepped aside, focus follows to what the Lead pointed at.
+          // The artifact is inert until the drawer's step aside has rendered: try again briefly.
+          if (compact) {
+            if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+            let attempts = 0;
+            const take = () => {
+              el.focus({ preventScroll: true });
+              if (document.activeElement !== el && attempts++ < 10) setTimeout(take, 50);
+            };
+            take();
+          }
+          el.classList.add("just");
+          setTimeout(() => el.classList.remove("just"), 2300);
+        } else {
+          if (!tries && target) window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target }));
+          if (tries++ < 10) setTimeout(find, 150);
+        }
+      };
+      find();
     }
   }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
@@ -699,12 +740,47 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).
+  // Below 1100 px the review lies under the drawer or the sheet: the conversation steps aside, as for a
+  // Lead's view, and the review takes the focus when it mounts (ProposalReview).
   const openJob = useCallback((job: ResearchAgentJob) => {
     const target = JOB_STAGE[job.action];
+    if (compact) setDrawerState(nextDrawer(drawer, { type: "view", target: target ?? stage }, layout).state);
     if (!target || target === stage || !memory) return onOpenJob(job);
-    memory.set(OPEN_REVIEW_KEY, job.run_id);
+    memory.set(OPEN_REVIEW_KEY, job);
     go(target);
-  }, [stage, memory, onOpenJob, go]);
+  }, [stage, memory, onOpenJob, go, compact, drawer, layout]);
+
+  // A Lead's show_diff (research-lead-workbench 14): the Lead's edits still to decide on the
+  // stage, else its newest proposal still waiting for review; with neither, the stage itself.
+  // `jobs` is the newest page only: a proposal older than it is asked of the server, which
+  // filters the pending ones before its page. A lookup answering after the stage, the study or
+  // a newer show_diff moved on is dropped (`lookup`).
+  const lookup = useRef(0);
+  useEffect(() => () => { lookup.current++; }, [stage, frame.studyId]);
+  showChanges.current = (target, reveal) => {
+    const mine = ++lookup.current;
+    const what = changesToShow(target, open.map((x) => editStage(x.edit)), jobs);
+    if (what?.kind === "proposal") return openJob(what.job);
+    if (what?.kind === "edits") {
+      if (target === stage || go(target)) reveal(EDITS_SELECTOR);
+      return;
+    }
+    researchAgents.jobs(frame.studyId, true).then(
+      (pending) => {
+        if (lookup.current !== mine) return;
+        const older = changesToShow(target, [], pending);
+        if (older?.kind === "proposal") openJob(older.job);
+        else if (target !== stage) go(target);
+        else setNotice(NOTHING_WAITS);
+      },
+      () => {
+        if (lookup.current !== mine) return;
+        // Not read is not "nothing waits": the person is told, and the stage still opens.
+        setNotice(PENDING_UNREAD);
+        if (target !== stage) go(target);
+      },
+    );
+  };
 
   // The prepared research run's card (chunk 23): the design the person sees submitted and read as
   // Spuštění reads it on a visit, then started through Spuštění's own route, POST …/research/runs
@@ -759,7 +835,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   return (
     <div className={`wb wb--${layout}${picking ? " wb-picking" : ""}`} data-workbench data-layout={layout}>
       <a href="#composer" className="skip">Přeskočit na zprávu</a>
-      <StudyHeader frame={frame} study={study} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
+      <StudyHeader frame={frame} study={study} flush={() => store.flush()} pending={open.length} blocked={blocked} onPending={() => open[0] && go(editStage(open[0].edit))} layout={layout} inert={isModal(layout, drawer)} />
       <StageNav stage={stage} lane={lane} marks={reopened} onOpen={go} layout={layout} inert={isModal(layout, drawer)} />
       <main className="workspace">
         <Split split={split} mode={mode} layout={layout} shown={conversationShown(layout, drawer)} leftLabel="Vedoucí výzkumu"
@@ -769,11 +845,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
+                  <span ref={setHeaderActions} className="arthead__slot" />
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
                     {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
                     <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
@@ -781,8 +858,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />
                   </button>
+                  <span ref={setHeaderPrimary} className="arthead__slot" />
+                  {(stageHeader === null || primaryClaims === 0) && frameNav.next ? (
+                    <button type="button" className="btn btn--sm btn--primary" onClick={frameNav.next.go}>
+                      {frameNav.next.label}<Icon name="next" size={14} />
+                    </button>
+                  ) : null}
                 </div>
               </div>
+              <div ref={setHeaderStatus} className="artstatus" data-stage-status />
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
@@ -794,10 +878,10 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               {autoHere.length ? <AutoBar items={autoHere} state={state} canEdit={frame.canEdit} onRevert={revert} onHide={() => autoStore.set((a) => a.filter((x) => editStage(x.edit) !== stage))} /> : null}
               {here.length ? <EditsBar items={here} state={state} marks={marks} canEdit={frame.canEdit} onAccept={(keys) => void decide("accept", keys)} onDismiss={(keys) => void decide("dismiss", keys)} /> : null}
               <div className="artstage">
-                <div className="artbody" id="artbody"><div className="wb-stage">
+                <div ref={artBody} className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}><StageHeader.Provider value={stageHeader}>{children}</StageHeader.Provider></FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>
@@ -820,6 +904,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   );
 }
 
+const EDITS_LABEL = "Návrhy Vedoucího";
+const NOTHING_WAITS = "Na této fázi nic nečeká na rozhodnutí (prohledáno posledních 200 úloh).";
+const PENDING_UNREAD = "Návrhy čekající na rozhodnutí se nepodařilo načíst. Zkuste to znovu.";
+const EDITS_SELECTOR = `[role="region"][aria-label="${EDITS_LABEL}"]`;
+
 function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   items: { key: string; edit: LeadEdit; turn: LeadTurn }[];
   state: ResearchState; marks: Record<string, EditMark>; canEdit: boolean;
@@ -828,7 +917,7 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   const content = { project: state.project, analysis: state.analysis };
   const keys = items.map((x) => x.key);
   return (
-    <div className="artbar artbar--you edits" role="region" aria-label="Návrhy Vedoucího">
+    <div className="artbar artbar--you edits" role="region" aria-label={EDITS_LABEL}>
       <div className="edits__head">
         <Glyph tone="you" size={12} />
         <div className="artbar__grow"><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</div>
@@ -892,7 +981,7 @@ function holds(state: ResearchState, item: AutoApplied): boolean {
   return item.revision !== null && state.revision !== null && state.revision >= item.revision;
 }
 
-function StudyHeader({ frame, study, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
+function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout = "split", inert = false }: { frame: StudyFrame; study: Study | null; flush?: () => Promise<unknown>; pending: number; blocked: number; onPending: () => void; layout?: WorkbenchLayout; inert?: boolean }) {
   // Under 768 px (the sheet) the bar keeps the study's name and the menu; what waits and the budget
   // move into the menu (research-lead-workbench 26d).
   const narrow = layout === "sheet";
@@ -933,6 +1022,7 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
     setMenu(false);
     guardedNavigate(url, (u) => router.push(u));
   };
+  const status = useStudyStatus(frame.studyId, frame.refreshStudy ?? (() => {}), flush, frame.holdEdits);
   const budget = study?.budget_usd ?? null;
   const spent = study?.spent_usd ?? null;
   const spentPct = budget && spent !== null ? Math.min(100, (spent / budget) * 100) : 0;
@@ -953,6 +1043,9 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
           <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
         </span>
       )}
+      {/* The study's status (F7): its own menu beside the header's; under 768 px, items of the header's
+          menu, where every target is 44 px (I11). */}
+      {frame.status && frame.refreshStudy && !narrow ? <StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /> : null}
       <div ref={menuBox} style={{ position: "relative" }}>
         <button ref={menuToggle} type="button" className="iconbtn" aria-label="Nabídka" title="Nabídka" aria-haspopup="menu" aria-expanded={menu}
           onClick={() => (menu ? setMenu(false) : openMenu("first"))}
@@ -965,6 +1058,14 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>
                   <div className="menu__info num" role="none"><Icon name="budget" size={13} />{budget === null ? "Rozpočet nenastaven" : `Rozpočet: ${usd(spent)} / ${usd(budget)} USD`}</div>
                   {pending > 0 ? <button type="button" role="menuitem" className="listbtn" onClick={() => { setMenu(false); onPending(); }}>Čeká na vás: {pending}</button> : null}
+                  {frame.status && frame.refreshStudy ? <>
+                    <div className="menu__info" role="none" data-study-status={frame.status}>{tv("aia.study.status.label", { status: t(`aia.status.${frame.status}`) })}</div>
+                    {otherStatuses(frame.status).map((s) => (
+                      <button key={s} type="button" role="menuitem" className="listbtn" disabled={status.busy} onClick={() => { setMenu(false); void status.change(s); }}>
+                        {tv("aia.study.status.to", { status: t(`aia.status.${s}`) })}
+                      </button>
+                    ))}
+                  </> : null}
                 </>
               ) : null}
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
@@ -974,6 +1075,8 @@ function StudyHeader({ frame, study, pending, blocked, onPending, layout = "spli
             </div>
           </>
         ) : null}
+        {/* A refused change under 768 px, where the menu that asked has closed: said beneath it. */}
+        {narrow && status.shown && !menu ? <div className="pop" style={{ right: 0, top: 34, width: 280, padding: 8 }}>{status.shown}</div> : null}
       </div>
     </header>
   );
@@ -1010,21 +1113,34 @@ function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = f
     const k = stageState(s, lane);
     const cur = s === stage;
     const mark = marks[s];
+    // The word is the lane's, beside its tone (stageState): a stage is never called done on a tone it
+    // did not earn; a stage the lane says nothing of says nothing (never "not started").
+    const word = k.word;
+    // One slot per stage, the same markup whichever is current: aria-current and the fill tell it
+    // apart, never a width. Its status is said three ways: the glyph, a word and the tone's strip.
     return (
-      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
+      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}`} data-tone={k.tone}
         aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}${mark ? `; ${mark.words}` : ""}`}
         data-impact={mark?.impact} onClick={() => { setListOpen(false); onOpen(s); }}>
-        <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{layout === "sheet" ? STAGES[s].label : STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
+        <span className="nav__label">{layout === "sheet" ? STAGES[s].label : STAGES[s].short}</span>
+        <span className="nav__state">
+          <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={12} />
+          <span className="nav__status" aria-hidden="true">{word}</span>
+        </span>
+        {k.line || word ? <span className="sr-only">, {k.line || word}</span> : null}
         {mark ? <><span className={`nav__impact nav__impact--${mark.impact.toLowerCase()}`} aria-hidden="true" /><span className="sr-only">, {mark.words}</span></> : null}
       </button>
     );
   };
-  const phases = PHASES.map((ph) => (
-    <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label}>
-      <span className="nav__plabel">{ph.label}</span>
-      {STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id).map(stageButton)}
-    </div>
-  ));
+  const phases = PHASES.map((ph) => {
+    const stages = STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id);
+    return (
+      <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label} style={{ "--slots": stages.length } as CSSProperties}>
+        <span className="nav__plabel" aria-hidden="true">{ph.label}</span>
+        <div className="nav__slots">{stages.map(stageButton)}</div>
+      </div>
+    );
+  });
   if (layout === "sheet") {
     // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
     return (

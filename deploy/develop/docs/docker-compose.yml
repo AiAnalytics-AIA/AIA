@@ -13,11 +13,12 @@
 # It shares a network with Caddy alone, not with the API: it reaches AIA only through the
 # public hostname, with its own request filter refusing private and metadata addresses,
 # because this host's containers can reach IMDS (infra/develop/main.tf, hop limit 2) and the
-# Document Server fetches URLs. Every request between AIA and it is JWT-signed with AIA_ONLYOFFICE_JWT_SECRET
-# (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
+# Document Server fetches URLs. Every request between AIA and it is JWT-signed with
+# AIA_ONLYOFFICE_JWT_SECRET (SSM aia_onlyoffice_jwt_secret), which it refuses to start without.
 #
-# Measured on 9.4.0.1 with these settings (2026-10-22): healthy about 10 s after start,
-# about 530 MiB once its fonts and themes are generated. Its editing sessions are kept in
+# Measured on 9.4.0.1 with these settings: about 530 MiB once its fonts and themes are generated
+# (2026-10-22); healthy 274-330 s after start (2026-10-26, 4 vCPU), once upstream's whole start
+# sequence has run and api.js has taken its fixed cache tag (start-fixed-cache-tag.sh). Its editing sessions are kept in
 # memory and in docs_cache; a report's truth is AIA's stored draft, so neither is in
 # bin/backup.sh.
 
@@ -27,7 +28,16 @@ services:
   onlyoffice:
     image: onlyoffice/documentserver:9.4.0.1@sha256:3ab6ebc7c605e5a32b7ae3ff19daed4925090245acc8100ce2230bd766c88212
     restart: unless-stopped
+    # Upstream's entrypoint, then api.js rewritten under AIA_DS_CACHE_TAG by upstream's own script
+    # (start-fixed-cache-tag.sh), so its hash is the same after every start.
+    entrypoint: ["/aia/start-fixed-cache-tag.sh"]
     environment:
+      # api.js's cache tag, fixed: md5("aia-documentserver-" + the image's tag; CI holds it). Word
+      # characters only (tools/caddy_routes.py's version prefix). It is also upstream's only
+      # cache-buster for the editor's assets (a year, immutable): a new image or a font change
+      # changes it, and AIA_ONLYOFFICE_API_INTEGRITY in ../docker-compose.yml with it (sha384 of
+      # api.js.tpl with {{HASH_POSTFIX}} replaced; README § Report editor).
+      AIA_DS_CACHE_TAG: e2c7b902106f86a68aabb088d5054ee0
       JWT_ENABLED: "true"
       JWT_SECRET: ${AIA_ONLYOFFICE_JWT_SECRET:?SSM aia_onlyoffice_jwt_secret}
       JWT_HEADER: Authorization
@@ -56,13 +66,21 @@ services:
       - docs_logs:/var/log/onlyoffice
       - docs_data:/var/www/onlyoffice/Data
       - docs_fonts:/usr/share/fonts/truetype/custom
+      # Its one setting no variable reaches: a force-save every 5 minutes while a document is
+      # open, so AIA's callback gets status 6, forcesavetype 2, and stores a version (RPT8).
+      # local-production-linux.json, not local.json: the image's start script writes local.json
+      # (the JWT secret among it), and its loader reads this file after it.
+      - ./local-production-linux.json:/etc/onlyoffice/documentserver/local-production-linux.json:ro
+      - ./start-fixed-cache-tag.sh:/aia/start-fixed-cache-tag.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS -m 3 http://localhost/healthcheck | grep -qx true"]
+      # Healthy only once api.js carries the fixed tag: before that, Zpráva would refuse it.
+      test: ["CMD-SHELL", "curl -fsS -m 3 http://localhost/healthcheck | grep -qx true && grep -qF \"9.4.0-$${AIA_DS_CACHE_TAG}'\" /var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js"]
       interval: 30s
       timeout: 5s
       retries: 5
-      # The first start generates its fonts and themes: about a minute, measured.
-      start_period: 180s
+      # A start generates its fonts and themes, then gzips its static files, then api.js takes its
+      # fixed tag: 274-330 s measured on 4 vCPU (2026-10-26).
+      start_period: 600s
     logging:
       driver: json-file
       options: { max-size: "20m", max-file: "3" }

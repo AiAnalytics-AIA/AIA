@@ -55,8 +55,8 @@ chunks:
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
   - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
-  - "[ ] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition"
-  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it"
+  - "[x] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition (#844 @ 170823e4)"
+  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py not built yet)"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[x] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
@@ -64,6 +64,7 @@ chunks:
   - "[ ] 57. Brave for Class B queries (owner determination 2026-10-20, Q20): a query written from a design reaches Brave at Class B for every client, CLASSIFIED included; Class A only as chunk 57a's code-extracted fields (Q22); recorded as data beside OI-61"
   - "[ ] 57a. Class A in queries only as code-extracted fields (Q22): category, market and named competitors from approved knowledge, picked by code, never the client's free text or documents"
   - "[ ] 58. Search operators (Q23): site:, filetype: and intitle: written by the model, passed to routes that support them, RetrievalGate checking every URL and hop as today"
+  - "[ ] 59. The Deep Research tool event carries the fetched host and a refusal's reason (spec lead LP-14, lead B9; W1, only as a defect or evaluation finding under the engine freeze)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -533,6 +534,9 @@ in parallel unless an order is stated.
 
 ### Phase 0 — decide
 
+*The owner, 2026-10-25 (DR-SIGNOFF (a), the audit page, relayed by coordinator 3): approve the proposed values on Settings → Deep
+Research; he clicks that himself. Not ticked until the approvals are recorded.*
+
 **1. Sign-off (human; no code).** The data owner approves: this design and § 4; the ADR 0017
 amendment (§ 16); Brave on a plan that grants storage and AI use (plan, terms URL and date, price,
 failed-request billing, retention, recorded here); D8 for the key (chunk 4's proposal or Secrets
@@ -701,6 +705,9 @@ captured; the snapshot and dataset retention job.
 preset: exact-value accuracy with the right unit, period and geography; primary-source rate; share
 grounded to a table cell; false acceptances (a wrong number accepted); acquisition gaps. *Proposed
 target for the owner:* zero false acceptances, at least 90 % exact accuracy at Deep.
+
+*The owner, 2026-10-25 (MVPQ-06 rest (a), the audit page, relayed by coordinator 3): the targets proposed in 25, 26 and 39 are
+adopted as written.*
 
 **26. Quality on 20 research questions.** Fictional-client questions (simple, comparison, complex),
 each run three ways (planned queries as today; agent-directed; agent-directed with the lead
@@ -1960,3 +1967,14 @@ chunk's tightened wording and Q44-Q48 live).
 - `deploy/develop/README.md` (the switches): the API also receives `AIA_DEEP_RESEARCH_ENABLED`, read
   only for the quote's statement.
 - `open-items.md`: F-DRL-2 and F-DRL-3 closed by this PR (numbered from #553's findings).
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**59. Host and reason on the tool event** (spec `lead/LP-14`; W1, lane C). With `research-lead-workbench#23b`. Open contradiction 13: CLAUDE.md freezes the engine "except on a defect or evaluation finding"; this chunk lands only if it is recorded as one, else it is moved.

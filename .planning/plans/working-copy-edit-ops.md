@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] WCE0. The contract: the closed operation set, ids, validation, the lock rule and the text-only marker, with one shared fixture (tests/fixtures/edit_ops/cases.json) read by the Python and the TypeScript tests"
   - "[x] WCE1. Stable item identity: ids for objectives, research questions, hypotheses, options, battery objects and sections; existing content gets ids on load; `FOCUS_ID` and `design_items` keys use them"
-  - "[ ] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
+  - "[x] WCE2. `workspace_edit_ops` (M1) and `apply_edit_ops`: the one writer of the working copy; every other writer becomes a recorded whole-copy operation"
   - "[ ] WCE3a. The web store on the server vocabulary, Brief and Design stages"
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
@@ -16,7 +16,7 @@ chunks:
   - "[x] WCE7d1. The stage track reads it: a stage the working copy reopened says so, measured against the newest run's design, so a run whose design is older than the copy says so on every stage it reopened"
   - "[ ] WCE7d2. The working copy accepted as a revision, explicitly, from the workbench"
   - "[ ] WCE8. Sociomap declarations: an editor for `sociomap_rating` and `context_objects`, the hard lock and `sociomap_unlock`"
-  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W2, with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
+  - "[ ] WCE8b. The questionnaire proposal keeps protected inputs and item identity (W1 from 2026-10-26, was W2; with WCE8, before research-lead-workbench 7 and 17): declared batteries, tracked sets and rating questions copied from the baseline under their ids, never from model output; proposed items keep a baseline id"
   - "[ ] WCE9. Undo and restore of a person's edit, and a route that reads an old working revision"
   - "[ ] WCE10. The Lead's edit vocabulary widened (Audience, Dimensions, Sample), with a prompt and harness version and an `is_text_edit` ruling per operation"
   - "[ ] WCE11. Auto-apply per stage (MVP-14, D18): the researcher's `auto_accept_text_edits` gains a per-stage structural choice, off by default"
@@ -133,6 +133,29 @@ the agent-job and Design Research accepts; **2f** the 18.6.6 migration, then `sa
   left to WCE8: with ids kept and an input declared, a reword whose links follow onto a locked rating
   question touches it, and `save` refuses the whole accept (409 `sociomap_input_locked`) rather than
   half of it.
+- **WCE2e (2026-10-22).** The proposal accepts are logged: `accept_into_working_copy` takes `by`
+  (required) and its merged write is logged as a whole-copy write made by the person who accepts,
+  citing the run (`proposal_accept` for an agent job, `ResearchAgentJobs.accept`;
+  `design_research_accept` for a Design Research proposal, `DesignResearchProposals.accept`). The
+  lock already held for them through `save` (WCE2c). Tests: the accept tests in
+  `test_research_agent_executor.py` and `test_design_research_proposals.py` assert the rows (both
+  failed before the change). With it, two tests WCE2d's review asked for (`test_lead_edits_logged.py`):
+  an automatic accept takes the unlocked text edit and refuses the locked one alone; a reword whose
+  links follow onto a locked question refuses the whole accept and writes nothing (the WCE8 edge).
+  Held at the 2026-10-22 feature freeze; released by the product owner overnight ("Drive all to
+  merge").
+- **WCE2f (2026-10-23).** No write of the working copy skips the log. `save` takes `by` (required,
+  no `None`); `import_migrated` takes `by` and logs each revision it writes against the one before
+  it, as the 18.6.6 migration passes it: `WriteBy(PERSON, None, MIGRATION)`, the one write logged
+  without its author, because the unit recorded none (`workspace_migration.MIGRATED`; the person
+  who ran it stays on the `WORKSPACE_MIGRATED` event and the lineage). `make layer_check`: only the
+  migration calls `import_migrated` ("only the 18.6.6 migration imports a working copy", and the
+  API, worker and executors never). The scoped split named `apply_edit_ops` as the gate; as WCE2c
+  recorded, `save` is the one persistence point every writer reaches, so the guarantee is the
+  required author there and the import rule, not a second wrapper. Test:
+  `test_workspace_migration.py::test_a_study_gets_every_revision_…` asserts the migrated rows
+  (failed before the change); every other test of a save names its author. Released with WCE2e by
+  the product owner's "Drive all to merge" (2026-10-23).
 
 **WCE3a. The web store on the server vocabulary, Brief and Design stages**  
 33 `store.update` sites in 9 files and about 1,900 lines of TypeScript with 18.6.6 parity tests are moved stage by stage; the parity tests stay green at every step.
@@ -546,3 +569,7 @@ exactly as the old text keys did (`" ".join(split()).casefold()`, one function; 
 - `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
   WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
   switch-on prerequisites).
+
+## Re-waved (2026-10-26)
+
+**WCE8b moves from W2 to W1.** `artifact-questionnaire#QST5` (W1) accepts a proposal item by item (spec `navrh/Q6`), which needs proposed items to keep their baseline ids; the plan draft promises that accept in W1 (research chunk register, contradiction 2; `.planning/mvp-execution-contracts.md`). WCE8 stays in E15 (W2): WCE8b's copy of the declared batteries, sets and rating questions works on today's declarations and tightens when WCE8 makes them settable.

@@ -450,21 +450,21 @@ forbid "the API, worker and executors never touch the design source table" \
 # calling researcher in every query. The table used anywhere else could read another
 # researcher's turns, or another Study's.
 forbid "the Lead turn table is touched only by its repository" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/study_lead_repository.py"
 forbid "the API, worker and executors never touch the Lead turn table" \
-  'StudyLeadTurnRow|study_lead_turns' \
+  'StudyLeadTurnRow|study_lead_turns|StudyLeadTurnAnswerRow|study_lead_turn_answers' \
   apps
 # Each researcher's own Lead, its file history and its notes (product owner, 2026-10-19): the
 # repository works only on the calling researcher's Lead, and loads a client note only into
 # its own client's Study, by the query. Elsewhere the rows could cross either line.
 forbid "the researcher Lead tables are touched only by their repository" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/researcher_lead_repository.py"
 forbid "the API, worker and executors never touch the researcher Lead tables" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   apps
 # The approval ledger is append-only and holds every decision between a person and the AI (ADR
 # 0019): its two repositories write it under the scope's three columns and the permission each
@@ -494,6 +494,17 @@ forbid "only the 18.6.6 migration logs a write as migrated" \
   "$CORE/infrastructure/tables.py"
 forbid "the API, worker and executors never log a write as migrated" \
   'OpSource\.MIGRATION' \
+  apps
+# The working copy has one persistence point, StudyWorkspaceRepository.save, and every call names
+# its author (by: WriteBy, required; working-copy-edit-ops WCE2f). The one other way a revision is
+# written, the 18.6.6 migration's import, is reached from the migration alone, which logs it as
+# migrated: no writer can add revisions that skip the log or the lock.
+forbid "only the 18.6.6 migration imports a working copy" \
+  'import_migrated\(' \
+  "$CORE" \
+  "$CORE/infrastructure/study_workspace_repository.py" "$CORE/application/workspace_migration.py"
+forbid "the API, worker and executors never import a working copy" \
+  'import_migrated\(' \
   apps
 # The working copy's operation log (ADR 0029 decision 3, working-copy-edit-ops WCE2): insert-once,
 # every query under the Study's three scope columns. Its repository is the only reader and writer,

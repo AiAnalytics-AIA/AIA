@@ -826,6 +826,10 @@ class Me(BaseModel):
     email: str | None
     organization_role: str
     may_administer: bool
+    #: The Metodik mark (D-14): stores and puts in force methodology versions.
+    methodologist: bool
+    #: The organization's name, for the page's breadcrumb; None if it cannot be read.
+    organization_name: str | None = None
 
 
 class ClientStart(BaseModel):
@@ -837,13 +841,15 @@ class ClientStart(BaseModel):
 
 
 @router.get("/workspace/me", response_model=Me, summary="Who you are here")
-def me(principal: PrincipalDep, admin: OrganizationDep) -> Me:
-    """The caller's user id, e-mail and organization role; no client data."""
+def me(principal: PrincipalDep, admin: OrganizationDep, repo: ScopeRepositoryDep) -> Me:
+    """The caller's user id, e-mail, organization role and its name; no client data."""
     return Me(
         user_id=principal.user_id,
         email=principal.email,
         organization_role=admin.organization_role.value,
         may_administer=admin.may_administer,
+        methodologist=admin.methodologist,
+        organization_name=repo.organization_name(admin),
     )
 
 

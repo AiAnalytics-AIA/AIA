@@ -18,6 +18,7 @@ Two conventions hold throughout:
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
@@ -95,9 +96,15 @@ class ParagraphRole(StrEnum):
 
 @dataclass(frozen=True, slots=True)
 class Paragraph:
+    """``control``: the tag of the locked control its text prints in, for a paragraph code
+    writes whole from a stored source that is not the ledger (a map's support, a design's
+    facts; ``control_tags.source_tag``). A guard against a stray keystroke: an editor may
+    unlock it, and what changed is shown, never refused (ADR 0035, amended 2026-10-22)."""
+
     content: tuple[Inline, ...]
     role: ParagraphRole = ParagraphRole.BODY
     refs: tuple[str, ...] = ()
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +119,8 @@ class BulletList:
 
     items: tuple[ListItem, ...]
     ordered: bool = False
+    #: As ``Paragraph.control``, for every item's text.
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +130,9 @@ class Quote:
     text: str
     attribution: str
     synthetic: bool
+    #: The tag of the locked control the quote and its attribution print in (``bundle:<run>`` for
+    #: a captured source's; RPT8a, part 3, P14).
+    control: str | None = None
 
 
 class CalloutKind(StrEnum):
@@ -138,6 +150,8 @@ class Callout:
     kind: CalloutKind
     content: tuple[Inline, ...]
     title: str | None = None
+    #: As ``Paragraph.control``, for its text (the title stays editable).
+    control: str | None = None
     refs: tuple[str, ...] = ()
 
 
@@ -197,6 +211,8 @@ class Column:
 @dataclass(frozen=True, slots=True)
 class TextCell:
     text: str
+    #: As ``Paragraph.control``: a number code wrote into the cell from a stored source.
+    control: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -238,6 +254,8 @@ class Table:
     base_ref: str | None = None
     notes: tuple[str, ...] = ()
     landscape: bool = False
+    #: As ``Paragraph.control``, for its notes, when code wrote numbers into them.
+    notes_control: str | None = None
 
 
 # ---------------------------------------------------------------------- figures
@@ -308,6 +326,8 @@ class SociomapFigure:
     source: str
     alt: str
     fit_caption: str | None = None
+    #: The tag of the locked control its caption's fit prints in (``map:<battery>/<method>``).
+    control: str | None = None
 
 
 # ---------------------------------------------------------------------- furniture
@@ -333,6 +353,8 @@ class AuditBlock:
     """Run ids, fingerprints, provider and model. **Internal reports only.**"""
 
     entries: tuple[tuple[str, str], ...]
+    #: The tag of the locked control each value prints in (``run:<run>``; RPT8a, part 3, P15).
+    control: str | None = None
 
 
 Block = (
@@ -352,6 +374,21 @@ Block = (
     | EvidenceAppendix
     | AuditBlock
 )
+
+
+def block_inlines(block: object) -> tuple[Inline, ...]:
+    """A paragraph's, callout's or list's inlines, its items' children included; none else."""
+    if isinstance(block, Paragraph | Callout):
+        return block.content
+    if isinstance(block, BulletList):
+        return tuple(_items(block.items))
+    return ()
+
+
+def _items(items: tuple[ListItem, ...]) -> Iterator[Inline]:
+    for item in items:
+        yield from item.content
+        yield from _items(item.children)
 
 
 # ---------------------------------------------------------------------- document

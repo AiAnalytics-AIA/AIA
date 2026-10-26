@@ -25,6 +25,7 @@ from aia_core.domain.analysis.artifact import ANALYSIS_MODULE_ARTIFACT, ModuleSo
 from aia_core.domain.analysis.steps import analysis_node_key
 from aia_core.domain.evidence import AdmittedClaim, ClaimSurface
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
+from aia_core.domain.report.control_tags import source_tag
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
     ArtifactSource,
@@ -68,7 +69,15 @@ INTERNAL_REPORT_MEDIA_TYPE = (
 
 
 class ReportCompositionRefused(ValueError):
-    """A report cannot be made from incomplete or inconsistent analysis."""
+    """A report cannot be made from incomplete or inconsistent analysis. ``reason`` names a refusal
+    a screen says in words (``analysis_holds_report``: ``modules`` hold it, 9b); ``None`` else."""
+
+    def __init__(
+        self, message: str, *, reason: str | None = None, modules: tuple[str, ...] = ()
+    ) -> None:
+        super().__init__(message)
+        self.reason = reason
+        self.modules = modules
 
 
 _TITLES = {
@@ -182,8 +191,14 @@ def compose_internal_report(
     """
     if meta.kind is not ReportKind.INTERNAL or meta.classification is not Classification.INTERNAL:
         raise ReportCompositionRefused("composition makes an unapproved internal draft only")
-    if not run.complete or set(run.modules) != set(AnalysisModuleId):
-        raise ReportCompositionRefused("all eight analysis modules must be complete")
+    if not run.complete:
+        holding = tuple(m.value for m in run.holding)
+        raise ReportCompositionRefused(
+            "all eight analysis modules must be complete with a supported finding; waiting on: "
+            + ", ".join(holding),
+            reason="analysis_holds_report",
+            modules=holding,
+        )
 
     first = run.modules[AnalysisModuleId.EXECUTIVE]
     if first.result is None:
@@ -252,7 +267,10 @@ def compose_internal_report(
     if deviation is not None:
         introduction.append(
             Callout(
-                CalloutKind.LIMITATION, text(_deviation_text(deviation)), title="Odchylka od 18.6.6"
+                CalloutKind.LIMITATION,
+                text(_deviation_text(deviation)),
+                title="Odchylka od 18.6.6",
+                control=source_tag("run", run.run_id),
             )
         )
     # The run's own sources: a module reused from an identical earlier run keeps that run's
@@ -352,7 +370,12 @@ def compose_internal_report(
                         *(
                             ()
                             if deviation is None
-                            else (Paragraph(text(_deviation_text(deviation))),)
+                            else (
+                                Paragraph(
+                                    text(_deviation_text(deviation)),
+                                    control=source_tag("run", run.run_id),
+                                ),
+                            )
                         ),
                     ),
                     id="methodology",
@@ -504,7 +527,11 @@ def compose_internal_report(
     )
     sections.append(
         Section(
-            "Audit", (AuditBlock(tuple(audit)),), id="app-audit", appendix=True, sources=tuple(read)
+            "Audit",
+            (AuditBlock(tuple(audit), control=source_tag("run", run.run_id)),),
+            id="app-audit",
+            appendix=True,
+            sources=tuple(read),
         )
     )
     sections[0] = _with_contents(sections[0], sections, literature=bool(context_sections))

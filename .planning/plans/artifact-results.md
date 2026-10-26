@@ -12,6 +12,9 @@ chunks:
   - "[x] RES7a. Journey: Výsledky's Data view at 1440, 1100, 768 and 390 px on a fictional run (layout, the Lead's ids, a measure by hash), zero paid jobs"
   - "[ ] RES7b. The journey's Lead half: the Lead focusing measure:<id>, an Interpretation Research card on 12a's recorded web (after RES6)"
   - "[ ] RES8. CSV and XLSX export of the run's per-question tables, every cell an admitted claim, from the aggregate (report-delivery#RD12, moved here by the PM 2026-10-21)"
+  - "[ ] RES4c. Výsledky's header pill 'Běh z … · revize n', the revision-moved link and 'Sociomapa ›' (reopens RES4a; spec sber V2; W2)"
+  - "[ ] RES9. Výsledky without inner tabs in the workbench (spec sber V1; W2)"
+  - "[ ] RES10. Research-question tiles VO1…VOn (spec sber V4; W2)"
 ---
 # Artifact: Výsledky (Results)
 
@@ -209,8 +212,25 @@ study with no run):
   covered as well as a phone; the set table now reads its card's width the same way. Test: the
   journey's "nothing spills out of its measure card" (fails on `9607ee09` at 390 px). A choice
   question's reading now breaks ties in the asked order too (`result-reading.test.ts`).
+- **F-R10. Přehled read a cost with an unknown part as the run's exact cost.**
+  `apps/web/src/components/rehome/research/ResultsWorkspace.tsx:88 @ 382b418a` showed `actual_cost_usd`,
+  the attempts' recorded cost (`apps/api/src/aia_api/routers/research.py:1141-1147 @ 382b418a`). An
+  attempt that ends with a paid call dispatched and never answered is charged its whole hold as exposure
+  (`packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:1581-1582 @ 382b418a`,
+  `_settle_uncertain`), an upper bound; while the call is still out, the attempt's cost leaves it out.
+  Either way the figure read as exact. The run's spend (#774, `research.py:1742 @ 382b418a`) counts
+  such a call as `uncertain_calls`, and Průběh's Náklady says so. Fix: the line reads "Utraceno" from
+  `run.spend` through Průběh's own rule (`spendRows`), naming unpriced calls beside the sum with
+  Průběh's running or ended note; no spend reads Průběh's "AIA nyní nezjistí", never "not reported yet"
+  to a caller who will never see a figure. Tests: `ResultsWorkspace.test.tsx` "reads what the run spent
+  from its spend…", "names a call the run could not price…" and "says the cost cannot be told…" (all
+  fail on `382b418a`). The API half (its `actual_cost_usd` null while a paid call's outcome is unknown,
+  for every other reader: the Lead's cards, agent jobs, Deep Research) is its own fix PR.
 
-Checked and sound: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
+Checked and sound (pass 3, 2026-10-22 @ `382b418a`): Přehled, AI analýza and Rešerše a zpráva at 1440 and
+390 px in light and dark, no page overflow (the tab row and the report's claim table scroll inside
+their own boxes); the one 404 is `design/source` on a study that reuses no design (`useResource`: nothing
+here). Pass 1 and 2: the view tabs by arrow keys, Home and End, the focus ring (2 px), the search's
 "Žádný výsledek neodpovídá filtru", no page error.
 
 ## 8. Owner questions
@@ -232,3 +252,22 @@ deliverable.
 
 - Register this plan and its chunks.
 - `report-delivery`: RD12 (the CSV/XLSX export) is built here as RES8; RD12 points to it.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RES4c. Header pill** (spec `sber/V2`; reopens RES4a; W2, lane F). On `research-lead-workbench#36`.
+
+**RES9. No inner tabs** (spec `sber/V1`; W2, lane F).
+
+**RES10. Research-question tiles** (spec `sber/V4`; W2, lane F). Pairs with `artifact-analysis#ANL2b`; the research-question list on the compiled specification is a hypothesis until anchored.
+
+**Notes.**
+- RES3 carries `sber/V5`, `V6`, `V7`; RES4b `V3`, `V8`; RES2 `V9`; RES6 `V10`.
+- Awaiting the methodology owner: "Efektivní n" is Kish's, as RES3 says (OQ8), and a set's scale follows the board's presets (OQ9).

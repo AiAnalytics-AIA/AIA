@@ -22,11 +22,17 @@
 	}
 	# The default logger: Caddy's own entries, an upstream error among them, which records the
 	# request's URI. docs.<hostname>'s ticket (/__aia/session?ticket=…) is left unspent when the
-	# API is down, so it is never written here either (its access log filters it the same way).
+	# API is down, and a signed cache link's md5 and expiry would open the saved document without
+	# the gate until it expires, so neither is written here (its access log filters them the same).
+	# Nor the report editor's URL token (/api/v1/report-editor/document?token=…, …/callback?token=…),
+	# a bearer credential for one version or one editing session (artifact-report RPT8c).
 	log {
 		format filter {
 			request>uri query {
 				delete ticket
+				delete md5
+				delete expires
+				delete token
 			}
 			wrap json
 		}
@@ -101,9 +107,16 @@
 		}
 	}
 
+	# The report editor's URL token is a bearer credential (the Document Server's fetch of a
+	# version, its save callbacks): never written (artifact-report RPT8c).
 	log {
 		output stdout
-		format json
+		format filter {
+			request>uri query {
+				delete token
+			}
+			wrap json
+		}
 	}
 }
 
@@ -149,6 +162,18 @@ docs.{$AIA_PUBLIC_HOSTNAME} {
 		-Server
 	}
 
+	# The editor's script is loaded into AIA's pages under Subresource Integrity (artifact-report
+	# RPT8e), so as CORS with credentials, through the ticket: its redirect sets the docs cookie and
+	# api.js is fetched with it. Those two answers alone name AIA's origin, set whatever the Document
+	# Server answers itself (defer).
+	@editor_script path /__aia/session /web-apps/apps/api/documents/api.js
+	header @editor_script {
+		defer
+		Access-Control-Allow-Origin "https://{$AIA_PUBLIC_HOSTNAME}"
+		Access-Control-Allow-Credentials "true"
+		+Vary "Origin"
+	}
+
 	# A ticket for the docs cookie: the API's, and nothing else of the API is served here.
 	handle /__aia/session {
 		rewrite * /api/v1/session/docs?{query}
@@ -163,6 +188,23 @@ docs.{$AIA_PUBLIC_HOSTNAME} {
 	@server_only path_regexp server_only (?i)^/+(?:[0-9]+\.[0-9]+\.[0-9]+[.|-]\w+/+)?(?:coauthoring/+commandservice\.ashx|convertservice\.ashx|command|converter|docbuilder|ai-proxy|hosting|admin|info|internal|example|welcome|healthcheck)(?:[/?].*)?$
 	handle @server_only {
 		respond 404
+	}
+
+	# A saved document and its changes, at the links the Document Server's save callback names:
+	# AIA's API fetches them server to server and holds no docs cookie. Its own nginx refuses a
+	# link without a valid md5 and expiry under a secret it draws at each start (403, 410), so the
+	# gate is left out for exactly that shape: GET or HEAD, both signature parameters, and
+	# segments of a document key's characters (none starting with a dot), so no path that its nginx
+	# would resolve elsewhere goes by without the gate.
+	@cache_file {
+		method GET HEAD
+		path_regexp cache_file ^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$
+		query md5=* expires=*
+	}
+	handle @cache_file {
+		reverse_proxy onlyoffice:80 {
+			header_up -Cookie
+		}
 	}
 
 	handle {
@@ -184,12 +226,15 @@ docs.{$AIA_PUBLIC_HOSTNAME} {
 	}
 
 	# The ticket is spent by the request that carries it, but a request that fails before the
-	# spend would leave a live one in the log: the query's ticket is never written.
+	# spend would leave a live one in the log: the query's ticket is never written. Nor a signed
+	# cache link's md5 and expiry, which open the saved document without the gate until it expires.
 	log {
 		output stdout
 		format filter {
 			request>uri query {
 				delete ticket
+				delete md5
+				delete expires
 			}
 			wrap json
 		}

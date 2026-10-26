@@ -13,7 +13,7 @@ export type ArtifactKind = "working" | "run" | "draft";
 
 export type ViewOpKind = "open_stage" | "focus" | "inspect" | "select" | "filter" | "show_diff";
 /** The view operations the Lead's output carries today (lead.ts LeadView); the rest are to build. */
-export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open_stage", "focus", "inspect"]);
+export const LIVE_VIEW_OPS: ReadonlySet<ViewOpKind> = new Set<ViewOpKind>(["open_stage", "focus", "inspect", "show_diff"]);
 
 export type TargetKind =
   | "brief" | "objective" | "material" | "plan" | "rq" | "hypothesis" | "set" | "assumption" | "section" | "question" | "audience" | "dimension" | "own_dimension" | "sample"
@@ -102,8 +102,8 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
     refusals: ["pole použije jen to, co dovolí politika pole (decide)"],
   },
   sample: {
-    stage: "sample", artifact: "working", edits: false,
-    view_ops: ["open_stage", "focus", "inspect"], targets: ["sample"],
+    stage: "sample", artifact: "working", edits: true,
+    view_ops: ["open_stage", "focus", "show_diff", "inspect"], targets: ["sample"],
     starts: [MEMORY],
     inputs: ["audience", "dimensions"],
     hands_off: [{ to: "fieldwork", form: "ResearchSpecification n" }],

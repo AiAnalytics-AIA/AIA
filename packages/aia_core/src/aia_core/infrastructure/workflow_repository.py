@@ -23,7 +23,7 @@ The behavioural contract is
 from __future__ import annotations
 
 import json
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -32,6 +32,7 @@ from sqlalchemy import CursorResult, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
+from ..domain.content_free import content_free, rename
 from ..domain.population import (
     JointState,
     PopulationBinding,
@@ -124,6 +125,10 @@ __all__ = [
     "WorkflowNotFound",
     "WorkflowRepository",
     "charged_to_for_run",
+    "client_approval_rows",
+    "erase_lead_run_payloads",
+    "organization_approval_rows",
+    "scrub_client_approvals",
 ]
 
 
@@ -740,6 +745,7 @@ class WorkflowRepository:
         steps: bool = False,
         run_ids: Sequence[str] | None = None,
         exclude_workflow_types: Sequence[str] = (),
+        statuses: Sequence[WorkflowRunStatus] | None = None,
     ) -> list[dict[str, Any]]:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
@@ -750,6 +756,7 @@ class WorkflowRepository:
         time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
         those runs (still within the project and the scope). ``exclude_workflow_types``
         leaves runs of those types out, in the query, so a page is never short of them.
+        ``statuses`` keeps only runs in those states, in the query too, before the limit.
         """
         filters = [WorkflowRunRow.project_id == project_id, *self._scope_filter()]
         if workflow_type is not None:
@@ -758,6 +765,8 @@ class WorkflowRepository:
             filters.append(WorkflowRunRow.workflow_type.not_in(list(exclude_workflow_types)))
         if run_ids is not None:
             filters.append(WorkflowRunRow.run_id.in_(list(run_ids)))
+        if statuses is not None:
+            filters.append(WorkflowRunRow.status.in_([s.value for s in statuses]))
         if key_prefix is not None:
             filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
         rows = self._session.scalars(
@@ -1334,8 +1343,14 @@ class WorkflowRepository:
         else:
             client_query = select(ClientRow).where(ClientRow.client_id == run.client_id)
             if self._is_postgres:
-                client_query = client_query.with_for_update()
+                client_query = client_query.with_for_update().execution_options(
+                    populate_existing=True
+                )
             payer = self._session.scalar(client_query)
+            if payer is not None and payer.deleted_at is not None:
+                # A deletion held the lock first and committed (settings-backends SB5): the
+                # client's own work spends nothing under its tombstone.
+                raise ScopeDenied("not found", reason="client_deleted")
         if payer is None:
             raise WorkflowNotFound(run.study_id or run.client_id)
 
@@ -3481,6 +3496,8 @@ class WorkflowRepository:
             "project_id": run.project_id,
             "project_revision": run.project_revision,
             "cancel_requested": run.cancel_requested,
+            # Who started the run: the person its outputs are the work of (null for a system run).
+            "triggered_by": run.triggered_by,
             "created_at": run.created_at,
             "started_at": run.started_at,
             "finished_at": run.finished_at,
@@ -3765,3 +3782,102 @@ def _ledger_entry(row: ApprovalDecisionRow) -> LedgerEntry:
         comment=row.comment,
         created_at=as_utc(row.created_at),
     )
+
+
+#: What an erased step or attempt keeps in place of its payload (settings-backends SB2).
+_ERASED: dict[str, Any] = {"erased": "lead_sealed"}
+
+
+def erase_lead_run_payloads(
+    session: Session, *, organization_id: str, user_id: str, run_ids: Collection[str]
+) -> list[str]:
+    """Erase what a sealed Lead's turns sent and got back (ADR 0030, settings-backends SB2):
+    the frozen context in each step's input, its output, and each attempt's output and error.
+    Only ``research_lead`` runs of that member in that organization; the run, its steps' states
+    and costs stay, so the money and approval ledgers still resolve. Returns the attempt ids,
+    whose artifacts the caller erases. The retention sweep's alone."""
+    if not run_ids:
+        return []
+    runs = [
+        r
+        for r in session.scalars(
+            select(WorkflowRunRow).where(
+                WorkflowRunRow.run_id.in_(list(run_ids)),
+                WorkflowRunRow.organization_id == organization_id,
+                WorkflowRunRow.workflow_type == "research_lead",
+            )
+        )
+        if (r.metadata_json or {}).get("user_id") == user_id
+    ]
+    step_ids = list(
+        session.scalars(
+            select(StepRunRow.step_id).where(StepRunRow.run_id.in_([r.run_id for r in runs]))
+        )
+    )
+    if not step_ids:
+        return []
+    session.execute(
+        update(StepRunRow)
+        .where(StepRunRow.step_id.in_(step_ids))
+        .values(input_json=_ERASED, output_json=_ERASED)
+    )
+    attempt_ids = list(
+        session.scalars(
+            select(StepAttemptRow.attempt_id).where(StepAttemptRow.step_id.in_(step_ids))
+        )
+    )
+    if attempt_ids:
+        session.execute(
+            update(StepAttemptRow)
+            .where(StepAttemptRow.attempt_id.in_(attempt_ids))
+            .values(output_json=_ERASED, error_json=_ERASED)
+        )
+    return attempt_ids
+
+
+def client_approval_rows(session: Session, *, client_id: str) -> int:
+    """How many approval-ledger rows a client has: what a deletion keeps."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.client_id == client_id)
+        )
+        or 0
+    )
+
+
+def organization_approval_rows(session: Session, *, organization_id: str) -> int:
+    """The organization's approval-ledger rows: what deletions keep."""
+    return int(
+        session.scalar(
+            select(func.count())
+            .select_from(ApprovalDecisionRow)
+            .where(ApprovalDecisionRow.organization_id == organization_id)
+        )
+        or 0
+    )
+
+
+def scrub_client_approvals(session: Session, *, client_id: str, names: Mapping[str, str]) -> int:
+    """A deleted client's approval ledger kept content-free (settings-backends SB5, MVPQ-07):
+    each decision's comment -- a lift note, a report or gate note, an acknowledgement's reason
+    and gaps -- with names replaced by ids and every other text erased; ids, digests, codes and
+    numbers stay. A JSON comment is scrubbed field by field. Returns the comments changed."""
+    changed = 0
+    for row in session.scalars(
+        select(ApprovalDecisionRow).where(ApprovalDecisionRow.client_id == client_id)
+    ):
+        if not row.comment:
+            continue
+        try:
+            parsed = json.loads(row.comment)
+        except ValueError:
+            scrubbed = content_free(rename(row.comment, names))
+        else:
+            scrubbed = json.dumps(content_free(rename(parsed, names)), ensure_ascii=False)
+        if scrubbed != row.comment:
+            row.comment = scrubbed
+            changed += 1
+    session.flush()
+    return changed

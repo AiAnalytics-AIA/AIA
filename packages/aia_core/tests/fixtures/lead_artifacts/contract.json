@@ -41,7 +41,7 @@
     },
     {
       "op": "show_diff",
-      "live": false,
+      "live": true,
       "what": "show a waiting proposal's or a draft's changes against what is in force"
     }
   ],
@@ -76,7 +76,7 @@
     {
       "kind": "plan",
       "stage": "design",
-      "id": "narrative|variants|sets|questions|comments",
+      "id": "narrative|hypotheses|variants|sets|questions|comments",
       "live": true
     },
     {
@@ -551,10 +551,11 @@
     {
       "stage": "sample",
       "artifact": "working",
-      "edits": false,
+      "edits": true,
       "view_ops": [
         "open_stage",
         "focus",
+        "show_diff",
         "inspect"
       ],
       "targets": [

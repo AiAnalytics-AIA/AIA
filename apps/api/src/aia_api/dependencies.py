@@ -24,7 +24,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
-from typing import Annotated, Final
+from typing import Annotated, Final, cast
 
 from aia_core.application.audience_preview import AudiencePreviewer, PanelSampler
 from aia_core.application.population_double import PopulationDouble, population_double
@@ -39,6 +39,7 @@ from aia_core.domain.scope import (
     StudyContext,
 )
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
+from aia_core.infrastructure.editor_fetch import LiveSaveFetcher, SaveFetcher
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.scope_repository import ScopeRepository, SubjectMismatch
@@ -338,6 +339,7 @@ def principal_from_credential(
             email=identity.email or f"{identity.subject}@unknown.invalid",
             display_name=identity.display_name or "",
             external_subject=identity.subject,
+            seen=True,
         )
     except SubjectMismatch as exc:
         # An attempt to sign in as someone else's account: the record worth keeping.
@@ -361,6 +363,17 @@ def principal_from_credential(
         raise _unauthenticated("account_disabled", "This account is disabled.")
 
     memberships = scope_repo.memberships_for_user(user["user_id"])
+    if not memberships and scope_repo.memberships_for_user(
+        user["user_id"], include_deactivated=True
+    ):
+        # Every membership deactivated (D-27): said as what it is, not as never provisioned.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "member_deactivated",
+                "message": "This account is deactivated in its organization.",
+            },
+        )
     if not memberships:
         # Authenticated but not provisioned. 403 rather than 401: retrying with a
         # different token will not help; an administrator must add them.
@@ -546,6 +559,18 @@ ProjectRepositoryDep = Annotated[ProjectRepository, Depends(get_project_reposito
 ScopeRepositoryDep = Annotated[ScopeRepository, Depends(get_scope_repository)]
 ResolverDep = Annotated[ScopeResolver, Depends(get_scope_resolver)]
 SettingsDep = Annotated[Settings, Depends(get_app_settings)]
+
+
+def get_editor_fetcher(request: Request) -> SaveFetcher:
+    """What fetches a save back from the report editor's Document Server (RPT8c): the one the
+    application was given (a test's), else the live one, on the editor's exact origin."""
+    given = getattr(request.app.state, "editor_fetcher", None)
+    if given is not None:
+        return cast(SaveFetcher, given)
+    return LiveSaveFetcher(get_app_settings(request).onlyoffice_url)
+
+
+EditorFetcherDep = Annotated[SaveFetcher, Depends(get_editor_fetcher)]
 AudiencePreviewerDep = Annotated[AudiencePreviewer | None, Depends(get_audience_previewer)]
 AudiencePopulationDep = Annotated[AudiencePopulation, Depends(get_audience_population)]
 RunPopulationDep = Annotated[AudiencePopulation, Depends(get_run_population)]

@@ -213,6 +213,17 @@ export function removeComment(p: ResearchProject, i: number): ResearchProject {
   return { ...p, ui_state: { ...p.ui_state, plan_comments26: planComments(p).filter((_, j) => j !== i) } };
 }
 
+/**
+ * A removed comment put back where it stood (Vrátit; input-interactions I6). `copies`: how many equal
+ * comments the list held before the removal; a copy that still holds them all (a reloaded copy the
+ * removal never reached) is left as it is. Not the classic's: it had no undo.
+ */
+export function restoreComment(p: ResearchProject, c: PlanComment, i: number, copies: number): ResearchProject {
+  const cs = planComments(p);
+  if (cs.filter((x) => x.quote === c.quote && x.comment === c.comment).length >= copies) return p;
+  return { ...p, ui_state: { ...p.ui_state, plan_comments26: [...cs.slice(0, i), c, ...cs.slice(i)] } };
+}
+
 /** A selection long enough to comment on (the classic mouseup handler: two characters, trimmed). */
 export function commentableSelection(text: string): string | null {
   const t = String(text || "").trim();

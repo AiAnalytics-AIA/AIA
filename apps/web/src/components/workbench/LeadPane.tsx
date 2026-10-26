@@ -13,8 +13,9 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
+import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -45,7 +46,8 @@ export type LeadCardsContext = {
 };
 
 /**
- * What the person is writing and what waits to be sent, per study, for as long as the page lives:
+ * What the person is writing and what is not yet stored on the server (a post in flight, or one
+ * the server did not take), per study, for as long as the page lives:
  * the pane is unmounted when the window narrows to the classic layout, and comes back empty
  * otherwise.
  */
@@ -107,7 +109,8 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [error, setError] = useState<string | null>(null);
   const [seesOpen, setSeesOpen] = useState(false);
   const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
-  // A message written while the Lead works keeps the stage and the element it was written about.
+  // A message not yet stored keeps the stage and the element it was written about; once stored
+  // it waits on the server, in every tab (ADR 0041 decision 7).
   const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
   useEffect(() => {
     kept.set(studyId, { draft, queued });
@@ -198,9 +201,9 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     void post({ kind: "greeting", stage });
   }, [me, session, canEdit, stage, post]);
 
-  // A message written while the Lead works waits, then goes.
+  // Messages go one after another, in the order written; the server queues them while the Lead works.
   useEffect(() => {
-    if (session?.busy || sending || held || !queued.length) return;
+    if (sending || held || !queued.length) return;
     const [next, ...rest] = queued;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the queue drains one message each time the Lead is free
     setQueued(rest);
@@ -210,7 +213,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const send = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus }]);
+    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus }]);
     else void message({ text: t, stage, focus });
     setDraft("");
     onClearFocus();
@@ -219,16 +222,57 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const fromStage = (text: string) => {
     const t = text.trim();
     if (!t) return;
-    if (session?.busy || sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
+    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
     else void message({ text: t, stage, focus: null });
   };
   useEffect(() => {
     registerSend?.(fromStage);
   });
 
+  // What waits for the Lead on the server, in queue order; any tab starts its turn once the Lead is
+  // free (the server starts one, however many tabs ask).
+  const waiting = (session?.turns ?? []).filter((t) => t.actor === "person" && t.queued);
+  const asked = useRef<string | null>(null);
+  // An ask that failed is said, with its reason and a retry: nothing else would ask again, and the
+  // queue would read as answered soon while no turn is coming.
+  const [drainFailed, setDrainFailed] = useState<string | null>(null);
+  useEffect(() => {
+    if (!session?.available || session.busy || sending || !waiting.length) return;
+    // Asked again whenever the newest Lead turn moves on (a budget wait lifted and the turn
+    // answered): a key of the waiting set alone would leave them waiting until a reload. Never
+    // per read, which would ask again after every answer of its own.
+    const newest = [...(session.turns ?? [])].reverse().find((t) => t.actor === "lead");
+    const key = `${waiting.map((t) => t.turn_id).join(",")}|${newest?.turn_id ?? ""}:${newest?.status ?? ""}`;
+    if (asked.current === key) return;
+    asked.current = key;
+    leadApi.answerQueued(studyId).then(
+      (started) => {
+        setDrainFailed(null);
+        // A turn started is a busy Lead even if the read below fails: the poll keeps reading.
+        if (started.turns.length) setSession((s) => (s ? { ...s, busy: true } : s));
+        return read();
+      },
+      (e: unknown) => setDrainFailed(e instanceof ApiError ? reasonWords(e.code) : String(e)),
+    );
+  }, [session, sending, waiting, studyId, read]);
+  const unqueue = async (key: string) => {
+    if (key.startsWith("local:")) {
+      const i = Number(key.slice(6));
+      setQueued((q) => q.filter((_, j) => j !== i));
+      return;
+    }
+    try {
+      await leadApi.withdraw(studyId, key);
+    } catch (e) {
+      setError(e instanceof ApiError ? reasonWords(e.code) : String(e));
+    }
+    await read();
+  };
+
   const hatch = async () => {
     try {
       setMe(await researcherLead.hatch());
+      announceHatched();
       // The session read before hatching said the Lead was not hatched: read it again.
       await read();
     } catch (e) {
@@ -278,18 +322,22 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       {seenTurn && seesOpen ? <LeadSees key={seenTurn.turn_id} studyId={studyId} turnId={seenTurn.turn_id} id="lead-sees" /> : null}
       <TypedCardFacts.Provider value={{ walletOn: session?.wallet_enabled === true, retryRun: session?.analysis_retry_run ?? null }}>
       <ViewWords.Provider value={design ?? null}>
-      <Conversation turns={session?.turns ?? []} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
+      <Conversation turns={(session?.turns ?? []).filter((t) => !t.queued && !t.withdrawn)} jobs={jobs} cards={cards} studyId={studyId} onOpenJob={onOpenJob} busy={!!session?.busy || sending} name={name} onFollow={send} onView={onView} onRequest={onRequest} onSelfUpdate={decideSelfUpdate} canEdit={canEdit}>
         {error ? <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />{error}</div></div> : null}
         {held ? (
           <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Zprávu se nepodařilo odeslat. Čeká ve frontě.
             <button type="button" className="chip" onClick={() => { setError(null); setHeld(false); }}>Zkusit znovu</button></div></div>
+        ) : null}
+        {drainFailed ? (
+          <div className="msg"><div className="notice"><Glyph tone="fault" size={11} />Vedoucí zatím neodpovídá na zprávy ve frontě: {drainFailed}
+            <button type="button" className="chip" onClick={() => { asked.current = null; setDrainFailed(null); void read(); }}>Zkusit znovu</button></div></div>
         ) : null}
         {me && !me.hatched ? <HatchCard onHatch={hatch} /> : null}
         {session && !session.available ? <div className="msg"><div className="notice"><Glyph tone="inert" size={11} />{reasonWords(session.unavailable_reason ?? "research_lead_unavailable")}</div></div> : null}
       </Conversation>
       </ViewWords.Provider>
       </TypedCardFacts.Provider>
-      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={queued.map((q) => q.text)} onUnqueue={(i) => setQueued((q) => q.filter((_, j) => j !== i))}
+      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={[...waiting.map((t) => ({ key: t.turn_id, text: t.text ?? "" })), ...queued.map((q, i) => ({ key: `local:${i}`, text: q.text }))]} onUnqueue={(key) => void unqueue(key)}
         disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
@@ -423,7 +471,12 @@ function Prose({ text }: { text: string }) {
 /** The working copy a view chip's target is named from (F18). */
 const ViewWords = createContext<TargetWords | null>(null);
 
-const VIEW_LABEL = (v: LeadView, design: TargetWords | null) => (v.op === "open_stage" ? `Otevřít ${isWorkbenchStage(v.stage) ? STAGES[v.stage].label : v.stage}` : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`);
+const stageWords = (stage: string) => (isWorkbenchStage(stage) ? STAGES[stage].label : stage);
+const VIEW_LABEL = (v: LeadView, design: TargetWords | null) =>
+  v.op === "open_stage" ? `Otevřít ${stageWords(v.stage)}`
+  : v.op === "show_diff" ? `Změny: ${stageWords(v.stage)}`
+  : v.op === "select" || v.op === "filter" ? mapViewWords(v, design)
+  : `${v.op === "inspect" ? "Detail" : "Ukázat"}: ${targetLabel(v.target, design)}`;
 
 function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelfUpdate, canEdit, job, onOpenJob, studyId, cards, run }: {
   t: LeadTurn; name: string; last: boolean; busy: boolean; canEdit: boolean; job: ResearchAgentJob | null; onOpenJob?: (job: ResearchAgentJob) => void;
@@ -440,7 +493,11 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
     );
   }
   if (t.status !== "COMPLETED" || !t.output) {
-    return <div className="msg"><div className="notice"><Glyph tone={t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault"} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
+    // Parked on the study's budget: coral for whoever can raise it (anyone who can edit the study,
+    // ADR 0019), slate for a reader who cannot (the product owner, 2026-10-23, Q85). Any other wait is slate.
+    const parkedOnBudget = t.status === "WAITING" && t.reason === "budget_exceeded";
+    const tone = parkedOnBudget && canEdit ? "you" : t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault";
+    return <div className="msg"><div className="notice" data-lead-wait={t.reason ?? t.status}><Glyph tone={tone} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
   }
   const o: LeadOutput = t.output;
   const edits = o.edits ?? [];
@@ -530,6 +587,7 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Otevřít hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
@@ -578,7 +636,7 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
 
 function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
-  queued: string[]; onUnqueue: (i: number) => void; disabled: boolean;
+  queued: { key: string; text: string }[]; onUnqueue: (key: string) => void; disabled: boolean;
   /** Why the composer is shut, in its own field (composerHint); null while it is open. */
   hint: string | null;
   focus: { id: string; label: string } | null;
@@ -588,11 +646,11 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
   return (
     <div className="composer-wrap">
       {queued.length ? (
-        <div className="queue" aria-label="Čeká na odeslání">
-          <div className="cap" style={{ padding: "2px 4px" }}>Odešle se, až Vedoucí doodpoví</div>
-          {queued.map((q, i) => (
-            <div className="queue__item" key={`${i}-${q}`}><Icon name="clock" size={13} /><span className="queue__text">{q}</span>
-              <button type="button" className="iconbtn" aria-label="Odebrat z fronty" title="Odebrat z fronty" onClick={() => onUnqueue(i)}><Icon name="close" size={13} /></button></div>
+        <div className="queue" aria-label="Čeká na Vedoucího">
+          <div className="cap" style={{ padding: "2px 4px" }}>Vedoucí na ně odpoví, až doodpoví</div>
+          {queued.map((q) => (
+            <div className="queue__item" key={q.key}><Icon name="clock" size={13} /><span className="queue__text">{q.text}</span>
+              <button type="button" className="iconbtn" aria-label="Odebrat z fronty" title="Odebrat z fronty" onClick={() => onUnqueue(q.key)}><Icon name="close" size={13} /></button></div>
           ))}
         </div>
       ) : null}

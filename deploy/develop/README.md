@@ -176,7 +176,7 @@ fieldwork, `ai_runtime_unavailable` (ADR 0016).
   grant them a client or a study. Someone who signs in with Google but is no
   member is told so.
 - **How.** `/login` turns the Google sign-in into an HttpOnly session cookie,
-  `aia_session`, through `POST /api/v1/session`; AIA's gate re-verifies it on
+  `__Host-aia_session` (deployed; `aia_session` locally), through `POST /api/v1/session`; AIA's gate re-verifies it on
   every request to `/app`. Caddy strips it before a request reaches the web
   client. Opening a session is recorded in the access audit (`AIA_SESSION`);
   individual requests are not.
@@ -327,10 +327,11 @@ patched), and it runs only when `aia_onlyoffice_enabled` is true.
 |---|---|
 | `https://docs.<public hostname>` | the editor's own origin, framed by AIA's pages alone; every request passes AIA's docs gate (`GET /api/v1/session/docs-gate`) |
 | `docs.<public hostname>/__aia/session?ticket=…&next=…` | the way in: a 60-second ticket from `POST /api/v1/session/docs-ticket`, spent once for the `aia_docs` cookie (8 h; the gate re-checks active membership on every request) |
+| `docs.<public hostname>/cache/files/…?md5=…&expires=…` | the one path without the docs gate: the Document Server's signed links to a saved document, which AIA's API fetches after a save callback; GET or HEAD, plain path segments, and its nginx refuses a forged or expired signature (403, 410) |
 | `onlyoffice:80` on `aia-docs` | Caddy's way to it; nothing else of AIA's is on that network, so the Document Server reaches neither the API nor the database except through the public hostname |
 | refused at Caddy (404) | commands, conversion, the builder, the AI proxy, WOPI hosting, admin, info, internal, welcome, example, the health check, with or without the version prefix |
 
-AIA's `aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs
+AIA's `__Host-aia_session` cookie never reaches the editor's origin, and the editor's JavaScript never runs
 on AIA's. The Document Server reaches AIA only through the public hostname, its request filter
 refusing private and metadata addresses: this host's containers can reach IMDS. Plugins (the AI one
 included), WOPI and the example are off. Community Edition takes 20 simultaneous connections.
@@ -350,10 +351,29 @@ included), WOPI and the example are off. Community Edition takes 20 simultaneous
    aws ssm put-parameter --name $P/aia_onlyoffice_enabled --type String --value true
    ```
 
-4. **Deploy** (any SHA): `write-env.sh` reads the three, the API gets the origin and the secret,
-   and `bin/deploy.sh` starts the Document Server after AIA is healthy (its first start generates
-   fonts: about a minute). A Document Server that will not start is said and does not fail the
-   deploy.
+   Zpráva runs the editor's `api.js` only under its Subresource Integrity (RPT8e),
+   `AIA_ONLYOFFICE_API_INTEGRITY`, versioned in `docker-compose.yml` beside the image's fixed cache
+   tag in `docs/docker-compose.yml`; SSM `aia_onlyoffice_api_integrity` overrides it, and nothing
+   needs it set. The image ships `api.js.tpl`, not `api.js`: its start script writes `api.js` under
+   a tag made from the start's date and minute, so its hash would move with every restart.
+   `docs/start-fixed-cache-tag.sh` runs upstream's entrypoint, then upstream's own
+   `documentserver-flush-cache.sh -h $AIA_DS_CACHE_TAG`, and the server reports healthy only once
+   `api.js` carries that tag. The smoke warns when the running file's hash is not the API's
+   integrity.
+   - **A new image** changes three things in one PR: the image digest, `AIA_DS_CACHE_TAG`
+     (`md5("aia-documentserver-" + the image's tag)`, CI holds it), and the integrity: `sha384-` and
+     the base64 SHA-384 of the image's `api.js.tpl` with `{{HASH_POSTFIX}}` replaced by the tag.
+   - **Fonts added to `docs_fonts`**: the tag is also upstream's only cache-buster for the editor's
+     assets (cached a year, immutable), so a font change takes a new tag and integrity too.
+   - **Upstream's maintenance commands** (`documentserver-generate-allfonts.sh`,
+     `documentserver-pluginsmanager.sh`) rewrite `api.js` under a per-minute tag: afterwards,
+     `bin/docs.sh down && bin/docs.sh up`, or the server stays unhealthy and Zpráva read-only.
+
+4. **Deploy** (any SHA): `write-env.sh` reads the three, the API gets the origin, the secret and
+   the integrity, and `bin/deploy.sh` starts the Document Server after AIA is healthy. A start
+   runs upstream's whole sequence (fonts, then gzipping its static files) before `api.js` takes its
+   tag: 274-330 s measured on 4 vCPU, bounded at 660 s. A Document Server that will not start is
+   said and does not fail the deploy.
 5. **Check from outside**: `https://docs.<public hostname>/` answers 401 (no cookie);
    `…/coauthoring/CommandService.ashx` and `…/healthcheck` answer 404.
 
@@ -543,6 +563,12 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   respondent's blocks once 30 s pass without one, so slow answering never reads as a stalled step on
   Průběh (run-qc-and-checkpoint RQC7a). At most two lease-fenced feed writes a minute per step. **Who:**
   the operator.
+- **`AIA_AI_FIELDWORK_QUOTA_FILL`** (worker): a panel run's fieldwork writes its quota cells once per
+  attempt, after the gateway's preflight (`fieldwork_sample`), and each `fieldwork_progress` counts the
+  respondents answered in each cell since the previous report, so Průběh shows each cell's fill
+  (run-qc-and-checkpoint RQC7b). A roster run writes neither. One more feed write per attempt; the counts
+  ride the reports fieldwork writes anyway (every 10 respondents), so a replayed attempt writes no more
+  rows than with the switch off. **Who:** the operator.
 - **`AIA_AI_SCALE_LABELS_IN_PROMPT`** (worker): AI respondents are told a scale question's labels
   (both ends, or one per point) as its design states them, not only the numbers (input-interactions
   3b1, #538). Turning it on changes what respondents read, so the respondent-system fingerprint moves

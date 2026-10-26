@@ -948,6 +948,30 @@ jobs:
                       "USE_UNAUTHORIZED_STORAGE", "WOPI_ENABLED", "EXAMPLE_ENABLED"):
               assert env[key] == "false", key
           assert docs["networks"]["docs"]["name"] == "aia-docs" and docs["networks"]["docs"]["external"]
+          # Its one configuration file: a timed force-save and nothing else, read-only, and never
+          # local.json, which the image's start script writes with the JWT secret.
+          conf = "/etc/onlyoffice/documentserver/local-production-linux.json"
+          start = "/aia/start-fixed-cache-tag.sh"
+          mounts = [v for v in oo["volumes"] if v["type"] == "bind"]
+          assert [(m["target"], m.get("read_only")) for m in mounts] == [(conf, True), (start, True)], mounts
+          local = json.load(open("deploy/develop/docs/local-production-linux.json"))
+          assert local == {"services": {"CoAuthoring": {"autoAssembly": {"enable": True, "interval": "5m"}}}}, local
+          # api.js under a fixed cache tag (RPT8e's integrity): upstream's entrypoint, then its own
+          # flush-cache script with -h; healthy only once api.js carries the tag. Word characters
+          # only, as tools/caddy_routes.py's version prefix reads them.
+          # The tag is md5("aia-documentserver-" + the image's tag), so a new image forces a new tag
+          # (it is upstream's only cache-buster) and, with it, a new integrity.
+          import hashlib, os, re
+          assert oo["entrypoint"] == [start], oo["entrypoint"]
+          assert os.access("deploy/develop/docs/start-fixed-cache-tag.sh", os.X_OK)
+          version = oo["image"].split(":", 1)[1].split("@", 1)[0]
+          tag = hashlib.md5(f"aia-documentserver-{version}".encode()).hexdigest()
+          assert env["AIA_DS_CACHE_TAG"] == tag, (env["AIA_DS_CACHE_TAG"], version)
+          health = " ".join(oo["healthcheck"]["test"])
+          prefix = ".".join(version.split(".")[:3])  # api.js's own version prefix, /9.4.0-<tag>
+          # The variable as the container's shell expands it ($$ escaped in the file). Spelled in
+          # parts, so Actions never reads an expression in it.
+          assert prefix + "-$$" + "{AIA_DS_CACHE_TAG}'" in health, health
           product = json.load(open("composed.json"))
           on_docs = sorted(n for n, s in product["services"].items() if "docs" in s.get("networks", {}))
           assert on_docs == ["caddy"], on_docs
@@ -957,6 +981,9 @@ jobs:
           api = product["services"]["api"]["environment"]
           assert api["AIA_ONLYOFFICE_URL"] == "" and api["AIA_ONLYOFFICE_JWT_SECRET"] == "", \
               "the editor is off unless SSM switches it on"
+          # The integrity is versioned beside the tag (docs/), so a rollback carries its own.
+          assert re.fullmatch(r"sha384-[A-Za-z0-9+/]{64}", api["AIA_ONLYOFFICE_API_INTEGRITY"]), \
+              api["AIA_ONLYOFFICE_API_INTEGRITY"]
           assert not any("ONLYOFFICE" in k for k in product["services"]["worker"]["environment"])
           PY
 
