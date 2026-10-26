@@ -200,9 +200,10 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
     also stays: the classic's `chooseAudience('population')` wrote "ČR 18+" there. Only a change
     of who is sampled invalidates the run check, not the support figures alone. The new preset writes
     its own figures when it has any.
+  - A strategy change (not a preset change) keeps a subpanel's support figures as they are (the product
+    owner, 2026-10-26: "leave the strategy question as is").
   - Not done, beyond the decision: a preset's `dataset_name` (shown as "Zdroj audience") survives
-    ČR připravujeme, and a strategy change (not a preset change) still keeps a subpanel's support
-    figures.
+    ČR připravujeme.
   - Tests:
     `AudienceStep.test.tsx` "switching to one's own audience clears the subpanel's strategy and support
     too…"; `audience.live.test.ts` "what a preset change clears"; the audience journey's step 3.
