@@ -14,7 +14,7 @@ import type { AdminClient, AuditEntry, Member } from "@/lib/api";
 import {
   type AuditCategory, type AuditPeriod, CATEGORIES, CATEGORY_NAMES, PERIODS, PERIOD_NAMES, actionName, categoryOf, inPeriod,
 } from "@/lib/audit";
-import { changeOf } from "@/lib/audit-change";
+import { changeOf, concernsOf } from "@/lib/audit-change";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { FOCUS } from "../../ui/parts";
 import { Select, TextInput } from "../../rehome/ui";
@@ -53,11 +53,14 @@ export function AuditPanel({ audit, members, clients, studies }: {
   const person = (id: string | null) => (id ? (who.get(id) ?? id) : t(`${P}.audit.system`));
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   const studyName = new Map(studies.ok ? studies.data.map(({ study }) => [study.study_id, study.name]) : []);
+  // What a record concerns: the person, study and client it names, or, for an organization's
+  // methodology, prompt or Deep Research rule, that thing by its page's name; "" for none.
   const subject = (e: AuditEntry) => [
+    concernsOf(e),
     e.subject_user_id ? person(e.subject_user_id) : null,
     e.study_id ? (studyName.get(e.study_id) ?? e.study_id) : null,
     e.client_id ? (clientName.get(e.client_id) ?? e.client_id) : null,
-  ].filter(Boolean).join(" · ") || "—";
+  ].filter(Boolean).join(" · ");
   const now = new Date();
   const inTime = audit.data.filter((e) => inPeriod(e.created_at, period, now));
   // A full page holds the newest records only: a period reaching past the oldest one read may hold
@@ -127,7 +130,7 @@ export function AuditPanel({ audit, members, clients, studies }: {
                         <span className="min-w-0 break-words">
                           <span className="sr-only">{CATEGORY_NAMES[c]}: </span>
                           <strong className="font-medium">{actionName(e.action)}</strong>
-                          <span data-audit-concerns className="text-ink-muted"> · {subject(e)}</span>
+                          {subject(e) ? <span data-audit-concerns className="text-ink-muted"> · {subject(e)}</span> : null}
                           <Technical><span data-technical className="block break-all font-mono text-[11px] text-ink-faint">{e.action}{e.role ? ` · ${e.role}` : ""}</span></Technical>
                         </span>
                       </span>

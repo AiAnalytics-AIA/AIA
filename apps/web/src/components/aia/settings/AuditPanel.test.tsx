@@ -74,7 +74,11 @@ describe("the audit", () => {
     // The money change in words; the stored "a -> b" never shown again as a reason.
     expect(row(1).querySelector("[data-audit-change]")?.textContent).toBe("100 → 120 USD");
     expect(row(1).querySelector("[data-audit-why]")).toBeNull();
-    expect(row(2).querySelector("[data-audit-change]")?.textContent).toBe("v1 → v2");
+    expect(row(2).querySelector("[data-audit-change]")?.textContent).toBe("e1 → e2");
+    // An organization's record names what changed (the module), never a trailing " · —".
+    expect(row(2).querySelector("[data-audit-concerns]")?.textContent).not.toMatch(/—/);
+    expect(row(2).querySelector("[data-audit-concerns]")?.textContent?.length).toBeGreaterThan(3);
+    expect(row(4).querySelector("[data-audit-concerns]")).toBeNull();
     expect(row(2).querySelector("[data-audit-why]")?.textContent).toBe("Práh páru 12 místo 10.");
     // A reason alone stays the reason; nothing at all is a dash, never invented.
     expect(row(3).querySelector("[data-audit-change]")).toBeNull();

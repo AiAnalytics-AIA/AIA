@@ -2229,6 +2229,14 @@ export const cs = {
             noCeiling: "bez stropu",
             fromCode: "z kódu",
             default: "výchozí",
+            // A reason a writer fills with its own code, in words.
+            code: {
+              identity_mismatch: "přihlášení neodpovídá účtu, ke kterému e-mail patří",
+              not_a_member: "není členem organizace",
+              user_deactivated: "člen je deaktivován",
+              unknown_user: "neznámý uživatel",
+            },
+            decision: { APPROVED: "schváleno", REJECTED: "zamítnuto" },
           },
           when: "Kdy",
           action: "Akce",
