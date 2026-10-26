@@ -1985,8 +1985,13 @@ describe("Results", () => {
     expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
     // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
     expect(table.getAttribute("data-aia")).toBe("module:research_questions");
-    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
-    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    // Each row shows the answer's own text and its state in one word (ANL2b); a recorded gap reads
+    // "Bez dat", with what the run recorded, never "Odpovězeno".
+    expect(rows.map((r) => r.getAttribute("data-verdict"))).toEqual(["answered", "no_data", "no_data"]);
+    expect(rows[0].textContent).toContain("Čaj.");
+    expect(rows[0].textContent).toContain("Odpovězeno");
+    expect(rows[1].textContent).toContain("Nevíme.");
+    expect(rows[1].textContent).toContain("Bez dat");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
     expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
