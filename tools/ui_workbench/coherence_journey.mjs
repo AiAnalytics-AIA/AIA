@@ -161,8 +161,11 @@ try {
   check("the stage track follows the run it shows (PC5)", !/běží/.test(progressLine) && /hotov/.test(progressLine), progressLine);
   check("the stage track points at the run's results", !(await trackLine("Výsledky")).includes("Zatím nic"), await trackLine("Výsledky"));
   await visit(stage(binding.study, "results"), "results", 5000);
-  for (const tab of ["Data", "Sociomapy", "Rešerše a zpráva"]) {
-    await page.getByRole("tab", { name: tab, exact: true }).click();
+  // In the workbench each view is a stage of its own, opened by its hash (artifact-results RES9).
+  const workbench = (await page.locator("[data-workbench]").count()) > 0;
+  for (const [tab, hash] of [["Data", "data"], ["Sociomapy", "maps"], ["Rešerše a zpráva", "report"]]) {
+    if (workbench) await page.evaluate((h) => { location.hash = h; }, hash);
+    else await page.getByRole("tab", { name: tab, exact: true }).click();
     await page.waitForTimeout(2500);
     await keep(`results-${tab.replace(/\W+/g, "-").toLowerCase()}`);
   }

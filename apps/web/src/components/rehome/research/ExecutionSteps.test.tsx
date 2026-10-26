@@ -2382,13 +2382,13 @@ describe("Results", () => {
       expect(card.className).not.toContain("status-you");
     });
 
-    it("keeps Výsledky when its Sociomapy tab is chosen, after any later render: a tab is not a stage", async () => {
+    it("keeps Výsledky with no tabs in the workbench, after any later render, and opens the map only by navigation", async () => {
+      // RES9 (spec sber/V1): the workbench's Výsledky has no tabs, so no tab can turn into the stage.
       const { rerender } = open(signedOff, true, "#data");
-      fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
-      expect(window.location.hash).toBe("#maps");
+      await screen.findByText(t("research.exec.results.aggregate"));
       rerender(<ResearchScreen step="results" frame={TEST_FRAME} />);
       await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-      expect(screen.getByRole("tablist", { name: "Oddíly výsledků" })).toBeTruthy();
+      expect(screen.queryByRole("tablist", { name: "Oddíly výsledků" })).toBeNull();
       expect(screen.queryByTestId("sociomap-stage")).toBeNull();
       // Navigation to the stage (the workbench sets the hash: hashchange) opens it.
       act(() => { window.location.hash = "#data"; });

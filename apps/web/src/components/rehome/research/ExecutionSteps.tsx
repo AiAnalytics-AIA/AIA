@@ -1678,7 +1678,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
-  return <ResultsWorkspace run={run} progressHref={progressHref}
+  return <ResultsWorkspace run={run} progressHref={progressHref} tabs={!leadOwns}
     notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[

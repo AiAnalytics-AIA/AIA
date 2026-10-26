@@ -226,10 +226,14 @@ ok(`Progress at 1100, 768 and 390: the steps, Kdo odpovídal${workbench ? ", the
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
 await page.goto(stage("results"), { waitUntil: "load", timeout: 120000 });
 await page.getByText(TEXT.fictional).first().waitFor({ timeout: 60000 }).catch(() => fail("Results do not say the data are fictional"));
-await page.getByRole("tab", { name: "Data", exact: true }).click();
+// In the workbench each view is a stage of its own, opened by its hash (artifact-results RES9); classic has tabs.
+const view = (hash, tab) => workbench ? page.evaluate((h) => { location.hash = h; }, hash) : page.getByRole("tab", { name: tab, exact: true }).click();
+await view("data", "Data");
 await page.locator("table").first().waitFor({ state: "attached", timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
-await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
-await page.getByText(TEXT.internal).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
+await view("maps", "Sociomapy");
+// The workbench's #maps is the Sociomapa stage (artifact-sociomap SOC9): each map says its method's status.
+const mapStatus = workbench ? /Metodika schválena pro zprávy|Jen pro výzkumníky studie/ : TEXT.internal;
+await page.getByText(mapStatus).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 

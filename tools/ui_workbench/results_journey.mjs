@@ -7,7 +7,8 @@
  *   node tools/ui_workbench/results_journey.mjs [--facade http://127.0.0.1:8780] [--fixture persona] [--out DIR]
  * Local fictional identity only. At 1440, 1100, 768 and 390 px, on the completed run's Data view:
  *   - the view opened by hash is what the screen shows: the study's report card stays on Přehled and
- *     Rešerše a zpráva (hidden, never unmounted), so the data is not two screens down;
+ *     Rešerše a zpráva (hidden, never unmounted), so the data is not two screens down; in the workbench
+ *     no results tabs and no overview, each view a stage of its own (RES9);
  *   - no page overflow, nothing of the data view wider than the screen and nothing wider than its own
  *     measure card (a rated set's and a question's tables fit a phone: their band column is left out
  *     under 640 px);
@@ -75,7 +76,8 @@ async function open(width, hash) {
     if (!["GET", "HEAD", "OPTIONS"].includes(r.method()) && !path.startsWith("/_next/")) writes.push({ method: r.method(), path });
   });
   await page.goto(`${results}#${hash}`);
-  await page.locator("[data-aggregate-explorer]").first().waitFor({ state: "attached", timeout: 60000 });
+  // The data view, or in the workbench the Sociomapa stage, which #maps opens (artifact-sociomap SOC9).
+  await page.locator("[data-aggregate-explorer], [data-testid=sociomap-stage]").first().waitFor({ state: "attached", timeout: 60000 });
   return { page, context };
 }
 
@@ -84,14 +86,23 @@ try {
     const { page, context } = await open(width, "data");
     const explorer = page.locator("[data-aggregate-explorer]");
     await explorer.waitFor({ state: "visible", timeout: 30000 });
-    assert.equal(await page.getByRole("tab", { name: "Data" }).getAttribute("aria-selected"), "true", `${width}: Data is the view the hash opened`);
+    // RES9: in the workbench Výsledky is the data alone, no tabs and no overview; classic keeps its tabs.
+    const workbench = (await page.locator("[data-workbench]").count()) > 0;
+    if (workbench) {
+      assert.equal(await page.getByRole("tablist").count(), 0, `${width}: no results tabs in the workbench`);
+      assert.equal(await page.getByText("Co chcete prozkoumat?").count(), 0, `${width}: no overview in the workbench`);
+      assert(await page.locator("section[aria-label='Data']").isVisible(), `${width}: Data is the view the hash opened`);
+    } else {
+      assert.equal(await page.getByRole("tab", { name: "Data" }).getAttribute("aria-selected"), "true", `${width}: Data is the view the hash opened`);
+    }
     // The card is there and hidden, not merely not drawn yet.
     await page.locator("[data-complete-report]").waitFor({ state: "attached", timeout: 30000 });
     assert.equal(await page.locator("[data-results-lead]").count(), 1, `${width}: the study's report card is kept apart from the views`);
     assert(await page.locator("[data-results-lead]").evaluate((el) => el.hidden), `${width}: the study's report card is hidden on Data`);
-    await page.waitForFunction(() => { const t = document.querySelector("[role=tablist]")?.getBoundingClientRect(); return t && t.top >= 0 && t.top < innerHeight / 3; }, null, { timeout: 10000 })
+    await page.waitForFunction((sel) => { const t = document.querySelector(sel)?.getBoundingClientRect(); return t && t.top >= 0 && t.top < innerHeight / 3; },
+      workbench ? "section[aria-label='Data']" : "[role=tablist]", { timeout: 10000 })
       .catch(() => assert.fail(`${width}: Data opens scrolled to its view`));
-    check(`${width}: Data opens on the data, the report card kept for Přehled and Rešerše a zpráva`);
+    check(`${width}: Data opens on the data${workbench ? " alone, no tabs or overview" : ""}, the report card kept for Rešerše a zpráva`);
 
     const layout = await page.evaluate(() => {
       const view = document.querySelector("[data-aggregate-explorer]");
@@ -144,18 +155,25 @@ try {
     check(`${width}: #${anchor} opens its card`);
     await context.close();
 
-    // Sociomapa is the same workspace on #maps: it opens scrolled to the map (artifact-sociomap's audit).
+    // #maps opens scrolled to the map (artifact-sociomap's audit): Výsledky's Sociomapy tab in the classic
+    // layout, the Sociomapa stage itself in the workbench.
     const maps = await open(width, "maps");
-    await maps.page.waitForFunction(() => { const t = document.querySelector("[role=tablist]")?.getBoundingClientRect(); return t && t.top >= 0 && t.top < innerHeight / 3; }, null, { timeout: 10000 })
+    // The workbench's Sociomapa is its own stage (the map first, artifact-sociomap SOC9); classic, a tab of Výsledky.
+    const mapTop = workbench ? "[data-testid=sociomap-stage], section[aria-label='Sociomapy']" : "[role=tablist]";
+    await maps.page.waitForFunction((sel) => { const t = [...document.querySelectorAll(sel)].find((e) => e.getClientRects().length)?.getBoundingClientRect(); return t && t.top >= 0 && t.top < innerHeight / 3; }, mapTop, { timeout: 10000 })
       .catch(() => assert.fail(`${width}: Sociomapa opens scrolled to the map`));
-    assert.equal(await maps.page.getByRole("tab", { name: "Sociomapy" }).getAttribute("aria-selected"), "true", `${width}: #maps opens Sociomapy`);
+    if (workbench) assert.equal(await maps.page.getByRole("tablist", { name: "Oddíly výsledků" }).count(), 0, `${width}: no results tabs on #maps`);
+    else assert.equal(await maps.page.getByRole("tab", { name: "Sociomapy" }).getAttribute("aria-selected"), "true", `${width}: #maps opens Sociomapy`);
     check(`${width}: Sociomapa opens scrolled to the map`);
     await maps.context.close();
   }
 
   // The journey only reads: the one write is the study's open stage, kept as a stage opens. Any other
   // (a run, a retry, a Lead turn, a budget lift) is a defect.
-  assert.deepEqual(writes.filter((w) => !(w.method === "PUT" && w.path.endsWith("/workspace/stage"))), [], "nothing but the open stage written, so nothing paid started");
+  // Two writes are no work: the open stage, kept as a stage opens, and the report editor's open
+  // (artifact-report RPT8c), which the mounted report view asks for and the API refuses while it is off.
+  const reads = (w) => (w.method === "PUT" && w.path.endsWith("/workspace/stage")) || (w.method === "POST" && w.path.endsWith("/report/editor"));
+  assert.deepEqual(writes.filter((w) => !reads(w)), [], "nothing but the open stage written, so nothing paid started");
   check("nothing but the open stage written, so nothing paid started");
   assert.deepEqual(errors, [], "no page error");
   check("no page error");

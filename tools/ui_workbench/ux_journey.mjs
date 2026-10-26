@@ -79,43 +79,67 @@ try {
   assert(await page.locator("main > div ul > li > a").count() >= 2);
   checks.push("Client search, no-match explanation and recovery");
   await visit(studyPath + "/results");
-  await page.getByRole("tab", { name: "Přehled", exact: true }).waitFor();
-  assert.equal(await page.getByRole("tabpanel").count(), 1);
   await page.getByText(/Fiktivní data\. Tento běh/).waitFor();
+  // In the workbench each view is a stage of its own, opened by its hash, with no tabs and no overview
+  // (artifact-results RES9); the classic layout keeps both.
+  const workbench = (await page.locator("[data-workbench]").count()) > 0;
+  const view = (hash, tab) => workbench ? page.evaluate((h) => { location.hash = h; }, hash) : page.getByRole("tab", { name: tab, exact: true }).click();
+  if (workbench) assert.equal(await page.getByRole("tablist", { name: "Oddíly výsledků" }).count(), 0, "no results tabs in the workbench");
+  else {
+    await page.getByRole("tab", { name: "Přehled", exact: true }).waitFor();
+    assert.equal(await page.getByRole("tabpanel").count(), 1);
+  }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: join(out, "results-overview-desktop.png"), fullPage: true });
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
-  assert(await page.getByRole("tabpanel", { name: "Data" }).locator("table").count() > 0);
-  await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
-  const map = page.getByTestId("object-map-sec_wb_set");
-  await map.getByRole("button", { name: "3D terén", exact: true }).click();
-  const terrain = map.getByTestId("object-map-3d");
-  await terrain.waitFor();
-  const initial = await terrain.getAttribute("data-camera");
-  // The camera controls sit in a disclosure since the approved composition (1eb36ab).
-  await map.locator("details summary").filter({ hasText: "Ovládání 3D pohledu" }).first().click();
-  await map.getByRole("button", { name: "Otočit vpravo", exact: true }).click();
-  const rotated = await terrain.getAttribute("data-camera");
-  assert.notEqual(rotated, initial, "3D rotation must change the view");
-  await page.getByRole("tab", { name: "Data", exact: true }).click();
-  await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
-  assert.equal(await terrain.getAttribute("data-camera"), rotated, "Switching sections must preserve the camera");
-  await terrain.screenshot({ path: join(out, "canonical-map-3d.png") });
-  for (const width of [1440, 1024, 768, 390]) {
-    await page.setViewportSize({ width, height: 1000 });
-    for (const label of ["Data", "Sociomapy", "Rešerše a zpráva", "Přehled"]) {
-      await page.getByRole("tab", { name: label, exact: true }).click();
-      await measure(label);
+  await view("data", "Data");
+  const data = workbench ? page.locator("section[aria-label='Data']:not([hidden])") : page.getByRole("tabpanel", { name: "Data" });
+  assert(await data.locator("table").count() > 0);
+  if (!workbench) {
+    await view("maps", "Sociomapy");
+    const map = page.getByTestId("object-map-sec_wb_set");
+    await map.getByRole("button", { name: "3D terén", exact: true }).click();
+    const terrain = map.getByTestId("object-map-3d");
+    await terrain.waitFor();
+    const initial = await terrain.getAttribute("data-camera");
+    // The camera controls sit in a disclosure since the approved composition (1eb36ab).
+    await map.locator("details summary").filter({ hasText: "Ovládání 3D pohledu" }).first().click();
+    await map.getByRole("button", { name: "Otočit vpravo", exact: true }).click();
+    const rotated = await terrain.getAttribute("data-camera");
+    assert.notEqual(rotated, initial, "3D rotation must change the view");
+    await view("data", "Data");
+    await view("maps", "Sociomapy");
+    assert.equal(await terrain.getAttribute("data-camera"), rotated, "Switching sections must preserve the camera");
+    await terrain.screenshot({ path: join(out, "canonical-map-3d.png") });
+    for (const width of [1440, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const label of ["Data", "Sociomapy", "Rešerše a zpráva", "Přehled"]) {
+        await page.getByRole("tab", { name: label, exact: true }).click();
+        await measure(label);
+      }
     }
+    await page.screenshot({ path: join(out, "results-overview-phone.png"), fullPage: true });
+    await page.getByRole("tab", { name: "Přehled", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await page.getByRole("tab", { name: "Data", exact: true }).getAttribute("aria-selected"), "true");
+    await page.keyboard.press("End");
+    assert.equal(await page.getByRole("tab", { name: "Rešerše a zpráva", exact: true }).getAttribute("aria-selected"), "true");
+    await page.reload();
+    await page.getByRole("tabpanel", { name: "Rešerše a zpráva" }).waitFor();
+  } else {
+    // The workbench's views are stages, each opened by its hash (RES9). Its Sociomapa is the map's own
+    // stage (artifact-sociomap SOC9), not a view of Výsledky, so no camera is kept across stages here;
+    // sociomap_journey.mjs walks that stage.
+    for (const width of [1440, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const [label, hash] of [["Data", "data"], ["Rešerše a zpráva", "report"]]) {
+        await view(hash, label);
+        await page.locator(`section[aria-label='${label}']:not([hidden])`).waitFor();
+        await measure(label);
+      }
+    }
+    await page.reload();
+    await page.locator("section[aria-label='Rešerše a zpráva']:not([hidden])").waitFor();
   }
-  await page.screenshot({ path: join(out, "results-overview-phone.png"), fullPage: true });
-  await page.getByRole("tab", { name: "Přehled", exact: true }).focus();
-  await page.keyboard.press("ArrowRight");
-  assert.equal(await page.getByRole("tab", { name: "Data", exact: true }).getAttribute("aria-selected"), "true");
-  await page.keyboard.press("End");
-  assert.equal(await page.getByRole("tab", { name: "Rešerše a zpráva", exact: true }).getAttribute("aria-selected"), "true");
-  await page.reload();
-  await page.getByRole("tabpanel", { name: "Rešerše a zpráva" }).waitFor();
   // The way out of a study on a phone: AppShell's menu in the classic layout; with the research
   // workbench on (AIA_WEB_RESEARCH_WORKBENCH), the workbench's own header and its "Nabídka" (ADR 0026).
   if (await page.locator("[data-workbench]").count()) {
@@ -126,8 +150,8 @@ try {
     await page.getByRole("button", { name: /AI Analytics ·/ }).click();
     await page.getByRole("navigation", { name: "Hlavní navigace" }).waitFor();
   }
-  checks.push("Result sections, keyboard focus, reload and mobile menu");
-  checks.push("Canonical 3D map rotation and camera preserved across sections");
+  checks.push(workbench ? "Result stages by hash with no tabs (RES9), reload and mobile menu" : "Result sections, keyboard focus, reload and mobile menu");
+  if (!workbench) checks.push("Canonical 3D map rotation and camera preserved across sections");
   assert.equal(errors.length, 0, errors.join("\n"));
   // A 404 the browser logs is judged by its request below, where the expected ones are named.
   const consoleProblems = consoleErrors.filter(e => !/status of 404/.test(e));
@@ -136,8 +160,10 @@ try {
   const unexpected = httpErrors.filter(e => !(e.status === 404 && /\/(workspace\/content|knowledge|agent-jobs|analysis|report|design\/source)\b/.test(e.path)));
   assert.equal(unexpected.length, 0, JSON.stringify(unexpected));
   const riskyWrites = writes.filter(r => r.method !== "PUT" || !r.path.endsWith("/workspace/stage"));
-  // Opening Run freezes the existing design through the normal API; it never starts paid work.
-  assert.equal(riskyWrites.filter(r => !(r.method === "POST" && r.path.endsWith("/design/revisions"))).length, 0, JSON.stringify(riskyWrites));
+  // Opening Run freezes the existing design through the normal API; it never starts paid work. The
+  // mounted report view asks to open the report editor (artifact-report RPT8c), refused while it is off.
+  const noWork = (r) => r.method === "POST" && (r.path.endsWith("/design/revisions") || r.path.endsWith("/report/editor"));
+  assert.equal(riskyWrites.filter(r => !noWork(r)).length, 0, JSON.stringify(riskyWrites));
   writeFileSync(join(out, "journey.json"), JSON.stringify({ result: "PASS", checks, records, errors, httpErrors, writes, consoleErrors, failedRequests, abortedStageMarkers }, null, 2));
   console.log(`UX journey: PASS (${records.length} layout checks; ${checks.length} interaction checks; ${out})`);
 } catch (error) {
