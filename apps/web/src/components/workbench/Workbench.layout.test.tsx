@@ -11,7 +11,7 @@ import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
-import { LEAD_MAP_VIEW, LEAD_REVEAL, takeLeadMapView } from "@/lib/lead";
+import { LEAD_MAP_VIEW, LEAD_REVEAL, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
 import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
@@ -903,7 +903,7 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
 describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
   const relief = { op: "filter", name: "view", value: "relief" } as const;
   afterEach(() => {
-    takeLeadMapView();
+    takeLeadMapViews();
     window.location.hash = "";
   });
 
@@ -915,6 +915,15 @@ describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
     expect(push.mock.calls[0][0]).toMatch(/\/results#maps$/);
     expect(takeLeadMapView()).toEqual(relief);
     expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("keeps every map view of one turn for the map, in order (Codex on #992)", async () => {
+    push.mockClear();
+    const people = { op: "filter", name: "mode", value: "respondents" } as const;
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [people, relief])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(takeLeadMapViews()).toEqual([people, relief]);
   });
 
   it("keeps nothing for the map when a leave guard stops the move", async () => {

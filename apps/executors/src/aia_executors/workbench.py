@@ -155,8 +155,10 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     "detail" opens the first research question's detail, else the first hypothesis's
     (``inspect``); "rešerš" prepares Design Research, and "výklad" or "výsledk" Interpretation
     Research over the ``targets`` layer's default, when it has one (LO5a.1); one asking for
-    "změny" on Návrh, Dotazník or Dimenze shows that stage's waiting changes (``show_diff``).
-    Every reply starts with :data:`SCRIPTED_PREFIX`.
+    "změny" on Návrh, Dotazník or Dimenze shows that stage's waiting changes (``show_diff``);
+    one with "reliéf" sets Sociomapa's view to relief (``filter``), and one about an object or a
+    pair the person pointed at selects it (``select``). Every reply starts with
+    :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
     study = layer(frozen, "study")
@@ -211,6 +213,14 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     # A message asking for the changes shows this stage's waiting ones (research-lead-workbench 14).
     if "změny" in message.casefold() and view.get("stage") in SHOW_DIFF_STAGES:
         views.append({"op": "show_diff", "stage": view["stage"]})
+    # On Sociomapa (research-lead-workbench 14): "reliéf" sets the map's view to relief, and a
+    # message about an object or a pair the person pointed at selects it, as the real Lead may.
+    if "reliéf" in message.casefold():
+        views.append({"op": "filter", "name": "view", "value": "relief"})
+    pointed = view.get("focus")
+    pointed_id = str(pointed.get("id") or "") if isinstance(pointed, Mapping) else ""
+    if pointed_id.startswith(("object:", "pair:")):
+        views.append({"op": "select", "target": pointed_id})
     body: dict[str, Any] = {
         "reply": f"{SCRIPTED_PREFIX} Připravil jsem ukázkovou úpravu a jedno rozhodnutí.",
         "view": views[:3],
