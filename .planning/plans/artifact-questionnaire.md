@@ -448,7 +448,9 @@ follow-up chunk below.
   the same cap Analýza's modules and the Lead see.
 - The Lead's card approval of a model-prepared job (`application/research_lead.py`
   `approve_request`) passes the Lead's own `external_store`. That is one line in the coordinator's
-  file, with the integration coordinator's agreement.
+  file, with the integration coordinator's agreement. The Lead's request route (`routers/lead.py`
+  `approve_request`) gives the Lead that store under the switch, as the turn route does; the stand-in
+  found it missing, so the line had no effect in production.
 - Tests:
   - `test_research_agents.py::test_external_context_frames_the_findings_and_trims_them_to_the_bound`
   - `test_research_agents.py::test_the_external_rail_rides_the_system_prompt_whenever_the_layer_does`
@@ -456,3 +458,4 @@ follow-up chunk below.
   - `test_research_agent_jobs_api.py::test_a_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
   - `test_lead_chat_start_api.py::test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
   - `test_research_lead_application.py::test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store`
+  - `test_research_lead_api.py::test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on`
