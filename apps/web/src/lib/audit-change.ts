@@ -144,6 +144,11 @@ export function changeOf(e: Entry): AuditChange {
     case "DR_SETTING_APPROVED":
     case "DR_SETTING_WITHDRAWN":
       return { change: "to" in p ? `${ruleVersion(p.from)} → ${ruleVersion(p.to)}` : null, why };
+    // A pending proposal withdrawn by its proposer or declined by another administrator: which version
+    // it was is the change; the reason the code writes ("<key> v4") is its own, never a person's words.
+    case "DR_SETTING_PROPOSAL_WITHDRAWN":
+    case "DR_SETTING_PROPOSAL_DECLINED":
+      return { change: typeof p.version === "number" ? tv(`${C}.proposalVersion`, { version: ruleVersion(p.version) }) : null, why };
     case "DR_SETTING_PROPOSED":
       return { change: "value" in p ? `${ruleVersion(p.version)}: ${scalar(p.value)}` : null, why: null };
     case "CLIENT_KNOWLEDGE_DECIDED":

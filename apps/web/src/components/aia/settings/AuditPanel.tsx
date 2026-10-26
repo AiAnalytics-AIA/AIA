@@ -127,7 +127,9 @@ export function AuditPanel({ audit, members, clients, studies }: {
                       {/* The category's dot and its name for a reader; the event, then what it concerns. */}
                       <span className="flex items-start gap-2">
                         <i aria-hidden="true" title={CATEGORY_NAMES[c]} className={`mt-1.5 size-2 shrink-0 rounded-full ${DOT[c]}`} />
-                        <span className="min-w-0 break-words">
+                        {/* relative: the sr-only label's absolute box is held here, inside the table's
+                            overflow wrapper, so it never widens the page (AGENTS.md, the overflow gotcha). */}
+                        <span className="relative min-w-0 break-words">
                           <span className="sr-only">{CATEGORY_NAMES[c]}: </span>
                           <strong className="font-medium">{actionName(e.action)}</strong>
                           {subject(e) ? <span data-audit-concerns className="text-ink-muted"> · {subject(e)}</span> : null}

@@ -87,6 +87,12 @@ describe("an audit record's change, in words (F10)", () => {
     expect(concernsOf(rec("PROMPT_ACTIVATED", "", { prompt_id: "aia.research.lead" }))).toBeTruthy();
     expect(concernsOf(rec("DR_SETTING_APPROVED", "", { key: "retention.snapshots" }))).toBeTruthy();
     expect(concernsOf(rec("DR_SETTING_APPROVED", "", { key: "retention.snapshots" }))).not.toBe("retention.snapshots");
+    // A withdrawn or declined proposal names its version, the person's reason beneath (review of #955).
+    expect(changeOf(rec("DR_SETTING_PROPOSAL_WITHDRAWN", "retention.snapshots v4", { key: "retention.snapshots", version: 4, why: "překlep v hodnotě" })))
+      .toEqual({ change: "návrh v4", why: "překlep v hodnotě" });
+    expect(changeOf(rec("DR_SETTING_PROPOSAL_DECLINED", "retention.snapshots v2", { key: "retention.snapshots", version: 2 })))
+      .toEqual({ change: "návrh v2", why: null });
+    expect(concernsOf(rec("DR_SETTING_PROPOSAL_WITHDRAWN", "", { key: "retention.snapshots", version: 4 }))).not.toBe("retention.snapshots");
     expect(concernsOf(rec("STUDY_BUDGET_CHANGED", "", {}))).toBeNull();
   });
 });
