@@ -259,13 +259,14 @@ const FIX_IN: Partial<Record<WorkbenchStage, string>> = { dimensions: "v Dimenz�
 
 /**
  * A check fixed on Vzorek itself (n and its support, SMP7) leaves nothing to open: the person is taken
- * to §01's size, its control focused when there is one to focus.
+ * to §01's size, its number field focused when there is one to focus.
  */
 function toSampleSize(e: MouseEvent<HTMLElement>) {
   const size = e.currentTarget.closest("[data-sample-view]")?.querySelector<HTMLElement>(`[data-aia="${sampleAia.n()}"]`);
   if (!size) return;
   size.scrollIntoView({ block: "center", behavior: "smooth" });
-  size.querySelector<HTMLElement>("input:not([disabled]), button:not([disabled])")?.focus({ preventScroll: true });
+  // The field, never a Stepper's − button that comes before it in the DOM; a button only without one.
+  (size.querySelector<HTMLElement>("input:not([disabled])") ?? size.querySelector<HTMLElement>("button:not([disabled])"))?.focus({ preventScroll: true });
 }
 
 function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {

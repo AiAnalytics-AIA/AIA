@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { WorkingReadiness } from "@/lib/api";
 import type { ResearchProject } from "@/research/model";
 import type { ResearchStore } from "@/research/store";
+import { Stepper } from "@/components/ui/Stepper";
 import { SampleArtifact } from "./SampleView";
 import { loadSampleReadiness, type SampleReadiness } from "./useSampleReadiness";
 
@@ -151,11 +152,15 @@ describe("Připravenost ke spuštění", () => {
   it("fixes n's checks here: focuses the size's control, never leaving Vzorek for Dimenze", () => {
     const onOpen = vi.fn();
     Element.prototype.scrollIntoView = vi.fn();
-    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} size={<input aria-label="N" />} readiness={ready({ checks })} />);
+    // The real Stepper above its minimum: its − button comes before the field, and the field is what takes focus.
+    const size = <Stepper label="Počet respondentů" value={200} min={50} max={5000} step={50} onCommit={vi.fn()} />;
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} size={size} readiness={ready({ checks })} />);
+    const field = container.querySelector<HTMLInputElement>('[data-aia="sample:n"] input')!;
+    expect(field.compareDocumentPosition(container.querySelector('[data-aia="sample:n"] button:not([disabled])')!) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
     for (const id of ["sample_size", "sociomap_support"]) {
       (document.body as HTMLElement).focus();
       fireEvent.click(container.querySelector(`[data-aia="sample:ready:${id}"] button`)!);
-      expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "N" }));
+      expect(document.activeElement).toBe(field);
     }
     expect(onOpen).not.toHaveBeenCalled();
   });
