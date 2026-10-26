@@ -2529,6 +2529,7 @@ export const cs = {
       commentsProcess: "Zpracovat komentáře",
       commentAdd: "Přidat komentář",
       commentRemove: "Odebrat komentář",
+      commentsLeadNote: "Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.",
       commentsDone: "Komentáře zapracovány",
       // artifact-design DSN2, DSN2b: each research question with its coverage on its row, as the server traces it.
       coverage: {
@@ -2586,7 +2587,8 @@ export const cs = {
       followHint: "Odpovězte jen na to, co víte. Nezodpovězené otázky AI vyřeší předpokladem.",
       followAnswered: "{a} z {b} zodpovězeno",
       followAnswer: "Odpověď na otázku {n}",
-      commentsHint: "Označte text v části Porozumění nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHint: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Všechny komentáře AI zapracuje najednou.",
+      commentsHintLead: "Označte text v části Porozumění, Hypotézy nebo Sady jako ve Wordu. Komentáře uložíte pro Vedoucího výzkumu.",
       commentDraft: "Co změnit? Enter uloží komentář",
       dockSetSize: "Sada „{name}“ má {count}, potřebuje {min}–{max}",
       dockComments: "Komentáře čekající na zpracování: {n}",
