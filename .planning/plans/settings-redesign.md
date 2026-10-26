@@ -37,6 +37,12 @@ chunks:
   - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
   - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
+  - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
+  - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
+  - "[ ] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
+  - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
+  - "[ ] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
+  - "[ ] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
 ---
 # Settings redesign (Nastavení)
 
@@ -177,3 +183,31 @@ agent's; chunks F1-F12 follow its order. His decisions on it: Metodika follows t
 existing guards, check/compare and activation with a reason; the Metodik rule kept); Studie a
 rozpočty drops the per-study status picker for the design's 6-column table; the global shell
 (gap 22) is not now. Each chunk is its own PR from a fresh develop, with side-by-side screenshots.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
+
+**F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.
+
+**F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
+
+**F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
+
+**F21. Prostředí a verze** (W1, lane B). From the build identity and `GET /population`; no secret in the copied text. Fronta práce is post-MVP (`fronta-prace.md`).
+
+**F22. Running work and typed name** (W1, lane B). Deletion is already refused with 409 `client_has_active_work`; the preview gains the flag. The kept records' lhůta reads 365 days (MVPQ-07 closed, 26 Oct 2026).
+
+**Notes.**
+- Audit's eight categories, Dnes / 7 / 30 dní and search are chunk 8 (done); F10 finishes the Důvod / změna column.
+- The global shell (gap 22, "not now" above) is now lane A's, built by "the second account": the Dock rail, Můj Vedoucí on the rail, the flyout from the rail item and the hero component (`prototype-build#PBA1` to `#PBA4`). F12b (#900) lands first; PBA3 then opens its menu from the rail item.
+- **Proposed (26 Oct 2026): this plan becomes core with waves** (master §3.1), every open chunk W1: the frame work with lane A in step 2 and the remaining pages in step 3 (`prototype-build.md`). Nigel may change it.
+- Nigel, 26 Oct 2026 ~00:35 UTC: "no narrower screens right now": the Settings pages are drawn at 1440 only; the product keeps the workbench's existing narrower layouts.
+- Decided by default (planning, open to Nigel's override): a study budget may go to 1,000,000 USD (the prototype's 10 000 is not adopted).

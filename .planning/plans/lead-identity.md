@@ -5,16 +5,18 @@ chunks:
   - "[ ] LI1. Hatching writes the Lead's files with one model request: name, four traits, a brief and an optional about-you in; SOUL and USER out of one Lead-route request (STUDY_LEAD's binding) on a personal-Lead work project, its input under a new material rule, priced and held like a turn against LI0's allowance, its cost stated before the person confirms, the result held to the byte bounds and ADR 0030's personal-file check (refused by name, or asked once more), parked by name when the model is off or unconfigured, never composed by code instead; the files kept only when the person accepts them (ADR 0030 decision 2)"
   - "[ ] LI2. The researcher's mark and its motion: preferences gain mark (lissajous, fourier, sunflower, interference, gauss) and motion (live, still), a migration on researcher_leads, PUT /lead/preferences, audited like auto-accept"
   - "[ ] LI3. The five marks as components, drawn from their formulas (lib/lead-marks.ts, pure): still under Klidná and prefers-reduced-motion, aria-hidden beside text; beside each Lead reply in the chat and in the pane's header; thinking shows the orbit alone when the mark is still; Průběh keeps its step orbs"
-  - "[ ] LI4. Líhnutí, the four-step hatching (web): name with ideas, how it should work (traits and free text), about you (optional), the mark; the cost and the confirmation; then se líhne…, the hatched SOUL and USER shown to accept or to write again; then the Lead's first greeting, Začít v chatu and Můj Vedoucí; replaces HatchCard and the unhatched /app/lead"
+  - "[ ] LI4. Vypěstování (wording LI9, Nigel 2026-10-26), the four-step hatching (web): name with ideas, how it should work (traits and free text), about you (optional), the mark; the cost and the confirmation; then roste…, the grown SOUL and USER shown to accept or to write again; then the Lead's first greeting, Začít v chatu and Můj Vedoucí; replaces HatchCard and the unhatched /app/lead"
   - "[ ] LI5. Můj Vedoucí rebuilt to the artboard: the name and hatch date, Otevřít chat (the last study the researcher spoke to the Lead in, else the client list), the mark picker and Živá/Klidná, the files read only (Povaha, Co ví o vás, Dovednosti, Nástroje a připojení, Paměť: every client's notes grouped by client), auto-accept, a chat preview"
   - "[ ] LI6. Dovednosti and Nástroje derived, never hand-written: skills from the worker registry (LeadWorkerSpec today, the action registry with LO21a), each naming its stage; tools from what is composed and switched on (/config, LO12b's composition record), one that is off saying why"
   - "[ ] LI7. Every Settings page's rail links Můj Vedoucí (ControlPanel), the artboards' rail"
+  - "[ ] LI8. The 'AIA' house entity that pays for charges belonging to no single client (a hatch first): its ADR, drafted by the Lead worker; how LI0's allowance relates to it decided there (Nigel, 26 Oct 2026; W3)"
+  - "[ ] LI9. The hatch wording follows 'grow their own from a test tube': vypěstovat / zkumavka / roste in every screen, copy and test, never Líhnutí / Vylíhnout / se líhne (Nigel, 26 Oct 2026; W3)"
 ---
 # The Lead's identity: hatching, its mark and Můj Vedoucí
 
 **Source.** The Settings prototype, Version 59
 (<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7>), artboards `Hatch.dc.html` (Líhnutí
-Vedoucího) and `LeadSettings.dc.html` (Můj Vedoucí). Nigel approved them through the Lead
+Vedoucího at v59; Vypěstovat Vedoucího from v91, LI9) and `LeadSettings.dc.html` (Můj Vedoucí). Nigel approved them through the Lead
 Researcher handoff from the research-stages prototype session (relayed by the PM coordinator,
 2026-10-25 ~22:10 UTC).
 
@@ -101,7 +103,7 @@ Researcher handoff from the research-stages prototype session (relayed by the PM
 **Held, priced and stated before the person confirms.**
 - The hold covers the call and its one repair at the Lead model's prices. The window is the
   request's own, a few KB of input plus the output cap, not the 96 KB turn window.
-- The screen shows that ceiling in USD, with the model's name, before "Vylíhnout". Nothing is sent
+- The screen shows that ceiling in USD, with the model's name, before "Vypěstovat" (LI9; was "Vylíhnout"). Nothing is sent
   until the person confirms.
 - **The cost at the Lead model's prices** is `2 × (input_tokens × input_usd_per_mtok + output_cap ×
   output_usd_per_mtok) / 1e6`.
@@ -163,8 +165,8 @@ bounded), stored as its first turn when the files are accepted. They are not a s
   still frame. Tests: the geometry's fixed points, and the still frame under reduced motion.
 - **LI4.** The four steps with Zpět and Přeskočit (on the optional step), as drawn:
   - a live preview of what will be sent;
-  - then the cost and Vylíhnout;
-  - then "se líhne…" while the step runs, showing the existing step activity;
+  - then the cost and Vypěstovat (LI9);
+  - then "roste…" while the step runs (LI9; was "se líhne…"), showing the existing step activity;
   - then the hatched SOUL and USER in full, with "Přijmout" and "Zadat znovu" (LI1);
   - then the greeting.
 
@@ -201,11 +203,33 @@ Both by Nigel, relayed by the coordinator, 2026-10-25 ~22:25 UTC.
 
 ## Open questions
 
-1. **The hatch input's class:** `MaterialRule.LEAD_HATCH`, Class C (proposed). A material rule is
-   the owner's decision.
-2. **The acceptance step** keeps ADR 0030 decision 2. If Nigel prefers hatching without it, that
-   is an explicit exception to the decision, recorded under Doc follow-up with his words.
+Both closed by Nigel, 26 Oct 2026 (relayed by the PM coordinator):
+
+1. **The hatch input's class:** `MaterialRule.LEAD_HATCH` is **Class C**, as proposed.
+2. **The acceptance step** (Přijmout / Zadat znovu) **stays**, keeping ADR 0030 decision 2.
+
+Still open: who pays is now LI8's ADR (the "AIA" house entity), drafted by the Lead session.
 
 ## Findings
 
 None yet.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**LI8. The house payer** (W3, lane H). Nigel, 26 Oct 2026: an "AIA" house entity for charges that belong to no single client. An ADR first, drafted by the Lead session; it says whether LI0's organization allowance is that entity's budget or is replaced by it. Nothing is charged to it before the ADR is accepted.
+
+**LI9. Vypěstovat, not vylíhnout** (W3, lane H). Nigel, 26 Oct 2026. The copy module, `LeadPane`'s and `LeadProfile`'s buttons and the tests change together; code identifiers (`hatch`, `research_lead_hatch`) stay.
+
+**Notes.**
+- Decided, Nigel 26 Oct 2026: `MaterialRule.LEAD_HATCH` is Class C; the acceptance step (Přijmout / Zadat znovu) stays. Open questions 1 and 2 above are closed.
+- Lead identity stays core MVP, W3, after `lead-conversation#LC5b` and `#LC10` (Nigel, 25 Oct 2026, kept).
+- Decided by default (planning, open to Nigel's override): SOUL is bounded at 2,800 bytes (the prototype's 2,000 characters not adopted); skills are derived from the worker registry (LI6); the Lead asks before saving a client note.
+- LI7 is widened by lane A: Můj Vedoucí on the rail on every page, built as `prototype-build#PBA2`; LI7 ticks when PBA2 lands.
+- P4, Nigel 26 Oct 2026: five Lead marks, "i chose these five specifically" (LI2, LI3).
