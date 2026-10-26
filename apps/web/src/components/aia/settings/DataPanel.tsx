@@ -19,6 +19,7 @@ import { ChoiceChips } from "../../ui/ChoiceChips";
 import { describeError } from "./errors";
 import { InfoButton } from "./InfoButton";
 import { FOCUS } from "../../ui/parts";
+import { Icon } from "../../rehome/icons";
 
 const D = "aia.settings.panel.data";
 const CARD = "rounded-md border border-border bg-surface-raised px-6 py-5";
@@ -27,20 +28,21 @@ type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 const count = (n: number | null | undefined) => (n === null || n === undefined ? t(`${D}.unknownCount`) : new Intl.NumberFormat("cs-CZ").format(n));
 const DELETED = ["studies", "working_revisions", "knowledge_items", "sources", "files", "runs", "artifacts"] as const;
 const KEPT = ["usage_rows", "approval_rows", "audit_rows"] as const;
+const SDL2 = ["population_children", "replaced_source_readings"] as const;
 const KNOWN_RECORDS = new Set(["usage_rows", "budget_holds", "approval_rows", "audit_rows", "deleted_clients"]);
 
-/** The route is not deployed: no route answered (http_404), or the old GET preview's 405. */
 /** The one destructive action on Settings, drawn as the prototype's danger button: fault-red, so it
  *  reads apart from every other action (F12). Local, not a shared variant: lane A owns the primitives. */
 function DangerButton({ disabled, onClick, children }: { disabled?: boolean; onClick: () => void; children: string }) {
   return (
     <button type="button" data-danger disabled={disabled} onClick={onClick}
       className={`inline-flex min-h-9 items-center gap-1.5 rounded-sm border border-status-fault bg-surface-raised px-3 text-sm font-medium whitespace-nowrap text-status-fault transition-colors duration-[var(--duration-confirm)] hover:bg-status-fault-wash disabled:opacity-50 ${FOCUS}`}>
-      <span aria-hidden="true">🗑</span>{children}
+      <Icon name="trash" size={14} />{children}
     </button>
   );
 }
 
+/** The route is not deployed: no route answered (http_404), or the old GET preview's 405. */
 const notBuilt = (e: unknown) => e instanceof ApiError && ((e.status === 404 && e.code === "http_404") || e.status === 405);
 const gone = (e: unknown) => e instanceof ApiError && e.status === 404 && e.code === "not_found";
 
@@ -108,7 +110,7 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
           <InfoButton label={t(`${D}.deleteInfo`)} controls="data-del-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.clientDeleteHelp`)} />
         </div>
         {/* Irreversible is the one fault-toned chip here (prototype v99's "chip bad"). */}
-        <span data-irreversible className="inline-flex min-h-[22px] items-center gap-1 rounded-pill border border-status-fault/50 bg-status-fault-wash px-2 text-xs text-status-fault"><span aria-hidden="true">⚠</span>{t(`${D}.irreversible`)}</span>
+        <span data-irreversible className="inline-flex min-h-[22px] items-center gap-1 rounded-pill border border-status-fault/50 bg-status-fault-wash px-2 text-xs text-status-fault"><Icon name="fault" size={12} />{t(`${D}.irreversible`)}</span>
       </div>
       <p id="data-del-about" hidden={!about} className="mt-1 text-sm leading-6 text-ink-muted">{t(`${D}.clientDeleteHelp`)}</p>
       {notYet ? <NotYetChip /> : <>
@@ -132,12 +134,14 @@ function ClientDelete({ clients, reload }: { clients: Part<AdminClient[]>; reloa
         {chosen ? (
           <div data-delete-inline className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
-              <h3 className="text-sm font-semibold"><span aria-hidden="true">🗑 </span>{t(`${D}.willDelete`)}</h3>
+              <h3 className="inline-flex items-center gap-1.5 text-sm font-semibold"><Icon name="trash" size={14} />{t(`${D}.willDelete`)}</h3>
               <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{DELETED.map((k) => <li key={k}>{t(`${D}.deletedKind.${k}`)}</li>)}</ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold"><span aria-hidden="true">🛡 </span>{t(`${D}.willStay`)}</h3>
+              <h3 className="text-sm font-semibold">{t(`${D}.willStay`)}</h3>
               <ul className="mt-1 text-[13px] leading-6 text-ink-muted">{KEPT.map((k) => <li key={k}>{t(`${D}.keptKind.${k}`)}</li>)}</ul>
+              <h3 className="mt-2 text-sm font-semibold">{t(`${D}.untilSdl2`)}</h3>
+              <ul data-inline-until-sdl2 className="mt-1 text-[13px] leading-6 text-ink-muted">{SDL2.map((k) => <li key={k}>{t(`${D}.sdl2.${k}`)}</li>)}</ul>
             </div>
           </div>
         ) : null}

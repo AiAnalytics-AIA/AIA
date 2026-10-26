@@ -110,7 +110,9 @@ describe("Stav systému", () => {
     expect((await screen.findAllByText("Stav nasazení a chyby z GlitchTipu patří celému nasazení.")).length).toBe(2);
     // A shared deployment is a fact, not a fault (F12): no alert, nothing red.
     expect(screen.queryByRole("alert")).toBeNull();
-    for (const n of document.querySelectorAll("[data-deployment-shared]")) expect(n.className).not.toMatch(/status-fault/);
+    const sharedNotes = document.querySelectorAll("[data-deployment-shared]");
+    expect(sharedNotes.length).toBe(2);
+    for (const n of sharedNotes) expect(n.className).not.toMatch(/status-fault/);
   });
 });
 
@@ -150,6 +152,11 @@ describe("Správa dat", () => {
     expect(within(inline).getByRole("heading", { name: /Zůstane/ })).toBeTruthy();
     expect(inline.textContent).toContain("Studie");
     expect(inline.textContent).toContain("Záznamy útraty AI");
+    // What stays until SDL2 is listed in the open too, not only in the confirmation.
+    expect(within(inline).getByRole("heading", { name: "Zůstává do SDL2" })).toBeTruthy();
+    expect(inline.querySelector("[data-inline-until-sdl2]")?.querySelectorAll("li").length).toBe(2);
+    // No emoji anywhere (design brief §5): the danger button and Smaže se draw the set's trash icon.
+    expect(document.body.textContent).not.toMatch(/\p{Extended_Pictographic}/u);
     // The one destructive action is fault-toned, apart from every other button; so is "Nelze vrátit".
     const del = screen.getByRole("button", { name: "Smazat klienta Kavárny Lípa…" });
     expect(del.hasAttribute("data-danger")).toBe(true);
