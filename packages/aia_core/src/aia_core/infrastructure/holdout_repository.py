@@ -23,7 +23,7 @@ import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -262,11 +262,18 @@ def _confirmation(row: HoldoutConfirmationRow) -> StoredConfirmation:
 
 
 def erase_client_holdouts(session: Session, *, client_id: str) -> None:
-    """Delete a deleted client's holdout preregistrations and confirmations (SB5)."""
+    """Erase a deleted client's holdout content, keeping each confirmation (SB5, OI-232).
+
+    A confirmation is its respondent system's once per organization
+    (``holdout_confirmation_once_per_system``): deleting it would let another Study start
+    confirming the same system and keep the run that passes. So the confirmation row stays
+    (ids, fingerprint, hashes, who and when: no content), and its preregistration row, which
+    it cascades from, stays too with its content erased. Nothing reads either again: both
+    are found only through their Study, which is a tombstone.
+    """
     session.execute(
-        delete(HoldoutConfirmationRow).where(HoldoutConfirmationRow.client_id == client_id)
-    )
-    session.execute(
-        delete(HoldoutPreregistrationRow).where(HoldoutPreregistrationRow.client_id == client_id)
+        update(HoldoutPreregistrationRow)
+        .where(HoldoutPreregistrationRow.client_id == client_id)
+        .values(content=b"")
     )
     session.flush()

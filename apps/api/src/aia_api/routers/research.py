@@ -16,10 +16,12 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
+from aia_core.application.admitted_results import admitted_results
 from aia_core.application.analysis import MAX_REPAIRS as ANALYSIS_MAX_REPAIRS
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
     ReconstructionRefused,
+    SourcesRefused,
     reconstruct_run,
     retry_failed_modules,
     stored_analysis,
@@ -2233,6 +2235,110 @@ def run_artifact(
         except (IntegrityError, ObjectNotFound) as exc:
             raise artifact_corrupt(session) from exc
     return artifact_response(artifact, payload)
+
+
+class ResultRowResponse(BaseModel):
+    """One row of a question: an admitted number, or a suppressed ref with why and no number."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_ref: str
+    #: ``pct``, ``mean``, ``top2box_pct``, ``n`` or ``effective_n``; ``answer`` is a share's.
+    metric: str | None
+    answer: str | None
+    #: ``None`` for a suppressed row and in a refused question: the number never leaves the API.
+    value: float | None
+    decimals: int | None
+    #: The 95 % interval, ``[lower, upper]``, of an admitted estimate; ``None`` otherwise.
+    interval: tuple[float, float] | None
+    #: ``REPORTABLE`` or ``INDICATIVE`` with a number, ``SUPPRESS`` without; ``None`` in a
+    #: refused question.
+    support: str | None
+    effective_n: float | None
+    #: Why a suppressed row has no number, as codes (``below_effective_n``, ``below_min_cell``,
+    #: ``no_interval``, … ``other``): the words name the numbers withheld.
+    reasons: list[str]
+
+
+class QuestionResultResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    text: str
+    rows: list[ResultRowResponse]
+    #: The evidence gate's violation codes when it refused every number of the question.
+    refused: list[str]
+
+
+class AdmittedResultsResponse(BaseModel):
+    """A run's results as admitted rows (evidence-integrity 6), internal only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    data_origin: str | None
+    internal_only: Literal[True] = True
+    questions: list[QuestionResultResponse]
+
+
+@router.get(
+    "/research/runs/{run_id}/results",
+    response_model=AdmittedResultsResponse,
+    summary="A research run's results, admitted rows only",
+)
+def run_results(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> AdmittedResultsResponse:
+    """Every question's numbers as the evidence gate admits them for the internal surface.
+
+    Needs ``VIEW_RESULTS``. Suppression is decided here: a suppressed row carries its reasons'
+    codes and no number, and a question the gate refuses carries the gate's codes and no number.
+    409 ``results_unavailable`` with the reason while the run has no verified aggregate or its
+    sources make no evidence table; 409 ``artifact_corrupt`` for a source that failed its hash.
+    """
+    try:
+        results = admitted_results(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except SourcesRefused as exc:
+        if exc.reason == "source_corrupt":
+            raise artifact_corrupt(session) from exc
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "results_unavailable",
+                "message": str(exc),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    return AdmittedResultsResponse(
+        run_id=results.run_id,
+        data_origin=results.data_origin.value if results.data_origin else None,
+        questions=[
+            QuestionResultResponse(
+                question_id=q.question_id,
+                text=q.text,
+                refused=list(q.refused),
+                rows=[
+                    ResultRowResponse(
+                        evidence_ref=r.evidence_ref,
+                        metric=r.metric,
+                        answer=r.answer,
+                        value=r.value,
+                        decimals=r.decimals,
+                        interval=(r.interval.lower, r.interval.upper) if r.interval else None,
+                        support=r.support,
+                        effective_n=r.effective_n,
+                        reasons=list(r.reasons),
+                    )
+                    for r in q.rows
+                ],
+            )
+            for q in results.questions
+        ],
+    )
 
 
 @router.get(

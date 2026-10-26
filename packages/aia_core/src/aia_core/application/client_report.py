@@ -24,7 +24,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from aia_core.application.analysis_results import SourcesRefused, native_sources
+from aia_core.application.analysis_results import SourcesRefused, native_sources, sources_evidence
 from aia_core.application.report import (
     RESEARCH_SUBTITLE,
     SOCIOMAP_ARTIFACT,
@@ -39,7 +39,7 @@ from aia_core.application.report_maps import compose_map_sections
 from aia_core.application.report_method import METHOD_SOURCES, compose_method_section
 from aia_core.application.report_tables import question_tables, scale_notes
 from aia_core.application.research import ResearchRuns, research_artifacts
-from aia_core.domain.analysis.native import native_evidence, native_items
+from aia_core.domain.analysis.native import native_items
 from aia_core.domain.evidence import ClaimSurface, EvidenceTable
 from aia_core.domain.evidence.claims import Disclosure
 from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
@@ -129,16 +129,7 @@ def compose_client_report(
             "Klientská zpráva vzniká jen z běhu, v němž odpovídali AI respondenti sestavení "
             "z populace. Tento běh použil smyšlené respondenty nebo neznámý zdroj.",
         )
-    evidence = native_evidence(
-        sources.specification,
-        sources.aggregate,
-        dataset_sha256=sources.refs.dataset.sha256,
-        origin=origin,
-        support=sources.support.analysis,
-        respondent_system=sources.respondent_system,
-        joint_certificate=sources.joint_certificate,
-        report_lift=MODELLED_CLIENT_REPORT_LIFT,
-    )
+    evidence = sources_evidence(sources, report_lift=MODELLED_CLIENT_REPORT_LIFT)
     meta_run: Mapping[str, Any] = run.get("metadata") or {}
     population = (
         meta_run.get("population") if isinstance(meta_run.get("population"), Mapping) else None

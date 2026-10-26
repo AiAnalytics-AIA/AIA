@@ -92,6 +92,7 @@ __all__ = [
     "native_items",
     "native_preflight",
     "reassess_support",
+    "ref_metric",
     "research_questions_of",
 ]
 
@@ -370,6 +371,31 @@ class _Rows:
                 data_origin=self.origin,
             )
         )
+
+
+#: The suffix :func:`_item_rows` gives each metric's ref, after the question's id; a share's is
+#: ``pct.<i>``, its option's 1-based index.
+_SUFFIX_METRIC: Final[Mapping[str, MetricKind]] = MappingProxyType(
+    {
+        "n": MetricKind.N,
+        "effective_n": MetricKind.EFFECTIVE_N,
+        "mean": MetricKind.MEAN,
+        "top2box": MetricKind.TOP2BOX_PCT,
+    }
+)
+
+
+def ref_metric(suffix: str, options: Sequence[str]) -> AnalysisMetric | None:
+    """The metric a ref's ``suffix`` names, as :func:`_item_rows` minted it, over the question's
+    ``options``: what a suppressed row, which keeps only its ref, still says. ``None`` for a
+    suffix this mapping does not mint, never a guess."""
+    if suffix.startswith("pct."):
+        index = suffix.removeprefix("pct.")
+        if index.isdigit() and 1 <= int(index) <= len(options):
+            return AnalysisMetric(MetricKind.PCT, options[int(index) - 1])
+        return None
+    kind = _SUFFIX_METRIC.get(suffix)
+    return AnalysisMetric(kind) if kind is not None else None
 
 
 def _scale(q: SpecQuestion) -> str:

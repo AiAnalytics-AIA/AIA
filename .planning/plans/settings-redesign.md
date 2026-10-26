@@ -264,6 +264,12 @@ when the studies span more than one client, a filtered row hidden, never unmount
   days, today, who changed, the newest change; a window a full page does not reach back over unknown).
   Part 2: the pages whose panels read their own routes (Metodika, Systémové prompty, Deep Research, AI
   běh, Studie, Stav systému, Správa dat) hand their figures up; a page draws none until then.
+- F18, part 2a (built; the chunk stays open): the hand-up itself (`components/aia/settings/hero-figures.tsx`:
+  `HeroFiguresProvider` around the page, `useHeroFigures(section, figures)` in a panel, compared by
+  value, cleared on unmount) and its first page, Stav systému (`systemFigures`: the readiness checks
+  passed of those read, the environment, the web build; unknown where unread). Left for the rest of
+  part 2: Metodika, Systémové prompty, Deep Research, AI běh, Studie (the near-limit count would repeat
+  ResearcherSpendCard's tile; a figure of its own is still to be chosen) and Správa dat.
 
 **F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
   Built: `last_seen_at` on `MemberResponse`, for an OWNER or ADMIN (null otherwise, as the Lead's seal
