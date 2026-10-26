@@ -26,6 +26,30 @@ const readiness = (over: Partial<WorkingReadiness>): WorkingReadiness => ({
 const ready = (over: Partial<WorkingReadiness>): SampleReadiness => ({ kind: "ready", revision: 7, readiness: readiness(over) });
 
 describe("SampleArtifact", () => {
+  it("puts the run's ceiling at the server's N beside what the study has left, following N after the readiness re-read", () => {
+    const budget = { budget_usd: 5, spent_usd: 1, remaining_usd: 4 };
+    const { container, rerender } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} budget={budget} readiness={ready({ n: 200, cost_ceiling_usd: 1.5 })} />);
+    // The amounts print with a no-break space before USD; read here as a plain space.
+    const line = () => container.querySelector("[data-ceiling]")!.textContent!.replace(/\u00a0/g, " ");
+    expect(line()).toBe("Strop běhu při N 200: 1,50 USD (horní mez, ne odhad) · Z rozpočtu studie zbývá 4.00 USD. I při nejvyšší ceně by zbylo 2.50 USD, bez částek, které právě drží běžící kroky.");
+    rerender(<SampleArtifact project={project({ n: 400 })} onOpen={vi.fn()} budget={budget} readiness={ready({ n: 400, cost_ceiling_usd: 4.5 })} />);
+    expect(line()).toMatch(/^Strop běhu při N 400: 4,50 USD \(horní mez, ne odhad\) · Z rozpočtu studie zbývá 4.00 USD\. To je víc, než nyní zbývá/);
+  });
+
+  it("says an unknown ceiling in the server's words, never 0,00 USD, and an unread budget as unknown", () => {
+    const { container } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} budget={null} readiness={ready({ cost_ceiling_unknown: "fieldwork_reservation_missing" })} />);
+    const line = container.querySelector("[data-ceiling]")!.textContent!;
+    expect(line).toBe("Strop nelze spočítat: nasazení neuvádí, kolik worker rezervuje na jeden dotaz respondentovi. · Kolik z rozpočtu studie zbývá, AIA nyní neví.");
+    expect(line).not.toMatch(/0,00/);
+  });
+
+  it("says nothing of the ceiling before readiness is read, and nothing of the budget while it is", () => {
+    const { container, rerender } = render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={{ kind: "loading" }} />);
+    expect(container.querySelector("[data-ceiling]")).toBeNull();
+    rerender(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ cost_ceiling_usd: 1.5 })} />);
+    expect(container.querySelector("[data-ceiling]")!.textContent!.replace(/\u00a0/g, " ")).toBe("Strop běhu při N 200: 1,50 USD (horní mez, ne odhad)");
+  });
+
   it("shows the size, the audience and the dimensions as set; without its control, n is read only", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 450, persona_dimensions: { approved: ["media", "cena"] }, audience: { description: "Dojíždějící", filters: { kraj: ["A"], vek: { min: 25 } } } })} readiness={{ kind: "loading" }} onOpen={onOpen} />);

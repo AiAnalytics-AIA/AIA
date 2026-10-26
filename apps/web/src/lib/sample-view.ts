@@ -76,6 +76,19 @@ export function outlookTiles(readiness: ReadinessBody): OutlookTile[] | null {
 }
 
 /**
+ * The run's cost ceiling beside N (spec vzorek V2, SMP8), as the server worked it out for the n it
+ * read: known with that n, or unknown with the server's reason (`cost_ceiling_unknown`), never a
+ * zero. Without a reason, the one the server gives when there is no n.
+ */
+export type CeilingLine = { known: true; usd: number; n: number | null } | { known: false; code: string };
+
+export function ceilingOf(readiness: ReadinessBody): CeilingLine {
+  const usd = readiness.cost_ceiling_usd;
+  if (typeof usd === "number" && Number.isFinite(usd)) return { known: true, usd, n: readiness.n };
+  return { known: false, code: readiness.cost_ceiling_unknown ?? "sample_size_missing" };
+}
+
+/**
  * Who will answer (plan artifact-sample SMP5): every persona source the server lists, whether
  * this deployment offers it, why not, and which a start takes by default. Read only here: the
  * source is chosen on Spuštění, beside the start that pins it (SQ1 = Q54 b). `null` when the API

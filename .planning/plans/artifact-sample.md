@@ -14,7 +14,7 @@ chunks:
   - "[ ] SMP10. Readiness FAILs while the run's ceiling exceeds what is left of Rozpočet studie, the remedy raising the budget or lowering N (B1 (a), Nigel 2026-10-26; spec vzorek V5, OQ3; W1, on lead-orchestration LO23)"
   - "[ ] SMP6b. The Vzorek journey extended: N stepped and read back, the Lead's focus, zero paid (reopens SMP6; spec vzorek V8; W1)"
   - "[x] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"
-  - "[ ] SMP8. The run's ceiling and the study's remainder beside N (spec vzorek V2; W1)"
+  - "[x] SMP8. The run's ceiling and the study's remainder beside N (spec vzorek V2; W1)"
   - "[ ] SMP9. The server's reportable_n and 'Zvýšit na N x · strop +Δ USD'; the browser's own recommendation removed (spec vzorek V3; W1)"
 ---
 # Artifact: Vzorek (Sample)

@@ -13,8 +13,10 @@ import { t, tv } from "@/i18n/t";
 import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict, PersonaSourceOption } from "@/lib/api";
+import { budgetLine, readBudget, type StudyBudget } from "@/lib/budget-line";
 import { codeWords } from "@/lib/reason-words";
-import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow, type ReadinessLine } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow, type ReadinessLine } from "@/lib/sample-view";
+import { ceilingWords } from "@/lib/spend";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
@@ -33,7 +35,25 @@ export function SampleView({ project, onOpen }: { project: ResearchProject; onOp
   const { store, frame, state } = useResearch();
   const readiness = useSampleReadiness(store, frame.studyId, frame.canEdit, state.revision);
   const labels = useDimensionLabels(frame.studyId);
-  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} labels={labels} size={<SampleSize />} />;
+  const budget = useStudyBudget(frame.studyId, state.revision);
+  return <SampleArtifact project={project} readiness={readiness} onOpen={onOpen} labels={labels} size={<SampleSize />} budget={budget} />;
+}
+
+/**
+ * What remains of the study's budget, read as the stages read it (budget-line.ts readBudget) and read
+ * again with each saved revision, so it stands beside the ceiling that revision's readiness gives.
+ * `undefined` while it is read; `null` when it cannot be, which the line says is unknown.
+ */
+function useStudyBudget(studyId: string, revision: number | null): StudyBudget | null | undefined {
+  const [budget, setBudget] = useState<StudyBudget | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    readBudget(studyId).then((b) => live && setBudget(b));
+    return () => {
+      live = false;
+    };
+  }, [studyId, revision]);
+  return budget;
 }
 
 /**
@@ -136,6 +156,27 @@ const STATUS_TONE: Record<string, GlyphTone> = { PASS: "done", WARN: "done-warn"
 const VERDICT_TONE: Record<OutlookVerdict, GlyphTone> = { ANSWERABLE: "done", UNKNOWN: "inert", AT_RISK: "you", UNANSWERABLE: "fault" };
 
 /** A link to the stage where a part of the sample is set: its name, what is set there, and the way. */
+/**
+ * The run's ceiling at the n the server read, and what the study has left beside it (spec vzorek V2,
+ * SMP8): the ceiling an upper bound, never an estimate; unknown in the server's words, never 0,00
+ * USD; the remainder in budget-line's words, said once it is read. Nothing until readiness is read.
+ */
+function Ceiling({ readiness, budget }: { readiness: SampleReadiness; budget: StudyBudget | null | undefined }) {
+  if (readiness.kind !== "ready") return null;
+  const c = ceilingOf(readiness.readiness);
+  let ceiling: ReactNode;
+  if (c.known) {
+    const { value, note } = ceilingWords(c.usd);
+    ceiling = <span className="text-ink">{c.n !== null ? `Strop běhu při N ${c.n}: ` : "Strop běhu: "}<span className="tabular-nums">{value}</span> ({note})</span>;
+  } else ceiling = <CodedWords inline coded={codeWords("research.exec.cost.unknown", c.code)} />;
+  return (
+    <p className="mt-2 text-sm text-ink-muted" data-ceiling>
+      {ceiling}
+      {budget === undefined ? null : ` · ${budgetLine(budget, c.known ? c.usd : undefined)}`}
+    </p>
+  );
+}
+
 function LinkCard({ title, caption, done, onClick }: { title: string; caption: string; done: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className={`flex items-start gap-2 rounded-card border border-border px-3 py-2 text-left hover:bg-surface ${TOUCH}`}>
@@ -150,7 +191,7 @@ function LinkCard({ title, caption, done, onClick }: { title: string; caption: s
 }
 
 /** `size` is the sample size's control (SampleSize); without one, n is read only. */
-export function SampleArtifact({ project, readiness, onOpen, labels = dimensionLabels({}), size }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open; labels?: Record<string, string>; size?: ReactNode }) {
+export function SampleArtifact({ project, readiness, onOpen, labels = dimensionLabels({}), size, budget }: { project: ResearchProject; readiness: SampleReadiness; onOpen: Open; labels?: Record<string, string>; size?: ReactNode; budget?: StudyBudget | null }) {
   const n = Number(project.n) || 0;
   const dims = chosenDimensions(project);
   const rec = recommendedSample(project);
@@ -169,6 +210,7 @@ export function SampleArtifact({ project, readiness, onOpen, labels = dimensionL
               <p className="text-sm text-ink-muted">Doporučeno {rec.n}: {rec.why}</p>
             </>
           )}
+          <Ceiling readiness={readiness} budget={budget} />
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-2">
           <LinkCard
