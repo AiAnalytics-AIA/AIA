@@ -603,8 +603,8 @@ function PreviewOf({ p }: { p: ResearchProject }) {
 /** A preview count in Czech: its label with the count's word by its number (lib/format plural). */
 const cut = (key: string, n: number, extra: Record<string, string | number> = {}) =>
   tv(`${key}.label`, { count: plural(n, t(`${key}.one`), t(`${key}.few`), t(`${key}.many`)), ...extra });
-/** The rows of a set the preview draws. */
-const SET_ROWS = 2;
+/** The rows of a set the preview draws: one, then "a stejně pro dalších n" (spec navrh/Q5; 18.6.6 drew two). */
+const SET_ROWS = 1;
 
 function Preview({ items, leftOut }: { items: PreviewItem[]; leftOut: number }) {
   return (

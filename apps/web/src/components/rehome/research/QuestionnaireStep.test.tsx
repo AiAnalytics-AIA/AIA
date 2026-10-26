@@ -332,8 +332,9 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
     const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
-    expect([...preview.querySelectorAll("[data-scale-points]")].map((n) => n.getAttribute("data-scale-points"))).toEqual(["5", "5"]);
-    expect(within(preview).getByText("a stejně pro 2 další položky")).toBeTruthy();
+    // One row drawn, the board's; the other three named.
+    expect([...preview.querySelectorAll("[data-scale-points]")].map((n) => n.getAttribute("data-scale-points"))).toEqual(["5"]);
+    expect(within(preview).getByText("a stejně pro 3 další položky")).toBeTruthy();
   });
 
   it("edits a question as the classic editor does: type, options and a scale", async () => {
