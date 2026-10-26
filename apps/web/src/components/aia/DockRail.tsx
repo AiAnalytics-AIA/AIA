@@ -47,12 +47,13 @@ function useLeadPresence(): LeadPresence {
     if (hatchedRemembered()) return;
     researcherLead.get().then(
       (answer) => {
-        const p = leadPresence(answer);
+        // A Lead grown while this read was in flight is not taken back by its older answer.
+        const p = hatchedRemembered() ? "hatched" : leadPresence(answer);
         rememberPresence(p);
         if (live) setPresence(p);
       },
       () => {
-        if (live) setPresence("unknown");
+        if (live && !hatchedRemembered()) setPresence("unknown");
       },
     );
     const hatched = () => {
@@ -75,6 +76,15 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
   // Escape puts the opened rail away while the pointer or focus is still on it (WCAG 1.4.13): it
   // stays put until the pointer comes back onto the rail or focus leaves it.
   const [dismissed, setDismissed] = useState(false);
+  // Escape reaches the rail the pointer holds open even when focus is on the page.
+  useEffect(() => {
+    if (!pointer) return;
+    const away = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDismissed(true);
+    };
+    document.addEventListener("keydown", away);
+    return () => document.removeEventListener("keydown", away);
+  }, [pointer]);
   const session = useSession();
   const email = session?.email ?? null;
   const lead = railLeadItem(useLeadPresence());

@@ -123,6 +123,31 @@ describe("the Dock rail", () => {
     expect(rail.hasAttribute("data-pointer")).toBe(false);
   });
 
+  it("is put away by Escape while the pointer holds it, focus on the page", () => {
+    answerLead({ hatched: true, lead: {} });
+    render(<AppShell title="Klienti"><button type="button">na stránce</button></AppShell>);
+    const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+    const onPage = screen.getByRole("button", { name: "na stránce" });
+    onPage.focus();
+    fireEvent.pointerMove(rail, { pointerType: "mouse" });
+    fireEvent.keyDown(onPage, { key: "Escape" });
+    expect(rail.hasAttribute("data-dismissed")).toBe(true);
+    expect(document.activeElement).toBe(onPage);
+  });
+
+  it("keeps Můj Vedoucí when the Lead is grown while the first read is still answering", async () => {
+    let answer: (r: Response) => void = () => {};
+    vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL) => String(url).endsWith("/api/v1/lead")
+      ? new Promise<Response>((r) => { answer = r; })
+      : Promise.resolve(new Response("{}", { status: 200 }))));
+    render(<AppShell title="Můj Vedoucí"><p>obsah</p></AppShell>);
+    await waitFor(() => expect(vi.mocked(fetch)).toHaveBeenCalled());
+    act(() => announceHatched());
+    await act(async () => answer(new Response(JSON.stringify({ hatched: false, lead: null }), { status: 200 })));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(document.querySelector("[data-rail-lead]")?.getAttribute("data-rail-lead")).toBe("mine");
+  });
+
   it("names the narrow menu button with the product and where you are", () => {
     answerLead({ hatched: true, lead: {} });
     render(<AppShell title="Klienti" client={{ id: "CLI-a", name: "Klient A" }}><p>obsah</p></AppShell>);
