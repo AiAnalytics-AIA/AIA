@@ -2024,6 +2024,9 @@ export const cs = {
           configMissing: "/config nevrátil přepínače AI.",
           switchLabel: "Hlavní přepínač AI",
           route: "Trasa modelu",
+          routeInfo: "Co pohání AI a kdo trasu mění",
+          activitiesInfo: "Co znamená zapnuto",
+          smokeLink: "smoke test",
           provider: "Poskytovatel",
           inEu: "oblast v EU: data zůstávají v EU",
           notEu: "oblast mimo EU",
@@ -2050,7 +2053,7 @@ export const cs = {
           approvedNone: "žádná: trasa nesmí přenést nic, každé volání bude odmítnuto",
           unknownClass: "neznámá třída; zapnutý worker se s ní nespustí",
           switchValue: { on: "zapnuto", off: "vypnuto", invalid: "neplatná hodnota" },
-          activities: "Co AI v AIA dělá",
+          activities: "Činnosti",
           col: { what: "Schopnost", state: "Stav v tomto nasazení", uses: "Žádá o", versions: "Verze", switches: "Přepínače", switch: "Přepínač (operátor)", model: "Model" },
           state: {
             configured: "Zapnuto v konfiguraci",

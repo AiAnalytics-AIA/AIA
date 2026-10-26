@@ -797,6 +797,32 @@ describe("what powers AIA", () => {
     expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
   });
 
+  it("draws the route as tiles and the activities as v99's four columns, each explanation behind its ⓘ (F11)", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    const ai = section("ai");
+    const route = ai.querySelector("[data-config]") as HTMLElement;
+    // The region by its city beside its code; the classes as letters, each named for a reader.
+    expect(within(route).getByText("eu-central-1")).toBeTruthy();
+    expect(route.querySelector("[data-region-city]")?.textContent).toBe("Frankfurt");
+    const classes = route.querySelector("[data-approved-classes]") as HTMLElement;
+    expect([...classes.querySelectorAll("[data-class] [aria-hidden='true']")].map((c) => c.textContent)).toEqual(["C"]);
+    expect(within(classes).getByText(/interní materiál bez informací o klientovi/)).toBeTruthy();
+    // Činnost, Stav, Přepínač, Model: the reason under the activity, not a column of its own.
+    expect(within(ai).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Schopnost", "Stav", "Přepínač (operátor)", "Model"]);
+    expect(card("design_agents").querySelector("td:first-child [data-reason]")).toBeTruthy();
+    for (const [label, id] of [["Co pohání AI a kdo trasu mění", "ai-route-about"], ["Co znamená zapnuto", "ai-acts-about"]] as const) {
+      const button = within(ai).getByRole("button", { name: label });
+      expect(button.getAttribute("aria-controls")).toBe(id);
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(true);
+      fireEvent.click(button);
+      expect((document.getElementById(id) as HTMLElement).hidden).toBe(false);
+    }
+    // The smoke test, which verifies a call really goes through, is a link to Stav systému.
+    expect(within(ai).getByRole("link", { name: /smoke test/ }).getAttribute("href")).toBe("#system");
+  });
+
   it("keeps an activity the document comes to list in its own group, once, and marks the group headings as row groups", async () => {
     const doc = DOC();
     doc.ai_runtime = { ...AI_RUNTIME, activities: [...AI_RUNTIME.activities, {
@@ -1053,7 +1079,11 @@ describe("what powers AIA", () => {
     api();
     render(<SettingsPage />);
     await waitFor(() => expect(isOpen("AI běh")).toBe(true));
-    expect(await screen.findByRole("heading", { name: "AI v AIA" })).toBeTruthy();
+    // One section, AI běh, as two flat cards under its head (prototype v99, F11): no group card around them.
+    const ai = panelOf("AI běh");
+    expect(within(ai).getByRole("heading", { level: 1, name: "AI běh" })).toBeTruthy();
+    expect((await within(ai).findAllByRole("heading", { level: 2 })).map((h) => h.textContent)).toEqual(["Trasa modelu", "Činnosti"]);
+    expect(screen.queryByRole("heading", { name: "AI v AIA" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Amazon Bedrock" })).toBeNull();
     // Account details remain available without interrupting the settings task.
     expect(screen.getByText("Účet").closest("summary")?.textContent).toBe("Účet · owner@example.test");
