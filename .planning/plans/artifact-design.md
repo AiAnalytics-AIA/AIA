@@ -15,7 +15,7 @@ chunks:
   - "[ ] DSN9. An objective's '→ VO n' link: objective_ids on research questions, an edit op, analyze_brief proposing it (spec navrh B4; W2)"
   - "[ ] DSN10. Rozsah as a segmented choice: a variant recommends N for Vzorek and never applies it; applyVariant stops writing n (spec navrh D2; W1, with artifact-sample SMP7)"
   - "[ ] DSN11. 'k cíli' on each research question; objectives leave Návrh for Zadání (spec navrh D4; W2, after DSN9)"
-  - "[ ] DSN12. Hypotheses as their own section on Návrh (spec navrh D5; W1)"
+  - "[x] DSN12. Hypotheses as their own section on Návrh (spec navrh D5; W1)"
   - "[ ] DSN12b. A hypothesis's 'ověří S1' verdict: the hypothesis-to-measure link and research_trace's verdict (spec navrh D5; W2)"
   - "[ ] DSN13. Follow-up answers saved per question in the working copy (spec navrh D7; W1)"
   - "[ ] DSN14. Comments with undo, no false 'upraveno', their target and author (spec navrh D8; W1)"

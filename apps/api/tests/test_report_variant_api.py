@@ -10,7 +10,7 @@ journey covers (test_analysis_executor.py).
 from __future__ import annotations
 
 import hashlib
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from aia_core.application.contextual_report import (
@@ -175,6 +175,8 @@ def test_the_status_names_the_prepared_draft_and_its_pdf_and_composes_nothing(
     assert body["review_state"] == "DRAFT_UNAPPROVED"
     # Fictional bytes without the record of the footer layout: never stamped (D2).
     assert body["approved_on"] is None and body["stamped"] is False
+    # When it was stored, with its offset: the approval question names it by it (RPT3d).
+    assert datetime.fromisoformat(body["stored_at"]).utcoffset() is not None
     assert body["pdf"]["state"] == "RENDERING" and body["pdf"]["artifact_id"] is None
     # Its PDF not made yet: whether approving gives the approved version one is not known.
     assert body["approval_renders_pdf"] is False

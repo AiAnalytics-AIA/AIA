@@ -11,7 +11,7 @@ chunks:
   - "[x] QST8. Závislosti: what reads each set and question downstream (Sociomap, Results, Analysis), from the specification"
   - "[ ] QST9. Journey: Dotazník at 1440, 1100, 768 and 390 px, zero paid jobs"
   - "[ ] QST10. One comparison set shared by Návrh and Dotazník ('Objekty', data-aia set:<id>), seen from both stages (spec navrh D6 + Q8; W2, after working-copy-edit-ops WCE8b)"
-  - "[ ] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
+  - "[x] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
   - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
   - "[ ] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
 ---
@@ -361,6 +361,17 @@ first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts foc
 left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
 into the condition form and back to its button when it closes" (all four ways out).
 
+*QST11, the respondent preview at the real range (spec navrh/Q5; the chunk is in #923):* the preview drew every
+scale 1-10 (`ScaleBoxes` defaulted to 1..10 and was called without a range, `QuestionnaireStep.tsx:366` @ 6ac58d51)
+and cut at fourteen items, eight options and two set rows without a word (`questionnaire.ts:113-160` @ 6ac58d51).
+Change (feature/questionnaire-preview-range): `previewQuestion` carries the stored range as the editor reads it
+(`readRange`; one it would not read is said, never guessed), the options past eight, and whether the question
+has a display condition; `previewBattery` the set's object count; `previewLeftOut` the items past the fourteen.
+The preview draws the scale at its range (a range over eleven points as its ends either side of "…"), the
+condition line, "a stejně pro dalších n položek" under a set, and "+ n dalších položek dotazníku". 18.6.6's
+fields stay as ported (parity unchanged). Tests: `questionnaire-preview.test.ts` "a 1–7 scale previews at 1–7…",
+"a cut list says how many it left out…"; `QuestionnaireStep.test.tsx` "previews a scale at its own range and
+says what the preview leaves out (QST11)"; `questionnaire_journey.mjs` at 1440/1100/768/390.
 *QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
 full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
 (feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"

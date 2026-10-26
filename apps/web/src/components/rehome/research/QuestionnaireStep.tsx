@@ -58,6 +58,8 @@ import {
   restoreQuestion,
   restoreSection,
   respondentPreview,
+  previewLeftOut,
+  PREVIEW_ITEMS,
   sections,
   setObjectFamily,
   priceBandsOf,
@@ -77,6 +79,8 @@ import {
   type SetLimits,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
+import { DESCRIBED_POINTS_MAX } from "@/research/scale-labels";
+import { plural } from "@/lib/format";
 import { COMPARISONS, CONCEPT_TEST, comparisonOf, coverageOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
@@ -352,7 +356,7 @@ export function QuestionnaireStep() {
           <div className="flex flex-wrap items-start gap-4">
             <Outline />
             <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-              {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+              {tab === "edit" ? <Editor update={update} /> : <PreviewOf p={p} />}
             </div>
           </div>
           <section className={CARD} aria-labelledby="q-final">
@@ -592,7 +596,18 @@ function AiOnExisting() {
   );
 }
 
-function Preview({ items }: { items: PreviewItem[] }) {
+function PreviewOf({ p }: { p: ResearchProject }) {
+  const items = respondentPreview(p);
+  return <Preview items={items} leftOut={previewLeftOut(p, items.length)} />;
+}
+
+/** A preview count in Czech: its label with the count's word by its number (lib/format plural). */
+const cut = (key: string, n: number, extra: Record<string, string | number> = {}) =>
+  tv(`${key}.label`, { count: plural(n, t(`${key}.one`), t(`${key}.few`), t(`${key}.many`)), ...extra });
+/** The rows of a set the preview draws: one, then "a stejně pro dalších n" (spec navrh/Q5; 18.6.6 drew two). */
+const SET_ROWS = 1;
+
+function Preview({ items, leftOut }: { items: PreviewItem[]; leftOut: number }) {
   return (
     <section aria-labelledby="q-preview" className="max-w-[560px]">
       <h2 id="q-preview" className="sr-only">{t("research.questionnaire.previewTitle")}</h2>
@@ -604,6 +619,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
               <li key={it.index} className={CARD}>
                 <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.number })}</div>
                 <div className="mt-0.5 text-[15px] font-medium leading-6">{it.text}</div>
+                {it.conditional ? <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.previewCondition")}</p> : null}
                 {it.options.length ? (
                   <div className="mt-3 flex flex-col gap-1.5">
                     {it.options.map((o, i) => (
@@ -612,9 +628,14 @@ function Preview({ items }: { items: PreviewItem[] }) {
                         {o}
                       </span>
                     ))}
+                    {it.moreOptions ? <span className="text-xs text-ink-muted">{cut("research.questionnaire.previewMoreOptions", it.moreOptions)}</span> : null}
                   </div>
                 ) : it.scale ? (
-                  <ScaleBoxes low={it.scale[0]} high={it.scale[1]} />
+                  it.range ? (
+                    <ScaleBoxes low={it.scale[0]} high={it.scale[1]} from={it.range[0]} to={it.range[1]} />
+                  ) : (
+                    <p className="mt-2 text-xs text-ink-muted">{t("research.questionnaire.previewRangeUnread")}</p>
+                  )
                 ) : (
                   <div aria-hidden="true" className="mt-3 h-16 rounded-control border border-border bg-surface" />
                 )}
@@ -622,12 +643,13 @@ function Preview({ items }: { items: PreviewItem[] }) {
             ) : (
               <li key={it.index} className={`${CARD} border-t-[3px] border-t-hue-violet`}>
                 <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.number, title: it.title })}</div>
-                {it.rows.slice(0, 2).map((r, i) => (
+                {it.rows.slice(0, SET_ROWS).map((r, i) => (
                   <div key={i} className="mt-3">
                     <div className="text-sm font-medium">{r}</div>
-                    <ScaleBoxes low={it.low} high={it.high} />
+                    {it.range ? <ScaleBoxes low={it.low} high={it.high} from={it.range[0]} to={it.range[1]} /> : <p className="mt-2 text-xs text-ink-muted">{t("research.questionnaire.previewRangeUnread")}</p>}
                   </div>
                 ))}
+                {it.objects > SET_ROWS ? <p className="mt-2 text-xs text-ink-muted">{cut("research.questionnaire.previewMoreObjects", it.objects - SET_ROWS)}</p> : null}
               </li>
             ),
           )
@@ -635,19 +657,22 @@ function Preview({ items }: { items: PreviewItem[] }) {
           <li className="text-sm text-ink-muted">{t("research.questionnaire.previewEmpty")}</li>
         )}
       </ol>
+      {leftOut ? <p className="mt-3 text-[13px] text-ink-muted">{cut("research.questionnaire.previewLeftOut", leftOut, { max: PREVIEW_ITEMS })}</p> : null}
     </section>
   );
 }
 
+/** A scale's points, every one up to eleven; a wider range drawn as its ends either side of "…". */
 function ScaleBoxes({ low, high, from = 1, to = 10 }: { low: string; high: string; from?: number; to?: number }) {
-  const n = Math.max(0, Math.min(12, to - from + 1));
+  const n = to - from + 1;
+  const shown: (number | null)[] = n <= DESCRIBED_POINTS_MAX ? Array.from({ length: n }, (_, i) => from + i) : [from, from + 1, null, to - 1, to];
   return (
-    <div className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+    <div data-scale-points={n} className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
       <span className="shrink-0">{low}</span>
       <span aria-hidden="true" className="flex flex-1 gap-0.5">
-        {Array.from({ length: n }, (_, i) => (
-          <i key={i} className="flex h-6 flex-1 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-mono text-[10px] not-italic">
-            {from + i}
+        {shown.map((v, i) => (
+          <i key={i} className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-mono text-[10px] not-italic">
+            {v ?? "…"}
           </i>
         ))}
       </span>
