@@ -120,3 +120,16 @@ def test_a_deactivated_members_hatch_goes_with_their_membership(scoped: Any, ses
     org, _ = _pending(scoped, session)
     deactivate_member(session, scoped.admin_context, user_id=org.actor_id, now=utcnow())
     assert ResearcherLeadRepository(session, org).pending_hatch() is None
+
+
+def test_a_chosen_name_naming_a_client_is_refused_as_it_is_kept(scoped: Any, session: Any) -> None:
+    """Review of #919 (Codex): the name goes into every study's context with the files, so ADR
+    0030 decision 3's check holds it too, however clean the model's answer is."""
+    org = _org(scoped)
+    repo = ResearcherLeadRepository(session, org)
+    hatch = repo.record_hatch({**WRITTEN, "name": "Acme Corp"})
+    repo.answer_hatch(hatch.hatch_id, ANSWER, run_id="RUN-test0001")
+    with pytest.raises(LeadHatchRefused) as refused:
+        LeadProfile(session, org).accept_hatch(hatch.hatch_id)
+    assert refused.value.files == {"name": "client_fact_in_personal_file"}
+    assert ResearcherLeadRepository(session, org).get() is None

@@ -86,3 +86,11 @@ def test_every_file_of_the_answer_is_checked_and_named() -> None:
         "greeting": "client_fact_in_personal_file",
     }
     assert hatch_refusals(HatchOutput(soul="# Ada", greeting="Ahoj."), ["Delta"]) == {}
+
+
+def test_the_chosen_name_is_checked_with_the_files() -> None:
+    clean = HatchOutput(soul="# Ada", greeting="Ahoj.")
+    assert hatch_refusals(clean, ["Delta"], name="Delta") == {
+        "name": "client_fact_in_personal_file"
+    }
+    assert hatch_refusals(clean, ["Delta"], name="Ada") == {}

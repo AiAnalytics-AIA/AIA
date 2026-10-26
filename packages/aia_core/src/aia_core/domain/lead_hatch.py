@@ -153,13 +153,19 @@ def personal_text_refusal(text: str, client_names: Iterable[str]) -> HatchRefusa
     return None
 
 
-def hatch_refusals(output: HatchOutput, client_names: Iterable[str]) -> dict[str, HatchRefusal]:
+def hatch_refusals(
+    output: HatchOutput, client_names: Iterable[str], *, name: str | None = None
+) -> dict[str, HatchRefusal]:
     """Each file of ``output`` that :func:`personal_text_refusal` refuses, by file. The greeting
-    is checked too: it becomes the Lead's first turn in every client's studies."""
+    is checked too: it becomes the Lead's first turn in every client's studies. So is the
+    chosen ``name``, which the person wrote: it enters every study's context with the files."""
     names = tuple(client_names)
+    texts = {"soul": output.soul, "user": output.user, "greeting": output.greeting}
+    if name is not None:
+        texts["name"] = name
     found: dict[str, HatchRefusal] = {}
-    for field in ("soul", "user", "greeting"):
-        reason = personal_text_refusal(getattr(output, field), names)
+    for field, text in texts.items():
+        reason = personal_text_refusal(text, names)
         if reason is not None:
             found[field] = reason
     return found

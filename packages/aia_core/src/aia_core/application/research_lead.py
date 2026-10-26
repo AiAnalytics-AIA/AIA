@@ -1544,14 +1544,15 @@ class LeadProfile:
     def accept_hatch(self, hatch_id: str) -> dict[str, Any]:
         """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2).
         The model's answer is checked again here, as it is kept: its bounds and ADR 0030
-        decision 3's personal-file check against the organization's clients as they are now."""
+        decision 3's personal-file check against the organization's clients as they are now,
+        the chosen name included (review of #919)."""
         repo = ResearcherLeadRepository(self.session, self.scope)
         pending = repo.pending_hatch()
         if pending is None or pending.hatch_id != hatch_id or pending.output is None:
             raise LeadHatchNotPending(hatch_id)
         hatch = HatchInput.model_validate(pending.input)
         output = HatchOutput.model_validate(pending.output)
-        refused = hatch_refusals(output, repo.organization_client_names())
+        refused = hatch_refusals(output, repo.organization_client_names(), name=hatch.name)
         if refused:
             raise LeadHatchRefused(refused)
         lead = repo.accept_hatch(hatch_id, name=hatch.name, soul=output.soul, user=output.user)

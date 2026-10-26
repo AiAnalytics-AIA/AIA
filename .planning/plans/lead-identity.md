@@ -223,7 +223,9 @@ the acceptance step, ensure the backend is prepared for this".
 - `domain/lead_hatch.py`: `HatchInput` (the name, the four traits, the brief and about-you,
   bounded in characters and bytes), the closed `HatchOutput` (SOUL, USER, the greeting, bounded as
   the Lead's files are) and `hatch_refusals` / `personal_text_refusal`, ADR 0030 decision 3's
-  check (a client of the organization named, or a number: `client_fact_in_personal_file`).
+  check (a client of the organization named, or a number: `client_fact_in_personal_file`), run
+  on the three files and on the chosen name (review of #919: the name enters every study's
+  context with them).
 - `researcher_lead_hatches` (migration `46d0bf6b5121`): the pending hatch, at most one per
   researcher, kept apart from `researcher_leads` so nothing is a Lead file before "Přijmout";
   `ResearcherLeadRepository.record_hatch / answer_hatch / accept_hatch / discard_hatch`, the
