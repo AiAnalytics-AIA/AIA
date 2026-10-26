@@ -18,6 +18,8 @@ import {
   openFailure, problemWords, scriptIntegrity, type SeenEdit, ticketUrl, UNREACHABLE, UNVERIFIED,
 } from "@/lib/report-editor";
 
+import { usePanelShown } from "./panel-shown";
+
 /** What the editor shows once it is ready: the line and version opened, when this person last
  *  started an edit (`onDocumentStateChange` with `true`, by this browser's clock; null before any),
  *  and whether an edit is not yet sent to the Document Server (`dirty`). An edit is not a stored
@@ -144,8 +146,14 @@ export function ReportEditor({
   const onScreen = useRef<string | null>(null);
   const seen = useCallback(() => (onScreen.current ? last.current.get(onScreen.current) ?? null : null), []);
   const placeholder = `report-editor-${useId().replace(/[^a-zA-Z0-9-]/g, "")}`;
+  // Opened once its panel is first on screen, never from a hidden one (a results tab the person did
+  // not open), and kept open after: switching tabs away closes nothing.
+  const shown = usePanelShown();
+  const [wanted, setWanted] = useState(shown);
+  if (shown && !wanted) setWanted(true);
 
   useEffect(() => {
+    if (!wanted) return;
     let live = true;
     open(studyId, runId, { variant, deep_research_run_id: variant === "context" ? review : null, line, mode }).then(
       (opened) => {
@@ -172,7 +180,7 @@ export function ReportEditor({
       },
     );
     return () => { live = false; };
-  }, [at, studyId, runId, variant, review, line, mode, open, ticket, spend]);
+  }, [wanted, at, studyId, runId, variant, review, line, mode, open, ticket, spend]);
 
   const opened = state.at === at && state.kind === "open" ? state : null;
   useEffect(() => { onScreen.current = opened ? documentKeyOf(opened.opened.config) : null; }, [opened]);
@@ -253,7 +261,7 @@ export function ReportEditor({
   useEffect(() => {
     onShown?.(shownOpened ? { opened: shownOpened, startedAt: started, dirty: unsent, seen } : null);
   }, [shownOpened, started, unsent, onShown, seen]);
-  if (current.kind === "off") return <>{children}</>;
+  if (current.kind === "off" || !wanted) return <>{children}</>;
   if (current.kind === "said" || (current.kind === "open" && status.failed)) {
     return (
       <>
