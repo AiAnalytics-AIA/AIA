@@ -33,7 +33,7 @@ import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/
 import { num } from "@/lib/sociomapping-view";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
-  type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
+  type SegmentLegend, allRelations, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
 } from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
@@ -954,6 +954,27 @@ const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
 /** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
 const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
+/** Všechny vztahy: every other object's stored relation, its status and how many rated both; each line
+ *  opens the pair as the strongest ones above do. The status under each name says which ones the map reads. */
+function AllRelations({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+  const p = "research.exec.objectMap.panel";
+  const lines = allRelations(battery, map, selected);
+  const label = objectDetail(battery, map, selected).label;
+  return (
+    <details className="omw-all" data-testid="object-map-detail-all-relations">
+      <summary>{tv(`${p}.allRelations`, { n: lines.length })}</summary>
+      <p className="omw-tip">{t(`${p}.allRelationsHelp`)}</p>
+      {lines.map((x) => (
+        <button key={x.id} type="button" className="omw-answer" data-verdict={x.verdict} aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+          <span>{x.label}<small>{t(`${p}.relationStatus.${x.verdict}`)}{x.n === null ? "" : ` · ${tv(`${p}.relationRated`, { n: x.n })}`}</small></span>{" "}
+          <b>{x.r === null ? "—" : signed(x.r)}</b>
+          <span className="sr-only">{tv(`${p}.relationShow`, { a: label, b: x.label })}</span>
+        </button>
+      ))}
+    </details>
+  );
+}
+
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
 export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation?: [number, number] | null; onRelation: (j: number) => void }) {
@@ -987,6 +1008,7 @@ export function ObjectCard({ battery, map, selected, relation, onRelation }: { b
           ))}
         </div>
       ) : <p className="omw-tip">{t(`${p}.detailNoRelation`)}</p>}
+      <AllRelations battery={battery} map={map} selected={selected} relation={relation ?? null} onRelation={onRelation} />
       {o.primary ? null : (
         <>
           <h3 className="omw-h3 !mt-[15px]">{t(`${p}.detailPlacement`)}</h3>
