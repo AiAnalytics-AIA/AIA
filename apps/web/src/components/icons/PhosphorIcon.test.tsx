@@ -5,7 +5,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { Icon as RehomeIcon, RailIcon, Sparkle } from "../rehome/icons";
+import { RailIcon } from "../aia/rail-icons";
+import { Icon as RehomeIcon, Sparkle } from "../rehome/icons";
 import { Icon } from "../workbench/Icons";
 import { PHOSPHOR } from "./phosphor";
 import { PhosphorIcon } from "./PhosphorIcon";
@@ -49,8 +50,9 @@ describe("PhosphorIcon", () => {
   });
 
   it("draws the screens' icons and the AI glyph from the one set; the rail keeps its own four drawings", () => {
-    render(<><RehomeIcon name="research" /><RehomeIcon name="inspector" /><Sparkle /><RailIcon name="client" /></>);
-    expect(Array.from(document.querySelectorAll("svg[data-icon]")).map((s) => s.getAttribute("data-icon"))).toEqual(["magnifying-glass", "sidebar-simple", "sparkle"]);
+    render(<><RehomeIcon name="research" /><RehomeIcon name="inspector" /><RehomeIcon name="close" /><RehomeIcon name="fault" /><Sparkle /><RailIcon name="client" /></>);
+    // A close button's x and the fault status's are not the same shape.
+    expect(Array.from(document.querySelectorAll("svg[data-icon]")).map((s) => s.getAttribute("data-icon"))).toEqual(["magnifying-glass", "sidebar-simple", "x", "x-circle", "sparkle"]);
     expect(document.querySelector("svg[data-icon='sidebar-simple'] path")?.getAttribute("transform")).toBe("matrix(-1 0 0 1 256 0)");
     const rail = document.querySelectorAll("svg:not([data-icon])");
     expect(rail).toHaveLength(1);
@@ -67,7 +69,7 @@ describe("PhosphorIcon", () => {
     // Drawings that are not icons: the AIA mark and wordmark, the status glyphs, the object maps and
     // the Metodika illustrations; and the rail's four places, which UI-2 keeps as drawn.
     const KEPT = new Set([
-      "components/icons/PhosphorIcon.tsx", "components/rehome/icons.tsx", "components/workbench/Icons.tsx", "components/workbench/Glyph.tsx",
+      "components/icons/PhosphorIcon.tsx", "components/aia/rail-icons.tsx", "components/workbench/Icons.tsx", "components/workbench/Glyph.tsx",
       "components/brand/AiaMark.tsx", "components/brand/Wordmark.tsx", "components/aia/settings/MethodologyArt.tsx",
       "components/rehome/research/ObjectMapPanel.tsx", "components/rehome/research/ObjectMapTerrain.tsx",
       "components/rehome/research/ObjectMapView.tsx", "components/rehome/research/SociomappingView.tsx",

@@ -17,8 +17,8 @@ import { useSession } from "@/lib/auth";
 import { hatchedRemembered, LEAD_HATCHED_EVENT, type LeadPresence, leadPresence, railLeadItem, rememberPresence } from "@/lib/rail-lead";
 import { signOut } from "@/lib/session";
 
-import { RailIcon, type RailIconName } from "../rehome/icons";
 import { PhosphorIcon } from "../icons/PhosphorIcon";
+import { RailIcon, type RailIconName } from "./rail-icons";
 import { Mark } from "../workbench/Icons";
 import "./dock-rail.css";
 
@@ -76,15 +76,19 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
   // Escape puts the opened rail away while the pointer or focus is still on it (WCAG 1.4.13): it
   // stays put until the pointer comes back onto the rail or focus leaves it.
   const [dismissed, setDismissed] = useState(false);
-  // Escape reaches the rail the pointer holds open even when focus is on the page.
+  // Escape reaches the rail the pointer holds open even when focus is on the page. It keeps the one
+  // Escape order (D21, lib/workbench-layout.ts): an Escape another handler took is not read again,
+  // and the one the rail takes is marked taken, so a layer under it closes on the next Escape.
   useEffect(() => {
-    if (!pointer) return;
+    if (!pointer || dismissed) return;
     const away = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDismissed(true);
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      setDismissed(true);
     };
     document.addEventListener("keydown", away);
     return () => document.removeEventListener("keydown", away);
-  }, [pointer]);
+  }, [pointer, dismissed]);
   const session = useSession();
   const email = session?.email ?? null;
   const lead = railLeadItem(useLeadPresence());
@@ -99,7 +103,9 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
         data-pointer={pointer ? "" : undefined}
         data-dismissed={dismissed ? "" : undefined}
         onKeyDown={(e) => {
-          if (e.key === "Escape") setDismissed(true);
+          if (e.key !== "Escape" || e.defaultPrevented || dismissed) return;
+          e.preventDefault();
+          setDismissed(true);
         }}
         onPointerEnter={(e) => {
           if (e.pointerType !== "touch") setDismissed(false);

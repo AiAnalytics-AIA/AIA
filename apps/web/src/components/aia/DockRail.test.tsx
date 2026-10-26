@@ -135,6 +135,37 @@ describe("the Dock rail", () => {
     expect(document.activeElement).toBe(onPage);
   });
 
+  it("keeps the one Escape order: a layer the pointer's rail lies over closes on the next Escape, not the same one", () => {
+    answerLead({ hatched: true, lead: {} });
+    // A layer that takes Escape on the window, as the workbench's drawer does (D21), unless taken.
+    let layerOpen = true;
+    const layer = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented) return;
+      e.preventDefault();
+      layerOpen = false;
+    };
+    window.addEventListener("keydown", layer);
+    try {
+      render(<AppShell title="Klienti"><button type="button">na stránce</button></AppShell>);
+      const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+      fireEvent.pointerMove(rail, { pointerType: "mouse" });
+      fireEvent.keyDown(screen.getByRole("button", { name: "na stránce" }), { key: "Escape" });
+      expect(rail.hasAttribute("data-dismissed")).toBe(true);
+      expect(layerOpen).toBe(true);
+      fireEvent.keyDown(screen.getByRole("button", { name: "na stránce" }), { key: "Escape" });
+      expect(layerOpen).toBe(false);
+      // And an Escape a handler already took is not read again by the rail.
+      fireEvent.pointerEnter(rail, { pointerType: "mouse" });
+      expect(rail.hasAttribute("data-dismissed")).toBe(false);
+      const taken = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+      taken.preventDefault();
+      act(() => { document.body.dispatchEvent(taken); });
+      expect(rail.hasAttribute("data-dismissed")).toBe(false);
+    } finally {
+      window.removeEventListener("keydown", layer);
+    }
+  });
+
   it("keeps Můj Vedoucí when the Lead is grown while the first read is still answering", async () => {
     let answer: (r: Response) => void = () => {};
     vi.stubGlobal("fetch", vi.fn((url: RequestInfo | URL) => String(url).endsWith("/api/v1/lead")
