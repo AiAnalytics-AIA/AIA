@@ -15,7 +15,7 @@ import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -585,9 +585,9 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
-  design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
-  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
-  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Otevřít hloubkový výzkum" },
+  design_research: { title: "Hloubkový výzkum k návrhu", action: "Spustit hloubkový výzkum" },
+  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Spustit literární rešerši" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Zopakovat hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
@@ -598,7 +598,8 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job" || typed;
+  // A Deep Research card starts on its approval (LO5a.2), as an agent job does.
+  const paid = r.kind === "agent_job" || isDeepResearchCard(r) || typed;
   const decided = state === "done" || !!approved;
   // Approved on what an earlier approval had already started for this design: nothing started.
   const reused = !!approved?.reused;
@@ -619,6 +620,8 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
               ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
               { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : isDeepResearchCard(r)
+            ? deepResearchFacts(r, { walletOn, decided })
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid

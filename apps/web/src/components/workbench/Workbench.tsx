@@ -25,7 +25,7 @@ import { guardedNavigate } from "@/lib/guarded-navigation";
 import { rovingIndex } from "@/lib/roving";
 import { useDismiss } from "../ui/parts";
 import {
-  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
+  LEAD_REASON_WORDS, ANALYSIS_RETRY_MOVED_QUESTION, deepResearchStage, isDeepResearchCard, STALE_CARD_QUESTION, LEAD_REVEAL, applyLeadEdit, sendLeadMapView, changesToShow, autoAcceptPlan, describeEdit, editRefusalWords, editStage, focusSelector, revertTextEdit, targetLabel, targetOfElement, textEditInverse,
   type LeadEdit, type LeadRequest, type LeadTurn, type LeadView, type ResearcherLead,
 } from "@/lib/lead";
 import {
@@ -536,9 +536,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
-    // A person's typed start (LO5) is started by its approval, a run too; the Lead's other cards open their stage.
-    if (r.kind !== "agent_job" && !turn.command) {
-      go(r.kind === "research_run" ? "fieldwork" : r.kind === "design_research" ? "design" : r.kind === "analysis_retry" ? "analysis" : "report");
+    // A person's typed start (LO5) and a Deep Research card (LO5a.2) are started by their approval;
+    // the Lead's research-run card opens its stage.
+    const deep = isDeepResearchCard(r);
+    if (r.kind !== "agent_job" && !deep && !turn.command) {
+      go(r.kind === "research_run" ? "fieldwork" : r.kind === "analysis_retry" ? "analysis" : "report");
       return;
     }
     await store.flush();
@@ -553,6 +555,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (r.kind === "agent_job") onAgentStarted(started.run_id);
         else setRunEpoch((n) => n + 1);
         setLeadEpoch((n) => n + 1);
+        // Its run is followed where the stage's own start shows it.
+        if (deep) go(deepResearchStage(r));
         return;
       } catch (e) {
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {

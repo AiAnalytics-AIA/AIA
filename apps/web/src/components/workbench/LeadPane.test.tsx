@@ -241,6 +241,21 @@ describe("LeadPane", () => {
     expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
   });
 
+  it("starts a Deep Research card on its approval, saying what starts and how it is paid (LO5a.2)", async () => {
+    state.turns = [turn({ output: { reply: "Doplňme literaturu.", request: { kind: "design_research", why: "Chybí kontext trhu.", preset: "QUICK", focus: ["rq-1", "rq-2"] } } })];
+    const onRequest = vi.fn(async () => {});
+    render(pane({ onRequest }));
+    expect(await screen.findByText("Hloubkový výzkum k návrhu")).toBeTruthy();
+    expect(screen.getByText("Čeká na schválení")).toBeTruthy();
+    expect(screen.getByText("Rychlý")).toBeTruthy();
+    expect(screen.getByText("2 výzkumné otázky")).toBeTruthy();
+    expect(screen.queryByText("Otevře se krok, kde spuštění potvrdíte")).toBeNull();
+    expect(onRequest).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Spustit hloubkový výzkum" }));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-1" }), expect.objectContaining({ kind: "design_research", focus: ["rq-1", "rq-2"] })));
+    expect(await screen.findByText("Rozhodnuto")).toBeTruthy();
+  });
+
   it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
     state.turns = [
       turn({ turn_id: "LDT-7", actor: "person", text: "Navrhni dotazník: krátce", command: "agent_job:build_questionnaire", run_id: null, output: null }),

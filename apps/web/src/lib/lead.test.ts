@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
-  applyLeadEdit, autoAcceptIndices, commandRequest, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
+  applyLeadEdit, autoAcceptIndices, commandRequest, deepResearchFacts, deepResearchStage, isDeepResearchCard, autoAcceptPlan, describeEdit, droppedLines, editRefusalWords, editStage, isTextEdit, leadReasonWords, pendingSelfUpdate, revertTextEdit, targetLabel, textEditInverse, changesToShow, mapViewWords,
   type LeadEdit, type LeadTurn,
 } from "./lead";
 import type { ResearchProject } from "@/research/model";
@@ -392,5 +392,41 @@ describe("leadReasonWords", () => {
   it("names an unknown code rather than guessing", () => {
     expect(leadReasonWords("something_new")).toBe("Vedoucí se zastavil (something_new).");
     expect(leadReasonWords(null)).toBe("Vedoucí se zastavil.");
+  });
+});
+
+describe("Deep Research cards (LO5a.2)", () => {
+  it("are the three Deep Research kinds, started on approval, never a run or an agent job", () => {
+    expect(isDeepResearchCard({ kind: "design_research", why: "w" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "interpretation_research", why: "w" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" })).toBe(true);
+    expect(isDeepResearchCard({ kind: "research_run", why: "w" })).toBe(false);
+    expect(isDeepResearchCard({ kind: "agent_job", action: "build_questionnaire", why: "w" })).toBe(false);
+  });
+
+  it("are followed on the stage the card used to open", () => {
+    expect(deepResearchStage({ kind: "design_research", why: "w" })).toBe("design");
+    expect(deepResearchStage({ kind: "interpretation_research", why: "w" })).toBe("report");
+    expect(deepResearchStage({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" })).toBe("report");
+  });
+
+  it("say an unnamed preset and target are the defaults, never guessed, and the wallet only when it is on", () => {
+    const facts = deepResearchFacts({ kind: "interpretation_research", why: "w" }, { walletOn: false, decided: false });
+    expect(facts.map((f) => f.label)).toEqual(["Co se stane", "Rozsah", "Výsledek", "Platba"]);
+    expect(facts[1].value).toBe("Výchozí rozsah kroku");
+    expect(facts[2].value).toBe("Výchozí výsledek, který Vedoucí viděl");
+    expect(facts[3].sub).not.toMatch(/Peněžen/);
+    expect(deepResearchFacts({ kind: "interpretation_research", why: "w", target: "t1" }, { walletOn: true, decided: false })[3].sub).toMatch(/Peněženky/);
+    // Decided: the payment's caveat is gone; a retry names its run and no preset.
+    const retry = deepResearchFacts({ kind: "deep_research_retry", why: "w", run_id: "DRR-1" }, { walletOn: true, decided: true });
+    expect(retry.map((f) => f.label)).toEqual(["Co se stane", "Platba"]);
+    expect(retry[0].value).toContain("DRR-1");
+    expect(retry[1].sub).toBeUndefined();
+  });
+
+  it("put every refusal a card's start can answer in words", () => {
+    for (const code of ["live_settings_unapproved", "outside_wallet", "ceiling_unknown", "deep_research_start_unavailable", "deep_research_not_found", "research_input", "focus_unknown", "run_not_retryable", "lineage_changed", "artifact_corrupt"]) {
+      expect(leadReasonWords(code)).not.toContain(`(${code})`);
+    }
   });
 });

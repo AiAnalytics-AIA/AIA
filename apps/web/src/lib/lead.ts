@@ -103,10 +103,49 @@ export type LeadRequest =
   /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
   | { kind: "analysis_retry"; why: string; run_id?: string }
   /** LO5a.1: a preset, a design focus (research-question ids) and an Interpretation target
-   *  (a candidate id of the turn's targets layer); a card still only opens the step (LO5a.2). */
+   *  (a candidate id of the turn's targets layer). LO5a.2: started on the server by its approval,
+   *  under the stage start's gates (isDeepResearchCard). */
   | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
   | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
   | { kind: "deep_research_retry"; why: string; run_id: string };
+
+export type DeepResearchCard = Extract<LeadRequest, { kind: "design_research" | "interpretation_research" | "deep_research_retry" }>;
+
+/** A Deep Research card (LO5a.2): its approval starts the run on the server, as the stage's own
+ *  start would, never by opening the stage first. */
+export function isDeepResearchCard(r: LeadRequest): r is DeepResearchCard {
+  return r.kind === "design_research" || r.kind === "interpretation_research" || r.kind === "deep_research_retry";
+}
+
+/** The stage a started Deep Research card's run is followed on: Návrh for a design's, Zpráva for
+ *  an Interpretation's or a retry's (the stages the card used to open). */
+export function deepResearchStage(r: DeepResearchCard): "design" | "report" {
+  return r.kind === "design_research" ? "design" : "report";
+}
+
+const PRESET_WORDS = { QUICK: "Rychlý", STANDARD: "Standardní" } as const;
+
+/** A Deep Research card's facts as label/value rows: what starts, its preset, focus or target,
+ *  and how it is paid. A preset the card did not name is the stage's default, said so; a target
+ *  it did not name is the turn's default candidate, never guessed here. */
+export function deepResearchFacts(r: DeepResearchCard, s: { walletOn: boolean; decided: boolean }): { label: string; value: string; sub?: string }[] {
+  const what = r.kind === "design_research"
+    ? { label: "Co se stane", value: "Spustí se hloubkový výzkum nad návrhem, jak je teď", sub: "Návrh se uloží jako nová verze; kontroluje se jako spuštění v kroku Návrh." }
+    : r.kind === "interpretation_research"
+    ? { label: "Co se stane", value: "Spustí se literární rešerše k výsledku běhu", sub: "Nad zmrazeným výsledkem; data respondentů ani výpočty nemění." }
+    : { label: "Co se stane", value: `Zopakuje se hloubkový výzkum ${r.run_id}`, sub: "Se stejným zadáním; co už proběhlo, se neplatí znovu." };
+  const rows: { label: string; value: string; sub?: string }[] = [what];
+  if (r.kind !== "deep_research_retry") rows.push({ label: "Rozsah", value: r.preset ? PRESET_WORDS[r.preset] : "Výchozí rozsah kroku" });
+  if (r.kind === "design_research" && r.focus?.length) rows.push({ label: "Zaměření", value: `${r.focus.length} ${r.focus.length === 1 ? "výzkumná otázka" : r.focus.length < 5 ? "výzkumné otázky" : "výzkumných otázek"}` });
+  if (r.kind === "interpretation_research") rows.push({ label: "Výsledek", value: r.target ? `Vybraný výsledek (${r.target})` : "Výchozí výsledek, který Vedoucí viděl" });
+  rows.push({ label: "Platba", value: "z rozpočtu studie", ...walletSub(s) });
+  return rows;
+}
+
+function walletSub(s: { walletOn: boolean; decided: boolean }): { sub?: string } {
+  if (s.decided) return {};
+  return { sub: s.walletOn ? "Strhne se z Peněženky ve výši stropu ceny; práh potvrzení a schválená nastavení se kontrolují jako na kroku." : "Práh potvrzení a schválená nastavení se kontrolují jako na kroku." };
+}
 
 /**
  * The card a person's typed start shows (LO5), as the request it starts: the server matched the
@@ -825,6 +864,17 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   message_too_long: "Zpráva je příliš dlouhá: nejvýše 8 KB textu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
+  live_settings_unapproved: "Hloubkový výzkum s placeným vyhledáváním čeká na schválení nastavení v Nastavení → Hloubkový výzkum; nic se nespustilo.",
+  outside_wallet: "Strop ceny se nevejde do toho, co zbývá v Peněžence; nic se nespustilo. Peněženku můžete navýšit.",
+  ceiling_unknown: "Cenu nelze odhadnout, a tak se nic nespustilo: neznámá cena se nikdy nečte jako nulová.",
+  no_wallet: "Studie nemá otevřenou Peněženku; nic se nespustilo.",
+  deep_research_start_unavailable: "Hloubkový výzkum se v tomto prostředí z karty spustit nedá.",
+  deep_research_not_found: "Co karta jmenuje (běh, výsledek nebo verzi návrhu), ve studii není; nic se nespustilo.",
+  research_input: "Návrh zatím nemá, co hloubkový výzkum potřebuje; nic se nespustilo.",
+  focus_unknown: "Karta jmenuje výzkumnou otázku, kterou návrh nemá.",
+  run_not_retryable: "Tento běh hloubkového výzkumu nelze opakovat.",
+  lineage_changed: "Výsledek, nad kterým běh běžel, se od té doby změnil; opakování se nespustilo.",
+  artifact_corrupt: "Uložený výsledek běhu nelze ověřit; nic se nespustilo.",
   agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
