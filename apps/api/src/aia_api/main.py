@@ -148,6 +148,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "X-AIA-Artifact-Id",
                 "X-AIA-Artifact-Sha256",
                 "X-AIA-Review-State",
+                # An editor-saved version downloaded with its brand fonts embedded again (RPT15).
+                "X-AIA-Fonts-Reembedded",
                 "Content-Disposition",
             ],
         )

@@ -29,7 +29,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from types import MappingProxyType
 from typing import Final
@@ -41,6 +41,7 @@ from ..domain.report.review import (
     approval_date,
 )
 from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
+from ..infrastructure.report_docx.embed import reembed_fonts as embed_missing_fonts
 from ..infrastructure.report_docx.review_stamp import NotStampable, stamp_review
 
 __all__ = [
@@ -79,6 +80,9 @@ class Export:
     data: bytes
     mark: ReviewMark
     stamped: bool
+    #: The brand fonts were embedded again in these bytes (RPT15): they differ from the stored
+    #: version's, which ``mark`` still names.
+    fonts_reembedded: bool = False
 
 
 #: A mark of no stored version, approved: what :func:`review_stamp_record` tries the stamp with.
@@ -149,7 +153,11 @@ def review_mark(artifacts: ArtifactRepository, artifact: Artifact) -> ReviewMark
 
 
 def export_docx(
-    artifacts: ArtifactRepository, artifact: Artifact, *, data: bytes | None = None
+    artifacts: ArtifactRepository,
+    artifact: Artifact,
+    *,
+    data: bytes | None = None,
+    reembed_fonts: bool = False,
 ) -> Export:
     """The file a download of ``artifact`` is. Reads the stored bytes verified (a corrupt
     version raises the store's error, as any read does) and stamps an approved version whose
@@ -157,7 +165,25 @@ def export_docx(
 
     ``data``: the version's bytes a caller has just read or stored (the client report, composed
     and stored on download), used instead of reading them again only when they are its bytes
-    -- their SHA-256 is the version's. Any other bytes are not this version: the store is read."""
+    -- their SHA-256 is the version's. Any other bytes are not this version: the store is read.
+
+    ``reembed_fonts``: an editor-saved version, whose editor dropped the embedded brand fonts,
+    downloads with them embedded again (artifact-report RPT15; the owner's B6 (b), 2026-10-26):
+    the stored version, its SHA-256 and its approval are untouched, and ``fonts_reembedded``
+    says the bytes differ from it. A package the fonts cannot be put back in is served as
+    stored, and says nothing was re-embedded."""
+    exported = _export_docx(artifacts, artifact, data)
+    if not reembed_fonts:
+        return exported
+    try:
+        carried = embed_missing_fonts(exported.data)
+    except ValueError as exc:
+        _log.warning("fonts not re-embedded in %s: %s", artifact.artifact_id, exc)
+        return exported
+    return exported if carried is None else replace(exported, data=carried, fonts_reembedded=True)
+
+
+def _export_docx(artifacts: ArtifactRepository, artifact: Artifact, data: bytes | None) -> Export:
     mark = review_mark(artifacts, artifact)
     if data is None or hashlib.sha256(data).hexdigest() != artifact.sha256:
         data = artifacts.read(artifact.artifact_id)

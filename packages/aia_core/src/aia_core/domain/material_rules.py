@@ -18,6 +18,9 @@ takes which class *by rule*:
 * :attr:`MaterialRule.CLIENT_SOURCE`, **A**: a client's uploaded source or dataset.
 * :attr:`MaterialRule.INTERNAL_DOCUMENT`, **C**: a client source a person marked
   "Interní dokument" (an internal AIA document holding nothing of the client's).
+* :attr:`MaterialRule.LEAD_HATCH`, **C**: what a researcher writes when hatching their Lead (its
+  name, the traits, how it should work, about them): words about their own working style, the
+  files they become (the product owner, 2026-10-25; lead-identity LI1).
 
 A researcher's message "takes the study's class" (:data:`STUDY_CLASS`), and so does their
 instruction to a design job: the same kind of text, typed to an AI in the same study.
@@ -68,6 +71,7 @@ class MaterialRule(StrEnum):
     KNOWLEDGE = "rule:knowledge"
     CLIENT_SOURCE = "rule:client_source"
     INTERNAL_DOCUMENT = "rule:internal_document"
+    LEAD_HATCH = "rule:lead_hatch"
 
 
 #: A study's class: its design is derived client information (the owner, 2026-10-19).
@@ -87,6 +91,7 @@ RULE_CLASSES: Final[Mapping[MaterialRule, DataClass]] = MappingProxyType(
         MaterialRule.KNOWLEDGE: DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
         MaterialRule.CLIENT_SOURCE: DataClass.CLASS_A_CLIENT_CONFIDENTIAL,
         MaterialRule.INTERNAL_DOCUMENT: DataClass.CLASS_C_INTERNAL,
+        MaterialRule.LEAD_HATCH: DataClass.CLASS_C_INTERNAL,
     }
 )
 

@@ -361,6 +361,15 @@ first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts foc
 left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
 into the condition form and back to its button when it closes" (all four ways out).
 
+*QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
+full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
+(feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
+(the visible label in the name) with the question as its tooltip; the linked ones are written out under the
+chips, for touch. Once any item declares a link, an item linked to none says so in words, with what to do
+(before that, coverage is unknown for every item, coverageOf, never a gap on each card). Dangling links stay coral. Tests:
+`QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
+1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.

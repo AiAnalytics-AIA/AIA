@@ -17,6 +17,7 @@ import { t } from "@/i18n/t";
 import type { ClientArea } from "@/lib/app-routes";
 import { Icon, type IconName } from "../rehome/icons";
 import { DockRail, initials } from "./DockRail";
+import { Hero, type HeroEdit, type HeroFigure } from "./Hero";
 
 /** A breadcrumb; `prefix` is a muted word before its label ("Organizace" before the name). */
 export type Crumb = { label: string; href?: string; prefix?: string };
@@ -101,6 +102,9 @@ export function AppShell({
   topbar = false,
   crumbEnd,
   bleed = false,
+  hero = false,
+  figures,
+  edit,
   children,
 }: {
   crumbs?: Crumb[];
@@ -133,6 +137,15 @@ export function AppShell({
   crumbEnd?: ReactNode;
   /** The page lays out its own columns and gutters, edge to edge under the header (Settings). */
   bleed?: boolean;
+  /**
+   * A top-level page's header is the hero (UI-1): the serif title at 40/46, the eyebrow, the lede
+   * (`sub`), an edit chip and the figures. Never inside a study: a stage keeps its compact header.
+   */
+  hero?: boolean;
+  /** With `hero`: the figures row; a value the page could not read is null and says "neznámé". */
+  figures?: readonly HeroFigure[];
+  /** With `hero`: whether the person may change what the page shows. */
+  edit?: HeroEdit;
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
@@ -195,7 +208,8 @@ export function AppShell({
             </div>
           </header>
         ) : (
-        <header className="z-20 border-b border-border bg-surface-raised px-4 lg:sticky lg:top-0 lg:px-6 xl:px-8">
+        // A hero scrolls with its page, as the prototype draws it; the plain header stays pinned.
+        <header data-shell-header="" className={`z-20 border-b border-border bg-surface-raised px-4 lg:px-6 xl:px-8 ${hero ? "" : "lg:sticky lg:top-0"}`}>
           <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
           <div className="mx-auto max-w-[88rem]">
             {back ? (
@@ -208,6 +222,11 @@ export function AppShell({
               </Link>
             ) : null}
             <Breadcrumbs crumbs={crumbs} />
+            {hero ? (
+              <div className="pb-[22px] pt-3">
+                <Hero eyebrow={eyebrow} title={title} lede={sub} edit={edit} figures={figures} aside={status} action={action} />
+              </div>
+            ) : (
             <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-4 pb-5 pt-2`}>
               <div className="min-w-0 max-w-3xl">
                 {eyebrow ? (
@@ -223,6 +242,7 @@ export function AppShell({
                 {action}
               </div>
             </div>
+            )}
             {tabs?.length ? (
               <nav aria-label={t("aia.client.tabsLabel")} className="-mb-px flex flex-wrap gap-0.5">
                 {tabs.map((tab) => {

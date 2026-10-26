@@ -84,7 +84,7 @@ export function AnalysisMilestones({ run, analysis }: { run: ResearchRun; analys
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
   const analysed = !!analysis?.complete && blocked === 0;
   const items: [string, boolean, string][] = [
-    ["Sběr dokončen", done, done ? run.run_id : "čeká"],
+    ["Sběr dokončen", done, done ? "hotovo" : "čeká"],
     ["Povinná analýza", analysed, analysed ? "všech 8 částí" : blocked ? `k opravě: ${blocked}` : "čeká"],
   ];
   return (
