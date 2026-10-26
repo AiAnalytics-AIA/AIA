@@ -714,6 +714,17 @@ class SampleCompositionResponse(BaseModel):
     support_counted: bool = False
 
 
+class SupportForecastResponse(BaseModel):
+    """What the support forecast found beyond its check's words (artifact-sample SMP9)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The smallest n, with everything else in the design as it is, at which the analysis gate
+    #: admits the evidence (``domain.support_forecast``); ``None`` when n already suffices, when
+    #: none was found within the search, or when the forecast is unknown.
+    reportable_n: int | None
+
+
 class _ReadinessBody(BaseModel):
     """What readiness says of a design, whichever revision it was read on."""
 
@@ -753,6 +764,8 @@ class _ReadinessBody(BaseModel):
     #: The sample a panel run would draw (RQC6b); ``None`` when none was drawn (another persona
     #: source, no population to draw from, a fieldwork source that is not ``ai_runtime``).
     sample_composition: SampleCompositionResponse | None = None
+    #: ``None`` when this fieldwork source forecasts no support.
+    support_forecast: SupportForecastResponse | None = None
 
 
 class ReadinessResponse(_ReadinessBody):
@@ -1557,6 +1570,9 @@ def _readiness_body(
             outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
         )
         if outlook.panel is not None
+        else None,
+        "support_forecast": SupportForecastResponse(reportable_n=outlook.forecast.reportable_n)
+        if outlook.forecast is not None
         else None,
     }
 

@@ -2797,8 +2797,13 @@ def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     small, check = forecast(50)
     assert small["ready"] is True, "a forecast warns, it never refuses"
     assert check["status"] == "WARN" and "nevzniknou" in check["message"]
-    _, enough = forecast(450)
+    big, enough = forecast(450)
     assert enough["status"] == "PASS"
+    # SMP9: the n that would suffice is a field, the one the check's words name; none once met.
+    reportable = small["support_forecast"]["reportable_n"]
+    assert isinstance(reportable, int) and reportable > 50
+    assert f"n = {reportable}" in check["message"]
+    assert big["support_forecast"] == {"reportable_n": None}
 
 
 def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
