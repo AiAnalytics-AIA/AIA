@@ -42,7 +42,7 @@ V5 = SociomapMethod.of(AIA_SOCIOMAP_V5)
 def test_the_owners_decision_approves_aia_sociomap_3_exactly_as_the_code_computes_it() -> None:
     """If the preset changes, its fingerprint changes and this fails: a changed method is a
     new decision, never carried by the old entry."""
-    entry, _ = SOCIOMAP_REGISTER
+    entry, _, _ = SOCIOMAP_REGISTER
     assert (entry.method_id, entry.spec_fingerprint) == (V3.method_id, V3.spec_fingerprint)
     assert entry.status is MethodologyStatus.CLIENT_FACING
     assert entry.decided_on == date(2026, 10, 13)
@@ -52,12 +52,17 @@ def test_the_owners_decision_approves_aia_sociomap_3_exactly_as_the_code_compute
 
 
 def test_the_methodologists_decision_approves_aia_sociomap_5_exactly_as_new_runs_pin_it() -> None:
-    _, entry = SOCIOMAP_REGISTER
+    _, before, entry = SOCIOMAP_REGISTER
     assert (entry.method_id, entry.spec_fingerprint) == (V5.method_id, V5.spec_fingerprint)
     assert entry.spec_fingerprint == AIA_SOCIOMAP_V5.fingerprint()
     assert entry.status is MethodologyStatus.CLIENT_FACING
-    assert (entry.decided_by, entry.decided_on) == ("metodik AIA", date(2026, 10, 21))
+    assert (entry.decided_by, entry.decided_on) == ("metodik AIA", date(2026, 10, 26))
     assert approval_of(V5.method_id, V5.spec_fingerprint) == entry
+    # The runs stored before the terrain changed keep their own approval, at their fingerprint.
+    assert before.method_id == V5.method_id and before.spec_fingerprint.startswith("959a5877")
+    assert (before.decided_by, before.decided_on) == ("metodik AIA", date(2026, 10, 21))
+    assert approval_of(V5.method_id, before.spec_fingerprint) == before
+    assert before.spec_fingerprint != entry.spec_fingerprint
     # What every new run pins is exactly what the entry approves.
     assert default_methods() == (V5,)
     # An edited version, or the same spec with a replaced formula, is another method.

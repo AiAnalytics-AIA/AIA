@@ -595,6 +595,27 @@ class TerrainMethod(StrEnum):
     #: placed), on a grid framed on the objects with a known pair, and with no cutoff, so
     #: every cell has a height.
     FRAMED_RELATIVE_ENVELOPE = "framed_relative_envelope"
+    #: The signed-off methodology's terrain since 2026-10-26 (``aia-sociomap-5``), as the
+    #: Sociomapy app draws it: on the same framed grid, the PRIMARY objects' relative heights
+    #: weighted by ``1 / d^idw_power`` (inverse-distance weighting): an object's own point is its
+    #: height, beside a taller one too, and every other point a weighted mean of the objects.
+    FRAMED_RELATIVE_IDW = "framed_relative_idw"
+    #: The same times the hills' falloff ``max_j exp(-d_j^2 / 2 sigma^2)``: far from every object,
+    #: ground.
+    FRAMED_RELATIVE_IDW_FALLOFF = "framed_relative_idw_falloff"
+
+
+#: The terrains on a grid framed on the map, the respondent density's grid among them.
+FRAMED_TERRAIN_METHODS: Final = (
+    TerrainMethod.FRAMED_RELATIVE_ENVELOPE,
+    TerrainMethod.FRAMED_RELATIVE_IDW,
+    TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF,
+)
+#: The framed terrains that weight by inverse distance, and so declare its power.
+IDW_TERRAIN_METHODS: Final = (
+    TerrainMethod.FRAMED_RELATIVE_IDW,
+    TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF,
+)
 
 
 class KernelWidthBasis(StrEnum):
@@ -615,8 +636,9 @@ class ObjectTerrainSpec(_Frozen):
     The framed envelope (``aia-sociomap-5``) fits its grid to the map rather than declaring
     ``half_extent``, and has no ``kernel_cutoff``: both ``None``. It declares instead the share
     of the grid's half-width the objects fill, ``frame_fill``, and the lowest relative height
-    of a hill, ``relative_height_floor``, which every other method leaves ``None``. A ``None``
-    is left out of the stored form, so earlier pins read unchanged.
+    of a hill, ``relative_height_floor``, which every other method leaves ``None``. The framed
+    inverse-distance weighting declares the same, and its power, ``idw_power``. A ``None`` is
+    left out of the stored form, so earlier pins read unchanged.
     """
 
     method: str
@@ -627,6 +649,7 @@ class ObjectTerrainSpec(_Frozen):
     kernel_cutoff: float | None = None
     frame_fill: float | None = None
     relative_height_floor: float | None = None
+    idw_power: float | None = None
 
     @field_validator(
         "sigma",
@@ -635,6 +658,7 @@ class ObjectTerrainSpec(_Frozen):
         "kernel_cutoff",
         "frame_fill",
         "relative_height_floor",
+        "idw_power",
         mode="before",
     )
     @classmethod
@@ -644,7 +668,13 @@ class ObjectTerrainSpec(_Frozen):
     @model_serializer(mode="wrap")
     def _without_undeclared(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        for key in ("half_extent", "kernel_cutoff", "frame_fill", "relative_height_floor"):
+        for key in (
+            "half_extent",
+            "kernel_cutoff",
+            "frame_fill",
+            "relative_height_floor",
+            "idw_power",
+        ):
             if body.get(key) is None:
                 body.pop(key, None)
         return body
@@ -1126,10 +1156,10 @@ def _respondent_map_problems(spec: SociomapSpecV3) -> dict[str, str]:
     declared = spec.respondent_map
     if declared is None:
         return problems
-    if spec.terrain is None or spec.terrain.method != TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+    if spec.terrain is None or spec.terrain.method not in FRAMED_TERRAIN_METHODS:
         problems["respondent_map"] = (
             "the respondent density is drawn on the framed terrain's grid: declare the terrain "
-            "framed_relative_envelope"
+            "framed_relative_idw, framed_relative_idw_falloff or framed_relative_envelope"
         )
     level = declared.chance_level
     if not (math.isfinite(level) and 0.0 < level < 1.0):
@@ -1225,11 +1255,21 @@ def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
         problems["terrain.grid_resolution"] = (
             f"grid_resolution must lie in 1..{_MAX_TERRAIN_GRID}; got {terrain.grid_resolution}"
         )
-    if terrain.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+    power = terrain.idw_power
+    if terrain.method in IDW_TERRAIN_METHODS:
+        if power is None or not (math.isfinite(power) and power > 0.0):
+            problems["terrain.idw_power"] = (
+                f"the inverse-distance power is positive and finite; got {power!r}"
+            )
+    elif power is not None:
+        problems["terrain.idw_power"] = (
+            "only the framed inverse-distance terrains read it; declare null"
+        )
+    if terrain.method in FRAMED_TERRAIN_METHODS:
         for key in ("half_extent", "kernel_cutoff"):
             if getattr(terrain, key) is not None:
                 problems[f"terrain.{key}"] = (
-                    "the framed envelope fits its grid to the map and lets every hill reach "
+                    "the framed terrain fits its grid to the map and lets every hill reach "
                     "every cell; declare null"
                 )
         fill, floor = terrain.frame_fill, terrain.relative_height_floor
@@ -1244,7 +1284,7 @@ def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
         return problems
     for key in ("frame_fill", "relative_height_floor"):
         if getattr(terrain, key) is not None:
-            problems[f"terrain.{key}"] = "only the framed envelope reads it; declare null"
+            problems[f"terrain.{key}"] = "only the framed terrain reads it; declare null"
     half, cutoff = terrain.half_extent, terrain.kernel_cutoff
     if half is None or not (math.isfinite(half) and half >= FIXED_RULER_EXTENT):
         problems["terrain.half_extent"] = (
@@ -1636,12 +1676,13 @@ AIA_SOCIOMAP_V5 = AIA_SOCIOMAP_V4.model_copy(
             seed=0,
         ),
         "terrain": ObjectTerrainSpec(
-            method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE,
+            method=TerrainMethod.FRAMED_RELATIVE_IDW,
             sigma=0.25,
             sigma_basis=KernelWidthBasis.SIGNED_OFF_METHODOLOGY,
             grid_resolution=84,
             frame_fill=0.70,
             relative_height_floor=0.15,
+            idw_power=3.0,
         ),
     }
 )

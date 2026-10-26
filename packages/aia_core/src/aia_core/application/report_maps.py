@@ -344,10 +344,13 @@ def compose_map_sections(
                         control=map_tag,
                     )
                 )
-            # The framed envelope draws relative heights and reaches every cell.
-            relative = (
-                isinstance(artifact.terrain, EnvelopeTerrain)
-                and artifact.terrain.method == "framed_relative_envelope"
+            # The framed terrain draws relative heights and reaches every cell.
+            relative = isinstance(
+                artifact.terrain, EnvelopeTerrain
+            ) and artifact.terrain.method in (
+                "framed_relative_envelope",
+                "framed_relative_idw",
+                "framed_relative_idw_falloff",
             )
             # A signed-off map is drawn as the AIA panel draws it, labelled on the map, with its
             # respondent map where it is stored.

@@ -58,7 +58,11 @@ __all__ = [
     "compute_terrain",
     "envelope_at",
     "fit_frame",
+    "idw_at",
+    "idw_falloff_at",
     "object_envelope",
+    "object_idw",
+    "object_idw_falloff",
 ]
 
 
@@ -447,6 +451,17 @@ class EnvelopeHill(BaseModel):
         return float(v)
 
 
+#: The stored terrain methods: the envelope (on the fixed ruler or framed), and on the framed
+#: grid the inverse-distance weighting (:func:`idw_at`), alone or under the hills' falloff
+#: (:func:`idw_falloff_at`).
+TerrainMethodName = Literal[
+    "object_envelope",
+    "framed_relative_envelope",
+    "framed_relative_idw",
+    "framed_relative_idw_falloff",
+]
+
+
 class EnvelopeTerrain(BaseModel):
     """The object envelope over a grid, indexed ``[gy][gx]``.
 
@@ -457,13 +472,15 @@ class EnvelopeTerrain(BaseModel):
     has a height; ``absolute_height`` is the same envelope with each hill at its height on the
     declared 0-1 scale instead of its relative height, the panel's Absolutní view, so a reader
     draws it without evaluating a kernel. ``None`` (every other method) is left out of the
-    stored form.
+    stored form. ``framed_relative_idw`` and ``framed_relative_idw_falloff`` are the same grid
+    under :func:`idw_at` and :func:`idw_falloff_at`; their ``governing`` hill is the one that
+    weighs most in a cell (the object standing on it).
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     status: Literal["computed"] = "computed"
-    method: Literal["object_envelope", "framed_relative_envelope"] = "object_envelope"
+    method: TerrainMethodName = "object_envelope"
     parameters: EnvelopeParameters
     source_ids: tuple[str, ...]
     height: tuple[tuple[float | None, ...], ...]
@@ -554,6 +571,127 @@ def object_envelope(
         governing.append(tuple(None if c is None else c[1] for c in cells))
     return EnvelopeTerrain(
         method=method,
+        parameters=params,
+        source_ids=ids,
+        height=tuple(height),
+        governing=tuple(governing),
+    )
+
+
+def idw_at(
+    x: float, y: float, hills: Sequence[EnvelopeHill], power: float
+) -> tuple[float, int] | None:
+    """The signed-off methodology's object terrain (``framed_relative_idw``) at ``(x, y)``, as
+    the Sociomapy app interpolates it, and the index of the hill that weighs most there; ``None``
+    without a hill. ``z`` is the hills' heights weighted by ``1 / d^power``: exactly a hill's
+    height at its own point, beside a taller one too, and everywhere else a weighted mean of the
+    hills, far from them as well."""
+    num = den = 0.0
+    best: tuple[float, int] | None = None
+    for k, hill in enumerate(hills):
+        d2 = (x - hill.x) ** 2 + (y - hill.y) ** 2
+        if d2 == 0.0:
+            return hill.height, k
+        w = 1.0 / math.sqrt(d2) ** power
+        num += w * hill.height
+        den += w
+        if best is None or w > best[0]:
+            best = (w, k)
+    if best is None:
+        return None
+    return num / den, best[1]
+
+
+def idw_falloff_at(
+    x: float,
+    y: float,
+    hills: Sequence[EnvelopeHill],
+    sigma: float,
+    power: float,
+    *,
+    slots: Slots = NO_SLOTS,
+) -> tuple[float, int] | None:
+    """The signed-off methodology's object terrain (``framed_relative_idw_falloff``) at
+    ``(x, y)``, and the index of the hill that weighs most there; ``None`` without a hill.
+
+    ``z = I F``: ``I`` the hills' heights weighted by ``1 / d^power`` (inverse-distance
+    weighting, exact at a hill), ``F = max_j exp(-d_j^2 / 2 sigma^2)`` the hills' falloff. A
+    hill's own point is exactly its height, beside a taller one too; between neighbours their
+    heights blend; far from every hill the terrain falls to 0. The envelope's maximum lifted a
+    hill next to a taller neighbour. ``slots`` may replace the kernel (``f12.kernel``): the
+    falloff is then the replaced kernel at height 1, as :func:`envelope_at` reads it."""
+    kernel = slots.get(KERNEL)
+    two_sigma_sq = 2.0 * sigma * sigma
+    num = den = fall = 0.0
+    best: tuple[float, int] | None = None
+    exact: tuple[float, int] | None = None
+    for k, hill in enumerate(hills):
+        d2 = (x - hill.x) ** 2 + (y - hill.y) ** 2
+        g = (
+            float(kernel(h=1.0, d2=d2, sigma=sigma))
+            if kernel is not None
+            else math.exp(-d2 / two_sigma_sq)
+        )
+        fall = max(fall, g)
+        if d2 == 0.0:
+            if exact is None:
+                exact = (hill.height, k)
+            continue
+        w = 1.0 / math.sqrt(d2) ** power
+        num += w * hill.height
+        den += w
+        if best is None or w > best[0]:
+            best = (w, k)
+    if exact is not None:
+        return exact[0] * fall, exact[1]
+    if best is None:
+        return None
+    return num / den * fall, best[1]
+
+
+def object_idw(
+    hills: Sequence[EnvelopeHill], params: EnvelopeParameters, power: float
+) -> EnvelopeTerrain:
+    """:func:`idw_at` over ``params``' grid (``framed_relative_idw``)."""
+    ids = tuple(h.entity_id for h in hills)
+    if len(set(ids)) != len(ids):
+        raise ValueError("terrain hill ids must be unique")
+    xs, ys = params.axes()
+    height: list[tuple[float | None, ...]] = []
+    governing: list[tuple[int | None, ...]] = []
+    for y in ys:
+        cells = [idw_at(x, y, hills, power) for x in xs]
+        height.append(tuple(None if c is None else c[0] for c in cells))
+        governing.append(tuple(None if c is None else c[1] for c in cells))
+    return EnvelopeTerrain(
+        method="framed_relative_idw",
+        parameters=params,
+        source_ids=ids,
+        height=tuple(height),
+        governing=tuple(governing),
+    )
+
+
+def object_idw_falloff(
+    hills: Sequence[EnvelopeHill],
+    params: EnvelopeParameters,
+    power: float,
+    *,
+    slots: Slots = NO_SLOTS,
+) -> EnvelopeTerrain:
+    """:func:`idw_falloff_at` over ``params``' grid (``framed_relative_idw_falloff``)."""
+    ids = tuple(h.entity_id for h in hills)
+    if len(set(ids)) != len(ids):
+        raise ValueError("terrain hill ids must be unique")
+    xs, ys = params.axes()
+    height: list[tuple[float | None, ...]] = []
+    governing: list[tuple[int | None, ...]] = []
+    for y in ys:
+        cells = [idw_falloff_at(x, y, hills, params.sigma, power, slots=slots) for x in xs]
+        height.append(tuple(None if c is None else c[0] for c in cells))
+        governing.append(tuple(None if c is None else c[1] for c in cells))
+    return EnvelopeTerrain(
+        method="framed_relative_idw_falloff",
         parameters=params,
         source_ids=ids,
         height=tuple(height),

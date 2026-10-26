@@ -926,11 +926,15 @@ def test_a_run_without_modelled_data_has_no_client_report_and_says_why(
 
 def test_the_sociomap_register_is_read_through_a_study(researcher: TestClient, world: Any) -> None:
     url = f"{API}/studies/{world.study_id()}/research/sociomap-register"
-    entry, signed_off = researcher.get(url).json()["entries"]
+    entry, signed_off, terrain = researcher.get(url).json()["entries"]
     assert entry["method_id"] == "aia-sociomap-3" and entry["status"] == "CLIENT_FACING"
     assert entry["decided_on"] == "2026-10-13" and len(entry["spec_fingerprint"]) == 64
     assert signed_off["method_id"] == "aia-sociomap-5" and signed_off["status"] == "CLIENT_FACING"
     assert signed_off["decided_on"] == "2026-10-21"
+    # The terrain change: a new -5 fingerprint, approved beside the one earlier runs keep.
+    assert terrain["method_id"] == "aia-sociomap-5" and terrain["status"] == "CLIENT_FACING"
+    assert terrain["decided_on"] == "2026-10-26"
+    assert terrain["spec_fingerprint"] != signed_off["spec_fingerprint"]
 
 
 def test_a_person_approves_a_runs_stored_report_once_and_only_that(

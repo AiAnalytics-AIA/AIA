@@ -110,6 +110,7 @@ from .slots import (
     Slots,
 )
 from .specification import (
+    FRAMED_TERRAIN_METHODS,
     LEGACY_MIN_OBJECTS,
     ObjectHeightMetric,
     PairEvidenceBasis,
@@ -125,6 +126,8 @@ from .terrain import (
     EnvelopeTerrain,
     fit_frame,
     object_envelope,
+    object_idw,
+    object_idw_falloff,
 )
 from .view import stress_quality
 
@@ -371,9 +374,9 @@ def _terrain(
         return TERRAIN_NOT_COMPUTED
     if layout is None:
         return TERRAIN_NOT_MAPPED
-    if declared.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE:
+    if declared.method in FRAMED_TERRAIN_METHODS:
         if declared.frame_fill is None or heights.relative is None:
-            raise ValueError("the framed envelope is declared whole (require_supported)")
+            raise ValueError("the framed terrain is declared whole (require_supported)")
         centre, half = fit_frame(
             [p for p, f in zip(layout.points, framing, strict=True) if f], declared.frame_fill
         )
@@ -390,19 +393,26 @@ def _terrain(
             )
             if t is not None and h is not None
         ]
-        relative = object_envelope(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled],
-            grid,
-            slots=slots,
-            method="framed_relative_envelope",
+
+        def framed(hills: list[EnvelopeHill]) -> EnvelopeTerrain:
+            if declared.method in (
+                TerrainMethod.FRAMED_RELATIVE_IDW,
+                TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF,
+            ):
+                if declared.idw_power is None:
+                    raise ValueError("the framed terrain is declared whole (require_supported)")
+                if declared.method == TerrainMethod.FRAMED_RELATIVE_IDW:
+                    return object_idw(hills, grid, declared.idw_power)
+                return object_idw_falloff(hills, grid, declared.idw_power, slots=slots)
+            return object_envelope(hills, grid, slots=slots, method="framed_relative_envelope")
+
+        relative = framed(
+            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=t) for o, p, t, _ in hilled]
         )
         # The panel's Absolutní view: the same hills at their heights on the declared 0-1 scale,
         # stored so that no reader evaluates a kernel of its own.
-        absolute = object_envelope(
-            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled],
-            grid,
-            slots=slots,
-            method="framed_relative_envelope",
+        absolute = framed(
+            [EnvelopeHill(entity_id=o, x=p[0], y=p[1], height=h) for o, p, _, h in hilled]
         )
         return relative.model_copy(update={"absolute_height": absolute.height})
     if declared.half_extent is None or declared.kernel_cutoff is None:
