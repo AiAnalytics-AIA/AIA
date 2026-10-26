@@ -74,7 +74,12 @@ def _row(manifest: dict[str, Any], name: str) -> dict[str, Any]:
 
 def test_every_layer_of_the_context_is_declared_in_its_order() -> None:
     external = {"pin": {"deep_research_run_id": "RUN-1"}, "lines": ["[EV-1] Fiktivní nález."]}
-    context = _context(external=external, memory=decision_digest([], []))
+    context = _context(
+        external=external,
+        memory=decision_digest([], []),
+        deep_research={"runs": [], "omitted": 0},
+        targets={"candidates": [], "default": None, "omitted": 0},
+    )
     assert [entry["layer"] for entry in context["layers"]] == [s.name for s in LEAD_LAYERS]
     manifest = context_manifest(context, context_classification(context, (), _pin()))
     row = _row(manifest, EXTERNAL_LAYER)
@@ -101,9 +106,10 @@ def test_the_manifest_reads_the_context_without_moving_it() -> None:
     assert manifest == context_manifest(context)
     assert manifest["total_bytes"] == context_bytes(context)
     assert manifest["ceiling_bytes"] == CONTEXT_MAX_BYTES
-    # The external and memory layers are there only when given.
+    # The external, memory, Deep Research and targets layers are there only when given.
+    optional = (EXTERNAL_LAYER, "memory", "deep_research", "targets")
     assert [r["layer"] for r in manifest["layers"]] == [
-        s.name for s in LEAD_LAYERS if s.name not in (EXTERNAL_LAYER, "memory")
+        s.name for s in LEAD_LAYERS if s.name not in optional
     ]
     assert sum(r["bytes"] for r in manifest["layers"]) <= manifest["total_bytes"]
 
@@ -349,7 +355,7 @@ def test_the_view_lists_every_declared_layer_and_says_which_the_turn_did_not_rec
     view = manifest_view(_context())
     assert [row["layer"] for row in view["layers"]] == [spec.name for spec in LEAD_LAYERS]
     unrecorded = {row["layer"] for row in view["layers"] if not row["recorded"]}
-    assert unrecorded == {EXTERNAL_LAYER, "memory"}
+    assert unrecorded == {EXTERNAL_LAYER, "memory", "deep_research", "targets"}
     row = _row(view, "memory")
     assert "included_count" not in row and "omitted_count" not in row
     assert all("data_class" not in r for r in view["layers"])
@@ -419,3 +425,26 @@ def test_each_queued_message_and_its_focus_are_classed_as_the_researchers() -> N
     ]
     assert [p["part"] for p in parts] == ["message", "message", "focus_label"]
     assert {p["data_class"] for p in parts} == {DataClass.CLASS_B_DERIVED_CLIENT.value}
+
+
+def test_the_deep_research_and_targets_layers_name_what_the_lead_was_shown() -> None:
+    """Review of #925 (Codex): the manifest showed neither layer, so "Co Vedoucí vidí" hid the
+    runs and results the Lead could name."""
+    context = _context(
+        deep_research={"runs": [{"run_id": "RUN-dddd0001"}], "omitted": 2},
+        targets={
+            "candidates": [{"id": "t1"}, {"id": "t2"}],
+            "default": "t1",
+            "omitted": 5,
+            "unreadable_runs": ["RUN-aaaa0001"],
+        },
+    )
+    manifest = context_manifest(context, context_classification(context, (), _pin()))
+    dr, targets = _row(manifest, "deep_research"), _row(manifest, "targets")
+    assert (dr["included"], dr["omitted_count"]) == (["RUN-dddd0001"], 2)
+    assert targets["included"] == ["t1", "t2"]
+    assert targets["omitted"] == [{"id": "RUN-aaaa0001", "reason": "unreadable"}]
+    assert targets["omitted_count"] == 6
+    for row in (dr, targets):
+        assert row["data_class"] == DataClass.CLASS_B_DERIVED_CLIENT.value
+        assert row["bounded_bytes"] <= row["ceiling_bytes"]
