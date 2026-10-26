@@ -265,7 +265,7 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def _park_on_budget(session: Any, scope: Any, requested: float | None = 0.5) -> Any:
+def _park_on_budget(session: Any, scope: Any, requested: Any = 0.5) -> Any:
     """The worker's side of a turn whose reservation passes the study's budget, with the error
     the worker records (``requested_usd``: the hold the turn asked for)."""
     workflows = WorkflowRepository(session, scope)
@@ -408,14 +408,41 @@ def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
     assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
 
 
-def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
+@pytest.mark.parametrize("requested", [None, True, -1.0, "0.5"])
+def test_a_parked_turn_whose_hold_is_unknown_stays_parked(
+    scoped: Any, session: Any, requested: Any
+) -> None:
+    """A hold the attempt did not record as a number of USD is unknown, and unknown never fits:
+    a bool or a negative hold passed as one. (NaN and inf cannot be stored in PostgreSQL's JSONB;
+    _recorded_hold refuses them below.)"""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     _message(_lead(scope, session))
-    _park_on_budget(session, scope, requested=None)
+    _park_on_budget(session, scope, requested=requested)
     assert set_study_budget(session, scope, 500.0)[1] == []
     assert _lead(scope, session).state()["turns"][-1]["status"] == "WAITING"
+
+
+@pytest.mark.parametrize(
+    ("value", "hold"),
+    [
+        (0.5, 0.5),
+        (2, 2.0),
+        (0, 0.0),
+        (None, None),
+        (True, None),
+        (-1.0, None),
+        ("0.5", None),
+        (float("nan"), None),
+        (float("inf"), None),
+    ],
+)
+def test_a_recorded_hold_is_a_finite_non_negative_number_of_usd(value: Any, hold: Any) -> None:
+    """NaN compared as fitting anything, so it is refused here, beside inf."""
+    from aia_core.application.research_lead import _recorded_hold
+
+    assert _recorded_hold(value) == hold
 
 
 def test_a_greeting_does_not_supersede_a_message_waiting_for_budget(
