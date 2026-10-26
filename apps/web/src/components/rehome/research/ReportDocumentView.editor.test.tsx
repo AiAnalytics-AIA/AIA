@@ -90,7 +90,7 @@ describe("which document the editor is handed", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     await waitFor(() => expect(editor.handed).toEqual<Handed[]>([{ variant: "internal", review: null }]));
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-client"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-client"));
     expect(container.querySelector("[data-stub-editor]")).toBeNull();
     expect(screen.getByRole("article", { name: "Koncept zprávy" })).toBeTruthy();
     expect(editor.handed.every((h) => h.variant === "internal")).toBe(true);
@@ -103,7 +103,7 @@ describe("which document the editor is handed", () => {
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-context"));
     // The editor is handed the document by an effect after the bar names it: waited for, never
     // read in the same tick (it raced on a loaded CI runner).
     await waitFor(() => expect(editor.handed).toContainEqual({ variant: "context", review: "RUN-deep" }));
@@ -147,7 +147,7 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     await waitFor(() => expect(editorBar(container)?.textContent).toContain("Koncept 2, uložen 23. 10. 2026 22:10 · Jana Výzkumná"));
     expect(within(bar(container)).queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
-    expect(bar(container).textContent).not.toContain("ART-docx");
+    expect(bar(container).getAttribute("data-report-version")).toBeNull();
   });
 
   it("lists what the version changed under Upraveno ručně", async () => {
@@ -170,7 +170,8 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("Schválit interní zprávu, koncept 2 (ART-edit)?");
+    expect(dialog.textContent).toMatch(/^Schvalujete tuto verzi: Interní zpráva, koncept 2, uloženou \d+\. \d+\. \d{4} \d{2}:\d{2}\. Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi\./);
+    expect(dialog.textContent).not.toContain("ART-");
     expect(dialog.textContent).toContain("Číslo trust_total: 42,5 % → 50 %");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true, null));
@@ -197,7 +198,7 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("ART-docx");
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Interní zpráva (DOCX).");
     expect(container.querySelector("[data-editor-edited]")).toBeNull();
     // Approved as its line's newest: the server refuses once a save moved the line on.
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);

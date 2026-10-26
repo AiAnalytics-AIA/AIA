@@ -186,6 +186,33 @@ describe("Dotazník", () => {
     await waitFor(() => expect("filtr" in question()).toBe(false));
   });
 
+  it("moves focus into the condition form and back to its button when it closes, for the keyboard", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    fireEvent.click(await within(card).findByRole("button", { name: "Podmínka zobrazení" }));
+    const form = card.querySelector("[data-condition-form]") as HTMLElement;
+    // Opened: focus is in the form, on its first choice, never left on the page.
+    expect(form.contains(document.activeElement)).toBe(true);
+    // Escape: back on the button that opened it.
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    // Saved: on the stored condition's own button.
+    fireEvent.click(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    fireEvent.click(within(card).getByRole("radio", { name: /^Q1 · / }));
+    fireEvent.click(within(within(card).getByRole("group", { name: "Zobrazit těm, kdo odpověděli" })).getByRole("button", { name: "Týdně" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Uložit podmínku" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Zrušit: back on the same button.
+    fireEvent.click(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Zrušit" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Odebrat podmínku: on the button that sets one again.
+    fireEvent.click(within(card).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" })));
+  });
+
   it("keeps the form open and says why when the questionnaire moved under it", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -244,6 +271,13 @@ describe("Dotazník", () => {
     await waitFor(() => expect(calls.some((c) => c.url === "/config")).toBe(true));
     const card = document.getElementById("qedit_Q2") as HTMLElement;
     await waitFor(() => expect(within(card).queryByRole("button", { name: "Podmínka zobrazení" })).toBeNull());
+    // Shown disabled with its reason, never offered (spec navrh/Q4, R9).
+    const turnOn = await within(card).findByRole("button", { name: "Zapnout" });
+    // aria-disabled, so it stays focusable and its reason is heard on it.
+    expect(turnOn.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(turnOn.getAttribute("aria-describedby") ?? "")?.textContent).toBe("Běh s podmínkou zatím AIA neumí odeslat, proto ji nelze zapnout.");
+    // Q1 has no earlier choice question, so it says nothing of a condition.
+    expect(within(document.getElementById("qedit_Q1") as HTMLElement).queryByRole("button", { name: "Zapnout" })).toBeNull();
     cleanup();
     sections[0]!.questions![1]!.filtr = { question_id: "Q1", options: ["Týdně"] };
     unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: false }) });
@@ -253,6 +287,35 @@ describe("Dotazník", () => {
     expect(within(stored).getByText(/Zobrazí se jen těm, kdo u Q1/)).toBeTruthy();
     await waitFor(() => expect(within(stored).queryByRole("button", { name: "Upravit podmínku" })).toBeNull());
     expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
+    // Removed with nothing left in its box: focus goes to the question's wording, never to a type
+    // chip, where one key would change the question's type (QF-18, the stand-in review).
+    fireEvent.click(within(stored).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(stored).getByRole("textbox", { name: "Znění otázky" })));
+  });
+
+  it("offers no familiarity switch a run would refuse; a set stored with it can switch it off (Q4)", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[0], { ...SECTIONS[1], familiarity_required: true }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = (await screen.findByText(/Sada má uložené ověřování znalosti objektů/)).closest("[id^=qset_]") as HTMLElement;
+    expect(within(set).queryByRole("switch", { name: /znalost/ })).toBeNull();
+    // Every animation frame runs at once, before React commits: the losing order for a frame guess.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    fireEvent.click(within(set).getByRole("button", { name: "Vypnout" }));
+    await saved();
+    await waitFor(() => expect((lastSave().content as unknown as { sections: { familiarity_required?: boolean }[] }).sections[1].familiarity_required).toBe(false));
+    const note = within(set).getByText(/zatím AIA neumí položit: běh by sadu odmítl, proto tu přepínač chybí/);
+    // Focus goes to the line that replaced the button, never the page.
+    await waitFor(() => expect(document.activeElement).toBe(note));
+  });
+
+  it("reads a stored familiarity flag as the compiler does: an empty {} is no requirement", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[0], { ...SECTIONS[1], familiarity_required: {} }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = (await screen.findByText(/proto tu přepínač chybí/)).closest("[id^=qset_]") as HTMLElement;
+    expect(within(set).queryByRole("button", { name: "Vypnout" })).toBeNull();
   });
 
   it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {
@@ -277,6 +340,35 @@ describe("Dotazník", () => {
     expect(within(preview).queryByText("Otázka 3")).toBeNull();
   });
 
+  it("previews a scale at its own range and says what the preview leaves out (QST11)", async () => {
+    const seven = { id: "Q7", text: "Jak moc souhlasíte?", typ: "skala", skala: [1, 7], popisky_skaly: ["vůbec", "zcela"] };
+    const wide = { id: "Q8", text: "Kolik bodů dáte?", typ: "skala", skala: [0, 100], popisky_skaly: ["nic", "vše"] };
+    const many = Array.from({ length: 13 }, (_, i) => ({ id: `QX${i}`, text: `Doplňková ${i}?`, typ: "otevrena" }));
+    const set = { ...SECTIONS[1], scale: [1, 5] };
+    unitStub({ ...BRIEF, sections: [{ id: "sec_s", type: "questions", title: "Škály", questions: [seven, wide, ...many] }, set], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    const item = (text: string) => within(preview).getByText(text).closest("li") as HTMLElement;
+    expect(item("Jak moc souhlasíte?").querySelector("[data-scale-points]")?.getAttribute("data-scale-points")).toBe("7");
+    // 0–100 is drawn as its ends either side of "…", never 101 boxes.
+    const wideScale = item("Kolik bodů dáte?").querySelector("[data-scale-points]") as HTMLElement;
+    expect(wideScale.getAttribute("data-scale-points")).toBe("101");
+    expect([...wideScale.querySelectorAll("i")].map((b) => b.textContent)).toEqual(["0", "1", "…", "99", "100"]);
+    // Fifteen questions and one set: the fourteen shown leave two out.
+    expect(within(preview).getByText("+ 2 další položky dotazníku, náhled ukazuje prvních 14")).toBeTruthy();
+  });
+
+  it("previews a tracked set at its stored range and names the objects it does not draw (QST11)", async () => {
+    unitStub({ ...BRIEF, sections: [{ ...SECTIONS[1], scale: [1, 5] }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Náhled respondenta" }));
+    const preview = await screen.findByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    // One row drawn, the board's; the other three named.
+    expect([...preview.querySelectorAll("[data-scale-points]")].map((n) => n.getAttribute("data-scale-points"))).toEqual(["5"]);
+    expect(within(preview).getByText("a stejně pro 3 další položky")).toBeTruthy();
+  });
+
   it("edits a question as the classic editor does: type, options and a scale", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -288,7 +380,8 @@ describe("Dotazník", () => {
     fireEvent.keyDown(within(options).getByLabelText("Možnost 2"), { key: "Enter" });
     fireEvent.change(within(options).getByLabelText("Možnost 3"), { target: { value: "Nikdy " } });
     fireEvent.blur(within(options).getByLabelText("Možnost 3"), { relatedTarget: null });
-    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Typ" })).getByRole("radio", { name: "Škála" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Jedna odpověď, typ otázky" }));
+    fireEvent.click(within(card).getByRole("menuitem", { name: "Škála" }));
     expect(await within(card).findByRole("radiogroup", { name: "Rozsah škály Q1" })).toBeTruthy();
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];
@@ -320,6 +413,39 @@ describe("Dotazník", () => {
     expect(within(set).queryByRole("radiogroup", { name: "Popisky škály sada 1" })).toBeNull();
   });
 
+  it("shows a question's links as VO chips named by the research question's text, and says when it measures none (Q3)", async () => {
+    const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
+    unitStub({ ...BRIEF, research_plan: plan, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const linksOfItem = (id: string) => within(document.getElementById(id) as HTMLElement).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
+    const q1 = linksOfItem("qedit_Q1");
+    // The chip reads "VO1" and is named by it and the question; the question is its tooltip too.
+    const chip = within(q1).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" });
+    expect(chip.querySelector("[title]")?.getAttribute("title")).toBe("Jak často lidé pijí kávu?");
+    // The page keys "VO n" to its question without hover: the comparisons card numbers its rows the same way.
+    expect(screen.getByText("VO2 · Která média lidé používají?")).toBeTruthy();
+    // Nothing linked anywhere yet: coverage is unknown, so no card says it measures nothing.
+    expect(screen.queryByText(/^Neměří žádnou výzkumnou otázku/)).toBeNull();
+    fireEvent.click(chip);
+    // Q1's link is written out for touch, and Q2, now beside a linked item, says it measures none.
+    expect(within(q1).getByText("VO1 · Jak často lidé pijí kávu?")).toBeTruthy();
+    expect(within(linksOfItem("qedit_Q2")).getByText(/^Neměří žádnou výzkumnou otázku/)).toBeTruthy();
+  });
+
+  it("numbers blocks B n and sets S n as the outline does, spoken as Blok n and Sada n (Q2)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const block = document.getElementById("qblock_sec_a") as HTMLElement;
+    const b1 = within(block).getByText("B1");
+    expect(b1.getAttribute("aria-hidden")).toBe("true");
+    expect(b1.parentElement?.textContent).toBe("B1Blok 1");
+    expect(within(block).getByText("2 otázky")).toBeTruthy();
+    const s1 = within(document.getElementById("qset_sec_b") as HTMLElement).getByText("S1");
+    expect(s1.parentElement?.textContent).toBe("S1Sada 1");
+  });
+
   it("says which research question a question and a set measure, and drops a link the plan no longer states", async () => {
     const plan = { research_questions: ["Jak často lidé pijí kávu?", "Která média lidé používají?"] };
     const sections = [{ ...SECTIONS[0], questions: [{ ...SECTIONS[0].questions![0], research_questions: ["Stará otázka?"] }, SECTIONS[0].questions![1]] }, SECTIONS[1]];
@@ -329,10 +455,10 @@ describe("Dotazník", () => {
     const card = document.getElementById("qedit_Q1") as HTMLElement;
     const links = within(card).getByRole("group", { name: "Odpovídá na výzkumné otázky" });
     fireEvent.click(within(links).getByRole("button", { name: "Odebrat odkaz na „Stará otázka?“" }));
-    fireEvent.click(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }));
-    expect(within(links).getByRole("button", { name: "Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(links).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" }));
+    expect(within(links).getByRole("button", { name: "VO1: Jak často lidé pijí kávu?" }).getAttribute("aria-pressed")).toBe("true");
     const set = document.getElementById("qset_sec_b") as HTMLElement;
-    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "Která média lidé používají?" }));
+    fireEvent.click(within(within(set).getByRole("group", { name: "Odpovídá na výzkumné otázky" })).getByRole("button", { name: "VO2: Která média lidé používají?" }));
     await saved();
     await waitFor(() => expect(lastSave().reason).toBe("questionnaire_links"));
     const content = lastSave().content as unknown as { sections: { research_questions?: string[]; questions?: { research_questions?: string[] }[] }[] };

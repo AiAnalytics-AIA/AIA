@@ -7,6 +7,8 @@
 // a role change offers Vrátit for 8 s (I6). The Metodik mark is the OWNER's to grant (#823, D-14);
 // deactivating a member seals their Lead (#830, ADR 0030), both at once with Vrátit. A client's
 // data posture and wallet ceiling are read here (#853) and set on its Profil → Pravidla (D-17).
+// Three flat cards, as prototype v58 draws them (F9): Členové with Naposledy, Samoschválení in one
+// row, Klienti; what each explains behind its ⓘ.
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -16,6 +18,7 @@ import { t, tv } from "@/i18n/t";
 import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import type { SaveState } from "@/lib/inline-edit";
+import { relative } from "@/lib/format";
 import { usd } from "@/lib/researcher-spend";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { InlineText } from "../../ui/InlineText";
@@ -24,6 +27,7 @@ import { FOCUS, SaveNote } from "../../ui/parts";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { Button } from "../../rehome/ui";
 import { describeError, describeMemberError } from "./errors";
+import { InfoButton } from "./InfoButton";
 
 const P = "aia.settings.panel";
 const A = `${P}.accessTab`;
@@ -56,13 +60,34 @@ function useSave(reload: () => void) {
   return { state, error, run };
 }
 
-function CardHead({ title, children }: { title: string; children?: ReactNode }) {
+/** A card's head: its title as the section's h2 (the tab's h1 above it), its ⓘ, then what sits right. */
+function CardHead({ id, title, info, children }: { id: string; title: string; info?: ReactNode; children?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <h3 className="text-base font-semibold">{title}</h3>
+      <div className="flex items-center gap-1">
+        <h2 id={id} className="text-base font-semibold">{title}</h2>
+        {info}
+      </div>
       {children ? <div className="flex flex-wrap items-center gap-1.5">{children}</div> : null}
     </div>
   );
+}
+
+/** Which of a card's explanations is open: one at a time, closed by its button again. */
+function useExplained<K extends string>() {
+  const [open, setOpen] = useState<K | null>(null);
+  return { open, toggle: (k: K) => setOpen((v) => (v === k ? null : k)) };
+}
+
+/** When a member was last active, as the API says (F19): their own last request. Absent from an API
+ *  that does not serve it is unknown; null is never; neither is a date. */
+function LastSeen({ m }: { m: Member }) {
+  if (!("last_seen_at" in m) || m.last_seen_at === undefined) return <span data-last-seen="unknown" className="text-sm text-ink-muted">{t(`${A}.seenUnknown`)}</span>;
+  if (m.last_seen_at === null) return <span data-last-seen="never" className="text-sm text-ink-muted">{t(`${A}.seenNever`)}</span>;
+  const words = relative(m.last_seen_at);
+  if (!words) return <span data-last-seen="unknown" className="text-sm text-ink-muted">{t(`${A}.seenUnknown`)}</span>;
+  const exact = new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(m.last_seen_at));
+  return <time data-last-seen={m.last_seen_at} dateTime={m.last_seen_at} title={exact} className="whitespace-nowrap text-sm text-ink-muted">{words}</time>;
 }
 
 function Count({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "signal" }) {
@@ -162,6 +187,8 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, kn
         {!owner && canAdminister ? <span className="block text-xs text-ink-faint">{t(`${A}.metodikOwnerOnly`)}</span> : null}
         {mark.error ? <p role="alert" className="mt-1 max-w-56 text-xs text-status-fault">{mark.error}</p> : null}
       </div>
+      {/* Naposledy: served to an administrator alone (F19), so a member is shown no column at all. */}
+      {canAdminister ? <div role="cell" className="border-t border-border px-2 py-2"><LastSeen m={m} /></div> : null}
       <div role="cell" className="border-t border-border px-2 py-2 text-sm">
         {t(`${A}.${m.is_active ? "active" : "inactive"}`)}
         {/* A seal is said only when the API reports one; none read is not "sealed" (never hatched, or erased). */}
@@ -226,9 +253,10 @@ function AddMemberRow({ roles, reload }: { roles: readonly string[]; reload: () 
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2">
         <ChoiceChips look="segmented" small label={t(`${A}.newRole`)} value={role} options={choices.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={setRole} />
       </div>
-      {/* Metodik: a new member has no mark; the cell keeps the five columns in step (review of #859). */}
+      {/* Metodik: a new member has no mark; the cell keeps the six columns in step (review of #859).
+          The note spans Naposledy and Stav, as the prototype's "hned uvidí vše v organizaci". */}
       <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2" />
-      <div role="cell" className="border-t border-border bg-surface-sunken px-2 py-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</div>
+      <div role="cell" className="col-span-2 border-t border-border bg-surface-sunken px-2 py-2 text-xs leading-5 text-ink-muted">{t(`${P}.members.note`)}</div>
       <div role="cell" className="flex items-start gap-1 border-t border-border bg-surface-sunken px-2 py-2">
         <Button small variant="primary" disabled={!email.trim() || state === "saving"} onClick={() => void add()}>{t(`${A}.add`)}</Button>
         <Button small variant="quiet" onClick={cancel}>{t(`${A}.cancel`)}</Button>
@@ -255,24 +283,43 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload, m
   const activeOwners = list.filter((m) => m.is_active && m.organization_role === "OWNER").length;
   const ordered = [...list.filter((m) => m.is_active), ...list.filter((m) => !m.is_active)];
   const inactive = list.filter((m) => !m.is_active).length;
+  const explained = useExplained<"members" | "roles" | "metodik">();
+  // Naposledy is an administrator's column (F19); a member's grid has five.
+  const columns = canAdminister
+    ? "grid-cols-[minmax(12rem,1.4fr)_minmax(10rem,max-content)_max-content_max-content_minmax(7rem,1fr)_max-content]"
+    : "grid-cols-[minmax(12rem,1.4fr)_minmax(10rem,max-content)_max-content_minmax(7rem,1fr)_max-content]";
   return (
     <section id="set-members" aria-labelledby="set-members-title" className={CARD}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="set-members-title" className="text-base font-semibold">{t(`${A}.members`)}</h3>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {members.ok ? <Count>{tv(`${A}.activeCount`, { n: list.length - inactive })}</Count> : null}
-          {inactive ? <Count>{tv(`${A}.inactiveCount`, { n: inactive })}</Count> : null}
-          {members.ok ? <Count>{tv(`${A}.metodikCount`, { n: list.filter((m) => m.methodologist).length })}</Count> : null}
-          <Count tone={canAdminister ? "signal" : "neutral"}>{t(`${A}.${canAdminister ? "youManage" : "managedBy"}`)}</Count>
+      <CardHead id="set-members-title" title={t(`${A}.members`)}
+        info={<InfoButton label={t(`${A}.membersInfo`)} controls="members-about" expanded={explained.open === "members"} onToggle={() => explained.toggle("members")} title={t(`${A}.membersHelp`)} />}>
+        {members.ok ? <Count>{tv(`${A}.activeCount`, { n: list.length - inactive })}</Count> : null}
+        {inactive ? <Count>{tv(`${A}.inactiveCount`, { n: inactive })}</Count> : null}
+        {members.ok ? <Count>{tv(`${A}.metodikCount`, { n: list.filter((m) => m.methodologist).length })}</Count> : null}
+        <Count tone={canAdminister ? "signal" : "neutral"}>{t(`${A}.${canAdminister ? "youManage" : "managedBy"}`)}</Count>
+      </CardHead>
+      <p id="members-about" hidden={explained.open !== "members"} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${A}.membersHelp`)}{inactive ? ` ${t(`${A}.deactivatedHelp`)}` : ""}</p>
+      {/* What each role may, behind the Role column's ⓘ (prototype v58), once a box per role. */}
+      <div id="members-roles" hidden={explained.open !== "roles"} className="mt-2.5">
+        <h3 className="sr-only">{t(`${A}.rolesTitle`)}</h3>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2.5">
+          {ROLE_BOXES.map((r) => (
+            <div key={r} data-role-box={r} className={`rounded-md border px-3.5 py-3 ${r === "METODIK" ? "border-signal-edge bg-signal-tint" : "border-border"}`}>
+              <b className="text-sm font-medium">{t(`${A}.roles.${r}.name`)}</b>
+              <p className="mt-1 text-xs leading-[18px] text-ink-muted">{t(`${A}.roles.${r}.can`)}</p>
+            </div>
+          ))}
         </div>
       </div>
-      <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.membersHelp`)}</p>
+      <p id="members-metodik" hidden={explained.open !== "metodik"} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${A}.roles.METODIK.can`)}</p>
       {members.ok ? (
-        <div role="table" aria-label={t(`${A}.members`)} className="mt-3 grid min-w-0 grid-cols-[minmax(12rem,1.4fr)_minmax(10rem,max-content)_max-content_minmax(7rem,1fr)_max-content] overflow-x-auto">
+        <div role="table" aria-label={t(`${A}.members`)} className={`mt-3 grid min-w-0 ${columns} overflow-x-auto`}>
           <div role="row" className="contents">
             <div role="columnheader" className={GRID_HEAD}>{t(`${P}.col.member`)}</div>
-            <div role="columnheader" className={GRID_HEAD}>{t(`${P}.members.role`)}</div>
-            <div role="columnheader" className={GRID_HEAD}>{t(`${A}.metodik`)}</div>
+            <div role="columnheader" className={`${GRID_HEAD} flex items-center gap-0.5`}>{t(`${P}.members.role`)}
+              <InfoButton label={t(`${A}.rolesTitle`)} controls="members-roles" expanded={explained.open === "roles"} onToggle={() => explained.toggle("roles")} /></div>
+            <div role="columnheader" className={`${GRID_HEAD} flex items-center gap-0.5`}>{t(`${A}.metodik`)}
+              <InfoButton label={t(`${A}.metodikInfo`)} controls="members-metodik" expanded={explained.open === "metodik"} onToggle={() => explained.toggle("metodik")} title={t(`${A}.roles.METODIK.can`)} /></div>
+            {canAdminister ? <div role="columnheader" className={GRID_HEAD} title={t(`${A}.seenHelp`)}>{t(`${A}.seen`)}</div> : null}
             <div role="columnheader" className={GRID_HEAD}>{t(`${A}.state`)}</div>
             {/* relative: the sr-only label is absolute, and must stay inside the scrolling table. */}
             <div role="columnheader" className={`relative ${GRID_HEAD}`}><span className="sr-only">{t(`${A}.deactivate`)}</span></div>
@@ -287,18 +334,6 @@ export function MembersCard({ members, vocab, canAdminister, yourRole, reload, m
           {canAdminister ? <AddMemberRow roles={roles} reload={reload} /> : null}
         </div>
       ) : <p role="alert" className="mt-3 text-sm text-status-fault">{members.message}</p>}
-      {inactive ? <p className="mt-2 text-xs leading-5 text-ink-muted">{t(`${A}.deactivatedHelp`)}</p> : null}
-      <div className="mt-5 border-t border-border pt-4">
-        <h4 className="text-sm font-semibold">{t(`${A}.rolesTitle`)}</h4>
-        <div className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-2.5">
-          {ROLE_BOXES.map((r) => (
-            <div key={r} data-role-box={r} className={`rounded-md border px-3.5 py-3 ${r === "METODIK" ? "border-signal-edge bg-signal-tint" : "border-border"}`}>
-              <b className="text-sm font-medium">{t(`${A}.roles.${r}.name`)}</b>
-              <p className="mt-1 text-xs leading-[18px] text-ink-muted">{t(`${A}.roles.${r}.can`)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
       <UndoToast offer={undo.current} onDone={undo.clear} />
     </section>
   );
@@ -313,14 +348,15 @@ const allowed = (v: Tri): boolean | null => (v === "allow" ? true : v === "forbi
 function OrgSelfApproval({ value, canAdminister, reload }: { value: boolean | null; canAdminister: boolean; reload: () => void }) {
   const { state, error, run } = useSave(reload);
   return (
-    <div data-level="organization" className="mt-3.5 flex flex-wrap items-center gap-3">
-      <b className="min-w-[7.5rem] text-sm font-medium">{t(`${P}.approvals.organization`)}</b>
+    <div data-level="organization" className="flex flex-wrap items-center gap-3">
+      <span className="text-xs text-ink-faint">{t(`${P}.approvals.organization`)}</span>
       {/* Výchozí clears the organization's rule (allowed: null): the code's default, allowed, applies again. */}
       <ChoiceChips look="segmented" label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
         options={[{ key: "inherit" as const, label: t(`${A}.orgDefaultChip`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k) }))} />
       <SaveNote state={state} />
-      <span className="text-xs leading-5 text-ink-muted">{value === null ? t(`${A}.orgDefault`) : t(`${A}.orgHelp`)}</span>
+      {/* Unset is said in the row: it is a state, not an explanation (the rule's ⓘ holds that). */}
+      {value === null ? <span data-org-default className="text-xs leading-5 text-ink-muted">{t(`${A}.orgDefault`)}</span> : null}
       {error ? <p role="alert" className="w-full text-xs text-status-fault">{error}</p> : null}
     </div>
   );
@@ -369,20 +405,27 @@ export function SelfApprovalCard({ levels, studies, canAdminister, reload }: {
   levels: Part<SelfApprovalLevels> | null; studies: { study_id: string; name: string }[]; canAdminister: boolean; reload: () => void;
 }) {
   const studyName = new Map(studies.map((s) => [s.study_id, s.name]));
+  const explained = useExplained<"self">();
+  // One row, as prototype v58 draws it: the title, its ⓘ, the organization's rule, the precedence.
   return (
     <section id="set-self-approval" aria-labelledby="set-self-approval-title" className={CARD}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 id="set-self-approval-title" className="text-base font-semibold">{t(`${P}.approvals.title`)}</h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
+          <div className="flex items-center gap-1">
+            <h2 id="set-self-approval-title" className="text-base font-semibold">{t(`${P}.approvals.title`)}</h2>
+            <InfoButton label={t(`${A}.selfInfo`)} controls="self-approval-about" expanded={explained.open === "self"} onToggle={() => explained.toggle("self")} title={`${t(`${A}.selfHelp`)} ${t(`${A}.orgHelp`)}`} />
+          </div>
+          {levels !== null && levels.ok ? <OrgSelfApproval value={levels.data.organization} canAdminister={canAdminister} reload={reload} /> : null}
+        </div>
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-muted" aria-label={t(`${A}.precedence`)}>
-          <span>{t(`${A}.wins`)}</span><Count>{t(`${A}.levelStudy`)}</Count><span aria-hidden="true">→</span><Count>{t(`${A}.levelClient`)}</Count><span aria-hidden="true">→</span><Count>{t(`${A}.levelOrg`)}</Count>
+          <span>{t(`${A}.wins`)}</span><Count>{t(`${A}.levelStudy`)}</Count><span aria-hidden="true">›</span><Count>{t(`${A}.levelClient`)}</Count><span aria-hidden="true">›</span><Count>{t(`${A}.levelOrg`)}</Count>
         </div>
       </div>
-      <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.selfHelp`)}</p>
+      <p id="self-approval-about" hidden={explained.open !== "self"} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${A}.selfHelp`)} {t(`${A}.orgHelp`)}</p>
       {levels === null ? <p className="mt-3 text-sm text-ink-muted">{t(`${P}.approvals.adminOnly`)}</p>
         : !levels.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{levels.message}</p>
-        : <>
-          <OrgSelfApproval value={levels.data.organization} canAdminister={canAdminister} reload={reload} />
-          <div data-study-overrides className="mt-4 border-t border-border pt-3">
+        : (
+          <div data-study-overrides className="mt-3 border-t border-border pt-3">
             <span className="text-sm font-medium">{t(`${A}.studyOverrides`)}</span>
             {levels.data.studies.length ? (
               <ul className="mt-1.5 flex flex-col gap-2">
@@ -391,7 +434,7 @@ export function SelfApprovalCard({ levels, studies, canAdminister, reload }: {
             ) : <p className="mt-1 text-xs text-ink-muted">{t(`${A}.noStudyRules`)}</p>}
             {canAdminister ? <AddStudyRule studies={studies.filter((s) => !levels.data.studies.some((r) => r.study_id === s.study_id))} reload={reload} /> : null}
           </div>
-        </>}
+        )}
     </section>
   );
 }
@@ -468,10 +511,14 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
 }) {
   const byClient = new Map(levels?.ok ? levels.data.clients.map((c) => [c.client_id, c.allowed]) : []);
   const rules = useClientRules();
+  const explained = useExplained<"clients">();
   return (
     <section id="set-clients" aria-labelledby="set-clients-title" className={CARD}>
-      <CardHead title={t(`${P}.clients.title`)}>{clients.ok ? <Count>{tv(`${A}.clientCount`, { n: clients.data.length })}</Count> : null}</CardHead>
-      <p className="mt-1 text-xs leading-5 text-ink-muted">{t(`${A}.clientsHelp`)}</p>
+      <CardHead id="set-clients-title" title={t(`${P}.clients.title`)}
+        info={<InfoButton label={t(`${A}.clientsInfo`)} controls="clients-about" expanded={explained.open === "clients"} onToggle={() => explained.toggle("clients")} title={t(`${A}.clientsHelp`)} />}>
+        {clients.ok ? <Count>{tv(`${A}.clientCount`, { n: clients.data.length })}</Count> : null}
+      </CardHead>
+      <p id="clients-about" hidden={explained.open !== "clients"} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${A}.clientsHelp`)}</p>
       {rules.state === "refused" ? <p role="alert" className="mt-2 text-sm text-status-fault">{rules.message}</p> : null}
       {!clients.ok ? <p role="alert" className="mt-3 text-sm text-status-fault">{clients.message}</p>
         : !clients.data.length ? <p className="mt-3 text-sm text-ink-muted">{t(`${P}.clients.none`)}</p>

@@ -31,6 +31,7 @@ from aia_core.domain.lead_artifacts import (
     stage_of,
 )
 from aia_core.domain.research_lead import (
+    _PLAN_PARTS,
     FOCUS_ID,
     FOCUS_KINDS,
     ID_PATTERN,
@@ -48,6 +49,11 @@ def test_the_rows_are_the_fixture_s() -> None:
     assert FIXTURE["fields"] == list(FIELDS)
     assert [c.fixture_row() for c in ARTIFACTS.values()] == FIXTURE["artifacts"]
     assert tuple(ARTIFACTS) == STAGES
+
+
+def test_the_plan_parts_are_the_fixture_s_grammar() -> None:
+    (plan,) = (t for t in FIXTURE["targets"] if t["kind"] == "plan")
+    assert set(plan["id"].split("|")) == _PLAN_PARTS
 
 
 def test_the_vocabularies_are_the_fixture_s() -> None:

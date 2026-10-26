@@ -146,6 +146,8 @@ afterEach(() => {
   cleanup();
   resetConfigCache();
   vi.unstubAllGlobals();
+  // The posture's link moves the address; the next test starts from none.
+  window.history.replaceState(null, "", "/");
 });
 
 describe("Deep Research settings", () => {
@@ -332,7 +334,33 @@ describe("Deep Research settings", () => {
     const reach = document.querySelector("[data-dr-reach]") as HTMLElement;
     expect(await within(reach).findByText("V AIA zatím není")).toBeTruthy();
     const posture = document.querySelector("[data-dr-posture]") as HTMLElement;
-    expect(within(posture).getByRole("link", { name: "Přístup a schvalování" }).getAttribute("href")).toBe("/app/settings#access");
+    // A same-page anchor (a next/link to the same page wrote "#deep_research#access" and opened no
+    // section): its href serves a new tab; a plain click pushes an entry that keeps the framework's
+    // history state, so Back from another page lands on Přístup (review of #900).
+    const access = within(posture).getByRole("link", { name: "Přístup a schvalování" });
+    expect(access.getAttribute("href")).toBe("#access");
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    const entries = window.history.length;
+    const changes: string[] = [];
+    window.addEventListener("hashchange", () => changes.push(window.location.hash), { once: true });
+    expect(fireEvent.click(access)).toBe(false); // prevented: the page, not the browser, navigates
+    expect(window.location.hash).toBe("#access");
+    expect(window.history.state).toMatchObject({ __NA: true });
+    expect(window.history.length).toBe(entries + 1);
+    expect(changes).toEqual(["#access"]);
+    // A click for a new tab is the browser's: not prevented by the page. jsdom has no new tab and would
+    // follow the href in this page a task later, into another test, so its default is cancelled
+    // after the page has decided (window listeners run after React's root).
+    const verdicts: boolean[] = [];
+    const listen = (e: MouseEvent) => { verdicts.push(e.defaultPrevented); e.preventDefault(); };
+    window.addEventListener("click", listen);
+    window.history.replaceState({ __NA: true }, "", "/app/settings#deep_research");
+    fireEvent.click(access, { metaKey: true });
+    fireEvent.click(access, { ctrlKey: true });
+    window.removeEventListener("click", listen);
+    expect(verdicts).toEqual([false, false]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(window.location.hash).toBe("#deep_research");
     const prot = document.querySelector("[data-dr-protections]") as HTMLElement;
     expect(within(prot).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
       "respektuje robots.txt", "žádné přihlášení ani paywall", "žádné osobní údaje", "jen veřejné zdroje", "každé zjištění doložené citací",
@@ -631,6 +659,49 @@ describe("Deep Research settings", () => {
     fireEvent.click(within(back).getByRole("button", { name: "Vrátit na výchozí" }));
     await waitFor(() => expect(approval("brave-web-search")).toBe("čeká: 1 pravidlo"));
     expect(approval("common-crawl-athena-index")).toBe("čeká na pravidla");
+  });
+
+  it("compacts the cards as prototype v55: each card's explanation behind a real ⓘ, no caption left (F8b)", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    for (const [label, id] of [["Jak se pravidlo navrhuje a schvaluje", "dr-rules-about"], ["Jak číst Dosah", "dr-reach-about"], ["Co znamenají pevné ochrany", "dr-protections-about"]] as const) {
+      const button = await screen.findByRole("button", { name: label });
+      const text = document.getElementById(id) as HTMLElement;
+      expect(button.getAttribute("aria-controls")).toBe(id);
+      expect(text.hidden).toBe(true);
+      fireEvent.click(button);
+      expect(button.getAttribute("aria-expanded")).toBe("true");
+      expect(text.hidden).toBe(false);
+    }
+    // The two cards are the section's h2s; their parts are h3s under them.
+    expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(expect.arrayContaining(["Dosah", "Pravidla rešerše"]));
+    // Nothing amber: a waiting rule is coral for who can approve it, never a warning colour.
+    expect(document.body.innerHTML).not.toMatch(/amber|yellow/);
+  });
+
+  it("says what still waits in the open while it holds, and drops the line once nothing waits (review of #970)", async () => {
+    fakeApi();
+    const { unmount } = render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    expect(missing().length).toBeGreaterThan(0);
+    const note = document.querySelector("[data-live-note]") as HTMLElement;
+    expect(note).toBeTruthy();
+    expect(note.closest("[hidden]")).toBeNull();
+    unmount();
+    const none = new Response(JSON.stringify({ catalogue_version: "aia-dr-settings-catalogue-1", may_administer: true, missing_for_live: [], settings: CATALOGUE.map(inForce) }));
+    fakeApi(true, { "GET /api/v1/deep-research/settings": none });
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    expect(document.querySelector("[data-live-note]")).toBeNull();
+  });
+
+  it("keeps the outline whole: a rule's detail headings are h3s under the card's h2, never h4s (review of #970)", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    fireEvent.click(within(await row(RETENTION)).getByRole("button", { name: /^(Upravit|Historie)$/ }));
+    await waitFor(() => expect(document.getElementById(`dr-detail-${RETENTION}`)?.querySelector("h3")).toBeTruthy());
+    expect(document.querySelectorAll("h4")).toHaveLength(0);
   });
 
   it("opens a rule's purpose from its ⓘ by keyboard or touch, not on hover alone", async () => {

@@ -169,7 +169,14 @@ await page.setViewportSize({ width: 1440, height: 1100 });
 ok("Cílová skupina: factor groups and values are chips at 1440/1100/768/390, 44 px tall on a phone, without overflow");
 
 // 3. Speciální skupiny: the built-in subpanels.
+const presetSave = saved();
 await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
+await presetSave;
+// OI-51 (a): a preset change starts afresh; the region and age chosen above are not carried over.
+const afterPreset = (await content()).content.audience;
+if (JSON.stringify(afterPreset.filters) !== "{}" || afterPreset.builtin_subpanel) fail(`Speciální skupiny kept the previous audience: ${JSON.stringify({ filters: afterPreset.filters, builtin_subpanel: afterPreset.builtin_subpanel })}`);
+if (afterPreset.strategy !== "population") fail(`Speciální skupiny kept the previous strategy "${afterPreset.strategy}"`);
+ok("Speciální skupiny: the region and age chosen before are cleared, and the strategy is the whole population again (OI-51 (a))");
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");

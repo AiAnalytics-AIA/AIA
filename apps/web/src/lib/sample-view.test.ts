@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -37,15 +37,41 @@ describe("supportForecastOf", () => {
   });
 });
 
-describe("outlookSummary", () => {
-  it("counts every verdict, zero when none", () => {
-    const item = (verdict: "ANSWERABLE" | "AT_RISK") => ({ question_id: verdict, text: "", section_id: "s", battery_id: null, verdict, reasons: [] });
-    expect(outlookSummary(readiness({ question_outlook: [item("ANSWERABLE"), item("ANSWERABLE"), item("AT_RISK")] }))).toEqual({ UNANSWERABLE: 0, AT_RISK: 1, UNKNOWN: 0, ANSWERABLE: 2 });
+describe("outlookTiles", () => {
+  const item = (verdict: "ANSWERABLE" | "AT_RISK" | "UNKNOWN" | "UNANSWERABLE", reasons: string[] = []) => ({ question_id: verdict, text: "", section_id: "s", battery_id: null, verdict, reasons });
+
+  it("counts the server's verdicts, naming each tile's commonest reason, the first met on a tie", () => {
+    const tiles = outlookTiles(readiness({ question_outlook: [
+      item("ANSWERABLE"), item("ANSWERABLE"),
+      item("AT_RISK", ["open_ended"]), item("AT_RISK", ["support_analysis_excluded"]), item("AT_RISK", ["support_analysis_excluded"]),
+      item("UNKNOWN", ["support_unknown"]), item("UNKNOWN", ["support_unknown"]),
+    ] }));
+    expect(tiles).toEqual([
+      { verdict: "ANSWERABLE", count: 2, reason: null },
+      { verdict: "AT_RISK", count: 3, reason: "support_analysis_excluded" },
+      { verdict: "UNKNOWN", count: 2, reason: "support_unknown" },
+    ]);
+  });
+
+  it("captions a tile only by the reasons that give its verdict, never the support reason every item shares", () => {
+    const tiles = outlookTiles(readiness({ question_outlook: [
+      item("UNANSWERABLE", ["conditional", "support_indicative"]), item("UNANSWERABLE", ["fidelity_refused", "support_indicative"]),
+      item("AT_RISK", ["open_ended", "support_unknown"]), item("UNKNOWN", ["support_unknown"]),
+      item("AT_RISK", ["new_reason", "support_unknown"]), item("AT_RISK", ["new_reason"]),
+    ] }));
+    expect(tiles!.find((t) => t.verdict === "UNANSWERABLE")!.reason).toBe("conditional");
+    // A code this client does not know still counts, so it is named.
+    expect(tiles!.find((t) => t.verdict === "AT_RISK")!.reason).toBe("new_reason");
+  });
+
+  it("shows unanswerable only when an item is, and the three others even at zero", () => {
+    expect(outlookTiles(readiness({ question_outlook: [item("ANSWERABLE")] }))!.map((t) => [t.verdict, t.count])).toEqual([["ANSWERABLE", 1], ["AT_RISK", 0], ["UNKNOWN", 0]]);
+    expect(outlookTiles(readiness({ question_outlook: [item("UNANSWERABLE", ["fidelity_refused"])] }))!.at(-1)).toEqual({ verdict: "UNANSWERABLE", count: 1, reason: "fidelity_refused" });
   });
 
   it("is null when the API sent no outlook, never all answered", () => {
-    expect(outlookSummary(readiness({}))).toBeNull();
-    expect(outlookSummary(readiness({ question_outlook: [] }))).toBeNull();
+    expect(outlookTiles(readiness({}))).toBeNull();
+    expect(outlookTiles(readiness({ question_outlook: [] }))).toBeNull();
   });
 });
 
@@ -173,5 +199,19 @@ describe("compositionOf", () => {
     expect(compositionOf(readiness({ persona_source: "panel", sample_composition: null }))).toEqual({ kind: "unknown" });
     expect(compositionOf(readiness({ persona_source: "panel" }))).toEqual({ kind: "unknown" });
     expect(compositionOf(readiness({ persona_source: "fictional_roster", sample_composition: drawn() }))).toEqual({ kind: "roster" });
+  });
+});
+
+describe("readinessLine", () => {
+  const c = (status: string) => ({ id: status, status, message: "" }) as never;
+  it("says whether a run can start and what holds it, in the board's words", () => {
+    expect(readinessLine(readinessSummary(readiness({ ready: false, checks: [c("FAIL"), c("FAIL"), c("WARN")] })))).toEqual({ tone: "fault", words: "Nelze spustit · 2 kontroly brání" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("WARN"), c("PASS")] })))).toEqual({ tone: "done-warn", words: "Lze spustit · 1 upozornění" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("PASS")] })))).toEqual({ tone: "done", words: "Lze spustit · nic nebrání" });
+  });
+
+  it("takes the server's verdict, and never reads an unknown status as passed", () => {
+    expect(readinessLine(readinessSummary(readiness({ ready: false, checks: [c("PASS")] })))).toEqual({ tone: "fault", words: "Nelze spustit: server spuštění nepovolí" });
+    expect(readinessLine(readinessSummary(readiness({ ready: true, checks: [c("SKIPPED")] }))).tone).toBe("inert");
   });
 });

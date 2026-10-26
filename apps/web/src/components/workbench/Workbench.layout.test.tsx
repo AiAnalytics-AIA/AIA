@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +16,7 @@ import { ResearchStore } from "@/research/store";
 import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
 import { EMPTY_PROJECT } from "../rehome/research/test-workspace";
-import { FrameNavigation } from "@/components/rehome/step";
+import { ActionDock, FrameNavigation, StageHeaderSlot } from "@/components/rehome/step";
 import { useItemInspector } from "./item-inspector-context";
 import { Workbench } from "./Workbench";
 
@@ -49,7 +49,12 @@ function Stage() {
   useEffect(() => {
     mounts += 1;
   }, []);
-  return <div><div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div></div>;
+  return (
+    <div>
+      <div data-aia="question:q1" id="qedit_q1">Jak často pijete čaj?</div>
+      <details><summary>Další</summary><details><summary>Ještě další</summary><span data-aia="sample:respondents:panel">Panel</span></details></details>
+    </div>
+  );
 }
 
 beforeEach(() => {
@@ -266,6 +271,36 @@ describe("the launcher and the drawer (26c)", () => {
     await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
   });
 
+  it("a card's review steps the drawer aside, so the review is not drawn under it (the Dotazník audit)", async () => {
+    const done = { run_id: "RUN-q", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-25T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [], design_revision_id: "REV-1", instruction: "", actual_cost_usd: 0 } as unknown as ResearchAgentJob;
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[done]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat návrh" }));
+    expect(onOpenJob).toHaveBeenCalledWith(done);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("a focus on a target folded in a closed <details> unfolds it, every level", async () => {
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "sample:respondents:panel" }])] })];
+    Element.prototype.scrollIntoView = vi.fn();
+    bench();
+    setWidth(1440);
+    const target = document.querySelector('[data-aia="sample:respondents:panel"]')!;
+    await waitFor(() => expect(target.classList.contains("just")).toBe(true), { timeout: 4000 });
+    expect([...document.querySelectorAll("details")].map((d) => d.open)).toEqual([true, true]);
+  });
+
   it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "object:hudba/hudba-o2" }])] })];
     const asked: unknown[] = [];
@@ -344,6 +379,32 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(document.querySelector(".shead__state")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+
+  it("keeps the study's status in the header, and under 768 px moves it into the menu's 44 px items (F7, I11)", async () => {
+    const refreshed: number[] = [];
+    const base = vi.mocked(fetch);
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).endsWith("/studies/STU-1/status") && init?.method === "PUT") { sent.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ study_id: "STU-1", status: "ACTIVE" })); }
+      return base(url, init);
+    }));
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={{ ...TEST_FRAME, status: "DRAFT", refreshStudy: async () => { refreshed.push(1); } }} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null}
+        reload={vi.fn()} confirm={vi.fn(async () => true)} onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    expect(screen.getByRole("button", { name: "Stav: Rozpracováno" })).toBeTruthy();
+    setWidth(390);
+    expect(screen.queryByRole("button", { name: "Stav: Rozpracováno" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    const menu = screen.getByRole("menu", { name: "Nabídka" });
+    expect(menu.textContent).toContain("Stav: Rozpracováno");
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Změnit stav na Aktivní" }));
+    await waitFor(() => expect(sent).toEqual([{ status: "ACTIVE" }]));
+    await waitFor(() => expect(refreshed).toEqual([1]));
   });
 });
 
@@ -556,6 +617,102 @@ describe("Připravenost a pomoc", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect((document.querySelector("aside.insp") as HTMLElement).hidden).toBe(false);
+  });
+});
+
+describe("the stage navigator: a steady, full-width bar (research-lead-workbench 35)", () => {
+  const nav = () => screen.getByRole("navigation", { name: "Kroky studie" });
+  const slot = (label: string) => Array.from(nav().querySelectorAll<HTMLButtonElement>(".nav__stage")).find((b) => b.querySelector(".nav__label")?.textContent === label)!;
+  const css = () => readFileSync(join(process.cwd(), "src/components/workbench/workbench.css"), "utf8");
+  const rule = (selector: string) => new RegExp(`(?:^|\\n)\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} \\{([^}]*)\\}`).exec(css())?.[1] ?? null;
+
+  it("lays the six phases across the width as labelled groups, each with as many equal slots as it has stages", () => {
+    bench();
+    const groups = Array.from(nav().querySelectorAll<HTMLElement>('[role="group"]'));
+    expect(groups.map((g) => g.getAttribute("aria-label"))).toEqual(["Návrh výzkumu", "Vymezení vzorku", "Sběr", "Evidence", "Interpretace", "Předání"]);
+    expect(groups.map((g) => g.querySelector(".nav__plabel")?.textContent)).toEqual(["Návrh výzkumu", "Vymezení vzorku", "Sběr", "Evidence", "Interpretace", "Předání"]);
+    expect(groups.map((g) => g.style.getPropertyValue("--slots"))).toEqual(["3", "3", "1", "2", "1", "1"]);
+    expect(groups.map((g) => g.querySelectorAll(".nav__stage").length)).toEqual([3, 3, 1, 2, 1, 1]);
+    // The width is the phases' by their stage counts, and every slot an equal column of it.
+    expect(rule(".nav__phase")).toMatch(/flex: var\(--slots\) 1 0;/);
+    expect(rule(".nav__slots")).toMatch(/grid-template-columns: repeat\(var\(--slots\), minmax\(0, 1fr\)\);/);
+    expect(css()).not.toMatch(/@container \(max-width: 1500px\) \{ \.nav__plabel/);
+  });
+
+  it("marks the current stage by aria-current and a fill, never by a slot that grows", () => {
+    const view = bench();
+    const before = slot("Dotazník");
+    expect(before.getAttribute("aria-current")).toBe("page");
+    expect(nav().querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+    const current = before.innerHTML;
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    view.rerender(
+      <Workbench frame={TEST_FRAME} step="plan" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}><Stage /></Workbench>,
+    );
+    expect(slot("Návrh").getAttribute("aria-current")).toBe("page");
+    expect(slot("Dotazník").getAttribute("aria-current")).toBeNull();
+    // The same content either way: only the class and aria-current tell the current stage apart.
+    expect(slot("Dotazník").innerHTML).toBe(current);
+    const marked = rule(".nav__stage.is-current");
+    expect(marked).not.toBeNull();
+    expect(marked).not.toMatch(/font-weight|padding|width|margin|font-size|border(?!-radius)/);
+  });
+
+  it("says each stage's status by glyph, word and tone: done, waiting on you, running, a fault, not started muted", async () => {
+    runsAnswer = [{ run_id: "RUN-1", design_revision_id: "REV-2", design_revision: 2, phase: "RUNNING", is_terminal: false, steps: [] }];
+    bench();
+    // Zadání waits on the person: the empty project has no goal.
+    await waitFor(() => expect(slot("Sběr dat").dataset.tone).toBe("running"));
+    expect(slot("Zadání").dataset.tone).toBe("you");
+    expect(slot("Zadání").querySelector(".nav__status")?.textContent).toBe("Čeká na vás");
+    expect(slot("Zadání").querySelector("svg rect")).not.toBeNull();
+    expect(slot("Sběr dat").querySelector(".nav__status")?.textContent).toBe("Běží");
+    expect(slot("Výsledky").dataset.tone).toBe("inert");
+    expect(slot("Výsledky").querySelector(".nav__status")?.textContent).toBe("");
+    for (const [tone, colour] of [["done", "--status-done"], ["you", "--status-you"], ["running", "--status-running"], ["fault", "--status-fault"]] as const) {
+      expect(rule(`.nav__stage[data-tone="${tone}"]`)).toContain(`--tone: var(${colour})`);
+    }
+    expect(rule(".nav__stage[data-tone=\"inert\"]")).toMatch(/color: var\(--ink-muted\)/);
+  });
+
+  it("names a fault with its glyph and word, and a finished stage with a filled check", async () => {
+    runsAnswer = [{ run_id: "RUN-1", design_revision_id: "REV-2", design_revision: 2, phase: "FAILED", is_terminal: true, steps: [{ step_id: "S1", kind: "research_compile", status: "FAILED", artifact_id: null }] }];
+    bench();
+    await waitFor(() => expect(slot("Sběr dat").dataset.tone).toBe("fault"));
+    expect(slot("Sběr dat").querySelector(".nav__status")?.textContent).toBe("Chyba");
+    expect(slot("Sběr dat").querySelector("svg circle")?.getAttribute("fill")).toBe("var(--status-fault)");
+    expect(slot("Sběr dat").getAttribute("title")).toMatch(/^Sběr dat: /);
+    // Each stage reads its status aloud once: the lane's own words, the visible word kept off.
+    expect(slot("Sběr dat").querySelector(".nav__status")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
+  it("never calls Sběr dat done for a run that was only started and then cancelled, and leaves Výsledky's views wordless", async () => {
+    runsAnswer = [{ run_id: "RUN-1", design_revision_id: "REV-2", design_revision: 2, phase: "CANCELLED", is_terminal: true, steps: [] }];
+    bench();
+    await waitFor(() => expect(slot("Sběr dat").title).toMatch(/zrušen/i));
+    expect(slot("Sběr dat").dataset.tone).toBe("inert");
+    expect(slot("Sběr dat").querySelector(".nav__status")?.textContent).toBe("");
+    // What is read aloud and what is shown agree: the lane's line, and no word it did not earn.
+    expect(slot("Sběr dat").querySelector(".sr-only")?.textContent).toMatch(/zrušen/i);
+    for (const view of ["Sociomapa", "Analýza", "Zpráva"]) expect(slot(view).querySelector(".nav__status")?.textContent).toBe("");
+  });
+
+  it("moves between stages by the arrow keys, Home and End", () => {
+    bench();
+    const stages = Array.from(nav().querySelectorAll<HTMLButtonElement>(".nav__stage"));
+    expect(stages).toHaveLength(11);
+    stages[0]!.focus();
+    fireEvent.keyDown(stages[0]!, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(stages[1]);
+    fireEvent.keyDown(stages[1]!, { key: "End" });
+    expect(document.activeElement).toBe(stages[10]);
+    fireEvent.keyDown(stages[10]!, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(stages[10]);
+    fireEvent.keyDown(stages[10]!, { key: "Home" });
+    expect(document.activeElement).toBe(stages[0]);
+    fireEvent.keyDown(stages[0]!, { key: "ArrowLeft" });
+    expect(document.activeElement).toBe(stages[0]);
   });
 });
 
@@ -793,6 +950,53 @@ describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
     } finally {
       window.removeEventListener(LEAD_MAP_VIEW, on);
     }
+  });
+});
+
+describe("the stage header's slots and its next stage (research-lead-workbench 36, v73 X1 + H1)", () => {
+  let headerMounts = 0;
+  function HeaderStage({ dock = false }: { dock?: boolean }) {
+    useEffect(() => {
+      headerMounts += 1;
+    }, []);
+    return (
+      <div>
+        <StageHeaderSlot slot="actions"><button type="button">Požádat o analýzu</button></StageHeaderSlot>
+        <StageHeaderSlot slot="status"><span>Připravenost 3 ze 6</span></StageHeaderSlot>
+        {dock ? <ActionDock note="Připraveno"><button type="button">Pokračovat dál</button></ActionDock> : null}
+      </div>
+    );
+  }
+
+  it("a stage's header actions render in the artifact header and remount nothing across 1100 px", async () => {
+    headerMounts = 0;
+    bench(<HeaderStage />);
+    const header = document.querySelector(".arthead")!;
+    await waitFor(() => expect(header.querySelector("button")?.textContent).toBeTruthy());
+    expect(within(header as HTMLElement).getByRole("button", { name: "Požádat o analýzu" })).toBeTruthy();
+    expect(document.querySelector("[data-stage-status]")?.textContent).toBe("Připravenost 3 ze 6");
+    setWidth(1099);
+    setWidth(390);
+    expect(within(document.querySelector(".arthead") as HTMLElement).getByRole("button", { name: "Požádat o analýzu" })).toBeTruthy();
+    expect(headerMounts).toBe(1);
+  });
+
+  it("names the next stage in the header and opens it through the frame when no dock claims it", async () => {
+    push.mockClear();
+    bench(<HeaderStage />);
+    const next = await within(document.querySelector(".arthead") as HTMLElement).findByRole("button", { name: /^Cílová skupina/ });
+    fireEvent.click(next);
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/audience$/);
+  });
+
+  it("puts the stage's own dock action in the header instead, and no copy of it stays in the dock", async () => {
+    bench(<HeaderStage dock />);
+    const header = document.querySelector(".arthead") as HTMLElement;
+    await within(header).findByRole("button", { name: "Pokračovat dál" });
+    expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
+    expect(screen.getAllByRole("button", { name: "Pokračovat dál" })).toHaveLength(1);
+    expect(screen.getByText("Připraveno")).toBeTruthy();
   });
 });
 

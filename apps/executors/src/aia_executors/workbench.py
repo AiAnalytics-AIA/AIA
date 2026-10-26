@@ -111,7 +111,7 @@ SYNTHETIC_SEED: Final = 20260816
 #: What a scripted reply starts with: never read as a model's answer.
 SCRIPTED_PREFIX: Final = "[Workbench · bez modelu]"
 #: What makes a scripted answer this one's, for the stored turn's reuse key.
-SCRIPT_VERSION: Final = "workbench-lead-1"
+SCRIPT_VERSION: Final = "workbench-lead-2"
 _SCRIPTED_WHY: Final = "Ukázková úprava z workbench"
 _FOCUS_ID: Final = re.compile(r"^[A-Za-z0-9_.\-]+$")
 
@@ -140,6 +140,10 @@ def _first_objective_id(design: Mapping[str, Any]) -> str | None:
     return _first_plan_id(design, "objectives", "objective_ids")
 
 
+def _has_layer(frozen: Mapping[str, Any], name: str) -> bool:
+    return any(entry.get("layer") == name for entry in frozen.get("layers") or ())
+
+
 def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     """A Lead turn's answer without any model, from the frozen context alone, deterministic.
 
@@ -149,11 +153,12 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
     "aktualizuj návrh": the brief's analysis, which reads Návrh's saved answers and comments); a
     message with "pamatuj" also asks the Lead to remember it as a personal note, and one with
     "detail" opens the first research question's detail, else the first hypothesis's
-    (``inspect``); one asking for "změny" on Návrh, Dotazník or Dimenze shows that stage's
-    waiting changes (``show_diff``); one with "reliéf" sets Sociomapa's view to relief
-    (``filter``), and one about an object or a pair the person pointed at selects it
-    (``select``). Every reply
-    starts with :data:`SCRIPTED_PREFIX`.
+    (``inspect``); "rešerš" prepares Design Research, and "výklad" or "výsledk" Interpretation
+    Research over the ``targets`` layer's default, when it has one (LO5a.1); one asking for
+    "změny" on Návrh, Dotazník or Dimenze shows that stage's waiting changes (``show_diff``);
+    one with "reliéf" sets Sociomapa's view to relief (``filter``), and one about an object or a
+    pair the person pointed at selects it (``select``). Every reply starts with
+    :data:`SCRIPTED_PREFIX`.
     """
     view = layer(frozen, "view")
     study = layer(frozen, "study")
@@ -230,6 +235,14 @@ def scripted_lead_output(frozen: Mapping[str, Any]) -> LeadOutput:
         # A prepared research run instead (plan research-lead-workbench chunk 23): its card starts
         # the run through Spuštění's route, on the workbench's fictional fieldwork.
         body["request"] = {"kind": "research_run", "why": "Ukázka spuštění výzkumu"}
+    elif "rešerš" in message.casefold():
+        # Design Research over the whole design (lead-orchestration LO5a.1); the card opens Návrh.
+        body["request"] = {"kind": "design_research", "why": "Ukázka rešerše k návrhu"}
+    elif ("výklad" in message.casefold() or "výsledk" in message.casefold()) and (
+        layer(frozen, "targets").get("default") if _has_layer(frozen, "targets") else None
+    ):
+        # Interpretation Research over the default candidate: the newest research-questions module.
+        body["request"] = {"kind": "interpretation_research", "why": "Ukázka rešerše k výsledkům"}
     elif "aktualizuj návrh" in message.casefold():
         # Návrh's saved answers or comments, read from the working copy by the brief's analysis.
         body["request"] = {

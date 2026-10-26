@@ -13,6 +13,7 @@ import { createContext, useCallback, useContext, useEffect, useLayoutEffect, use
 import { lead as leadApi, researcherLead, ApiError, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
+import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
 import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
@@ -271,6 +272,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const hatch = async () => {
     try {
       setMe(await researcherLead.hatch());
+      announceHatched();
       // The session read before hatching said the Lead was not hatched: read it again.
       await read();
     } catch (e) {
@@ -585,6 +587,7 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
   design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
   interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Otevřít hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run

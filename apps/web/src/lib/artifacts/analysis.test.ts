@@ -49,7 +49,7 @@ describe("claimMarks", () => {
     outcome, key_findings: findings.map((claim_ids) => ({ claim_ids })), research_question_answers: answers.map((claim_ids) => ({ claim_ids })),
   });
 
-  it("marks one chip per claim, the first in the page: the cross-module list, then the selected module's answers and findings", () => {
+  it("marks one chip per claim: a key finding's first, then the chosen module's answers", () => {
     const marks = claimMarks({
       executive: mod("COMPLETED", [["C1", "C2"], ["C1"]], [["C2", "C5"]]),
       objects: mod("COMPLETED", [["C1"]]),
@@ -58,6 +58,11 @@ describe("claimMarks", () => {
     expect([...marks].sort()).toEqual([
       "answer:executive:0:C5", "key:executive:0:C1", "key:executive:0:C2", "key:objects:0:C1",
     ].sort());
-    expect(marks.has(chipKey({ list: "finding", module: "executive", index: 1 }, "C1"))).toBe(false);
+    expect(marks.has(chipKey({ list: "key", module: "executive", index: 1 }, "C1"))).toBe(false);
+  });
+
+  it("marks no answer chip on \"Vše\", where no module's answers are drawn (ANL3b)", () => {
+    const marks = claimMarks({ executive: mod("COMPLETED", [["C1"]], [["C5"]]) }, null);
+    expect([...marks]).toEqual(["key:executive:0:C1"]);
   });
 });

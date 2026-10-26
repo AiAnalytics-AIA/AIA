@@ -1106,6 +1106,9 @@ export type ResearchStep = {
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
   /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
   recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
+  /** A step waiting for budget: the hold it asked for and what the study had left (FLD10); null when
+   *  not waiting, its attempts were not read, or the stop named no price -- unknown, never zero. */
+  budget_need?: { requested_usd: number; remaining_usd: number } | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
@@ -1275,6 +1278,8 @@ export type ReportVariant = {
    * footers (D2: approved, DOCX and PDF say SCHVÁLENO; false: stored before that layout). */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** When the draft was stored (RPT3d); null where its record has none, absent from an older API. */
+  stored_at?: string | null;
   internal_only: true;
   pdf?: ReportPdf | null;
   /** Whether approving the draft now gives its approved version a PDF too: approving asks for one
@@ -1298,6 +1303,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** As ReportVariant's: when it was stored (RPT3d). */
+  stored_at?: string | null;
   /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
   artifact_id?: string;
@@ -1799,6 +1806,9 @@ export type Member = {
   deactivated_at?: string | null;
   /** Their Research Lead's seal (ADR 0030): unreadable from lead_sealed_at, erased after lead_erase_after. */
   lead_sealed_at?: string | null; lead_erase_after?: string | null;
+  /** Their own last authenticated request (F19), for an OWNER or ADMIN: null is never; absent, an
+   *  API that does not serve it (unknown). Null for anyone who may not administer. */
+  last_seen_at?: string | null;
 };
 
 export type AdminClient = {
@@ -2005,8 +2015,15 @@ export type ErrorTracking = {
   issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
   error: string | null;
 };
+/** Each AI activity's last answered call (settings-redesign F14, OI-75 (a)): OWNER and ADMIN
+ *  only. `last_answered` null: none recorded, which is neither working nor broken; `build` null:
+ *  the worker recorded none. */
+export type AiActivityAnswered = {
+  activities: { key: string; last_answered: { at: string; model: string; build: string | null } | null }[];
+};
 export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
 };
 
@@ -2070,7 +2087,13 @@ export type MethodValue = {
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
   effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
+  /** The range the module's check holds the field to, each limit proved against the check; null
+   *  (or absent, from an older API) where no check holds it. A limit with a `reference` is that
+   *  field's value in the draft. */
+  bound?: MethodBound | null;
 };
+export type MethodLimit = { side: "low" | "high"; value: number | null; reference: string | null; strict: boolean };
+export type MethodBound = { limits: MethodLimit[]; whole: boolean };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {

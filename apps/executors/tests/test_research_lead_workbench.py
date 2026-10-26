@@ -296,3 +296,26 @@ def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_questio
     # Without the word, or with neither: only the focus it always had.
     assert len(scripted_lead_output(_frozen("Kde jsme?", with_rqs)).view) == 1
     assert len(scripted_lead_output(_frozen("Ukaž mi detail otázky", CONTENT)).view) == 1
+
+
+def test_a_scripted_message_about_research_prepares_deep_research() -> None:
+    """lead-orchestration LO5a.1: the workbench journey needs both Deep Research cards without a
+    model. Interpretation only over a default candidate: with none it would be refused."""
+    from aia_core.domain.research_lead import lead_contract, request_ids
+    from aia_executors.workbench import scripted_lead_output
+
+    design = scripted_lead_output(_frozen("Udělej rešerši trhu", CONTENT))
+    assert design.request is not None and design.request.kind == "design_research"
+    assert design.request.preset == "STANDARD" and design.request.focus == []
+
+    frozen = _frozen("Vysvětli výsledky", CONTENT)
+    no_targets = scripted_lead_output(frozen)
+    assert no_targets.request is not None and no_targets.request.kind == "agent_job"
+    frozen["layers"].append({"layer": "targets", "candidates": [{"id": "t1"}], "default": "t1"})
+    interpretation = scripted_lead_output(frozen)
+    assert interpretation.request is not None
+    assert interpretation.request.kind == "interpretation_research"
+    assert interpretation.request.target is None
+    # What the script prepares is grounded as a model's answer would be.
+    contract = lead_contract("", ids=request_ids(frozen))
+    contract.model_validate(interpretation.model_dump(mode="json"))

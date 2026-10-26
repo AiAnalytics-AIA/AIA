@@ -62,21 +62,23 @@ const shot = (name) => page.screenshot({ path: join(out, `${name}.png`), fullPag
 const ok = (what) => { checks.push(what); console.log(`methodology journey: ok   ${what}`); };
 
 const openTab = async () => {
-  await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  await page.locator("#tab-methodology").click();
+  // A deep link opens the section (prototype v54: no tab column, the top bar's section menu).
+  await page.goto(base + "/app/settings#methodology"); await page.locator("#panel-methodology").waitFor({ state: "visible" });
   await page.locator("#panel-methodology :is([data-module-card], [data-module-header])").first().waitFor();
 };
-/** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika. */
-const openModule = async (title) => {
-  const heading = page.getByRole("heading", { level: 2, name: title, exact: true });
-  if (await heading.count()) return;
+/** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika.
+ *  A card is found by its module's id: its name is the web's (F15), not the API's title_cs. */
+const openModule = async (id) => {
   if (await page.locator("[data-methodology-back]").count()) {
     await page.locator("[data-methodology-back]").click();
     const leave = page.getByRole("button", { name: "Zahodit úpravy a přepnout", exact: true });
     if (await leave.count()) await leave.click();
   }
-  await page.getByRole("navigation", { name: "Oblasti metodiky" }).getByRole("button", { name: title, exact: true }).click();
-  await heading.waitFor();
+  const card = page.getByRole("navigation", { name: "Oblasti metodiky" }).locator(`[data-module-card="${id}"]`);
+  const name = await card.getAttribute("aria-label");
+  assert(name, `${id}: no card in the catalogue`);
+  await card.click();
+  await page.getByRole("heading", { level: 2, name, exact: true }).waitFor();
 };
 /** The list holds every parameter the API says a version can change, once; the formulas open. */
 const walkEditor = async (moduleId, summary) => {
@@ -87,9 +89,16 @@ const walkEditor = async (moduleId, summary) => {
   const expected = [...new Set(detail.step_details.flatMap((s) => s.values.filter((v) => v.origin === "specification" && !v.absent && v.reference !== "methodology_version").map((v) => v.reference)))];
   const slots = detail.step_details.flatMap((s) => s.formulas.map((f) => f.slot_id));
   const form = page.locator("[data-methodology-editor]");
-  const rows = await form.locator("[data-edit-row]").evaluateAll((nodes) => nodes.map((n) => ({ ref: n.getAttribute("data-edit-row"), stage: n.querySelector("label + span")?.textContent ?? "" })));
+  const rows = await form.locator("[data-edit-row]").evaluateAll((nodes) => nodes.map((n) => ({ ref: n.getAttribute("data-edit-row"), stage: n.querySelector("label + span")?.textContent ?? "", bound: n.querySelector("[data-bound]")?.getAttribute("data-bound") ?? null })));
   assert.deepEqual(rows.map((r) => r.ref).sort(), [...expected].sort(), `${moduleId}: the list is not every parameter once`);
   if (detail.groups.length) for (const row of rows) assert(row.stage.trim(), `${moduleId}/${row.ref}: no stage named`);
+  // Each number the domain bounds says its range beside it ("mez …", F13); no other field claims one.
+  const declared = new Map(detail.step_details.flatMap((s) => s.values).filter((v) => v.origin === "specification").map((v) => [v.reference, v]));
+  for (const row of rows) {
+    const value = declared.get(row.ref);
+    if (value?.bound && typeof value.value === "number") assert.match(row.bound ?? "", /^mez /, `${moduleId}/${row.ref}: its bound is not said`);
+    else assert.equal(row.bound, null, `${moduleId}/${row.ref}: a bound the domain does not declare`);
+  }
   if (slots.length) {
     await form.locator("[data-edit-formulas] summary").click();
     await form.locator("[data-edit-slot]").first().waitFor();
@@ -97,7 +106,7 @@ const walkEditor = async (moduleId, summary) => {
     assert.deepEqual(shown.sort(), [...slots].sort(), `${moduleId}: the formulas are not every slot`);
     await form.locator("[data-edit-formulas] summary").click();
   }
-  return { params: rows.length, slots: slots.length };
+  return { params: rows.length, bounded: rows.filter((r) => r.bound).length, slots: slots.length };
 };
 
 /** Every stage of a read-only catalogue holds its steps, or says none is computed. */
@@ -161,7 +170,7 @@ try {
   const modules = (await get("/api/v1/methodology")).filter((m) => !HIDDEN.has(m.id));
   assert(modules.length >= 5, `only ${modules.length} modules`);
   for (const module of modules) {
-    await openModule(module.title_cs);
+    await openModule(module.id);
     const editor = page.locator("[data-methodology-editor]");
     if (module.editable) {
       await editor.waitFor({ timeout: 60000 }).catch(() => { throw new Error(`${module.id}: an administrator does not open on the editor`); });
