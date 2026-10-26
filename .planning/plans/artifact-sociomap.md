@@ -14,6 +14,8 @@ chunks:
   - "[x] SOC11. Plain Czech on the stage: no artifact, run, method or spec id outside Technické údaje"
   - "[x] SOC12. No amber notice frame on the stage: amber means only a person is waited on"
   - "[x] SOC13. The map's overlays: one bar with popovers, a view rail bottom right, the legend as a chip, the side sheet beside the map, fading while the map moves, keys"
+  - "[ ] SOC11b. A copy pass on the stage: Stress-1, PROGRESS D6, Top vztahy, a dead key (reopens SOC11; spec szz S1; W2)"
+  - "[ ] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -340,3 +342,19 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
      session on the person's action, not on the page's load; the same journey check catches it. Owner: the
      report editor.
   Both fail with develop's own journey on the same workbench; neither is changed here.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**SOC11b. Copy pass** (spec `szz/S1`; reopens SOC11; W2, lane F).
+
+**SOC14. Segments are descriptive** (spec `szz/S2`; W2, lane F). Beside SOC6.
+
+**Notes.**
+- SOC4 carries `szz/S3`; SOC5 `szz/S4` (with `artifact-report#RPT10`, `lead-orchestration#LO5a.3`); SOC8 `szz/S6`.
