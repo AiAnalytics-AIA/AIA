@@ -211,15 +211,15 @@ export function PersonaStep() {
   const catalogRows = visible.filter((d) => !suggested.has(d.id));
   const chosenList = useRef<HTMLUListElement>(null);
   // Focus owed to the selection after the render that changes it (AGENTS.md: never on a frame guess):
-  // a dimension's remove by its id, or the remove at a position, else the list itself.
-  const owedFocus = useRef<{ id: string } | { at: number } | null>(null);
+  // a dimension's remove by its id, or the remove at a position; with none of those, the list itself.
+  const owedFocus = useRef<{ id: string } | { at: number } | { list: true } | null>(null);
   const shown = approved.join("\u0000");
   useEffect(() => {
     const owed = owedFocus.current;
     if (!owed) return;
     owedFocus.current = null;
     const removes = [...(chosenList.current?.querySelectorAll<HTMLButtonElement>("button[data-remove]") ?? [])];
-    const target = "id" in owed ? removes.find((b) => b.dataset.remove === owed.id) : removes[Math.min(owed.at, removes.length - 1)];
+    const target = "id" in owed ? removes.find((b) => b.dataset.remove === owed.id) : "at" in owed ? removes[Math.min(owed.at, removes.length - 1)] : undefined;
     (target ?? chosenList.current)?.focus();
   }, [shown]);
   // A change that takes dimensions away, or replaces them, offers "Vrátit" (I6): it takes back that
@@ -235,8 +235,9 @@ export function PersonaStep() {
         const now = store.get().project;
         const restored = undoChosen(now, before, after);
         const back = before.find((id) => !after.includes(id));
-        // Owed only when the selection will render differently, so a later change never spends it.
-        if (back !== undefined && chosenDimensions(restored.project).join("\u0000") !== chosenDimensions(now).join("\u0000")) owedFocus.current = { id: back };
+        // Owed only when the selection will render differently, so a later change never spends it; an
+        // undo that only takes additions out puts nothing back, and focus goes to the list.
+        if (chosenDimensions(restored.project).join("\u0000") !== chosenDimensions(now).join("\u0000")) owedFocus.current = back !== undefined ? { id: back } : { list: true };
         apply(restored);
       },
     });

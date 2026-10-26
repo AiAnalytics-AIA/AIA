@@ -252,6 +252,17 @@ describe("Dimenze", () => {
     await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Odebrat dimenzi Cena / value for money"));
   }, 20_000);
 
+  it("Vrátit after \"Použít doporučené\" only added dimensions leaves focus on the selection, not the page", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Použít doporučené" }));
+    await savedWith("persona_autofill");
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await savedWith("dimension_restore");
+    expect(lastSave().content.persona_dimensions.approved).toEqual([]);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("list", { name: "Vybrané dimenze" })));
+  }, 20_000);
+
   it("after a remove, focus goes to the next row's remove, then the previous one's, then the list (DIM-F7)", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
