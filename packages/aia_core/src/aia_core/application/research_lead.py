@@ -1418,11 +1418,10 @@ class ResearchLead:
         artifacts = research_artifacts(self.session, self.scope, self.store)
         finished: list[FinishedRun] = []
         unreadable: list[str] = []
-        for listed in research.runs(limit=RUNS_IN_CONTEXT):
-            if len(finished) + len(unreadable) == RUNS_FOR_TARGETS:
-                break
-            if listed["status"] is not WorkflowRunStatus.COMPLETED:
-                continue
+        # Completed runs are selected in the query, before the limit: newer runs that failed or
+        # still run never hide an older completed one (review of #925).
+        completed = research.runs(limit=RUNS_FOR_TARGETS, statuses=(WorkflowRunStatus.COMPLETED,))
+        for listed in completed:
             try:
                 finished.append(_finished_run(research.get(listed["run_id"]), artifacts))
             except (ArtifactNotFound, IntegrityError, ObjectNotFound):

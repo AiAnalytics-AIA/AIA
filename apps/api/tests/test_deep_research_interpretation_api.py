@@ -437,6 +437,21 @@ def test_every_lead_target_candidate_of_a_completed_run_is_one_the_start_freezes
             assert spec.target.model_dump(mode="json") == candidate["ref"]
         session.rollback()
 
+        # Five newer runs that have not finished never hide the completed one (review of #925):
+        # completed runs are selected before the limit.
+        session.rollback()
+        for i in range(5):
+            newer = world.design(researcher, {**DESIGN, "title": f"Ranní nápoj {i}"})
+            assert newer.status_code == 201, newer.text
+            queued = researcher.post(
+                f"{_study(world)}/research/runs",
+                json={"design_revision_id": newer.json()["revision_id"]},
+            )
+            assert queued.status_code == 201, queued.text
+        behind = ResearchLead(session, scope, store=store)._targets()
+        assert behind is not None
+        assert {c["run_id"] for c in behind["candidates"]} == {results["run_id"]}
+
         # A specification that does not read offers no target and is named, never a stop.
         from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow
 
