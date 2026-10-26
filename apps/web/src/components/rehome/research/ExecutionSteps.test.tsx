@@ -17,7 +17,7 @@ import { AnalysisInspect } from "./AnalysisInspect";
 import { LeadAskContext } from "./AskLead";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { ItemInspectBody } from "@/components/workbench/ItemInspectBody";
-import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
+import { sendLeadMapView, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -2471,7 +2471,7 @@ describe("Results", () => {
         return stage;
       };
       const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
-      afterEach(() => { takeLeadMapView(); });
+      afterEach(() => { takeLeadMapViews(); });
 
       it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
         sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
@@ -2479,6 +2479,17 @@ describe("Results", () => {
         const stage = await drawn(1);
         await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
         expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies every view sent before the stage drew its maps, in order, not the last alone", async () => {
+        // Codex on #992: a Lead turn with two map views, answered on another stage, kept only the second.
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(JSON.parse(canvases(stage)[0].getAttribute("data-camera")!).pitch).toBe(0);
+        expect(takeLeadMapViews()).toEqual([]);
       });
 
       it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {

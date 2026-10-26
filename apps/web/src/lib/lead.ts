@@ -55,19 +55,23 @@ export type LeadMapView = Extract<LeadView, { op: "select" | "filter" }>;
  *  the map checks it (`readMapOp`) and changes its picture. A map that mounts after the move reads
  *  the one waiting (`takeLeadMapView`). */
 export const LEAD_MAP_VIEW = "aia:lead-map-view";
-const leadMapView: { pending: LeadMapView | null } = { pending: null };
+// Every view not yet taken, oldest first: a turn may carry several (Codex on #992).
+const leadMapViews: LeadMapView[] = [];
 
 /** Hands the map a Lead view: kept for a map not shown yet, and sent to the one on screen. */
 export function sendLeadMapView(view: LeadMapView): void {
-  leadMapView.pending = view;
+  leadMapViews.push(view);
   window.dispatchEvent(new CustomEvent<LeadMapView>(LEAD_MAP_VIEW, { detail: view }));
 }
 
-/** The Lead view waiting for the map, taken once (a map that mounts after the move). */
+/** The oldest Lead view waiting for the map, taken once (the map on screen takes each as it comes). */
 export function takeLeadMapView(): LeadMapView | null {
-  const view = leadMapView.pending;
-  leadMapView.pending = null;
-  return view;
+  return leadMapViews.shift() ?? null;
+}
+
+/** Every Lead view waiting for the map, in order, taken at once (a map that mounts after the move). */
+export function takeLeadMapViews(): LeadMapView[] {
+  return leadMapViews.splice(0);
 }
 
 const FILTER_WORDS: Readonly<Record<MapFilter, (value: string) => string>> = {

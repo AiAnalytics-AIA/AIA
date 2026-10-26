@@ -2154,3 +2154,9 @@ stays first in one fragment, with the card beside it only when it has something 
 `step.test.tsx` "ActionDock keeps its moved action, and the focus on it, when its note comes and goes",
 which fails without the change. The review's other P3, a comment beside the journey's `navStage`, fell
 away: #840's helper, taken in #936's merge, matches a stage's label exactly.
+- **Codex on #992 (P2, fixed).** A turn carrying several map views, answered on another stage, kept only the last:
+  `sendLeadMapView` held one waiting view, and `Workbench.onView` moved to Sociomapa once per view. The views now
+  wait in order (`lib/lead.ts`, `takeLeadMapViews` drains them), Sociomapa replays all of them when it mounts
+  (`SociomapStage.tsx`, two lines, agreed with Sociomapa), and a turn moves to the map once. Tests:
+  `ExecutionSteps.test.tsx` "applies every view sent before the stage drew its maps, in order…",
+  `Workbench.layout.test.tsx` "keeps every map view of one turn for the map, in order", each failing without it.

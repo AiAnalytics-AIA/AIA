@@ -477,11 +477,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
     if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.op === "filter" ? "sociomap" : last.target }, layout).state);
+    // Sociomapa is moved to once per turn, however many of its views the turn carries.
+    let onMap: boolean | null = stage === "sociomap" ? true : null;
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
       else if (v.op === "select" || v.op === "filter") {
         // Sociomapa's picture: on another stage the map takes it once shown, if the move was not stopped.
-        if (stage === "sociomap" || go("sociomap")) sendLeadMapView(v);
+        onMap ??= go("sociomap");
+        if (onMap) sendLeadMapView(v);
       } else if (v.op === "inspect") {
         // The item drawer over the target's own stage, the one a person's click opens; on another
         // stage it opens once that stage is shown (the move remounts on a route change).
