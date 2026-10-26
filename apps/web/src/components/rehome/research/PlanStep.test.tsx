@@ -181,7 +181,7 @@ describe("Návrh", () => {
     expect(screen.getByRole("radio", { name: /Varianty a cena/ }).getAttribute("aria-checked")).toBe("true");
     // Jump chips over the sections.
     const jump = screen.getByRole("navigation", { name: "Oddíly návrhu" });
-    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
+    expect(within(jump).getAllByRole("button").map((b) => b.textContent)).toEqual(["Rozsah", "Porozumění", "Hypotézy · 1", "Sady · 1", "Otázky AI · 0/1", "Komentáře · 0"]);
   });
 
   it("opens on the research questions a link from the Run stage names", async () => {
@@ -379,6 +379,28 @@ describe("Návrh", () => {
     expect(item("H1").getAttribute("data-aia")).toMatch(/^hypothesis:hyp_/);
   });
 
+  it("hypotheses render as their own section; no verdict without a server answer", async () => {
+    unitStub(null, {}, { ...PROJECT, research_plan: { problem_summary: "P", objectives: ["Cíl A"], research_questions: ["Kdo?"], hypotheses: ["H1", "H2"] } });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: "Hypotézy" });
+    // Each hypothesis in its section, marked for the Lead, edited in place; none left under Porozumění.
+    const marks = [...section.querySelectorAll("[data-aia]")].map((el) => el.getAttribute("data-aia"));
+    expect(marks).toHaveLength(2);
+    expect(marks.every((m) => /^hypothesis:hyp_/.test(m ?? ""))).toBe(true);
+    expect(within(section).getByRole("button", { name: /^Upravit: Hypotéza 1/ })).toBeTruthy();
+    expect(within(section).getByRole("button", { name: "Přidat hypotézu" })).toBeTruthy();
+    const understanding = document.getElementById("plan-understanding")!;
+    expect(within(understanding).queryByText("H1")).toBeNull();
+    expect(within(understanding).getByText("Kdo?")).toBeTruthy();
+    // On the page after the narrative, before the sets.
+    const order = ["plan-understanding", "plan-hypotheses", "plan-sets"].map((id) => document.getElementById(id)!);
+    expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(order[1].compareDocumentPosition(order[2]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // What verifies a hypothesis has no server answer yet: no "ověří" verdict and no coverage words.
+    expect(section.textContent).not.toMatch(/ověří|ověřiteln|pokryto|neznámé/);
+    expect(within(section).queryByRole("heading", { level: 3 })).toBeNull();
+  });
+
   it("comments on a part of a narrative item selected in place, and still edits the item on a plain click (Q68)", async () => {
     unitStub();
     render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
@@ -542,6 +564,27 @@ describe("direct proposal editing", () => {
     // No unfinished editor to guard: leaving is not held.
     const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload);
     expect(unload.defaultPrevented).toBe(false);
+  });
+
+  it("offers one removal back at a time across the narrative and the hypotheses", async () => {
+    unitStub();
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    await screen.findByText("Mírnější varianta vyhraje");
+    const [objective] = ANALYSIS.objectives;
+    fireEvent.click(screen.getByRole("button", { name: "Přidat cíl" }));
+    const row = screen.getByRole("textbox", { name: "Přidat cíl" });
+    fireEvent.change(row, { target: { value: "Druhý cíl" } });
+    fireEvent.keyDown(row, { key: "Enter" });
+    fireEvent.keyDown(await screen.findByRole("textbox", { name: "Přidat cíl" }), { key: "Escape" });
+    fireEvent.click(await screen.findByRole("button", { name: `Odebrat: ${objective}` }));
+    expect(await screen.findByRole("button", { name: "Vrátit" })).toBeTruthy();
+    // A hypothesis removed next replaces the offer: one toast, and it takes back the hypothesis.
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat: Mírnější varianta vyhraje" }));
+    await waitFor(() => expect(screen.getByText("Odebráno: „Mírnější varianta vyhraje“")).toBeTruthy());
+    expect(screen.getAllByRole("button", { name: "Vrátit" })).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    expect(await screen.findByText("Mírnější varianta vyhraje")).toBeTruthy();
+    expect(screen.queryByText(objective)).toBeNull();
   });
 
   it("edits a set's measurement field by field on its card, preserving its extra fields and the existing questionnaire, and confirms scope replacement", async () => {

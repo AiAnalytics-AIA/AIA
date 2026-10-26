@@ -46,11 +46,12 @@ import {
 import { type SetLimits, setAboveRecommended, setSizeRefused, setWords } from "@/research/questionnaire";
 import type { Analysis } from "@/research/store";
 import { type SetField, applyPlanSets, objectProblem, proposalAnalysis, setFieldProblem, withObject, withSetField } from "@/research/plan-edit";
-import { PlanNarrative } from "./PlanNarrative";
+import { PlanHypotheses, PlanNarrative } from "./PlanNarrative";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, StepSection } from "../step";
 import { AiButton, Button } from "../ui";
 import { InlineText } from "../../ui/InlineText";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { useResearch } from "./context";
 import { SavedForLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, modeOf, useAnalysis } from "./useAnalysis";
@@ -92,6 +93,8 @@ export function PlanStep() {
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
   const { analyse, resume, failure, busy } = useAnalysis();
+  // The narrative's and the hypotheses' removals share one undo offer, one toast at a time (I6).
+  const narrativeUndo = useUndo();
   const a = proposalAnalysis(state);
   const p = state.project;
   const variants = projectVariants(state);
@@ -206,9 +209,12 @@ export function PlanStep() {
     );
   }
 
+  const hypotheses = Array.isArray(a.hypotheses) ? a.hypotheses.length : 0;
   const chips: { id: string; label: string; state: "done" | "you" | "neutral" }[] = [
     ...(variants.length ? [{ id: "plan-variants", label: t("research.plan.jumpScope"), state: "done" as const }] : []),
     { id: "plan-understanding", label: t("research.plan.jumpUnderstanding"), state: p.ui_state.plan_changed26 ? "done" : "neutral" },
+    // Done as Porozumění is: once a person changed the plan, never for hypotheses only proposed.
+    { id: "plan-hypotheses", label: tv("research.plan.jumpHypotheses", { n: hypotheses }), state: hypotheses && p.ui_state.plan_changed26 ? "done" : "neutral" },
     { id: "plan-sets", label: tv("research.plan.jumpSets", { n: sets.length }), state: short ? "you" : sets.length ? "done" : "neutral" },
     ...(questions.length
       ? [{ id: "plan-questions", label: tv("research.plan.jumpQuestions", { a: answered, b: questions.length }), state: answered ? ("done" as const) : ("you" as const) }]
@@ -237,10 +243,14 @@ export function PlanStep() {
       {variantSection}
       <Commentable onQuote={(quote) => setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }])}>
         <div className="flex flex-col gap-4">
-          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <Understanding n={++n} changed={Boolean(p.ui_state.plan_changed26)} blocked={busy} undo={narrativeUndo} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          <StepSection id="plan-hypotheses" n={++n} title={t("research.plan.hypothesesTitle")} hint={t("research.plan.hypothesesHint")}>
+            <PlanHypotheses disabled={busy} undo={narrativeUndo} onQuote={(quote) => { setDrafts((d) => [...d, { key: ++seq.current, quote, text: "" }]); jumpTo("plan-comments"); }} />
+          </StepSection>
           <Sets n={++n} analysis={a} blocked={busy} limits={setLimits} />
         </div>
       </Commentable>
+      <UndoToast offer={narrativeUndo.current} onDone={narrativeUndo.clear} />
       {questions.length ? (
         <FollowUps
           n={++n}
@@ -370,7 +380,7 @@ function Variants({ variants, current, onApply }: { variants: Variant[]; current
   );
 }
 
-function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: boolean; blocked: boolean; onQuote: (quote: string) => void }) {
+function Understanding({ n, changed, blocked, undo, onQuote }: { n: number; changed: boolean; blocked: boolean; undo: ReturnType<typeof useUndo>; onQuote: (quote: string) => void }) {
   return (
     <StepSection
       id="plan-understanding"
@@ -384,7 +394,7 @@ function Understanding({ n, changed, blocked, onQuote }: { n: number; changed: b
         </span>
       ) : null}
     >
-      <PlanNarrative disabled={blocked} onQuote={onQuote} />
+      <PlanNarrative disabled={blocked} undo={undo} onQuote={onQuote} />
     </StepSection>
   );
 }
