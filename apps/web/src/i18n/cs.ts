@@ -3588,12 +3588,13 @@ export const cs = {
         // The question before an approval (input-interactions B22, Q33): the document, its variant,
         // the stored version and its format, and that it cannot be undone.
         approveAsk: {
-          internal: "interní zprávu",
-          with_review: "interní zprávu s rešerší {review}",
-          client: "klientskou zprávu",
           docx: "DOCX",
           docxPdf: "DOCX i jeho PDF",
-          question: "Schválit {what}, uloženou verzi {version} ({format})? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          // By name and time, never the version's id (RPT3d, spec Z4).
+          question: "Schvalujete tuto verzi: {what}{when} ({format}).",
+          storedAt: ", vytvořenou {at}",
+          final: "Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          modelled: "Čísla jsou modelovaná; zpráva to u každého uvádí.",
           yes: "Schválit",
         },
         // A stored version's review as its file states it (research-integrity-report D2): only
@@ -3601,6 +3602,9 @@ export const cs = {
         review: {
           draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
+          // The same in the approval question, which names the version by its time (RPT3d).
+          fileDraft: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
+          fileDraftDocx: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
           approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
           approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
