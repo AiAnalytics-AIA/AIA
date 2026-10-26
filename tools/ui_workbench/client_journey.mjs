@@ -99,6 +99,12 @@ try {
   }
   checks.push("Six client areas × four widths: no page overflow; the studies' and the knowledge's tables fit their frames");
 
+  // Simulace is hidden for the MVP (K12): no tab and no new simulation, though its address still opens.
+  await visit(clientPath);
+  assert.equal(await page.getByRole("navigation", { name: "Oblasti klienta" }).getByRole("link", { name: /Simulace/ }).count(), 0, "no Simulace tab");
+  assert.equal(await page.getByRole("button", { name: "Nová simulace" }).count(), 0, "no new simulation");
+  checks.push("Simulace hidden for the MVP: no tab and no new simulation; /simulations still opens");
+
   // Přehled: what waits on a person comes first.
   await visit(clientPath);
   await page.getByRole("heading", { name: "Čeká na vás" }).waitFor();

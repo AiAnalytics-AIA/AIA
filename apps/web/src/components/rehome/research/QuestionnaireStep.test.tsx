@@ -100,6 +100,14 @@ describe("Dotazník", () => {
     expect(await screen.findByRole("heading", { name: "Nahrát dotazník" })).toBeTruthy();
   });
 
+  it("says tracked sets alone are no questionnaire yet, and the dock is not ready (OI-52 (b))", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[1]], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const note = await screen.findByText("Samotné sledované sady dotazník netvoří: přidejte alespoň jednu běžnou otázku.");
+    expect(note.className).toContain("text-status-you-ink");
+    expect(screen.queryByText("Dotazník je připravený")).toBeNull();
+  });
+
   it("draws the preview and the editor, and has no dead 'AI: zlepšit blok' (OI-49)", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -178,6 +186,33 @@ describe("Dotazník", () => {
     await waitFor(() => expect("filtr" in question()).toBe(false));
   });
 
+  it("moves focus into the condition form and back to its button when it closes, for the keyboard", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" });
+    const card = document.getElementById("qedit_Q2") as HTMLElement;
+    fireEvent.click(await within(card).findByRole("button", { name: "Podmínka zobrazení" }));
+    const form = card.querySelector("[data-condition-form]") as HTMLElement;
+    // Opened: focus is in the form, on its first choice, never left on the page.
+    expect(form.contains(document.activeElement)).toBe(true);
+    // Escape: back on the button that opened it.
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    // Saved: on the stored condition's own button.
+    fireEvent.click(within(card).getByRole("button", { name: "Podmínka zobrazení" }));
+    fireEvent.click(within(card).getByRole("radio", { name: /^Q1 · / }));
+    fireEvent.click(within(within(card).getByRole("group", { name: "Zobrazit těm, kdo odpověděli" })).getByRole("button", { name: "Týdně" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Uložit podmínku" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Zrušit: back on the same button.
+    fireEvent.click(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Zrušit" }));
+    expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Upravit podmínku" }));
+    // Odebrat podmínku: on the button that sets one again.
+    fireEvent.click(within(card).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(card).getByRole("button", { name: "Podmínka zobrazení" })));
+  });
+
   it("keeps the form open and says why when the questionnaire moved under it", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: true }) });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -245,6 +280,10 @@ describe("Dotazník", () => {
     expect(within(stored).getByText(/Zobrazí se jen těm, kdo u Q1/)).toBeTruthy();
     await waitFor(() => expect(within(stored).queryByRole("button", { name: "Upravit podmínku" })).toBeNull());
     expect(within(stored).getByRole("button", { name: "Odebrat podmínku" })).toBeTruthy();
+    // Removed with nothing left in its box: focus goes to the question's wording, never to a type
+    // chip, where one key would change the question's type (QF-18, the stand-in review).
+    fireEvent.click(within(stored).getByRole("button", { name: "Odebrat podmínku" }));
+    await waitFor(() => expect(document.activeElement).toBe(within(stored).getByRole("textbox", { name: "Znění otázky" })));
   });
 
   it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {

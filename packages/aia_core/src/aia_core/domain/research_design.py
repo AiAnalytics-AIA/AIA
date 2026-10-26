@@ -1456,13 +1456,21 @@ def assess_readiness(
         check("sample_size", CheckStatus.PASS, f"n = {spec.n}.")
 
     asked = len(spec.questions) + len(spec.battery_questions())
-    check(
-        "questionnaire",
-        CheckStatus.PASS,
+    counts = (
         f"{counted(len(spec.questions), 'otázka', 'otázky', 'otázek')}, "
         f"{counted(len(spec.batteries), 'sledovaná sada', 'sledované sady', 'sledovaných sad')} "
-        f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení).",
+        f"({counted(asked, 'položka', 'položky', 'položek')} k zodpovězení)."
     )
+    if spec.questions:
+        check("questionnaire", CheckStatus.PASS, counts)
+    else:
+        # Tracked sets alone are no questionnaire (OI-52, the data owner, 2026-10-25 (b)).
+        check(
+            "questionnaire",
+            CheckStatus.FAIL,
+            f"{counts} Samotné sledované sady dotazník netvoří: přidejte v Dotazníku alespoň "
+            "jednu běžnou otázku.",
+        )
 
     # A condition compile could not read or check, by name at its question (WCE13).
     for q in spec.questions:

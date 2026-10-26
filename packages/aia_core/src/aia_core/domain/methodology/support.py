@@ -34,6 +34,7 @@ from pydantic import BaseModel
 
 from ..evidence.support import AIA_SUPPORT_V1, SupportSpec
 from .catalogue import (
+    Bound,
     Evidence,
     EvidenceKind,
     MethodModule,
@@ -42,6 +43,7 @@ from .catalogue import (
     Preset,
     StepGroup,
     Symbol,
+    at_least,
 )
 
 __all__ = ["SUPPORT", "SupportRuleRefused"]
@@ -265,6 +267,22 @@ _GROUPS: Final = (
     StepGroup("A", "Brána důkazů AIA (analýza)", ("gate_kish", "gate_assess", "gate_reassess")),
 )
 
+_THRESHOLDS: Final = f"{_E}:SupportThresholds"
+#: The range each check holds a line to (F13). A line the preset leaves unchecked (null) has
+#: none shown: its range is the same, but no preset lets the test prove it. An indicative line is
+#: held to its suppression line, itself at least 0.
+_BOUNDS: Final = (
+    Bound("results.min_layer_donors", (at_least(0),), _THRESHOLDS),
+    Bound("results.indicative_layer_donors", (at_least("results.min_layer_donors"),), _THRESHOLDS),
+    Bound("analysis.min_cell", (at_least(0),), _THRESHOLDS),
+    Bound("analysis.n_guard", (at_least(0),), _THRESHOLDS),
+    Bound("analysis.indicative", (at_least("analysis.n_guard"),), _THRESHOLDS),
+    Bound("analysis.min_layer_donors", (at_least(0),), _THRESHOLDS),
+    Bound(
+        "analysis.indicative_layer_donors", (at_least("analysis.min_layer_donors"),), _THRESHOLDS
+    ),
+)
+
 SUPPORT: Final = MethodModule(
     id="support",
     title_cs="Podpora a potlačení: kdy se číslo smí ukázat",
@@ -272,6 +290,7 @@ SUPPORT: Final = MethodModule(
     presets=(Preset("aia-support-1", AIA_SUPPORT_V1, _validate),),
     in_force="aia-support-1",
     editable=True,
+    bounds=_BOUNDS,
     groups=_GROUPS,
     note_cs=(
         "Dnes rozhodují dvě pravidla. Výsledky ukazují stav podle jednotky 18.6.6 (jen počet "

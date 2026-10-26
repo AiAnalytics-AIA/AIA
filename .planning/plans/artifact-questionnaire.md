@@ -341,6 +341,22 @@ message (`questionnaire_import.py:324`, unreachable) is Czech too. Tests: `Quest
 "says an empty file, a refusal without words of its own and a lost connection in Czech" and "says a
 template the API would not give in Czech".
 
+*Finding QF-17 (OI-52, the data owner's answer, 2026-10-25 (b)):* a questionnaire made only of tracked
+sets is not complete; it needs at least one plain question. Before, readiness's `questionnaire` check always
+passed (`research_design.py:1457-1463 @ f7762d72`), Dotazník's track read a sets-only questionnaire as done
+(`lane.ts:63 @ f7762d72`) and its dock said "Dotazník je připravený" once the editor was open (`QuestionnaireStep.tsx:259 @ f7762d72`).
+Fix (fix/questionnaire-plain-question): the check FAILs with words that say why, the track reads "· bez běžné
+otázky", and the dock is not ready and says why; `assess_readiness` re-pinned in Metodika. Tests:
+`test_research_design.py` "a questionnaire of tracked sets only is not ready", `lane.test.ts`, `QuestionnaireStep.test.tsx`.
+
+*Finding QF-18 (keyboard audit, 2026-10-25):* a question's display condition editor drops keyboard focus to
+the page: "Podmínka zobrazení" and "Upravit podmínku" unmount as the form replaces them, and Uložit, Zrušit,
+Escape and Odebrat podmínku unmount what had focus in turn (`QuestionCondition.tsx:69 @ ffce5c72`), so a keyboard user starts again
+from the top. Fix (fix/questionnaire-condition-focus): the form opens with focus on the chosen question (or the
+first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts focus on the first enabled button
+left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
+into the condition form and back to its button when it closes" (all four ways out).
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
@@ -348,5 +364,7 @@ template the API would not give in Czech".
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
+- open-items.md: OI-52 answered by the data owner (2026-10-25, (b)) and closed by fix/questionnaire-plain-question (QF-17).
+- open-items.md: number QF-18 (the condition editor drops keyboard focus), closed by fix/questionnaire-condition-focus.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
