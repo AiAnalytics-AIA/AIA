@@ -552,6 +552,7 @@ export const scalars = {
   "radius-control": "6px",
   "radius-card": "8px",
   "radius-panel": "10px",
+  "radius-composer": "12px",
   "radius-pill": "999px",
   "stroke-hairline": "1px",
   "stroke-mark": "1.5px",
