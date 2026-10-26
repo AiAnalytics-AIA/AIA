@@ -85,7 +85,7 @@ function goToSection(id: string) {
 }
 
 export function BriefStep() {
-  const { store, state, stepHref } = useResearch();
+  const { store, state, stepHref, frame } = useResearch();
   const router = useRouter();
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
@@ -133,7 +133,9 @@ export function BriefStep() {
         // (spec navrh B7, BRF4). The header's primary is the frame's "Návrh".
         ask ? (
           <StageHeaderSlot slot="actions">
-            <Button small onClick={() => ask(ANALYSE_COMMAND)}>{t("research.brief.askLead")}</Button>
+            {/* Portalled out of the stage's read-only fieldset, so it carries the edit right itself; and it
+                asks for nothing the stage's own analysis would refuse (canAnalyse). */}
+            <Button small disabled={!frame.canEdit || !ready} title={ready ? undefined : note} onClick={() => ask(ANALYSE_COMMAND)}>{t("research.brief.askLead")}</Button>
           </StageHeaderSlot>
         ) : null
       ) : (

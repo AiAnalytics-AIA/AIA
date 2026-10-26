@@ -97,6 +97,20 @@ describe("the workbench: the Lead owns the AI starts", () => {
     expect(screen.queryByRole("button", { name: "Pokračovat na Návrh" })).toBeNull();
   });
 
+  it("offers the header's ask only to someone who may edit, and only for a brief the analysis would take (code review on #986)", async () => {
+    const view = render(<ResearchScreen step="brief" frame={{ ...TEST_FRAME, canEdit: false }} />);
+    await screen.findByText("Bára");
+    const ask = async () => (await within(document.querySelector("[data-workbench] .arthead") as HTMLElement).findByRole("button", { name: "Požádat Vedoucího o analýzu" })) as HTMLButtonElement;
+    expect((await ask()).disabled).toBe(true);
+    view.unmount();
+    // A brief the analysis would refuse (no goal, nothing to research): the ask waits too.
+    api({ title: "Alfa" });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    expect((await ask()).disabled).toBe(true);
+    expect(bodies.some((b) => b.body.text === "Analyzuj zadání")).toBe(false);
+  });
+
   it("asks the Lead for the brief's analysis from the header, and the stage starts nothing itself (spec navrh B7)", async () => {
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
     await screen.findByText("Bára");
