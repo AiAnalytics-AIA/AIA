@@ -14,7 +14,7 @@ import { t } from "@/i18n/t";
 import { researcherLead } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { useSession } from "@/lib/auth";
-import { hatchedRemembered, type LeadPresence, leadPresence, railLeadItem, rememberPresence } from "@/lib/rail-lead";
+import { hatchedRemembered, LEAD_HATCHED_EVENT, type LeadPresence, leadPresence, railLeadItem, rememberPresence } from "@/lib/rail-lead";
 import { signOut } from "@/lib/session";
 
 import { Icon, type IconName } from "../rehome/icons";
@@ -42,8 +42,8 @@ export function initials(name: string): string {
 function useLeadPresence(): LeadPresence {
   const [presence, setPresence] = useState<LeadPresence>(hatchedRemembered() ? "hatched" : "unknown");
   useEffect(() => {
-    if (hatchedRemembered()) return;
     let live = true;
+    if (hatchedRemembered()) return;
     researcherLead.get().then(
       (answer) => {
         const p = leadPresence(answer);
@@ -54,8 +54,13 @@ function useLeadPresence(): LeadPresence {
         if (live) setPresence("unknown");
       },
     );
+    const hatched = () => {
+      if (live) setPresence("hatched");
+    };
+    window.addEventListener(LEAD_HATCHED_EVENT, hatched);
     return () => {
       live = false;
+      window.removeEventListener(LEAD_HATCHED_EVENT, hatched);
     };
   }, []);
   return presence;
@@ -63,6 +68,12 @@ function useLeadPresence(): LeadPresence {
 
 export function DockRail({ path, client, accent }: { path: string; client?: RailClient; accent?: string }) {
   const [open, setOpen] = useState(false);
+  // The pointer opens the rail when it moves onto it, not where it happens to rest when a page
+  // loads: after a click on a rail item the next page's rail stays closed until the pointer moves.
+  const [pointer, setPointer] = useState(false);
+  // Escape puts the opened rail away while the pointer or focus is still on it (WCAG 1.4.13): it
+  // stays put until the pointer comes back onto the rail or focus leaves it.
+  const [dismissed, setDismissed] = useState(false);
   const session = useSession();
   const email = session?.email ?? null;
   const lead = railLeadItem(useLeadPresence());
@@ -70,13 +81,30 @@ export function DockRail({ path, client, accent }: { path: string; client?: Rail
   let i = 2;
   return (
     <div className="dock-slot">
-      <div className="dock" data-rail="" data-open={open ? "true" : "false"}>
-        <div className="dock__bar">
+      <div
+        className="dock"
+        data-rail=""
+        data-open={open ? "true" : "false"}
+        data-pointer={pointer ? "" : undefined}
+        data-dismissed={dismissed ? "" : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") setDismissed(true);
+        }}
+        onPointerEnter={(e) => {
+          if (e.pointerType !== "touch") setDismissed(false);
+        }}
+        onPointerMove={(e) => {
+          if (e.pointerType !== "touch" && !pointer) setPointer(true);
+        }}
+        onPointerLeave={() => setPointer(false)}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDismissed(false);
+        }}
+      >
+        <button type="button" aria-expanded={open} aria-controls="aia-main-navigation" onClick={() => setOpen(!open)} className="dock__bar">
           <span className="min-w-0 truncate">{t("aia.product")} · {client?.name ?? t("aia.workspaceLabel")}</span>
-          <button type="button" aria-expanded={open} aria-controls="aia-main-navigation" onClick={() => setOpen(!open)} className="min-h-11 rounded-control px-2">
-            {open ? t("aia.menuClose") : t("aia.menuOpen")}
-          </button>
-        </div>
+          <span>{open ? t("aia.menuClose") : t("aia.menuOpen")}</span>
+        </button>
         <nav id="aia-main-navigation" aria-label={t("aia.mainNav")} className="dock__nav">
           <Link href={appRoutes.home()} className="dock__brand" style={{ ["--i" as string]: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- the identity's own SVG, served by this app */}

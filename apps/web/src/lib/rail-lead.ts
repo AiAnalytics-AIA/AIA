@@ -25,6 +25,15 @@ export const hatchedRemembered = (): boolean => hatchedSeen;
 export function rememberPresence(presence: LeadPresence): void {
   if (presence === "hatched") hatchedSeen = true;
 }
+/** The rail hears this when the researcher grows their Lead, on whatever page they did it. */
+export const LEAD_HATCHED_EVENT = "aia:lead-hatched";
+
+/** A Lead was just grown: the rail says "Můj Vedoucí" at once, without reading GET /lead again. */
+export function announceHatched(): void {
+  hatchedSeen = true;
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(LEAD_HATCHED_EVENT));
+}
+
 /** For tests: the tab's memory of a grown Lead, forgotten. */
 export function forgetHatched(): void {
   hatchedSeen = false;

@@ -6,9 +6,9 @@
  *
  * At 1440 and 1024 px, on a top-level page and in a study: the rail is 64 px at rest and the page
  * starts after it; a pointer on it opens it to 240 px over the page; keyboard focus opens it, with
- * every item's words visible; focus leaving closes it; under reduced motion it opens with no
- * transition. Můj Vedoucí is an item of its own on every page. At 768 and 390 px the rail is the top
- * bar with its menu. No page overflows. Local fictional identity only; nothing but a stage's own
+ * every item's words visible; Escape puts it away with focus kept (WCAG 1.4.13); focus leaving
+ * closes it; under reduced motion it opens with no transition. Můj Vedoucí is an item of its own on
+ * every page. At 768 and 390 px the rail is the top bar with its menu. No page overflows. Local fictional identity only; nothing but a stage's own
  * last-stage record is written.
  */
 import assert from "node:assert/strict";
@@ -122,6 +122,17 @@ async function journey(reduced) {
       assert((await shown(page)) >= 230, `${name} @${width}: focused, the rail did not open`);
       const labels = await page.locator("[data-rail] .dock__label").evaluateAll((els) => els.map((e) => [e.textContent, getComputedStyle(e).opacity]));
       assert(labels.length >= 5 && labels.every(([, o]) => Number(o) > 0.9), `${name} @${width}: a label is not visible while focused ${JSON.stringify(labels)}`);
+      // Escape puts the opened rail away while focus stays where it was (WCAG 1.4.13); Tab within
+      // the rail keeps it away.
+      const before = await page.evaluate(() => document.activeElement?.textContent);
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(reduced ? 50 : 1200);
+      assert((await shown(page)) <= 64, `${name} @${width}: Escape left the rail open`);
+      assert.equal(await page.evaluate(() => document.activeElement?.textContent), before, `${name} @${width}: Escape moved focus`);
+      assert.equal(await page.evaluate(() => !!document.activeElement?.closest("[data-rail]")), true, `${name} @${width}: Escape took focus off the rail`);
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(reduced ? 50 : 600);
+      assert((await shown(page)) <= 64, `${name} @${width}: Tab within the rail opened it again after Escape`);
       await page.locator("#aia-main-content").focus();
       await page.waitForTimeout(reduced ? 50 : 1200);
       assert((await shown(page)) <= 64, `${name} @${width}: focus left and the rail stayed open`);
@@ -131,7 +142,7 @@ async function journey(reduced) {
       }
       if (!reduced) await page.screenshot({ path: join(out, `${name}-${width}.png`), fullPage: width === 1440 && name !== "stage" });
     }
-    ok(`${reduced ? "reduced motion, " : ""}${width} px: 64 px at rest, 240 px on hover and on focus, over the page; Můj Vedoucí on every page; no overflow`);
+    ok(`${reduced ? "reduced motion, " : ""}${width} px: 64 px at rest, 240 px on hover and on focus, over the page; Escape puts it away; Můj Vedoucí on every page; no overflow`);
   }
   if (!reduced) {
     for (const width of [768, 390]) {
@@ -141,7 +152,7 @@ async function journey(reduced) {
         await page.locator("h1").first().waitFor();
         await page.waitForLoadState("networkidle");
         assert((await overflow(page)) <= 2, `${name} @${width}: page overflow`);
-        const toggle = page.locator("[data-rail] .dock__bar button");
+        const toggle = page.locator("[data-rail] .dock__bar");
         await toggle.click();
         await page.getByRole("navigation", { name: "Hlavní navigace" }).getByRole("link", { name: "Projektová paměť" }).waitFor();
         assert.equal(await page.getByRole("navigation", { name: "Hlavní navigace" }).locator("[data-rail-lead]").isVisible(), true, `${name} @${width}: Můj Vedoucí not in the menu`);

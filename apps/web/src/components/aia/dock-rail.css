@@ -18,13 +18,19 @@
   }
   .dock__bar {
     display: flex;
+    width: 100%;
     min-height: 48px;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     padding: 0 16px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
     font-size: 14px;
     font-weight: 600;
+    text-align: left;
   }
   .dock__nav,
   .dock__foot {
@@ -115,7 +121,7 @@
   .dock__account:focus-visible,
   .dock__out:focus-visible,
   .dock__client a:focus-visible,
-  .dock__bar button:focus-visible {
+  .dock__bar:focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
@@ -260,8 +266,11 @@
     .dock__foot {
       padding: 12px 16px 14px;
     }
-    .dock:hover,
-    .dock:focus-within {
+    /* Open on the pointer moving onto it (data-pointer, set by DockRail) or on keyboard focus (a
+       click's focus does not hold it open); not after Escape until the pointer comes back or focus
+       leaves (data-dismissed). */
+    .dock[data-pointer]:not([data-dismissed]),
+    .dock:not([data-dismissed]):has(:focus-visible) {
       clip-path: inset(0 0 0 0 round 0 18px 18px 0);
       box-shadow: inset -1px 0 0 color-mix(in srgb, var(--signal) 45%, transparent), 24px 0 64px -24px color-mix(in srgb, var(--shell) 60%, transparent);
       transition: clip-path 0.55s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
@@ -277,8 +286,8 @@
       transform: translateX(-12px);
       transition: opacity 0.12s ease, transform 0.12s ease, filter 0.12s ease;
     }
-    .dock:hover :is(.dock__label, .dock__sec, .dock__product, .dock__who, .dock__out),
-    .dock:focus-within :is(.dock__label, .dock__sec, .dock__product, .dock__who, .dock__out) {
+    .dock[data-pointer]:not([data-dismissed]) :is(.dock__label, .dock__sec, .dock__product, .dock__who, .dock__out),
+    .dock:not([data-dismissed]):has(:focus-visible) :is(.dock__label, .dock__sec, .dock__product, .dock__who, .dock__out) {
       opacity: 1;
       filter: none;
       transform: none;
@@ -292,12 +301,12 @@
     .dock__item[aria-current="page"] .dock__tile {
       box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--shell-strong) 55%, transparent);
     }
-    .dock:hover .dock__item[aria-current="page"],
-    .dock:focus-within .dock__item[aria-current="page"] {
+    .dock[data-pointer]:not([data-dismissed]) .dock__item[aria-current="page"],
+    .dock:not([data-dismissed]):has(:focus-visible) .dock__item[aria-current="page"] {
       background: color-mix(in srgb, var(--shell-strong) 8%, transparent);
     }
-    .dock:hover .dock__item[aria-current="page"] .dock__tile,
-    .dock:focus-within .dock__item[aria-current="page"] .dock__tile {
+    .dock[data-pointer]:not([data-dismissed]) .dock__item[aria-current="page"] .dock__tile,
+    .dock:not([data-dismissed]):has(:focus-visible) .dock__item[aria-current="page"] .dock__tile {
       box-shadow: none;
     }
     .dock__tile,

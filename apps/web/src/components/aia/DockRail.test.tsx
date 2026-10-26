@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 // The Dock rail (prototype-build PBA1, PBA2): every page's one rail, Můj Vedoucí on it.
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { forgetHatched, leadPresence, railLeadItem } from "@/lib/rail-lead";
+import { announceHatched, forgetHatched, leadPresence, railLeadItem } from "@/lib/rail-lead";
 
 import { AppShell } from "./AppShell";
 
@@ -91,10 +91,58 @@ describe("the Dock rail", () => {
     expect(document.querySelector("[data-rail-lead]")?.getAttribute("data-rail-lead")).toBe("mine");
   });
 
+  it("is put away by Escape while focus stays on it, until the pointer or focus leaves (WCAG 1.4.13)", () => {
+    answerLead({ hatched: true, lead: {} });
+    render(<AppShell title="Klienti"><p>obsah</p></AppShell>);
+    const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+    const klienti = within(screen.getByRole("navigation", { name: "Hlavní navigace" })).getByRole("link", { name: "Klienti" });
+    klienti.focus();
+    fireEvent.keyDown(klienti, { key: "Escape" });
+    expect(rail.hasAttribute("data-dismissed")).toBe(true);
+    expect(document.activeElement).toBe(klienti);
+    // Focus moving within the rail, or the pointer leaving, keeps it put away; the pointer coming
+    // back onto the rail opens it again.
+    fireEvent.blur(klienti, { relatedTarget: within(rail).getByRole("link", { name: "Nastavení" }) });
+    fireEvent.pointerLeave(rail);
+    expect(rail.hasAttribute("data-dismissed")).toBe(true);
+    fireEvent.pointerEnter(rail, { pointerType: "mouse" });
+    expect(rail.hasAttribute("data-dismissed")).toBe(false);
+    fireEvent.keyDown(klienti, { key: "Escape" });
+    fireEvent.blur(klienti, { relatedTarget: document.body });
+    expect(rail.hasAttribute("data-dismissed")).toBe(false);
+  });
+
+  it("opens for the pointer only once it moves onto the rail, and closes when it leaves", () => {
+    answerLead({ hatched: true, lead: {} });
+    render(<AppShell title="Klienti"><p>obsah</p></AppShell>);
+    const rail = document.querySelector<HTMLElement>("[data-rail]")!;
+    expect(rail.hasAttribute("data-pointer")).toBe(false);
+    fireEvent.pointerMove(rail, { pointerType: "mouse" });
+    expect(rail.hasAttribute("data-pointer")).toBe(true);
+    fireEvent.pointerLeave(rail);
+    expect(rail.hasAttribute("data-pointer")).toBe(false);
+  });
+
+  it("names the narrow menu button with the product and where you are", () => {
+    answerLead({ hatched: true, lead: {} });
+    render(<AppShell title="Klienti" client={{ id: "CLI-a", name: "Klient A" }}><p>obsah</p></AppShell>);
+    expect(screen.getByRole("button", { name: /AI Analytics · Klient A/ }).getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("says Můj Vedoucí as soon as the Lead is grown, on the same page", async () => {
+    answerLead({ hatched: false, lead: null });
+    render(<AppShell title="Můj Vedoucí"><p>obsah</p></AppShell>);
+    await waitFor(() => expect(document.querySelector("[data-rail-lead]")?.getAttribute("data-rail-lead")).toBe("grow"));
+    act(() => announceHatched());
+    expect(document.querySelector("[data-rail-lead]")?.getAttribute("data-rail-lead")).toBe("mine");
+  });
+
   it("opens to 240 px on hover or keyboard focus from 64 px at rest, and moves nothing under reduced motion", () => {
     expect(CSS).toMatch(/\.dock-slot \{\s*width: 64px;/);
     expect(CSS).toMatch(/\.dock \{[^}]*width: 240px;[^}]*clip-path: inset\(0 176px 0 0\);/);
-    expect(CSS).toMatch(/\.dock:hover,\s*\.dock:focus-within \{\s*clip-path: inset\(0 0 0 0/);
+    // Open on the pointer or on keyboard focus only, and never while Escape has put it away.
+    expect(CSS).toMatch(/\.dock\[data-pointer\]:not\(\[data-dismissed\]\),\s*\.dock:not\(\[data-dismissed\]\):has\(:focus-visible\) \{\s*clip-path: inset\(0 0 0 0/);
+    expect(CSS).not.toContain(":focus-within");
     expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.dock,\s*\.dock \* \{\s*transition: none !important;/);
   });
 });
