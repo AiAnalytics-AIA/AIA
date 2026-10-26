@@ -17,8 +17,9 @@ the same gates as the stage's own start, in one transaction and in LO1's order:
 4. **Record** the card's ``lead_job_request`` row: the run, its purpose, target, preset, focus,
    ceiling and the confirmed ``spend``.
 5. With the wallet on, write the ``lead_card`` row naming the run (decision ``start``, migration
-   M3b) and **charge** it at its ceiling; a refused charge raises, and the request's transaction
-   rolls back the run and both rows with it.
+   M3b) and **charge** it at the ceiling the created run pinned (the start admits again, so a
+   setting changed since the quote is charged as pinned, never as quoted); a refused charge
+   raises, and the request's transaction rolls back the run and both rows with it.
 
 A start that finds its run already there (the same spec, started on the stage or by an earlier
 card) returns it, charges nothing and records the card as decided. The stage's starts are
@@ -175,6 +176,13 @@ def approve_deep_research_card(
     started = runs.start_frozen(
         start, prices=settings.prices, modes=settings.modes, confirm_cost_usd=confirm_cost_usd
     )
+    if started.created:
+        # The start admits again, reading the organization's settings again: a route allowance
+        # changed since the quote moves the ceiling the run pins. What is recorded and charged is
+        # that pinned ceiling, never the quote's, so a larger one meets the wallet's own check
+        # (and rolls the start back) rather than running past the remainder (review of #1006).
+        pinned = started.run["metadata"].get("cost_ceiling_usd")
+        ceiling = float(pinned) if pinned is not None else None
 
     # The card's own decision, with what it started; a run that already existed was confirmed
     # (or not) when it was created, so this approval confirmed no new spend.

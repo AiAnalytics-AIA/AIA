@@ -10,10 +10,12 @@ Interpretation card names; no Deep Research runtime runs, so nothing is sent.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
 import pytest
+from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.approval_ledger import ApprovalSubject
 from aia_core.domain.deep_research.workflow import DEEP_RESEARCH
@@ -351,6 +353,53 @@ def test_with_the_wallet_on_a_card_is_charged_once_under_its_lead_card_row(
 def test_a_card_over_the_wallets_remainder_starts_and_charges_nothing(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
+    _save(app, world)
+    _wallet_on(app, researcher, world, cap=0.01)
+    turn_id = _turn(researcher, world, app, {"kind": "design_research", "why": WHY})
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409 and refused.json()["code"] == "outside_wallet"
+    assert _written(app) == {"runs": 0, "cards": 0, "lead_card": 0, "charges": 0, "holds": 0}
+
+
+def test_a_card_is_charged_the_ceiling_its_run_pinned_not_the_quote(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A setting changed between the quote and the start moves the ceiling the start pins; the
+    wallet holds the pinned one, so a run the quote under-priced cannot run past the remainder
+    (review of #1006)."""
+    real_quote = DeepResearchRuns.quote
+
+    def underpriced(self: DeepResearchRuns, *a: Any, **k: Any) -> Any:
+        quoted = real_quote(self, *a, **k)
+        assert quoted.ceiling is not None and quoted.ceiling.total_usd is not None
+        low = replace(quoted.ceiling, total_usd=quoted.ceiling.total_usd / 100)
+        return replace(quoted, ceiling=low)
+
+    monkeypatch.setattr(DeepResearchRuns, "quote", underpriced)
+    _save(app, world)
+    _wallet_on(app, researcher, world, cap=50.0)
+    turn_id = _turn(researcher, world, app, {"kind": "design_research", "why": WHY})
+    approved = _approve(researcher, world, turn_id)
+    assert approved.status_code == 200, approved.text
+    with create_session_factory(app.state.engine)() as session:
+        run = WorkflowRepository(session, _scope(world, session)).get_run(approved.json()["run_id"])
+        pinned = run["metadata"]["cost_ceiling_usd"]
+        charge = session.scalars(select(StudyWalletChargeRow)).one()
+    assert pinned is not None and charge.ceiling_usd == pinned
+    assert _card_row(app)["ceiling_usd"] == pinned
+
+
+def test_a_pinned_ceiling_over_the_wallets_remainder_rolls_the_start_back(
+    app: FastAPI, researcher: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_quote = DeepResearchRuns.quote
+
+    def free(self: DeepResearchRuns, *a: Any, **k: Any) -> Any:
+        quoted = real_quote(self, *a, **k)
+        assert quoted.ceiling is not None
+        return replace(quoted, ceiling=replace(quoted.ceiling, total_usd=0.0))
+
+    monkeypatch.setattr(DeepResearchRuns, "quote", free)
     _save(app, world)
     _wallet_on(app, researcher, world, cap=0.01)
     turn_id = _turn(researcher, world, app, {"kind": "design_research", "why": WHY})
