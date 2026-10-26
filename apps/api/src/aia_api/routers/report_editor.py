@@ -98,6 +98,8 @@ API_PREFIX = "/api/v1"
 #: read; the route bounds it (:data:`MAX_TOKEN`).
 TokenQuery = Annotated[str | None, Query()]
 MAX_TOKEN = 2048
+#: The header a download carries when its bytes have the brand fonts embedded again (RPT15).
+FONTS_REEMBEDDED_HEADER = "X-AIA-Fonts-Reembedded"
 
 
 class EditorRequest(BaseModel):
@@ -667,29 +669,32 @@ def download_report_editor_version(
     """Exactly that version's DOCX, with the run's report download's headers (its id, SHA-256
     and review), so the version a person approves is the one they downloaded. Approved, it says
     SCHVÁLENO in its footers where the editor kept the composer's footer layout (checked when it
-    was saved); else it keeps the draft footer, and its name says so (``schvaleno-v-aia``)."""
+    was saved); else it keeps the draft footer, and its name says so (``schvaleno-v-aia``).
+
+    The editor drops the DOCX's embedded brand fonts when it saves, so the download carries them
+    again (RPT15; the owner's B6 (b)): its bytes then differ from the stored version, which the
+    headers still name (id, SHA-256, review), and ``X-AIA-Fonts-Reembedded: true`` says so."""
     try:
         scope.require(Permission.EXPORT_DELIVERABLE)
     except ScopeDenied as exc:
         raise _refused(exc) from exc
     version, artifact = _edited(run_id, artifact_id, scope, session, store)
     # Only the DOCX is read: what it changed is the version route's, never the download's.
-    exported = _export(artifact, scope, session, store)
-    return Response(
-        content=exported.data,
-        media_type=INTERNAL_REPORT_MEDIA_TYPE,
-        headers=_review_headers(
+    exported = _export(artifact, scope, session, store, reembed_fonts=True)
+    headers = _review_headers(
+        exported.mark,
+        _report_filename(
+            scope.study_id,
+            run_id,
+            _file_variant(version),
             exported.mark,
-            _report_filename(
-                scope.study_id,
-                run_id,
-                _file_variant(version),
-                exported.mark,
-                "docx",
-                stamped=exported.stamped,
-            ),
+            "docx",
+            stamped=exported.stamped,
         ),
     )
+    if exported.fonts_reembedded:
+        headers[FONTS_REEMBEDDED_HEADER] = "true"
+    return Response(content=exported.data, media_type=INTERNAL_REPORT_MEDIA_TYPE, headers=headers)
 
 
 @router.post(
