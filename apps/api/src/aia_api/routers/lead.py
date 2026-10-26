@@ -17,7 +17,7 @@ No route takes a client, organization or user id: the scope says whose it is.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
@@ -26,6 +26,10 @@ from aia_core.application.lead_chat_start import (
     AnalysisRetryTargetMoved,
     ChatStartRefused,
     newest_analysed_run,
+)
+from aia_core.application.lead_deep_research import (
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
 )
 from aia_core.application.research import (
     CostCeilingUnknown,
@@ -66,6 +70,7 @@ from aia_core.domain.workspace import WorkspaceRejected
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field, StrictBool
 
+from ..config import Settings
 from ..dependencies import (
     ArtifactStoreDep,
     OrganizationDep,
@@ -76,6 +81,7 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .deep_research import deep_research_mode, deep_research_start_errors, study_prices
 from .research import run_start_errors, run_start_settings
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -153,7 +159,8 @@ class RequestDecision(BaseModel):
     status: Literal["approved"]
     run_id: str | None
     #: A typed start approved on the job an earlier approval had already started for this
-    #: design: nothing started, the card is decided (LO5).
+    #: design, or a Deep Research card on a run another start had made (LO5a.2): nothing
+    #: started or charged, the card is decided (LO5).
     reused: bool = False
 
 
@@ -232,6 +239,12 @@ class LeadTurn(BaseModel):
     workspace_revision: int | None
     created_at: datetime
     created_by: str
+    #: The most the turn's prepared agent job can cost (lead-orchestration LO23, spec
+    #: lead/LP-4): a Lead card's ``agent_job`` request or a typed ``agent_job:`` command, at
+    #: the design job's reservation (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one
+    #: repair, what its start holds and its threshold reads). ``null`` when that reservation is
+    #: not configured (unknown, never 0) and for any other turn.
+    ceiling_usd: float | None = None
     #: The typed start the server matched in a person's message (lead-orchestration LO5:
     #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
     #: as the person's own, a ``chat_start``. ``null`` on every other turn.
@@ -316,6 +329,11 @@ class ApprovedRequest(BaseModel):
     run_id: str
     design_revision_id: str
     status: str
+    #: A Deep Research card's run: ``DESIGN_RESEARCH`` or ``INTERPRETATION_RESEARCH`` (LO5a.2),
+    #: so the client follows it where it is shown; ``None`` for any other approval.
+    purpose: str | None = None
+    #: An Interpretation card's: the research run its target is a result of, where it is shown.
+    research_run_id: str | None = None
 
 
 class OmittedId(BaseModel):
@@ -532,6 +550,8 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except NotAPaidRequest as exc:
         raise _error(422, exc.reason, "This turn prepared no paid job.") from exc
+    except DeepResearchCardUnavailable as exc:
+        raise _error(409, exc.reason, "Deep Research cannot be started here.") from exc
     except LeadContextTooLarge as exc:
         raise _error(422, exc.reason, str(exc)) from exc
     except LeadRejected as exc:
@@ -578,15 +598,40 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             phase=str(retry_run["phase"]),
         ),
         busy=state["busy"],
-        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"])],
+        turns=[LeadTurn.model_validate(t) for t in _public(state["turns"], settings)],
     )
 
 
-def _public(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, Any]]:
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
-    of what waits (the browser reads that from the turn's output)."""
+    of what waits (the browser reads that from the turn's output); with its prepared agent
+    job's ceiling (LO23)."""
     hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
-    return [{k: v for k, v in t.items() if k not in hidden} for t in turns]
+    return [
+        {
+            **{k: v for k, v in t.items() if k not in hidden},
+            "ceiling_usd": _job_ceiling(settings) if _prepares_job(t) else None,
+        }
+        for t in turns
+    ]
+
+
+def _job_ceiling(settings: Settings) -> float | None:
+    """A prepared agent job's ceiling: its reservation, or ``None`` when that is not
+    configured or not positive -- unknown, never 0, the rule ``analysis_ceiling_usd`` keeps."""
+    reserved = settings.ai_research_reservation_usd
+    return reserved if reserved is not None and reserved > 0 else None
+
+
+def _prepares_job(turn: Mapping[str, Any]) -> bool:
+    """Whether the turn's card starts an agent job: a Lead card's ``agent_job`` request or a
+    person's typed ``agent_job:`` command (LO5)."""
+    command = turn.get("command")
+    if isinstance(command, str) and command.startswith("agent_job:"):
+        return True
+    output = turn.get("output")
+    request = output.get("request") if isinstance(output, Mapping) else None
+    return isinstance(request, Mapping) and request.get("kind") == "agent_job"
 
 
 @router.post(
@@ -626,7 +671,7 @@ def post_turn(
         )
     if not turns:
         response.status_code = status.HTTP_200_OK
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.get(
@@ -693,7 +738,7 @@ def answer_queued(
         ).answer_queued()
     if not turns:
         response.status_code = status.HTTP_200_OK
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.post(
@@ -704,12 +749,14 @@ def answer_queued(
         409: {"model": ErrorResponse, "description": "The message no longer waits"},
     },
 )
-def withdraw_message(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> LeadTurns:
+def withdraw_message(
+    turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep, settings: SettingsDep
+) -> LeadTurns:
     """Withdraw one of the caller's messages that still waits for the Lead: it stays stored,
     and no turn is ever sent it."""
     with _lead_errors():
         turns = ResearchLead(session, scope).withdraw(turn_id)
-    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
 
 
 @router.post(
@@ -785,8 +832,15 @@ def approve_request(
     run settings (the ones ``POST …/research/runs`` uses), held to the same threshold and, with
     ``AIA_STUDY_WALLET_ENABLED``, to the wallet (409 ``outside_wallet``, ``ceiling_unknown``),
     and recorded as ``chat_start``. A run start's refusals are that route's."""
-    with _lead_errors(), run_start_errors():
-        started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
+    # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job a card approves reads the Study's
+    # pinned Design Research findings, as the stage's start does (artifact-questionnaire QST13).
+    external = store if settings.ai_analysis_external_context else None
+    # A Deep Research card's start refusals are the stage routes' own (LO5a.2), outermost so
+    # the Lead's and a run start's own mappings answer first where they overlap.
+    with deep_research_start_errors(session), _lead_errors(), run_start_errors():
+        started = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,
@@ -794,6 +848,11 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
+            deep_research=DeepResearchCardSettings(
+                prices=study_prices(settings, session, scope),
+                modes=(deep_research_mode(settings),),
+                store=store,
+            ),
         )
     return ApprovedRequest.model_validate(started)
 

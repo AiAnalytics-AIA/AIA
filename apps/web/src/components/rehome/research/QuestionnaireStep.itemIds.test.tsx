@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Dotazník's import undo with stable item ids on (AIA_WEB_STABLE_ITEM_IDS). A file of its own: the
-// screen reads the switch once per module (ResearchScreen.tsx itemIdsKnown), so it cannot be turned
+// screen reads the switch once per module (ResearchScreen.tsx switchesKnown), so it cannot be turned
 // on beside the other Dotazník tests.
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";

@@ -2,7 +2,8 @@
 
 **Status:** Accepted. Frozen invariant; enforcement implemented in
 `aia_core.domain.residency`. Amended 2026-10-19 by the product owner: classes by rule
-(§ Amendment 2026-10-19).
+(§ Amendment 2026-10-19); amendment note 2026-10-26: a brief's files Class A by rule,
+Veřejné makes one B (decided, not yet built: `artifact-brief` BRF7).
 **Date:** 2026-09-22
 
 ## Context
@@ -241,3 +242,18 @@ prompt nobody classified is sent, judged as Class A for residency, and Brave, ou
 receive a search query written from client material. Every such pass is recorded, never silent.
 Enforce mode, every other environment and every recorded fixture are unchanged; OI-129 stays open
 for staging and production.
+
+## Amendment note, 2026-10-26: a brief's files are Class A by rule (product owner)
+
+**Decided, not yet built.** B4 (a), the product owner, 2026-10-26 (on the `artifact-brief` plan page,
+relayed by the PM coordinator; `.planning/plans/artifact-brief.md` BRF7): a file attached to a
+study's brief is **Class A by rule**, like a client's uploaded source, and no longer the design's
+Class B; a person may mark one **Veřejné** (public), which makes that file Class B. This changes one
+row of the 2026-10-19 table: "the attachment excerpts the design carries" leaves the B-by-rule
+design row for brief files, and a brief file joins the A row with its own B exception. Today a
+brief's file and link take `MaterialRule.DESIGN`, Class B
+(`packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 5d2ac5ac`); the rule changes in
+`domain/material_rules.py` with BRF7 (W1), whose test is that an unmarked brief file classes A, a
+file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one. Under the advisory gates of
+the 2026-10-21 amendment (develop) a class-only refusal of a brief file is a recorded pass, as for
+every other class.

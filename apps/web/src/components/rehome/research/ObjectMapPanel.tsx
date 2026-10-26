@@ -31,9 +31,10 @@ import { isRefusal, objectTarget, pairTarget, readMapOp, readTarget } from "@/li
 import { LEAD_REVEAL, type LeadMapView, mapViewWords } from "@/lib/lead";
 import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
+import type { TerrainMode } from "@/lib/object-map-smooth";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
-  type SegmentLegend, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
+  type SegmentLegend, allRelations, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
 } from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
@@ -44,6 +45,8 @@ import {
 import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 /** The canvas's size before it is measured (and in tests): the panel's own fallback. */
+/** Where the browser remembers Blokový / Hladký. */
+const TERRAIN_KEY = "aia.objectMap.terrain";
 const DEFAULT_SIZE = { width: 900, height: 700 };
 
 const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
@@ -194,8 +197,14 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Absolutni draws the stored envelope of the absolute means; a map that stores none offers only Relativni.
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
-  const grid = people ? density! : absolute ?? relativeGrid;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
+  // The stored terrain drawn Hladký (refined and shaded smoothly) or Blokový (flat triangles);
+  // remembered in the browser, smooth by default.
+  const [terrain, setTerrainState] = useState<TerrainMode>(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem(TERRAIN_KEY) === "blocky" ? "blocky" : "smooth"; } catch { return "smooth"; }
+  });
+  const setTerrain = (next: TerrainMode) => { setTerrainState(next); try { window.localStorage.setItem(TERRAIN_KEY, next); } catch { /* the choice lasts this page */ } };
+  const grid = people ? density! : absolute ?? relativeGrid;
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
@@ -255,7 +264,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const latest = useRef<Parameters<typeof drawObjectMap>[1] | null>(null);
   const pending = useRef(0);
   useEffect(() => {
-    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people };
+    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people, smooth: terrain === "smooth" ? { ratio } : undefined };
     const draw = () => {
       pending.current = 0;
       const node = canvas.current;
@@ -270,7 +279,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
     };
     if (typeof window.requestAnimationFrame !== "function") { draw(); return; }
     if (!pending.current) pending.current = window.requestAnimationFrame(draw);
-  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statementsHere, people, ratio]);
+  }, [size, camera, grid, nodes, tones, pairs, selected, hovered, scale, statementsHere, people, ratio, terrain]);
   // Cleared on unmount, so a remount (React's development double mount included) schedules again.
   useEffect(() => () => { if (pending.current) window.cancelAnimationFrame(pending.current); pending.current = 0; }, []);
 
@@ -542,6 +551,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
         </div>
       )}
+      <div role="group" aria-label={t(`${p}.terrain`)}>
+        <SectionHead label={t(`${p}.terrain`)} help={t(`${p}.terrainHelp`)} />
+        <div className="omw-row">
+          <button type="button" className="omw-btn" aria-pressed={terrain === "smooth"} onClick={() => setTerrain("smooth")}>{t(`${p}.terrainSmooth`)}</button>
+          <button type="button" className="omw-btn" aria-pressed={terrain === "blocky"} onClick={() => setTerrain("blocky")}>{t(`${p}.terrainBlocky`)}</button>
+        </div>
+      </div>
       <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
       <div className="omw-row"><button type="button" className="omw-btn" onClick={() => openWork("objects")}>{t(`${p}.objectManager`)}</button></div>
       <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
@@ -568,7 +584,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         <div className="omx-body">
           <div className="omx-mapbox">
             <canvas ref={canvas} tabIndex={0} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
-              data-camera={JSON.stringify(camera)} data-norm={norm} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
+              data-camera={JSON.stringify(camera)} data-norm={norm} data-terrain={terrain} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
               data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
               aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
               aria-describedby={people ? undefined : described}
@@ -954,6 +970,27 @@ const signed = (v: number) => (v >= 0 ? "+" : "") + num(v, 2);
 /** Whether a relation is the pair of i and j, whichever end it names first (the canvas names the line's own). */
 const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[0] === i && r[1] === j) || (r[0] === j && r[1] === i));
 
+/** Všechny vztahy: every other object's stored relation, its status and how many rated both; each line
+ *  opens the pair as the strongest ones above do. The status under each name says which ones the map reads. */
+function AllRelations({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+  const p = "research.exec.objectMap.panel";
+  const lines = allRelations(battery, map, selected);
+  const label = objectDetail(battery, map, selected).label;
+  return (
+    <details className="omw-all" data-testid="object-map-detail-all-relations">
+      <summary>{tv(`${p}.allRelations`, { n: lines.length })}</summary>
+      <p className="omw-tip">{t(`${p}.allRelationsHelp`)}</p>
+      {lines.map((x) => (
+        <button key={x.id} type="button" className="omw-answer" data-verdict={x.verdict} aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+          <span>{x.label}<small>{t(`${p}.relationStatus.${x.verdict}`)}{x.n === null ? "" : ` · ${tv(`${p}.relationRated`, { n: x.n })}`}</small></span>{" "}
+          <b>{x.r === null ? "—" : signed(x.r)}</b>
+          <span className="sr-only">{tv(`${p}.relationShow`, { a: label, b: x.label })}</span>
+        </button>
+      ))}
+    </details>
+  );
+}
+
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
 export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation?: [number, number] | null; onRelation: (j: number) => void }) {
@@ -987,6 +1024,7 @@ export function ObjectCard({ battery, map, selected, relation, onRelation }: { b
           ))}
         </div>
       ) : <p className="omw-tip">{t(`${p}.detailNoRelation`)}</p>}
+      <AllRelations battery={battery} map={map} selected={selected} relation={relation ?? null} onRelation={onRelation} />
       {o.primary ? null : (
         <>
           <h3 className="omw-h3 !mt-[15px]">{t(`${p}.detailPlacement`)}</h3>

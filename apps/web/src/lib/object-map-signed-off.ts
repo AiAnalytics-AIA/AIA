@@ -238,13 +238,31 @@ export type RelationDetail = {
   clearFrom: number; // the declared |r~| from which a relation reads "zřetelný"; a map stored before it: 0.3
 };
 
+/** A stored pair's verdict: reliable / weak, or why it is unknown -- too few people rated both, or
+ *  one of them was rated alike by all (unknown at or above the status floor). */
+function pairVerdict(map: ObjectMapArtifact, i: number, j: number): RelationDetail["verdict"] {
+  const rel = map.relations;
+  if (rel.r[i][j] === null) return (rel.n[i][j] ?? 0) < rel.n_min ? "fewRatings" : "noSpread";
+  return rel.status[i][j] === "reliable" ? "reliable" : "weak";
+}
+
+export type PairLine = { j: number; id: string; label: string; r: number | null; n: number | null; verdict: RelationDetail["verdict"] };
+
+/** Every other mapped object's stored relation to object ``k``, whatever its status: by |r|, the
+ *  unknown ones last. The object detail's "Všechny vztahy" (the map reads only the reliable ones). */
+export function allRelations(battery: BatteryWithMaps, map: ObjectMapArtifact, k: number): PairLine[] {
+  const label = new Map(battery.objects.map((o) => [o.id, o.label]));
+  return map.object_ids
+    .flatMap((id, j) => (j === k ? [] : [{ j, id, label: label.get(id) ?? id, r: map.relations.r[k][j], n: map.relations.n[k][j], verdict: pairVerdict(map, k, j) }]))
+    .sort((a, b) => (a.r === null ? 1 : 0) - (b.r === null ? 1 : 0) || Math.abs(b.r ?? 0) - Math.abs(a.r ?? 0) || a.label.localeCompare(b.label));
+}
+
 /** The panel's selected-relation block (`relationHtml66`) from the stored pair. The stored map keeps
  *  no p-value and no noise level: those two lines are not shown. */
 export function relationDetail(battery: BatteryWithMaps, map: ObjectMapArtifact, i: number, j: number): RelationDetail {
   const label = new Map(battery.objects.map((o) => [o.id, o.label]));
   const rel = map.relations, r = rel.r[i][j], n = rel.n[i][j];
-  // Unknown below the status floor; at or above it, unknown only because a column had no spread.
-  const verdict = r === null ? ((n ?? 0) < rel.n_min ? "fewRatings" : "noSpread") : rel.status[i][j] === "reliable" ? "reliable" : "weak";
+  const verdict = pairVerdict(map, i, j);
   return {
     a: label.get(map.object_ids[i]) ?? map.object_ids[i],
     b: label.get(map.object_ids[j]) ?? map.object_ids[j],

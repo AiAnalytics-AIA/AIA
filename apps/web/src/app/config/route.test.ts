@@ -137,6 +137,17 @@ describe("the stable item ids switch", () => {
   });
 });
 
+describe("the edit operations switch", () => {
+  it("is off unless a switch value reads true", async () => {
+    vi.stubEnv("AIA_WEB_EDIT_OPS", undefined);
+    expect((await GET().json()).editOps).toBe(false);
+    vi.stubEnv("AIA_WEB_EDIT_OPS", "on");
+    expect((await GET().json()).editOps).toBe(true);
+    vi.stubEnv("AIA_WEB_EDIT_OPS", "maybe");
+    expect((await GET().json()).editOps).toBe(false);
+  });
+});
+
 describe("the routing switch", () => {
   it("is off unless AIA_ROUTING_ENABLED reads true, the key the API reads too (WCE13)", async () => {
     vi.stubEnv("AIA_ROUTING_ENABLED", undefined);

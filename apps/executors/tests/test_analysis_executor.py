@@ -35,6 +35,7 @@ from aia_core.application.analysis_results import (
     DatasetMaterial,
     ReconstructionRefused,
     SourcesRefused,
+    modules_asked,
     native_sources,
     reconstruct_run,
     retry_failed_modules,
@@ -1537,6 +1538,45 @@ def test_retrying_failed_modules_asks_only_them_over_the_same_data(
     with pytest.raises(AnalysisNotRetryable) as nothing:
         _retry_analysis(world, store, retry.run_id)
     assert nothing.value.reason == "nothing_to_retry"
+
+
+def test_a_retry_is_priced_on_every_module_its_start_asks_not_only_the_failed_ones(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """LO23 (stand-in review of #1014): ``…/analysis/retryable``'s ceiling counts what the retry's
+    start asks. A run with no record of a module (an older run without that step) asks it as
+    well as the failed one, so pricing the retryable modules alone was below the start's."""
+    from aia_core.infrastructure.tables import StepRunRow
+    from sqlalchemy import delete
+
+    worker = run_with(RecordedModels(invent={"objects"}))
+    first = _started_with_analysis(world)
+    _drain(worker)
+    limitations = analysis_node_key(AnalysisModuleId.LIMITATIONS)
+    with world.sessions() as session:
+        session.execute(
+            delete(StepRunRow).where(StepRunRow.run_id == first, StepRunRow.node_key == limitations)
+        )
+        session.commit()
+    with world.sessions() as session:
+        stored = stored_analysis(session, world.lead_scope(session), store, run_id=first)
+    assert stored.retryable == (AnalysisModuleId.OBJECTS,)
+    priced = modules_asked(stored)
+    assert priced == 2, "the failed module and the one the run has no record of"
+
+    asked: list[int] = []
+    real = ResearchRuns.retry_analysis
+
+    def recording(self: ResearchRuns, run_id: str, **kwargs: Any) -> Any:
+        asked.append(kwargs["frozen_dataset"].modules_asked)
+        return real(self, run_id, **kwargs)
+
+    monkeypatch.setattr(ResearchRuns, "retry_analysis", recording)
+    _retry_analysis(world, store, first)
+    assert asked == [priced], "the route's count is the start's"
 
 
 def test_an_analysis_retry_of_an_old_default_run_reuses_its_map_and_computes_no_old_method(

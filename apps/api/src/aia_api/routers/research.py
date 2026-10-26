@@ -16,9 +16,13 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
+from aia_core.application.admitted_results import admitted_results
+from aia_core.application.analysis import MAX_REPAIRS as ANALYSIS_MAX_REPAIRS
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
     ReconstructionRefused,
+    SourcesRefused,
+    modules_asked,
     reconstruct_run,
     retry_failed_modules,
     stored_analysis,
@@ -162,6 +166,7 @@ from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
+from aia_core.domain.run_cost import analysis_ceiling_usd
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -2078,12 +2083,20 @@ def retry_run(
     summary="The analysis modules of a run a person may ask again over its collected data",
 )
 def run_analysis_retryable(
-    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    request: Request,
 ) -> dict[str, Any]:
     """Read from the stored outcomes as they are, under whichever harness stored them, so a
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
     refuses those). ``stale``: the modules among them a model completed under an earlier
-    harness, which today's refuses to re-admit -- the reason, not a model's failure."""
+    harness, which today's refuses to re-admit -- the reason, not a model's failure.
+    ``ceiling_usd`` (lead-orchestration LO23, spec szz/A6 and lead/LP-13): the most the
+    retry can cost, priced as its start prices it (``modules_asked``, the modules the start
+    asks, each a primary and its repairs at the analysis reservation, the fieldwork frozen);
+    ``null`` when that reservation is not configured, never 0."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -2095,10 +2108,17 @@ def run_analysis_retryable(
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
+    analysis_usd = _reservations(request).analysis_usd
+    # Priced on what the retry's start asks, not on the retryable modules alone: a run with
+    # no record of a module asks it too, so the count here is never below the start's.
+    modules = modules_asked(analysis)
     return {
         "run_id": run_id,
         "modules": [module.value for module in analysis.retryable],
         "stale": [module.value for module in analysis.stale],
+        "ceiling_usd": analysis_ceiling_usd(
+            modules, reservation_usd=analysis_usd, calls_per_module=1 + ANALYSIS_MAX_REPAIRS
+        ),
     }
 
 
@@ -2230,6 +2250,110 @@ def run_artifact(
         except (IntegrityError, ObjectNotFound) as exc:
             raise artifact_corrupt(session) from exc
     return artifact_response(artifact, payload)
+
+
+class ResultRowResponse(BaseModel):
+    """One row of a question: an admitted number, or a suppressed ref with why and no number."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_ref: str
+    #: ``pct``, ``mean``, ``top2box_pct``, ``n`` or ``effective_n``; ``answer`` is a share's.
+    metric: str | None
+    answer: str | None
+    #: ``None`` for a suppressed row and in a refused question: the number never leaves the API.
+    value: float | None
+    decimals: int | None
+    #: The 95 % interval, ``[lower, upper]``, of an admitted estimate; ``None`` otherwise.
+    interval: tuple[float, float] | None
+    #: ``REPORTABLE`` or ``INDICATIVE`` with a number, ``SUPPRESS`` without; ``None`` in a
+    #: refused question.
+    support: str | None
+    effective_n: float | None
+    #: Why a suppressed row has no number, as codes (``below_effective_n``, ``below_min_cell``,
+    #: ``no_interval``, … ``other``): the words name the numbers withheld.
+    reasons: list[str]
+
+
+class QuestionResultResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    text: str
+    rows: list[ResultRowResponse]
+    #: The evidence gate's violation codes when it refused every number of the question.
+    refused: list[str]
+
+
+class AdmittedResultsResponse(BaseModel):
+    """A run's results as admitted rows (evidence-integrity 6), internal only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    data_origin: str | None
+    internal_only: Literal[True] = True
+    questions: list[QuestionResultResponse]
+
+
+@router.get(
+    "/research/runs/{run_id}/results",
+    response_model=AdmittedResultsResponse,
+    summary="A research run's results, admitted rows only",
+)
+def run_results(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> AdmittedResultsResponse:
+    """Every question's numbers as the evidence gate admits them for the internal surface.
+
+    Needs ``VIEW_RESULTS``. Suppression is decided here: a suppressed row carries its reasons'
+    codes and no number, and a question the gate refuses carries the gate's codes and no number.
+    409 ``results_unavailable`` with the reason while the run has no verified aggregate or its
+    sources make no evidence table; 409 ``artifact_corrupt`` for a source that failed its hash.
+    """
+    try:
+        results = admitted_results(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except SourcesRefused as exc:
+        if exc.reason == "source_corrupt":
+            raise artifact_corrupt(session) from exc
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "results_unavailable",
+                "message": str(exc),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    return AdmittedResultsResponse(
+        run_id=results.run_id,
+        data_origin=results.data_origin.value if results.data_origin else None,
+        questions=[
+            QuestionResultResponse(
+                question_id=q.question_id,
+                text=q.text,
+                refused=list(q.refused),
+                rows=[
+                    ResultRowResponse(
+                        evidence_ref=r.evidence_ref,
+                        metric=r.metric,
+                        answer=r.answer,
+                        value=r.value,
+                        decimals=r.decimals,
+                        interval=(r.interval.lower, r.interval.upper) if r.interval else None,
+                        support=r.support,
+                        effective_n=r.effective_n,
+                        reasons=list(r.reasons),
+                    )
+                    for r in q.rows
+                ],
+            )
+            for q in results.questions
+        ],
+    )
 
 
 @router.get(
@@ -4072,12 +4196,18 @@ def start_agent_job(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
+    """With ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`` on, a questionnaire job's context carries the
+    Study's newest Design Research findings as external context, never evidence (QST13)."""
     with _agent_errors(session):
         # What one job can cost at most, for the study's confirmation threshold (LO15).
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
@@ -4226,6 +4356,7 @@ def rebuild_agent_result(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
@@ -4234,7 +4365,10 @@ def rebuild_agent_result(
     threshold as a start does (LO15)."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.rebuild(
             run_id,

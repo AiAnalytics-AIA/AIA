@@ -16,6 +16,7 @@ chunks:
   - "[ ] RD10. The report's open-answer coding chapter (W3, MVPQ-02): the codebook version, the coded counts as admitted claims with suppression named, and the method's limits"
   - "[ ] RD11. Deep Research context in the client report: accepted findings as cited context in its research-context chapter, labelled external, never respondent evidence (MVP-26)"
   - "[x] RD12. Export of a run's per-question tables as CSV and XLSX, every cell an admitted claim for the surface (D-41)"
+  - "[ ] RD13. A modelled row prints modelováno, never měřeno: the print grade follows the row's origin, whatever its basis or field_grades (OI-103; ADR 0024 amendment 2026-10-26, Q6 (a); W2, before the first client report is delivered)"
 ---
 # Report delivery: approval, export and the map snapshot
 
@@ -391,6 +392,18 @@ unless stated.
   them through `originWords`: "Fiktivní data", "Modelovaná data", "Neznámý původ dat" (an unknown
   origin, or none stated yet), a mixed run every kind. Tests: `CompleteReport.test.tsx` "the report
   card's origin (CR-5)".
+
+## RD13: the print grade follows the row's origin (ADR 0024, 2026-10-26)
+
+The product owner accepted ADR 0024 with its amendment in the Decision Review, 2026-10-26 (relayed by
+the PM coordinator); Q6 (a): "Fix: the print grade follows the row's origin". OI-103: `grade_of`
+grades a row by its claim basis and the composer's `field_grades`, never its origin
+(`packages/aia_core/src/aia_core/domain/report/evidence.py:59-65 @ 5d2ac5ac`), so a measured-basis
+claim on a population field can print *měřeno* beside the caption's *modelováno: AI respondenti z
+populace* (`pytest packages/aia_core/tests/test_report_docx_tables.py -k caption_numbers`). The
+smallest fix: a row whose origin is `MODELLED_AI_PANEL` grades `MODELLED` whatever its basis. W2,
+before RD3's first approval of a client report. Test: a ledger test that a modelled-panel row never
+grades `MEASURED`, with and without `field_grades`.
 
 ## Doc follow-up
 

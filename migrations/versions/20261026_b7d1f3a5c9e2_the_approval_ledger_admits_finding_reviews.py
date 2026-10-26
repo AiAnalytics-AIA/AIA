@@ -1,7 +1,7 @@
 """the approval ledger admits finding reviews
 
 Revision ID: b7d1f3a5c9e2
-Revises: 46d0bf6b5121
+Revises: 124dedc8f7b1
 Created: 2026-10-26 13:00:00+00:00
 
 ``approval_decisions.subject_type`` admits ``analysis_finding``: a person's accept, edit, drop or
@@ -19,7 +19,7 @@ from __future__ import annotations
 from alembic import op
 
 revision: str = "b7d1f3a5c9e2"
-down_revision: str | None = "46d0bf6b5121"
+down_revision: str | None = "124dedc8f7b1"
 branch_labels = None
 depends_on = None
 
@@ -42,6 +42,7 @@ _BEFORE = (
     "data_contract",
     "map_snapshot",
     "sociomap_unlock",
+    "lead_card",
 )
 _ADDED = ("analysis_finding",)
 
