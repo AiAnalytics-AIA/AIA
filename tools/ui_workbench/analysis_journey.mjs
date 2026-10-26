@@ -123,6 +123,13 @@ try {
       // A stored analysis answers in words; the cell shows that text, never just a state.
       if (v === "answered" || v === "indicative") assert(cells[i][1].length > 0 && cells[i][1] !== "—", `@${width}: row ${i + 1} shows no answer text`);
     });
+    // What waits on the person (blocked modules, modules without a finding) comes before the milestones (ANL4).
+    const waysFirst = await page.evaluate(() => {
+      const ways = document.querySelector("[data-analysis-ways-out]");
+      const milestones = document.querySelector("[data-analysis-milestones]");
+      return !ways || !milestones || !!(ways.compareDocumentPosition(milestones) & Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+    assert(waysFirst, `@${width}: the blocked note is below the milestones`);
     // A finished run's fieldwork reads done (F1).
     const fieldworkDone = await page.locator("[data-analysis-milestones] li").first().getAttribute("data-done");
     assert.equal(fieldworkDone, "true", `@${width}: Sběr dokončen reads čeká on a finished run`);
