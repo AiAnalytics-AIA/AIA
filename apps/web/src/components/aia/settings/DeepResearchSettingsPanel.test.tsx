@@ -680,6 +680,30 @@ describe("Deep Research settings", () => {
     expect(document.body.innerHTML).not.toMatch(/amber|yellow/);
   });
 
+  it("says what still waits in the open while it holds, and drops the line once nothing waits (review of #970)", async () => {
+    fakeApi();
+    const { unmount } = render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    expect(missing().length).toBeGreaterThan(0);
+    const note = document.querySelector("[data-live-note]") as HTMLElement;
+    expect(note).toBeTruthy();
+    expect(note.closest("[hidden]")).toBeNull();
+    unmount();
+    const none = new Response(JSON.stringify({ catalogue_version: "aia-dr-settings-catalogue-1", may_administer: true, missing_for_live: [], settings: CATALOGUE.map(inForce) }));
+    fakeApi(true, { "GET /api/v1/deep-research/settings": none });
+    render(<DeepResearchSettingsPanel people={people} />);
+    await row(RETENTION);
+    expect(document.querySelector("[data-live-note]")).toBeNull();
+  });
+
+  it("keeps the outline whole: a rule's detail headings are h3s under the card's h2, never h4s (review of #970)", async () => {
+    fakeApi();
+    render(<DeepResearchSettingsPanel people={people} />);
+    fireEvent.click(within(await row(RETENTION)).getByRole("button", { name: /^(Upravit|Historie)$/ }));
+    await waitFor(() => expect(document.getElementById(`dr-detail-${RETENTION}`)?.querySelector("h3")).toBeTruthy());
+    expect(document.querySelectorAll("h4")).toHaveLength(0);
+  });
+
   it("opens a rule's purpose from its ⓘ by keyboard or touch, not on hover alone", async () => {
     fakeApi();
     render(<DeepResearchSettingsPanel people={people} />);

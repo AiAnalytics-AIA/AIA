@@ -594,7 +594,7 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <div>
-            <h4 className="text-sm font-semibold">{t(`${D}.detail.versions`)}</h4>
+            <h3 className="text-sm font-semibold">{t(`${D}.detail.versions`)}</h3>
             {detail.versions.length ? (
               <ul className="mt-1 flex flex-col divide-y divide-border text-sm">
                 {detail.versions.map((v) => (
@@ -617,7 +617,7 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
             ) : null}
           </div>
           <div>
-            <h4 className="text-sm font-semibold">{t(`${D}.detail.history`)}</h4>
+            <h3 className="text-sm font-semibold">{t(`${D}.detail.history`)}</h3>
             {detail.history.length ? (
               <ul className="mt-1 flex flex-col gap-1 text-sm">
                 {detail.history.map((h) => (
@@ -722,7 +722,7 @@ function Propose({ detail, onSaved, onDirty }: { detail: DrSettingDetail; onSave
   return (
     <form data-dr-propose onSubmit={(e) => void submit(e)} className="flex min-w-0 flex-col gap-3">
       {leaveHref ? <InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
-      <h4 className="text-sm font-semibold">{t(`${D}.propose.title`)}</h4>
+      <h3 className="text-sm font-semibold">{t(`${D}.propose.title`)}</h3>
       <Field label={valueLabel}>
         {kind === "decision" ? (
           <Select disabled={busy} value={raw} onChange={(e) => setRaw(e.target.value)}>
