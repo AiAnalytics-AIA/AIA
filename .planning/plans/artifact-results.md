@@ -224,8 +224,12 @@ study with no run):
   Průběh's running or ended note; no spend reads Průběh's "AIA nyní nezjistí", never "not reported yet"
   to a caller who will never see a figure. Tests: `ResultsWorkspace.test.tsx` "reads what the run spent
   from its spend…", "names a call the run could not price…" and "says the cost cannot be told…" (all
-  fail on `382b418a`). The API half (its `actual_cost_usd` null while a paid call's outcome is unknown,
-  for every other reader: the Lead's cards, agent jobs, Deep Research) is its own fix PR.
+  fail on `382b418a`). The API half, fixed beside it: `actual_cost_usd` on a research run, an agent job and a Deep
+  Research run is the run's spend fold (`ActivitySpend.known_usd`: the total, null while a call's outcome
+  is unknown), not its attempts, which keep a completed step's exposure and never see a resolution. Tests:
+  `apps/api/tests/test_unknown_attempt_cost_api.py` (13, each fails on `a25d2435`) and
+  `test_spend_attribution.py` "a page of runs is read at once…". Open beside it (the spend fold's, not
+  this screen's): a priced tool call still out counts as held, not uncertain.
 
 Checked and sound (pass 3, 2026-10-22 @ `382b418a`): Přehled, AI analýza and Rešerše a zpráva at 1440 and
 390 px in light and dark, no page overflow (the tab row and the report's claim table scroll inside

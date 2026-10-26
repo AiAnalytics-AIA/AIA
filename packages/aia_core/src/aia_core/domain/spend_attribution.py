@@ -54,6 +54,7 @@ __all__ = [
     "period_bounds",
     "researcher_spend",
     "run_spend",
+    "runs_spend",
 ]
 
 #: Ledger subjects whose row names the run it let start in ``run_id`` (subject: the run, or
@@ -169,6 +170,8 @@ class UsageFact:
     study_id: str | None
     activity: SpendActivity
     occurred_at: datetime
+    #: The run the row is booked under, where the reader asked for it (:func:`runs_spend`).
+    run_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -186,6 +189,8 @@ class HoldFact:
     activity: SpendActivity
     in_ledger: bool
     settled_at: datetime | None
+    #: The run the hold is booked under, where the reader asked for it (:func:`runs_spend`).
+    run_id: str | None = None
 
 
 _RESOLUTIONS: Final = frozenset({"RESOLVED_BILLED", "RESOLVED_NOT_BILLED"})
@@ -207,6 +212,12 @@ class ActivitySpend:
     @property
     def total_usd(self) -> float:
         return self.model_usd + self.outside_ledger_usd
+
+    @property
+    def known_usd(self) -> float | None:
+        """The total, or ``None`` while a call's outcome is unknown: a total with one is not known
+        to the cent (F-R10), never read as the cost."""
+        return None if self.uncertain_calls else self.total_usd
 
 
 @dataclass(slots=True)
@@ -404,3 +415,19 @@ def near_limit_share(budget_usd: float, spent_usd: float, held_usd: float) -> fl
         return None
     share = (max(0.0, spent_usd) + max(0.0, held_usd)) / budget_usd
     return share if share + 1e-9 >= NEAR_LIMIT_SHARE else None
+
+
+def runs_spend(
+    run_ids: Iterable[str], usage: Iterable[UsageFact], holds: Iterable[HoldFact]
+) -> dict[str, ActivitySpend]:
+    """Each of ``run_ids``' spend, by :func:`run_spend`, from facts read for all of them at once
+    (each carrying its ``run_id``); a run with no facts has spent a known nothing."""
+    by_usage: dict[str, list[UsageFact]] = {r: [] for r in run_ids}
+    by_hold: dict[str, list[HoldFact]] = {r: [] for r in by_usage}
+    for fact in usage:
+        if fact.run_id in by_usage:
+            by_usage[fact.run_id].append(fact)
+    for hold in holds:
+        if hold.run_id in by_hold:
+            by_hold[hold.run_id].append(hold)
+    return {r: run_spend(by_usage[r], by_hold[r]) for r in by_usage}
