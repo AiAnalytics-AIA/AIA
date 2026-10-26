@@ -1301,6 +1301,10 @@ def new_lead_id() -> str:
     return _new_id("LEAD-")
 
 
+def new_hatch_id() -> str:
+    return _new_id("LHT-")
+
+
 def new_memory_id() -> str:
     return _new_id("LMM-")
 
