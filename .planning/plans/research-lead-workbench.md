@@ -2053,3 +2053,13 @@ Chunk 36 is ticked in the front matter (it arrived with #923).
   no remount across 1100 px; the frame's next when no dock claims it; the dock's action instead, one
   copy); `ResearchScreen.workbench.test.tsx` "the header's next is the stage's own forward action; no
   dock button inside the workbench". Each fails without the change.
+
+### Dimenze and Vzorek each read their own line on the navigator (2026-10-26, `fix/dimenze-own-lane`; for #945)
+
+#945 (DIM3b + SMP7) moves N to Vzorek. The navigator's `stageState` read the classic track's one persona
+step for both stages, so both showed "2 dimenze · N=300", and Dimenze stayed idle until N was set on
+Vzorek (reported by the Dimenze session). `designLane` now also gives `dimensions` (the chosen
+dimensions alone, done once one is chosen) and `sample` (`N=…`, else "N nezadáno"); `stageState` reads
+them for the two stages. The classic track's `persona` line is unchanged. Tests: `lane.test.ts` "gives
+the workbench's Dimenze its dimensions alone and Vzorek its N…"; `workbench-stages.test.ts` "read their
+state from the lane…". Each fails without the change.

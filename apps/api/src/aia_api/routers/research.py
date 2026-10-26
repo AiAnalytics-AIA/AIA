@@ -2531,11 +2531,18 @@ def _export(
     store: ArtifactStoreDep,
     *,
     data: bytes | None = None,
+    reembed_fonts: bool = False,
 ) -> Export:
     """The file a DOCX download of ``artifact`` is: the stored draft, or the approved version
-    stamped in its footers (D2). ``data``: its bytes, when the caller has just read them."""
+    stamped in its footers (D2). ``data``: its bytes, when the caller has just read them.
+    ``reembed_fonts``: an editor-saved version's brand fonts embedded again (RPT15)."""
     try:
-        return export_docx(research_artifacts(session, scope, store), artifact, data=data)
+        return export_docx(
+            research_artifacts(session, scope, store),
+            artifact,
+            data=data,
+            reembed_fonts=reembed_fonts,
+        )
     except ReviewUnrecorded as exc:
         raise _unrecorded(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:

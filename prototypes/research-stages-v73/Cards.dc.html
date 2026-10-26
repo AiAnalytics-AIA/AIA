@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Karty Vedoucího</title>
+<script src="./support.js"></script>
+<script src="/_blob/1aa4f92cccca03849efce6807a4b7c3c"></script>
+<link rel="stylesheet" href="../shared/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4b48ce;text-decoration:none}a:hover{color:#3f3cad;text-decoration:underline}
+</style>
+</helmet>
+<div class="aia wb" data-theme="{{theme}}" style="display: block">
+  <div style="max-width: 1320px; margin: 0 auto; padding: 36px 32px 64px; display: flex; flex-direction: column; gap: 24px">
+    <header class="between">
+      <div style="display: flex; flex-direction: column; gap: 6px; max-width: 860px">
+        <a href="Main.dc.html" class="cap row" style="gap: 4px"><i class="ph ph-caret-left s"></i>Přehled prototypu</a>
+        <h1 style="font-size: 28px; line-height: 34px; font-weight: 600">Karty Vedoucího</h1>
+        <p class="muted">Co jeden tah Vedoucího vrátí (LeadOutput): odpověď, pohled, návrhy změn, jedna žádost, navázání a změna jeho vlastních souborů. Nic z toho nic nemění samo. Jedna karta je jedna akce; plán je jedna akce s viditelnými kroky. Karty v tomto pořadí vyvolávají i jednotlivé kroky studie.</p>
+      </div>
+      <div class="row" style="flex-wrap: wrap">
+        <span class="row cap"><span class="stg done" aria-hidden="true"><i class="ph ph-check"></i></span>hotovo / platí</span>
+        <span class="row cap"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>potřebuje vás</span>
+        <span class="row cap"><span class="stg run" aria-hidden="true"></span>běží</span>
+        <span class="row cap"><span class="stg park" aria-hidden="true"><i class="ph ph-pause"></i></span>zaparkováno</span>
+        <span class="row cap"><span class="stg fault" aria-hidden="true"><i class="ph ph-x"></i></span>selhalo</span>
+        <span class="row cap"><span class="stg inert" aria-hidden="true"></span>čeká na předchozí</span>
+      </div>
+    </header>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: 20px; align-items: start">
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">1 · Odpověď, pohled a navázání</h2>
+        <div class="reply">
+          <span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span>
+          <div class="body">
+            <div class="who"><b>Vedoucí výzkumu</b>10:42 · četl revizi 7</div>
+            <p>Hypotéza H2 zatím nemá v dotazníku měření. Doporučuji přidat do sady „Značky ležáků“ výrok o moderním image, jinak ji analýza nezodpoví.</p>
+            <div class="views">
+              <button class="view" type="button"><i class="ph ph-arrow-square-out s"></i>Otevřít Dotazník</button>
+              <button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: H2 Moderní image</button>
+              <button class="view" type="button"><i class="ph ph-eye s"></i>Detail: sada Značky ležáků</button>
+            </div>
+            <div class="follow">
+              <button type="button"><i class="ph ph-caret-right s"></i>Navrhni ten výrok</button>
+              <button type="button"><i class="ph ph-caret-right s"></i>Které další hypotézy nemají měření?</button>
+            </div>
+          </div>
+        </div>
+        <p class="cap">Pohled (view) je nejvýš 3 kroky: otevřít krok, ukázat prvek, otevřít detail. Navázání jsou nejvýš 3 návrhy další zprávy.</p>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">2 · Návrhy změn v artefaktu</h2>
+        <div class="edits" role="region" aria-label="Návrhy Vedoucího">
+          <div class="eh">
+            <span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>
+            <div class="grow"><b>{{editsTitle}}</b> <span class="muted">· nic se nezmění, dokud je nepřijmete</span></div>
+            <sc-if value="{{editsOpen}}" hint-placeholder-val="{{ true }}">
+              <button class="btn quiet sm" type="button" onClick="{{dismissAll}}">Zahodit vše</button>
+              <button class="btn primary sm" type="button" onClick="{{acceptAll}}"><i class="ph ph-checks s"></i>Přijmout vše</button>
+            </sc-if>
+          </div>
+          <sc-for list="{{edits}}" as="e" hint-placeholder-count="3">
+            <div class="chg">
+              <div class="row"><b class="grow">{{e.where}}</b>
+                <sc-if value="{{e.open}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{e.dismiss}}">Zahodit</button><button class="btn sm" type="button" onClick="{{e.accept}}"><i class="ph ph-check s"></i>Přijmout</button></sc-if>
+                <sc-if value="{{e.decided}}" hint-placeholder-val="{{ false }}"><span class="{{e.pill}}">{{e.word}}</span><button class="btn quiet sm" type="button" onClick="{{e.undo}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></sc-if>
+              </div>
+              <span class="bef">{{e.before}}</span><span>{{e.after}}</span><span class="why">Proč: {{e.why}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p class="cap">Lišta nad artefaktem. „Přijmout vše“ zůstává (rozhodnutí 22. 10.). Přijetí je jedna transakce a zapíše se jako vaše úprava.</p>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">3 · Návrhová úloha (agent_job)</h2>
+        <div class="{{job.cls}}">
+          <div class="ch"><span class="ico"><i class="ph ph-sparkle"></i></span><div class="grow"><sc-if value="{{job.ask}}" hint-placeholder-val="{{ true }}"><div class="ey">Rozhodnutí patří vám</div></sc-if><div class="ttl">Návrh dotazníku</div></div><span class="{{job.pill}}"><span class="{{job.gl}}" aria-hidden="true"><i class="{{job.ic}}"></i></span>{{job.word}}</span></div>
+          <p class="why">Sestaví bloky a otázky z Návrhu, každou otázku propojí s výzkumnou otázkou. Vaše bloky nepřepíše: návrh přijímáte po položkách.</p>
+          <sc-if value="{{job.running}}" hint-placeholder-val="{{ false }}"><div class="prog"><i style="width: 62%"></i></div></sc-if>
+          <dl class="facts">
+            <dt>Pracovník</dt><dd>Návrh dotazníku · AI</dd>
+            <dt>Cena nejvýše</dt><dd class="key">0,60 USD<span class="cap">z rozpočtu studie · zbývá 38,80 USD</span></dd>
+            <dt>{{job.lastK}}</dt><dd>{{job.lastV}}</dd>
+          </dl>
+          <div class="acts">
+            <sc-if value="{{job.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{job.later}}">Teď ne</button><span class="grow"></span><button class="btn ai sm" type="button" onClick="{{job.go}}"><i class="ph ph-sparkle s"></i>Spustit úlohu</button></sc-if>
+            <sc-if value="{{job.done}}" hint-placeholder-val="{{ false }}"><span class="grow"></span><a class="btn primary sm" href="Questionnaire.dc.html">Posoudit návrh<i class="ph ph-caret-right s"></i></a></sc-if>
+            <sc-if value="{{job.kept}}" hint-placeholder-val="{{ false }}"><span class="cap grow">Ponecháno. Příkaz „Navrhni dotazník“ ji připraví znovu.</span><button class="btn quiet sm" type="button" onClick="{{job.reset}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></sc-if>
+          </div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">4 · Plán (LO4): jedna akce, každý krok vidět</h2>
+        <div class="{{plan.cls}}">
+          <div class="ch"><span class="ico"><i class="ph ph-list-checks"></i></span><div class="grow"><sc-if value="{{plan.ask}}" hint-placeholder-val="{{ true }}"><div class="ey">Rozhodnutí patří vám</div></sc-if><div class="ttl">Od návrhu ke sběru dat</div></div><span class="{{plan.pill}}">{{plan.word}}</span></div>
+          <p class="why">Čtyři kroky, schválené jednou. Zastaví se u každé brány, kterou plán nekryje: přijetí návrhu je vždy vaše.</p>
+          <ol class="steps">
+            <sc-for list="{{plan.steps}}" as="p" hint-placeholder-count="4">
+              <li class="stp"><span class="n">{{p.n}}</span><span class="{{p.gl}}" aria-hidden="true"><i class="{{p.ic}}"></i></span><span>{{p.t}}<span class="kk">{{p.k}}</span></span><span class="c">{{p.c}}</span></li>
+            </sc-for>
+          </ol>
+          <dl class="facts"><dt>Plán celkem</dt><dd class="key">nejvýše 15,60 USD<span class="cap">Překračuje práh potvrzení 10,00 USD: před schválením se zeptáme.</span></dd><dt>Peněženka</dt><dd>zbývá 40,00 USD z 40,00</dd></dl>
+          <div class="acts">
+            <sc-if value="{{plan.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{plan.later}}">Teď ne</button><span class="grow"></span><button class="btn primary sm" type="button" onClick="{{plan.approve}}"><i class="ph ph-check s"></i>Schválit plán</button></sc-if>
+            <sc-if value="{{plan.live}}" hint-placeholder-val="{{ false }}"><span class="cap grow">{{plan.note}}</span><sc-if value="{{plan.gate}}" hint-placeholder-val="{{ false }}"><a class="btn primary sm" href="Questionnaire.dc.html">Posoudit návrh</a></sc-if><button class="btn quiet sm" type="button" onClick="{{plan.reset}}"><i class="ph ph-arrow-counter-clockwise s"></i>Znovu</button></sc-if>
+          </div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">5 · Spuštění výzkumu (research_run)</h2>
+        <div class="{{run.cls}}">
+          <div class="ch"><span class="ico"><i class="ph ph-users"></i></span><div class="grow"><sc-if value="{{run.ask}}" hint-placeholder-val="{{ true }}"><div class="ey">Rozhodnutí patří vám</div></sc-if><div class="ttl">Běh AI respondentů</div></div><span class="{{run.pill}}"><span class="{{run.gl}}" aria-hidden="true"><i class="{{run.ic}}"></i></span>{{run.word}}</span></div>
+          <p class="why">Revize návrhu 7: 22 otázek, 1 sada o 7 značkách. Odpovídá 400 AI respondentů z populace.</p>
+          <sc-if value="{{run.running}}" hint-placeholder-val="{{ false }}"><div class="prog"><i class="d" style="width: 12%"></i><i style="width: 31%"></i></div></sc-if>
+          <dl class="facts">
+            <dt>Návrh</dt><dd><span class="row"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span>připraven ke spuštění</span></dd>
+            <dt>Kdo odpovídá</dt><dd>AI respondenti z populace · Česko, živá verze<span class="cap"><a href="Fieldwork.dc.html">Jiný zdroj zvolíte ve Sběru dat</a></span></dd>
+            <dt>Cena nejvýše</dt><dd class="key">14,60 USD<span class="cap">1 200 dotazů modelu a 16 volání analýzy; horní mez, ne odhad</span></dd>
+            <dt>{{run.lastK}}</dt><dd>{{run.lastV}}</dd>
+          </dl>
+          <div class="acts">
+            <sc-if value="{{run.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{run.later}}">Teď ne</button><span class="grow"></span><button class="btn primary sm" type="button" onClick="{{run.go}}"><i class="ph ph-play s"></i>Spustit výzkum</button></sc-if>
+            <sc-if value="{{run.started}}" hint-placeholder-val="{{ false }}"><a class="btn quiet sm" href="Fieldwork.dc.html">Průběh</a><span class="grow"></span><button class="btn quiet sm" type="button" onClick="{{run.reset}}"><i class="ph ph-arrow-counter-clockwise s"></i>Znovu</button></sc-if>
+          </div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">6 · Rešerše k návrhu a k výkladu</h2>
+        <div class="lc ai you">
+          <div class="ch"><span class="ico"><i class="ph ph-book-open"></i></span><div class="grow"><div class="ey">Rozhodnutí patří vám</div><div class="ttl">Rešerše k návrhu</div></div><span class="pill you">Čeká na schválení</span></div>
+          <p class="why">Veřejné zdroje k trhu ležáků 2024–2026: co už je známo o moderním image značek. Navrhne výroky do sady; nic nezapíše do návrhu.</p>
+          <dl class="facts"><dt>Zdroje</dt><dd>Wikipedie CZ/EN · veřejný web (Brave)</dd><dt>Cena nejvýše</dt><dd class="key">1,20 USD</dd><dt>Data</dt><dd>z návrhu jen veřejné části; důvěrné podklady klienta neodcházejí</dd></dl>
+          <div class="acts"><button class="btn quiet sm" type="button">Teď ne</button><span class="grow"></span><button class="btn ai sm" type="button"><i class="ph ph-sparkle s"></i>Spustit rešerši</button></div>
+        </div>
+        <div class="lc ai dec">
+          <div class="ch"><span class="ico"><i class="ph ph-book-open"></i></span><div class="grow"><div class="ttl">Rešerše k výkladu: Zlatá Hora × Budvar</div></div><span class="pill done"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span>Hotovo</span></div>
+          <dl class="facts"><dt>Přijatá zjištění</dt><dd>6 se zdrojem · 2 odmítnutá</dd><dt>Stálo</dt><dd>0,84 USD</dd></dl>
+          <div class="acts"><span class="grow"></span><a class="btn sm" href="Report.dc.html">Použít ve zprávě</a></div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">7 · Zaparkováno: čeká na člověka</h2>
+        <div class="lc" style="border-color: var(--pfill)">
+          <div class="ch"><span class="ico" style="background: var(--pwash); color: var(--park)"><i class="ph ph-pause"></i></span><div class="grow"><div class="ttl">Analýza · Hypotézy</div></div><span class="pill park">Čeká na rozpočet</span></div>
+          <p class="why">Rozpočet studie došel před posledním voláním. Krok drží výsledek, nic se neztratilo.</p>
+          <dl class="facts"><dt>Potřebuje</dt><dd class="key">0,90 USD</dd><dt>Zbývá ve studii</dt><dd>0,32 USD z 50,00</dd></dl>
+          <div class="acts"><span class="grow"></span><button class="btn primary sm" type="button"><i class="ph ph-wallet s"></i>Navýšit o 10 USD a pokračovat</button></div>
+        </div>
+        <p class="cap">Korálová: čeká na vaše navýšení. Navýšení musí být vyšší než dnešní rozpočet a karta řekne, kolik krok potřebuje (dnes BudgetLift.tsx:35,44 dovolí „navýšit“ na stejnou částku).</p>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">8 · Pamatovat si (jedno rozhodnutí)</h2>
+        <div class="{{mem.cls}}">
+          <div class="ch"><span class="ico"><i class="ph ph-bookmark-simple"></i></span><div class="grow"><sc-if value="{{mem.ask}}" hint-placeholder-val="{{ true }}"><div class="ey">Rozhodnutí patří vám</div></sc-if><div class="ttl">Zapamatovat pro všechnu vaši práci</div></div><span class="{{mem.pill}}">{{mem.word}}</span></div>
+          <ul style="padding: 0 12px 10px; display: flex; flex-direction: column; gap: 6px">
+            <li class="li"><i class="ph ph-user" style="margin-top: 2px"></i><div class="tx">Píšu výzkumné otázky jako otázky, ne jako cíle.<span class="cap">osobní poznámka · všichni klienti</span></div></li>
+            <li class="li"><i class="ph ph-users" style="margin-top: 2px"></i><div class="tx">Pivovar Zlatá Hora: ceny uvádět v Kč s DPH.<span class="cap">poznámka ke klientovi · jen Zlatá Hora</span></div></li>
+          </ul>
+          <div class="acts">
+            <sc-if value="{{mem.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{mem.no}}">Zahodit</button><span class="grow"></span><button class="btn primary sm" type="button" onClick="{{mem.yes}}"><i class="ph ph-bookmark-simple s"></i>Pamatovat si</button></sc-if>
+            <sc-if value="{{mem.decided}}" hint-placeholder-val="{{ false }}"><span class="grow"></span><button class="btn quiet sm" type="button" onClick="{{mem.reset}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></sc-if>
+          </div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 8px">
+        <h2 style="font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint)">9 · Váš příkaz (napsaný start)</h2>
+        <div class="me">Spusť výzkum</div>
+        <div class="lc you">
+          <div class="ch"><span class="ico"><i class="ph ph-play"></i></span><div class="grow"><div class="ey">Váš příkaz</div><div class="ttl">Spuštění výzkumu</div></div><span class="pill you">Čeká na schválení</span></div>
+          <p class="why">Rozpoznáno přesně podle textu, model se na nic neptal. Stejné kontroly jako ve Sběru dat.</p>
+          <div class="acts"><button class="btn quiet sm" type="button">Teď ne</button><span class="grow"></span><button class="btn primary sm" type="button"><i class="ph ph-play s"></i>Spustit výzkum</button></div>
+        </div>
+        <div class="cmds" aria-label="Příkazy"><button type="button">Analyzuj zadání</button><button type="button">Navrhni dotazník</button><button type="button">Navrhni audienci</button><button type="button">Navrhni dimenze</button><button type="button">Spusť výzkum</button><button type="button">Zopakuj analýzu</button></div>
+      </section>
+    </div>
+
+    <section class="sec">
+      <div class="sh"><h2>Registr akcí (LO21)</h2><span class="grow"></span><span class="cap">Karty vznikají z registru, ne z volného textu. Jedna řádka = jedna akce = jedna karta.</span></div>
+      <div class="sb" style="overflow-x: auto">
+        <table class="stbl">
+          <thead><tr><th>Akce</th><th>Karta</th><th>Kde vyvolá</th><th>Výsledek</th><th>Cena</th><th>Brána</th></tr></thead>
+          <tbody>
+            <sc-for list="{{registry}}" as="r" hint-placeholder-count="10"><tr><td><b>{{r.a}}</b></td><td>{{r.c}}</td><td>{{r.s}}</td><td>{{r.o}}</td><td>{{r.p}}</td><td>{{r.g}}</td></tr></sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <sc-if value="{{dialog}}" hint-placeholder-val="{{ false }}">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sd-h">
+      <div class="sdlg">
+        <div class="dh" id="sd-h">Spustit výzkum za nejvýše 14,60 USD?</div>
+        <div class="db">
+          <p>Částka dosahuje prahu potvrzení studie. Je to horní mez, ne odhad: platí se jen skutečně zodpovězené dotazy.</p>
+          <div class="money"><div>Cena nejvýše (strop běhu)</div><div class="kk">14,60 USD</div><div>Rozpočet studie: zbývá</div><div>38,80 USD z 50,00</div><div>Práh potvrzení</div><div>10,00 USD</div><div>Peněženka</div><div>nečerpá se</div></div>
+        </div>
+        <div class="df"><button class="btn quiet" type="button" onClick="{{closeDialog}}">Zrušit</button><button class="btn primary" type="button" onClick="{{confirmRun}}"><i class="ph ph-play s"></i>Spustit za nejvýše 14,60 USD</button></div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2600}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { ed: {}, job: 'ask', plan: 'ask', planStep: 0, run: 'ask', dialog: false, mem: 'ask' };
+  }
+  componentWillUnmount() { clearInterval(this._p); clearTimeout(this._j); clearTimeout(this._r); }
+  renderVals() {
+    const s = this.state;
+    const E = [
+      { k: 'h2', where: 'Návrh · hypotéza H2', before: 'Zlatá Hora je méně moderní.', after: 'Zlatá Hora je vnímána jako tradiční, ale méně moderní než Bernard.', why: 'Hypotéza musí říct, s čím se srovnává, aby ji šlo ověřit.' },
+      { k: 'rq3', where: 'Návrh · výzkumná otázka 3', before: 'Atributy prémiových ležáků', after: 'Které atributy odlišují prémiové ležáky od běžných?', why: 'Otázka místo tématu: analýza na ni pak odpoví větou.' },
+      { k: 'q7', where: 'Dotazník · Q7, znění', before: 'Jak hodnotíte značku?', after: 'Jak celkově hodnotíte značku {objekt}?', why: 'Sada potřebuje {objekt}, jinak se zeptá na všechny značky stejně.' }
+    ];
+    const open = E.filter((e) => !s.ed[e.k]).length;
+    const setEd = (patch) => this.setState({ ed: { ...s.ed, ...patch } });
+    const jobMap = {
+      ask: ['lc ai you', 'pill you', 'Čeká na schválení', 'stg sm you', 'ph ph-exclamation-mark', 'Výsledek', 'návrh na kroku Dotazník'],
+      run: ['lc ai', 'pill run', 'Běží', 'stg sm run', '', 'Právě', 'píše blok 3 z 5 · 0,22 USD zatím'],
+      done: ['lc ai', 'pill you', 'Návrh čeká na vás', 'stg sm you', 'ph ph-exclamation-mark', 'Stálo', '0,41 USD · návrh čeká na Dotazníku'],
+      kept: ['lc dec', 'pill', 'Ponecháno', 'stg sm inert', '', 'Výsledek', 'nic se nespustilo ani nezaplatilo']
+    }[s.job];
+    const PS = [
+      ['Návrh dotazníku', 'návrhová úloha · AI', 'až 0,60 USD'],
+      ['Přijetí návrhu dotazníku', 'brána: rozhoduje výzkumník', 'zdarma'],
+      ['Rešerše k návrhu', 'rešerše · veřejný web', 'až 1,20 USD'],
+      ['Sběr dat: 400 AI respondentů', 'běh výzkumu', 'až 13,80 USD']
+    ];
+    const planLive = s.plan === 'live';
+    const steps = PS.map((p, i) => {
+      let t = 'inert';
+      if (planLive) t = i < s.planStep ? 'done' : i === s.planStep ? (i === 1 ? 'you' : 'run') : 'inert';
+      const G = { inert: ['stg sm inert', ''], done: ['stg sm done', 'ph ph-check'], you: ['stg sm you', 'ph ph-exclamation-mark'], run: ['stg sm run', ''] }[t];
+      return { n: String(i + 1).padStart(2, '0'), t: p[0], k: p[1], c: p[2], gl: G[0], ic: G[1] };
+    });
+    const runMap = {
+      ask: ['lc you', 'pill you', 'Čeká na schválení', 'stg sm you', 'ph ph-exclamation-mark', 'Rozpočet studie', 'zbývá 38,80 USD z 50,00'],
+      run: ['lc', 'pill run', 'Běží', 'stg sm run', '', 'Právě', 'Sběr dat · odpovědělo 212 z 400 · utraceno 3,84 USD']
+    }[s.run === 'ask' ? 'ask' : 'run'];
+    const memMap = { ask: ['lc you', 'pill you', 'Čeká na vás'], yes: ['lc dec', 'pill done', 'Zapamatováno'], no: ['lc dec', 'pill', 'Zahozeno'] }[s.mem];
+    return {
+      theme: this.props.theme ?? 'light',
+      editsTitle: open ? 'Vedoucí navrhuje ' + open + (open === 1 ? ' změnu' : open < 5 ? ' změny' : ' změn') : 'Všechny návrhy rozhodnuty',
+      editsOpen: open > 0,
+      acceptAll: () => setEd(Object.fromEntries(E.filter((e) => !s.ed[e.k]).map((e) => [e.k, 'a']))),
+      dismissAll: () => setEd(Object.fromEntries(E.filter((e) => !s.ed[e.k]).map((e) => [e.k, 'd']))),
+      edits: E.map((e) => ({ ...e, open: !s.ed[e.k], decided: !!s.ed[e.k], word: s.ed[e.k] === 'a' ? 'Přijato' : 'Zahozeno', pill: s.ed[e.k] === 'a' ? 'pill done' : 'pill',
+        accept: () => setEd({ [e.k]: 'a' }), dismiss: () => setEd({ [e.k]: 'd' }), undo: () => setEd({ [e.k]: undefined }) })),
+      job: { cls: jobMap[0], pill: jobMap[1], word: jobMap[2], gl: jobMap[3], ic: jobMap[4], lastK: jobMap[5], lastV: jobMap[6],
+        ask: s.job === 'ask', running: s.job === 'run', done: s.job === 'done', kept: s.job === 'kept',
+        later: () => this.setState({ job: 'kept' }), reset: () => this.setState({ job: 'ask' }),
+        go: () => { this.setState({ job: 'run' }); clearTimeout(this._j); this._j = setTimeout(() => this.setState({ job: 'done' }), 2200); } },
+      plan: { cls: s.plan === 'ask' ? 'lc you' : 'lc', pill: s.plan === 'ask' ? 'pill you' : s.planStep === 1 ? 'pill you' : 'pill run', word: s.plan === 'ask' ? 'Čeká na schválení' : s.planStep === 1 ? 'Stojí u vaší brány' : 'Běží',
+        ask: s.plan === 'ask', live: planLive, gate: planLive && s.planStep === 1, steps,
+        note: s.planStep === 1 ? 'Krok 2 je brána, kterou plán nekryje. Pokračuje, až návrh přijmete.' : 'Krok 1 běží.',
+        later: () => this.setState({ plan: 'ask' }), reset: () => { clearTimeout(this._pp); this.setState({ plan: 'ask', planStep: 0 }); },
+        approve: () => { this.setState({ plan: 'live', planStep: 0 }); clearTimeout(this._pp); this._pp = setTimeout(() => this.setState({ planStep: 1 }), 1800); } },
+      run: { cls: runMap[0], pill: runMap[1], word: runMap[2], gl: runMap[3], ic: runMap[4], lastK: runMap[5], lastV: runMap[6],
+        ask: s.run === 'ask', running: s.run !== 'ask', started: s.run !== 'ask',
+        later: () => {}, go: () => this.setState({ dialog: true }), reset: () => this.setState({ run: 'ask' }) },
+      dialog: s.dialog, closeDialog: () => this.setState({ dialog: false }), confirmRun: () => this.setState({ dialog: false, run: 'run' }),
+      mem: { cls: memMap[0], pill: memMap[1], word: memMap[2], ask: s.mem === 'ask', decided: s.mem !== 'ask',
+        yes: () => this.setState({ mem: 'yes' }), no: () => this.setState({ mem: 'no' }), reset: () => this.setState({ mem: 'ask' }) },
+      registry: [
+        { a: 'Analyzuj zadání', c: 'Návrhová úloha', s: 'Zadání', o: 'návrh na Návrhu', p: 'rozpočet studie', g: 'přijetí návrhu' },
+        { a: 'Navrhni dotazník / Uprav dotazník', c: 'Návrhová úloha', s: 'Návrh, Dotazník', o: 'návrh na Dotazníku, po položkách', p: 'rozpočet studie', g: 'přijetí návrhu' },
+        { a: 'Navrhni audienci', c: 'Návrhová úloha', s: 'Cílová skupina', o: 'návrh popisu a filtrů', p: 'rozpočet studie', g: 'přijetí návrhu' },
+        { a: 'Navrhni dimenze', c: 'Návrhová úloha', s: 'Dimenze', o: 'návrh dimenzí', p: 'rozpočet studie', g: 'přijetí návrhu' },
+        { a: 'Zkontroluj návrh / Pomoz s návrhem', c: 'Rada', s: 'kterýkoli krok návrhu', o: 'odpověď ke čtení', p: 'rozpočet studie', g: '—' },
+        { a: 'Zeptej se na klientské znalosti', c: 'Rada', s: 'kterýkoli', o: 'odpověď se zdroji', p: 'rozpočet studie', g: '—' },
+        { a: 'Rešerše k návrhu', c: 'Rešerše', s: 'Dotazník', o: 'zapečetěná zjištění, návrhy výroků', p: 'rozpočet studie, schválené zdroje', g: 'přijetí po položkách' },
+        { a: 'Spusť výzkum', c: 'Spuštění výzkumu', s: 'Vzorek, Sběr dat', o: 'běh výzkumu', p: 'rozpočet studie, práh potvrzení', g: 'potvrzení ceny' },
+        { a: 'Zopakuj analýzu', c: 'Opakování analýzy', s: 'Analýza', o: 'nové kolo nad stejnými daty', p: 'rozpočet studie', g: 'potvrzení ceny' },
+        { a: 'Rešerše k výkladu', c: 'Rešerše', s: 'Sociomapa, Analýza', o: 'zjištění do zprávy', p: 'rozpočet studie', g: '„Použít ve zprávě“' },
+        { a: 'Plán (více kroků)', c: 'Plán', s: 'kterýkoli', o: 'kroky výše, v pořadí', p: 'Peněženka', g: 'každá brána, kterou plán nekryje' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -195,8 +195,9 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
       onClick={() => onChange(!checked)}
       className={`inline-flex items-center gap-2.5 rounded-sm text-left text-sm disabled:opacity-50 ${FOCUS}`}
     >
-      <span aria-hidden="true" className={`relative inline-block h-5 w-[34px] shrink-0 rounded-pill transition-colors ${checked ? "bg-signal" : "bg-border-strong"}`}>
-        <i className={`absolute top-0.5 block size-4 rounded-full bg-surface-raised shadow-sm transition-[left] ${checked ? "left-4" : "left-0.5"}`} />
+      {/* The look contract's switch, as components/ui/Switch draws it: 40 x 24. */}
+      <span aria-hidden="true" data-switch-track="" className={`relative inline-block h-6 w-10 shrink-0 rounded-pill border transition-colors duration-[var(--duration-confirm)] motion-reduce:transition-none ${checked ? "border-signal bg-signal" : "border-border-strong bg-surface-sunken"}`}>
+        <i className={`absolute top-[3px] block size-4 rounded-full transition-[left] duration-[var(--duration-confirm)] motion-reduce:transition-none ${checked ? "left-[19px] bg-on-signal" : "left-[3px] bg-ink-muted"}`} />
       </span>
       <span>{label}</span>
     </button>

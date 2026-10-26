@@ -1,8 +1,9 @@
 "use client";
 
 // AIA's interface primitives. Token utilities only (bg-surface, text-ink,
-// border-border-strong, rounded-sm/md = 2/4 px, rounded-control = 6 px for the
-// Studio v3 AI action): no raw colour, radius, shadow
+// border-border-strong; the look contract's radii: rounded-sm and rounded-control = 6 px for
+// controls and chips, rounded-md and rounded-card = 8 px for cards, rounded-panel = 10 px for
+// dialogs and menus, rounded-pill only for what is round): no raw colour, radius, shadow
 // or font here or in anything built on them. Components map a value to an
 // appearance; what the value is, the logic beside each screen decides.
 
@@ -102,7 +103,7 @@ export function WellItem({ id, actions, children }: { id?: string; actions?: Rea
 
 export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span data-tone={tone} className={`inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-xs leading-4 ${TONE[tone]}`}>
+    <span data-tone={tone} className={`inline-flex min-h-6 items-center gap-1 rounded-control border px-2 text-xs font-medium leading-4 ${TONE[tone]}`}>
       <Icon name={GLYPH[tone]} size={12} />
       {children}
     </span>
@@ -112,7 +113,7 @@ export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
 /** A plain label chip: a tag, a stage, a provider. No status meaning. */
 export function Tag({ children, icon }: { children: ReactNode; icon?: IconName }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-sm border border-border bg-surface px-1.5 py-0.5 text-xs leading-4 text-ink-muted">
+    <span className="inline-flex min-h-6 items-center gap-1 rounded-control border border-border bg-surface-raised px-2 text-xs font-medium leading-4 text-ink-muted">
       {icon ? <Icon name={icon} size={12} /> : null}
       {children}
     </span>
@@ -201,7 +202,7 @@ export function AskDialog({ ask, onDone }: { ask: Ask | null; onDone: () => void
         if (e.key === "Escape") e.stopPropagation();
       }}
       aria-labelledby={ask?.kind === "prompt" && ask.title ? `ask-${askKey(ask)}-title` : undefined}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-md border border-border-strong bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"
+      className="m-auto w-[min(35rem,calc(100vw-2rem))] rounded-panel bg-surface-overlay p-0 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-ink/10 backdrop:backdrop-blur-[2px]"
     >
       {/* Mounted per question (keyed by it), so a prompt starts from its own initial value
           even when it follows another without the dialog closing in between. */}
@@ -229,7 +230,7 @@ function AskForm({ ask, finish }: { ask: Ask; finish: (ok: boolean, value: strin
   return (
     <form
       method="dialog"
-      className="flex flex-col gap-4 p-5"
+      className="flex flex-col gap-4 p-6"
       onSubmit={(e) => {
         e.preventDefault();
         if (blank) {
