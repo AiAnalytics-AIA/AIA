@@ -687,6 +687,7 @@ class DeepResearchRuns:
             prices=prices,
             modes=modes,
             confirm_cost_usd=confirm_cost_usd,
+            focus=focus,
         )
 
     def start_interpretation(
@@ -732,8 +733,13 @@ class DeepResearchRuns:
         prices: DeepResearchPrices | None,
         modes: Collection[ResearchMode],
         confirm_cost_usd: float | None,
+        focus: Sequence[str] = (),
     ) -> StartedRun:
         """Enqueue a run of ``spec``, idempotently.
+
+        ``focus``: the research questions a Design Research spec was frozen to, recorded in the
+        run's metadata (only when given) so a retry freezes the same focus again; it is in the
+        spec's subjects already, and never part of the run's identity beyond them.
 
         Idempotent per spec: the same purpose, target, lineage and engine request start
         one run, so a double submission gets the run that exists; an approval in between
@@ -820,6 +826,7 @@ class DeepResearchRuns:
                 "preset": request.preset,
                 "channels": [c.value for c in request.channels],
                 "subjects": len(request.subjects),
+                **({"focus": list(focus)} if focus else {}),
                 "knowledge_items": len(request.knowledge.items),
                 "omitted_knowledge_ids": list(request.knowledge.omitted_ids),
                 "preset_table": PRESET_TABLE_VERSION,
@@ -1015,6 +1022,9 @@ class DeepResearchRuns:
                 else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
             ),
             title=record.title if record is not None else None,
+            # A focused run retries on the same research questions, never the whole design
+            # (review of #925): its focus is the one it recorded.
+            focus=[str(f) for f in metadata.get("focus") or ()],
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

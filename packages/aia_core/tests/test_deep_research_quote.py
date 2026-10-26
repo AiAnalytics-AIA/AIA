@@ -299,3 +299,23 @@ def test_an_unknown_focus_is_refused_by_name_before_anything_is_priced(
         _start(runs, revision, FREE, focus=["rq_nope"])
     session.flush()
     assert _counts(session) == before
+
+
+def test_a_focused_run_retries_on_the_same_research_questions(
+    session: Any, scoped: Any, runs: DeepResearchRuns
+) -> None:
+    """Review of #925 (Codex): a retry froze the whole design again, broadening the work and
+    its ceiling past what the person approved."""
+    revision, ids = _focus_revision(session, scoped)
+    started = _start(runs, revision, FREE, focus=[ids[1]])
+    original = runs.get(started.run_id)["metadata"]
+    assert original["focus"] == [ids[1]]
+    runs.cancel(started.run_id)
+    retried = runs.retry(started.run_id, prices=FREE, modes=LEAD)
+    meta = runs.get(retried.run_id)["metadata"]
+    assert meta["retry_of"] == started.run_id
+    assert (meta["focus"], meta["subjects"]) == ([ids[1]], 1)
+    assert meta["cost_ceiling_usd"] == original["cost_ceiling_usd"]
+    # A whole-design run records no focus, and retries as the whole design.
+    whole = _start(runs, revision, FREE)
+    assert "focus" not in runs.get(whole.run_id)["metadata"]
