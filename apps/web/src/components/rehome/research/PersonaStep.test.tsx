@@ -242,6 +242,16 @@ describe("Dimenze", () => {
     expect(status.textContent).toBe("Hledání nic nenašlo. Zkuste jiné slovo, nebo dimenzi požádejte níže.");
   });
 
+  it("finds a dimension typed without diacritics or with spaces around it (DIM-F13)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const search = await screen.findByLabelText("Hledat dimenzi");
+    const section = search.closest("section") as HTMLElement;
+    fireEvent.change(search, { target: { value: " duvera " } });
+    expect(within(section).getByRole("button", { name: /^Důvěra/ })).toBeTruthy();
+    expect(within(section).getByRole("status").textContent).toBe("");
+  });
+
   it("reviews new dimensions and proposes one to the client's knowledge, never approving it", async () => {
     aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena"] } });
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
@@ -310,6 +320,24 @@ describe("Dimenze", () => {
     expect(lastSave().content).toMatchObject({ requested_dimensions: [{ label: "Vztah k AI ve zdravotnictví", proposal_id: "KNP-1", status: "needs_evidence" }], persona_dimensions: { approved: [] } });
     noUnitCalls();
   }, 20_000);
+
+  it("refuses at the field a request the catalogue already names, sending nothing (DIM-F14)", async () => {
+    aiaStub(PLANNED);
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    const input = await screen.findByLabelText("Název dimenze");
+    const add = screen.getByRole("button", { name: "Přidat jako požadavek" });
+    for (const [typed, label] of [["  DUVERA ", "Důvěra"], ["vztah k  ai", "Vztah k AI"]]) {
+      fireEvent.change(input, { target: { value: typed } });
+      fireEvent.click(add);
+      const said = `Dimenze „${label}“ už v katalogu je: vyberte ji v seznamu nahoře.`;
+      expect(await screen.findByText(said)).toBeTruthy();
+      expect(input.getAttribute("aria-invalid")).toBe("true");
+      expect(document.getElementById(input.getAttribute("aria-describedby") ?? "")?.textContent).toBe(said);
+      expect(document.activeElement).toBe(input);
+    }
+    expect(posted(PROPOSALS_PATH)).toEqual([]);
+    noUnitCalls();
+  });
 
   it("a proposal AIA refuses is shown, and nothing is recorded", async () => {
     aiaStub(PLANNED, { [PROPOSALS_PATH]: () => new Response(JSON.stringify({ code: "forbidden", message: "Your role on this study does not permit proposing knowledge." }), { status: 403 }) });

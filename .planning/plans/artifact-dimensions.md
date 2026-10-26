@@ -202,6 +202,23 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   field, announced again on a second try and cleared by typing; the field is a form that Enter sends. Test:
   "requests a dimension the system does not have: refused when empty, proposed, recorded".
 
+- **DIM-F13 (fixed in its own PR).** The catalogue's search compared the query as typed, lower-cased only
+  (`research/persona.ts:75-78 @ 40b16d58`, filterDimPicker1789's port): "duvera" and "znacky" found nothing,
+  though Důvěra and Vztah ke značkám were in the list, and " duvera " found nothing for its spaces. Case and
+  diacritics now fold on both sides and the query's spaces drop (`searchFold`), a deliberate widening of the
+  classic's match, recorded in the module's header; its parity cases still hold. Test: "finds a dimension
+  typed without diacritics…".
+
+- **DIM-F14 (fixed in the same PR).** "Přidat jako požadavek" filed a knowledge proposal for any name
+  (`PersonaStep.tsx:183-191 @ 40b16d58`): "Důvěra", already in the catalogue, became a proposal. A name the
+  catalogue has, by label or id, case and spaces aside (diacritics kept: Řada is not Rada), is now the
+  field's own error naming the catalogue's dimension, and nothing is sent (`requestProblem`). A request the
+  project records already is not refused: the screen does not read whether its proposal still waits, and a
+  rejected one must stay askable; that the waiting list never learns of a decision is left for the
+  knowledge plan. If the client's dimensions have not loaded, the check sees the system's alone, as before.
+  The AI suggestion's request (classic, DIM5) is left as it is. Test: "refuses at the field a request the
+  catalogue already names…".
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
