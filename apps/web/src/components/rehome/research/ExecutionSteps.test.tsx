@@ -1209,7 +1209,7 @@ describe("Progress", () => {
     });
     api(listed(own));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
     // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
     expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
@@ -1217,6 +1217,10 @@ describe("Progress", () => {
     // The count belongs to the steps: their section says it, of the steps listed.
     const section = list.closest("section")!;
     expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
+    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
+    // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
+    expect(rows[4].textContent).toContain(`${t("research.exec.code.unknown")} (${t("research.exec.code.technical")}: future_step)`);
+    expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("says an analysis retry of an old-method run was refused, and starts the new run it names", async () => {
@@ -1326,7 +1330,7 @@ describe("Progress", () => {
   it("tags each step \"AI model\" or \"kód\" and makes it pointable by the Lead (artifact-fieldwork FLD2, FLD2b)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
     // AI respondents answer this run's fieldwork: a model step. The words are a researcher's, not the
     // gateway's name (research build spec sber/F6, prototype decision R11; FLD2b in #923).
@@ -1336,14 +1340,14 @@ describe("Progress", () => {
   it("tags fictional fixture fieldwork as code, never as AI", async () => {
     api(listed(COMPLETED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
   });
 
   it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
     api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
     expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
@@ -1353,7 +1357,7 @@ describe("Progress", () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
       expect.stringContaining("Sestavení dotazníku z návrhu"),
       expect.stringContaining("Kontrola připravenosti"),
@@ -1380,7 +1384,7 @@ describe("Progress", () => {
     const banner = await screen.findByText(/^Modelováno: AI respondenti z populace\. Odpovědi vytvořil model/);
     expect(banner.getAttribute("data-origin")).toBe("modelled");
     expect(screen.queryByText(t("research.exec.syntheticNotice"))).toBeNull();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     const kinds = steps.flatMap((li) => [...li.querySelectorAll("[data-origin-kind]")].map((e) => e.getAttribute("data-origin-kind")));
     expect(kinds).toEqual(["MODELLED", "MODELLED"]);
     expect(within(steps[1]).getByText("Modelovaná data")).toBeTruthy();
@@ -1404,7 +1408,7 @@ describe("Progress", () => {
       ],
     })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const orbs = [...list.querySelectorAll("li")].map((li) => {
       const orb = li.querySelector<HTMLElement>("[data-orb]");
       return [li.dataset.step, orb ? `${orb.dataset.orb}/${orb.dataset.orbInk}` : null];
@@ -1436,7 +1440,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
     // The finished and the waiting step keep their row; only the running one opens.
     expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
@@ -1470,7 +1474,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     await waitFor(() => expect(row.querySelector("[data-last-reported]")?.textContent).toBe(
       `${tv("research.exec.activity.lastReported", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
@@ -1495,7 +1499,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     const fill = await waitFor(() => {
       const el = row.querySelector<HTMLElement>("[data-quota-fill]");
@@ -1515,7 +1519,7 @@ describe("Progress", () => {
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector("[data-orb]")).toBeNull();
   });
 
@@ -1530,7 +1534,7 @@ describe("Progress", () => {
     ])));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(within(steps[2]).getByText(message)).toBeTruthy();
     expect(within(steps[0]).queryByText(message)).toBeNull();
   });

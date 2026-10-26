@@ -1368,6 +1368,9 @@ function SpendCard({ run }: { run: ResearchRun }) {
   );
 }
 
+/** The steps this client places on Průběh, in the pipeline's order (FLD2c). */
+const PIPELINE_ORDER: readonly string[] = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
+
 export function ProgressStep() {
   const frame = useFrame();
   const [run, refresh, setRun, error] = useRun();
@@ -1403,10 +1406,14 @@ export function ProgressStep() {
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
-  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after,
-  // none the run does not have. Parallel steps (the analysis modules) keep the pipeline's order.
-  const order = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
-  const listed = inOrder(run.steps.map((s) => s.node_key), order).map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after
+  // in the run's order, none the run does not have. Parallel steps (the analysis modules) keep the
+  // pipeline's order.
+  const rank = (key: string) => {
+    const at = PIPELINE_ORDER.indexOf(key);
+    return at < 0 ? PIPELINE_ORDER.length : at;
+  };
+  const listed = [...run.steps].sort((a, b) => rank(a.node_key) - rank(b.node_key));
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
   const state = runState(run);
@@ -1467,17 +1474,18 @@ export function ProgressStep() {
             <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
           </div>
         ) : null}
-        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
+        <ol className="flex flex-col gap-3" aria-label={t("research.exec.stepsTitle")}>
           {listed.map((s, index) => {
             const stepActivity = activityOf(activity, s.step_id);
             const last = lastReported(stepActivity, s.status, run.is_terminal);
             return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.step_id} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <span data-step-number className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
+                <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
-                <span className="font-medium">{stepLabel(s.node_key)}</span>
+                {/* A step this client has no name for keeps its key as a code, never as a name. */}
+                <span className="font-medium">{codedText(codeWords("research.exec.steps", s.node_key))}</span>
                 {researchStepWork(run, s.node_key) ? (
                   <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
                 ) : null}
