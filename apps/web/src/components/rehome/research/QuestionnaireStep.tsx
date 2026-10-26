@@ -885,7 +885,14 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
+          {/* B n, as the outline and the board number it (spec navrh/Q2), and its count. */}
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap rounded-md border border-border-strong px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-muted">
+              <span aria-hidden="true">{tv("research.questionnaire.blockHead", { n })}</span>
+              <span className="sr-only">{tv("research.questionnaire.untitledBlock", { n })}</span>
+            </span>
+            <span className="text-xs text-ink-muted">{countWords("questions", qs.length)}</span>
+          </div>
           {/* The block as a heading: navigable by a screen reader, and the title the Lead names it by (lead.ts titleOf). */}
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledBlock", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
@@ -1181,7 +1188,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
       <div className="flex flex-wrap items-start gap-3">
-        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
+        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet"><span aria-hidden="true">{tv("research.questionnaire.setBadge", { n })}</span><span className="sr-only">{tv("research.questionnaire.untitledSet", { n })}</span></span>
         <div className="min-w-[12rem] flex-1">
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
