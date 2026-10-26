@@ -161,7 +161,7 @@ export function czechDate(iso: string): string {
   return m ? `${Number(m[3])}. ${Number(m[2])}. ${m[1]}` : iso;
 }
 
-/** What the card knows of a stored version's review: the server's words for it. */
+/** What the pane knows of a stored version's review: the server's words for it. */
 export type VersionReview = {
   version: string;
   reviewState: string | null | undefined;
@@ -172,26 +172,9 @@ export type VersionReview = {
   storedAt?: string | null;
 };
 
-/**
- * The card's line about a version's review, as its file states it (research-integrity-report D2),
- * or ``null`` when the card cannot say what the file states: a version stored before the footer
- * layout (``stamped`` false: today's sentence about the stored draft applies), one whose layout the
- * server did not say, or an approval without its date. ``pdf``: whether this version's PDF states
- * it too (``pdfStatesReview``; the client report is DOCX only).
- */
-export function reviewLine(review: VersionReview, pdf: boolean): string | null {
-  if (review.stamped !== true) return null;
-  if (reviewStatus(review.reviewState) === "APPROVED") {
-    if (!review.approvedOn) return null;
-    const key = pdf ? "approved" : "approvedDocx";
-    return tv(`research.exec.report.review.${key}`, { date: czechDate(review.approvedOn), version: review.version });
-  }
-  return tv(`research.exec.report.review.${pdf ? "draft" : "draftDocx"}`, { version: review.version });
-}
-
-/** What a draft's file carries, as the approval question says it (D2, RPT3d): reviewLine's
- *  sentence without the version's id, which the question names by its time; null where the card
- *  would say nothing, and for an approved version, which is not asked about. */
+/** What a draft's file carries (D2), as the approval question and the doc bar say it (RPT3d, RPT3c):
+ *  without the version's id, which the question names by its time; null for a version whose layout
+ *  is not known to state it, and for an approved version, which the doc bar says on its own. */
 export function fileLine(review: VersionReview, pdf: boolean): string | null {
   if (review.stamped !== true || reviewStatus(review.reviewState) === "APPROVED") return null;
   return t(`research.exec.report.review.${pdf ? "fileDraft" : "fileDraftDocx"}`);
@@ -202,7 +185,7 @@ export function fileLine(review: VersionReview, pdf: boolean): string | null {
  * RPT3d): the document by name, when its version was stored and its format, what the approval records
  * and hands over, that it cannot be undone, and on the client report that its numbers are modelled.
  * A version is named by its time, never its id; a time the server did not give is left out, never
- * guessed. What the file will carry is the card's own line (reviewLine), never promised here.
+ * guessed. What the file will carry is fileLine's, never promised here.
  */
 export function approvalQuestion(
   name: string,

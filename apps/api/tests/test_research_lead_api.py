@@ -805,6 +805,42 @@ def test_the_generic_run_routes_never_serve_a_lead_turn(
     assert reviewer.get(lead_url(world)).json()["turns"] == []
 
 
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on(
+    researcher: TestClient,
+    world: Any,
+    app: FastAPI,
+    monkeypatch: pytest.MonkeyPatch,
+    switched_on: bool,
+) -> None:
+    """artifact-questionnaire QST13: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives the job a Lead card
+    approves the store, as the stage's start and the typed command have it; off, none."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    turn_id = _turn(researcher, world, app, job)
+    if switched_on:
+        monkeypatch.setattr(
+            app.state,
+            "settings",
+            app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+        )
+    approved = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    assert approved.status_code == 200, approved.text
+    assert len(given) == (1 if switched_on else 0)
+    assert all(store is not None for store in given)
+
+
 def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:

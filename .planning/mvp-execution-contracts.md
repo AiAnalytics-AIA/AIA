@@ -490,6 +490,22 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `prototype-build#PBA6` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
 | `prototype-build#PBA7` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
 | `research-lead-workbench#23` | W1 | re-waved 2026-10-26 from W4 (E22): the research build spec's job and run cards (`research-lead-workbench#37`, `#45`) stand on it (research chunk register §6.4; `prototype-build.md`) |
+| `system-prompts-settings#17` | W1 | ADR 0020 Q2 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "fix the stale reason word at once"; chunks 7 and 13 stay the named follow-ups (E19) |
+| `deep-research-web-search#60` | W1 | ADR 0022 Q1 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the test policies" |
+| `deep-research-web-search#61` | W1 | ADR 0022 Q2 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the setting" (OI-158); takes `budgets.run_limit.*` off the live-readiness list before chunk 1's sign-off approves it |
+| `client-knowledge-lifecycle#K13` | W1 | REV-5B-KNOWLEDGE (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): one `ai_proposal` ledger row per accept of an AI knowledge proposal, as `two-roles-human-ai-gates#5b.3` does for design proposals |
+| `report-delivery#RD13` | W2 | ADR 0024 Q6 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): the print grade follows the row's origin (OI-103); before RD3's first client-report approval (E15) |
+| `study-deletion#SD1` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD2` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD3` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD4` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD5` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; `study-data-lifecycle#SDL3`'s study half (SDL3's client half is SB5, #850) |
+| `study-deletion#SD6` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD7` | W1 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; REV-SD-F1-NOW (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Yes, a small fix PR now": the client half (OI-232) as its own PR ahead of the plan; the study half with SD5 |
+| `study-deletion#SD8` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD9` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD10` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD11` | W4 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; beside `study-data-lifecycle#SDL6` (E23, W4) |
 
 **Re-waves of 2026-10-26** (`prototype-build.md`, from the research chunk register §6): `working-copy-edit-ops#WCE8b` W2 → W1, because the per-item accept (`artifact-questionnaire#QST5`, W1) needs it; `research-lead-workbench#23` W4 → W1, out of E22; the money APIs in W1 (`lead-orchestration#LO23`, the ceiling before a start; `artifact-fieldwork#FLD10`, a parked step's `budget_need`); the composer's "+" menu as `research-lead-workbench#41`, W1, on today's contract, since `lead-orchestration#LO21b` is the prompt's action section only. `settings-redesign` is proposed core with every open chunk W1 (master §3.1), a proposal Nigel may change.
 

@@ -86,3 +86,9 @@ gateway, the per-world respondent run, F13 parity (OI-27).
 `population-operations.md` P3 (a run records its population binding) for S2; `client-knowledge-lifecycle.md`
 § Simulation (scenarios bound to knowledge versions, units and bounds before free-form
 scenarios) before any scenario is written from client material.
+
+## Disposition (MP3, 2026-10-26)
+
+**POST**, accepted (the product owner in the Decision Review, 2026-10-26, relayed by the PM
+coordinator: "Accept: POST"). Simulation is out of the MVP (`docs/migration/mvp-acceptance.md`); S0
+is recorded as deferred, and the plan stays `planned`.

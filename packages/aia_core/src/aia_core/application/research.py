@@ -14,7 +14,7 @@ provides.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -71,6 +71,7 @@ from ..domain.report.review import ReviewMark
 from ..domain.research import phase_of, retryable
 from ..domain.research_agents import (
     DESIGN_ACTIONS,
+    EXTERNAL_ACTIONS,
     HARNESS_VERSION,
     ProposalState,
     ResearchAction,
@@ -79,6 +80,7 @@ from ..domain.research_agents import (
     proposal_documents,
     proposal_state,
     snapshot_hash,
+    with_external_context,
 )
 from ..domain.research_design import (
     Readiness,
@@ -106,7 +108,7 @@ from ..domain.research_trace import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import Permission, StudyContext
-from ..domain.spend_attribution import ActivitySpend, run_spend
+from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
@@ -114,7 +116,6 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptResolver
-from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
@@ -135,6 +136,7 @@ from .proposal_accept import (
     proposal_baseline,
 )
 from .report_export import exports_stamped
+from .researcher_spend import run_spend_of
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -1623,14 +1625,7 @@ class ResearchRuns:
         """What one research run of this Study has spent, holds open and could not settle, by
         the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
         :meth:`get` found through this Study; the query is in the Study and organization too."""
-        self.scope.require(Permission.VIEW_COSTS)
-        usage, holds = run_spend_facts(
-            self.session,
-            organization_id=self.scope.organization_id,
-            study_id=self.scope.study_id,
-            run_id=str(run["run_id"]),
-        )
-        return run_spend(usage, holds)
+        return run_spend_of(self.session, self.scope, str(run["run_id"]))
 
     def runs(
         self,
@@ -1721,6 +1716,12 @@ class ResearchAgentJobs:
     #: (``AIA_AI_RESEARCH_RESERVATION_USD``, a primary and one repair). ``None`` is unknown,
     #: never zero: with a threshold set, a new job is then refused (:class:`CostCeilingUnknown`).
     reservation_usd: float | None = None
+    #: With the API's ``ai_analysis_external_context`` on, the store a questionnaire job reads the
+    #: Study's newest Design Research findings through (artifact-questionnaire QST13); ``None``
+    #: off, and the job's context is what it always was.
+    external_store: ArtifactStore | None = None
+    #: The layer as read once for this request: a probe and the start it precedes read one bundle.
+    _external_read: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def spend_gate(self, confirm_cost_usd: float | None) -> tuple[float, float] | None:
         """The confirmation threshold's one rule (``domain/money.py``) for one new job.
@@ -1784,6 +1785,8 @@ class ResearchAgentJobs:
             designs.content(design_revision_id),
             ClientKnowledgeRepository(self.session).for_study(self.scope),
         )
+        if self.external_store is not None and action in EXTERNAL_ACTIONS:
+            snapshot = self._with_external(snapshot, self.external_store)
         import hashlib
 
         digest = hashlib.sha256(
@@ -1865,6 +1868,31 @@ class ResearchAgentJobs:
                 confirmed_usd=confirm_cost_usd,
             )
         return started
+
+    def _with_external(self, snapshot: dict[str, Any], store: ArtifactStore) -> dict[str, Any]:
+        """The snapshot with the Study's newest finished Design Research run's verified public
+        findings, frozen into the job (and its fingerprint) at enqueue: the same pinned,
+        seal-verified reader the analysis and the Lead read through. No run adds nothing; a
+        bundle that does not read is said in the layer by its reason, as the Lead's is, and the
+        job is asked on the design and knowledge alone, never stopped."""
+        from .analysis_results import SourcesRefused, _external_context  # it imports this module
+
+        if "pin" not in self._external_read:
+            pin = ResearchRuns(self.session, self.scope).design_research_pin()
+            lines: tuple[str, ...] = ()
+            unavailable: str | None = None
+            if pin is not None:
+                try:
+                    lines = tuple(_external_context(self.session, self.scope, store, pin))
+                except SourcesRefused as exc:
+                    unavailable = exc.reason
+            self._external_read.update(pin=pin, lines=lines, unavailable=unavailable)
+        read = self._external_read
+        if read["pin"] is None:
+            return snapshot
+        return with_external_context(
+            snapshot, read["pin"], read["lines"], unavailable=read["unavailable"]
+        )
 
     def _pin(self, action: ResearchAction) -> PromptPin:
         """The prompt this job will run: the organization's active one."""

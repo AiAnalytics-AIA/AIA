@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from aia_core.domain.lead_artifacts import (
     ARTIFACTS,
     FIELDS,
+    FILTER_VALUES,
     LIVE_TARGETS,
     LIVE_VIEW_OPS,
     REPORT_SECTIONS,
@@ -64,6 +65,15 @@ def test_the_vocabularies_are_the_fixture_s() -> None:
     assert {s["id"]: s["state"] for s in FIXTURE["report_sections"]} == {
         k.value: v.value for k, v in REPORT_SECTIONS.items()
     }
+
+
+def test_the_filter_values_are_the_fixture_s() -> None:
+    """The values each display filter takes, the server's and the web's ``FILTER_VALUES`` alike."""
+    assert {
+        stage: {name: list(v) if v is not None else None for name, v in names.items()}
+        for stage, names in FILTER_VALUES.items()
+    } == FIXTURE["filter_values"]
+    assert {stage: list(names) for stage, names in FILTER_VALUES.items()} == FIXTURE["filters"]
 
 
 def test_live_view_ops_are_what_the_lead_s_output_carries() -> None:

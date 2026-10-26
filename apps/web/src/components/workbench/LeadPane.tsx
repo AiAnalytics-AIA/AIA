@@ -187,12 +187,19 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     return true;
   }, [studyId, read]);
 
+  // The message on its way to the server, so a stage's repeated ask is not sent twice.
+  const inFlight = useRef<string | null>(null);
   const message = useCallback(async (m: Queued) => {
-    // A save that fails does not hold the message: the Lead then reads the last stored revision.
-    await beforeMessage?.().catch(() => {});
-    if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
-    setQueued((q) => [m, ...q]);
-    setHeld(true);
+    inFlight.current = m.text;
+    try {
+      // A save that fails does not hold the message: the Lead then reads the last stored revision.
+      await beforeMessage?.().catch(() => {});
+      if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
+      setQueued((q) => [m, ...q]);
+      setHeld(true);
+    } finally {
+      inFlight.current = null;
+    }
   }, [post, beforeMessage]);
 
   // The Lead greets a study it has not spoken in for eight hours (the server keeps the rule).
@@ -220,9 +227,14 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     onClearFocus();
   };
   // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
+  // Only when the composer would take it (the workbench opens the pane, which says why when it
+  // would not), and once: the same ask on its way, waiting here or queued on the server is not
+  // asked again.
   const fromStage = (text: string) => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || !canEdit || !me?.hatched || !session?.available) return;
+    if (inFlight.current === t || queued.some((m) => m.text === t)) return;
+    if ((session.turns ?? []).some((turn) => turn.actor === "person" && turn.queued && turn.text === t)) return;
     if (sending || held) setQueued((q) => [...q, { text: t, stage, focus: null }]);
     else void message({ text: t, stage, focus: null });
   };

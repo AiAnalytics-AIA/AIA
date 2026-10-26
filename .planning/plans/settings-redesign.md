@@ -256,6 +256,14 @@ when the studies span more than one client, a filtered row hidden, never unmount
   drawn at once; readiness and error reporting still read their routes on the section's first visit.
 
 **F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.
+- F18, part 1 (built; the chunk stays open): every section is headed by lane A's `Hero`: its group as the
+  eyebrow, the title in the serif, the one lede (`data-tab-lede`), the chips and the technical switch
+  beside the eyebrow; the section is named by its title (`aria-label`, the hero's h1 carries no id).
+  Figures from the reads `ControlPanel` already makes (`lib/settings-hero.ts`): Přístup (active,
+  deactivated when any, Metodik, clients, the organization's self-approval) and Audit (the last seven
+  days, today, who changed, the newest change; a window a full page does not reach back over unknown).
+  Part 2: the pages whose panels read their own routes (Metodika, Systémové prompty, Deep Research, AI
+  běh, Studie, Stav systému, Správa dat) hand their figures up; a page draws none until then.
 
 **F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
   Built: `last_seen_at` on `MemberResponse`, for an OWNER or ADMIN (null otherwise, as the Lead's seal

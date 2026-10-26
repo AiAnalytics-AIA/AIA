@@ -112,15 +112,15 @@ export function sourceChosenOnRun(readiness: ReadinessBody): boolean {
 
 /**
  * Where a readiness check is fixed, by the server's check id (domain/research_design.py
- * `readiness`, support_forecast.py, research_trace.py): n and the support it gives on Dimenze, the
- * audience on Cílová skupina, the selected dimensions on Dimenze, everything the questionnaire
+ * `readiness`, support_forecast.py, research_trace.py): n and the support it gives on Vzorek itself,
+ * where n is set (SMP7), the audience on Cílová skupina, the selected dimensions on Dimenze, everything the questionnaire
  * decides on Dotazník. A check this client does not know names no stage: it is shown, never sent
  * to a guessed one.
  */
 const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
-  sample_size: "dimensions",
-  support_forecast: "dimensions",
-  sociomap_support: "dimensions",
+  sample_size: "sample",
+  support_forecast: "sample",
+  sociomap_support: "sample",
   dimensions: "dimensions",
   audience: "audience",
   panel_sample: "audience",

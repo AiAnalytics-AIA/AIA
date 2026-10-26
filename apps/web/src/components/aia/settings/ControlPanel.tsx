@@ -39,6 +39,8 @@ import {
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import { nearLimitTally } from "@/lib/researcher-spend";
+import { type Figure, accessFigures, auditFigures } from "@/lib/settings-hero";
+import { Hero } from "../Hero";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
 import { DeepResearchSettingsPanel } from "./DeepResearchSettingsPanel";
@@ -52,7 +54,7 @@ import { SystemPanel } from "./SystemPanel";
 import { SETTING_HELP } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
 import { useSection } from "./SectionMenu";
-import { SECTIONS, type SectionId, sectionLinkClick } from "./sections";
+import { SECTIONS, SECTION_GROUPS, type SectionId, sectionLinkClick } from "./sections";
 import { InfoButton } from "./InfoButton";
 import { FOCUS } from "../../ui/parts";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
@@ -97,6 +99,9 @@ export type Panel = {
   audit: Part<AuditEntry[]> | null;
   /** Who you are: null while the page that holds the read has not finished it. */
   me: Part<Me> | null;
+  /** When these reads were made (ms): the audit's hero windows count back from it, so a reload the
+   *  next Prague day counts the next day, as the audit table does (Codex on #983). */
+  readAt: number;
 };
 
 async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -132,7 +137,7 @@ async function loadPanel(readMe: boolean): Promise<Panel> {
     doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
     readMe ? part(workspace.me()) : Promise.resolve(null),
   ]);
-  return { doc, runtime, members, clients, studies, levels, audit, me };
+  return { doc, runtime, members, clients, studies, levels, audit, me, readAt: Date.now() };
 }
 
 // ---------------------------------------------------------------- atoms
@@ -828,6 +833,22 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     );
   };
   const methodologist = panel.me?.ok ? panel.me.data.methodologist === true : null;
+  // Each page's hero figures (F18), from the reads this page already made; a page whose figures its own
+  // panel reads draws none until that panel hands them up.
+  const H = `${P}.hero`;
+  const figuresOf = (tab: TabId): Figure[] | undefined => {
+    if (tab === "access") return accessFigures(panel.members, panel.clients, panel.levels, {
+      active: t(`${H}.access.active`), deactivated: t(`${H}.access.deactivated`), methodologist: t(`${H}.access.methodologist`),
+      clients: t(`${H}.access.clients`), selfApproval: t(`${H}.access.selfApproval`), allowed: t(`${H}.access.allowed`),
+      forbidden: t(`${H}.access.forbidden`), byDefault: t(`${H}.access.byDefault`),
+    });
+    // The audit is read only for an administrator: anyone else sees no figures, not unknown ones.
+    if (tab === "audit") return panel.audit === null ? undefined : auditFigures(panel.audit, AUDIT_PAGE, panel.readAt, {
+      inPeriod: t(`${H}.audit.inPeriod`), today: t(`${H}.audit.today`), people: t(`${H}.audit.people`), last: t(`${H}.audit.last`),
+    }, (iso) => relative(iso) ?? iso);
+    return undefined;
+  };
+  const groupOf = (tab: TabId) => SECTION_GROUPS.find((g) => (g.sections as readonly string[]).includes(tab))?.key;
   return (
     <TechnicalProvider on={technical}>
     <div data-settings-workspace className="flex min-w-0 flex-1 flex-col [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
@@ -835,20 +856,21 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       <div className="min-w-0 flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
         const chips = headChips(tab, doc.may_administer, methodologist);
         return (
-        <section key={tab} id={`panel-${tab}`} data-section={tab} aria-labelledby={`section-${tab}-h`} hidden={active !== tab} className="flex flex-col gap-4">
-          <header data-tab-header className="mb-0.5 flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 id={`section-${tab}-h`} className="font-serif text-2xl font-semibold leading-[30px]">{t(`${P}.tabs.${tab}`)}</h1>
-              <p data-tab-lede className="mt-1.5 max-w-[720px] text-sm leading-6 text-ink-muted">{t(`${P}.lede.${tab}`)}</p>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
+        <section key={tab} id={`panel-${tab}`} data-section={tab} aria-label={t(`${P}.tabs.${tab}`)} hidden={active !== tab} className="flex flex-col gap-4">
+          {/* The page's hero (prototype-build PBA4, settings-redesign F18): its group as the eyebrow, the
+              title in the serif, one lede, the figures its reads give; the chips and the technical switch
+              at the top beside the eyebrow, as the prototype puts its edit chip. */}
+          <header data-tab-header className="mb-0.5">
+            <Hero eyebrow={groupOf(tab) ? t(`${P}.menu.groups.${groupOf(tab)}`) : undefined} title={t(`${P}.tabs.${tab}`)}
+              lede={<span data-tab-lede>{t(`${P}.lede.${tab}`)}</span>} figures={figuresOf(tab)} aside={
+            <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
               {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
                 <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
               ))}</div> : null}
               {/* One switch for the whole page's technical detail (the product owner, 2026-10-13): the
                   prototype has no place for it, so it sits at the end of the head, beside the chips. */}
-              {active === tab ? <div data-technical-switch><TechnicalSwitch on={technical} onChange={setTechnical} /></div> : null}
-            </div>
+              {active === tab ? <span data-technical-switch><TechnicalSwitch on={technical} onChange={setTechnical} /></span> : null}
+            </span>} />
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
         </section>

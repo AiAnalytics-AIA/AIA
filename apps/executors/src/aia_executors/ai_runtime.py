@@ -12,7 +12,8 @@ key                                     meaning
 ======================================  ============================================
 AIA_AI_ROUTE_ID                         the route id (ADR 0010: ``bedrock-eu-primary``)
 AIA_BEDROCK_REGION                      the source region, ``eu-*`` (``eu-central-1``)
-AIA_BEDROCK_MODEL_ID                    the pinned EU inference profile id, ``eu.…:N``
+AIA_BEDROCK_MODEL_ID                    the EU inference profile id, ``eu.…`` (``:N``
+                                        when the id has one), never an alias
 AIA_AI_POLICY_VERSION                   the model policy version recorded on every call
 AIA_BEDROCK_INPUT_USD_PER_MTOK          price, from the Bedrock pricing page, dated
 AIA_BEDROCK_OUTPUT_USD_PER_MTOK         price, from the Bedrock pricing page, dated
@@ -32,11 +33,27 @@ AIA_BEDROCK_TIMEOUT_SECONDS             optional read timeout, default 300
 AIA_BEDROCK_INVOCATION_TARGET           optional; an application inference profile ARN
                                         over AIA_BEDROCK_MODEL_ID, in AIA_BEDROCK_REGION:
                                         what the calls go through; unset, the id itself
+AIA_BEDROCK_STRUCTURED_OUTPUT           optional, the route model's request profile:
+                                        ``forced_tool`` or ``auto_tool``
+AIA_BEDROCK_THINKING                    with it: ``budget`` or ``adaptive``
+AIA_BEDROCK_ACCEPTS_SAMPLING            with it: ``true`` or ``false`` (a temperature)
+AIA_BEDROCK_EFFORT                      optional, adaptive only: low, medium, high,
+                                        xhigh or max
+AIA_AI_FIELDWORK_EFFORT                 optional, adaptive only: ``SIMULATION``'s effort
+AIA_AI_RESEARCH_EFFORT                  optional, adaptive only: ``RESEARCH_REASONING``'s,
+                                        ``CRITIC``'s and ``RESEARCH_LEAD``'s (research
+                                        agents, analysis and Deep Research's agents)
 AIA_AI_RESEARCH_LEAD_ENABLED            optional, off: the Research Lead's turns (ADR 0026)
 AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS  a Lead turn's output cap
 AIA_AI_RESEARCH_LEAD_RESERVATION_USD    held per turn: a primary and one repair at the
                                         Lead's window and output cap; unset, turns park
 ======================================  ============================================
+
+**The route model's request profile** (sonnet-5-5-switch). The three profile keys are set
+together or not at all: unset, the route model is sent exactly what it was sent before
+profiles existed (a forced tool, a thinking budget where a caller sets one, a temperature);
+set, it is sent the shape they declare, and one missing or invalid stops the worker by name.
+An effort, the route's or a capability's, is only for ``AIA_BEDROCK_THINKING=adaptive``.
 
 The Research Lead's own model (ADR 0026 amendment, 2026-10-19) is read only when
 ``AIA_AI_RESEARCH_LEAD_MODEL_ID`` is set; then every key below without "optional" is
@@ -93,6 +110,7 @@ from typing import Any, Final
 from aia_core.application.model_gateway import GovernedModelGateway
 from aia_core.domain.ai_material import MaterialApproval
 from aia_core.domain.ai_models import (
+    DEFAULT_REQUEST_PROFILE,
     Effort,
     ModelCapability,
     ModelConfigError,
@@ -285,12 +303,12 @@ def _pinned_eu_profile(model_id: str) -> bool:
     return model_id.startswith("eu.") and not model_id.endswith("latest") and ":" in model_id
 
 
-def _lead_eu_profile(model_id: str) -> bool:
-    """The Lead model's id: an EU inference profile, never a floating alias.
+def _eu_profile(model_id: str) -> bool:
+    """The route model's and the Lead model's id: an EU inference profile, never an alias.
 
     The current model family's Bedrock ids carry no version suffix (``eu.anthropic.<model>``):
-    the id itself names one fixed snapshot, so requiring ``:N`` as the route's model does would
-    refuse the model the owner chose. An alias (``…latest``) is still refused.
+    the id itself names one fixed snapshot, so requiring ``:N`` would refuse the model the owner
+    chose. An older id keeps its suffix, as Bedrock lists it. An alias (``…latest``) is refused.
     """
     model_id = model_id.strip()
     return (
@@ -333,7 +351,7 @@ class LeadModelSettings:
     invocation_target: str | None = None
 
     def __post_init__(self) -> None:
-        if not _lead_eu_profile(self.model_id):
+        if not _eu_profile(self.model_id):
             raise AIRuntimeConfigError(
                 f"AIA_AI_RESEARCH_LEAD_MODEL_ID={self.model_id!r} must be an EU inference "
                 "profile id (eu.…, with its version suffix when the model has one), never a "
@@ -429,8 +447,7 @@ class LeadModelSettings:
             pricing["cache_read_usd_per_mtok"] = self.cache_read_usd_per_mtok
         if self.cache_write_usd_per_mtok is not None:
             pricing["cache_write_usd_per_mtok"] = self.cache_write_usd_per_mtok
-        profile = self.request_profile()
-        entry: dict[str, Any] = {
+        return {
             "provider": Provider.AWS_BEDROCK.value,
             "model": self.model_id,
             "capabilities": [ModelCapability.STUDY_LEAD.value],
@@ -438,18 +455,96 @@ class LeadModelSettings:
             "context_window_tokens": self.context_window_tokens,
             "pricing": pricing,
             "supports_strict_schema": False,
-            "structured_output": profile.structured_output.value,
-            "thinking": profile.thinking.value,
-            "accepts_sampling": profile.accepts_sampling,
+            **_profile_entry(self.request_profile()),
         }
-        if profile.effort is not None:
-            entry["effort"] = profile.effort.value
-        return entry
 
 
-def _choice[E: StrEnum](env: Mapping[str, str], key: str, kind: type[E]) -> E:
+def _profile_entry(profile: RequestProfile) -> dict[str, Any]:
+    """A request profile as a catalog entry writes it, flat."""
+    entry: dict[str, Any] = {
+        "structured_output": profile.structured_output.value,
+        "thinking": profile.thinking.value,
+        "accepts_sampling": profile.accepts_sampling,
+    }
+    if profile.effort is not None:
+        entry["effort"] = profile.effort.value
+    return entry
+
+
+_ROUTE_PROFILE_KEYS: Final = (
+    "AIA_BEDROCK_STRUCTURED_OUTPUT",
+    "AIA_BEDROCK_THINKING",
+    "AIA_BEDROCK_ACCEPTS_SAMPLING",
+    "AIA_BEDROCK_EFFORT",
+)
+_ROUTE_PROFILE_ON: Final = "the route model's request profile is declared"
+
+
+def _route_profile(env: Mapping[str, str]) -> RequestProfile:
+    """The route model's request profile; the default when none of its keys is set.
+
+    Set, it is declared whole: the structured output, the thinking and whether sampling is
+    taken, each required, because a half-declared profile would send a newer model a shape it
+    refuses with a 400. The effort stays optional and is for an adaptive model only.
+    """
+    if not any((env.get(key) or "").strip() for key in _ROUTE_PROFILE_KEYS):
+        return DEFAULT_REQUEST_PROFILE
+    sampling_key = "AIA_BEDROCK_ACCEPTS_SAMPLING"
+    if not (env.get(sampling_key) or "").strip():
+        raise AIRuntimeConfigError(f"{sampling_key} is required when {_ROUTE_PROFILE_ON}")
+    effort_raw = (env.get("AIA_BEDROCK_EFFORT") or "").strip()
+    structured = _choice(
+        env, "AIA_BEDROCK_STRUCTURED_OUTPUT", StructuredOutput, when=_ROUTE_PROFILE_ON
+    )
+    thinking = _choice(env, "AIA_BEDROCK_THINKING", ThinkingMode, when=_ROUTE_PROFILE_ON)
+    effort = _choice(env, "AIA_BEDROCK_EFFORT", Effort) if effort_raw else None
+    try:
+        return RequestProfile(
+            structured_output=structured,
+            thinking=thinking,
+            accepts_sampling=_flag(env, sampling_key, required=True),
+            effort=effort,
+        )
+    except ModelConfigError as exc:
+        raise AIRuntimeConfigError(
+            f"AIA_BEDROCK_EFFORT is set, but {exc} (AIA_BEDROCK_THINKING=adaptive)"
+        ) from exc
+
+
+#: A capability's own effort on the route's model, by key.
+_CAPABILITY_EFFORT_KEYS: Final = (
+    ("AIA_AI_FIELDWORK_EFFORT", (ModelCapability.SIMULATION,)),
+    (
+        "AIA_AI_RESEARCH_EFFORT",
+        (ModelCapability.RESEARCH_REASONING, ModelCapability.CRITIC, ModelCapability.RESEARCH_LEAD),
+    ),
+)
+
+
+def _capability_efforts(
+    env: Mapping[str, str], profile: RequestProfile
+) -> dict[ModelCapability, Effort]:
+    """Each capability's own effort; only for an adaptive route model, else the key stops the
+    worker by name."""
+    efforts: dict[ModelCapability, Effort] = {}
+    for key, capabilities in _CAPABILITY_EFFORT_KEYS:
+        if not (env.get(key) or "").strip():
+            continue
+        effort = _choice(env, key, Effort)
+        if profile.thinking is not ThinkingMode.ADAPTIVE:
+            raise AIRuntimeConfigError(
+                f"{key} is set, but an effort is declared only for an adaptive-thinking model "
+                "(AIA_BEDROCK_THINKING=adaptive)"
+            )
+        efforts.update(dict.fromkeys(capabilities, effort))
+    return efforts
+
+
+def _choice[E: StrEnum](
+    env: Mapping[str, str], key: str, kind: type[E], *, when: str = _LEAD_MODEL_ON
+) -> E:
     """One of ``kind``'s values, required; anything else names the key and what it takes."""
-    raw = _text(env, key, when=_LEAD_MODEL_ON)
+    raw = _text(env, key, when=when)
     try:
         return kind(raw.lower())
     except ValueError as exc:
@@ -535,6 +630,13 @@ class AIRuntimeSettings:
     #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): ``advisory`` on develop only,
     #: where a refusal made solely because of a data class is recorded and passed.
     data_class_gates: DataClassGates = DataClassGates.ENFORCE
+    #: ``AIA_BEDROCK_STRUCTURED_OUTPUT`` / ``_THINKING`` / ``_ACCEPTS_SAMPLING`` / ``_EFFORT``
+    #: (sonnet-5-5-switch): what the route model's requests may carry. The default is the shape
+    #: every request had before, so a route without the keys sends the same bytes.
+    request_profile: RequestProfile = DEFAULT_REQUEST_PROFILE
+    #: ``AIA_AI_FIELDWORK_EFFORT`` / ``AIA_AI_RESEARCH_EFFORT``: an adaptive route model's effort
+    #: for one capability, in place of the route's (``ModelPolicy.efforts``).
+    capability_efforts: Mapping[ModelCapability, Effort] = dataclasses.field(default_factory=dict)
 
     def invocations(self, light: LightModelSettings | None = None) -> dict[str, ModelInvocation]:
         """Each model this composition calls, by identity, with what its calls are sent through.
@@ -595,11 +697,13 @@ class AIRuntimeSettings:
                 f"AIA_BEDROCK_REGION={region!r} is not an EU region (ADR 0008, ADR 0010)"
             )
         model_id = _text(env, "AIA_BEDROCK_MODEL_ID")
-        if not model_id.startswith("eu.") or model_id.endswith("latest") or ":" not in model_id:
+        if not _eu_profile(model_id):
             raise AIRuntimeConfigError(
                 f"AIA_BEDROCK_MODEL_ID={model_id!r} must be an EU inference profile id pinned "
-                "to a version (eu.…:N), never a floating alias (ADR 0010)"
+                "to one snapshot (eu.…, with its version suffix when the model has one), never "
+                "a floating alias (ADR 0010)"
             )
+        profile = _route_profile(env)
         classes: set[DataClass] = set()
         for part in (env.get("AIA_AI_ROUTE_APPROVED_FOR") or "").split(","):
             name = part.strip()
@@ -711,6 +815,8 @@ class AIRuntimeSettings:
             lead_model=LeadModelSettings.from_env(env),
             invocation_target=(env.get("AIA_BEDROCK_INVOCATION_TARGET") or "").strip() or None,
             data_class_gates=class_gates,
+            request_profile=profile,
+            capability_efforts=_capability_efforts(env, profile),
         )
         if settings.lead_model is not None and settings.lead_model.model_id == model_id:
             raise AIRuntimeConfigError(
@@ -818,19 +924,20 @@ class AIRuntimeSettings:
             capabilities.append(ModelCapability.CRITIC)
         if self.client_source_proposals_enabled:
             capabilities.append(ModelCapability.FAST_EXTRACTION)
-        models: list[dict[str, Any]] = [
-            {
-                "provider": Provider.AWS_BEDROCK.value,
-                "model": self.model_id,
-                # Only what runs today. ADR 0010 lets all generative capabilities
-                # resolve to this model; binding them waits for their agents.
-                "capabilities": [c.value for c in capabilities],
-                "max_output_tokens": self.max_output_tokens,
-                "context_window_tokens": self.context_window_tokens,
-                "pricing": pricing,
-                "supports_strict_schema": False,
-            }
-        ]
+        route_model: dict[str, Any] = {
+            "provider": Provider.AWS_BEDROCK.value,
+            "model": self.model_id,
+            # Only what runs today. ADR 0010 lets all generative capabilities
+            # resolve to this model; binding them waits for their agents.
+            "capabilities": [c.value for c in capabilities],
+            "max_output_tokens": self.max_output_tokens,
+            "context_window_tokens": self.context_window_tokens,
+            "pricing": pricing,
+            "supports_strict_schema": False,
+        }
+        if not self.request_profile.is_default:
+            route_model.update(_profile_entry(self.request_profile))
+        models: list[dict[str, Any]] = [route_model]
         bindings: dict[str, Any] = {c.value: binding for c in capabilities}
         if light is not None:
             models.append(light.catalog_entry())
@@ -845,16 +952,20 @@ class AIRuntimeSettings:
             # The same route, as the light model: the Lead's own policy entry, never a
             # second route.
             bindings[ModelCapability.STUDY_LEAD.value] = {**binding, "model": lead.model_id}
-        return {
-            "models": models,
-            "policies": [
-                {
-                    "version": self.policy_version,
-                    "allowed_providers": [Provider.AWS_BEDROCK.value],
-                    "bindings": bindings,
-                }
-            ],
+        policy: dict[str, Any] = {
+            "version": self.policy_version,
+            "allowed_providers": [Provider.AWS_BEDROCK.value],
+            "bindings": bindings,
         }
+        # Only for what this route binds: an effort for a capability nothing runs is no setting.
+        efforts = {
+            c.value: e.value
+            for c, e in self.capability_efforts.items()
+            if c.value in bindings and bindings[c.value]["model"] == self.model_id
+        }
+        if efforts:
+            policy["efforts"] = efforts
+        return {"models": models, "policies": [policy]}
 
     def route(self) -> ProviderRoute:
         """ADR 0010's route, with the facts a person verified, and nothing assumed."""
