@@ -372,6 +372,54 @@ def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
     assert not _valid(_output(view=[{"op": "show_diff", "stage": "nowhere"}])).ok
 
 
+def test_the_lead_selects_on_the_map_only_what_the_person_pointed_at() -> None:
+    """The context holds no map, so a select names the person's own pointing or nothing; a stage
+    whose contract has no select (a questionnaire question) is refused by name."""
+    pointed = "object:set1/fio"
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "select", "target": pointed},
+                {"op": "select", "target": "pair:set1/fio~air"},
+                {"op": "select", "target": "question:q3"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, INSPECT_COPY, focus=pointed)
+    assert [op.model_dump() for op in grounded.view] == [{"op": "select", "target": pointed}]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "select", "reason": "not_in_context"},
+        {"index": 2, "op": "select", "reason": "not_selectable"},
+    ]
+    # With no pointing, nothing on the map can be selected.
+    assert ground_view(output, INSPECT_COPY)[0].view == []
+    assert not _valid(_output(view=[{"op": "select", "target": "object set1"}])).ok
+
+
+def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
+    """A display filter by Sociomapa's own names and values; a battery is the run's to name, and
+    the context holds no map."""
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "filter", "name": "view", "value": "relief"},
+                {"op": "filter", "name": "view", "value": "sideways"},
+                {"op": "filter", "name": "battery", "value": "set1"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, INSPECT_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "filter", "name": "view", "value": "relief"}
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "filter", "reason": "unknown_value"},
+        {"index": 2, "op": "filter", "reason": "not_in_context"},
+    ]
+    assert not _valid(_output(view=[{"op": "filter", "name": "threshold", "value": "0.3"}])).ok
+    assert not _valid(_output(view=[{"op": "filter", "name": "view", "value": "a b"}])).ok
+
+
 def test_bounds_on_lists_reply_and_follow() -> None:
     assert not _valid(_output(view=[{"op": "open_stage", "stage": "brief"}] * 4)).ok
     assert not _valid(_output(edits=[VALID_EDITS[0]] * 13)).ok

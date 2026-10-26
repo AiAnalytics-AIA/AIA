@@ -1929,3 +1929,11 @@ the first, rebuilt on develop (the held branch predates #809 and conflicted in 1
 - **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
   `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
   sent at once on Sociomapa). Each fails without the change.
+- **The server half, prepared** (`feature/lead-map-view-server`, on the web half; local until the
+  listener lands). `MapFilter` / `SelectItem` join `ViewOp` under harness `aia-research-lead-6`;
+  `select_refusal` (the person's own pointing only, `not_selectable` where the contract has no select)
+  and `filter_refusal` (`unknown_value`; a battery `not_in_context`); the executor passes the turn's
+  focus to `ground_view`; `filter_values` in `contract.json`, `FILTER_VALUES` on the server held to it
+  and to SOC1's; `select` and `filter` live on both sides; the scripted Lead runs both. Before it
+  opens, its filter values are trimmed to what the listener applies (`labels` and `hide_weak` out
+  unless the panel offers them).

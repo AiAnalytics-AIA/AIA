@@ -254,6 +254,23 @@ def test_a_scripted_message_asking_for_the_changes_shows_this_stage_s_waiting_on
     assert len(scripted_lead_output(frozen).view) == 1
 
 
+def test_a_scripted_message_on_the_map_sets_its_view_and_selects_what_was_pointed_at() -> None:
+    """research-lead-workbench 14: the journey needs the scripted Lead to run filter and select."""
+    from aia_executors.workbench import scripted_lead_output
+
+    frozen = _frozen("Ukaž mapu jako reliéf", CONTENT)
+    frozen["layers"][0]["focus"] = {"id": "object:set1/fio", "label": "Fio"}
+    shown = scripted_lead_output(frozen)
+    assert [v.model_dump() for v in shown.view][1:] == [
+        {"op": "filter", "name": "view", "value": "relief"},
+        {"op": "select", "target": "object:set1/fio"},
+    ]
+    # Pointing elsewhere selects nothing; without the word, no filter.
+    frozen["layers"][0]["focus"] = {"id": "question:q1", "label": "Q1"}
+    frozen["layers"][0]["message"] = "Kde jsme?"
+    assert len(scripted_lead_output(frozen).view) == 1
+
+
 def test_a_scripted_message_asking_for_a_detail_opens_the_first_research_question() -> None:
     """research-lead-workbench 14: the journey needs the scripted Lead to run ``inspect``."""
     from aia_core.domain.item_ids import list_ids, with_item_ids
