@@ -236,7 +236,7 @@ it("opens Výsledky's data where the stage names no view, never an overview", ()
   expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).toBeNull();
 });
 
-it("keeps the report card with Zpráva and the map's camera across stages in the workbench", () => {
+it("keeps the report card with Zpráva and a hidden view's own state across stages in the workbench", () => {
   stage("#maps");
   expect(screen.getByText("Karta zprávy").closest("[hidden]")).not.toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "Úhel 0" }));
@@ -266,7 +266,8 @@ it("keeps its tabs and overview in the classic layout", () => {
 
 it("says a stage's view is not in this run, never the data under its name", () => {
   stage("#analysis");
-  expect(screen.getByRole("note").textContent).toBe("Tento běh tuto část výsledků nemá.");
+  // Absent or withheld from this person (a 403 hides an artifact): said without claiming which.
+  expect(screen.getByRole("note").textContent).toBe("Tuto část výsledků tu nelze zobrazit: běh ji nemá, nebo vám není přístupná.");
   expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).not.toBeNull();
 });
 
@@ -308,4 +309,18 @@ it("tells only the stage's own view it is on screen in the workbench, so a hidde
   render(<ResultsWorkspace tabs={false} run={run} panels={panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }))} progressHref={null} notice={null} />);
   const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
   expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
+});
+
+it("keeps the comparability caveat on the numbers in sight in the workbench, not under Technické údaje", () => {
+  const edited = { ...run, methodology: {
+    sociomap: { name: "aia-sociomap-5", stored: false }, support: { name: "aia-support-1", stored: false },
+    aggregation: { name: "aia-aggregate-1", stored: false }, response: { name: "aia-response-1+e1", stored: true },
+    response_deviates: true,
+  } } as ResearchRun;
+  window.history.replaceState(null, "", "/results#data");
+  render(<ResultsWorkspace tabs={false} run={edited} panels={panels} progressHref={null} notice={null} />);
+  const notes = document.querySelectorAll("[data-response-deviation]");
+  expect(notes).toHaveLength(1);
+  expect(notes[0].closest("details")).toBeNull();
+  expect(notes[0].textContent).toContain("je nelze přímo srovnávat s výsledky 18.6.6");
 });

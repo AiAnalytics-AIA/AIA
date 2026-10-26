@@ -92,6 +92,13 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
     event.preventDefault(); select(keys[next]);
     document.getElementById(`${prefix}-tab-${keys[next]}`)?.focus();
   };
+  // Whether the numbers compare with 18.6.6's: a caveat on the results themselves, so it stays in sight
+  // (in the run's card, or beside the workbench's view), never under Technické údaje.
+  const deviation = run.methodology?.response_deviates === true ? (
+    <p data-response-deviation className="mt-2 max-w-3xl text-xs text-ink-muted">Odpovědi AI respondentů vznikly jiným procesem odpovědi než v 18.6.6 (<span className="font-mono">{run.methodology.response?.name}</span>), takže je nelze přímo srovnávat s výsledky 18.6.6.</p>
+  ) : run.methodology?.response_deviates === null ? (
+    <p data-response-deviation className="mt-2 max-w-3xl text-xs text-ink-muted">Proces odpovědi tohoto běhu nelze přečíst; zda se liší od 18.6.6, nelze říct.</p>
+  ) : null;
   // The run's record: its state, revision, spend, methods and ids. The classic layout shows it in the
   // run's card; the workbench under Technické údaje (RES9).
   const record = (
@@ -107,11 +114,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
               : <span key={label}>{label} <span className="font-mono text-xs font-semibold">{m.name}</span> <span className="text-xs text-ink-muted">({m.stored ? "uložená verze" : "z kódu"})</span></span>)}
         </dd></div> : null}
       </dl>
-      {run.methodology?.response_deviates === true ? (
-        <p data-response-deviation className="mt-2 max-w-3xl text-xs text-ink-muted">Odpovědi AI respondentů vznikly jiným procesem odpovědi než v 18.6.6 (<span className="font-mono">{run.methodology.response?.name}</span>), takže je nelze přímo srovnávat s výsledky 18.6.6.</p>
-      ) : run.methodology?.response_deviates === null ? (
-        <p data-response-deviation className="mt-2 max-w-3xl text-xs text-ink-muted">Proces odpovědi tohoto běhu nelze přečíst; zda se liší od 18.6.6, nelze říct.</p>
-      ) : null}
+      {withTabs ? deviation : null}
       <details className="mt-3 text-xs text-ink-muted"><summary className="cursor-pointer">Identifikace a původ běhu</summary><p className="mt-2 break-all">{run.run_id} · {run.design_revision_id}</p></details>
     </>
   );
@@ -153,6 +156,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
       <div className="space-y-4"><PanelShown.Provider value={active === panel.id}>{panel.content}</PanelShown.Provider></div>
     </section>)}
     </> : <>
+    {deviation}
     {/* The view the stage names, pinned as the tabs were, Zpráva's with the study's report card; the
         others mounted and hidden. */}
     <div ref={tabs} data-results-stage className="scroll-mt-4 flex flex-col gap-5">
@@ -161,7 +165,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
         <p className="mb-4 text-sm leading-6 text-ink-muted">{panel.description}</p>
         <div className="space-y-4"><PanelShown.Provider value={active === panel.id}>{panel.content}</PanelShown.Provider></div>
       </section>)}
-      {panels.some((panel) => panel.id === active) ? null : <p role="note" className="text-sm">Tento běh tuto část výsledků nemá.</p>}
+      {panels.some((panel) => panel.id === active) ? null : <p role="note" className="text-sm">Tuto část výsledků tu nelze zobrazit: běh ji nemá, nebo vám není přístupná.</p>}
     </div>
     {progressHref ? <Link href={progressHref} className="self-start text-sm font-medium">Průběh tohoto běhu →</Link> : null}
     <details className="rounded-md border border-border bg-surface-raised p-3 text-sm"><summary className="cursor-pointer font-semibold">Technické údaje</summary><div className="mt-3">{record}</div></details>

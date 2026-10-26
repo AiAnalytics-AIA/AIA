@@ -232,8 +232,11 @@ await view("data", "Data");
 await page.locator("table").first().waitFor({ state: "attached", timeout: 60000 }).catch(() => fail("Results show no aggregate table"));
 await view("maps", "Sociomapy");
 // The workbench's #maps is the Sociomapa stage (artifact-sociomap SOC9): each map says its method's status.
-const mapStatus = workbench ? /Metodika schválena pro zprávy|Jen pro výzkumníky studie/ : TEXT.internal;
-await page.getByText(mapStatus).first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
+// The map's own chip, matched whole: the experimental card's longer sentence also names it.
+const mapStatus = workbench
+  ? page.getByText("Metodika schválena pro zprávy", { exact: true }).or(page.getByText("Jen pro výzkumníky studie", { exact: true }))
+  : page.getByText(TEXT.internal);
+await mapStatus.first().waitFor({ timeout: 60000 }).catch(() => fail("the Sociomap does not say which methods are approved"));
 ok("Results: fictional notice, aggregate tables, Sociomap INTERNAL_ONLY");
 await shot("3-results");
 
