@@ -182,6 +182,21 @@ The order of the remaining chunks (the coordinator, 2026-10-25, after the produc
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
 (decided that day), F15, F16, F8b, then F9-F12 built against prototype v56-v58 (Systémové prompty, AI běh, Přístup compacted). The list above is the chunks' ids, not their order.
 
+**F11. AI běh** (built). Two flat cards as prototype v99 draws them: Trasa modelu as tiles (the master
+switch, the provider, the region with its city and its EU reading, the model, the approved classes as
+A / B / C chips each named for a reader) and Činnosti as four columns (Činnost with its description,
+the reason it stands as it does and its last answered call; Stav; Přepínač; Model), grouped as chunk 7
+grouped them; what powers AI, the credential and who changes the route behind the route's ⓘ, what
+"zapnuto" means behind the activities' ⓘ, and a link to the smoke test on Stav systému. Not drawn,
+because nothing serves them: the route's id, "U poskytovatele" (retention, training) and a Třídy column
+per activity. Reference's part of this chunk is F17's: its categories stay as chips in Stav systému.
+  Review of #961: with /config unreadable the on / off counts are not drawn ("zapnuto: nezjištěno"),
+  never "0 zapnuto"; London (eu-west-2) and Zurich (eu-central-2) read "oblast mimo EU". **Finding
+  (hypothesis until reproduced against a worker):** the worker accepts any `eu-` region as EU
+  residency, London and Zurich included (`apps/executors/src/aia_executors/ai_runtime.py:593 @ c5f1d11d`,
+  `packages/aia_core/src/aia_core/domain/model_invocation.py:98 @ c5f1d11d`); the smallest fix is an
+  explicit EU region set in `domain/residency.py` that both read, with a test that eu-west-2 is refused.
+
 ## Fidelity to the prototype v51 (the product owner, 2026-10-23)
 "Implement the settings pages just as we designed them; the current deploy is far from it."
 The tab-by-tab report (22 ranked gaps, side-by-side shots at 1440 and 390) is the fidelity
@@ -199,21 +214,6 @@ develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded 
 A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
-
-**F11. AI běh** (built). Two flat cards as prototype v99 draws them: Trasa modelu as tiles (the master
-switch, the provider, the region with its city and its EU reading, the model, the approved classes as
-A / B / C chips each named for a reader) and Činnosti as four columns (Činnost with its description,
-the reason it stands as it does and its last answered call; Stav; Přepínač; Model), grouped as chunk 7
-grouped them; what powers AI, the credential and who changes the route behind the route's ⓘ, what
-"zapnuto" means behind the activities' ⓘ, and a link to the smoke test on Stav systému. Not drawn,
-because nothing serves them: the route's id, "U poskytovatele" (retention, training) and a Třídy column
-per activity. Reference's part of this chunk is F17's: its categories stay as chips in Stav systému.
-  Review of #961: with /config unreadable the on / off counts are not drawn ("zapnuto: nezjištěno"),
-  never "0 zapnuto"; London (eu-west-2) and Zurich (eu-central-2) read "oblast mimo EU". **Finding
-  (hypothesis until reproduced against a worker):** the worker accepts any `eu-` region as EU
-  residency, London and Zurich included (`apps/executors/src/aia_executors/ai_runtime.py:593 @ c5f1d11d`,
-  `packages/aia_core/src/aia_core/domain/model_invocation.py:98 @ c5f1d11d`); the smallest fix is an
-  explicit EU region set in `domain/residency.py` that both read, with a test that eu-west-2 is refused.
 
 **F16. Studie a rozpočty compacted** (built). The studies card as prototype v52 draws it: its title the
 tab's h2 with the count and an ⓘ; each money column's ⓘ a real button (it was an aria-hidden title,
