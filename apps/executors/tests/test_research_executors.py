@@ -16,6 +16,11 @@ from typing import Any
 import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
+from aia_core.domain.fieldwork_events import (
+    FIELDWORK_EVENTS_VERSION,
+    PAYLOAD_KEYS,
+    FieldworkEvent,
+)
 from aia_core.domain.workflow import (
     RUNTIME_UNAVAILABLE_REASON,
     FailureClass,
@@ -26,6 +31,7 @@ from aia_core.infrastructure.artifact_repository import ArtifactNotFound, Artifa
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from aia_executors import workbench
 from aia_executors.registry import registry_for
 from aia_executors.research import (
@@ -118,6 +124,32 @@ def _run(world: Any, run_id: str) -> dict[str, Any]:
 
 def _steps(run: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {s["node_key"]: s for s in run["steps"]}
+
+
+def test_fictional_fieldwork_reports_its_progress_as_the_ai_runtime_does(
+    world: Any,
+    store: InMemoryArtifactStore,
+    build: BuildIdentity,
+    worker_with: Callable[[dict[str, StepExecutor]], Worker],
+) -> None:
+    """artifact-fieldwork FLD12 (sber G7): the workbench's fictional fieldwork writes the same
+    fieldwork_progress the AI runtime writes, every ten respondents and at the last, so Průběh's
+    disc can be shown without a paid run. Nothing is sent or replayed: both counts are zero."""
+    run_id = _start(world, FieldworkSource.SYNTHETIC_FIXTURE)
+    worker = worker_with(workbench.workbench_registry_for(store=store, build=build))
+    assert _drain(worker) == ["completed"] * 5
+    fieldwork = _steps(_run(world, run_id))["run"]
+    with world.sessions() as session:
+        events = WorkflowRepository(session, world.lead_scope(session)).events(
+            run_id, step_id=fieldwork["step_id"]
+        )
+    reports = [e["payload"] for e in events if e["message"] == FieldworkEvent.PROGRESS]
+    assert [r["respondents"] for r in reports] == [10, 20, 30, 40, 50, 60]
+    for report in reports:
+        assert set(report) == set(PAYLOAD_KEYS[FieldworkEvent.PROGRESS])
+        assert report["of"] == 60 and report["sent"] == 0 and report["replayed"] == 0
+        assert report["cells"] is None
+        assert report["version"] == FIELDWORK_EVENTS_VERSION
 
 
 def test_production_compiles_checks_and_parks_at_fieldwork(

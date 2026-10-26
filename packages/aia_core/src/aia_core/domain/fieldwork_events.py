@@ -49,6 +49,9 @@ __all__ = [
 
 FIELDWORK_EVENTS_VERSION: Final = "aia-fieldwork-events-2"
 HEARTBEAT_SECONDS: Final = 30.0
+#: How many respondents a fieldwork_progress reports at most, by default: the AI runtime's batch and
+#: the fictional source's (artifact-fieldwork FLD12), so Průběh reads both alike.
+PROGRESS_EVERY: Final = 10
 
 
 class FieldworkEvent(StrEnum):
