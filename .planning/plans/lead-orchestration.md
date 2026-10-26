@@ -1540,6 +1540,26 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
     it, and on Výsledky already `useRun` follows the announcement. Test: `ExecutionSteps.test.tsx`
     "turns to the research run an Interpretation card's review interprets" (fails without it).
 
+- **Stand-in review of #1006.**
+  - *A card on someone else's run kept their attribution* (P2). A card's spec is the stage's by
+    design, so a card often finds a run another person started; its row named the run
+    `agent_run_id`, which `charged_to_for_run` reads as a start approval, booking that run's
+    holds to the card's approver (or, after a confirmed spend, to nobody). Now a run the card
+    did not create is named `reused_run_id` (`record_lead_job_approval(reused=True)`, as
+    `record_chat_start(reused=True)`), `lead_decisions` reads either and says `reused`, and the
+    card shows "Už proběhlo". Test: "a card on a run another person started keeps its
+    attribution" (fails without it). Agent-job cards keep the latent shape (their key includes
+    the instruction, so a collision is rare); not changed here.
+  - *Refusal order* (P3, taken): with the wallet on, unapproved live settings now refuse before
+    the wallet's threshold asks. Test: "unapproved live settings refuse before the wallet asks
+    for a confirmation".
+  - *Stale comments* (P3, taken): `tables.py`'s last CHECK migration and `StudyWallets.charge`'s
+    authorities name M3b and `lead_card`.
+  - Not taken: the price on the card (a follow-up for every paid card alike); narrowing
+    `deep_research_start_errors` to the card branch (a hypothesis about a future path; the
+    Deep Research card reads the store before it writes); `no_wallet`'s words (kept for
+    `WalletChargeRefused`'s documented code).
+
 ### Doc follow-up (LO5a.2)
 
 - `CLAUDE.md` map, `application/`: `lead_deep_research.py` — a Lead's Deep Research card started on

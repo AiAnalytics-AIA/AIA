@@ -34,7 +34,7 @@ from aia_core.infrastructure.tables import (
     StudyWalletChargeRow,
     WorkflowRunRow,
 )
-from aia_core.infrastructure.workflow_repository import WorkflowRepository
+from aia_core.infrastructure.workflow_repository import WorkflowRepository, charged_to_for_run
 from aia_worker.settings import WorkerSettings
 from aia_worker.worker import Worker
 from fastapi import FastAPI
@@ -249,6 +249,44 @@ def test_a_design_card_starts_one_run_on_its_focus_and_a_second_approval_returns
     assert stage.json()["run_spec_fingerprint"] == run["run_spec_fingerprint"]
 
 
+def test_a_card_on_a_run_another_person_started_keeps_its_attribution(
+    app: FastAPI, researcher: TestClient, lead: TestClient, world: Any
+) -> None:
+    """A card's spec is the stage's, so it finds a run another person started: nothing is
+    started or charged, and that run's spend stays booked to whoever started it (Q40). The
+    card's row names it ``reused_run_id``, never ``agent_run_id`` (stand-in review of #1006)."""
+    _save(app, world)
+    revision = world.design(lead, DESIGN)
+    stage = lead.post(
+        f"{_study(world)}/deep-research/runs",
+        json={
+            "design_revision_id": revision.json()["revision_id"],
+            "preset_name": "QUICK",
+            "channels": ["WEB"],
+        },
+    )
+    assert stage.status_code == 201, stage.text
+    run_id = stage.json()["run_id"]
+    with create_session_factory(app.state.engine)() as session:
+        before = charged_to_for_run(session, session.get(WorkflowRunRow, run_id))
+    assert before is not None
+    turn_id = _turn(
+        researcher, world, app, {"kind": "design_research", "why": WHY, "preset": "QUICK"}
+    )
+    card = _approve(researcher, world, turn_id)
+    assert card.status_code == 200, card.text
+    assert card.json()["run_id"] == run_id
+    with create_session_factory(app.state.engine)() as session:
+        assert charged_to_for_run(session, session.get(WorkflowRunRow, run_id)) == before
+    row = _card_row(app)
+    assert row["reused_run_id"] == run_id and "agent_run_id" not in row
+    # The turn reads it as decided on a run that was already there, the card saying so.
+    turns = researcher.get(f"{_study(world)}/lead").json()["turns"]
+    decided = next(t for t in turns if t["turn_id"] == turn_id)["request_decision"]
+    assert decided == {"status": "approved", "run_id": run_id, "reused": True}
+    assert _written(app)["runs"] == 1
+
+
 def test_a_design_card_on_a_moved_working_copy_waits_for_the_persons_yes(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
@@ -295,6 +333,25 @@ def test_a_priced_route_without_approved_live_settings_writes_nothing(
     refused = _approve(researcher, world, turn_id)
     assert refused.status_code == 409 and refused.json()["code"] == "live_settings_unapproved"
     assert refused.json()["details"]["missing"] and refused.json()["details"]["routes"]
+    assert _written(app) == {"runs": 0, "cards": 0, "lead_card": 0, "charges": 0, "holds": 0}
+
+
+def test_unapproved_live_settings_refuse_before_the_wallet_asks_for_a_confirmation(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """With the wallet on and a threshold below the ceiling, a priced route whose live settings
+    are not approved is refused by name first, never asked to confirm a cost it cannot spend."""
+    _save(app, world)
+    _wallet_on(app, researcher, world, cap=50.0)
+    with create_session_factory(app.state.engine)() as session:
+        ScopeRepository(session).set_study_spend_confirm(_scope(world, session), 0.01)
+        session.commit()
+    turn_id = _turn(researcher, world, app, {"kind": "design_research", "why": WHY})
+    app.state.settings = app.state.settings.model_copy(
+        update={"deep_research_web_search": "brave", "deep_research_brave_usd_per_1000": 5.0}
+    )
+    refused = _approve(researcher, world, turn_id)
+    assert refused.status_code == 409 and refused.json()["code"] == "live_settings_unapproved"
     assert _written(app) == {"runs": 0, "cards": 0, "lead_card": 0, "charges": 0, "holds": 0}
 
 

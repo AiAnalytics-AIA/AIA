@@ -2797,12 +2797,17 @@ class WorkflowRepository:
         action: str,
         spend: dict[str, float] | None,
         details: Mapping[str, Any] | None = None,
+        reused: bool = False,
     ) -> bool:
         """Write a person's approval of the paid job a Lead turn prepared, once (ADR 0026
         decision 7): the job started, the Design Revision it was asked on, and -- when the
         study's spend limit asked -- the ceiling, the limit and what the person confirmed.
         ``details``: what else the card started with, in the row's comment (a Deep Research
         card's purpose, target, preset, focus and ceiling, LO5a.2). Needs ``APPROVE_GATE``.
+        ``reused``: the approval found the run someone else's start had made (a Deep Research
+        card's spec is the stage's, by design): the row names it ``reused_run_id``, never
+        ``agent_run_id``, so it is no start approval of that run and its spend stays with
+        whoever started it (``charged_to_for_run``), as ``record_chat_start(reused=True)``.
         Returns ``False`` when this turn's request is already approved.
         """
         self.scope.require(Permission.APPROVE_GATE)
@@ -2836,7 +2841,7 @@ class WorkflowRepository:
                 comment=json.dumps(
                     {
                         **dict(details or {}),
-                        "agent_run_id": agent_run_id,
+                        ("reused_run_id" if reused else "agent_run_id"): agent_run_id,
                         "design_revision_id": design_revision_id,
                         "spend": spend,
                     },
@@ -3040,8 +3045,10 @@ class WorkflowRepository:
                     comment = json.loads(row.comment or "{}")
                     entry["request"] = {
                         "status": "approved",
-                        "run_id": comment.get("agent_run_id"),
+                        "run_id": comment.get("agent_run_id") or comment.get("reused_run_id"),
                         "design_revision_id": comment.get("design_revision_id"),
+                        # Approved on a run another start had made: nothing started or charged.
+                        "reused": comment.get("reused_run_id") is not None,
                     }
                 continue
             turn_id, _, index = row.subject_id.rpartition(":")

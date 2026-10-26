@@ -429,7 +429,13 @@ def _view(
         base["edit_decisions"] = dict(decisions.get("edits") or {})
         request = decisions.get("request")
         if request:
-            base["request_decision"] = {"status": "approved", "run_id": request.get("run_id")}
+            base["request_decision"] = {
+                "status": "approved",
+                "run_id": request.get("run_id"),
+                # A Deep Research card approved on a run another start had made (LO5a.2);
+                # absent otherwise, as before (the API reads it as false).
+                **({"reused": True} if request.get("reused") else {}),
+            }
         if decisions.get("self_update"):
             base["self_update_decision"] = dict(decisions["self_update"])
     if run is None or not run.get("steps"):

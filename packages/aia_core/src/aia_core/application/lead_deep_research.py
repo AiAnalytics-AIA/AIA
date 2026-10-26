@@ -177,7 +177,12 @@ def approve_deep_research_card(
     quoted = runs.quote(spec, prices=settings.prices, modes=settings.modes, retry_of=start.retry_of)
     ceiling = quoted.ceiling.total_usd if quoted.ceiling is not None else None
     wallets = StudyWallets(session, scope, enabled=wallet_enabled)
-    if wallet_enabled and quoted.verdict is not StartVerdict.EXISTS:
+    # Unapproved live settings refuse first (the start below raises them), so the person is
+    # never asked to confirm a cost for a run that cannot start (stand-in review of #1006).
+    if wallet_enabled and quoted.verdict not in (
+        StartVerdict.EXISTS,
+        StartVerdict.LIVE_SETTINGS_UNAPPROVED,
+    ):
         wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirm_cost_usd)
     started = runs.start_frozen(
         start, prices=settings.prices, modes=settings.modes, confirm_cost_usd=confirm_cost_usd
@@ -219,6 +224,8 @@ def approve_deep_research_card(
         design_revision_id=design_revision_id,
         action=request.kind,
         spend=spend,
+        # A run another start had made stays that start's: its spend is not booked to this card.
+        reused=not started.created,
         details={
             "purpose": spec.purpose.value,
             "target": spec.target.model_dump(mode="json"),

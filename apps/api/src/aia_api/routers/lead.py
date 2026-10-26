@@ -158,7 +158,8 @@ class RequestDecision(BaseModel):
     status: Literal["approved"]
     run_id: str | None
     #: A typed start approved on the job an earlier approval had already started for this
-    #: design: nothing started, the card is decided (LO5).
+    #: design, or a Deep Research card on a run another start had made (LO5a.2): nothing
+    #: started or charged, the card is decided (LO5).
     reused: bool = False
 
 
