@@ -2839,6 +2839,7 @@ export const cs = {
         dangling: "Tento odkaz míří na výzkumnou otázku, kterou plán už neuvádí: nic neměří. Odeberte ho, nebo otázku v plánu vraťte.",
         choices: "Výzkumné otázky",
         removeDangling: "Odebrat odkaz na „{rq}“",
+        unlinked: "Neměří žádnou výzkumnou otázku: vyberte, kterou měří. Bez toho se do pokrytí výzkumných otázek nezapočítá.",
       },
       optionN: "Možnost {n}",
       optionRemove: "Odebrat možnost {n}",
