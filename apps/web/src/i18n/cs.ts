@@ -3703,7 +3703,6 @@ export const cs = {
         analysisModelled: "Interní analýza; modelováno: AI respondenti z populace. Nejde o měření ani o výpovědi skutečných respondentů; každý výrok je znovu ověřen vůči uloženým datům.",
         analysisUnknownOrigin: "Interní analýza dat neznámého původu. Nečtěte ji jako měření skutečných lidí; každý výrok je znovu ověřen vůči uloženým datům.",
         analysisPending: "Čeká",
-        analysisEvidence: "Odkazy na podklady",
         mean: "Průměr",
         top2: "Horní dva body",
         topN: "Horní body ({n})",

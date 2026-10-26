@@ -5,6 +5,7 @@
 // runtime, hide a suppressed cell's numbers, label fictional data every time, and
 // keep the internal Sociomap internal.
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { LEAD_REVEAL } from "@/lib/lead";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -1826,7 +1827,8 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText("Ověřené shrnutí.")).toBeTruthy();
-    expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
+    // The claim's id and evidence ref are not printed on the stage (ANL10).
+    expect(screen.queryByText(/C1 → q1.mean/)).toBeNull();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "AI analýza" }));
     fireEvent.click(screen.getByRole("button", { name: /Omezení.*Čeká/ }));
@@ -1918,6 +1920,8 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    // A module's answers are read with it chosen (ANL3b).
+    fireEvent.click(await screen.findByRole("button", { name: /^Shrnutí analýzy · / }));
     const marked = await screen.findByText(tv("research.exec.results.answerGap", { words }));
     expect(marked.closest("div")?.textContent).toContain("Kdo pije kávu?");
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
@@ -1964,6 +1968,12 @@ describe("Results", () => {
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
     expect(window.location.hash).toBe(before);
     expect(document.activeElement).toBe(finding);
+    // A finding the module filter leaves off the page is brought back first: the list goes back to "Vše" (ANL3b).
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
+    expect(document.getElementById("analysis-finding-research_questions-0")).toBeNull();
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
+    await waitFor(() => expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0"));
+    expect(screen.getByRole("button", { name: "Vše" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("opens a finding and a cited number in the workbench's inspector, from the coverage, the finding and its chip (ANL3)", async () => {
@@ -1990,7 +2000,7 @@ describe("Results", () => {
     fireEvent.click(chip);
     // The drawer takes it: the page neither scrolls nor moves focus to the finding.
     expect(document.activeElement).toBe(before);
-    const keyFindings = screen.getByRole("region", { name: "Hlavní zjištění" });
+    const keyFindings = screen.getByRole("region", { name: "Zjištění" });
     fireEvent.click(within(keyFindings).getByRole("button", { name: /^Otevřít .*zjištění 1 v inspektoru$/ }));
     const number = keyFindings.querySelector("[data-inspect-claim]") as HTMLElement;
     expect(number.tagName).toBe("BUTTON");
@@ -2155,10 +2165,10 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
-    const keyFindings = await screen.findByRole("region", { name: "Hlavní zjištění" });
-    // Both modules' findings, under their module, before the module-by-module view.
-    expect(within(keyFindings).getByText("Shrnutí analýzy")).toBeTruthy();
-    expect(within(keyFindings).getByText("Srovnání objektů")).toBeTruthy();
+    const keyFindings = await screen.findByRole("region", { name: "Zjištění" });
+    // Both modules' findings in one list, each named by its module (ANL3b).
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')?.textContent).toContain("Shrnutí analýzy");
+    expect(keyFindings.querySelector('[data-finding-module="objects"]')?.textContent).toContain("Srovnání objektů");
     expect(within(keyFindings).getByText("Bez čísel.")).toBeTruthy();
     expect(within(keyFindings).getByText("vyrovnané").tagName).toBe("STRONG");
     // Each cited number: value, what, which question, a link to its card; C9 is not a claim and is left out.
@@ -2197,11 +2207,23 @@ describe("Results", () => {
     expect(within(keyFindings).getByText(/číslo, k němuž AIA nedohledala otázku/)).toBeTruthy();
     expect(within(keyFindings).getByText("x9.median").tagName).toBe("CODE");
     expect(within(keyFindings).getByText(/· orientační/)).toBeTruthy();
-    expect(keyFindings.compareDocumentPosition(screen.getByText("Analýza po částech")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    // The module's own text, formatted: its summary's list, its answer with the number it cites.
+    // One list (ANL3b): each finding is drawn once, never again in a module-by-module view.
+    expect(document.querySelectorAll("[data-finding-module]")).toHaveLength(3);
+    expect(screen.getAllByText("vyrovnané")).toHaveLength(1);
+    expect(screen.queryByText("Analýza po částech")).toBeNull();
+    // On "Vše" the analysis's summary opens the list, formatted.
     const items = screen.getAllByRole("listitem").map((li) => li.textContent);
     expect(items).toContain("první bod");
     expect(items).toContain("druhý bod");
+    // The module filter shows only that module's findings; a finding it leaves off, asked for as the Lead's
+    // focus asks (LEAD_REVEAL), brings the whole list back, so the next look finds it.
+    fireEvent.click(screen.getByRole("button", { name: /^Srovnání objektů · / }));
+    expect(keyFindings.querySelector('[data-finding-module="executive"]')).toBeNull();
+    expect(keyFindings.querySelectorAll('[data-finding-module="objects"]')).toHaveLength(2);
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "finding:executive:0" })); });
+    expect(document.querySelectorAll('[data-aia="finding:executive:0"]')).toHaveLength(1);
+    // A module's own answer, with the number it cites, is read with the module chosen.
+    fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
     const answer = screen.getByText("Co lidé pijí?").parentElement as HTMLElement;
     expect(within(answer).getByText("Hlavně čaj a kávu.")).toBeTruthy();
     expect(within(answer).getByRole("link").textContent).toBe("34,8 % podíl odpovědi „Kávu“ · Který nápoj byste si vybrali?");
