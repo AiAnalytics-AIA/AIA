@@ -656,3 +656,18 @@ unless stated.
 ## Chunk 8 ticked (2026-10-26, docs PR)
 
 Shipped by #830 (merged into develop 2026-10-23, `32475bdc`), the Settings backends' SB2: `POST /members/{user_id}/deactivate` and `/reactivate` (`apps/api/src/aia_api/routers/scope.py:702-750 @ 40b16d58`), the membership resolving no scope from the next request, the Lead sealed, refusals audited; Přístup's row with Vrátit (`apps/web/src/components/aia/settings/AccessPanel.tsx:8 @ 40b16d58`). Tests: `packages/aia_core/tests/test_member_deactivation.py::test_a_deactivated_member_resolves_no_scope_here_but_keeps_their_other_membership`, `apps/api/tests/test_member_deactivation_api.py::test_a_refused_deactivation_is_in_the_access_audit`. The sealed Lead's 365-day deletion is `lead-orchestration#LO11`'s.
+
+## 5b reviewed against what was built (the product owner, 2026-10-26)
+
+The Decision Review, 2026-10-26 (relayed by the PM coordinator):
+
+- **REV-5B-CLOSE (a): "Close 5b.1–5b.3 as built".** 5b.1 (a run stopped by its budget lifted and
+  continued), 5b.2 (the per-study confirmation threshold, one `spend` ledger row) and 5b.3 (one
+  `ai_proposal` ledger row per accept of an agent proposal, under `APPROVE_GATE`,
+  `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:2577 @ 5d2ac5ac`) are closed
+  as built, not superseded. The umbrella 5b stays open only for 5b.4, which `report-delivery` RD2-RD4
+  build (W2).
+- **REV-5B-KNOWLEDGE (a): "Yes, one 'ai_proposal' ledger row per accept, as for design proposals".**
+  An accept of an AI-written client-knowledge proposal (K2d's "Navrhnout znalosti") writes the same
+  ledger row; the work is `client-knowledge-lifecycle#K13` (W1), the knowledge repository's, not a
+  chunk here.
