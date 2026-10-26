@@ -13,7 +13,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
-import { findingAnchor } from "@/lib/analysis-coverage";
+import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
 import { stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
@@ -66,6 +66,7 @@ import {
   traceMeasures,
   reportHolds,
   resultOriginKind,
+  runOriginKinds,
   stepOriginKind,
   type OriginKind,
   waitingDetail,
@@ -1886,10 +1887,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
-    const next = { runId: run.run_id, analysis: shownValue, spec };
-    setShownAnalysis(next);
+    setShownAnalysis({ analysis: shownValue, spec });
     return () => setShownAnalysis(null);
-  }, [run.run_id, shownValue, spec]);
+  }, [shownValue, spec]);
   const retryable = useRetryableRead(run);
   const openItem = useOpenAnalysisItem();
   if (loaded.state === "hidden") return null;
@@ -1904,15 +1904,20 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // The analysis's own origin once read; until then the run's, when it has exactly one (ANL10).
+  const analysisOrigin = loaded.state === "ready" ? resultOriginKind(loaded.value) : null;
+  const runKinds = runOriginKinds(run);
+  const runOrigin = runKinds.size === 1 ? [...runKinds][0] : null;
   // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
   const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
-      <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && resultOriginKind(loaded.value)
-          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
+      <p data-analysis-header className="mb-1 text-sm font-semibold">{analysisHeader(run.created_at, analysisOrigin ?? runOrigin)}</p>
+      <p role="note" className="mb-3 text-sm text-ink-muted">
+        {analysisOrigin
+          ? t(ANALYSIS_ORIGIN[analysisOrigin])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
@@ -1986,7 +1991,6 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 </div> : null}
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
-                {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
               </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
