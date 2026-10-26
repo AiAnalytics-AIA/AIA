@@ -104,6 +104,11 @@ try {
     await page.locator("#qset_sec_wb_set").getByText("S1", { exact: true }).waitFor();
     assert((await page.locator('[id^="qblock_"]').first().getByText("B1", { exact: true }).count()) > 0, `B1 on the first block at ${width}`);
     check(`${width}: blocks and sets numbered B n and S n`);
+    // No familiarity switch a run would refuse; the set says why (spec navrh/Q4, R9).
+    const setCard = page.locator("#qset_sec_wb_set");
+    assert.equal(await setCard.getByRole("switch", { name: /znalost/ }).count(), 0, `a familiarity switch at ${width}`);
+    await setCard.getByText(/proto tu přepínač chybí/).waitFor();
+    check(`${width}: a set offers no familiarity switch and says why`);
 
     // A question's × stays beside its number at every width, never on a row of its own (the
     // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
