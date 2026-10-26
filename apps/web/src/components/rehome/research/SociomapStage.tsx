@@ -6,16 +6,18 @@
 // Sociomapping and its review below. A set stored under an older method says so and draws nothing; a
 // map that is not the signed-off method's is drawn as the Results page draws it. Výsledky keeps its tabs.
 
-import { type ReactNode, useEffect, useState } from "react";
-import { t } from "@/i18n/t";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { t, tv } from "@/i18n/t";
 import { type Artifact, type ResearchRun, research } from "@/lib/api";
+import { isRefusal, readMapOp, readTarget } from "@/lib/artifacts/sociomap";
+import { LEAD_MAP_VIEW, type LeadMapView, mapViewWords, sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { explainMap } from "@/lib/map-explained";
 import { type BatteryWithMaps, mapApproval, olderMethodOnly, readObjectMap, type RecordedMethod, type RegisterEntry } from "@/lib/object-map-view";
-import { isSignedOffMap } from "@/lib/object-map-signed-off";
+import { isSignedOffMap, storedFrame } from "@/lib/object-map-signed-off";
 import { stageOf } from "@/lib/workbench-stages";
 import { useFrame } from "./frame-hook";
 import { MapExplained } from "./MapExplained";
-import { ObjectMapPanel } from "./ObjectMapPanel";
+import { ObjectMapPanel, routeToMap } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
 /**
@@ -34,6 +36,8 @@ export function useOnSociomapStage(): boolean {
   }, []);
   return stageOf("results", hash) === "sociomap";
 }
+
+const P = "research.exec.objectMap.panel";
 
 type Payload = { sociomap: { data_origin?: string | null; methods?: RecordedMethod[]; note?: string; batteries: BatteryWithMaps[] } } | null;
 
@@ -57,11 +61,50 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
   }, [frame.studyId]);
   const payload = (artifact?.payload ?? null) as Payload;
   const batteries = payload?.sociomap?.batteries ?? [];
+  // The Lead's views (artifact-sociomap SOC2; research-lead-workbench 14), routed by the stage, which
+  // knows every map it draws: each view checked with readMapOp against all of them and handed to the map
+  // that owns it (every map for a stage-wide filter), or refused here once, in words. Live views and the
+  // one sent before the maps were drawn (the Workbench moves here, then sends) go the same way.
+  // The maps drawn as the signed-off panel with its terrain (ObjectMapPanel's PanelView), each with the
+  // objects it places: what a Lead view may name. Null until the artifact is read.
+  const drawn = useMemo(() => {
+    const read = ((artifact?.payload ?? null) as Payload)?.sociomap?.batteries;
+    if (!read) return null;
+    return read.flatMap((b) => {
+      const o = olderMethodOnly(b) ? null : readObjectMap(b);
+      if (!o?.ok || o.map.outcome !== "MAPPED" || !o.map.layout || !isSignedOffMap(o.map) || !storedFrame(o.map) || o.map.terrain.status !== "computed") return [];
+      const placed = new Set(o.map.object_ids);
+      return [{ battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)) }];
+    });
+  }, [artifact]);
+  const artifactId = artifact?.artifact_id ?? null;
+  const [leadNote, setLeadNote] = useState({ artifact: artifactId, text: "" });
+  useEffect(() => {
+    if (!drawn) return;
+    const all = drawn;
+    const onView = (e: Event) => {
+      const view = (e as CustomEvent<LeadMapView>).detail;
+      takeLeadMapView();
+      const op = readMapOp(view, all);
+      const lacks = view.op === "filter" && (view.name === "labels" || view.name === "hide_weak");
+      const note = isRefusal(op) ? tv(`${P}.leadRefused`, { words: op.words }) : lacks ? tv(`${P}.leadNoControl`, { what: mapViewWords(view) }) : "";
+      setLeadNote({ artifact: artifactId, text: note });
+      if (note) return;
+      const owner = view.op === "select" ? readTarget(view.target)?.battery : view.name === "battery" ? view.value : null;
+      for (const b of all) if (!owner || owner === b.battery_id) routeToMap(b.battery_id, view);
+    };
+    window.addEventListener(LEAD_MAP_VIEW, onView);
+    const waiting = takeLeadMapView();
+    if (waiting) sendLeadMapView(waiting);
+    return () => window.removeEventListener(LEAD_MAP_VIEW, onView);
+  }, [drawn, artifactId]);
   return (
     <div className="fx-stage flex min-w-0 flex-col gap-4" data-testid="sociomap-stage">
       {notice}
       {loading ? <p className="text-sm text-ink-muted">{t("research.loading")}</p> : null}
       {error ? <p role="alert" className="text-sm text-status-fault">{error}</p> : null}
+      {/* A Lead view no map here can apply, in words; read out, nothing drawn over the maps. */}
+      <p role="status" className="sr-only" data-testid="sociomap-lead-note">{leadNote.artifact === artifactId ? leadNote.text : ""}</p>
       {artifact && payload && !batteries.length ? <p role="note" data-no-maps className="text-sm">{payload.sociomap?.note || t("research.exec.results.noMaps")}</p> : null}
       {batteries.map((b) => {
         if (olderMethodOnly(b)) {

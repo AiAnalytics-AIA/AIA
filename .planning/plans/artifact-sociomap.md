@@ -134,21 +134,24 @@ Depends on `research-lead-workbench#14`, `#16`.
   relation `pair:<battery>/<a>~<b>`. Tests: `ObjectMapPanel.test.tsx` › "the Lead's names on the map". The
   frame itself waits for `research-lead-workbench#15`.
 - Delivered (2026-10-26): the Lead's map views on the `-5` panel (`research-lead-workbench` 14, "For Sociomapa
-  (2)"). `ObjectMapPanel` listens for `LEAD_MAP_VIEW` and, on mount, takes the view waiting
-  (`takeLeadMapView`); each goes through `readMapOp` against its own battery and changes the picture only:
+  (2)"). `SociomapStage` routes them, since it knows every map it draws (the signed-off panel with its
+  terrain, each with the objects it places): once its artifact is read it listens for `LEAD_MAP_VIEW` and
+  takes the view sent before (`takeLeadMapView`); each is checked with `readMapOp` against all its maps and
+  handed to the map that owns it (`routeToMap`), to every map for a stage-wide filter (view, mode; stand-in
+  review P2, #939), or refused once by the stage in words (`sociomap-lead-note`, reset with the run on
+  screen): an element no map here places, a stage that draws no signed-off map, and `labels` / `hide_weak`,
+  which the panel has no control for (SOC3 finding). `ObjectMapPanel` applies what is routed to its battery,
+  once, as it arrives, to the picture only:
   - `select` on `object:` or `pair:` opens that element's detail on the object map;
   - `filter` `view` sets the camera (top: 2D, relief: 3D), `mode` the map (objects / respondents),
     `battery` brings that battery's map into view;
-  - `labels` and `hide_weak`, which the panel has no control for (SOC3 finding), and any refusal are said
-    in words in a polite live region (`object-map-lead-note`), never dropped; nothing changes;
-  - `mode` respondents on a map that stores no respondent map, and any accepted op the map does not apply,
-    are said too;
-  - another battery's element is that battery's map's to apply; a waiting view for it goes back when that
-    map is on the page, and is refused otherwise; a view applied is no longer waiting;
-  - a waiting view is taken once the canvas is measured, so a view from above fits the box it is drawn in.
+  - what this map cannot do (the respondent map it does not store) is said in its own live region
+    (`object-map-lead-note`); nothing changes;
+  - a view from above that arrives before the canvas is measured is drawn when it is, at the measured
+    size, whatever it measures; the rest apply at once.
   `LEAD_REVEAL` on a `pair:` target opens the relation's detail on the object map, so its id is there to be
   shown; the respondent map is left as the person has it.
-  Tests: `ObjectMapPanel.test.tsx` › "the Lead's map views" (nine, each failing on develop);
+  Tests: `ObjectMapPanel.test.tsx` › "the Lead's map views" (each failing on develop) and `ExecutionSteps.test.tsx` › "the Lead's map views" (the stage's routing; the P2 case fails on 34846ff3);
   `sociomap_journey.mjs` sends the workbench's event at 1440 and 390 px. The server half (the views live
   in `LeadOutput`) is the integration session's, after this.
   - The refusal is read out but not drawn: whether the panel shows it is the methodology owner's call

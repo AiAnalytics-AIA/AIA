@@ -14,6 +14,7 @@ import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
+import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
@@ -2320,6 +2321,70 @@ describe("Results", () => {
       });
       return render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     };
+
+    // research-lead-workbench 14 / SOC2: the stage routes the Lead's views. A view sent before the maps
+    // were drawn (the Workbench moves here, then sends) and a live one go to the map that owns them,
+    // every map for a stage-wide filter; a view no map here can apply is refused once, in words.
+    describe("the Lead's map views", () => {
+      const both = { ...signedOff, payload: { sociomap: { ...signedOff.payload.sociomap, batteries: signedOffFixture.batteries } } };
+      const idsOf = (b: (typeof signedOffFixture.batteries)[number]) => (b.maps as Record<string, { artifact: { object_ids: string[] } }>)[Object.keys(b.maps)[0]].artifact.object_ids;
+      const drawn = async (count: number) => {
+        const stage = await screen.findByTestId("sociomap-stage");
+        await waitFor(() => expect(within(stage).getAllByTestId("object-map-canvas")).toHaveLength(count));
+        return stage;
+      };
+      const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
+      afterEach(() => { takeLeadMapView(); });
+
+      it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(both, true);
+        const stage = await drawn(2);
+        await waitFor(() => expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]));
+      });
+
+      it("sends a live view to its own map and a stage-wide one to every map", async () => {
+        const [first, second] = signedOffFixture.batteries;
+        open(both, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "select", target: `object:${second.battery_id}/${idsOf(second)[0]}` }); });
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", idsOf(second)[0]]);
+        act(() => { sendLeadMapView({ op: "filter", name: "view", value: "top" }); });
+        expect(canvases(stage).map((c) => JSON.parse(c.getAttribute("data-camera")!).pitch)).toEqual([0, 0]);
+        expect(takeLeadMapView()).toBeNull();
+        expect(first.battery_id).not.toBe(second.battery_id);
+      });
+
+      it("refuses in words a view waiting for a stage that draws no signed-off map, never keeping it", async () => {
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        await waitFor(() => expect(within(stage).getByTestId("sociomap-lead-note").textContent).toContain(battery.battery_id));
+        expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("says once, in words, a view no map here can apply, and changes no map", async () => {
+        open(both, true);
+        const stage = await drawn(2);
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        act(() => { sendLeadMapView({ op: "select", target: "object:neni/x" }); });
+        expect(note()).toContain("object:neni/x");
+        act(() => { sendLeadMapView({ op: "filter", name: "hide_weak", value: "on" }); });
+        expect(note()).toContain("skrýt slabé vztahy");
+        expect(note()).not.toContain("hide_weak");
+        expect(canvases(stage).map((c) => c.getAttribute("data-selected"))).toEqual(["", ""]);
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+    });
 
     it("is the map: no results tabs, no guide, no other card, the map before what explains it", async () => {
       open(signedOff, true);
