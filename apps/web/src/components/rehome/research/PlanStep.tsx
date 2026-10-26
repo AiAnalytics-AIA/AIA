@@ -281,7 +281,8 @@ export function PlanStep() {
         setDrafts={setDrafts}
         saveOnly={leadOwnsAiStarts}
         onProcess={async () => {
-          // The comments leave the list as one batch: a removal before it is no longer taken back.
+          // The comments leave the list as one batch, so the stage's one undo offer ends here: a comment
+          // taken back now would replace the next batch, and a narrative removal still offered goes with it.
           narrativeUndo.clear();
           const reviewed = commentsToReview(store.get().project);
           if (!reviewed) return;
@@ -742,12 +743,14 @@ function Comments({ n, busy, undo, drafts, setDrafts, onProcess, saveOnly = fals
   const { store, state } = useResearch();
   const cs = planComments(state.project);
   const remove = (i: number) => {
-    const c = planComments(store.get().project)[i];
+    const all = planComments(store.get().project);
+    const c = all[i];
     if (!c) return;
+    const copies = all.filter((x) => x.quote === c.quote && x.comment === c.comment).length;
     store.update(({ project }) => ({ project: removeComment(project, i) }), { reason: "plan_comments26", invalidateCheck: false });
     undo.offer({
       message: tv("research.plan.narrative.removed", { text: c.comment }),
-      undo: () => store.update(({ project }) => ({ project: restoreComment(project, c, i) }), { reason: "plan_comments26", invalidateCheck: false }),
+      undo: () => store.update(({ project }) => ({ project: restoreComment(project, c, i, copies) }), { reason: "plan_comments26", invalidateCheck: false }),
     });
   };
   const keep = (key: number) => {

@@ -214,12 +214,13 @@ export function removeComment(p: ResearchProject, i: number): ResearchProject {
 }
 
 /**
- * A removed comment put back where it stood (Vrátit; input-interactions I6), unless the copy already
- * holds it (a reloaded copy the removal never reached). Not the classic's: it had no undo.
+ * A removed comment put back where it stood (Vrátit; input-interactions I6). `copies`: how many equal
+ * comments the list held before the removal; a copy that still holds them all (a reloaded copy the
+ * removal never reached) is left as it is. Not the classic's: it had no undo.
  */
-export function restoreComment(p: ResearchProject, c: PlanComment, i: number): ResearchProject {
+export function restoreComment(p: ResearchProject, c: PlanComment, i: number, copies: number): ResearchProject {
   const cs = planComments(p);
-  if (cs.some((x) => x.quote === c.quote && x.comment === c.comment)) return p;
+  if (cs.filter((x) => x.quote === c.quote && x.comment === c.comment).length >= copies) return p;
   return { ...p, ui_state: { ...p.ui_state, plan_comments26: [...cs.slice(0, i), c, ...cs.slice(i)] } };
 }
 

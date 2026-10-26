@@ -11,11 +11,13 @@ const project = (comments: unknown[]) => ({ ui_state: { plan_comments26: comment
 describe("restoreComment", () => {
   it("puts a removed comment back where it stood", () => {
     const removed = removeComment(project([a, b]), 0);
-    expect(planComments(restoreComment(removed, a, 0))).toEqual([a, b]);
+    expect(planComments(restoreComment(removed, a, 0, 1))).toEqual([a, b]);
   });
 
-  it("never adds a second copy of a comment the list still holds", () => {
+  it("never adds a copy the list still holds, and takes back one of two equal comments", () => {
     const p = project([a, b]);
-    expect(restoreComment(p, a, 0)).toBe(p);
+    expect(restoreComment(p, a, 0, 1)).toBe(p);
+    const twice = removeComment(project([a, a, b]), 1);
+    expect(planComments(restoreComment(twice, a, 1, 2))).toEqual([a, a, b]);
   });
 });
