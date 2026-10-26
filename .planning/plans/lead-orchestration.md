@@ -22,7 +22,7 @@ chunks:
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
-  - "[ ] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
+  - "[x] LO5a.1. The Lead's Deep Research requests and context (DRL-2): a preset (QUICK or STANDARD, STANDARD by default), a design focus on named research questions, an Interpretation target from a code-built candidate list over every result kind of ADR 0021, Q44 (the research-questions module by default), a retry request; the deep_research and targets layers"
   - "[ ] LO5a.2. A Lead card starts Deep Research on the server (DRL-3): approve_request starts Design and Interpretation Research and their retry, priced by deep-research-web-search 55, with the threshold, live settings and ledger row; amends research-lead-workbench D7 for the two kinds"
   - "[ ] LO5a.3. Typed Deep Research starts (DRL-8, on LO5): start, retry and stop matched by code with no model in the path, ledger chat_start, a wallet charge at the ceiling; works with the Lead off"
   - "[ ] LO5a.4. Deep Research as plan-step kinds (DRL-9, on LO3/LO4): design_research and interpretation_research steps, a target fixed or relative to an earlier step resolved when the step starts, parked when its module ended BLOCKED"
@@ -1355,3 +1355,71 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, `application/lead_chat_start.py` (and the commands list): "Zopakuj analýzu"
   starts `retry_failed_modules` on the newest analysed run, `chat_start`, no wallet charge.
 
+## LO5a.1 delivered (2026-10-26, `feature/lead-deep-research-requests`)
+
+- **The requests** (`domain/research_lead.py`). `DesignResearchRequest` gains `preset` (QUICK or
+  STANDARD, STANDARD by default; DEEP and EXHAUSTIVE are not in the type) and `focus` (at most 12
+  research-question ids). `InterpretationResearchRequest` gains `target` (`t1`…`tn`, or none for the
+  layer's default) and `preset`. `DeepResearchRetryRequest` (`deep_research_retry`, a `run_id` in the
+  `RUN-` grammar of ADR 0021's targets) is new. `request_ids(context)` reads what a turn may name
+  (the design's research-question ids through `item_ids`, the candidates and their default, the
+  layer's runs) and `lead_contract(…, ids=)` refuses any other by name ("name only what the context
+  holds"); `lead_request` passes it. An Interpretation request naming no target is refused when the
+  layer has no default (no completed research-questions module), and refused whatever it names when
+  the context offers no target.
+- **The candidates** (`domain/lead_research_targets.py`, pure). Built from each completed run's
+  pinned specification (the compile artifact, SHA-256 verified as it is read) and its steps' outputs
+  only: no aggregate, analysis or Sociomap payload is read, so no respondent number is in a
+  candidate. Order: the completed modules (research questions first, BLOCKED ones left out), each
+  question, each set's map, the objects (rating, then on the map), then the relations, which a set of
+  n objects has n(n-1)/2 of and the bound therefore cuts first. The newest two completed runs, at
+  most 40 candidates and 12 KB; ids are given after the bound, and `omitted` counts the rest. Words
+  are code's, from the specification's wording, at most 160 characters. Connections: the
+  research-questions module answers every research question the run's items declare; a question or
+  set the ones it declares; any other module none. `test_deep_research_interpretation_api.py` "every
+  lead target candidate of a completed run is one the start freezes" runs the real executors and
+  freezes every candidate's ref through `freeze_interpretation`.
+- **The layers** (`_freeze`). `deep_research`: the study's five newest Deep Research runs, read
+  through `DeepResearchRuns.get` (id, purpose, target in words, preset, status, phase, park code,
+  retryable, subjects, steps done, actual cost, ceiling; an unknown cost or ceiling `None`, never 0),
+  4 KB. `targets`: the candidates and the default. Both sit after `runs`, and each is absent when it
+  would be empty, so a study without Deep Research or a completed run freezes the context it did
+  before. Both are classed Class B by `MaterialRule.DESIGN`: they carry the design's own words.
+  `ResearchLead.store` (the API passes the artifact store) is what the candidates are read from;
+  without it no target is offered. A completed run whose specification does not read (missing or
+  corrupt bytes) offers nothing and is named in `unreadable_runs`, never stopping the turn; its
+  CORRUPT mark commits with the turn, as the artifact read protocol says. This closes F-DRL-4.
+- **Versions.** The prompt is 2 (`_TASK`: the two purposes, the presets, a target from `targets`, a
+  retry from `deep_research`, and "Rešerše je vnější kontext, nikdy důkaz od respondentů"); the
+  harness is `aia-research-lead-6`, so a turn queued under 5 is refused by name as before.
+  `test_prompt_upgrade.py`'s pin of the Lead's baseline version moves from 1 to 2 with it.
+- **The scoped freeze.** `DeepResearchRuns.freeze` / `freeze_design` / `start` take `focus`;
+  `focused_subjects` checks every id against the revision first (`FocusUnknown`, 422
+  `focus_unknown` with `details.unknown`) and keeps only the selected research-question subjects, by
+  their `subject_key`, so a focused run is its own request and spec while its tracks reuse the whole
+  design's by fingerprint. The quote and start routes take `focus` (an Interpretation quote takes
+  none). The quote and the start freeze identically; LO5a.2 hands the one spec to both.
+- **The scripted Lead** (`workbench.py`, script 2): "rešerš" prepares `design_research`; "výklad" or
+  "výsledk" prepares `interpretation_research` over the default, only when the layer has one.
+- **The web** only learns the shapes (`lead.ts`, `LeadPane` words for `deep_research_retry`): a
+  card still opens its stage (a retry opens Výsledky) until LO5a.2 starts it on the server.
+- **Tests.** `test_lead_research_targets.py` (candidates, default, bounds, layers, class, every
+  grounding refusal, DEEP refused, STANDARD default, the prompt's words); `test_deep_research_quote.py`
+  "a focused quote equals the focused start and both are smaller than the design", "a focused request
+  holds only the selected research questions", "an unknown focus is refused by name before anything
+  is priced"; `test_deep_research_quote_api.py` "a focus is quoted and started alike and an unknown
+  one is named"; `test_research_lead_application.py` "a deep research run of the study is in the
+  turn's context"; `test_research_lead_workbench.py` "a scripted message about research prepares deep
+  research".
+
+### Doc follow-up (LO5a.1)
+
+- `CLAUDE.md` map, `domain/`: `lead_research_targets.py` — the Interpretation candidates
+  (`interpretation_candidates`, `targets_layer`: `t1`…`tn` from each completed run's pinned
+  specification, BLOCKED modules out, 2 runs, 40 / 12 KB) and the `deep_research` layer
+  (`deep_research_layer`, 5 runs, 4 KB).
+- `CLAUDE.md` map, `domain/research_lead.py`: the request's `preset`, `focus`, `target` and
+  `deep_research_retry`, grounded by `request_ids` / `request_refusal`; harness 6, prompt 2.
+- `CLAUDE.md` map, routers `deep research`: the quote and the start take `focus` (422 `focus_unknown`).
+- `CLAUDE.md` map, `application/deep_research.py`: `freeze_design(…, focus=)`, `focused_subjects`,
+  `FocusUnknown`.
