@@ -764,6 +764,18 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       {extra.studies}
       {groupItems("studies").length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{groupItems("studies").map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
     </div>;
+    // Přístup a schvalování as prototype v58 draws it (F9): three flat cards straight under the tab's
+    // head -- Členové, Samoschválení, Klienti -- in no further card; the settings document's own rows
+    // for the two groups wait under technical details, and the role matrix with them.
+    if (tab === "access") {
+      const related = [...(byKey.get("access")?.items ?? []), ...(byKey.get("approvals")?.items ?? [])];
+      return <div id="set-access" className="flex min-w-0 flex-col gap-4">
+        {extra.access}
+        {extra.approvals}
+        {related.length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{related.map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
+        {present("roles") ? section("roles", tab) : null}
+      </div>;
+    }
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>

@@ -82,8 +82,14 @@ export function ClientDirectory() {
 
   return (
     <AppShell
+      hero
       title={t("aia.clients.title")}
       sub={t("aia.clients.sub")}
+      figures={[
+        { label: t("aia.clients.figureClients"), value: clients.state === "ready" ? clients.data.length : null },
+        { label: t("aia.clients.figureStudies"), value: clients.state === "ready" ? clients.data.reduce((n, c) => n + c.study_count, 0) : null },
+        { label: t("aia.clients.figureActive"), value: clients.state === "ready" ? clients.data.reduce((n, c) => n + c.active_count, 0) : null },
+      ]}
       action={<Button variant="primary" icon="plus" onClick={newClient}>{t("aia.clients.new")}</Button>}
     >
       {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}

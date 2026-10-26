@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Chat D – Kompaktní záznam</title>
+<script src="./support.js"></script>
+<script src="/_blob/1aa4f92cccca03849efce6807a4b7c3c"></script>
+<link rel="stylesheet" href="../shared/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.cd .ln{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:6px 12px;font-size:12.5px;line-height:18px;border-bottom:1px solid var(--border)}
+.cd .rl{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.04em;padding-top:1px}
+.cd .rl.l{color:var(--aiink)}.cd .rl.p{color:var(--signal)}
+.cd .ln.p{background:var(--stint)}
+.cd .act{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:0;text-align:left;font-size:12.5px;cursor:pointer}
+.cd .drop{margin-top:6px;border:1px solid var(--border);border-radius:3px;background:var(--raised)}
+</style>
+</helmet>
+<div class="aia wb cd" data-theme="{{theme}}" style="width: 440px; min-width: 440px; height: 900px; min-height: 900px; flex-direction: column; border-right: 1px solid var(--border)">
+  <div class="row" style="padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--raised); flex: none">
+    <span class="lav" aria-hidden="true" style="width: 22px; height: 22px"><i class="ph ph-sparkle s"></i></span>
+    <b class="grow" style="font-size: 13px">Vedoucí výzkumu</b>
+    <span class="sees"><i class="ph ph-eye s"></i>Zadání · r7</span>
+  </div>
+  <div style="flex: 1; overflow-y: auto; background: var(--raised)" aria-live="polite">
+    <div class="ln"><span class="rl l">VEDOUCÍ</span><div>Zadání je skoro úplné. Chybí rozhodnutí, které má výzkum podpořit. <button class="view" type="button" style="height: 20px; font-size: 11px"><i class="ph ph-target s"></i>Rozhodnutí</button></div></div>
+    <div class="ln p"><span class="rl p">VY</span><div style="font-weight: 500">Analyzuj zadání</div></div>
+    <div class="ln"><span class="rl l">ÚLOHA</span><div>
+      <button class="act" type="button" aria-expanded="{{open}}" onClick="{{toggle}}"><span class="{{card.gl}}" aria-hidden="true"><i class="{{card.ic}}"></i></span><b class="grow" style="font-weight: 600">Analýza zadání</b><span class="cap">{{card.short}}</span><i class="{{chev}}"></i></button>
+      <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+        <div class="drop">
+          <dl class="facts" style="border-top: 0; grid-template-columns: 96px 1fr"><dt>Cena nejvýše</dt><dd class="key">0,40 USD</dd><dt>{{card.k}}</dt><dd>{{card.v}}</dd></dl>
+          <div class="acts" style="padding: 6px 8px"><sc-if value="{{card.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{card.later}}">Teď ne</button><span class="grow"></span><button class="btn ai sm" type="button" onClick="{{card.go}}"><i class="ph ph-sparkle s"></i>Spustit</button></sc-if><sc-if value="{{card.done}}" hint-placeholder-val="{{ false }}"><span class="grow"></span><a class="btn primary sm" href="Design.dc.html">Posoudit</a></sc-if></div>
+        </div>
+      </sc-if>
+    </div></div>
+    <sc-for list="{{extra}}" as="t" hint-placeholder-count="0">
+      <div class="{{t.cls}}"><span class="{{t.rl}}">{{t.who}}</span><div>{{t.text}}</div></div>
+    </sc-for>
+  </div>
+  <div style="flex: none; border-top: 1px solid var(--border); background: var(--raised); padding: 8px 10px">
+    <div class="box row" style="border: 1px solid var(--strong); border-radius: 3px; padding: 4px 4px 4px 8px; gap: 4px"><span class="mono" style="color: var(--faint)" aria-hidden="true">›</span><label class="sr" for="cmp">Zpráva nebo příkaz</label><input id="cmp" type="text" placeholder="Zpráva, nebo příkaz (Analyzuj zadání…)" value="{{draft}}" onChange="{{setDraft}}" style="flex: 1; border: 0; outline: none; background: transparent; font-size: 13px; min-height: 28px"><button class="btn quiet ic sm" type="button" aria-label="Ukázat na prvek (@)"><i class="ph ph-at s"></i></button><button class="send" type="button" aria-label="Odeslat" onClick="{{send}}" style="width: 28px; height: 28px"><i class="ph ph-paper-plane-right s"></i></button></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { card: 'ask', draft: '', extra: [], open: true }; }
+  componentWillUnmount() { clearTimeout(this._c); }
+  renderVals() {
+    const s = this.state;
+    const C = { ask: ['stg sm youq', 'ph ph-pause', 'čeká na vás · 0,40 USD', 'Výsledek', 'návrh na kroku Návrh'], run: ['stg sm run', '', 'běží', 'Právě', 'čte zadání a 2 podklady'], done: ['stg sm done', 'ph ph-check', 'hotovo · 0,31 USD', 'Stálo', '0,31 USD · 3 otázky, 2 hypotézy'], kept: ['stg sm dash', '', 'ponecháno', 'Výsledek', 'nic nespuštěno'] }[s.card];
+    return {
+      theme: this.props.theme ?? 'light', open: s.open, chev: s.open ? 'ph ph-caret-down s' : 'ph ph-caret-right s', toggle: () => this.setState({ open: !s.open }),
+      card: { gl: C[0], ic: C[1], short: C[2], k: C[3], v: C[4], ask: s.card === 'ask', done: s.card === 'done',
+        later: () => this.setState({ card: 'kept', open: false }), go: () => { this.setState({ card: 'run', open: false }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ card: 'done' }), 2000); } },
+      draft: s.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
+      send: () => { const t = s.draft.trim(); if (!t) return; this.setState({ draft: '', extra: [...s.extra, { me: true, text: t }, { me: false, text: 'Rozumím. Než to změním, ukážu návrh v liště nad krokem.' }] }); },
+      extra: s.extra.map((m) => ({ cls: m.me ? 'ln p' : 'ln', rl: m.me ? 'rl p' : 'rl l', who: m.me ? 'VY' : 'VEDOUCÍ', text: m.text }))
+    };
+  }
+}
+</script>
+</body>
+</html>

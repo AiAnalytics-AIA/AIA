@@ -460,11 +460,11 @@ forbid "the API, worker and executors never touch the Lead turn table" \
 # repository works only on the calling researcher's Lead, and loads a client note only into
 # its own client's Study, by the query. Elsewhere the rows could cross either line.
 forbid "the researcher Lead tables are touched only by their repository" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   "$CORE" \
   "$CORE/infrastructure/tables.py" "$CORE/infrastructure/researcher_lead_repository.py"
 forbid "the API, worker and executors never touch the researcher Lead tables" \
-  'ResearcherLead(Memory|Revision)?Row|researcher_lead_(memories|revisions)|researcher_leads\b' \
+  'ResearcherLead(Memory|Revision|Hatch)?Row|researcher_lead_(memories|revisions|hatches)|researcher_leads\b' \
   apps
 # The approval ledger is append-only and holds every decision between a person and the AI (ADR
 # 0019): its two repositories write it under the scope's three columns and the permission each

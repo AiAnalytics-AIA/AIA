@@ -184,6 +184,14 @@ try {
   await member.getByText("Fictional UX administrator", { exact: false }).waitFor();
   const savedMember = (await get("/api/v1/members")).find((m) => m.email === email);
   assert.equal(savedMember.organization_role, "ADMIN"); assert.equal(savedMember.display_name, "Fictional UX administrator");
+  // Naposledy (F9, F19): a member added and re-roled by someone else was never seen; the operator
+  // signed in here was, just now. Only their own request stamps it.
+  assert.equal(savedMember.last_seen_at, null, "access: an administrator's change does not stamp the member's last activity");
+  assert.equal(await member.locator("[data-last-seen]").getAttribute("data-last-seen"), "never");
+  assert.equal(await member.locator("[data-last-seen]").innerText(), "nikdy");
+  const operator = page.locator("[data-member]").filter({ has: page.getByText("workbench@example.invalid", { exact: true }) });
+  assert.match(await operator.locator("[data-last-seen]").getAttribute("data-last-seen"), /^\d{4}-\d\d-\d\dT/, "access: the signed-in operator's last activity is a time");
+  checks.push("Přístup's Naposledy: the signed-in operator has a time, a member added and re-roled by an administrator reads nikdy");
   await widths("access member editing"); checks.push("New member is added in an inline row as a researcher; name and role change in place and persist through the audited API, with Vrátit");
   // The Metodik mark (#823): the OWNER grants it in the row, Vrátit takes it back; the API agrees.
   const markSwitch = page.getByRole("switch", { name: `Štítek Metodik: ${email}`, exact: true });
