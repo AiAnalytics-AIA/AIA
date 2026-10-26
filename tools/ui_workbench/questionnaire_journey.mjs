@@ -104,6 +104,11 @@ try {
     await page.locator("#qset_sec_wb_set").getByText("S1", { exact: true }).waitFor();
     assert((await page.locator('[id^="qblock_"]').first().getByText("B1", { exact: true }).count()) > 0, `B1 on the first block at ${width}`);
     check(`${width}: blocks and sets numbered B n and S n`);
+    // No familiarity switch a run would refuse; the set says why (spec navrh/Q4, R9).
+    const setCard = page.locator("#qset_sec_wb_set");
+    assert.equal(await setCard.getByRole("switch", { name: /znalost/ }).count(), 0, `a familiarity switch at ${width}`);
+    await setCard.getByText(/proto tu přepínač chybí/).waitFor();
+    check(`${width}: a set offers no familiarity switch and says why`);
 
     // A question's × stays beside its number at every width, never on a row of its own (the
     // browser audit's QF-9: at 390 px the type chips wrapped and pushed it 130 px down).
@@ -119,6 +124,20 @@ try {
     // Measured together, so a scroll between the two reads cannot part them.
     assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
     check(`${width}: a question's × beside its number`);
+
+    // The type is a tag that opens its choices (spec navrh/Q2); the menu stays inside the page.
+    const typeTag = card.getByRole("button", { name: /, typ otázky$/ });
+    const tagBox = await typeTag.boundingBox();
+    assert(tagBox && tagBox.height >= (width < 640 ? 44 : 32) - 0.5, `the type tag's height at ${width}: ${tagBox?.height}`);
+    await typeTag.click();
+    const typeMenu = card.getByRole("menu", { name: /, typ otázky$/ });
+    await typeMenu.waitFor();
+    const menuBox = await typeMenu.boundingBox();
+    assert(menuBox && menuBox.x >= 0 && menuBox.x + menuBox.width <= width, `the type menu at ${width}: ${JSON.stringify(menuBox)}`);
+    await noOverflow(`type menu @${width}`);
+    await page.keyboard.press("Escape");
+    await typeMenu.waitFor({ state: "detached" });
+    check(`${width}: a question's type tag opens its menu inside the page`);
 
     // "Měří" as short VO chips (spec navrh/Q3): each reads "VO n", the question's text its name.
     const linkChips = card.getByRole("group", { name: "Odpovídá na výzkumné otázky" }).getByRole("button");

@@ -66,17 +66,19 @@ const openTab = async () => {
   await page.goto(base + "/app/settings#methodology"); await page.locator("#panel-methodology").waitFor({ state: "visible" });
   await page.locator("#panel-methodology :is([data-module-card], [data-module-header])").first().waitFor();
 };
-/** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika. */
-const openModule = async (title) => {
-  const heading = page.getByRole("heading", { level: 2, name: title, exact: true });
-  if (await heading.count()) return;
+/** The tab opens on the catalogue (fidelity F4); a module is a card away, back through ← Metodika.
+ *  A card is found by its module's id: its name is the web's (F15), not the API's title_cs. */
+const openModule = async (id) => {
   if (await page.locator("[data-methodology-back]").count()) {
     await page.locator("[data-methodology-back]").click();
     const leave = page.getByRole("button", { name: "Zahodit úpravy a přepnout", exact: true });
     if (await leave.count()) await leave.click();
   }
-  await page.getByRole("navigation", { name: "Oblasti metodiky" }).getByRole("button", { name: title, exact: true }).click();
-  await heading.waitFor();
+  const card = page.getByRole("navigation", { name: "Oblasti metodiky" }).locator(`[data-module-card="${id}"]`);
+  const name = await card.getAttribute("aria-label");
+  assert(name, `${id}: no card in the catalogue`);
+  await card.click();
+  await page.getByRole("heading", { level: 2, name, exact: true }).waitFor();
 };
 /** The list holds every parameter the API says a version can change, once; the formulas open. */
 const walkEditor = async (moduleId, summary) => {
@@ -168,7 +170,7 @@ try {
   const modules = (await get("/api/v1/methodology")).filter((m) => !HIDDEN.has(m.id));
   assert(modules.length >= 5, `only ${modules.length} modules`);
   for (const module of modules) {
-    await openModule(module.title_cs);
+    await openModule(module.id);
     const editor = page.locator("[data-methodology-editor]");
     if (module.editable) {
       await editor.waitFor({ timeout: 60000 }).catch(() => { throw new Error(`${module.id}: an administrator does not open on the editor`); });
