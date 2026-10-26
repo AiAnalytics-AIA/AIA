@@ -2174,8 +2174,9 @@ describe("Results", () => {
     layout.workbench = true;
     onTestFinished(() => { layout.workbench = null; });
     const asked: string[] = [];
+    // The workbench opens Analýza as a stage, by its hash: Výsledky has no tabs there (RES9).
+    window.history.replaceState(null, "", "#analysis");
     render(<LeadAskContext.Provider value={(text) => asked.push(text)}><ResearchScreen step="results" frame={TEST_FRAME} /></LeadAskContext.Provider>);
-    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
     const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
     await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
@@ -2203,8 +2204,8 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
       "GET /api/v1/studies/STU-1/lead": () => ({ analysis_retry_run: { run_id: "RUN-9", created_at: null, phase: "COMPLETED" } }),
     });
+    window.history.replaceState(null, "", "#analysis");
     render(<LeadAskContext.Provider value={(text) => asked.push(text)}><ResearchScreen step="results" frame={TEST_FRAME} /></LeadAskContext.Provider>);
-    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
     const older = await screen.findByRole("region", { name: "Blokované nároky" });
     await waitFor(() => expect(within(older).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy());
     expect(screen.queryByRole("button", { name: "Opakovat analýzu" })).toBeNull();
@@ -2644,13 +2645,13 @@ describe("Results", () => {
       expect(card.className).not.toContain("status-you");
     });
 
-    it("keeps Výsledky when its Sociomapy tab is chosen, after any later render: a tab is not a stage", async () => {
+    it("keeps Výsledky with no tabs in the workbench, after any later render, and opens the map only by navigation", async () => {
+      // RES9 (spec sber/V1): the workbench's Výsledky has no tabs, so no tab can turn into the stage.
       const { rerender } = open(signedOff, true, "#data");
-      fireEvent.click(await screen.findByRole("tab", { name: "Sociomapy" }));
-      expect(window.location.hash).toBe("#maps");
+      await screen.findByText(t("research.exec.results.aggregate"));
       rerender(<ResearchScreen step="results" frame={TEST_FRAME} />);
       await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
-      expect(screen.getByRole("tablist", { name: "Oddíly výsledků" })).toBeTruthy();
+      expect(screen.queryByRole("tablist", { name: "Oddíly výsledků" })).toBeNull();
       expect(screen.queryByTestId("sociomap-stage")).toBeNull();
       // Navigation to the stage (the workbench sets the hash: hashchange) opens it.
       act(() => { window.location.hash = "#data"; });
