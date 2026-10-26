@@ -27,6 +27,10 @@ from aia_core.application.lead_chat_start import (
     ChatStartRefused,
     newest_analysed_run,
 )
+from aia_core.application.lead_deep_research import (
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
+)
 from aia_core.application.research import (
     CostCeilingUnknown,
     CostConfirmationRequired,
@@ -76,6 +80,7 @@ from ..dependencies import (
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .deep_research import deep_research_mode, deep_research_start_errors, study_prices
 from .research import run_start_errors, run_start_settings
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
@@ -532,6 +537,8 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except NotAPaidRequest as exc:
         raise _error(422, exc.reason, "This turn prepared no paid job.") from exc
+    except DeepResearchCardUnavailable as exc:
+        raise _error(409, exc.reason, "Deep Research cannot be started here.") from exc
     except LeadContextTooLarge as exc:
         raise _error(422, exc.reason, str(exc)) from exc
     except LeadRejected as exc:
@@ -785,7 +792,9 @@ def approve_request(
     run settings (the ones ``POST …/research/runs`` uses), held to the same threshold and, with
     ``AIA_STUDY_WALLET_ENABLED``, to the wallet (409 ``outside_wallet``, ``ceiling_unknown``),
     and recorded as ``chat_start``. A run start's refusals are that route's."""
-    with _lead_errors(), run_start_errors():
+    # A Deep Research card's start refusals are the stage routes' own (LO5a.2), outermost so
+    # the Lead's and a run start's own mappings answer first where they overlap.
+    with deep_research_start_errors(session), _lead_errors(), run_start_errors():
         started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
@@ -794,6 +803,11 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
+            deep_research=DeepResearchCardSettings(
+                prices=study_prices(settings, session, scope),
+                modes=(deep_research_mode(settings),),
+                store=store,
+            ),
         )
     return ApprovedRequest.model_validate(started)
 
