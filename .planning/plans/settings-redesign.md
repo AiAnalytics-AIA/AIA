@@ -34,7 +34,7 @@ chunks:
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
   - "[x] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
-  - "[ ] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
+  - "[x] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
   - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
   - "[ ] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
   - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
@@ -170,6 +170,13 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   iterations and tolerance, held to one value under the signed-off layout; `layout.min_objects`, two
   or three by layout), and pairs checked as one (quantiles, stress bands). A null line in a preset
   (support's results.min_cell) has no bound shown: no preset lets the test prove it.
+- F14: the activity of a ledger row is read from the agent id its code sends (`domain/ai_activity.py`;
+  Deep Research's lead researcher by its capability); a call no listed activity makes (AI proposals
+  from a client's document, an operator's calibration) is left out. The read asks each known agent's
+  newest `SUCCEEDED` row, one lookup each on the partial index `ix_usage_org_answered`: a grouped
+  maximum read the organization's whole ledger (a parallel scan, 42 ms at 600,000 rows and growing),
+  the lookups 0.03 ms each, 11 ms for all 22 agents whatever the ledger's size. "Last answered" is the
+  past: a newer failure is not hidden by it and the page never says an activity works.
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
