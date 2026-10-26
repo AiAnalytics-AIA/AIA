@@ -399,13 +399,12 @@ def test_the_lead_selects_on_the_map_only_what_the_person_pointed_at() -> None:
 
 def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
     """A display filter by Sociomapa's own names and values; a battery is the run's to name, and
-    the context holds no map."""
+    the context holds no map, so the Lead is not offered it (stand-in review on #992)."""
     output = LeadOutput.model_validate(
         _output(
             view=[
                 {"op": "filter", "name": "view", "value": "relief"},
                 {"op": "filter", "name": "view", "value": "sideways"},
-                {"op": "filter", "name": "battery", "value": "set1"},
             ]
         )
     )
@@ -415,8 +414,8 @@ def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
     ]
     assert [d.model_dump() for d in dropped] == [
         {"index": 1, "op": "filter", "reason": "unknown_value"},
-        {"index": 2, "op": "filter", "reason": "not_in_context"},
     ]
+    assert not _valid(_output(view=[{"op": "filter", "name": "battery", "value": "set1"}])).ok
     assert not _valid(_output(view=[{"op": "filter", "name": "threshold", "value": "0.3"}])).ok
     # The panel has no labels or weak-links control: the Lead is not offered them.
     assert not _valid(_output(view=[{"op": "filter", "name": "labels", "value": "off"}])).ok

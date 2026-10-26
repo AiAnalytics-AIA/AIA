@@ -40,8 +40,7 @@ export type WorkingEdit = LeadEdit | RouteSetEdit;
 /** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
  *  open an element's detail in the item drawer over its stage, show a stage's waiting changes; on
  *  Sociomapa, select an element and set a display filter (artifact-sociomap SOC1's forms,
- *  `readMapOp`). `select` and `filter` are not live yet: the server's output does not carry them
- *  until the map applies them (LIVE_VIEW_OPS). */
+ *  `readMapOp`), which SociomapStage applies. */
 export type LeadView =
   | { op: "open_stage"; stage: WorkbenchStage }
   | { op: "show_diff"; stage: WorkbenchStage }

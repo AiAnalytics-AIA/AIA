@@ -318,10 +318,11 @@ class MapFilter(Closed):
     """A display filter on Sociomapa, by the name and value its contract lists
     (``lead_artifacts.FILTER_VALUES``): the picture changes, the computation never. Only the
     filters the map's panel applies (Sociomapa (2), 2026-10-26): ``labels`` and ``hide_weak``
-    have no control on it, so the Lead is not offered them."""
+    have no control on it, and ``battery`` takes the run's own ids, which the context does not
+    hold, so the Lead is not offered them."""
 
     op: Literal["filter"]
-    name: Literal["view", "mode", "battery"]
+    name: Literal["view", "mode"]
     value: str = Field(min_length=1, max_length=80, pattern=rf"^{ID_PATTERN}$")
 
 
@@ -869,7 +870,7 @@ def select_refusal(target: str, content: Mapping[str, Any], focus: str | None) -
 
 def filter_refusal(op: MapFilter) -> str | None:
     """Why the Lead may not set this display filter, or None when it may: a value its contract
-    does not list is ``unknown_value``; a value only the run's map knows (a battery) is
+    does not list is ``unknown_value``; a filter whose values only the run's map knows is
     ``not_in_context``, since the context holds no map."""
     from .lead_artifacts import FILTER_VALUES  # lead_artifacts imports this module
 
