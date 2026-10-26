@@ -64,6 +64,7 @@ import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { Stepper } from "@/components/ui/Stepper";
 import { rangeWords } from "@/lib/number-input";
+import { dimensionsChosen } from "@/research/lane";
 import { dimensionAia } from "@/lib/artifacts/dimensions";
 import { sampleAia } from "@/lib/artifacts/sample";
 import { useResearch, useSessionState } from "./context";
@@ -409,7 +410,7 @@ export function PersonaStep() {
 
         <ActionDock
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
-          note={tv("research.persona.dockNote", { d: approved.length, n })}
+          note={tv("research.persona.dockNote", { d: dimensionsChosen(approved.length), n })}
         >
           {!nav || nav.next ? (
             <Button variant="primary" className="!rounded-control" onClick={toNext}>

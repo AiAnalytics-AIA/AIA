@@ -90,7 +90,10 @@ try {
   const own = page.locator("section", { has: page.getByRole("heading", { name: "Vlastní dimenze klienta" }) });
   await own.getByRole("link", { name: /Populace běhu/ }).waitFor();
   assert.equal(await own.getByRole("link", { name: /Populace běhu/ }).getAttribute("href"), `/app/clients/${client}/research/${study}/run`);
-  check("Vlastní dimenze klienta: read, with the way to Populace běhu");
+  // Still at 390 px from the loop above: the stand-alone link is a touch target (TOUCH_LINK, 44 px).
+  const linkBox = await own.getByRole("link", { name: /Populace běhu/ }).boundingBox();
+  assert(linkBox && linkBox.height >= 44, `the Populace běhu link is ${linkBox?.height} px tall at 390`);
+  check("Vlastní dimenze klienta: read, with the way to Populace běhu, a 44 px target at 390");
 
   // The last chosen one, so putting it back from the catalogue (which appends) keeps the stored order.
   const chosen = page.getByRole("list", { name: "Vybrané dimenze" });
