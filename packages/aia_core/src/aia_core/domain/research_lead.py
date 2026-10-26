@@ -690,9 +690,10 @@ def inspect_refusal(
     return "not_in_context"
 
 
-#: The stages whose screens show their waiting changes. Zpráva declares ``show_diff`` too, for a
-#: draft's tracked changes, which wait for report-delivery RD5.
-SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions"})
+#: The stages whose screens show their waiting changes (Vzorek: a ``set_n``, artifact-sample
+#: SMP7). Zpráva declares ``show_diff`` too, for a draft's tracked changes, which wait for
+#: report-delivery RD5.
+SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions", "sample"})
 
 
 def show_diff_refusal(stage: str) -> str | None:
