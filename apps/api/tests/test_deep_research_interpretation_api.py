@@ -392,3 +392,67 @@ def test_a_quote_marks_nothing_closed_or_open(
     with create_session_factory(app.state.engine)() as session:
         assert len(session.scalars(select(WorkflowRunRow)).all()) == before
         assert session.scalars(select(ApprovalDecisionRow)).all() == []
+
+
+def test_every_lead_target_candidate_of_a_completed_run_is_one_the_start_freezes(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """lead-orchestration LO5a.1: the Lead's ``targets`` layer is built from the run's pinned
+    specification and its steps alone; each candidate's ref is a target the start resolves,
+    verifies and freezes, so a card naming it cannot point at nothing."""
+    from aia_core.application.deep_research import DeepResearchRuns
+    from aia_core.application.research_lead import ResearchLead
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.domain.deep_research.integration import ResearchTargetRef
+    from pydantic import TypeAdapter
+
+    results = _results(app, researcher, world)
+    store = app.state.artifact_store
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        assert ResearchLead(session, scope)._targets() is None  # no store: no target offered
+        layer = ResearchLead(session, scope, store=store)._targets()
+        assert layer is not None
+        candidates = layer["candidates"]
+        kinds = {c["kind"] for c in candidates}
+        # The fictional run has no AI analysis: every other result kind is offered.
+        assert kinds == {
+            "RESULT_QUESTION",
+            "RESULT_BATTERY_OBJECT",
+            "SOCIOMAP",
+            "SOCIOMAP_OBJECT",
+            "SOCIOMAP_RELATIONSHIP",
+        }
+        assert layer["default"] is None
+        assert {c["run_id"] for c in candidates} == {results["run_id"]}
+        runs = DeepResearchRuns(session, scope)
+        adapter: TypeAdapter[Any] = TypeAdapter(ResearchTargetRef)
+        for candidate in candidates:
+            spec = runs.freeze_interpretation(
+                target=adapter.validate_python(candidate["ref"]), preset_name="QUICK", store=store
+            )
+            assert spec.target.model_dump(mode="json") == candidate["ref"]
+        session.rollback()
+
+        # A specification that does not read offers no target and is named, never a stop.
+        from aia_core.infrastructure.tables import ProjectArtifactRow, StepRunRow
+
+        compile_step = session.scalars(
+            select(StepRunRow).where(
+                StepRunRow.run_id == results["run_id"], StepRunRow.node_key == "compile"
+            )
+        ).one()
+        row = session.get(ProjectArtifactRow, compile_step.output_json["artifact_id"])
+        assert row is not None
+        store.delete(row.storage_key)
+        broken = ResearchLead(session, scope, store=store)._targets()
+        assert broken == {
+            "candidates": [],
+            "default": None,
+            "omitted": 0,
+            "unreadable_runs": [results["run_id"]],
+        }
+        session.rollback()

@@ -61,8 +61,11 @@ export type LeadRequest =
   | { kind: "research_run"; why: string }
   /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
   | { kind: "analysis_retry"; why: string; run_id?: string }
-  | { kind: "design_research"; why: string }
-  | { kind: "interpretation_research"; why: string };
+  /** LO5a.1: a preset, a design focus (research-question ids) and an Interpretation target
+   *  (a candidate id of the turn's targets layer); a card still only opens the step (LO5a.2). */
+  | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
+  | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
+  | { kind: "deep_research_retry"; why: string; run_id: string };
 
 /**
  * The card a person's typed start shows (LO5), as the request it starts: the server matched the

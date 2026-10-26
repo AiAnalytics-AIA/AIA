@@ -586,7 +586,11 @@ def post_turn(
     external = store if settings.ai_analysis_external_context else None
     with _lead_errors():
         turns = ResearchLead(
-            session, scope, enabled=settings.research_lead_on, external_store=external
+            session,
+            scope,
+            enabled=settings.research_lead_on,
+            external_store=external,
+            store=store,
         ).post(
             kind=body.kind,
             stage=body.stage,
@@ -654,7 +658,11 @@ def answer_queued(
     external = store if settings.ai_analysis_external_context else None
     with _lead_errors():
         turns = ResearchLead(
-            session, scope, enabled=settings.research_lead_on, external_store=external
+            session,
+            scope,
+            enabled=settings.research_lead_on,
+            external_store=external,
+            store=store,
         ).answer_queued()
     if not turns:
         response.status_code = status.HTTP_200_OK
