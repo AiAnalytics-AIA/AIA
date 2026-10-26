@@ -205,6 +205,18 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   field, announced again on a second try and cleared by typing; the field is a form that Enter sends. Test:
   "requests a dimension the system does not have: refused when empty, proposed, recorded".
 
+- **DIM-F10 (fixed in its own PR).** "Použít doporučené" replaces the chosen dimensions with the
+  recommended set (18.6.6's autofillPersonaDims, `persona.ts:154 @ 1fed2969`), so a dimension the person
+  chose outside it was dropped without a word and with no way back (`PersonaStep.tsx:296 @ 1fed2969`); a
+  remove from the list had no Vrátit either (`:250`), against input-interactions I6. Both now offer Vrátit
+  (`undoChosen`): an unchanged selection is put back exactly, order included; one changed since loses only
+  what that action added and gets back what it took, at its old place; focus lands on the dimension put
+  back. The autofill offers it whenever it changes the selection and names what it dropped. Its replacing
+  semantics stay the classic's. The AI suggestion's apply also replaces the selection without Vrátit; it
+  leaves this stage with DIM5 (OI-53, the Lead card LO22), so it is not given one here. Tests: "names what \"Použít doporučené\" drops and
+  puts it back on Vrátit…", `research/persona-undo.test.ts`, `dimensions_journey.mjs` (removed by keyboard,
+  put back by Vrátit, focus on it).
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
