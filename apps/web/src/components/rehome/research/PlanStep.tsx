@@ -32,6 +32,7 @@ import {
   planComments,
   projectVariants,
   removeComment,
+  restoreComment,
   removeObject,
   removeSet,
   renameSet,
@@ -275,15 +276,18 @@ export function PlanStep() {
       <Comments
         n={++n}
         busy={busy}
+        undo={narrativeUndo}
         drafts={drafts}
         setDrafts={setDrafts}
         saveOnly={leadOwnsAiStarts}
         onProcess={async () => {
+          // The comments leave the list as one batch: a removal before it is no longer taken back.
+          narrativeUndo.clear();
           const reviewed = commentsToReview(store.get().project);
           if (!reviewed) return;
           if (leadOwnsAiStarts) {
-            // The plan is marked as changed by comments, as the analysis by comments marks it.
-            store.update(() => ({ project: { ...reviewed, ui_state: { ...reviewed.ui_state, plan_changed26: true } } }), { reason: "plan_comments_applied26", invalidateCheck: false });
+            // Saved for the Lead, nothing reworked yet: the plan is not marked "upraveno" (spec navrh D8).
+            store.update(() => ({ project: reviewed }), { reason: "plan_comments_applied26", invalidateCheck: false });
             setSavedForLead("comments");
             return;
           }
@@ -724,7 +728,9 @@ function Commentable({ onQuote, children }: { onQuote: (quote: string) => void; 
   );
 }
 
-function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
+function Comments({ n, busy, undo, drafts, setDrafts, onProcess, saveOnly = false }: {
+  /** The stage's one undo offer: a removed comment comes back with Vrátit. */
+  undo: ReturnType<typeof useUndo>;
   /** The workbench: the comments are saved for the Lead, with no AI call from here. */
   saveOnly?: boolean;
   n: number;
@@ -735,6 +741,15 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
 }) {
   const { store, state } = useResearch();
   const cs = planComments(state.project);
+  const remove = (i: number) => {
+    const c = planComments(store.get().project)[i];
+    if (!c) return;
+    store.update(({ project }) => ({ project: removeComment(project, i) }), { reason: "plan_comments26", invalidateCheck: false });
+    undo.offer({
+      message: tv("research.plan.narrative.removed", { text: c.comment }),
+      undo: () => store.update(({ project }) => ({ project: restoreComment(project, c, i) }), { reason: "plan_comments26", invalidateCheck: false }),
+    });
+  };
   const keep = (key: number) => {
     const d = drafts.find((x) => x.key === key);
     if (!d) return;
@@ -744,7 +759,7 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
     setDrafts((all) => all.filter((x) => x.key !== key));
   };
   return (
-    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={t("research.plan.commentsHint")}>
+    <StepSection id="plan-comments" n={n} optional={false} title={`${t("research.plan.commentsTitle")} · ${cs.length}`} hint={t(saveOnly ? "research.plan.commentsHintLead" : "research.plan.commentsHint")}>
       {cs.length || drafts.length ? (
         <ul className="flex flex-col gap-2">
           {cs.map((c, i) => (
@@ -757,7 +772,7 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
                 small
                 variant="quiet"
                 aria-label={t("research.plan.commentRemove")}
-                onClick={() => store.update(({ project }) => ({ project: removeComment(project, i) }), { reason: "plan_comments26", invalidateCheck: false })}
+                onClick={() => remove(i)}
               >
                 ×
               </Button>
@@ -785,8 +800,9 @@ function Comments({ n, busy, drafts, setDrafts, onProcess, saveOnly = false }: {
           ))}
         </ul>
       ) : null}
+      {saveOnly ? <p className={`text-[13px] text-ink-muted ${cs.length || drafts.length ? "mt-3" : ""}`}>{t("research.plan.commentsLeadNote")}</p> : null}
       {saveOnly ? (
-        <Button className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
+        <Button className="mt-3" disabled={!cs.length || busy} onClick={() => void onProcess()}>Uložit komentáře</Button>
       ) : (
         <AiButton className={cs.length || drafts.length ? "mt-4" : ""} disabled={!cs.length || busy} onClick={() => void onProcess()}>
           {t("research.plan.commentsProcess")}

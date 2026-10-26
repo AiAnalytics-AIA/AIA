@@ -321,6 +321,8 @@ try {
     await elsewhere.waitFor({ timeout: 30000 });
     assert.equal(await elsewhere.locator(":scope > ul > li").count(), 2, `plan @${width}: the traced research questions`);
     await elsewhere.locator(":scope > ul > li").first().getByText(/pokryto|částečně|mezera|neznámé/).first().waitFor({ timeout: 30000 });
+    // DSN14: in the workbench a comment is saved for the Lead, and the section says it changes nothing.
+    await page.locator("#plan-comments").getByText("Komentář nic nemění. Změnu udělá Vedoucí až na vaši žádost.").waitFor({ timeout: 30000 });
     // DSN12: the hypotheses are a section of their own, each a Lead target, with no verdict said.
     const hypotheses = page.getByRole("region", { name: "Hypotézy" });
     assert.equal(await hypotheses.locator('[data-aia^="hypothesis:"]').count(), 2, `plan @${width}: the hypotheses' section`);
