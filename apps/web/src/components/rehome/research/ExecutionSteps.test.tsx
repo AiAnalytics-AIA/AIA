@@ -2391,6 +2391,28 @@ describe("Results", () => {
         expect(takeLeadMapView()).toBeNull();
       });
 
+      it("says a stage-wide filter that no map here would show, sent before or live, never dropping it", async () => {
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(SOCIOMAP, true);
+        const stage = await screen.findByTestId("sociomap-stage");
+        await within(stage).findByText(t("research.exec.results.olderMethod"));
+        const note = () => within(stage).getByTestId("sociomap-lead-note").textContent;
+        await waitFor(() => expect(note()).toContain("Mapa: shora"));
+        expect(takeLeadMapView()).toBeNull();
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(note()).toContain("na této stránce není mapa");
+      });
+
+      it("says once on the stage that no map stores a respondent map, not once per map", async () => {
+        const bare = structuredClone(both);
+        for (const b of bare.payload.sociomap.batteries) for (const m of Object.values(b.maps as Record<string, { artifact: { respondents?: unknown } }>)) delete m.artifact.respondents;
+        open(bare, true);
+        const stage = await drawn(2);
+        act(() => { sendLeadMapView({ op: "filter", name: "mode", value: "respondents" }); });
+        expect(within(stage).getByTestId("sociomap-lead-note").textContent).toBe(t("research.exec.objectMap.panel.leadNoRespondents"));
+        expect(within(stage).getAllByTestId("object-map-lead-note").every((n) => n.textContent === "")).toBe(true);
+      });
+
       it("says once, in words, a view no map here can apply, and changes no map", async () => {
         open(both, true);
         const stage = await drawn(2);
