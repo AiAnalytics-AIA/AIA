@@ -1908,3 +1908,39 @@ waiting for review. On Zpráva it waits for report-delivery RD5's tracked change
     rozhodnutí (prohledáno posledních 200 úloh)."; a lookup that failed says the proposals could not be
     read, never that nothing waits. Tests: `Workbench.layout.test.tsx` "says so on the stage the person
     is on when…" (both).
+
+### A card's review drawn under the drawer (2026-10-25, `fix/review-steps-drawer-aside`; the Dotazník audit)
+
+- **F24. Below 1100 px a card's "Zkontrolovat návrh" opened the review under the Lead's drawer or sheet**
+  *(fixed)*.
+  1. Claim: `openJob` opened the review, or moved to its stage, but never stepped the conversation aside,
+     so the review lay under the open drawer, with the focus held in it.
+  2. Anchor: `apps/web/src/components/workbench/Workbench.tsx:719-724 @ fd04ba89`.
+  3. Reproduction: at 768 or 390 px, a finished `optimize_questionnaire` job's card, "Zkontrolovat návrh":
+     "Použít návrh" and "Zahodit" are hidden behind the drawer (reported by the Dotazník session).
+  4. Consequence: the review could not be read or decided below 1100 px without closing the drawer by hand.
+  5. Fix: in a compact layout `openJob` steps the drawer aside (`view`, a peek with "Zpět k Vedoucímu"), as
+     a Lead's view does; the review takes the focus when it mounts.
+  6. Test: `Workbench.layout.test.tsx` "a card's review steps the drawer aside…"; `lead_stale_journey.mjs`
+     now checks it at 768 and 390 px (it had closed the drawer by hand, which hid the defect).
+
+### The Lead's map views: the web half (2026-10-26, `feature/lead-map-view-web`; chunk 14)
+
+The freeze lifted (the owner, 2026-10-26). The held `feature/lead-map-view-ops` lands in two parts; this is
+the first, rebuilt on develop (the held branch predates #809 and conflicted in 13 files).
+- **What it adds, not live.** `LeadView` carries `select` and `filter` (artifact-sociomap SOC1's forms).
+  `LIVE_VIEW_OPS` and `contract.json` are unchanged, so the server's output does not carry them yet.
+  - `lead.ts`: `LeadMapView`, `LEAD_MAP_VIEW` (the event), `sendLeadMapView` (kept for a map that mounts
+    after the move, sent to one on screen), `takeLeadMapView` (taken once), and `mapViewWords` (the chip:
+    what the picture becomes, "Mapa: reliéf", "Vybrat: Objekt set1/fio").
+  - `Workbench.onView` moves to Sociomapa through the leave guard and hands the map the view; a move the
+    guard stops keeps nothing. In a compact layout a filter peeks on Sociomapa.
+- **For Sociomapa (2).** The listener in the map panel imports `LEAD_MAP_VIEW` and `takeLeadMapView`, reads
+  each through `readMapOp`, and changes its display state.
+- **Next, the server half** (after the listener lands): `research_lead.MapFilter` / `SelectItem` with
+  `filter_refusal` / `select_refusal`, `filter_values` in `contract.json`, both sides' `LIVE_VIEW_OPS`,
+  the scripted Lead; `labels` and `hide_weak` left out of the server's values until the panel offers those
+  controls; harness `aia-research-lead-6`.
+- **Tests.** `lead.test.ts` "mapViewWords"; `LeadPane.test.tsx` "names the Lead's map views…";
+  `Workbench.layout.test.tsx` "the Lead's views on Sociomapa" (moved and kept, kept nothing when stopped,
+  sent at once on Sociomapa). Each fails without the change.
