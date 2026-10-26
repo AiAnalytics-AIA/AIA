@@ -2022,8 +2022,9 @@ describe("Results", () => {
     // A finding the module filter leaves off the page is brought back first: the list goes back to "Vše" (ANL3b).
     fireEvent.click(screen.getByRole("button", { name: /^Shrnutí analýzy · / }));
     expect(document.getElementById("analysis-finding-research_questions-0")).toBeNull();
+    // Focused by the render that mounts it, not a timer guessing when that render lands (Codex P1 on #962).
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /1$/ }));
-    await waitFor(() => expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0"));
+    expect(document.activeElement?.id).toBe("analysis-finding-research_questions-0");
     expect(screen.getByRole("button", { name: "Vše" }).getAttribute("aria-pressed")).toBe("true");
   });
 
@@ -2208,9 +2209,9 @@ describe("Results", () => {
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-5": () => SOCIOMAP,
       "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: { audience: "WAITING_PROVIDER" }, modules: {
-        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }],
+        executive: { outcome: "COMPLETED", summary: "Úvodní odstavec.\n\n- první bod\n- druhý bod", research_question_answers: [{ question: "Co lidé pijí?", answer: "Hlavně čaj a kávu.", claim_ids: ["C2"] }, { question: "Kolik lidí pije čaj?", answer: "Skoro polovina.", claim_ids: ["C4"] }],
           key_findings: [{ text: "Čaj a káva jsou **vyrovnané**.", claim_ids: ["C1", "C2", "C9", "C3"] }],
-          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }], violations: [] },
+          claims: [{ claim_id: "C1", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }, { claim_id: "C2", evidence_ref: "q2.pct.1", value: 34.8, indicative: true, data_origin: null }, { claim_id: "C3", evidence_ref: "x9.median", value: 4, indicative: false, data_origin: null }, { claim_id: "C4", evidence_ref: "q2.pct.2", value: 38.4, indicative: false, data_origin: null }], violations: [] },
         objects: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [{ text: "Bez čísel.", claim_ids: [] }, { text: "Jen neuložená čísla.", claim_ids: ["C7"] }], claims: [], violations: [] },
       } }),
     });
@@ -2282,6 +2283,12 @@ describe("Results", () => {
     fireEvent.click(screen.getByRole("button", { name: /Cílová skupina.*Čeká/ }));
     expect(screen.getByText("Stav kroku: Čeká")).toBeTruthy();
     expect(screen.queryByText(/WAITING_PROVIDER/)).toBeNull();
+    // A claim only a module's answer cites is drawn among that module's answers alone: asked for, its
+    // module is chosen, never "Vše", where no answer is drawn (Codex P2 on #962).
+    expect(document.querySelector('[data-aia="claim:executive:C4"]')).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: "claim:executive:C4" })); });
+    expect(document.querySelectorAll('[data-aia="claim:executive:C4"]')).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Shrnutí analýzy · / }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("says on the analysis when the aggregate it read is no longer 18.6.6's port (G3c)", async () => {

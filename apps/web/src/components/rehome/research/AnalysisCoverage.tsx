@@ -2,7 +2,7 @@
 // Analýza §1 "Pokrytí výzkumných otázek" and its milestones (artifact-analysis ANL2): every
 // research question of the run's frozen design, what the analysis answered, the findings that rest
 // on the same measures and what is missing. Reads the stored analysis; decides nothing.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { tv } from "@/i18n/t";
 import { gapWords } from "@/lib/answerability";
 import { researchAgents, type ResearchAnalysis, type ResearchRun } from "@/lib/api";
@@ -79,17 +79,13 @@ function useDesignQuestions(studyId: string, revisionId: string): DesignQuestion
  * Bring a finding into view and focus it. Not a link: a hash that names no view sends the results
  * workspace back to Přehled and the workbench to Výsledky (ResultsWorkspace reads the hash).
  */
-function showFinding(f: FindingRef): void {
-  const reveal = (el: HTMLElement) => {
-    el.scrollIntoView?.({ block: "center" });
-    if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
-    el.focus({ preventScroll: true });
-  };
+function showFinding(f: FindingRef): boolean {
   const el = document.getElementById(findingAnchor(f));
-  if (el) return reveal(el);
-  // The findings list's module filter leaves it off the page: ask for it, as the Lead's focus does, and look again.
-  bringBack(f);
-  setTimeout(() => { const back = document.getElementById(findingAnchor(f)); if (back) reveal(back); }, 0);
+  if (!el) return false;
+  el.scrollIntoView?.({ block: "center" });
+  if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
+  return true;
 }
 
 /** Ask the findings list to show a finding its filter leaves off (LEAD_REVEAL, the Lead's own way). */
@@ -124,6 +120,13 @@ export function AnalysisMilestones({ run, analysis }: { run: ResearchRun; analys
 export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis: ResearchAnalysis | null }) {
   const frame = useFrame();
   const openItem = useOpenAnalysisItem();
+  // A finding the list's module filter left off the page, asked back (bringBack): focused after the
+  // render that mounts it, never on a guess at React's timing (AGENTS.md). The list is drawn by this
+  // table's parent, so every render of the list renders this table too.
+  const pending = useRef<FindingRef | null>(null);
+  useEffect(() => {
+    if (pending.current && showFinding(pending.current)) pending.current = null;
+  });
   const design = useDesignQuestions(frame.studyId, run.design_revision_id);
   const rows = design.state === "ready" ? coverage(design.questions, analysis, run.answerability?.gaps ?? []) : [];
   return (
@@ -148,7 +151,7 @@ export function AnalysisCoverage({ run, analysis }: { run: ResearchRun; analysis
                           const item = findingItem(f.module, f.index);
                           // In the inspector too, the finding is put back on the page, so "Ukázat na stránce" finds it.
                           if (openItem?.(item.id, item.title)) bringBack(f);
-                          else showFinding(f);
+                          else if (!showFinding(f)) { pending.current = f; bringBack(f); }
                         }}
                           className="rounded-control border border-border bg-surface-sunken px-1.5 text-left text-xs text-ink hover:underline focus-visible:outline-2 focus-visible:outline-focus-ring">
                           {stepLabel(`analysis_${f.module}`)} {f.index + 1}

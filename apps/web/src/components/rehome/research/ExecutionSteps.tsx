@@ -1873,16 +1873,22 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
   const [filter, setFilter] = useState<(typeof ANALYSIS_ORDER)[number] | "all">("all");
   // A finding or a claim the filter leaves off the page, pointed at by the Lead, the inspector or a
-  // coverage chip (LEAD_REVEAL): the list goes back to "Vše", and the next look finds it.
+  // coverage chip (LEAD_REVEAL): the list goes back to "Vše", and the next look finds it. A claim no
+  // key finding cites is drawn only among its module's answers, so its module is chosen instead.
   useEffect(() => {
     const on = (e: Event) => {
       const detail = (e as CustomEvent<unknown>).detail;
       const target = typeof detail === "string" ? readAnalysisTarget(detail) : null;
-      if (target && target.kind !== "module" && filter !== "all" && target.module !== filter) setFilter("all");
+      if (!target || target.kind === "module") return;
+      const own = loaded.state === "ready" ? loaded.value.modules[target.module] : undefined;
+      const answerOnly = target.kind === "claim" && own?.outcome === "COMPLETED"
+        && !own.key_findings.some((f) => f.claim_ids.includes(target.claimId));
+      if (answerOnly) setFilter(target.module);
+      else if (filter !== "all" && target.module !== filter) setFilter("all");
     };
     window.addEventListener(LEAD_REVEAL, on);
     return () => window.removeEventListener(LEAD_REVEAL, on);
-  }, [filter]);
+  }, [filter, loaded]);
   const states = run.steps.filter((step) => step.kind === "research_analysis")
     .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
   useEffect(() => {
