@@ -169,13 +169,15 @@ def usage_facts(session: Session, *where: ColumnElement[bool]) -> list[UsageFact
             AIUsageEventRow.occurred_at,
             WorkflowRunRow.workflow_type,
             StepRunRow.stage_type,
+            AIUsageEventRow.run_id.label("run_id"),
         )
         .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == AIUsageEventRow.run_id)
         .outerjoin(StepRunRow, StepRunRow.step_id == AIUsageEventRow.step_id)
         .where(*where)
     ).all()
     facts: list[UsageFact] = []
-    for call, outcome, cost, person, client, study, at, workflow, stage in rows:
+    for row in rows:
+        call, outcome, cost, person, client, study, at, workflow, stage = row[:9]
         occurred = as_utc(at)
         assert occurred is not None  # non-nullable column
         facts.append(
@@ -188,6 +190,7 @@ def usage_facts(session: Session, *where: ColumnElement[bool]) -> list[UsageFact
                 study_id=study,
                 activity=activity_of(workflow, stage),
                 occurred_at=occurred,
+                run_id=row.run_id,
             )
         )
     return facts
@@ -212,6 +215,7 @@ def hold_facts(session: Session, *where: ColumnElement[bool]) -> list[HoldFact]:
             in_ledger.label("in_ledger"),
             WorkflowRunRow.workflow_type,
             StepRunRow.stage_type,
+            BudgetReservationRow.run_id,
         )
         .join(ClientRow, ClientRow.client_id == BudgetReservationRow.client_id)
         .outerjoin(WorkflowRunRow, WorkflowRunRow.run_id == BudgetReservationRow.run_id)
@@ -234,28 +238,31 @@ def hold_facts(session: Session, *where: ColumnElement[bool]) -> list[HoldFact]:
                 activity=activity_of(m[WorkflowRunRow.workflow_type], m[StepRunRow.stage_type]),
                 in_ledger=bool(m["in_ledger"]),
                 settled_at=as_utc(settled_at) if settled_at is not None else None,
+                run_id=m[BudgetReservationRow.run_id],
             )
         )
     return facts
 
 
 def run_spend_facts(
-    session: Session, *, organization_id: str, study_id: str, run_id: str
+    session: Session, *, organization_id: str, study_id: str, run_ids: Collection[str]
 ) -> tuple[list[UsageFact], list[HoldFact]]:
-    """Every usage row and hold of one run, whoever it is booked to: a run's spend is the
-    study's, which every member who can open the study reads (ADR 0019). The caller has found
-    the run through the study; the organization and study are in the query as well."""
+    """Every usage row and hold of ``run_ids``, each naming its run, whoever it is booked to: a
+    run's spend is the study's, which every member who can open the study reads (ADR 0019). The
+    caller has found the runs through the study; the organization and study are in the query as
+    well. One read for a page of runs (``runs_spend`` folds each)."""
+    runs = sorted(run_ids)
     return (
         usage_facts(
             session,
             AIUsageEventRow.organization_id == organization_id,
             AIUsageEventRow.study_id == study_id,
-            AIUsageEventRow.run_id == run_id,
+            AIUsageEventRow.run_id.in_(runs),
         ),
         hold_facts(
             session,
             ClientRow.organization_id == organization_id,
             BudgetReservationRow.study_id == study_id,
-            BudgetReservationRow.run_id == run_id,
+            BudgetReservationRow.run_id.in_(runs),
         ),
     )

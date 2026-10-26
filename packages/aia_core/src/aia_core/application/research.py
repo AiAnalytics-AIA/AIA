@@ -105,7 +105,7 @@ from ..domain.research_trace import (
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
 from ..domain.scope import OrganizationRole, Permission, StudyContext
-from ..domain.spend_attribution import ActivitySpend, run_spend
+from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
@@ -113,7 +113,6 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptRefused, PromptResolver
-from ..infrastructure.researcher_spend_repository import run_spend_facts
 from ..infrastructure.scope_repository import ScopeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
@@ -134,6 +133,7 @@ from .proposal_accept import (
     proposal_baseline,
 )
 from .report_export import exports_stamped
+from .researcher_spend import run_spend_of
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -1613,14 +1613,7 @@ class ResearchRuns:
         """What one research run of this Study has spent, holds open and could not settle, by
         the rules a person's spend is read (``artifact-fieldwork`` FLD4). ``run`` is what
         :meth:`get` found through this Study; the query is in the Study and organization too."""
-        self.scope.require(Permission.VIEW_COSTS)
-        usage, holds = run_spend_facts(
-            self.session,
-            organization_id=self.scope.organization_id,
-            study_id=self.scope.study_id,
-            run_id=str(run["run_id"]),
-        )
-        return run_spend(usage, holds)
+        return run_spend_of(self.session, self.scope, str(run["run_id"]))
 
     def runs(self, *, limit: int = 20, steps: bool = False) -> list[dict[str, Any]]:
         """This Study's research runs, newest first, with their phases.

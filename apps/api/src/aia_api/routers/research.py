@@ -96,6 +96,7 @@ from aia_core.application.research import (
     readiness_in_force,
     research_artifacts,
 )
+from aia_core.application.researcher_spend import run_spend_of, run_spends
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
@@ -518,7 +519,8 @@ class ResearchRunResponse(BaseModel):
     finished_at: datetime | None
     steps: list[ResearchStepResponse] = Field(default_factory=list)
     artifact_ids: list[str] = Field(default_factory=list)
-    #: Only with ``VIEW_COSTS``; ``None`` otherwise, never zero.
+    #: ``spend``'s total, where ``spend`` is given, while no call's outcome is unknown; ``None``
+    #: otherwise, never zero (F-R10).
     actual_cost_usd: float | None = None
     #: Only on ``GET …/research/runs/{run_id}``, with ``VIEW_COSTS``; ``None`` on a listed run
     #: and on an action's answer (start, cancel, retry, budget), which is not a cost read.
@@ -1136,15 +1138,6 @@ def _run(
 ) -> ResearchRunResponse:
     meta = run.get("metadata") or {}
     steps = [_step(s) for s in run.get("steps", [])]
-    cost: float | None = None
-    # A listed run's steps carry no attempts, so no cost: unknown, never zero.
-    listed = "steps" in run and any("attempts" not in s for s in run["steps"])
-    if scope.has(Permission.VIEW_COSTS) and "steps" in run and not listed:
-        cost = sum(
-            float(a.get("actual_cost_usd") or 0.0)
-            for s in run["steps"]
-            for a in s.get("attempts", [])
-        )
     return ResearchRunResponse(
         run_id=run["run_id"],
         study_id=scope.study_id,
@@ -1164,7 +1157,6 @@ def _run(
         finished_at=run.get("finished_at"),
         steps=steps,
         artifact_ids=[s.artifact_id for s in steps if s.artifact_id],
-        actual_cost_usd=cost,
         cost_ceiling=(
             ResearchRunCeiling.model_validate(meta["cost_ceiling"])
             if scope.has(Permission.VIEW_COSTS) and isinstance(meta.get("cost_ceiling"), dict)
@@ -1745,6 +1737,8 @@ def get_run(run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep) -> Res
                 reserved_usd=spent.reserved_usd,
                 uncertain_calls=spent.uncertain_calls,
             )
+            # The same fold as spend: unknown while a call's outcome is (F-R10).
+            response.actual_cost_usd = spent.known_usd
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
     return response
@@ -3437,8 +3431,36 @@ class AgentProposalRebuild(BaseModel):
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000, allow_inf_nan=False)
 
 
+def page_costs(
+    session: SessionDep, scope: StudyContext, run_ids: list[str]
+) -> Mapping[str, float | None] | None:
+    """A listing's runs' costs in one read (:func:`run_cost`); ``None`` without ``VIEW_COSTS``."""
+    if not scope.has(Permission.VIEW_COSTS):
+        return None
+    return {r: s.known_usd for r, s in run_spends(session, scope, run_ids).items()}
+
+
+def run_cost(
+    session: SessionDep,
+    scope: StudyContext,
+    run_id: str,
+    page: Mapping[str, float | None] | None = None,
+) -> float | None:
+    """A run's cost from its spend fold, not its attempts (F-R10): unknown while a call's outcome
+    is, ``None`` without ``VIEW_COSTS``; from ``page`` when a listing read it already."""
+    if not scope.has(Permission.VIEW_COSTS):
+        return None
+    if page is not None:
+        return page[run_id]
+    return run_spend_of(session, scope, run_id).known_usd
+
+
 def _agent_response(
-    run: dict[str, Any], scope: StudyContext, state: str | None = None
+    session: SessionDep,
+    run: dict[str, Any],
+    scope: StudyContext,
+    state: str | None = None,
+    page: Mapping[str, float | None] | None = None,
 ) -> AgentJobResponse:
     meta = run["metadata"]
     return AgentJobResponse(
@@ -3454,11 +3476,7 @@ def _agent_response(
         prompt_origin=meta.get("prompt_origin"),
         created_at=run.get("created_at"),
         steps=[_step(s) for s in run["steps"]],
-        actual_cost_usd=sum(
-            float(a.get("actual_cost_usd") or 0) for s in run["steps"] for a in s["attempts"]
-        )
-        if scope.has(Permission.VIEW_COSTS)
-        else None,
+        actual_cost_usd=run_cost(session, scope, run["run_id"], page),
         proposal_state=state,
         rebuild_of=meta.get("rebuild_of"),
     )
@@ -3469,7 +3487,7 @@ def _agent_with_state(
 ) -> AgentJobResponse:
     run = jobs.get(run_id)
     state = jobs.proposal_states([run])[run_id]
-    return _agent_response(run, scope, state.value if state else None)
+    return _agent_response(jobs.session, run, scope, state.value if state else None)
 
 
 def stale_proposal(exc: StaleProposal) -> HTTPException:
@@ -3561,7 +3579,7 @@ def start_agent_job(
         )
         if not started.created:
             response.status_code = 200
-        return _agent_response(jobs.get(started.run_id), scope)
+        return _agent_response(session, jobs.get(started.run_id), scope)
 
 
 @router.get("/research/agent-jobs", response_model=list[AgentJobResponse])
@@ -3574,7 +3592,11 @@ def list_agent_jobs(
         jobs = ResearchAgentJobs(session, scope)
         runs = [jobs.get(r["run_id"]) for r in jobs.jobs()]
         states = jobs.proposal_states(runs)
-        listed = [_agent_response(r, scope, (s := states[r["run_id"]]) and s.value) for r in runs]
+        page = page_costs(session, scope, [r["run_id"] for r in runs])
+        listed = [
+            _agent_response(session, r, scope, (s := states[r["run_id"]]) and s.value, page)
+            for r in runs
+        ]
         return [j for j in listed if j.proposal_state == "pending"] if pending else listed
 
 
@@ -3607,7 +3629,7 @@ def cancel_agent_job(
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         jobs.cancel(run_id)
-        return _agent_response(jobs.get(run_id), scope)
+        return _agent_response(session, jobs.get(run_id), scope)
 
 
 @router.post("/research/agent-jobs/{run_id}/resume", response_model=AgentJobResponse)
@@ -3618,7 +3640,7 @@ def resume_agent_job(
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         jobs.resume_runtime_park(run_id)
-        return _agent_response(jobs.get(run_id), scope)
+        return _agent_response(session, jobs.get(run_id), scope)
 
 
 @router.post(
@@ -3640,7 +3662,9 @@ def lift_agent_job_budget(
     with _agent_errors(session):
         jobs = ResearchAgentJobs(session, scope)
         return _agent_response(
-            jobs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+            session,
+            jobs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note),
+            scope,
         )
 
 
