@@ -77,15 +77,35 @@ function audienceStage(p: ResearchProject): LaneStage {
   return audienceReady(p) ? { tone: "done", line: "Vybráno" } : { tone: "idle", line: "Nevybráno" };
 }
 
+/** How many dimensions are chosen, in words: "Bez dimenzí", "1 dimenze", "3 dimenze", "5 dimenzí". The
+ * stage track and Dimenze's dock say it the same way. */
+export function dimensionsChosen(count: number): string {
+  return count ? plural(count, "dimenze", "dimenze", "dimenzí") : "Bez dimenzí";
+}
+
 function personaStage(p: ResearchProject): LaneStage {
-  const approved = chosenDimensions(p);
   const n = Number(p.n) || 0;
-  const d = approved.length ? plural(approved.length, "dimenze", "dimenze", "dimenzí") : "Bez dimenzí";
+  const d = dimensionsChosen(chosenDimensions(p).length);
   return n ? { tone: "done", line: `${d} · N=${n}` } : { tone: "idle", line: d };
 }
 
-/** Each design stage's state; the run stages are the caller's (they come from the runs). */
-export function designLane(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): Record<"brief" | "plan" | "questionnaire" | "audience" | "persona", LaneStage> {
+/** The workbench's Dimenze: its dimensions alone, done once one is chosen; N is Vzorek's (#945). */
+function dimensionsStage(p: ResearchProject): LaneStage {
+  const approved = chosenDimensions(p);
+  return approved.length ? { tone: "done", line: plural(approved.length, "dimenze", "dimenze", "dimenzí") } : { tone: "idle", line: "Bez dimenzí" };
+}
+
+/** The workbench's Vzorek: the sample size set there (#945). */
+function sampleStage(p: ResearchProject): LaneStage {
+  const n = Number(p.n) || 0;
+  return n ? { tone: "done", line: `N=${n}` } : { tone: "idle", line: "N nezadáno" };
+}
+
+/**
+ * Each design stage's state; the run stages are the caller's (they come from the runs). `persona`
+ * is the classic track's one step for both; the workbench splits it into `dimensions` and `sample`.
+ */
+export function designLane(state: Pick<ResearchState, "project" | "analysis">, l: SetLimits = SET_PRESET): Record<"brief" | "plan" | "questionnaire" | "audience" | "persona" | "dimensions" | "sample", LaneStage> {
   const p = state.project;
   return {
     brief: briefStage(p),
@@ -93,6 +113,8 @@ export function designLane(state: Pick<ResearchState, "project" | "analysis">, l
     questionnaire: questionnaireStage(p, l),
     audience: audienceStage(p),
     persona: personaStage(p),
+    dimensions: dimensionsStage(p),
+    sample: sampleStage(p),
   };
 }
 

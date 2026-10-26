@@ -13,6 +13,7 @@
  *     clipped (at 390 px each row is a card);
  *   - a finished run's milestones read "Sběr dokončen" done;
  *   - every coverage row shows the answer's text and one state word (ANL2b);
+ *   - the header reads "Běh z … · interní · <origin>", and no run or claim id is printed (ANL10);
  *   - a coverage finding chip keeps the analysis view (no hash that sends the workspace to Přehled);
  *   - a module stored BLOCKED reads "Potřebuje opravu", never "Hotovo".
  * Zero paid jobs: no research run, agent job, Deep Research run, analysis retry or Lead request is started.
@@ -125,6 +126,11 @@ try {
     // A finished run's fieldwork reads done (F1).
     const fieldworkDone = await page.locator("[data-analysis-milestones] li").first().getAttribute("data-done");
     assert.equal(fieldworkDone, "true", `@${width}: Sběr dokončen reads čeká on a finished run`);
+    // The header names the run by its day and origin, and no run or claim id is printed (ANL10).
+    const header = await page.locator("[data-analysis-header]").textContent();
+    assert.match(header ?? "", /^Běh( z .+)? · interní · .+$/, `@${width}: the header line reads "${header}"`);
+    const ids = await page.locator("[data-analysis-card]").evaluate((el) => (el.textContent ?? "").match(/RUN-[0-9A-Za-z]+|ART-[0-9A-Za-z]+| → /g) ?? []);
+    assert.deepEqual(ids, [], `@${width}: ids printed on the stage`);
     await shot(`analysis-${width}`);
 
     const counts = await targetCounts();

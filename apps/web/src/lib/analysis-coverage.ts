@@ -2,8 +2,9 @@
 // run's frozen design with what the analysis answered, the findings that rest on the same
 // measures, and what is missing. Pure: it reads the stored analysis and the gaps the run recorded
 // at start, and decides nothing the server did not.
+import { t } from "@/i18n/t";
 import type { AnswerabilityGap, ResearchAnalysis } from "@/lib/api";
-import { ANALYSIS_ORDER } from "@/lib/research-execution";
+import { ANALYSIS_ORDER, type OriginKind } from "@/lib/research-execution";
 import { linkKey } from "@/research/trace";
 
 type Module = ResearchAnalysis["modules"][string];
@@ -116,4 +117,16 @@ export function coverage(
       : "unknown";
     return { index, question, state, verdict, answer: answer?.answer ?? null, gap, findings: linked };
   });
+}
+
+/**
+ * Analýza's header line (ANL10): "Běh z 21. 10. · interní · modelováno", the year added when it is
+ * not this year's. A date that was not recorded or cannot be read is left out, never guessed; an
+ * origin not read is said unknown.
+ */
+export function analysisHeader(createdAt: string | null | undefined, origin: OriginKind | null, now: Date = new Date()): string {
+  const date = createdAt ? new Date(createdAt) : null;
+  const known = date && !Number.isNaN(date.getTime()) ? date : null;
+  const day = known?.toLocaleDateString("cs-CZ", known.getFullYear() === now.getFullYear() ? { day: "numeric", month: "numeric" } : { day: "numeric", month: "numeric", year: "numeric" });
+  return [day ? `Běh z ${day}` : "Běh", "interní", t(`research.exec.results.analysisHeaderOrigin.${origin ?? "UNKNOWN"}`)].join(" · ");
 }

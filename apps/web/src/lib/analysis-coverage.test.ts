@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AnswerabilityGap, ResearchAnalysis } from "@/lib/api";
-import { coverage, findingId, findingsOf } from "./analysis-coverage";
+import { analysisHeader, coverage, findingId, findingsOf } from "./analysis-coverage";
 
 type Module = ResearchAnalysis["modules"][string];
 
@@ -92,5 +92,20 @@ describe("findingsOf", () => {
       objects: mod({ outcome: "BLOCKED", key_findings: [{ text: "O", claim_ids: [] }] }),
     });
     expect(findingsOf(a).map((f) => findingId(f.ref))).toEqual(["executive:0", "limitations:0"]);
+  });
+});
+
+describe("analysisHeader", () => {
+  it("names the run's day, that it is internal, and its origin (ANL10)", () => {
+    const now = new Date("2026-10-26T09:00:00Z");
+    expect(analysisHeader("2026-10-21T09:00:00Z", "MODELLED", now)).toBe("Běh z 21. 10. · interní · modelováno");
+    expect(analysisHeader("2026-10-21T09:00:00Z", "SIMULATED", now)).toBe("Běh z 21. 10. · interní · fiktivní respondenti");
+    // A run from another year says which.
+    expect(analysisHeader("2025-10-21T09:00:00Z", "MODELLED", now)).toBe("Běh z 21. 10. 2025 · interní · modelováno");
+  });
+
+  it("leaves out a date it cannot read and never reads an unread origin as known", () => {
+    expect(analysisHeader(null, null)).toBe("Běh · interní · neznámý původ dat");
+    expect(analysisHeader("not a date", "UNKNOWN")).toBe("Běh · interní · neznámý původ dat");
   });
 });
