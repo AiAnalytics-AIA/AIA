@@ -271,6 +271,13 @@ describe("Dotazník", () => {
     await waitFor(() => expect(calls.some((c) => c.url === "/config")).toBe(true));
     const card = document.getElementById("qedit_Q2") as HTMLElement;
     await waitFor(() => expect(within(card).queryByRole("button", { name: "Podmínka zobrazení" })).toBeNull());
+    // Shown disabled with its reason, never offered (spec navrh/Q4, R9).
+    const turnOn = await within(card).findByRole("button", { name: "Zapnout" });
+    // aria-disabled, so it stays focusable and its reason is heard on it.
+    expect(turnOn.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(turnOn.getAttribute("aria-describedby") ?? "")?.textContent).toBe("Běh s podmínkou zatím AIA neumí odeslat, proto ji nelze zapnout.");
+    // Q1 has no earlier choice question, so it says nothing of a condition.
+    expect(within(document.getElementById("qedit_Q1") as HTMLElement).queryByRole("button", { name: "Zapnout" })).toBeNull();
     cleanup();
     sections[0]!.questions![1]!.filtr = { question_id: "Q1", options: ["Týdně"] };
     unitStub({ ...BRIEF, sections, ui_state: { questionnaire_path: "manual" } }, null, { "/config": () => ({ routing: false }) });
@@ -284,6 +291,31 @@ describe("Dotazník", () => {
     // chip, where one key would change the question's type (QF-18, the stand-in review).
     fireEvent.click(within(stored).getByRole("button", { name: "Odebrat podmínku" }));
     await waitFor(() => expect(document.activeElement).toBe(within(stored).getByRole("textbox", { name: "Znění otázky" })));
+  });
+
+  it("offers no familiarity switch a run would refuse; a set stored with it can switch it off (Q4)", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[0], { ...SECTIONS[1], familiarity_required: true }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = (await screen.findByText(/Sada má uložené ověřování znalosti objektů/)).closest("[id^=qset_]") as HTMLElement;
+    expect(within(set).queryByRole("switch", { name: /znalost/ })).toBeNull();
+    // Every animation frame runs at once, before React commits: the losing order for a frame guess.
+    vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => {
+      cb(0);
+      return 0;
+    });
+    fireEvent.click(within(set).getByRole("button", { name: "Vypnout" }));
+    await saved();
+    await waitFor(() => expect((lastSave().content as unknown as { sections: { familiarity_required?: boolean }[] }).sections[1].familiarity_required).toBe(false));
+    const note = within(set).getByText(/zatím AIA neumí položit: běh by sadu odmítl, proto tu přepínač chybí/);
+    // Focus goes to the line that replaced the button, never the page.
+    await waitFor(() => expect(document.activeElement).toBe(note));
+  });
+
+  it("reads a stored familiarity flag as the compiler does: an empty {} is no requirement", async () => {
+    unitStub({ ...BRIEF, sections: [SECTIONS[0], { ...SECTIONS[1], familiarity_required: {} }], ui_state: { questionnaire_path: "manual" } });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    const set = (await screen.findByText(/proto tu přepínač chybí/)).closest("[id^=qset_]") as HTMLElement;
+    expect(within(set).queryByRole("button", { name: "Vypnout" })).toBeNull();
   });
 
   it("introduces the topic and market research in Czech, promising nothing the panel lacks", async () => {
@@ -348,7 +380,8 @@ describe("Dotazník", () => {
     fireEvent.keyDown(within(options).getByLabelText("Možnost 2"), { key: "Enter" });
     fireEvent.change(within(options).getByLabelText("Možnost 3"), { target: { value: "Nikdy " } });
     fireEvent.blur(within(options).getByLabelText("Možnost 3"), { relatedTarget: null });
-    fireEvent.click(within(within(card).getByRole("radiogroup", { name: "Typ" })).getByRole("radio", { name: "Škála" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Jedna odpověď, typ otázky" }));
+    fireEvent.click(within(card).getByRole("menuitem", { name: "Škála" }));
     expect(await within(card).findByRole("radiogroup", { name: "Rozsah škály Q1" })).toBeTruthy();
     await saved();
     const q1 = lastSave().content.sections[0].questions![0];
