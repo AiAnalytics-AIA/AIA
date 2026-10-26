@@ -639,7 +639,9 @@ def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
 
 
 #: Návrh's section anchors (``plan:<part>``, the web's ``PLAN_PARTS``).
-_PLAN_PARTS: Final = frozenset({"narrative", "variants", "sets", "questions", "comments"})
+_PLAN_PARTS: Final = frozenset(
+    {"narrative", "hypotheses", "variants", "sets", "questions", "comments"}
+)
 #: The design items an ``inspect`` may name, by the plan list that holds their stable ids.
 _INSPECT_LISTS: Final = {
     "rq": ("research_questions", "research_question_ids"),
