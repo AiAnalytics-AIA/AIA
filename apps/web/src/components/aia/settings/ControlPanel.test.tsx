@@ -6,6 +6,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { cs } from "@/i18n/cs";
 import { loadConfig, resetConfigCache } from "@/lib/auth";
 import { SettingsPage } from "../GlobalPages";
 import { ControlPanel } from "./ControlPanel";
@@ -831,6 +832,9 @@ describe("Stav systému's technical values (once Reference, F17)", () => {
     expect(panel.querySelector('[data-reference-category="evidence"], [data-reference-category="simulation"]')).toBeNull();
     for (const key of ["no_invented_certainty", "no_visualisation_mutation"]) expect(section("invariants").querySelector(`[data-setting="${key}"]`)).toBeTruthy();
     expect(within(panel).getByText(/Prahy podpory jsou v Metodice → Práh zobrazení/)).toBeTruthy();
+    // The pointer names the card as Metodika draws it, from the same copy, so the two cannot drift
+    // apart (review of #933: it named a card Metodika did not have before F15).
+    expect(cs.aia.settings.methodology.name.support).toBe("Práh zobrazení");
   });
 });
 

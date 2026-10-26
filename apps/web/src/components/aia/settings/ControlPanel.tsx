@@ -754,7 +754,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
         <section data-reference-filters aria-labelledby="sys-reference-h" className={`${CARD} flex flex-col gap-3`}>
           <div>
             <h2 id="sys-reference-h" className="text-base font-semibold">{t(`${P}.reference.title`)}</h2>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{t(`${P}.reference.intro`)}</p>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-ink-muted">{tv(`${P}.reference.intro`, { support: t("aia.settings.methodology.name.support") })}</p>
           </div>
           <TextInput type="search" aria-label={t(`${P}.referenceSearch`)} placeholder={t(`${P}.referenceSearchPlaceholder`)} value={referenceQuery} onChange={(e) => setReferenceQuery(e.target.value)} />
           <div className="flex flex-wrap items-baseline justify-between gap-2">

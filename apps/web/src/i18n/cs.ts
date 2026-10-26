@@ -2217,7 +2217,7 @@ export const cs = {
         roles: { permission: "Oprávnění" },
         reference: {
           title: "Technické hodnoty a pevná pravidla",
-          intro: "S čím nasazení běží a co je dané kódem. Nejsou to uživatelské volby; u každé je, kdo ji mění. Prahy podpory jsou v Metodice → Práh zobrazení.",
+          intro: "S čím nasazení běží a co je dané kódem. Nejsou to uživatelské volby; u každé je, kdo ji mění. Prahy podpory jsou v Metodice → {support}.",
           categories: "Kategorie",
           all: "Vše",
           shown: "Zobrazeno {shown} z {total} hodnot",
