@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
 from aia_core.application.analysis_results import (
@@ -2531,15 +2531,30 @@ def _export(
     store: ArtifactStoreDep,
     *,
     data: bytes | None = None,
+    reembed_fonts: bool = False,
 ) -> Export:
     """The file a DOCX download of ``artifact`` is: the stored draft, or the approved version
-    stamped in its footers (D2). ``data``: its bytes, when the caller has just read them."""
+    stamped in its footers (D2). ``data``: its bytes, when the caller has just read them.
+    ``reembed_fonts``: an editor-saved version's brand fonts embedded again (RPT15)."""
     try:
-        return export_docx(research_artifacts(session, scope, store), artifact, data=data)
+        return export_docx(
+            research_artifacts(session, scope, store),
+            artifact,
+            data=data,
+            reembed_fonts=reembed_fonts,
+        )
     except ReviewUnrecorded as exc:
         raise _unrecorded(exc) from exc
     except (IntegrityError, ObjectNotFound) as exc:
         raise artifact_corrupt(session) from exc
+
+
+def _utc_iso(at: datetime | None) -> str | None:
+    """A stored time with its offset: SQLite hands back the UTC it was written in without one,
+    which a browser would read as its own local time."""
+    if at is None:
+        return None
+    return (at if at.tzinfo else at.replace(tzinfo=UTC)).isoformat()
 
 
 def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
@@ -2547,8 +2562,11 @@ def _review_fields(artifact: Artifact, mark: ReviewMark) -> dict[str, Any]:
     its file states it (``stamped``: an approved export says SCHVÁLENO in its footers; false
     for a version stored before that layout, or whose bytes the stamp refused when it was
     stored, whose file keeps its draft footer). Read from the record its writer made after
-    trying the stamp (``report_export.review_stamp_record``), so it is what the export does."""
+    trying the stamp (``report_export.review_stamp_record``), so it is what the export does.
+    ``stored_at``: when the version was stored, which the approval question names it by (RPT3d);
+    null where its record has none, never a guess."""
     return {
+        "stored_at": _utc_iso(artifact.created_at),
         "review_state": mark.state.value,
         "approved_on": mark.approved_on.isoformat() if mark.approved_on else None,
         "stamped": stampable(artifact),
@@ -2815,6 +2833,9 @@ class ReportVariantResponse(BaseModel):
     #: footers; false for a draft stored before that layout (or whose bytes the stamp refused),
     #: which keeps its draft footer and downloads as "…-schvaleno-v-aia" once approved.
     stamped: bool | None = None
+    #: When the draft was stored, with its offset, which the approval question names it by
+    #: (RPT3d); null while none is stored.
+    stored_at: str | None = None
     internal_only: bool = True
     pdf: ReportVariantPdfResponse | None = None
     #: Whether approving the draft now gives its approved version a PDF too: approving asks for
@@ -2849,6 +2870,7 @@ def _variant_response(
         review_state=mark.state.value,
         approved_on=mark.approved_on,
         stamped=stampable(docx),
+        stored_at=_utc_iso(docx.created_at),
         pdf=ReportVariantPdfResponse.model_validate(status_.pdf.to_json()) if status_.pdf else None,
         approval_renders_pdf=status_.approval_renders_pdf,
         contract=docx.metadata.get("report_contract"),

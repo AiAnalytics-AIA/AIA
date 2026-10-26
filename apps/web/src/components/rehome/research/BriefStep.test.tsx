@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
@@ -81,13 +81,14 @@ describe("Zadání", () => {
   it("draws the classic blocks, and the next step waits for a goal", async () => {
     unitStub({ title: "Nový výzkum" });
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    // Studio v3: four numbered sections, the readiness panel beside them.
-    expect(await screen.findByRole("heading", { name: "Co potřebujete zjistit a rozhodnout?" })).toBeTruthy();
+    // The v73 board: six numbered sections, the readiness chips above them.
+    expect(await screen.findByRole("heading", { name: "Co potřebujete zjistit?" })).toBeTruthy();
     const types = screen.getByRole("group", { name: "Typ problému" });
     for (const [, label] of PROBLEM_TYPES) expect(within(types).getByRole("button", { name: new RegExp(label.replace(/[/()]/g, ".")) })).toBeTruthy();
     expect(screen.getByRole("heading", { name: /^Podklady/ })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: /^Kontext, který zpřesní návrh/ })).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("0 %");
+    expect(screen.getByRole("heading", { name: /^Kontext/ })).toBeTruthy();
+    // No percentage anywhere: a section is not worth a quarter of the brief.
+    expect(screen.getByRole("navigation", { name: "Připravenost" }).textContent).not.toMatch(/%/);
     // The empty project's title shows as an empty field, as in the classic screen.
     expect((screen.getByPlaceholderText("Např. Nové balení produktu") as HTMLInputElement).value).toBe("");
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(true);
@@ -536,16 +537,99 @@ describe("Zadání", () => {
     expect(posted(AGENTS_PATH)).toEqual([]);
   });
 
-  it("starts the goal with a sentence, and suggests a title from it", async () => {
+  it("sections render in the board's order with their caps, and the title is a plain field (spec navrh B1)", async () => {
     unitStub({});
     render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Chceme zjistit, jak…" }));
-    const goal = (await screen.findByDisplayValue("Chceme zjistit, jak", { exact: false })) as HTMLTextAreaElement;
-    fireEvent.change(goal, { target: { value: "Chceme zjistit, jak lidé vnímají novou kampaň banky. Výsledek použijeme." } });
-    expect(await screen.findAllByText("72 znaků")).toHaveLength(2); // the counter and the readiness row
-    fireEvent.click(screen.getByRole("button", { name: "Navrhnout z cíle" }));
-    expect(await screen.findByDisplayValue("Lidé vnímají novou kampaň banky")).toBeTruthy();
-    expect(screen.getByRole("complementary", { name: "Připravenost zadání" }).textContent).toContain("25 %");
+    await screen.findByRole("heading", { name: "Co potřebujete zjistit?" });
+    const sections = Array.from(document.querySelectorAll("section[id^='brief-']"));
+    expect(sections.map((x) => x.id)).toEqual(["brief-goal", "brief-objectives", "brief-decision_use", "brief-type", "brief-context", "brief-files"]);
+    const cap = (id: string) => document.getElementById(id)!.querySelector(":scope > div")!.textContent;
+    expect(cap("brief-goal")).toContain("povinné");
+    expect(cap("brief-objectives")).toContain("povinné · kliknutím upravíte · Návrh je čte odsud");
+    expect(cap("brief-type")).toContain("povinné · více možností");
+    expect(cap("brief-context")).toContain("volitelné");
+    expect(cap("brief-files")).toContain("volitelné");
+    expect(screen.getByText("Cíl vlastními slovy · 1–3 věty")).toBeTruthy();
+    // The title is typed, never made up from the goal; the goal has no starters of its own.
+    expect(screen.queryByRole("button", { name: "Navrhnout z cíle" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Chceme zjistit/ })).toBeNull();
+    expect(screen.getByLabelText("Název studie")).toBeTruthy();
+  });
+
+  it("a readiness chip per section in page order, optional never waiting, and a chip moves to its section (spec navrh B2)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku.", research_plan: { objectives: ["Změřit zájem"] } });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const nav = within(await screen.findByRole("navigation", { name: "Připravenost" }));
+    const chips = nav.getAllByRole("link");
+    expect(chips.map((c) => c.getAttribute("href"))).toEqual(["#brief-goal", "#brief-objectives", "#brief-decision_use", "#brief-type", "#brief-context", "#brief-files"]);
+    expect(chips.map((c) => c.getAttribute("data-state"))).toEqual(["done", "done", "you", "you", "optional", "optional"]);
+    expect(chips[2]!.textContent).toContain("Rozhodnutí: čeká na vás");
+    const scroll = vi.fn();
+    document.getElementById("brief-decision_use")!.scrollIntoView = scroll;
+    fireEvent.click(chips[2]!);
+    expect(scroll).toHaveBeenCalledTimes(1);
+    // Focus moves with it, so the next Tab is inside the section, not on the next chip.
+    expect(document.activeElement).toBe(document.getElementById("brief-decision_use"));
+  });
+
+  it("Tab from a typed decision onto a starter keeps the focus there, and the starter writes nothing over the text (stand-in review on #938)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const decision = within(await screen.findByRole("region", { name: /^Rozhodnutí, které má výzkum podpořit/ }));
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    const field = decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" });
+    fireEvent.change(field, { target: { value: "Spustit kampaň v Q1?" } });
+    const starter = decision.getByRole("button", { name: "Cena" });
+    // Tab, in the browser's order: the field blurs (and commits) first, then the starter takes the focus.
+    fireEvent.blur(field, { relatedTarget: starter });
+    act(() => starter.focus());
+    expect(await decision.findByText("Spustit kampaň v Q1?")).toBeTruthy();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(starter.isConnected).toBe(true);
+    expect(document.activeElement).toBe(starter);
+    expect(starter.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(starter);
+    expect(decision.getByText("Spustit kampaň v Q1?")).toBeTruthy();
+    expect(decision.queryByText("Zvednout cenu, nebo ji držet?")).toBeNull();
+  });
+
+  it("a starter pressed while the decision is being typed keeps what was typed (code review)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const decision = within(await screen.findByRole("region", { name: /^Rozhodnutí, které má výzkum podpořit/ }));
+    fireEvent.click(decision.getByRole("button", { name: /^Upravit: Jaké rozhodnutí uděláte/ }));
+    const field = decision.getByRole("textbox", { name: "Jaké rozhodnutí uděláte" });
+    fireEvent.change(field, { target: { value: "Spustit kampaň v Q1?" } });
+    const starter = decision.getByRole("button", { name: "Cena" });
+    // The press blurs the open field first, which commits what was typed; the starter then writes nothing.
+    fireEvent.blur(field);
+    fireEvent.click(starter);
+    expect(await decision.findByText("Spustit kampaň v Q1?")).toBeTruthy();
+    expect(decision.queryByText("Zvednout cenu, nebo ji držet?")).toBeNull();
+  });
+
+  it("an empty decision shows chybí and starters; a starter fills it and the chip turns done (spec navrh B3)", async () => {
+    unitStub({ goal: "Zjistit, jak lidé vnímají značku." });
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const decision = within(await screen.findByRole("region", { name: /^Rozhodnutí, které má výzkum podpořit/ }));
+    expect(decision.getByText("chybí")).toBeTruthy();
+    expect(decision.getByText("Prázdné. Bez rozhodnutí navrhne Vedoucí jen obecné otázky.")).toBeTruthy();
+    fireEvent.click(decision.getByRole("button", { name: "Cena" }));
+    expect(await decision.findByText("Zvednout cenu, nebo ji držet?")).toBeTruthy();
+    expect(decision.queryByText("chybí")).toBeNull();
+    // Starters fill an empty decision only: once it has words, they are gone.
+    expect(decision.queryByRole("button", { name: "Cena" })).toBeNull();
+    expect(decision.getByText("Návrh i analýza budou mířit k tomuto rozhodnutí.")).toBeTruthy();
+    const chip = within(screen.getByRole("navigation", { name: "Připravenost" })).getByRole("link", { name: /^Rozhodnutí/ });
+    expect(chip.getAttribute("data-state")).toBe("done");
+  });
+
+  it("context fields render in a two-column grid (spec navrh B5)", async () => {
+    unitStub({});
+    render(<ResearchScreen step="brief" frame={TEST_FRAME} />);
+    const context = await screen.findByRole("region", { name: /^Kontext/ });
+    expect(context.querySelector("dl")!.className).toContain("sm:grid-cols-2");
+    expect(context.querySelectorAll("dl > div")).toHaveLength(4);
   });
 
   it("edits Rozhodnutí and each Kontext field in place: Esc restores, a reword saves, clearing saves empty (BRF2)", async () => {

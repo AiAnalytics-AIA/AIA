@@ -2009,3 +2009,24 @@ follow-up chunk below.
 - `navrh/D9` (edits bar keeps decided rows) is #7 with `working-copy-edit-ops#WCE9`.
 - `sber/F7`, `lead/LP-10` stand on #23, re-waved to W1 (register §6.4; the contracts' second table).
 - `navrh/Q7` and `szz/S4` stand on #23b and #26f.1.
+
+### Návrh's hypotheses as a plan part (2026-10-26, `feature/plan-hypotheses-anchor`; for artifact-design DSN12)
+
+Návrh draws its hypotheses in their own section (`plan-hypotheses`, between Porozumění and Sady). Each
+hypothesis keeps its `hypothesis:<id>` mark, but the section had no `plan:<part>` anchor: "@" on its
+empty text or add row, and a Lead focus of the section, named nothing, and `plan:narrative` scrolled
+to Porozumění, which no longer shows them (asked by the Návrh owner). `plan:hypotheses` is now a part:
+the server's `_PLAN_PARTS`, the contract's plan id, and `lib/lead.ts`'s focus selector, element map and
+label ("Návrh: hypotézy"). Návrh's own `lib/artifacts/design.ts` PLAN_PARTS gains it in the Návrh
+owner's PR. Tests: `test_research_lead.py` (`plan:hypotheses` grounded), `lead.test.ts` "names Návrh's
+hypotheses section…" and the focus selector. Each fails without the change.
+
+### Dimenze and Vzorek each read their own line on the navigator (2026-10-26, `fix/dimenze-own-lane`; for #945)
+
+#945 (DIM3b + SMP7) moves N to Vzorek. The navigator's `stageState` read the classic track's one persona
+step for both stages, so both showed "2 dimenze · N=300", and Dimenze stayed idle until N was set on
+Vzorek (reported by the Dimenze session). `designLane` now also gives `dimensions` (the chosen
+dimensions alone, done once one is chosen) and `sample` (`N=…`, else "N nezadáno"); `stageState` reads
+them for the two stages. The classic track's `persona` line is unchanged. Tests: `lane.test.ts` "gives
+the workbench's Dimenze its dimensions alone and Vzorek its N…"; `workbench-stages.test.ts` "read their
+state from the lane…". Each fails without the change.

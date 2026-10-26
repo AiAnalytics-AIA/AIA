@@ -24,7 +24,7 @@ import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
-import { approvalQuestion, pdfStatesReview, reviewLabel, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
+import { approvalQuestion, fileLine, pdfStatesReview, reviewLabel, reviewsFor, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
@@ -192,10 +192,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   // `editor`: asked from the editor's doc bar (RPT8d), where the draft is koncept 1 of the line shown:
   // approved as that line's newest, and only while `held()` says no edit waits to be stored, read on
   // the yes as on the ask (an edit can start while the status is read or the question is open).
+  // Asked by the document's name and when its version was stored (RPT3d, spec Z4), never its id.
+  // The client report's numbers are modelled.
   const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null, editor?: EditorAsk) => {
-    const question = approvalQuestion(kind, version, { pdf, review });
-    // What the file carries, as the card says it (D2): known only when stamped.
-    const carries = reviewLine(file, pdf);
+    const title = kind === "with_review" ? offered.find((r) => r.run_id === review)?.title : null;
+    const question = approvalQuestion(title ? `${KIND_NAME[kind]} · ${title}` : KIND_NAME[kind], { storedAt: file.storedAt, pdf, modelled: kind === "client" });
+    // What the file carries (D2): known only when stamped; the version named above, not by its id.
+    const carries = fileLine(file, pdf);
     // The version's checks (RD0 on the client report, RD7 on every report): warnings named in the
     // question, recorded with the yes.
     const warned = warningsWords(shown?.warnings, shown?.document);
@@ -234,7 +237,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   const askApproval = (shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const slot = slotOf(shown);
     if (kind === "client") {
-      if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
+      if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped, storedAt: shown.stored_at }, false, shown);
       return;
     }
     // An internal draft's approval, with or without literature, also approves its PDF, so the
@@ -267,7 +270,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         if (over) return refuse(over);
         const held = editor?.held();
         if (held) return refuse(held);
-        confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
+        confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped, storedAt: report.stored_at },
           pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown, editor);
       },
       (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
@@ -396,7 +399,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           // Read again once the composed draft's review moves (koncept 1 approved through the pane).
           <EditorDocBar
             key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
-            documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
+            documentName={KIND_NAME[kind]} canApprove={canReview(frame)}
             approveComposed={(held, seen) => askApproval(stored, { held, seen })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
           />
         ) : null}

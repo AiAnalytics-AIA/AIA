@@ -28,7 +28,7 @@ chunks:
   - "[x] RPT12. No ids on the stage (spec szz Z3; W3)"
   - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
   - "[ ] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
-  - "[ ] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
+  - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
 ---
 # Artifact: Zpráva (Report)
 
@@ -870,7 +870,16 @@ follow-up chunk below.
 
 **RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
 
-**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`.
+**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`. *Built, but for the count (`feature/report-approval-dialog`):* the question names the document
+and when its version was stored, never its id: "Schvalujete tuto verzi: {název}, vytvořenou {čas} ({formát}). Schválení
+se zapíše pod vaším jménem a stáhnete přesně tuto verzi.", then that it cannot be undone, what a stamped draft's file
+carries (`fileLine`, D2 without the id) and, on the client report, "Čísla jsou modelovaná; zpráva to u každého uvádí."
+(`report-variant.ts approvalQuestion`); an edited version by its koncept and `saved_at`
+(`report-editor.ts editedApprovalQuestion`). The time is `stored_at`, the DOCX's stored time with its offset, on every
+report status and stored document (`routers/research.py _review_fields`); a time the server does not give is left out.
+Tests: `report-variant.test.ts` "approvalQuestion (B22, RPT3d)"; `ReportDocumentView.test.tsx` the client and internal
+questions; `test_the_client_report_is_prepared_to_be_read_without_a_download` (`stored_at` carries its offset). Open: the
+accepted-findings count on Pro klienta, after ANL11; the chunk stays open until it lands.
 
 **RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
 
@@ -895,7 +904,12 @@ card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with t
 
 **RPT14. uiTheme** (spec `szz/T5`; W3, lane G).
 
-**RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded.
+**RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded. *Built (`feature/editor-docx-fonts`):* `report_docx/embed.py` `reembed_fonts` puts back every face `FACES` names that
+the package lacks, changing only the font table, its relationships, settings and content types (every other part byte for
+byte, written deterministically); the editor version download (`routers/report_editor.py`) re-embeds after the stamp and
+answers `X-AIA-Fonts-Reembedded: true`, the other headers naming the stored version. Tests:
+`test_an_editor_saved_version_downloads_with_its_brand_fonts_embedded_again`, `test_report_fonts.py`,
+`test_an_approved_editor_saved_version_exports_stamped_with_its_fonts_back`.
 
 **Notes.**
 - RPT10 carries `szz/Z9` (literature only from the Lead card); RPT9 `szz/Z10`; RPT7 `szz/Z11`; RPT8e with `report-editor-hosting#4` carry `szz/T8`.

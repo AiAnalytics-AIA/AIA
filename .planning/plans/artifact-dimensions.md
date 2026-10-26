@@ -217,6 +217,36 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   puts it back on Vrátit…", `research/persona-undo.test.ts`, `dimensions_journey.mjs` (removed by keyboard,
   put back by Vrátit, focus on it).
 
+- **DIM-F11 (fixed in its own PR).** The dock's note said "{d} dimenzí" for every count ("0 dimenzí",
+  "1 dimenzí", "3 dimenzí"; `cs.ts:3028 @ bd0d1ad6`), where the stage track beside it already says
+  "Bez dimenzí" and "2 dimenze" (`lane.ts:83 @ bd0d1ad6`). Both now read `dimensionsChosen` (lane.ts), one
+  wording. Test: "the dock counts the chosen dimensions in Czech, as the stage track does" (0, 1, 2, 5). The
+  Run stage's receipt has the same wording (`receiptDims`, `cs.ts:3374 @ bd0d1ad6`, `ExecutionSteps.tsx:446
+  @ bd0d1ad6`); that screen is another owner's, told through the PM, and can read `dimensionsChosen` too.
+
+- **DIM-F12 (fixed in the same PR).** The way to "Populace běhu" under Vlastní dimenze klienta stands on
+  its own but was a bare underlined link, 15 px tall at 390 px (`OwnDimensions.tsx:49 @ bd0d1ad6`). It
+  takes the shared stand-alone link class (`TOUCH_LINK`: 44 px on a phone, the focus ring). Tests: "the
+  way to the run's population is a stand-alone link with the touch target", `dimensions_journey.mjs` (44 px
+  at 390).
+
+- **DIM-F13 (fixed in its own PR).** The catalogue's search compared the query as typed, lower-cased only
+  (`research/persona.ts:75-78 @ 40b16d58`, filterDimPicker1789's port): "duvera" and "znacky" found nothing,
+  though Důvěra and Vztah ke značkám were in the list, and " duvera " found nothing for its spaces. Case and
+  diacritics now fold on both sides and the query's spaces drop (`searchFold`), a deliberate widening of the
+  classic's match, recorded in the module's header; its parity cases still hold. Test: "finds a dimension
+  typed without diacritics…".
+
+- **DIM-F14 (fixed in the same PR).** "Přidat jako požadavek" filed a knowledge proposal for any name
+  (`PersonaStep.tsx:183-191 @ 40b16d58`): "Důvěra", already in the catalogue, became a proposal. A name the
+  catalogue has, by label or id, case and spaces aside (diacritics kept: Řada is not Rada), is now the
+  field's own error naming the catalogue's dimension, and nothing is sent (`requestProblem`). A request the
+  project records already is not refused: the screen does not read whether its proposal still waits, and a
+  rejected one must stay askable; that the waiting list never learns of a decision is left for the
+  knowledge plan. If the client's dimensions have not loaded, the check sees the system's alone, as before.
+  The AI suggestion's request (classic, DIM5) is left as it is. Test: "refuses at the field a request the
+  catalogue already names…".
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.

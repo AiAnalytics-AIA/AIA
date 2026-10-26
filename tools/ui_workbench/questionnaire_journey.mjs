@@ -114,6 +114,28 @@ try {
     // Measured together, so a scroll between the two reads cannot part them.
     assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
     check(`${width}: a question's × beside its number`);
+
+    // "Měří" as short VO chips (spec navrh/Q3): each reads "VO n", the question's text its name.
+    const linkChips = card.getByRole("group", { name: "Odpovídá na výzkumné otázky" }).getByRole("button");
+    const chipNames = await linkChips.evaluateAll((els) => els.map((el) => el.textContent ?? ""));
+    assert(chipNames.length > 0 && chipNames.every((x) => /^VO\d+: \S/.test(x.trim())), `Q1's link chips at ${width}: ${JSON.stringify(chipNames)}`);
+    const shortest = await linkChips.first().boundingBox();
+    assert(shortest && shortest.width < 120, `a VO chip at ${width} is short: ${shortest?.width} px`);
+    await noOverflow(`link chips @${width}`);
+    check(`${width}: a question's research-question links as VO chips, no overflow`);
+
+    // The respondent preview draws a scale at its stored range (Q2 is 1–10) and says what it leaves out
+    // of a set (QST11), without overflowing the page.
+    await page.getByRole("radio", { name: "Náhled respondenta" }).click();
+    const preview = page.getByRole("region", { name: "Jak bude dotazník přibližně vypadat" });
+    await preview.waitFor();
+    const q2 = preview.locator("li", { hasText: "Jak pravděpodobně byste nápoj vyzkoušeli?" });
+    assert.equal(await q2.locator("[data-scale-points]").getAttribute("data-scale-points"), "10", `Q2's points at ${width}`);
+    await preview.getByText(/^a stejně pro/).first().waitFor();
+    await noOverflow(`preview @${width}`);
+    await shot(`${width}-preview`);
+    await page.getByRole("radio", { name: "Upravit" }).click();
+    check(`${width}: the preview draws a scale at its range and names the set's objects it leaves out, no overflow`);
   }
 
   // A scale's two ends sit under the ends they name at 390 px (the browser audit, QF-11): the right
