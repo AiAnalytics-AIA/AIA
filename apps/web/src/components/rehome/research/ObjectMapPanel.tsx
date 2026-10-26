@@ -628,7 +628,6 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   );
 }
 
-
 /** A number as the panel's `fmt66` prints it (two decimals below 10, one below 100), in Czech. */
 function panelNumber(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";

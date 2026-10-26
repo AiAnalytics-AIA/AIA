@@ -4,7 +4,8 @@
 
 import { PHOSPHOR, type PhosphorName } from "./phosphor";
 
-export function PhosphorIcon({ name, size = 16, label, className }: { name: PhosphorName; size?: number; label?: string; className?: string }) {
+/** `mirror`: drawn left to right reversed, for an icon whose side matters (a panel on the right). */
+export function PhosphorIcon({ name, size = 16, label, className, mirror = false }: { name: PhosphorName; size?: number; label?: string; className?: string; mirror?: boolean }) {
   return (
     <svg
       width={size}
@@ -18,7 +19,7 @@ export function PhosphorIcon({ name, size = 16, label, className }: { name: Phos
       className={className}
       data-icon={name}
     >
-      <path d={PHOSPHOR[name]} />
+      <path d={PHOSPHOR[name]} transform={mirror ? "matrix(-1 0 0 1 256 0)" : undefined} />
     </svg>
   );
 }

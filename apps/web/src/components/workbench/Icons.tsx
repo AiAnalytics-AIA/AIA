@@ -28,8 +28,11 @@ const NAMES = {
 
 export type WorkbenchIconName = keyof typeof NAMES;
 
+// The item inspector opens at the right: its panel glyph is drawn on that side.
+const MIRRORED: ReadonlySet<WorkbenchIconName> = new Set(["inspector"]);
+
 export function Icon({ name, size = 16, label }: { name: WorkbenchIconName; size?: number; label?: string }) {
-  return <PhosphorIcon name={NAMES[name]} size={size} label={label} className="icon" />;
+  return <PhosphorIcon name={NAMES[name]} size={size} label={label} className="icon" mirror={MIRRORED.has(name)} />;
 }
 
 // The AIA mark: a 5 x 5 lattice where ten points form an A, the apex in signal.
