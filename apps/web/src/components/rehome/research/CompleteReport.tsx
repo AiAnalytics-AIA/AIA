@@ -443,10 +443,10 @@ export function CompleteReport({ run, review = null, onReview }: { run: Research
                 >
                   <option value="">Základní zpráva, bez literární rešerše</option>
                   {/* Chosen, and not (yet) in the list read: shown as chosen, never as another. */}
-                  {review !== null && !reviews?.some((r) => r.run_id === review) ? <option value={review}>S rešerší · {review}</option> : null}
+                  {review !== null && !reviews?.some((r) => r.run_id === review) ? <option value={review}>S rešerší</option> : null}
                   {(reviews ?? []).map((r) => (
                     <option key={r.run_id} value={r.run_id}>
-                      S rešerší {r.created_at ? new Date(r.created_at).toLocaleDateString("cs-CZ") : ""} · {r.run_id}
+                      S rešerší {r.created_at ? new Date(r.created_at).toLocaleDateString("cs-CZ") : ""}
                     </option>
                   ))}
                 </Select>

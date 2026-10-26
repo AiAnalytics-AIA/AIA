@@ -318,7 +318,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     { kind: "internal", review: null, label: KIND_NAME.internal },
     ...(offersClient ? [{ kind: "client" as const, review: null, label: KIND_NAME.client }] : []),
     // One per completed review; named by its title where several could be told apart by nothing else.
-    ...offered.map((r) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${r.title ?? r.run_id}` : KIND_NAME.with_review })),
+    // Untitled, by when it was started (or its place in the list), never its run id (RPT12).
+    ...offered.map((r, i) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${r.title ?? (r.created_at ? new Date(r.created_at).toLocaleString("cs-CZ") : `${i + 1}.`)}` : KIND_NAME.with_review })),
   ];
   const choose = docs.length > 1 ? (
     <div role="group" aria-label="Dokument" className="mb-2 flex flex-wrap gap-2" data-report-kind>
@@ -366,7 +367,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} marks={marks} />
       ))}
       <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
-        {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
+        {/* No ids on the stage (RPT12): the review in words and the revision the draft was composed from. */}
+        {reviewWords(stored, kind === "client" ? "client" : "internal")} · revize {doc.meta.revision}
       </footer>
     </article>
   );
@@ -376,13 +378,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     <div className="@container" data-report-document="ready"><div className="flex min-w-0 flex-col gap-3 @3xl:flex-row @3xl:items-start">
       <div className="min-w-0 flex-1">
         {choose}
-        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
+        {/* The version shown, for the tests and the journeys, never as text (RPT12). */}
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar data-report-version={inEditor ? undefined : stored.report_artifact_id}>
           <span className="font-semibold text-ink">{KIND_NAME[kind]}</span>
           {inEditor ? <span>· v editoru</span> : (
             <>
               <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
               {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
-              <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
               {controls.button}
             </>
           )}

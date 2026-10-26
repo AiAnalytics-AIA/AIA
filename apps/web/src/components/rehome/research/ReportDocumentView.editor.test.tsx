@@ -90,7 +90,7 @@ describe("which document the editor is handed", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     await waitFor(() => expect(editor.handed).toEqual<Handed[]>([{ variant: "internal", review: null }]));
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-client"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-client"));
     expect(container.querySelector("[data-stub-editor]")).toBeNull();
     expect(screen.getByRole("article", { name: "Koncept zprávy" })).toBeTruthy();
     expect(editor.handed.every((h) => h.variant === "internal")).toBe(true);
@@ -103,7 +103,7 @@ describe("which document the editor is handed", () => {
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-context"));
     // The editor is handed the document by an effect after the bar names it: waited for, never
     // read in the same tick (it raced on a loaded CI runner).
     await waitFor(() => expect(editor.handed).toContainEqual({ variant: "context", review: "RUN-deep" }));
@@ -147,7 +147,7 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     await waitFor(() => expect(editorBar(container)?.textContent).toContain("Koncept 2, uložen 23. 10. 2026 22:10 · Jana Výzkumná"));
     expect(within(bar(container)).queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
-    expect(bar(container).textContent).not.toContain("ART-docx");
+    expect(bar(container).getAttribute("data-report-version")).toBeNull();
   });
 
   it("lists what the version changed under Upraveno ručně", async () => {
