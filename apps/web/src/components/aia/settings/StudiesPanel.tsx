@@ -74,7 +74,8 @@ function Spend({ costs }: { costs: Study }) {
       <i className="block h-full bg-ink" style={{ width: `${pct}%` }} />
     </span>
     <span data-spend-line className="mt-0.5 block whitespace-nowrap text-xs text-ink-muted">
-      {pct} %<span className="sr-only"> {t(`${S}.ofBudgetRest`)} · {tv(`${S}.remaining`, { usd: usd(costs.remaining_usd ?? Math.max(0, budget - spent)) })}</span>
+      {/* The remainder as the server gives it; one it did not give is unknown, never worked out here. */}
+      {pct} %<span className="sr-only"> {t(`${S}.ofBudgetRest`)} · {costs.remaining_usd === null || costs.remaining_usd === undefined ? t(`${S}.remainingUnknown`) : tv(`${S}.remaining`, { usd: usd(costs.remaining_usd) })}</span>
       {near ? <><span aria-hidden="true"> · ⚠</span><span className="sr-only"> · {t(`${S}.nearLimit`)}</span></> : null}
     </span>
   </>;
@@ -125,6 +126,9 @@ export function StudiesTable({ studies, clients, reload }: {
   const byClient = new Map<string, number>();
   for (const { study } of studies.ok ? studies.data : []) byClient.set(study.client_id, (byClient.get(study.client_id) ?? 0) + 1);
   const clientOptions = [...byClient.entries()].map(([id, n]) => ({ id, n, name: clientName.get(id) ?? id })).sort((a, b) => a.name.localeCompare(b.name, "cs"));
+  // The filter holds only while its control is shown and names a client still listed: a choice left
+  // set when the select goes (one client left) never hides rows with nothing to clear it.
+  const activeClient = clientOptions.length > 1 && clientOptions.some((c) => c.id === clientFilter) ? clientFilter : "";
   // What each money column is (F16): the header's ⓘ, a real button a keyboard and a touch open
   // (#892), opens the four D-01 names with where each is set; the pointer also reads it on hover.
   const info = (key: "studyBudget" | "confirmThreshold" | "wallet") => (
@@ -140,7 +144,7 @@ export function StudiesTable({ studies, clients, reload }: {
         </h2>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {clientOptions.length > 1 ? (
-            <select data-client-filter aria-label={t(`${S}.clientFilter`)} value={clientFilter} onChange={(e) => setClientFilter(e.target.value)}
+            <select data-client-filter aria-label={t(`${S}.clientFilter`)} value={activeClient} onChange={(e) => setClientFilter(e.target.value)}
               className={`min-h-9 rounded-sm border border-border-strong bg-surface-raised px-2 text-sm ${FOCUS}`}>
               <option value="">{tv(`${S}.allClients`, { n: count })}</option>
               {clientOptions.map((c) => <option key={c.id} value={c.id}>{`${c.name} (${c.n})`}</option>)}
@@ -184,7 +188,7 @@ export function StudiesTable({ studies, clients, reload }: {
                   // Both known, or neither drawn: an unknown spend never reads as 0 (A6).
                   const costs = detail.ok && detail.data.budget_usd !== null && detail.data.spent_usd !== null ? detail.data : null;
                   const client = clientName.get(study.client_id) ?? study.client_id;
-                  const shown = (!clientFilter || study.client_id === clientFilter) && `${study.name} ${client}`.toLocaleLowerCase("cs").includes(q);
+                  const shown = (!activeClient || study.client_id === activeClient) && `${study.name} ${client}`.toLocaleLowerCase("cs").includes(q);
                   const near = costs ? nearLimit(costs) : false;
                   // Filtered out, a row is hidden, never unmounted: a typed value survives the search.
                   return (

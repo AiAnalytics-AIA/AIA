@@ -326,6 +326,19 @@ describe("the settings control panel", () => {
     expect(screen.getByRole("heading", { level: 2, name: /^Studie/, hidden: true })).toBeTruthy();
   });
 
+  it("never hides a study by a client filter that has no control left, and reads an unserved remainder as unknown (review of #966)", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: 40, remaining_usd: null }) });
+    render(<ControlPanel />);
+    await screen.findByText("Vnímání značky");
+    // Both studies are one client's: no filter is drawn, and none hides a row.
+    expect(document.querySelector("[data-client-filter]")).toBeNull();
+    expect((document.querySelector('[data-study="STU-1"]') as HTMLElement).hidden).toBe(false);
+    // The server gave no remainder: the line says unknown, never 60 USD worked out in the browser.
+    const line = document.querySelector('[data-study="STU-1"] [data-spend-line]') as HTMLElement;
+    expect(line.textContent).toContain("zbývá: nezjištěno");
+    expect(line.textContent).not.toMatch(/60/);
+  });
+
   it("draws no spend for a study whose spend is unknown, never a 0 beside its budget", async () => {
     api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: null, remaining_usd: null }) });
     render(<ControlPanel />);

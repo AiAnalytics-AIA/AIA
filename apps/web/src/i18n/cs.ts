@@ -1905,6 +1905,7 @@ export const cs = {
           setNever: "Nikdy",
           ofBudgetRest: "rozpočtu",
           remaining: "zbývá {usd}",
+          remainingUnknown: "zbývá: nezjištěno",
           nearLimit: "téměř vyčerpáno",
           profileRules: "Profil → Pravidla klienta",
           rules: "Pravidla",
