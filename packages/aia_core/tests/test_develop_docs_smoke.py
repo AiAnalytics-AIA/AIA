@@ -53,7 +53,13 @@ args = sys.argv[1:]
 if args[:1] == ["ps"]:
     if os.environ["HEALTH"] != "absent": print("docs-container")
 elif args[:1] == ["inspect"]: print(os.environ["HEALTH"])
+elif args[:1] == ["exec"]: print(os.environ["RUNNING_SRI"], end="")
+elif args[:1] == ["compose"] and "printenv" in args: print(os.environ["API_SRI"], end="")
 """
+SRI = "sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G"
+# The same template under upstream's per-minute tag of a start at 2026-10-25 23:30.
+SRI_23_30 = "sha384-c0+Tg0ShBLxn6IsOfEpBXXR0qio14ZB1lofsFqr8IRzE4+tYxS7dYEgHfoZgfeYM"
+ROW = "api.js is the one Zpráva's integrity names"
 
 
 def _helpers() -> str:
@@ -75,6 +81,8 @@ def _run(
     codes: dict[str, int] | None = None,
     cookie: str = "",
     health: str = "healthy",
+    integrity: str = SRI,
+    running: str = SRI,
 ) -> tuple[subprocess.CompletedProcess[str], list[str]]:
     shims = tmp_path / "shims"
     shims.mkdir()
@@ -88,7 +96,7 @@ def _run(
         shim.chmod(0o755)
     driver = tmp_path / "driver.sh"
     driver.write_text(
-        "set -euo pipefail\nFAILED=0\n"
+        "set -euo pipefail\nFAILED=0\nCOMPOSE=(docker compose)\n"
         + _helpers()
         + f'\n. {shlex.quote(str(BIN / "smoke-docs.sh"))}\ndocs_checks\nexit "$FAILED"\n'
     )
@@ -103,6 +111,9 @@ def _run(
         "COOKIE": cookie,
         "HEALTH": health,
         "CALLS": str(calls),
+        "RUNNING_SRI": running,
+        # What the API's environment holds (docker-compose.yml's default, or SSM's).
+        "API_SRI": integrity or "",
     }
     result = subprocess.run(
         ["bash", str(driver)], env=env, text=True, capture_output=True, timeout=30
@@ -130,7 +141,7 @@ def test_on_and_sound_every_row_passes(tmp_path: Path) -> None:
     result, calls = _run(tmp_path)
     assert result.returncode == 0, result.stdout + result.stderr
     rows = result.stdout.splitlines()
-    assert len(rows) == 5 and all(r.startswith("ok    docs: ") for r in rows), rows
+    assert len(rows) == 6 and all(r.startswith("ok    docs: ") for r in rows), rows
     assert calls == list(GOOD)
 
 
@@ -169,7 +180,10 @@ def test_nothing_answering_is_a_failed_row_never_an_aborted_smoke(tmp_path: Path
     assert len(failed) == 7, result.stdout  # the gate, the five server paths, the ticket exchange
     assert "nothing answered" in result.stdout
     assert calls == list(GOOD)
-    assert result.stdout.splitlines()[-1] == "ok    docs: the Document Server is healthy"
+    assert result.stdout.splitlines()[-2:] == [
+        "ok    docs: the Document Server is healthy",
+        "ok    docs: the editor's api.js is the one Zpráva's integrity names",
+    ]
 
 
 def test_a_gate_without_its_settings_says_which_are_missing(tmp_path: Path) -> None:
@@ -196,3 +210,31 @@ def test_the_smoke_runs_the_rows_before_its_verdict() -> None:
     smoke = (BIN / "smoke.sh").read_text(encoding="utf-8")
     sourced = smoke.index('. "$DEPLOY_DIR/bin/smoke-docs.sh"')
     assert sourced < smoke.index("\ndocs_checks\n") < smoke.index('echo "smoke: all checks passed')
+
+
+@pytest.mark.parametrize(
+    "integrity,running,why",
+    [
+        # A restart under upstream's per-minute tag, or an image changed without its integrity.
+        (SRI, SRI_23_30, "refuses the editor"),
+        ("", SRI, "AIA_ONLYOFFICE_API_INTEGRITY is empty"),
+        (SRI, "", "the running file is unreadable"),
+    ],
+)
+def test_an_api_js_the_apis_integrity_does_not_name_warns(
+    tmp_path: Path, integrity: str, running: str, why: str
+) -> None:
+    # The Document Server's own file, as its health is: said, never a failed deploy.
+    result, _ = _run(tmp_path, integrity=integrity, running=running)
+    assert result.returncode == 0, result.stdout
+    lines = result.stdout.splitlines()
+    warned = [r for r in lines if r.startswith("WARN")]
+    assert len(warned) == 1 and ROW in warned[0], result.stdout
+    assert why in lines[lines.index(warned[0]) + 1], result.stdout  # warn() writes its reason below
+
+
+def test_the_integrity_is_read_only_from_a_healthy_server(tmp_path: Path) -> None:
+    # Starting, its api.js may still carry upstream's per-minute tag: the health row says why.
+    result, _ = _run(tmp_path, health="starting", running="sha384-other")
+    assert result.returncode == 0, result.stdout
+    assert "api.js" not in result.stdout
