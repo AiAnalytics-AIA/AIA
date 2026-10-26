@@ -40,6 +40,21 @@ describe("workbench.css", () => {
     expect(unlayered(CSS)).not.toMatch(/(^|[\s,{])(button|input|textarea|select)\s*[,{][^}]*color:/);
   });
 
+  it("draws the Lead chat at the product's radii, from the tokens: bubbles and cards 10, the composer 12, chips 6 (UI-3)", () => {
+    const radius = (selector: string) => {
+      const rule = new RegExp(`(^|\\n)${selector.replace(/[.]/g, "\\.")} \\{[^}]*border-radius: ([^;]+);`).exec(CSS);
+      return rule?.[2];
+    };
+    for (const card of [".bubble", ".act", ".act__row", ".dec", ".ret", ".queue", ".autopilot", ".mention"]) {
+      expect(radius(card), card).toBe("var(--radius-panel)");
+    }
+    expect(radius(".composer")).toBe("var(--radius-composer)");
+    for (const chip of [".linkchip", ".srcchip", ".refchip"]) expect(radius(chip), chip).toBe("var(--radius-control)");
+    const tokens = readFileSync(join(process.cwd(), "src/app/tokens.css"), "utf8");
+    expect(tokens).toContain("--radius-panel: 10px;");
+    expect(tokens).toContain("--radius-composer: 12px;");
+  });
+
   it("reads only real @layer blocks as layered: a comment or a statement naming @layer hides no rule", () => {
     const css = "/* rules go in @layer base */\nbutton { color: red; }\n@layer a, b;\ninput { color: blue; }\n@layer base { select { color: green; } }\n.x { margin: 0; }";
     const left = unlayered(css);

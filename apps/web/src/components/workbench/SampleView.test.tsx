@@ -196,14 +196,18 @@ describe("Kdo bude odpovídat", () => {
     { source: "panel", offered: false, reason: "panel_personas_disabled", default: false },
   ];
 
-  it("shows the offered sources and the default, sets none of them, and opens Spuštění to change it", () => {
+  it("shows the default source as the one line, sets none of them, and opens Sběr dat to change it", () => {
     const onOpen = vi.fn();
     render(<SampleArtifact project={project({ n: 200 })} onOpen={onOpen} readiness={ready({ persona_sources: sources })} />);
     const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
     expect(section.textContent).toContain("Fiktivní respondenti · výchozí");
     expect(section.querySelectorAll("input, select").length).toBe(0);
+    // The other source is one click away, not a line of its own (spec vzorek V7).
+    const rest = section.querySelector("details");
+    expect(rest?.querySelector("summary")?.textContent).toBe("Další zdroje (1)");
+    expect(rest?.textContent).toContain("AI respondenti z populace");
     expect(screen.queryByRole("radio")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Změnit ve Spuštění" }));
+    fireEvent.click(screen.getByRole("button", { name: "Změnit ve Sběru dat" }));
     expect(onOpen).toHaveBeenCalledWith("fieldwork");
   });
 
@@ -214,11 +218,19 @@ describe("Kdo bude odpovídat", () => {
     expect(panel?.textContent).toContain("Toto nasazení odpovědi z populace zatím nenabízí.");
   });
 
-  it("sends no one to Spuštění for a choice it does not offer: a run not answered by AI respondents", () => {
+  it("sends no one to Sběr dat for a choice it does not offer: a run not answered by AI respondents", () => {
     render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ fieldwork_source: "synthetic_fixture", persona_sources: sources })} />);
     const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
     expect(section.textContent).toContain("nesbírá data přes AI respondenty");
-    expect(screen.queryByRole("button", { name: "Změnit ve Spuštění" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Změnit ve Sběru dat" })).toBeNull();
+  });
+
+  it("says the default is unknown when the server marks none, and keeps every source one click away", () => {
+    const none = sources.map((o) => ({ ...o, default: false }));
+    render(<SampleArtifact project={project({ n: 200 })} onOpen={vi.fn()} readiness={ready({ persona_sources: none })} />);
+    const section = screen.getByRole("region", { name: "Kdo bude odpovídat" });
+    expect(section.textContent).toContain("výchozí zdroj respondentů neoznačil: neznámý");
+    expect(section.querySelector("summary")?.textContent).toBe("Další zdroje (2)");
   });
 
   it("says unknown when the server sent no sources, never a default", () => {
