@@ -36,6 +36,7 @@ import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import type { Part } from "./ControlPanel";
 import { describeError } from "./errors";
+import { waitingChanged } from "./sections";
 
 const P = "aia.settings.prompts";
 
@@ -159,6 +160,12 @@ function standing(row: PromptSlotSummary): { text: string; waiting: boolean } {
   const live = active === null ? t(`${P}.state.baseline`) : tv(`${P}.state.inForce`, { v: shortName(active) });
   const waiting = row.latest_number !== null && row.active.activated_at === null && row.active.origin === "baseline";
   return { text: waiting ? `${live} · ${tv(`${P}.state.waiting`, { v: shortName(row.latest_number!) })}` : live, waiting };
+}
+
+/** How many prompts have a saved version waiting to be switched on, as the list knows it: what the
+ *  section menu counts for an administrator (prototype v54), never more than `standing` says. */
+export function waitingPrompts(rows: readonly PromptSlotSummary[]): number {
+  return rows.filter((row) => standing(row).waiting).length;
 }
 
 /** The list: the prompts a person may edit, then those read only, each with where it stands. */
@@ -320,6 +327,7 @@ function EditorBody({ detail, people, reload, onDirty }: {
     setAnswer(null);
     try {
       const saved = await admin.savePrompt(detail.prompt_id, { text: trimmed, note: note.trim(), based_on: basedOn });
+      waitingChanged();
       setDraft(saved.text);
       setReference(saved.text);
       setBasedOn(saved.label);
@@ -638,6 +646,7 @@ function Activation({ detail, version, record, label, dirty, onCancel, onDone, t
     setError(null);
     try {
       const active = await admin.activatePrompt(detail.prompt_id, version, reason.trim());
+      waitingChanged();
       onDone(active.label, textOf(version));
     } catch (e) {
       if (e instanceof Unauthenticated) {
