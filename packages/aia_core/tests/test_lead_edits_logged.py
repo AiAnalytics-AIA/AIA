@@ -251,3 +251,39 @@ def _ledger(session: Any) -> list[ApprovalDecisionRow]:
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_type == "lead_edit")
         )
     )
+
+
+def test_a_persons_batch_with_a_refused_edit_saves_nothing_in_its_own_transaction(
+    scoped: Any, session: Any
+) -> None:
+    """working-copy-edit-ops WCE3a: a person's batch is all or nothing before anything is written,
+    not only because the request rolls back: the same session reads the copy and the log as they
+    were."""
+    from aia_core.application.working_copy import EditsRefused, apply_person_edits
+    from aia_core.domain.edit_ops import ListRemove, SetText
+
+    scope = scoped.scope(user="lead")
+    workspace = StudyWorkspaceRepository(session)
+    workspace.save(
+        scope,
+        content=CONTENT,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+    )
+    edits = [
+        SetText(op="set_text", field="title", value="Jiný", why="person"),
+        ListRemove(op="list_remove", list="plan.objectives", old="Žádný", why="person"),
+    ]
+    with pytest.raises(EditsRefused) as refused:
+        apply_person_edits(session, scope, edits, base_revision=1, reason="autosave")
+    assert refused.value.refused == {1: "unknown_item"}
+    assert workspace.content(scope).revision == 1
+    assert workspace.content(scope).content["title"] == CONTENT["title"]
+    assert WorkspaceEditRepository(session, scope).rows(after_revision=1) == []
+
+    saved, copy = apply_person_edits(session, scope, edits[:1], base_revision=1, reason="autosave")
+    assert (saved.revision, copy.content["title"]) == (2, "Jiný")
+    rows = WorkspaceEditRepository(session, scope).rows(after_revision=1)
+    assert rows and all(
+        r.by == WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI) for r in rows
+    )
