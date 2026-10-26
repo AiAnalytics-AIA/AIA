@@ -3139,6 +3139,9 @@ export const cs = {
       sampleStoredOutside: "Uložené N={n} je mimo platný rozsah {range}; spuštění ho odmítne. Zvolte jiné N.",
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
       dockNote: "{d} · N={n}",
+      dockNoteDims: "{d} včetně sociodemografie",
+      nOnSample: "Dimenze říkají, podle čeho AI respondenti odpovídají. Velikost vzorku se nastavuje na Vzorku.",
+      nOnSampleLink: "Otevřít Vzorek",
     },
     deep: {
       searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",

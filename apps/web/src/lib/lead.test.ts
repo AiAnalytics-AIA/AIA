@@ -76,7 +76,7 @@ describe("describeEdit / editStage", () => {
     expect(describeEdit(content(), { op: "set_text", field: "goal", value: "Nový cíl", why: "" })).toEqual({ where: "Cíl", before: "Zjistit, proč klienti odcházejí", after: "Nový cíl" });
     expect(editStage(e)).toBe("questionnaire");
     expect(editStage({ op: "set_text", field: "plan.problem_summary", value: "", why: "" })).toBe("design");
-    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("dimensions");
+    expect(editStage({ op: "set_n", value: 500, why: "" })).toBe("sample");
   });
 });
 
