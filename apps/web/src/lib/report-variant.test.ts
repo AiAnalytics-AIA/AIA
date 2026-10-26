@@ -10,6 +10,7 @@ import {
   pdfAskable,
   pdfStatesReview,
   pdfWhy,
+  reviewLabel,
   reviewLine,
   reviewsFor,
   variantPdfAskable,
@@ -187,6 +188,20 @@ describe("report variant (research-integrity-report 3)", () => {
       .toBe("AIA-STU-1-RUN-1-zakladni-ART-1-schvaleno.docx");
     expect(attachmentName("attachment")).toBeNull();
     expect(attachmentName(null)).toBeNull();
+  });
+});
+
+describe("reviewLabel (RPT12)", () => {
+  it("tells two reviews of one run apart by title, else start time, else place, never by run id", () => {
+    const sameDay = [
+      { title: null, created_at: "2026-10-26T08:00:00Z" },
+      { title: null, created_at: "2026-10-26T09:30:00Z" },
+    ];
+    const labels = sameDay.map(reviewLabel);
+    expect(new Set(labels).size).toBe(2);
+    expect(labels[0]).toBe(new Date("2026-10-26T08:00:00Z").toLocaleString("cs-CZ"));
+    expect(reviewLabel({ title: "Výsledek otázky q1", created_at: "2026-10-26T08:00:00Z" }, 0)).toBe("Výsledek otázky q1");
+    expect([{ title: null, created_at: null }, { title: null, created_at: "nevím" }].map(reviewLabel)).toEqual(["1.", "2."]);
   });
 });
 

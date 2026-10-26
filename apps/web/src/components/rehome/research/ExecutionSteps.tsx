@@ -15,7 +15,8 @@ import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
 import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
 import { stageOf } from "@/lib/workbench-stages";
-import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { LEAD_REVEAL } from "@/lib/lead";
 import {
   ApiError,
   api,
@@ -897,6 +898,7 @@ export function RunStep() {
       ) : null}
       <RunList runs={runs} />
       <ActionDock
+        inHeader={false}
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
         // Not while a new choice of respondents is being checked: Start would send the old one.
         ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
@@ -1863,10 +1865,31 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
   );
 }
 
+/** A chip of the findings list's module filter. */
+const filterChip = (on: boolean): string =>
+  `min-h-11 rounded-control border px-2.5 py-1 text-left text-xs sm:min-h-8 focus-visible:outline-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border hover:bg-surface-sunken"}`;
+
 function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: CompiledSpecification | null; progressHref: string | null }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
-  const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
+  const [filter, setFilter] = useState<(typeof ANALYSIS_ORDER)[number] | "all">("all");
+  // A finding or a claim the filter leaves off the page, pointed at by the Lead, the inspector or a
+  // coverage chip (LEAD_REVEAL): the list goes back to "Vše", and the next look finds it. A claim no
+  // key finding cites is drawn only among its module's answers, so its module is chosen instead.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const detail = (e as CustomEvent<unknown>).detail;
+      const target = typeof detail === "string" ? readAnalysisTarget(detail) : null;
+      if (!target || target.kind === "module") return;
+      const own = loaded.state === "ready" ? loaded.value.modules[target.module] : undefined;
+      const answerOnly = target.kind === "claim" && own?.outcome === "COMPLETED"
+        && !own.key_findings.some((f) => f.claim_ids.includes(target.claimId));
+      if (answerOnly) setFilter(target.module);
+      else if (filter !== "all" && target.module !== filter) setFilter("all");
+    };
+    window.addEventListener(LEAD_REVEAL, on);
+    return () => window.removeEventListener(LEAD_REVEAL, on);
+  }, [filter, loaded]);
   const states = run.steps.filter((step) => step.kind === "research_analysis")
     .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
   useEffect(() => {
@@ -1912,10 +1935,12 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
-  const selected = analysis?.modules[selectedModule];
-  const marks = analysis ? claimMarks(analysis.modules, selectedModule) : new Set<string>();
-  const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
-  const selectedPending = analysis?.pending[selectedModule];
+  // The pane under the filter: the chosen module, or on "Vše" the executive summary when it is stored completed.
+  const paneModule = filter !== "all" ? filter : analysis?.modules.executive?.outcome === "COMPLETED" ? "executive" : null;
+  const pane = paneModule ? analysis?.modules[paneModule] ?? (filter !== "all" ? { outcome: "PENDING" as const } : undefined) : undefined;
+  const marks = analysis ? claimMarks(analysis.modules, filter === "all" ? null : filter) : new Set<string>();
+  const selectedStep = paneModule ? run.steps.find((step) => step.node_key === `analysis_${paneModule}`) : undefined;
+  const selectedPending = paneModule ? analysis?.pending[paneModule] : undefined;
   const findings = ANALYSIS_ORDER.flatMap((id) => {
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
@@ -1962,54 +1987,53 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
           </section>
           <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
-            <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
+            <h3 id="key-findings-title" className="text-base font-semibold">Zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
-            {findings.length ? findings.map(({ id, outcome }) => (
-              <div key={id} className="mt-4 border-t border-border pt-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
-                <ul className="mt-2 flex flex-col gap-3">
-                  {outcome.key_findings.map((finding, index) => (
-                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
-                      <div className="flex items-start gap-2">
-                        <FormattedText text={finding.text} className="min-w-0 grow" />
-                        <FindingInspectButton open={openItem} module={id} index={index} />
-                      </div>
-                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí hlavní zjištění.</p>}
-            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
-          </section>
-          <AnalysisExternal context={analysis.external_context} />
-          <h3 className="text-base font-semibold">Analýza po částech</h3>
-          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
-            <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">
+            {/* One list, filtered by module (ANL3b). A finding the filter leaves off is brought back by LEAD_REVEAL. */}
+            <nav aria-label="Části AI analýzy" className="mt-3 flex flex-wrap gap-1.5">
+              <button type="button" data-filter="all" aria-pressed={filter === "all"} onClick={() => setFilter("all")} className={filterChip(filter === "all")}>Vše</button>
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
-                  className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
-                  <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
+                return <button key={id} type="button" data-filter={id} data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} aria-pressed={filter === id} onClick={() => setFilter(id)} className={filterChip(filter === id)}>
+                  {stepLabel(`analysis_${id}`)} <span className="font-normal text-ink-muted">· {label}</span>
                 </button>;
               })}
             </nav>
-            <section aria-label={stepLabel(`analysis_${selectedModule}`)} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
-              <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
-              {selected?.outcome === "BLOCKED" ? <>
-                <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
-                <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === selectedModule)?.reasons ?? []} /></div>
-              </> : selected?.outcome === "COMPLETED" ? <>
-                {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
-                {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></div>)}
-                </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
-                {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
-            </section>
-          </div>
+            {/* The module's own words: on "Vše" the analysis's summary, else the chosen module's summary, and the
+                research questions' answers with what the run recorded about each (PC2); findings are listed once, below. */}
+            {pane && paneModule ? (
+              <section aria-label={filter === "all" ? "Shrnutí analýzy" : stepLabel(`analysis_${paneModule}`)} data-module-pane={paneModule} className="mt-3 rounded-md bg-surface-sunken p-3 text-sm">
+                {pane.outcome === "BLOCKED" ? <>
+                  <p className="leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
+                  <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === paneModule)?.reasons ?? []} /></div>
+                </> : pane.outcome === "COMPLETED" ? <>
+                  {pane.summary ? <FormattedText text={pane.summary} /> : <p className="text-ink-muted">Tato část nemá textový souhrn.</p>}
+                  {filter !== "all" && pane.research_question_answers.length ? <div className="mt-4 space-y-3"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
+                    {pane.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-raised p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: paneModule, index }} marks={marks} outcome={pane} spec={spec} open={openItem} /></div>)}
+                  </div> : null}
+                </> : <div className="text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </section>
+            ) : null}
+            {findings.length ? (
+              <ul className="mt-4 flex flex-col gap-3">
+                {findings.filter(({ id }) => filter === "all" || filter === id).flatMap(({ id, outcome }) => outcome.key_findings.map((finding, index) => (
+                  <li key={`${id}:${index}`} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} data-finding-module={id}
+                    className="scroll-mt-4 border-l-2 border-signal pl-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</p>
+                    <div className="flex items-start gap-2">
+                      <FormattedText text={finding.text} className="min-w-0 grow" />
+                      <FindingInspectButton open={openItem} module={id} index={index} />
+                    </div>
+                    <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
+                  </li>
+                )))}
+              </ul>
+            ) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí zjištění.</p>}
+            {filter !== "all" && findings.length && !findings.some((f) => f.id === filter) ? <p className="mt-3 text-sm text-ink-muted">Tato část neuvádí žádné zjištění.</p> : null}
+            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
+          </section>
+          <AnalysisExternal context={analysis.external_context} />
         </div>
       ) : null}
     </Card>
