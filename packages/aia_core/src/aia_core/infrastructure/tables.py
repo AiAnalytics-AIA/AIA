@@ -2219,6 +2219,16 @@ class AIUsageEventRow(Base):
         # Per-researcher spend: by person over time, and "which holds the ledger names".
         Index("ix_usage_charged_to", "organization_id", "charged_to_user_id", "occurred_at"),
         Index("ix_usage_reservation", "reservation_id"),
+        # Each activity's last answered call, for Settings (OI-75 (a)): the answered rows only,
+        # newest last per organization and agent.
+        Index(
+            "ix_usage_org_answered",
+            "organization_id",
+            "agent_id",
+            "occurred_at",
+            postgresql_where=text("outcome = 'SUCCEEDED'"),
+            sqlite_where=text("outcome = 'SUCCEEDED'"),
+        ),
     )
 
 

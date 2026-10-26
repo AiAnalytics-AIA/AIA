@@ -60,6 +60,7 @@ import { ActionDock, FrameNavigation, StepSection } from "../step";
 import { AiButton, Button, Field, TextInput } from "../ui";
 import { UndoToast, useUndo } from "@/components/ui/UndoToast";
 import { plural } from "@/lib/format";
+import { dimensionsChosen } from "@/research/lane";
 import { dimensionAia } from "@/lib/artifacts/dimensions";
 import { sampleAia } from "@/lib/artifacts/sample";
 import { STAGES } from "@/lib/workbench-stages";
@@ -413,7 +414,7 @@ export function PersonaStep() {
         <UndoToast offer={undo.current} onDone={undo.clear} />
         <ActionDock
           back={{ href: stepHref("audience"), label: `4. ${t("aia.stages.audience")}` }}
-          note={nOnVzorek ? tv("research.persona.dockNoteDims", { d: plural(approved.length + 1, "dimenze", "dimenze", "dimenzí") }) : tv("research.persona.dockNote", { d: approved.length, n: Number(p.n) > 0 ? Number(p.n) : recommendedSample(p).n })}
+          note={nOnVzorek ? tv("research.persona.dockNoteDims", { d: plural(approved.length + 1, "dimenze", "dimenze", "dimenzí") }) : tv("research.persona.dockNote", { d: dimensionsChosen(approved.length), n: Number(p.n) > 0 ? Number(p.n) : recommendedSample(p).n })}
         >
           {!nav || nav.next ? (
             <Button variant="primary" className="!rounded-control" onClick={toNext}>

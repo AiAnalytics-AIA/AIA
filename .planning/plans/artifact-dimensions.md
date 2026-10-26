@@ -217,6 +217,19 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   puts it back on Vrátit…", `research/persona-undo.test.ts`, `dimensions_journey.mjs` (removed by keyboard,
   put back by Vrátit, focus on it).
 
+- **DIM-F11 (fixed in its own PR).** The dock's note said "{d} dimenzí" for every count ("0 dimenzí",
+  "1 dimenzí", "3 dimenzí"; `cs.ts:3028 @ bd0d1ad6`), where the stage track beside it already says
+  "Bez dimenzí" and "2 dimenze" (`lane.ts:83 @ bd0d1ad6`). Both now read `dimensionsChosen` (lane.ts), one
+  wording. Test: "the dock counts the chosen dimensions in Czech, as the stage track does" (0, 1, 2, 5). The
+  Run stage's receipt has the same wording (`receiptDims`, `cs.ts:3374 @ bd0d1ad6`, `ExecutionSteps.tsx:446
+  @ bd0d1ad6`); that screen is another owner's, told through the PM, and can read `dimensionsChosen` too.
+
+- **DIM-F12 (fixed in the same PR).** The way to "Populace běhu" under Vlastní dimenze klienta stands on
+  its own but was a bare underlined link, 15 px tall at 390 px (`OwnDimensions.tsx:49 @ bd0d1ad6`). It
+  takes the shared stand-alone link class (`TOUCH_LINK`: 44 px on a phone, the focus ring). Tests: "the
+  way to the run's population is a stand-alone link with the touch target", `dimensions_journey.mjs` (44 px
+  at 390).
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
