@@ -266,6 +266,26 @@ describe("the launcher and the drawer (26c)", () => {
     await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
   });
 
+  it("a card's review steps the drawer aside, so the review is not drawn under it (the Dotazník audit)", async () => {
+    const done = { run_id: "RUN-q", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-25T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [], design_revision_id: "REV-1", instruction: "", actual_cost_usd: 0 } as unknown as ResearchAgentJob;
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[done]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat návrh" }));
+    expect(onOpenJob).toHaveBeenCalledWith(done);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "object:hudba/hudba-o2" }])] })];
     const asked: unknown[] = [];
