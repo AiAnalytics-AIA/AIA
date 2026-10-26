@@ -11,7 +11,7 @@ chunks:
   - "[x] PBA2. Lane A, Můj Vedoucí on the rail on every page, opening Vypěstovat when no Lead exists, else Můj Vedoucí (lead-identity LI7 widened; W1)"
   - "[ ] PBA3. Lane A, the Nastavení flyout opened from the rail item: nine sections in three groups, Reference gone into Stav systému (after #900 and settings-redesign F17; W1)"
   - "[x] PBA4. Lane A, the hero component (eyebrow, serif title, lede, edit chip, figures), on top-level pages only (UI-1; W1)"
-  - "[ ] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
+  - "[x] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
   - "[x] PBA6. Lane A, the primitives to the look contract: radii 6/8/10, chips 24/6, switch 40x24, dialog 560/10, toast, table header on sunken, no font weight 700 (W1)"
   - "[x] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
 ---
