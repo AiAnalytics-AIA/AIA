@@ -183,6 +183,24 @@ Depends on `research-lead-workbench#14`, `#16`.
   `ObjectMapPanel.test.tsx` › "opens a relation from the object's card, a focusable button named by what it shows, and
   closes it again". The card lists the object's 5 strongest reliable relations, as the panel does; a drawn link beyond
   those still opens only on the canvas.
+- Delivered (2026-10-26, spec `szz/S3`): the item inspector draws a map's object and relation
+  (`MapInspect.tsx`, registered for the `object` and `pair` kinds in `ItemInspectBody.tsx`), so the Lead's
+  "Detail dvojice" (`inspect` on a `pair:` target) and any opened map item read the stored pair through the
+  panel's own cards (`RelationBlock`, `ObjectCard`, in an `.omw` wrapper, no second copy of their words): r
+  with its interval, N and the verdict, an undefined r "Vztah nelze určit" with its reason, never 0; an
+  object: its rating, connectedness and strongest reliable relations, each opening its pair in the drawer.
+  The maps are the ones `SociomapStage` draws (`setShownMaps`, from the same reading that decides which
+  maps take the Lead's views), "Mapa se ještě načítá." until the stage has read them, and none once it
+  leaves, so the drawer never opens another run's map. Each shown map carries the register's approval of its
+  method, so the drawer, read on its own, says "Jen pro výzkumníky studie" or "Metodika schválena pro
+  zprávy" as `MapExplained` does (stand-in review P2, #979). A stage whose artifact could not be read says so
+  in the drawer ("Mapu tohoto běhu se nepodařilo načíst."), and the object card's relations there are buttons
+  that open the pair, not unpressed toggles. The Lead's "Vybrat"
+  is #939's listener. Tests: `MapInspect.test.tsx` (the plan's test: "reads a pair with an undefined r as
+  unknown, never as 0"); `ExecutionSteps.test.tsx` › "lets the item inspector open a relation of the map it
+  draws, until it leaves". Still open: a respondent's detail in the inspector (no `respondent:` target yet,
+  SOC6), and a person's way into the drawer from the map itself (inside the panel's drawing, the
+  methodology owner's).
 
 **SOC5. Interpretation.** Test: an interpretation is labelled "Výklad · od Vedoucího" and absent from
 the map's numbers. Depends on `lead-orchestration#LO9b`, `report-delivery#RD6`,
@@ -347,6 +365,18 @@ Browser audit, 2026-10-21, on the local workbench (`AIA_WEB_RESEARCH_WORKBENCH=t
      session on the person's action, not on the page's load; the same journey check catches it. Owner: the
      report editor.
   Both fail with develop's own journey on the same workbench; neither is changed here.
+- **Open, Sociomapa's to fix: `ux_journey.mjs`'s classic 3D-camera check fails on every run since #598.**
+  1. `tools/ui_workbench/ux_journey.mjs:91-101 @ ddecb4e4` clicks "3D terén", opens "Ovládání 3D pohledu" and
+     "Otočit vpravo" on `object-map-3d`: the older map's controls (`ObjectMapView`). A new run pins
+     `aia-sociomap-5` (#598), drawn by `ObjectMapPanel`, which has none of them: its camera is the view rail's
+     2D / 3D and a drag on the canvas, its state `data-camera` on `object-map-canvas`.
+  2. Reproduction: `node tools/ui_workbench/ux_journey.mjs` after `make ui-fixtures` + `make ui-research` on a
+     fresh workbench (reported by the Výsledky session, 2026-10-26).
+  3. Consequence: the journey stops at the map, so its later checks (keyboard, reload, the mobile menu) are
+     not run on develop.
+  4. Smallest fix: on the `-5` map, press the rail's "3D", drag the canvas, read `object-map-canvas`'s
+     `data-camera`, switch tabs and back, and expect the same camera.
+  5. Test: the journey itself.
 
 ## From the research build spec (2026-10-26)
 

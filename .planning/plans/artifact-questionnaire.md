@@ -372,6 +372,16 @@ condition line, "a stejně pro dalších n položek" under a set, and "+ n dalš
 fields stay as ported (parity unchanged). Tests: `questionnaire-preview.test.ts` "a 1–7 scale previews at 1–7…",
 "a cut list says how many it left out…"; `QuestionnaireStep.test.tsx` "previews a scale at its own range and
 says what the preview leaves out (QST11)"; `questionnaire_journey.mjs` at 1440/1100/768/390.
+
+*QST4, spec navrh/Q4 (R9: what a run cannot do shown disabled, with the reason):* with routing off a
+question's display condition was simply absent (`QuestionCondition.tsx:72-75` @ 25ce6493), and a tracked set
+offered a familiarity switch that readiness then FAILs (`QuestionnaireStep.tsx:1225` @ f7b2f381, readiness
+battery_familiarity at `research_design.py:1501` @ f7b2f381). Change (feature/questionnaire-unavailable-disabled): with `/config` routing known to be off,
+a question that has an earlier choice question shows "Podmínka zobrazení", why, and an aria-disabled "Zapnout"
+described by it, still focusable (nothing while the switch is unread or cannot be read); a stored condition still shows and can be removed. The
+familiarity switch is gone: a set says why, and one stored with it says the run will refuse it, with
+"Vypnout". Tests: `QuestionnaireStep.test.tsx` "offers no condition to set without the routing switch…"
+(extended), "offers no familiarity switch a run would refuse…"; `questionnaire_journey.mjs` at 1440/1100/768/390.
 *QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
 full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
 (feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
@@ -381,7 +391,7 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 `QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
 1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
-*QST2, spec navrh/Q2 (part: section numbers and the card's "měří"):* the editor headed a block "Blok n · k
+*QST2, spec navrh/Q2 (part: section numbers):* the editor headed a block "Blok n · k
 otázek" and a set "SADA n", while its own outline (and the board) number them B n and S n
 (`QuestionnaireStep.tsx:863`, `:1159` @ 25ce6493). Change (feature/questionnaire-sheets): a block is headed "B n"
 with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". Not in this change: the card header
@@ -389,6 +399,18 @@ with its count beside it and a set "S n", each spoken as "Blok n" / "Sada n". No
 control's tests and journeys move once (a "měří" line alone would repeat the list under the VO chips). Tests:
 `QuestionnaireStep.test.tsx` "numbers blocks B n and sets S n as the outline does…"; `questionnaire_journey.mjs` at
 1440/1100/768/390.
+
+*QST2, spec navrh/Q2 (part: the type as a tag):* a question's type was four chips across its card's header
+(`QuestionnaireStep.tsx:929-934` @ 59f3c7c6), where the board draws one tag. Change (feature/questionnaire-type-tag):
+the type is a tag ("Jedna odpověď ⌄") that opens its choices in a MenuButton, named "<type>, typ otázky", the
+stored type not offered again. The type is read in the compiler's order (none is vyber, then trimmed,
+`research_design.py:952`): blanks alone say "Typ nevybrán", and an untyped question is offered the type it reads as,
+which stores it with its editor (the stand-in's two P2s). MenuButton gains an optional `name` (the accessible name when the visible
+label alone would not say what the menu does; additive, the default unchanged), added here with the PM's go-ahead
+while lane A is on PBA5. Tests: `MenuButton.test.tsx` "names the button and the menu by `name`…",
+`QuestionnaireChoices.test.tsx` "chooses a question's type from its tag's menu…", "reads a question with no type as
+a single choice and offers that choice…", "says a type of blanks alone is not chosen…"; `questionnaire_journey.mjs` (the
+menu inside the page at 1440/1100/768/390) and `workspace_journey.mjs`.
 
 ## Doc follow-up
 
@@ -401,6 +423,7 @@ control's tests and journeys move once (a "měří" line alone would repeat the 
 - open-items.md: number QF-18 (the condition editor drops keyboard focus), closed by fix/questionnaire-condition-focus.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
+- CLAUDE.md § 2 map, QuestionCondition.tsx: with routing known off, a question that could take a condition shows it disabled with the reason (QST4, R9). Tracked sets: no familiarity switch; a stored one says the run refuses it, with Vypnout.
 
 ## From the research build spec (2026-10-26)
 

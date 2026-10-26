@@ -51,7 +51,7 @@ describe("research execution", () => {
     expect(phaseTone("FAILED")).toBe("fault");
     expect(phaseTone("COMPLETED")).toBe("done");
     expect(stepLabel("sociomap")).toBe("Sociomapa");
-    expect(stepLabel("something_new")).toBe("something_new");
+    expect(stepLabel("something_new")).toBe("krok bez názvu (something_new)");
   });
 
   it("lists a choice question's answers in the order it asked them, not the stored name order", () => {

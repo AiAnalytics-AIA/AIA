@@ -35,9 +35,9 @@ chunks:
   - "[x] F12b. ⌘K navigation (prototype v54): the left settings column replaced by \"Nastavení > <sekce> ⌄\" and a section menu (click, ⌘K / Ctrl+K anywhere; search by keyword; three columns with icon and line; Enter opens the first match, Esc closes); content full width; the coral count on Deep Research and Systémové prompty from real API state, admins only, never invented; #hash deep links and keyboard access kept; the tab-column journey checks rewritten to the menu (⌘K, Esc, Enter on the first match, #hash), not deleted"
   - "[x] F13. Metodika → Upravit bounds (AUD-10 (b), the product owner 2026-10-25; before F9-F12): each editable field declares its bound in the domain, tested against the check that guards it (no bound without one), the API returns it, Upravit says \"mez …\" beside the field; its own PR"
   - "[x] F14. AI běh: each activity's last answered call, an organization-level aggregate from the usage ledger (OI-75 (a), the product owner 2026-10-25; before F9-F12); unknown never reads as working"
-  - "[ ] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
+  - "[x] F15. Metodika copy (prototype v54): the module cards renamed (Sociomapa, Práh zobrazení, Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), the intro and the sociomap-5 note one line each"
   - "[x] F16. Studie a rozpočty compacted (prototype v52): symbols and ⓘ in place of explanatory text, keeping #892's accessibility (visible activity labels, ⓘ as buttons, 44 px targets)"
-  - "[ ] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
+  - "[x] F17. Reference's content folded into Stav systému, so Settings has nine sections; the flyout that lists them is prototype-build PBA3 (Nigel, 25 Oct 2026 23:13-23:15 UTC; W1)"
   - "[ ] F18. Each Settings page's hero figures, read from the routes it already reads (gap map §0; W1, on prototype-build PBA4's hero)"
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
@@ -177,6 +177,11 @@ https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7 (ten boards, one per tab) and 
   maximum read the organization's whole ledger (a parallel scan, 42 ms at 600,000 rows and growing),
   the lookups 0.03 ms each, 11 ms for all 22 agents whatever the ledger's size. "Last answered" is the
   past: a newer failure is not hidden by it and the page never says an activity works.
+- F15: the cards' names are the web's (`methodology.name`, as the one lines already were): the domain's
+  `title_cs` says what a module computes ("Podpora a potlačení: kdy se číslo smí ukázat") and stays
+  the API's and the fallback. The cards stand in the prototype's order (the map, Práh zobrazení,
+  Odhady a intervaly, Vážení vzorku, Losování odpovědí, Kontrola před spuštěním), which puts the check
+  before a run last where 10a had it second.
 
 The order of the remaining chunks (the coordinator, 2026-10-25, after the product owner's answers of
 that day): F8, F12a (AUD-6), F12b (⌘K navigation: every later tab sits in the new frame), F13 and F14
@@ -241,6 +246,14 @@ when the studies span more than one client, a filtered row hidden, never unmount
 (#892) is already compact: its ⓘ, legend and bars stay.
 
 **F17. Reference into Stav systému** (W1, lane B). Nigel, 25 Oct 2026 23:13/23:15 UTC: merge Reference into Stav systému, drop what is irrelevant. The rail flyout is lane A's (`prototype-build#PBA3`, after #900); this chunk moves the page content.
+  Built: Stav systému keeps its readiness and error reporting first, then "Technické hodnoty a pevná
+  pravidla" with Reference's search, categories and Kdo mění: deployment, residency, workflow and
+  population, every invariant once under Invarianty, and any group the API adds later. Dropped as not
+  the system's state: the evidence group's reference thresholds (a run applies the support module in
+  force, which Metodika → Práh zobrazení shows; the decision log keeps the thresholds in Metodika
+  alone) and the simulation constants (Simulace is hidden for the MVP, K12); their invariants stay. An
+  old `#reference` link opens Stav systému. The values come with the settings document, so they are
+  drawn at once; readiness and error reporting still read their routes on the section's first visit.
 
 **F18. Hero figures** (W1, lane B). The hero component is lane A's (`prototype-build#PBA4`); this chunk fills each page's figures from its existing reads (Metodika, Systémové prompty, Deep Research, AI běh, Přístup, Studie, Audit, Stav systému, Správa dat). Unknown never zero.
 - F18, part 1 (built; the chunk stays open): every section is headed by lane A's `Hero`: its group as the
