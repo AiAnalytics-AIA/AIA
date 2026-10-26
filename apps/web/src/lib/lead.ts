@@ -102,8 +102,11 @@ export type LeadRequest =
   | { kind: "research_run"; why: string }
   /** A person's typed "Zopakuj analýzu" (LO5): the stage's analysis retry, never a model's card. */
   | { kind: "analysis_retry"; why: string; run_id?: string }
-  | { kind: "design_research"; why: string }
-  | { kind: "interpretation_research"; why: string };
+  /** LO5a.1: a preset, a design focus (research-question ids) and an Interpretation target
+   *  (a candidate id of the turn's targets layer); a card still only opens the step (LO5a.2). */
+  | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
+  | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
+  | { kind: "deep_research_retry"; why: string; run_id: string };
 
 /**
  * The card a person's typed start shows (LO5), as the request it starts: the server matched the
@@ -559,7 +562,7 @@ export function focusSelector(target: string): string {
   if (kind === "section" && id) return `[data-aia="${css(target)}"], [id="qblock_${css(id)}"]`;
   if (kind === "brief" && id) return `[id="brief-${css(id)}"]`;
   if (kind === "plan" && id) {
-    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions" };
+    const section: Record<string, string> = { sets: "plan-sets", tracked_sets: "plan-sets", comments: "plan-comments", variants: "plan-variants", questions: "plan-questions", hypotheses: "plan-hypotheses" };
     return `[id="${section[id] ?? "plan-understanding"}"]`;
   }
   return `[data-aia="${css(target)}"], [id="${css(target)}"]`;
@@ -576,6 +579,7 @@ const PLAN_LABELS: Record<string, string> = {
   variants: "Návrh: varianty výzkumu",
   questions: "Návrh: otázky k doplnění",
   narrative: "Návrh: porozumění zadání",
+  hypotheses: "Návrh: hypotézy",
 };
 
 /** An item row's words as a person sees them: without its numbering and icons (aria-hidden), what
@@ -710,6 +714,7 @@ export function targetOfElement(el: Element | null): { id: string; label: string
       "plan-variants": { id: "plan:variants", label: "Návrh: varianty výzkumu" },
       "plan-questions": { id: "plan:questions", label: "Návrh: otázky k doplnění" },
       "plan-understanding": { id: "plan:narrative", label: "Návrh: porozumění zadání" },
+      "plan-hypotheses": { id: "plan:hypotheses", label: "Návrh: hypotézy" },
     };
     if (plan[id]) return plan[id]!;
   }

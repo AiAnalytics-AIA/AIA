@@ -1195,6 +1195,34 @@ describe("Progress", () => {
     expect(screen.getByText("6 z 7 kroků hotovo")).toBeTruthy();
   });
 
+  it("lists the run's own steps, numbered, in the pipeline's order, with the count in their header (FLD2c)", async () => {
+    // Steps as the run holds them: out of order, one this client has no place for, no report step.
+    const own = run({
+      ...COMPLETED,
+      steps: [
+        step("aggregate", "SUCCEEDED"),
+        step("run", "SUCCEEDED"),
+        step("future_step", "RUNNABLE"),
+        step("compile", "SUCCEEDED"),
+        step("analysis_objects", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: "COMPLETED" }),
+      ],
+    });
+    api(listed(own));
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
+    const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
+    // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
+    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
+    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5"]);
+    // The count belongs to the steps: their section says it, of the steps listed.
+    const section = list.closest("section")!;
+    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
+    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
+    // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
+    expect(rows[4].textContent).toContain(`${t("research.exec.code.unknown")} (${t("research.exec.code.technical")}: future_step)`);
+    expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
+  });
+
   it("says an analysis retry of an old-method run was refused, and starts the new run it names", async () => {
     const blocked = run({
       ...COMPLETED,
@@ -1299,28 +1327,27 @@ describe("Progress", () => {
     expect(card.querySelector("[data-origin-code]")).toBeNull();
   });
 
-  it("tags each step AI or deterministic and makes it pointable by the Lead (artifact-fieldwork FLD2)", async () => {
+  it("tags each step \"AI model\" or \"kód\" and makes it pointable by the Lead (artifact-fieldwork FLD2, FLD2b)", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const work = (key: string) => list.querySelector(`[data-aia="step:${key}"] [data-step-work]`)?.textContent;
-    // AI respondents answer this run's fieldwork: a model step.
-    expect(work("run")).toBe(t("research.exec.stepWork.ai"));
-    expect(work("compile")).toBe(t("research.exec.stepWork.running"));
-    expect(work("aggregate")).toBe(t("research.exec.stepWork.running"));
+    // AI respondents answer this run's fieldwork: a model step. The words are a researcher's, not the
+    // gateway's name (research build spec sber/F6, prototype decision R11; FLD2b in #923).
+    expect([work("run"), work("compile"), work("aggregate")]).toEqual(["AI model", "kód", "kód"]);
   });
 
   it("tags fictional fixture fieldwork as code, never as AI", async () => {
     api(listed(COMPLETED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
   });
 
   it("tags no fieldwork step when the run recorded no source: unknown is never stamped as code", async () => {
     api(listed(run({ ...COMPLETED, fieldwork_source: "" })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector('[data-aia="step:run"]')).toBeTruthy();
     expect(list.querySelector('[data-aia="step:run"] [data-step-work]')).toBeNull();
     expect(list.querySelector('[data-aia="step:aggregate"] [data-step-work]')?.textContent).toBe(t("research.exec.stepWork.running"));
@@ -1330,7 +1357,7 @@ describe("Progress", () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti pro tuto studii nejsou dostupní nebo povolení/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(steps.map((li) => li.textContent)).toEqual([
       expect.stringContaining("Sestavení dotazníku z návrhu"),
       expect.stringContaining("Kontrola připravenosti"),
@@ -1357,7 +1384,7 @@ describe("Progress", () => {
     const banner = await screen.findByText(/^Modelováno: AI respondenti z populace\. Odpovědi vytvořil model/);
     expect(banner.getAttribute("data-origin")).toBe("modelled");
     expect(screen.queryByText(t("research.exec.syntheticNotice"))).toBeNull();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     const kinds = steps.flatMap((li) => [...li.querySelectorAll("[data-origin-kind]")].map((e) => e.getAttribute("data-origin-kind")));
     expect(kinds).toEqual(["MODELLED", "MODELLED"]);
     expect(within(steps[1]).getByText("Modelovaná data")).toBeTruthy();
@@ -1381,7 +1408,7 @@ describe("Progress", () => {
       ],
     })));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const orbs = [...list.querySelectorAll("li")].map((li) => {
       const orb = li.querySelector<HTMLElement>("[data-orb]");
       return [li.dataset.step, orb ? `${orb.dataset.orb}/${orb.dataset.orbInk}` : null];
@@ -1413,7 +1440,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const li = (key: string) => list.querySelector<HTMLElement>(`li[data-step="${key}"]`)!;
     // The finished and the waiting step keep their row; only the running one opens.
     expect(li("compile").querySelector("[data-step-activity]")).toBeNull();
@@ -1427,7 +1454,7 @@ describe("Progress", () => {
     expect(items[0].hasAttribute("data-day")).toBe(true);
     expect(items[0].textContent).toBe("25. září 2026");
     expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
-      "Worker krok převzal",
+      "Krok začal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
       "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
     ]);
@@ -1447,7 +1474,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     await waitFor(() => expect(row.querySelector("[data-last-reported]")?.textContent).toBe(
       `${tv("research.exec.activity.lastReported", { done: 40, of: 300 })} · ${tv("research.exec.activity.fieldworkReplayed", { replayed: 50 })}`,
@@ -1472,7 +1499,7 @@ describe("Progress", () => {
       ],
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const row = list.querySelector<HTMLElement>('li[data-step="run"]')!;
     const fill = await waitFor(() => {
       const el = row.querySelector<HTMLElement>("[data-quota-fill]");
@@ -1492,7 +1519,7 @@ describe("Progress", () => {
   it("shows no orb while fieldwork waits for the AI runtime", async () => {
     api(listed(PARKED));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    const list = await screen.findByRole("list", { name: t("aia.stages.progress") });
+    const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     expect(list.querySelector("[data-orb]")).toBeNull();
   });
 
@@ -1507,7 +1534,7 @@ describe("Progress", () => {
     ])));
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(/Běh čeká u sběru dat: AI respondenti/)).toBeTruthy();
-    const steps = within(screen.getByRole("list", { name: t("aia.stages.progress") })).getAllByRole("listitem");
+    const steps = within(screen.getByRole("list", { name: t("research.exec.stepsTitle") })).getAllByRole("listitem");
     expect(within(steps[2]).getByText(message)).toBeTruthy();
     expect(within(steps[0]).queryByText(message)).toBeNull();
   });
@@ -1826,7 +1853,8 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText("Ověřené shrnutí.")).toBeTruthy();
-    expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
+    // The claim's id and evidence ref are not printed on the stage (ANL10).
+    expect(screen.queryByText(/C1 → q1.mean/)).toBeNull();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "AI analýza" }));
     fireEvent.click(screen.getByRole("button", { name: /Omezení.*Čeká/ }));
@@ -1923,6 +1951,18 @@ describe("Results", () => {
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
   });
 
+  it("names a fictional run's origin in the header before any module has stored one (ANL10)", async () => {
+    api({ ...listed(run({ ...COMPLETED, steps: [...COMPLETED.steps, step("analysis_executive", "RUNNABLE", { kind: "research_analysis" })] })),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: false, data_origin_kind: null, pending: { executive: "RUNNABLE" }, modules: {} }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    await waitFor(() => expect(document.querySelector("[data-analysis-milestones]")).toBeTruthy());
+    // The analysis states no origin yet; the run is fictional, so the header says so, never "neznámý".
+    expect(document.querySelector("[data-analysis-header]")?.textContent).toMatch(/ · interní · fiktivní respondenti$/);
+  });
+
   it("covers every research question of the frozen design: its answer, the findings on the same measures, what is missing (ANL2)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
@@ -1945,8 +1985,13 @@ describe("Results", () => {
     expect(rows.map((r) => [r.getAttribute("data-rq"), r.getAttribute("data-state")])).toEqual([["0", "answered"], ["1", "gap"], ["2", "unsupported"]]);
     // The Lead points at the module (rq:<id> waits for stable research-question ids, WCE1).
     expect(table.getAttribute("data-aia")).toBe("module:research_questions");
-    // The recorded gap reads "bez doložené odpovědi", with what the run recorded; never "ano".
-    expect(rows[1].textContent).toContain("bez doložené odpovědi");
+    // Each row shows the answer's own text and its state in one word (ANL2b); a recorded gap reads
+    // "Bez dat", with what the run recorded, never "Odpovězeno".
+    expect(rows.map((r) => r.getAttribute("data-verdict"))).toEqual(["answered", "no_data", "no_data"]);
+    expect(rows[0].textContent).toContain("Čaj.");
+    expect(rows[0].textContent).toContain("Odpovězeno");
+    expect(rows[1].textContent).toContain("Nevíme.");
+    expect(rows[1].textContent).toContain("Bez dat");
     expect(rows[1].textContent).toContain("Při spuštění běh zaznamenal");
     // A finding on the same measure is linked to where it is shown, and carries its Lead target.
     expect(rows[0].querySelector("[data-finding-chip]")?.getAttribute("data-finding-chip")).toBe("research_questions:0");
@@ -1956,6 +2001,13 @@ describe("Results", () => {
     const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
     expect(milestones[0].textContent).toContain("Sběr dokončen");
     expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // No run or claim ids on the stage (ANL10): the header names the run by its day and origin,
+    // and the module's own pane no longer prints claim → evidence ref.
+    const card = document.querySelector("[data-analysis-card]") as HTMLElement;
+    expect(card.querySelector("[data-analysis-header]")?.textContent).toMatch(/^Běh( z .+)? · interní · fiktivní respondenti$/);
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Části AI analýzy" })).getByRole("button", { name: /Výzkumné otázky/ }));
+    expect(card.textContent).not.toContain("RUN-1");
+    expect(card.textContent).not.toContain("q2.pct.2");
     // A finding chip brings the finding into view without a hash: a hash naming no view sends the
     // workspace back to Přehled (ANL8 audit, F4).
     const before = window.location.hash;
@@ -3656,7 +3708,7 @@ describe("Interpretation research", () => {
   });
 });
 
-describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
+describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
   const STUDY = { study_id: "STU-1", name: "Starbucks", budget_usd: 50, spent_usd: 10, remaining_usd: 40, spend_confirm_usd: null };
   const rowsOf = async () => {
     const card = await screen.findByText(t("research.exec.spend.title"));
@@ -3665,7 +3717,10 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
       if (!found) throw new Error("no spend yet");
       return found;
     });
-    return [...dl.querySelectorAll("[data-spend]")].map((r) => [r.getAttribute("data-spend"), r.querySelector("dd")!.textContent]);
+    return [...dl.querySelectorAll("[data-spend]")].map((r) => {
+      const note = r.querySelector("[data-spend-note]")?.textContent;
+      return [r.getAttribute("data-spend"), r.querySelector("[data-spend-value]")!.textContent + (note ? ` · ${note}` : "")];
+    });
   };
 
   it("reads the run's spent, held and unpriced calls beside the study's remainder", async () => {
@@ -3681,6 +3736,27 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b)", () => {
         ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
       ]),
     );
+  });
+
+  it("shows the spend as tiles in the prototype's words, the unpriced calls a fifth tile only when there are any (FLD4e)", async () => {
+    const labels = () => [...document.querySelectorAll("[data-run-spend] [data-spend] dt")].map((dt) => dt.textContent);
+    const running = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(running), "GET /api/v1/studies/STU-1": () => STUDY });
+    const { unmount } = render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "remaining"]));
+    // The v73 board's tiles (Fieldwork.dc.html), the held ones plural: holds are summed across steps.
+    expect(labels()).toEqual(["Utraceno", "Drženo pro běžící kroky", "Strop běhu", "Zbývá v rozpočtu studie"]);
+    // Each tile its value first, as a figure; a note beneath it, never run into it.
+    for (const tile of document.querySelectorAll("[data-run-spend] [data-spend]")) expect(tile.querySelector("dd > [data-spend-value]")).not.toBeNull();
+    unmount();
+
+    // An ended run with unpriced calls: a fifth tile, and no tile says a step still runs.
+    const ended = { ...COMPLETED, spend: { spent_usd: 0.4, reserved_usd: 0, uncertain_calls: 2 }, cost_ceiling: { usd: 2.5, unknown: null } };
+    api({ ...listed(ended), "GET /api/v1/studies/STU-1": () => STUDY });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(async () => expect((await rowsOf()).map(([key]) => key)).toEqual(["spent", "held", "ceiling", "unpriced", "remaining"]));
+    expect(labels()[1]).toBe(t("research.exec.spend.heldEnded"));
+    expect(document.querySelector('[data-spend="held"] [data-spend-note]')).toBeNull();
   });
 
   it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {

@@ -51,7 +51,7 @@ async function openModule(name: string) {
   fireEvent.click(await within(await screen.findByRole("navigation", { name: "Oblasti metodiky" })).findByRole("button", { name }));
 }
 /** Opens the object map from the catalogue, as a person's first click on the tab does. */
-const openMap = () => openModule("Sociomapa: objektová mapa");
+const openMap = () => openModule("Sociomapa");
 
 beforeEach(() => {
   resetConfigCache();
@@ -73,16 +73,17 @@ describe("the Metodika tab", () => {
     render(<MethodologyPanel />);
     // The tab opens on the catalogue (prototype v51, fidelity F4), under the MVP's note.
     const nav = await screen.findByRole("navigation", { name: "Oblasti metodiky" });
-    expect(document.querySelector("[data-mvp-note]")?.textContent).toMatch(/^MVP počítá Sociomapu jedinou metodou: aia-sociomap-5\./);
+    // One line (prototype v54).
+    expect(document.querySelector("[data-mvp-note]")?.textContent).toBe("MVP počítá Sociomapu jedinou metodou, aia-sociomap-5; starší běhy si své mapy ponechávají.");
     expect(screen.getByRole("heading", { level: 2, name: "Moduly" })).toBeTruthy();
     expect(screen.getByText(/^7 modulů · klikněte na modul/)).toBeTruthy();
     // One card per module, the map first; no categories (the product owner, 2026-10-21), and
     // neither the 18.6.6 reference map nor the experimental H-Model (D-13).
+    // The prototype's names and order (v54).
     expect(within(nav).getAllByRole("button").map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Sociomapa: objektová mapa",
-      "Připravenost studie: kdy lze běh spustit",
-      "Podpora a potlačení: kdy se číslo smí ukázat", "Agregace: z odpovědí odhad s intervalem",
-      "Odpověď respondenta: od pravděpodobností modelu k odpovědi", "Vážení: která váha patří respondentovi a co s neplatnou",
+      "Sociomapa",
+      "Práh zobrazení", "Odhady a intervaly", "Vážení vzorku",
+      "Losování odpovědí", "Kontrola před spuštěním",
       // Read-only and not a method module: the population's field policy (V1c).
       "Původ polí: k čemu smí sloužit",
     ]);
@@ -104,7 +105,7 @@ describe("the Metodika tab", () => {
     expect(nav.innerHTML).not.toMatch(/status-you|status-fault|in-force|hue-green/);
     fireEvent.click(map);
     // The module's page: back to the catalogue, its title, its one line and its facts as chips.
-    expect(await screen.findByRole("heading", { level: 2, name: "Sociomapa: objektová mapa" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 2, name: "Sociomapa" })).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: "Oblasti metodiky" })).toBeNull();
     const chips = document.querySelector("[data-module-chips]") as HTMLElement;
     await waitFor(() => expect(within(chips).getByText("V platnosti: aia-sociomap-5")).toBeTruthy());
@@ -219,7 +220,7 @@ describe("the Metodika tab", () => {
   it("opens support and suppression with both rule sets side by side, editable by an administrator", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
+    await openModule("Práh zobrazení");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     expect(screen.getByRole("heading", { name: "Brána důkazů AIA (analýza)" })).toBeTruthy();
     expect(calls.some((c) => c.startsWith("/api/v1/methodology/support"))).toBe(true);
@@ -229,7 +230,7 @@ describe("the Metodika tab", () => {
   it("opens study readiness with its limits, from 18.6.6's policy, editable as a version", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Připravenost studie: kdy lze běh spustit");
+    await openModule("Kontrola před spuštěním");
     await screen.findByRole("heading", { name: "Vzorek" });
     expect(screen.getByRole("heading", { name: "Sledovaná sada" })).toBeTruthy();
     expect(screen.getAllByText(/aia-readiness-1/).length).toBeGreaterThan(0);
@@ -246,7 +247,7 @@ describe("the Metodika tab", () => {
   it("opens aggregation with its declared bootstrap and the findings on their steps", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Agregace: z odpovědí odhad s intervalem");
+    await openModule("Odhady a intervaly");
     fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Interval: bootstrap dárců" });
     expect(screen.getByRole("heading", { name: "Věrohodnost otázky" })).toBeTruthy();
@@ -264,7 +265,7 @@ describe("the Metodika tab", () => {
   it("opens weighting read-only: the schemes, the sample's raking, the dataset's refusal and D1", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await openModule("Vážení vzorku");
     fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.getAllByText(/aia-weighting-1/).length).toBeGreaterThan(0);
@@ -290,7 +291,7 @@ describe("the Metodika tab", () => {
   it("opens the response process: the unit's coefficients, the draw by code, D6, and editable", async () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    await openModule("Losování odpovědí");
     fireEvent.click(await screen.findByRole("button", { name: "Rozbalit všechny kroky" }));
     await screen.findByRole("heading", { name: "Mechanismy odpovědi" });
     expect(screen.getAllByText(/aia-response-1/).length).toBeGreaterThan(0);
@@ -336,7 +337,7 @@ describe("the Metodika tab", () => {
 
   it("counts steps in Czech on the tiles and the stage heads: 1 krok, 3 kroky, 17 kroků", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await openModule("Vážení vzorku");
     const tiles = await screen.findByRole("group", { name: "Etapy" });
     const count = (tile: RegExp) => within(tiles).getByRole("button", { name: tile }).querySelector(".text-xs")?.textContent;
     expect(count(/^Všechny etapy/)).toBe("17 kroků");
@@ -352,7 +353,7 @@ describe("the Metodika tab", () => {
 
   it("says a stage has no step with a parameter rather than showing nothing", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await openModule("Vážení vzorku");
     const tiles = await screen.findByRole("group", { name: "Etapy" });
     fireEvent.click(within(tiles).getByRole("button", { name: /^M4\s·\sNeplatná váha/ }));
     expect(document.querySelectorAll("article[data-step]").length).toBe(2);
@@ -363,7 +364,7 @@ describe("the Metodika tab", () => {
 
   it("counts as a parameter only what a version can change, never a code constant or the method's name", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await openModule("Vážení vzorku");
     await screen.findByRole("group", { name: "Etapy" });
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Jen kroky" })).getByRole("radio", { name: "S parametry" }));
     // The method's own step (its name) and the run's raking (code constants) are not among them.

@@ -18,6 +18,7 @@ import { t, tv } from "@/i18n/t";
 import { type ActivityState, type SwitchValues, activityState, approvedClasses } from "@/lib/ai-runtime";
 import {
   type AdminClient,
+  type AiActivityAnswered,
   type AuditEntry,
   type Me,
   type Member,
@@ -32,9 +33,11 @@ import {
   type Vocabularies,
   Unauthenticated,
   admin,
+  settingsStatus,
   workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { relative } from "@/lib/format";
 import { nearLimitTally } from "@/lib/researcher-spend";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
@@ -313,7 +316,30 @@ function SwitchWord({ value }: { value: boolean | null | undefined }) {
   return <span className="font-mono text-sm">{t(`${R}.switchValue.${value === null ? "invalid" : value ? "on" : "off"}`)}</span>;
 }
 
-function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null }) {
+/** An activity's last answered call, as the usage ledger recorded it (F14, OI-75 (a)): a fact about
+ *  the past, read by an OWNER or ADMIN. "None recorded" is not "not working", and an answer is
+ *  not "working now": the line says when, on which model, by which build, nothing more. */
+type Answered = Resource<AiActivityAnswered | null>;
+
+function LastAnswered({ answered, activity }: { answered: Answered; activity: string }) {
+  // Loading, or a member's (nothing asked): nothing said.
+  if (answered.state === "loading" || (answered.state === "ready" && answered.data === null)) return null;
+  // A read that failed, or an answer not of the shape asked for, says so and claims nothing.
+  if (answered.state !== "ready" || answered.data === null || !Array.isArray(answered.data.activities)) return <p data-answered="unread" className="mt-1 text-xs text-ink-muted">{t(`${R}.answered.unread`)}</p>;
+  const row = answered.data.activities.find((a) => a.key === activity);
+  if (!row) return null;
+  const last = row.last_answered;
+  if (!last) return <p data-answered="none" className="mt-1 text-xs text-ink-muted">{t(`${R}.answered.none`)}</p>;
+  return (
+    <p data-answered="at" title={t(`${R}.answered.help`)} className="mt-1 text-xs text-ink-muted">
+      <time dateTime={last.at}>{tv(`${R}.answered.at`, { when: relative(last.at) ?? last.at })}</time>
+      {" · "}{tv(`${R}.answered.on`, { model: last.model })}
+      {last.build ? <>{" · "}<span className="font-mono">{tv(`${R}.answered.build`, { build: last.build.slice(0, 7) })}</span></> : null}
+    </p>
+  );
+}
+
+function ActivityRow({ runtime, activity, switches, answered }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null; answered: Answered }) {
   const state = activityState(runtime, activity, switches);
   const A = `${R}.activity.${activity.key}`;
   const named = switchFor(state);
@@ -330,6 +356,7 @@ function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; 
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
       <td className={TD}>
         <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
+        <LastAnswered answered={answered} activity={activity.key} />
         <Technical>
           <dl data-technical className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
             {named ? <><dt className="text-ink-faint">{t(`${R}.col.switches`)}</dt><dd className="break-all font-mono">{named}</dd></> : null}
@@ -395,8 +422,11 @@ function Tile({ label, children, note }: { label: string; children: ReactNode; n
 }
 
 /** Code facts from the settings document beside the deployment's switches from /config: AI běh. */
-function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies }) {
+function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies; mayAdminister: boolean }) {
   const switches = config.ok ? config.data.switches : null;
+  // Each activity's last answered call: an organization-wide read, an OWNER's or ADMIN's alone
+  // (OI-75 (a)); a member asks nothing and is shown nothing of it.
+  const [answered] = useResource<AiActivityAnswered | null>(() => (mayAdminister ? settingsStatus.aiActivity() : Promise.resolve(null)), [mayAdminister]);
   const providers = runtime.providers.map((p) => p.label).join(", ");
   const states = runtime.activities.map((a) => activityState(runtime, a, switches).kind);
   const region = config.ok ? config.data.region : null;
@@ -449,7 +479,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
           {GROUPS.map((g) => (
             <tbody key={g} data-ai-group={g} className="divide-y divide-border">
               <tr><th colSpan={5} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
-              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} answered={answered} />)}
               {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
             </tbody>
           ))}
@@ -640,7 +670,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     return `${role.charAt(0).toLocaleUpperCase("cs")}${role.slice(1)}${m.methodologist ? ` · ${t(`${P}.accessTab.metodik`)}` : ""}`;
   };
   const extra: Record<string, ReactNode> = {
-    ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
+    ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} mayAdminister={doc.may_administer} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
     access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
@@ -698,6 +728,18 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       {extra.studies}
       {groupItems("studies").length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{groupItems("studies").map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
     </div>;
+    // Přístup a schvalování as prototype v58 draws it (F9): three flat cards straight under the tab's
+    // head -- Členové, Samoschválení, Klienti -- in no further card; the settings document's own rows
+    // for the two groups wait under technical details, and the role matrix with them.
+    if (tab === "access") {
+      const related = [...(byKey.get("access")?.items ?? []), ...(byKey.get("approvals")?.items ?? [])];
+      return <div id="set-access" className="flex min-w-0 flex-col gap-4">
+        {extra.access}
+        {extra.approvals}
+        {related.length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{related.map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
+        {present("roles") ? section("roles", tab) : null}
+      </div>;
+    }
     return <>{TAB_SECTIONS[tab].filter(present).map((key) => section(key, tab))}</>;
   };
   // Stav systému's technical values and the rules in code (once Reference, F17): searchable, by

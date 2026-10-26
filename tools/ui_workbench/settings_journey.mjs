@@ -110,6 +110,11 @@ try {
       for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
       assert.equal(await page.locator('[data-activity="run_qc"][data-state="not_built"]').count(), 1, "ai: a not-built activity says so");
       await page.locator("#panel-ai [data-config]").waitFor();
+      // Each listed activity's last answered call, read from the ledger for an administrator
+      // (F14): when, or none recorded; never unread on a healthy API, never a claim it works.
+      const listed = (await get("/api/v1/settings")).ai_runtime.activities.length;
+      await waitFor(async () => await page.locator("#panel-ai [data-answered]").count() === listed, "ai: each activity's last answer");
+      assert.equal(await page.locator('#panel-ai [data-answered="unread"]').count(), 0, "ai: the last answers could not be read");
     }
     if (id === "prompts") {
       await page.getByLabel("Instrukce", { exact: true }).waitFor();
@@ -184,6 +189,14 @@ try {
   await member.getByText("Fictional UX administrator", { exact: false }).waitFor();
   const savedMember = (await get("/api/v1/members")).find((m) => m.email === email);
   assert.equal(savedMember.organization_role, "ADMIN"); assert.equal(savedMember.display_name, "Fictional UX administrator");
+  // Naposledy (F9, F19): a member added and re-roled by someone else was never seen; the operator
+  // signed in here was, just now. Only their own request stamps it.
+  assert.equal(savedMember.last_seen_at, null, "access: an administrator's change does not stamp the member's last activity");
+  assert.equal(await member.locator("[data-last-seen]").getAttribute("data-last-seen"), "never");
+  assert.equal(await member.locator("[data-last-seen]").innerText(), "nikdy");
+  const operator = page.locator("[data-member]").filter({ has: page.getByText("workbench@example.invalid", { exact: true }) });
+  assert.match(await operator.locator("[data-last-seen]").getAttribute("data-last-seen"), /^\d{4}-\d\d-\d\dT/, "access: the signed-in operator's last activity is a time");
+  checks.push("Přístup's Naposledy: the signed-in operator has a time, a member added and re-roled by an administrator reads nikdy");
   await widths("access member editing"); checks.push("New member is added in an inline row as a researcher; name and role change in place and persist through the audited API, with Vrátit");
   // The Metodik mark (#823): the OWNER grants it in the row, Vrátit takes it back; the API agrees.
   const markSwitch = page.getByRole("switch", { name: `Štítek Metodik: ${email}`, exact: true });

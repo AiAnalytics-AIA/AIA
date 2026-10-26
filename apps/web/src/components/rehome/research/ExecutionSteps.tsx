@@ -13,7 +13,7 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
-import { findingAnchor } from "@/lib/analysis-coverage";
+import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
 import { stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import {
@@ -66,6 +66,7 @@ import {
   traceMeasures,
   reportHolds,
   resultOriginKind,
+  runOriginKinds,
   stepOriginKind,
   type OriginKind,
   waitingDetail,
@@ -400,7 +401,7 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
+          <i aria-hidden="true" className={`block size-2.5 rounded-mark ${asks ? "bg-status-you" : "bg-signal"}`} />
           {t("research.exec.cost.legendCeiling")}
         </span>
         {limit !== null ? (
@@ -1330,7 +1331,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   );
 }
 
-/** Náklady (artifact-fieldwork FLD4b): what the run has spent and holds, the calls it could not price
+/** Náklady (artifact-fieldwork FLD4b; as tiles, FLD4e): what the run has spent and holds, the calls it could not price
  *  and what remains in the study; totals only (Q76 (c)). The remainder is read again whenever the spend
  *  shown changes, so the two never disagree for long; with no spend to show, nothing is read. */
 function SpendCard({ run }: { run: ResearchRun }) {
@@ -1350,11 +1351,15 @@ function SpendCard({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
-        <dl data-run-spend className="@container divide-y divide-border rounded-control border border-border">
+        // The prototype's KPI tiles (FLD4e): four, the unpriced calls a fifth only when there are any.
+        <dl data-run-spend className="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-2">
           {rows.map((r) => (
-            <div key={r.key} data-spend={r.key} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
-              <dt className="text-ink-muted">{r.label}</dt>
-              <dd className="min-w-0"><span className="font-mono">{r.value}</span>{r.note ? <span className="text-ink-muted"> · {r.note}</span> : null}</dd>
+            <div key={r.key} data-spend={r.key} className="flex min-w-0 flex-col gap-1 rounded-control border border-border px-3 py-2">
+              <dt className="text-xs text-ink-muted">{r.label}</dt>
+              <dd className="min-w-0">
+                <span data-spend-value className="block font-mono text-lg tabular-nums text-ink">{r.value}</span>
+                {r.note ? <span data-spend-note className="mt-0.5 block text-xs text-ink-muted">{r.note}</span> : null}
+              </dd>
             </div>
           ))}
         </dl>
@@ -1362,6 +1367,9 @@ function SpendCard({ run }: { run: ResearchRun }) {
     </Card>
   );
 }
+
+/** The steps this client places on Průběh, in the pipeline's order (FLD2c). */
+const PIPELINE_ORDER: readonly string[] = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
 
 export function ProgressStep() {
   const frame = useFrame();
@@ -1398,7 +1406,14 @@ export function ProgressStep() {
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
-  const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after
+  // in the run's order, none the run does not have. Parallel steps (the analysis modules) keep the
+  // pipeline's order.
+  const rank = (key: string) => {
+    const at = PIPELINE_ORDER.indexOf(key);
+    return at < 0 ? PIPELINE_ORDER.length : at;
+  };
+  const listed = [...run.steps].sort((a, b) => rank(a.node_key) - rank(b.node_key));
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
   const state = runState(run);
@@ -1419,14 +1434,6 @@ export function ProgressStep() {
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {listed.length ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
-              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
-            </span>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
-          </div>
-        ) : null}
         {parked ? (
           <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
             <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
@@ -1458,17 +1465,27 @@ export function ProgressStep() {
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
-      <Card title={t("aia.stages.progress")}>
-        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => {
+      <Card title={t("research.exec.stepsTitle")}>
+        {listed.length ? (
+          <div className="mb-3 flex items-center gap-3">
+            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
+              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
+            </span>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
+          </div>
+        ) : null}
+        <ol className="flex flex-col gap-3" aria-label={t("research.exec.stepsTitle")}>
+          {listed.map((s, index) => {
             const stepActivity = activityOf(activity, s.step_id);
             const last = lastReported(stepActivity, s.status, run.is_terminal);
             return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.step_id} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
+                <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
-                <span className="font-medium">{stepLabel(s.node_key)}</span>
+                {/* A step this client has no name for keeps its key as a code, never as a name. */}
+                <span className="font-medium">{codedText(codeWords("research.exec.steps", s.node_key))}</span>
                 {researchStepWork(run, s.node_key) ? (
                   <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
                 ) : null}
@@ -1886,10 +1903,9 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
-    const next = { runId: run.run_id, analysis: shownValue, spec };
-    setShownAnalysis(next);
+    setShownAnalysis({ analysis: shownValue, spec });
     return () => setShownAnalysis(null);
-  }, [run.run_id, shownValue, spec]);
+  }, [shownValue, spec]);
   const retryable = useRetryableRead(run);
   const openItem = useOpenAnalysisItem();
   if (loaded.state === "hidden") return null;
@@ -1904,15 +1920,20 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // The analysis's own origin once read; until then the run's, when it has exactly one (ANL10).
+  const analysisOrigin = loaded.state === "ready" ? resultOriginKind(loaded.value) : null;
+  const runKinds = runOriginKinds(run);
+  const runOrigin = runKinds.size === 1 ? [...runKinds][0] : null;
   // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
   const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
-      <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && resultOriginKind(loaded.value)
-          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
+      <p data-analysis-header className="mb-1 text-sm font-semibold">{analysisHeader(run.created_at, analysisOrigin ?? runOrigin)}</p>
+      <p role="note" className="mb-3 text-sm text-ink-muted">
+        {analysisOrigin
+          ? t(ANALYSIS_ORIGIN[analysisOrigin])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
@@ -1986,7 +2007,6 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
                 </div> : null}
                 {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
                 {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
-                {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
               </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
             </section>
           </div>
