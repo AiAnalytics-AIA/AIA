@@ -3587,6 +3587,9 @@ export const cs = {
           "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
         attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
         recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
+        // Routine engine decisions a feed shows (FLD11): said, not shown as a code.
+        waiting_for_child_steps: "Krok čeká na dokončení svých dílčích kroků.",
+        released_by_worker: "Pracovní proces krok uvolnil; spustí se znovu.",
       },
       report: {
         status: {

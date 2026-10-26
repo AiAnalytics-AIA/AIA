@@ -50,12 +50,15 @@ group("one event in words", () => {
     expect(decided("STEP_RECOVERY", "PARK_BUDGET", "budget_exceeded")).toMatchObject({ text: t("research.exec.wait.budget_exceeded"), level: "warn" });
     expect(decided("STEP_RECOVERY", "RECOVERY_REQUIRED", "paid_external_call_side_effect_uncertain")?.text).toBe(t("research.exec.wait.paid_call_uncertain"));
     expect(decided("STEP_RECOVERY", "RECOVERY_REQUIRED", "max_attempts_exhausted")?.text).toBe(t("research.exec.wait.attempts_exhausted"));
-    // Else the action's: a step that goes on by itself is said, not warned.
-    expect(decided("STEP_DEFERRED", "DEFER", "waiting_for_child_steps")).toMatchObject({ text: t("research.exec.activity.action.DEFER"), level: "info" });
-    expect(decided("STEP_RECOVERY", "RETRY", "released_by_worker")).toMatchObject({ text: t("research.exec.activity.action.RETRY"), level: "info" });
-    expect(decided("STEP_RECOVERY", "CANCEL", "cancelled_after_budget_exceeded")?.text).toBe(t("research.exec.activity.action.CANCEL"));
-    expect(decided("STEP_RECOVERY", "FAIL", "permanent_failure_authentication")?.text).toBe(t("research.exec.activity.action.FAIL"));
-    // No line carries an engine code.
+    // A routine decision is said, and a step that goes on by itself is not warned.
+    expect(decided("STEP_DEFERRED", "DEFER", "waiting_for_child_steps")).toMatchObject({ text: t("research.exec.wait.waiting_for_child_steps"), level: "info" });
+    expect(decided("STEP_RECOVERY", "RETRY", "released_by_worker")).toMatchObject({ text: t("research.exec.wait.released_by_worker"), level: "info" });
+    // Else the action's words, with the reason's code kept aside: a recorded reason is never dropped.
+    const aside = (action: string, code: string) => `${t(`research.exec.activity.action.${action}`)} (${t("research.exec.code.technical")}: ${code})`;
+    expect(decided("STEP_RECOVERY", "RETRY", "retryable_transient")).toMatchObject({ text: aside("RETRY", "retryable_transient"), level: "info" });
+    expect(decided("STEP_RECOVERY", "CANCEL", "cancelled_after_budget_exceeded")?.text).toBe(aside("CANCEL", "cancelled_after_budget_exceeded"));
+    expect(decided("STEP_RECOVERY", "FAIL", "permanent_failure_authentication")?.text).toBe(aside("FAIL", "permanent_failure_authentication"));
+    // A reason with words carries no engine code.
     for (const code of ["budget_exceeded", "waiting_for_child_steps", "released_by_worker", "paid_external_call_side_effect_uncertain"]) {
       expect(decided("STEP_RECOVERY", "RETRY", code)?.text).not.toContain(code);
     }

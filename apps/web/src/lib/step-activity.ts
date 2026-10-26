@@ -105,16 +105,22 @@ export function describe(event: RunEvent): ActivityLine | null {
     case "STEP_DEFERRED":
     case "STEP_RECOVERY": {
       // What the engine decided, in words (artifact-fieldwork FLD11): the reason's own words where
-      // a wait has them, else the action's (a closed set, tests/fixtures/step_feed/actions.json);
-      // a pair this client cannot word keeps its code named, never a guess.
+      // a wait has them, else the action's (a closed set, tests/fixtures/step_feed/actions.json)
+      // with the reason's code kept aside; a pair this client cannot word keeps its code named,
+      // never a guess, never dropped.
       const action = str(p.action);
       const code = str(p.reason);
-      const words = (code ? known(`research.exec.wait.${REASON_WORDS[code] ?? code}`) : null) ?? (action ? known(`${ACTION}.${action}`) : null);
-      if (words) return line(words, action && GOES_ON.has(action) ? "info" : "warn");
+      const level = action && GOES_ON.has(action) ? "info" : "warn";
+      const reasonWords = code ? known(`research.exec.wait.${REASON_WORDS[code] ?? code}`) : null;
+      if (reasonWords) return line(reasonWords, level);
+      const actionWords = action ? known(`${ACTION}.${action}`) : null;
+      if (actionWords) return line(codedText({ words: actionWords, code }), level);
       return line(codedText(codeWords(ACTION, action ?? code ?? reason(event.message))), "warn");
     }
     case "STEP_RESUMED": {
       // Every feed shown is a study's (a run, an agent job, Deep Research): a lift is its budget's.
+      // Client work (lift_client_budget_wait) writes the same keys for Rozpočet klienta; a client feed
+      // reusing describe() must tell the two apart first (D-01).
       const before = num(p.budget_before_usd);
       const after = num(p.budget_after_usd);
       return line(
