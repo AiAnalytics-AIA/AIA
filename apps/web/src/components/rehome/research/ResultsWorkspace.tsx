@@ -6,6 +6,7 @@ import type { ResearchRun } from "@/lib/api";
 import { runState } from "@/lib/run-state";
 import { t } from "@/i18n/t";
 import { spendRows } from "@/lib/run-spend";
+import { PanelShown } from "./panel-shown";
 
 /** What the run has spent, by Průběh's Náklady rule (#774): the attempts' sum would read a call that came
  *  back without a price as nothing spent, so such calls are named beside it, said while the run goes on
@@ -149,7 +150,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
     </section>
     {panels.map(panel => <section key={panel.id} id={`${prefix}-panel-${panel.id}`} role="tabpanel" aria-labelledby={`${prefix}-tab-${panel.id}`} hidden={active !== panel.id} tabIndex={0}>
       <p className="mb-4 text-sm leading-6 text-ink-muted">{panel.description}</p>
-      <div className="space-y-4">{panel.content}</div>
+      <div className="space-y-4"><PanelShown.Provider value={active === panel.id}>{panel.content}</PanelShown.Provider></div>
     </section>)}
     </> : <>
     {/* The view the stage names, pinned as the tabs were, Zpráva's with the study's report card; the
@@ -158,7 +159,7 @@ export function ResultsWorkspace({ run, panels, progressHref, notice, lead, tabs
       {lead ? <div data-results-lead hidden={active !== "report"}>{lead}</div> : null}
       {panels.map(panel => <section key={panel.id} aria-label={panel.label} hidden={active !== panel.id}>
         <p className="mb-4 text-sm leading-6 text-ink-muted">{panel.description}</p>
-        <div className="space-y-4">{panel.content}</div>
+        <div className="space-y-4"><PanelShown.Provider value={active === panel.id}>{panel.content}</PanelShown.Provider></div>
       </section>)}
       {panels.some((panel) => panel.id === active) ? null : <p role="note" className="text-sm">Tento běh tuto část výsledků nemá.</p>}
     </div>

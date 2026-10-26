@@ -5,14 +5,15 @@
 // never read as covered.
 import type { Answerability } from "@/lib/api";
 import { gapWords } from "@/lib/answerability";
+import { codedText } from "@/lib/reason-words";
 import { stepLabel } from "@/lib/research-execution";
 import type { RunOutput } from "./report";
 
-/** One line: what (a research question, "Segmenty", an output), its state, why, and the stored
- *  output it names, if any. */
-export type CoverageLine = { kind: "question" | "output"; label: string; state: string; why: string | null; ref?: string };
+/** One line: what (a research question, "Segmenty", an output), its state and why. */
+export type CoverageLine = { kind: "question" | "output"; label: string; state: string; why: string | null };
 
-/** The step whose words name a stored output; any other type keeps its type, never hidden. */
+/** The step whose words name a stored output; any other is "Další uložený výstup" with its type kept
+ *  as a technical code (codedText), never hidden and never its id (RPT12). */
 const OUTPUT_STEP: Record<string, string> = {
   research_aggregate: "aggregate",
   research_sociomap: "sociomap",
@@ -45,14 +46,14 @@ function questionLines(answer: Answerability | null | undefined): CoverageLine[]
 }
 
 function outputLines(unread: unknown): CoverageLine[] {
-  const line = (label: string, state: string, why: string | null = null, ref?: string): CoverageLine => ({ kind: "output", label, state, why, ref });
+  const line = (label: string, state: string, why: string | null = null): CoverageLine => ({ kind: "output", label, state, why });
   // A document stored before the manifest (aia-report-document-1), or one whose manifest is not a
   // list, names no outputs: never read as all read.
   if (!Array.isArray(unread)) return [line("Výstupy běhu", "nezaznamenáno", "dokument nemá záznam, z čeho zpráva čte")];
   if (!unread.length) return [line("Výstupy běhu", "zpráva čte ze všech uložených")];
   return (unread as RunOutput[]).map((o) => (o.kind === "beside"
     ? line(stepLabel(o.node_key), "souběžný krok, zpráva z něj nečte")
-    : line(o.artifact_type in OUTPUT_STEP ? stepLabel(OUTPUT_STEP[o.artifact_type]) : o.artifact_type, "uloženo, žádná kapitola z něj nečte", null, o.artifact_id)));
+    : line(o.artifact_type in OUTPUT_STEP ? stepLabel(OUTPUT_STEP[o.artifact_type]) : codedText({ words: "Další uložený výstup", code: o.artifact_type }), "uloženo, žádná kapitola z něj nečte")));
 }
 
 /** The record: the research questions first, then the run's outputs the draft does not read. */

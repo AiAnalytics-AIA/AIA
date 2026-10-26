@@ -1,4 +1,4 @@
-// A research run's spend in words, as Průběh's Náklady shows it (artifact-fieldwork FLD4b): what the
+// A research run's spend in words, as Průběh's Náklady shows it (artifact-fieldwork FLD4b; as tiles, FLD4e): what the
 // run has spent, what it holds, the calls it could not price and what remains in the study. Totals
 // only, naming nobody (Q76 (c)). A figure the API did not give is unknown, never zero; a hold is not
 // spent; a call without a known price is said apart, and while the run goes on it may still be one in
@@ -35,8 +35,14 @@ export function spendRows(
   if (!spend) return null;
   const rows: SpendRow[] = [
     { key: "spent", label: t("research.exec.spend.spent"), value: usd(spend.spent_usd) },
-    // Holds belong to steps that run; once the run has ended there are none to speak of.
-    { key: "held", label: t("research.exec.spend.held"), value: usd(spend.reserved_usd), note: ended ? undefined : t("research.exec.spend.heldNote") },
+    // Holds belong to steps that run; once the run has ended the label drops "pro běžící kroky". Any
+    // hold, a leftover one on an ended run too, says it is not spent; a zero needs no note.
+    {
+      key: "held",
+      label: t(ended ? "research.exec.spend.heldEnded" : "research.exec.spend.held"),
+      value: usd(spend.reserved_usd),
+      note: spend.reserved_usd > 0 ? t("research.exec.spend.heldNote") : undefined,
+    },
   ];
   rows.push(ceilingRow(ceiling));
   if (spend.uncertain_calls > 0) {

@@ -46,9 +46,11 @@ const FIELD_ORIGIN: Area = {
   note_cs: "Co rozhoduje, k čemu smí posloužit každé pole populace: jeho původ, věta o použití ve slovníku a kvalita.",
   editable: false,
 };
-/** The order the cards stand in: the map first (full width), then before a run, the numbers, the
- *  respondents, the population. No categories (the product owner, 2026-10-21: too few to filter). */
-const ORDER = ["sociomap", "readiness", "support", "aggregation", "response", "weighting", "field_origin"];
+/** The order the cards stand in, the prototype's (v54): the map first (full width), then what a
+ *  number may show, how it is estimated and weighted, how a respondent's answer is drawn, and the
+ *  check before a run; the population last. No categories (the product owner, 2026-10-21: too few
+ *  to filter). */
+const ORDER = ["sociomap", "support", "aggregation", "weighting", "response", "readiness", "field_origin"];
 /**
  * What the MVP does not list (D-13): the experimental Sociomapping (H-Model) and the 18.6.6
  * reference map are hidden; their pages stay readable by URL nowhere here, and the API still
@@ -112,7 +114,7 @@ function ModulePage({ area, summary, people, onDirty }: { area: Area; summary: M
   return <>
     <header data-module-header className="flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0 max-w-[720px]">
-        <h2 className="font-serif text-xl font-semibold leading-7">{area.title_cs}</h2>
+        <h2 className="font-serif text-xl font-semibold leading-7">{nameOf(area)}</h2>
         <p className="mt-1.5 text-sm leading-6 text-ink-muted">{oneLine(area)}</p>
         {/* Who changes it, and for a read-only module the API's own note on what it is. */}
         <p data-module-note className="mt-1 text-xs leading-5 text-ink-faint">{area.editable ? t(`${M}.editableModule`) : `${t(`${M}.readOnlyModule`)}${area.note_cs ? ` ${area.note_cs}` : ""}`}</p>
@@ -125,6 +127,14 @@ function ModulePage({ area, summary, people, onDirty }: { area: Area; summary: M
 }
 
 const noop = () => {};
+
+/** A module's name as the catalogue and its head say it (prototype v54: "Sociomapa", "Práh
+ *  zobrazení"…); the API's title, which says what the module computes, else. */
+function nameOf(area: Area): string {
+  const key = `${M}.name.${area.id}`;
+  const name = t(key);
+  return name === key ? area.title_cs : name;
+}
 
 /** A module's one line, as the catalogue and the module's head say it; the API's note else. */
 function oneLine(area: Area): string {
@@ -158,11 +168,11 @@ function ModuleCard({ area, summary, onOpen }: { area: Area; summary: MethodModu
   const versions = res.state === "ready" ? res.data : null;
   const unread = res.state !== "loading" && res.state !== "ready";
   const wide = area.id === "sociomap";
-  return <button type="button" data-module-card={area.id} aria-label={area.title_cs} onClick={onOpen} style={{ borderTopColor: `var(--${accentOf(area.id)})` }}
+  return <button type="button" data-module-card={area.id} aria-label={nameOf(area)} onClick={onOpen} style={{ borderTopColor: `var(--${accentOf(area.id)})` }}
     className={`group flex min-w-0 flex-col overflow-hidden rounded-md border border-t-4 border-border bg-surface-raised text-left text-sm transition-transform duration-[var(--duration-confirm)] hover:-translate-y-0.5 hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring motion-reduce:transform-none ${wide ? "col-span-full" : ""}`}>
     <span className={`block ${wide ? "h-28" : "h-24"} border-b border-border bg-surface`}><ModuleArt id={area.id} /></span>
     <span className="flex flex-col gap-1.5 p-4">
-      <span className="flex items-baseline justify-between gap-2"><strong className="text-[15px] font-semibold">{area.title_cs}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(area.id)})` }}>→</span></span>
+      <span className="flex items-baseline justify-between gap-2"><strong className="text-[15px] font-semibold">{nameOf(area)}</strong><span aria-hidden="true" style={{ color: `var(--${accentOf(area.id)})` }}>→</span></span>
       <span data-module-line className="block text-[13px] leading-[19px] text-ink-muted">{oneLine(area)}</span>
       <dl data-module-facts className="mt-1.5 grid grid-cols-[110px_1fr] gap-y-1.5 border-t border-border pt-2.5 text-xs">
         {summary ? <>

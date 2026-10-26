@@ -3,7 +3,7 @@
 // 23): no AI pomoc, no stage "Navrhnout", no job dialog; each stage says to ask the Lead instead.
 // Spuštění's own Start is not a worker start and stays. A file of its own: the workbench switch,
 // once read, is kept for the page, so it would leak into the classic layout's tests.
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { t } from "@/i18n/t";
@@ -40,6 +40,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
       : u === CONTENT_PATH ? { state: "NATIVE", revision: 3, revision_id: "REV-3", deduplicated: false }
       : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
+      : u.endsWith("/research/limits") ? { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } }
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }
       : u.endsWith("/research/agent-jobs") ? (String(url).includes("pending=true") ? pendingAnswer : [])
@@ -132,6 +133,26 @@ describe("the workbench: the Lead owns the AI starts", () => {
     expect(container.querySelector("[data-workbench], [data-research-workspace]")).toBeNull();
   });
 
+  it("the header's next is the stage's own forward action; no dock button inside the workbench (v73 H1)", async () => {
+    push.mockClear();
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const header = document.querySelector("[data-workbench] .arthead") as HTMLElement;
+    // Dotazník's own forward action ("Další · cílová skupina"), with its conditions: one copy, in the header.
+    await within(header).findByRole("button", { name: /Další · cílová skupina/ });
+    expect(screen.getAllByRole("button", { name: /Další · cílová skupina/ })).toHaveLength(1);
+    // The frame's plain next stage is not shown beside it.
+    expect(within(header).queryByRole("button", { name: /^Cílová skupina/ })).toBeNull();
+  });
+
+  it("keeps Sběr dat's paid start in its section, with its conditions, never in the header (stand-in review on #936)", async () => {
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await screen.findByText("Bára");
+    const start = await screen.findByRole("button", { name: new RegExp(t("research.exec.start")) });
+    expect(start.closest("#artbody")).not.toBeNull();
+    expect(start.closest(".arthead")).toBeNull();
+  });
+
   it("says on Dimenze where the dimensions' proposal is asked for now", async () => {
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const hint = await screen.findByText(/Návrh dimenzí připraví Vedoucí výzkumu/);
@@ -149,12 +170,64 @@ describe("the workbench: the Lead owns the AI starts", () => {
     await waitFor(() => {
       const saved = bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { briefing?: { review_comments?: string }; ui_state?: { plan_changed26?: boolean } } | undefined;
       expect(saved?.briefing?.review_comments).toBe("1. K textu „cíl“: zúžit na Prahu");
-      expect(saved?.ui_state?.plan_changed26).toBe(true);
+      // Saved for the Lead, nothing reworked: the plan is not marked "upraveno" (spec navrh D8).
+      expect(saved?.ui_state?.plan_changed26).toBeUndefined();
     });
     fireEvent.click(screen.getByRole("button", { name: "Požádat Vedoucího" }));
     await waitFor(() => expect(bodies.some((b) => b.url.endsWith("/lead/turns") && b.body.text === "Aktualizuj návrh podle mých komentářů.")).toBe(true));
     // The Lead answers with its card; nothing paid starts from the stage.
     expect(urls.some((u) => u.startsWith("POST") && (u.includes("/agent-jobs") || u.endsWith("/request")))).toBe(false);
+  });
+
+  it("sets n on Vzorek, within the server's limits, and not on Dimenze (artifact-sample SMP7, artifact-dimensions DIM3b)", async () => {
+    api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", n: 350 });
+    window.location.hash = "#sample";
+    try {
+      render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      const view = await screen.findByLabelText("Vzorek", { selector: "[data-sample-view]" });
+      const field = () => within(view).getByRole("spinbutton", { name: "Počet respondentů" });
+      await within(view).findByRole("spinbutton", { name: "Počet respondentů" });
+      expect(field().closest("[data-aia='sample:n']")).not.toBeNull();
+      expect(document.querySelectorAll("[data-aia='sample:n']")).toHaveLength(1);
+      expect(within(view).queryByRole("button", { name: "Upravit v Dimenzích" })).toBeNull();
+      fireEvent.click(within(view).getByRole("button", { name: "Zvýšit: Počet respondentů" }));
+      await waitFor(() => expect((bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { n?: unknown } | undefined)?.n).toBe(400), { timeout: 10_000 });
+      // The Stepper remounts on the saved value; the field is read again.
+      const puts = bodies.length;
+      fireEvent.change(field(), { target: { value: "10001" } });
+      fireEvent.blur(field());
+      expect((await within(field().closest("[data-aia='sample:n']") as HTMLElement).findByRole("alert")).textContent).toMatch(/neuloženo/);
+      await new Promise((r) => setTimeout(r, 2_100)); // past the store's 1.8 s save
+      expect(bodies.slice(puts).filter((b) => b.url === `PUT ${CONTENT_PATH}` && (b.body.content as { n?: unknown }).n === 10001)).toEqual([]);
+    } finally {
+      window.location.hash = "";
+    }
+  }, 30_000);
+
+  it("a removed comment comes back with Vrátit; saving comments marks nothing changed", async () => {
+    api({ title: "Alfa", goal: "Zjistit, co lidé chtějí od nové služby.", ui_state: { plan_comments26: [{ quote: "cíl", comment: "zúžit na Prahu" }, { quote: "test", comment: "upřesnit" }] } }, { problem_summary: "Jde o test.", objectives: ["Změřit zájem"], hypotheses: [], research_questions: [], tracked_sets: [] });
+    render(<ResearchScreen step="plan" frame={TEST_FRAME} />);
+    const section = await screen.findByRole("region", { name: /Označte text a přidejte komentář/ });
+    expect(within(section).getByText(t("research.plan.commentsLeadNote"))).toBeTruthy();
+    // The section's hint says where comments go in the workbench, never that AI processes them from here.
+    expect(within(section).queryByText(/AI zapracuje/)).toBeNull();
+    fireEvent.click(within(section).getAllByRole("button", { name: t("research.plan.commentRemove") })[0]);
+    expect(within(section).queryByText("zúžit na Prahu")).toBeNull();
+    expect(await screen.findByText("Odebráno: „zúžit na Prahu“")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Vrátit" }));
+    // Back where it stood, before the second.
+    await waitFor(() => expect([...section.querySelectorAll("li")].map((li) => ["zúžit na Prahu", "upřesnit"].find((c) => li.textContent?.includes(c)))).toEqual(["zúžit na Prahu", "upřesnit"]));
+    // A removal left before a save is not taken back after it: the batch went without it.
+    fireEvent.click(within(section).getAllByRole("button", { name: t("research.plan.commentRemove") })[1]);
+    expect(await screen.findByRole("button", { name: "Vrátit" })).toBeTruthy();
+    fireEvent.click(within(section).getByRole("button", { name: "Uložit komentáře" }));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Vrátit" })).toBeNull());
+    await waitFor(() => {
+      const saved = bodies.filter((b) => b.url === `PUT ${CONTENT_PATH}`).at(-1)?.body.content as { briefing?: { review_comments?: string }; ui_state?: { plan_changed26?: boolean } } | undefined;
+      expect(saved?.briefing?.review_comments).toBe("1. K textu „cíl“: zúžit na Prahu");
+      expect(saved?.ui_state?.plan_changed26).toBeUndefined();
+    });
+    expect(screen.queryByText(t("research.plan.changed"))).toBeNull();
   });
 
   it("keeps Spuštění's own Start: a research run is not a worker start", async () => {

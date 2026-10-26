@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ResearchRun } from "@/lib/api";
 import { t, tv } from "@/i18n/t";
+import { usePanelShown } from "./panel-shown";
 import { ResultsWorkspace } from "./ResultsWorkspace";
 
 const run = { run_id: "RUN-frozen", design_revision_id: "REV-frozen", design_revision: 4, phase: "COMPLETED", actual_cost_usd: null } as ResearchRun;
@@ -282,4 +283,29 @@ it("puts the report card with Zpráva's view in the workbench, inside what opens
   expect(card.closest("[data-results-stage]")).not.toBeNull();
   expect(card.closest("[data-results-stage]")).toBe(view?.closest("[data-results-stage]"));
   expect(card.compareDocumentPosition(view!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+it("tells each panel's content whether it is the one on screen, so a hidden one opens nothing (#964)", () => {
+  function Shown({ name }: { name: string }) {
+    return <p data-shown={name}>{String(usePanelShown())}</p>;
+  }
+  const watched = panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }));
+  render(<ResultsWorkspace run={run} panels={watched} progressHref={null} notice={null} />);
+  const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
+  // On mount, the overview: every panel is mounted, none is on screen.
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "false" });
+  fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
+  fireEvent.click(screen.getByRole("tab", { name: "Data" }));
+  expect(shown()).toEqual({ data: "true", maps: "false", report: "false" });
+});
+
+it("tells only the stage's own view it is on screen in the workbench, so a hidden one opens nothing (#964)", () => {
+  function Shown({ name }: { name: string }) {
+    return <p data-shown={name}>{String(usePanelShown())}</p>;
+  }
+  window.history.replaceState(null, "", "/results#report");
+  render(<ResultsWorkspace tabs={false} run={run} panels={panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }))} progressHref={null} notice={null} />);
+  const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
 });

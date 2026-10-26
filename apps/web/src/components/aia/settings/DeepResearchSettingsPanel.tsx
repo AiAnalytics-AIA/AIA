@@ -39,6 +39,8 @@ import { Technical } from "./technical";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
+import { InfoButton } from "./InfoButton";
+import { sectionLinkClick, waitingChanged } from "./sections";
 
 const D = "aia.settings.deepResearch";
 const LABELS: Record<string, string> = cs.aia.settings.deepResearch.labels;
@@ -118,17 +120,22 @@ function Overview({ overview, people, reload }: { overview: DrSettingsOverview; 
   const matches = (s: DrSetting) => (s.key === open && dirty) ||
     (`${labelOf(s)} ${t(`${D}.groups.${s.group}`)} ${s.key} ${researchPolicyHelp(s.key, s.group)}`.toLocaleLowerCase("cs").includes(q) && (!live || missing.has(s.key)));
   const anyVisible = rules.some(matches);
+  // Compacted as prototype v55 draws it (F8b): the card's explanation behind its ⓘ, a real button.
+  const [about, setAbout] = useState(false);
   return (
     <div className="flex flex-col gap-4">
       <Reach mayAdminister={overview.may_administer} missing={overview.missing_for_live} />
       <section data-dr-rules aria-labelledby="dr-rules-h" className={CARD}>
         <div className="flex flex-wrap items-start justify-between gap-2">
-          <h3 id="dr-rules-h" className="text-base font-semibold">{t(`${D}.board.rules`)}</h3>
+          <div className="flex items-center gap-1">
+            <h2 id="dr-rules-h" className="text-base font-semibold">{t(`${D}.board.rules`)}</h2>
+            <InfoButton label={t(`${D}.board.rulesInfo`)} controls="dr-rules-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.board.rulesHelp`)} />
+          </div>
           <Readiness count={missing.size} yours={overview.may_administer} />
         </div>
-        <p className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">
-          {t(`${D}.board.rulesHelp`)}{missing.size ? <> {t(`${D}.live.note`)}</> : null}
-        </p>
+        <p id="dr-rules-about" hidden={!about} className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.board.rulesHelp`)}</p>
+        {/* What still waits is a state, not an explanation: said in the open while it holds. */}
+        {missing.size ? <p data-live-note className="mt-1 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.live.note`)}</p> : null}
         <Technical><p data-technical className="mt-1 text-xs text-ink-faint">{tv(`${D}.catalogue`, { version: overview.catalogue_version })}</p></Technical>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <TextInput type="search" className="w-full sm:w-72" aria-label={t(`${D}.search`)} placeholder={t(`${D}.searchPlaceholder`)} value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -210,13 +217,18 @@ function Reach({ mayAdminister, missing }: { mayAdminister: boolean; missing: re
   // default): a priced route's "schváleno" or "čeká" is the organization's, read with the record.
   const needs = [...missing].sort().join("\n");
   const [res, retry] = useResource(() => deepResearchSettings.reach(), [needs]);
+  const [about, setAbout] = useState(false);
   const head = (summary?: ReactNode, source?: ReactNode) => (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <h3 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h3>
+      <div className="flex items-center gap-1">
+        <h2 id="dr-reach-h" className="text-base font-semibold">{t(`${D}.reach.title`)}</h2>
+        <InfoButton label={t(`${D}.reach.info`)} controls="dr-reach-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.reach.help`)} />
+      </div>
       {summary}
       {source ? <span className="text-xs text-ink-muted sm:ml-auto">{source}</span> : null}
     </div>
   );
+  const help = <p id="dr-reach-about" hidden={!about} className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>;
   // An empty table keeps no width of its own: its one row's sentence wraps on a phone, not scrolls.
   const table = (body: ReactNode, empty = false) => (
     <div className="relative mt-2 overflow-x-auto"><table className={`w-full ${empty ? "" : "min-w-[48rem]"}`}>
@@ -237,12 +249,13 @@ function Reach({ mayAdminister, missing }: { mayAdminister: boolean; missing: re
       {/* Until the route is deployed (a 404), the panel says it is not in AIA yet, as before. */}
       {res.state === "not-found" ? <>
         {head(<span className="inline-flex min-h-[22px] items-center rounded-pill border border-dashed border-border-strong px-2 text-xs text-ink-muted">{t("aia.settings.panel.notYet")}</span>)}
+        {help}
         {table(empty("data-not-yet", t(`${D}.reach.notYet`)), true)}
       </> : (
         <Loaded res={res} retry={retry}>{(reach) => {
           if (!reach.recorded) return <>
             {head()}
-            <p className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
+            {help}
             {table(empty("data-reach-unrecorded", t(`${D}.reach.unrecorded`)), true)}
           </>;
           const active = reach.routes.filter((r) => r.state === "active").length;
@@ -255,7 +268,7 @@ function Reach({ mayAdminister, missing }: { mayAdminister: boolean; missing: re
                 {reach.class_gates === "advisory" ? <> · {t(`${D}.reach.advisory`)}</> : null}
               </>,
             )}
-            <p className="mt-0.5 max-w-3xl text-xs leading-5 text-ink-muted">{t(`${D}.reach.help`)}</p>
+            {help}
             {table(reach.routes.map((r) => {
               const yours = r.state === "waiting" && mayAdminister;
               return (
@@ -300,12 +313,12 @@ function Reach({ mayAdminister, missing }: { mayAdminister: boolean; missing: re
 function Posture() {
   return (
     <div data-dr-posture className="mt-4 border-t border-border pt-4">
-      <h4 className="text-sm font-semibold">{t(`${D}.posture.title`)}</h4>
+      <h3 className="text-sm font-semibold">{t(`${D}.posture.title`)}</h3>
       <p className="mt-1 max-w-3xl text-sm leading-6">
         {t(`${D}.posture.text`)}{" "}
         <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
         {t(`${D}.posture.between`)}{" "}
-        <Link href="/app/settings#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</Link>
+        <a href="#access" onClick={sectionLinkClick("access")} className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</a>
         {t(`${D}.posture.end`)}
       </p>
     </div>
@@ -315,10 +328,14 @@ function Posture() {
 const PROTECTIONS = ["robots", "noLogin", "noPersonal", "publicOnly", "cited"] as const;
 /** "Pevné ochrany v kódu": what holds for every run, whatever a rule says; at the rules' foot. */
 function Protections() {
+  const [about, setAbout] = useState(false);
   return (
     <div data-dr-protections className="mt-4 border-t border-border pt-4">
-      <h4 className="text-sm font-semibold">{t(`${D}.protections.title`)}</h4>
-      <p className="mt-0.5 text-xs text-ink-muted">{t(`${D}.protections.note`)}</p>
+      <div className="flex items-center gap-1">
+        <h3 className="text-sm font-semibold">{t(`${D}.protections.title`)}</h3>
+        <InfoButton label={t(`${D}.protections.info`)} controls="dr-protections-about" expanded={about} onToggle={() => setAbout((v) => !v)} title={t(`${D}.protections.note`)} />
+      </div>
+      <p id="dr-protections-about" hidden={!about} className="mt-0.5 text-xs text-ink-muted">{t(`${D}.protections.note`)}</p>
       <ul className="mt-2 flex flex-wrap gap-1.5">
         {PROTECTIONS.map((k) => <li key={k} className="inline-flex min-h-[22px] items-center rounded-pill border border-border px-2 text-xs">{t(`${D}.protections.${k}`)}</li>)}
       </ul>
@@ -577,7 +594,7 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <div>
-            <h4 className="text-sm font-semibold">{t(`${D}.detail.versions`)}</h4>
+            <h3 className="text-sm font-semibold">{t(`${D}.detail.versions`)}</h3>
             {detail.versions.length ? (
               <ul className="mt-1 flex flex-col divide-y divide-border text-sm">
                 {detail.versions.map((v) => (
@@ -600,7 +617,7 @@ function DetailBody({ detail, people, mayAdminister, onChanged, onDirty }: { det
             ) : null}
           </div>
           <div>
-            <h4 className="text-sm font-semibold">{t(`${D}.detail.history`)}</h4>
+            <h3 className="text-sm font-semibold">{t(`${D}.detail.history`)}</h3>
             {detail.history.length ? (
               <ul className="mt-1 flex flex-col gap-1 text-sm">
                 {detail.history.map((h) => (
@@ -632,6 +649,7 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
     setError(null);
     try {
       await deepResearchSettings.approve(settingKey, version, reason.trim());
+      waitingChanged();
       onDone();
     } catch (e) {
       setError(describeError(e));
@@ -704,7 +722,7 @@ function Propose({ detail, onSaved, onDirty }: { detail: DrSettingDetail; onSave
   return (
     <form data-dr-propose onSubmit={(e) => void submit(e)} className="flex min-w-0 flex-col gap-3">
       {leaveHref ? <InlineConfirm message={t(`${D}.draftGuard`)} action={t(`${D}.discardDraft`)} onCancel={() => setLeaveHref(null)} onConfirm={() => router.push(leaveHref)} /> : null}
-      <h4 className="text-sm font-semibold">{t(`${D}.propose.title`)}</h4>
+      <h3 className="text-sm font-semibold">{t(`${D}.propose.title`)}</h3>
       <Field label={valueLabel}>
         {kind === "decision" ? (
           <Select disabled={busy} value={raw} onChange={(e) => setRaw(e.target.value)}>

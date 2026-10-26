@@ -302,6 +302,8 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
 | `production-environment` | S3 | I-5 | operator items (§11.5) |
 | `signed-off-sociomap-method` | S2 and the methodology owner | I-2 | the owner's D-13 (`-5` the only method); the methodology owner's register entry (MQ-01) before a `-5` map reaches a client |
+| `settings-redesign` | lane B: the Settings builder (S1) | I-1 (proposed) | **proposed core, 2026-10-26** (was SUPPORT in §3.2): the Settings pages are step 2-3 of `prototype-build`, every open chunk W1; Nigel may change it |
+| `prototype-build` | the coordinator; lane A "the second account" (Nigel's art-chain organisation account) | I-1 to I-4 | the order from the approved prototypes to the product (five steps, eight lanes; Nigel's decisions of 25-26 Oct 2026); core because lane A's chunks (`prototype-build#PBA1` to `#PBA7`) are build work with no other plan, and the five step chunks index the others |
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
@@ -323,7 +325,6 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
 | `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
 | `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
-| `settings-redesign` | SUPPORT (S1) | the owner's Nastavení redesign; gates nothing alone | registered 2026-10-25 (register drift) |
 | `study-deletion` | ◇ for the owner (Q1-Q8, ADR 0043) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | planning proposes CORE once the owner answers Q1-Q8 and accepts ADR 0043 (SD0); no chunk is scheduled until then |
 
 ### 3.3 In the development plan and after the MVP, by decision
@@ -331,6 +332,7 @@ The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the pred
 | Plan | Why |
 |---|---|
 | `class-b-search-route` | deferred whole on 2026-10-19: the open posture replaces classification for Deep Research in the MVP (`deep-research-web-search#53`); the content rule stays in it as the redesign's starting point. It is **not** core. |
+| `fronta-prace` | Nigel, 2026-10-26 ~00:38 UTC: "lets table this idea as a plan in the future"; the organization's work queue on Stav systému, which needs an organization-level work-queue read (an architecture decision first) |
 
 Counts are derived, not typed: `python tools/master_check.py` prints how many plans each table holds and
 checks them against the plan files' front matter.
@@ -733,7 +735,7 @@ MVPQ-01 was answered on 2026-10-20: the browser's Czech Research Lead V2 build i
 | Defined segments start from the sampler's stored descriptors; the internal drill-down shows stored attributes and answers only, no generated persona prose (the methodology parts stay open) | MVPQ-03, owner 2026-10-20 | `segment-maps-and-drilldown#0a`, `segment-maps-and-drilldown#1` |
 | The accepted data contract alone is the client dataset's evidence policy; "z dat klienta" beside each number, source and period disclosed once (benchmark interval and survey grounding stay open) | MVPQ-05, owner 2026-10-20 | `client-data-in-analysis#2`, `client-data-in-analysis#9` |
 | Common Crawl stays required for I-R; the owner owns evaluations 25, 26 and 39, with USD 50 apart from the USD 25 study (thresholds stay open) | MVPQ-06, owner 2026-10-20 | `deep-research-web-search#25`, `deep-research-web-search#26`, `deep-research-web-search#39`, `mvp-acceptance-harness#11` |
-| Deleted content lasts at most 30 days in backups and versions; a deletion journal is replayed after restore; content-free usage rows stay, admins only | MVPQ-07, owner 2026-10-20 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
+| Deleted content lasts at most 30 days in backups and versions; a deletion journal is replayed after restore; content-free usage rows stay, admins only; **the kept AI spend and audit rows for 365 days, and a sealed Lead deleted 365 days after sealing (closed 2026-10-26: "lets do 365 days")** | MVPQ-07, owner 2026-10-20; retention closed by Nigel 2026-10-26 | `study-data-lifecycle#SDL0`, `study-data-lifecycle#SDL5` |
 | Client-level source extraction stays in Client Knowledge, a recorded exception to AC-02 | MVPQ-08, owner 2026-10-20 | `client-knowledge-lifecycle#K8` |
 | A client deliverable's gate: no "Interní dokument" source, no drill-down content, no number without an admitted claim; an unsupported claim blocks approval; no separate legal review | MVPQ-09, owner 2026-10-20 | `report-delivery#RD0`, `report-delivery#RD1`, `report-delivery#RD3`, `report-delivery#RD7` |
 | Segment evidence is built: per-segment admitted claims, so the Segments module can state a finding and the report composes | X1, owner 2026-10-20 | `segment-maps-and-drilldown#10` |

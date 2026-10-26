@@ -8,7 +8,9 @@ parks, visibly, in a state no timer clears.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -97,6 +99,10 @@ DESIGN = {
     ],
 }
 AI = FieldworkSource.AI_RUNTIME
+
+
+#: What a step's feed carries that the web words (FLD11), held with lib/step-activity.ts.
+STEP_FEED = Path(__file__).parent / "fixtures" / "step_feed" / "actions.json"
 
 
 @pytest.fixture
@@ -838,6 +844,9 @@ def test_one_lift_releases_every_step_of_the_run_waiting_for_budget(
     assert {e["payload"]["decision_id"] for e in resumed} == {row.decision_id}
     assert all(sorted(e["payload"]["step_ids"]) == lifted_ids for e in resumed)
     assert sorted(e["step_id"] for e in resumed) == lifted_ids
+    # The amounts the feed words the lift by, under the keys the web reads (FLD11).
+    keys = json.loads(STEP_FEED.read_text(encoding="utf-8"))["budget_lift_keys"]
+    assert all([e["payload"][k] for k in keys] == [before, before + 20.0] for e in resumed)
     # Nothing waits any more: a second lift is refused and writes nothing.
     with pytest.raises(BudgetWaitNotLiftable):
         runs(user="researcher").lift_budget_wait(run_id, budget_usd=before + 40.0)

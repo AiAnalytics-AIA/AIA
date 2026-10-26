@@ -7,6 +7,7 @@
  */
 import { t, tv } from "@/i18n/t";
 import type { DeepResearchRun, ReportPdf, ReportPdfState, ReportVariant } from "./api";
+import { EXACT, timeWords } from "./report-editor";
 import { reviewStatus } from "./report-status";
 
 /** Completed interpretation reviews of this research run, newest first: what a variant may add. */
@@ -14,6 +15,14 @@ export function reviewsFor(runs: readonly DeepResearchRun[], researchRunId: stri
   return runs.filter(
     (r) => r.purpose === "INTERPRETATION_RESEARCH" && r.target?.research_run_id === researchRunId && r.status === "COMPLETED",
   );
+}
+
+/** A completed review as a list names it (RPT12): its title, else when it was started, else its
+ *  place in the list (`i`, from 0), never its run id; the doc picker and Varianta share it, so two
+ *  reviews of one run are told apart the same way in both. */
+export function reviewLabel(r: Pick<DeepResearchRun, "title" | "created_at">, i: number): string {
+  if (r.title) return r.title;
+  return r.created_at && !Number.isNaN(Date.parse(r.created_at)) ? new Date(r.created_at).toLocaleString("cs-CZ") : `${i + 1}.`;
 }
 
 /** The variant as read, only when it is this run's report with the chosen review; else none. */
@@ -159,6 +168,8 @@ export type VersionReview = {
   approvedOn: string | null | undefined;
   /** Whether its file states its review in its footers (D2); ``null``/absent: not known. */
   stamped: boolean | null | undefined;
+  /** When it was stored (RPT3d); null/absent: not said. */
+  storedAt?: string | null;
 };
 
 /**
@@ -178,20 +189,30 @@ export function reviewLine(review: VersionReview, pdf: boolean): string | null {
   return tv(`research.exec.report.review.${pdf ? "draft" : "draftDocx"}`, { version: review.version });
 }
 
+/** What a draft's file carries, as the approval question says it (D2, RPT3d): reviewLine's
+ *  sentence without the version's id, which the question names by its time; null where the card
+ *  would say nothing, and for an approved version, which is not asked about. */
+export function fileLine(review: VersionReview, pdf: boolean): string | null {
+  if (review.stamped !== true || reviewStatus(review.reviewState) === "APPROVED") return null;
+  return t(`research.exec.report.review.${pdf ? "fileDraft" : "fileDraftDocx"}`);
+}
+
 /**
- * The question a person answers before approving (input-interactions B22, Q33, artifact-report RPT3):
- * which document and variant, its stored version and format, and that approving cannot be undone.
- * What the file will carry is the card's own line (reviewLine), never promised here.
+ * The question a person answers before approving (input-interactions B22, Q33, artifact-report RPT3,
+ * RPT3d): the document by name, when its version was stored and its format, what the approval records
+ * and hands over, that it cannot be undone, and on the client report that its numbers are modelled.
+ * A version is named by its time, never its id; a time the server did not give is left out, never
+ * guessed. What the file will carry is the card's own line (reviewLine), never promised here.
  */
 export function approvalQuestion(
-  document: "internal" | "with_review" | "client",
-  version: string,
-  { review = null, pdf = false }: { review?: string | null; pdf?: boolean } = {},
+  name: string,
+  { storedAt = null, pdf = false, modelled = false }: { storedAt?: string | null; pdf?: boolean; modelled?: boolean } = {},
 ): string {
   const k = "research.exec.report.approveAsk";
-  return tv(`${k}.question`, {
-    what: tv(`${k}.${document}`, { review: review ?? "" }),
-    version,
-    format: t(`${k}.${pdf ? "docxPdf" : "docx"}`),
-  });
+  return [
+    tv(`${k}.question`, { what: name, when: storedAt ? tv(`${k}.storedAt`, { at: timeWords(storedAt) }) : "", format: t(`${k}.${pdf ? "docxPdf" : "docx"}`) }),
+    EXACT,
+    t(`${k}.final`),
+    modelled ? t(`${k}.modelled`) : "",
+  ].filter(Boolean).join(" ");
 }

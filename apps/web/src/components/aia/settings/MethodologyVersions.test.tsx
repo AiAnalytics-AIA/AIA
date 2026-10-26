@@ -119,7 +119,7 @@ async function openModule(name: string) {
   fireEvent.click(await within(await screen.findByRole("navigation", { name: "Oblasti metodiky" })).findByRole("button", { name }));
 }
 /** Opens the object map from the catalogue, as a person's first click on the tab does. */
-const openMap = () => openModule("Sociomapa: objektová mapa");
+const openMap = () => openModule("Sociomapa");
 
 beforeEach(() => {
   // jsdom has no <dialog> modality: the activation is a native dialog (I7b).
@@ -138,7 +138,7 @@ describe("the support rules' versions (plan G1d)", () => {
   it("edit a line both ways, a line not checked included, and store the whole specification", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
+    await openModule("Práh zobrazení");
     await openPart("Výpočet");
     await screen.findByRole("heading", { name: "Pravidlo jednotky 18.6.6 (Výsledky)" });
     await versionsSection();
@@ -183,7 +183,7 @@ describe("the readiness limits (plan V1a2)", () => {
     };
     fakeApi({ check: () => ({ valid: true, problems: {}, not_computed: [], formulas_latex: {}, preview }), compare });
     render(<MethodologyPanel />); await openMap();
-    await openModule("Připravenost studie: kdy lze běh spustit");
+    await openModule("Kontrola před spuštěním");
     await versionsSection();
     await openEditor();
     const form = await editor();
@@ -221,7 +221,7 @@ describe("the aggregation's versions (plan G3b)", () => {
   it("edit a value, the interval's quantiles and an estimator, and store them together", async () => {
     const { sent } = fakeApi();
     render(<MethodologyPanel />); await openMap();
-    await openModule("Agregace: z odpovědí odhad s intervalem");
+    await openModule("Odhady a intervaly");
     await versionsSection();
     await openEditor();
     const form = await editor();
@@ -438,7 +438,7 @@ describe("the methodology's versions", () => {
     fakeApi();
     render(<MethodologyPanel />); await openMap();
     await versionsSection();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
+    await openModule("Vážení vzorku");
     await screen.findByRole("heading", { name: "Kishovo efektivní n na čtyřech místech" });
     expect(screen.queryByRole("heading", { name: "Verze metodiky" })).toBeNull();
   });
@@ -493,7 +493,7 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
 
   it("has no register column for a module no register covers", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    await openModule("Podpora a potlačení: kdy se číslo smí ukázat");
+    await openModule("Práh zobrazení");
     fireEvent.click(await screen.findByRole("tab", { name: "Verze a aktivace" }));
     const table = screen.getByRole("table", { name: "Uložené verze" });
     expect(within(table).getAllByRole("columnheader").map((h) => h.textContent)).toEqual(["Verze", "Druh", "Co mění", "Uložil", "Aktivace"]);
@@ -657,8 +657,8 @@ describe("guided methodology editing", () => {
     fireEvent.click(screen.getByRole("button", { name: "Zahodit úpravy a přepnout" }));
     expect(await screen.findByRole("navigation", { name: "Oblasti metodiky" })).toBeTruthy();
     expect(document.querySelector("[data-methodology-editor]")).toBeNull();
-    await openModule("Vážení: která váha patří respondentovi a co s neplatnou");
-    expect(await screen.findByRole("heading", { name: "Vážení: která váha patří respondentovi a co s neplatnou" })).toBeTruthy();
+    await openModule("Vážení vzorku");
+    expect(await screen.findByRole("heading", { name: "Vážení vzorku" })).toBeTruthy();
   });
 
   it("lists every parameter once, in the order the computation reads it, each with its stage", async () => {
@@ -756,7 +756,7 @@ describe("guided methodology editing", () => {
 
   it("numbers each stage by its place in the computation, also when a stage has nothing to edit", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
-    await openModule("Odpověď respondenta: od pravděpodobností modelu k odpovědi");
+    await openModule("Losování odpovědí");
     await versionsSection();
     await openEditor();
     const form = await editor();

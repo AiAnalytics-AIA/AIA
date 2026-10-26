@@ -11,7 +11,7 @@
 // gate, recorded as automatic -- shown as "Přijato automaticky" with Vrátit; structure still waits.
 
 import { useRouter } from "next/navigation";
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
 import { withBudget } from "@/lib/budget-line";
@@ -43,7 +43,7 @@ import type { StudyFrame } from "../rehome/research/frame";
 import { readySetLimits, useSampleLimits } from "../rehome/research/useSampleLimits";
 import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
-import { FrameNavigation } from "@/components/rehome/step";
+import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
@@ -429,6 +429,22 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       },
     } : null,
   }), [nextStage, go, frame.studyId]);
+  // The stage's header parts (research-lead-workbench 36, v73 X1 + H1): the elements its actions,
+  // its status line and its forward action go into. A mounted ActionDock claims the primary, so the
+  // header shows the stage's own forward action; with none, the frame's next stage. Vzorek keeps
+  // Dimenze's screen mounted but hidden: no header for it, or its dock would claim Vzorek's.
+  const [headerActions, setHeaderActions] = useState<HTMLElement | null>(null);
+  const [headerStatus, setHeaderStatus] = useState<HTMLElement | null>(null);
+  const [headerPrimary, setHeaderPrimary] = useState<HTMLElement | null>(null);
+  const [primaryClaims, setPrimaryClaims] = useState(0);
+  const claimPrimary = useCallback(() => {
+    setPrimaryClaims((n) => n + 1);
+    return () => setPrimaryClaims((n) => n - 1);
+  }, []);
+  const stageHeader = useMemo<StageHeaderSlots | null>(
+    () => (stage === "sample" ? null : { actions: headerActions, status: headerStatus, primary: headerPrimary, claimPrimary }),
+    [stage, headerActions, headerStatus, headerPrimary, claimPrimary],
+  );
   useEffect(() => {
     // Consumed on every stage change, matched or not, and only for this study.
     const want = headingFocus.pending;
@@ -492,6 +508,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       const find = () => {
         const el = document.querySelector<HTMLElement>(selector);
         if (el) {
+          // A target folded away (a closed <details>, Vzorek's other sources) is unfolded first, so
+          // the view shows it rather than scrolling to hidden content.
+          for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) d.open = true;
           el.scrollIntoView({ block: "center", behavior: "smooth" });
           // With the conversation stepped aside, focus follows to what the Lead pointed at.
           // The artifact is inert until the drawer's step aside has rendered: try again briefly.
@@ -826,11 +845,12 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
           right={
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
-                <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
                   <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
                 </div>
                 <div className="arthead__actions">
+                  <span ref={setHeaderActions} className="arthead__slot" />
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
                     {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
                     <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
@@ -838,8 +858,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />
                   </button>
+                  <span ref={setHeaderPrimary} className="arthead__slot" />
+                  {(stageHeader === null || primaryClaims === 0) && frameNav.next ? (
+                    <button type="button" className="btn btn--sm btn--primary" onClick={frameNav.next.go}>
+                      {frameNav.next.label}<Icon name="next" size={14} />
+                    </button>
+                  ) : null}
                 </div>
               </div>
+              <div ref={setHeaderStatus} className="artstatus" data-stage-status />
               {picking ? <div className="artbar artbar--op" role="status"><Icon name="at" size={13} /><div className="artbar__grow">Klikněte na otázku, oddíl nebo část zadání, o které chcete s Vedoucím mluvit. Esc zruší.</div></div> : null}
               {drawer.kind === "peek" ? (
                 <div className="artbar artbar--op" role="status" data-peek>
@@ -854,7 +881,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
                 <div ref={artBody} className="artbody" id="artbody"><div className="wb-stage">
                   {stage === "sample" ? <SampleView project={state.project} onOpen={go} /> : null}
                   {/* Sample shows Dimenze's screen hidden, so its readiness still reaches the inspector. */}
-                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}>{children}</FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
+                  <div hidden={stage === "sample"}><LeadAskContext.Provider value={askLead}><ItemInspectorContext.Provider value={itemInspector}><FrameNavigation.Provider value={frameNav}><StageHeader.Provider value={stageHeader}>{children}</StageHeader.Provider></FrameNavigation.Provider></ItemInspectorContext.Provider></LeadAskContext.Provider></div>
                 </div></div>
                 {/* Mounted while empty, so closing it gives the focus back to what opened it. */}
                 <div ref={itemDrawer} className="itemdrawer" hidden={!itemOpen}>
@@ -1086,21 +1113,34 @@ function StageNav({ stage, lane, marks = {}, onOpen, layout = "split", inert = f
     const k = stageState(s, lane);
     const cur = s === stage;
     const mark = marks[s];
+    // The word is the lane's, beside its tone (stageState): a stage is never called done on a tone it
+    // did not earn; a stage the lane says nothing of says nothing (never "not started").
+    const word = k.word;
+    // One slot per stage, the same markup whichever is current: aria-current and the fill tell it
+    // apart, never a width. Its status is said three ways: the glyph, a word and the tone's strip.
     return (
-      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}${k.tone === "inert" ? " is-inert" : ""}${k.tone === "you" ? " is-you" : ""}`}
+      <button key={s} type="button" className={`nav__stage${cur ? " is-current" : ""}`} data-tone={k.tone}
         aria-current={cur ? "page" : undefined} title={`${STAGES[s].label}${k.line ? `: ${k.line}` : ""}${mark ? `; ${mark.words}` : ""}`}
         data-impact={mark?.impact} onClick={() => { setListOpen(false); onOpen(s); }}>
-        <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={11} />{layout === "sheet" ? STAGES[s].label : STAGES[s].short}{k.line ? <span className="sr-only">, {k.line}</span> : null}
+        <span className="nav__label">{layout === "sheet" ? STAGES[s].label : STAGES[s].short}</span>
+        <span className="nav__state">
+          <Glyph tone={STAGE_TONE[k.tone] ?? "inert"} size={12} />
+          <span className="nav__status" aria-hidden="true">{word}</span>
+        </span>
+        {k.line || word ? <span className="sr-only">, {k.line || word}</span> : null}
         {mark ? <><span className={`nav__impact nav__impact--${mark.impact.toLowerCase()}`} aria-hidden="true" /><span className="sr-only">, {mark.words}</span></> : null}
       </button>
     );
   };
-  const phases = PHASES.map((ph) => (
-    <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label}>
-      <span className="nav__plabel">{ph.label}</span>
-      {STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id).map(stageButton)}
-    </div>
-  ));
+  const phases = PHASES.map((ph) => {
+    const stages = STAGE_ORDER.filter((s) => STAGES[s].phase === ph.id);
+    return (
+      <div className="nav__phase" key={ph.id} role="group" aria-label={ph.label} style={{ "--slots": stages.length } as CSSProperties}>
+        <span className="nav__plabel" aria-hidden="true">{ph.label}</span>
+        <div className="nav__slots">{stages.map(stageButton)}</div>
+      </div>
+    );
+  });
   if (layout === "sheet") {
     // Under 768 px: one button names the current stage and opens every stage, grouped by phase.
     return (

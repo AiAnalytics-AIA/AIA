@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError } from "@/lib/api";
 import type { EditorOpened } from "@/lib/report-editor";
+import { PanelShown } from "./panel-shown";
 import { type DocsApi, ReportEditor } from "./ReportEditor";
 
 const OPENED: EditorOpened = {
@@ -59,6 +60,54 @@ afterEach(() => {
 });
 
 describe("the draft in the report editor", () => {
+  it("asks for nothing from a hidden results panel, opens once it is shown, and stays open when it is hidden again", async () => {
+    const { api, made } = docsApi();
+    const seams = { open: vi.fn().mockResolvedValue(OPENED), ticket: ticket(), spend: spend(), load: vi.fn().mockResolvedValue(api) };
+    const { open } = seams;
+    const editor = (on: boolean) => (
+      <PanelShown.Provider value={on}>
+        <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} {...seams}>
+          <article>Koncept jen ke čtení</article>
+        </ReportEditor>
+      </PanelShown.Provider>
+    );
+    const view = render(editor(false));
+    await act(async () => {});
+    // Výsledky keeps every panel mounted: a hidden one POSTs …/report/editor never.
+    expect(open).not.toHaveBeenCalled();
+    expect(screen.getByText("Koncept jen ke čtení")).toBeTruthy();
+    expect(document.querySelector("[data-report-editor]")).toBeNull();
+    view.rerender(editor(true));
+    await vi.waitFor(() => expect(made).toHaveLength(1));
+    expect(open).toHaveBeenCalledTimes(1);
+    view.rerender(editor(false));
+    await act(async () => {});
+    expect(open).toHaveBeenCalledTimes(1);
+    expect(made[0].destroyed).toBe(false);
+  });
+
+  it("waits for its panel to be shown again before opening another document asked for while hidden", async () => {
+    const { api } = docsApi();
+    const seams = { open: vi.fn().mockResolvedValue(OPENED), ticket: ticket(), spend: spend(), load: vi.fn().mockResolvedValue(api) };
+    const editor = (on: boolean, line: string | null) => (
+      <PanelShown.Provider value={on}>
+        <ReportEditor studyId="STU-1" runId="RUN-1" variant="internal" review={null} line={line} {...seams}>
+          <article>Koncept jen ke čtení</article>
+        </ReportEditor>
+      </PanelShown.Provider>
+    );
+    const view = render(editor(true, null));
+    await vi.waitFor(() => expect(seams.open).toHaveBeenCalledTimes(1));
+    view.rerender(editor(false, null));
+    // Another line asked for (or the width crossing a breakpoint) while the panel is hidden: no request.
+    view.rerender(editor(false, "ART-9"));
+    await act(async () => {});
+    expect(seams.open).toHaveBeenCalledTimes(1);
+    view.rerender(editor(true, "ART-9"));
+    await vi.waitFor(() => expect(seams.open).toHaveBeenCalledTimes(2));
+    expect(seams.open).toHaveBeenLastCalledWith("STU-1", "RUN-1", { variant: "internal", deep_research_run_id: null, line: "ART-9", mode: "edit" });
+  });
+
   it("is the read-only draft, saying nothing, while the editor is off", async () => {
     const open = vi.fn().mockRejectedValue(new ApiError(404, "not_found", "No such resource.", null));
     const load = vi.fn();
