@@ -3544,6 +3544,18 @@ export const cs = {
           support_unknown: "Oporu nelze předem spočítat: ukáže se až při sběru dat.",
           other: "Důvod {code}.",
         },
+        // The same reasons in a few words, for Vzorek's tiles (spec vzorek V4).
+        short: {
+          conditional: "podmíněná otázka",
+          familiarity: "sada s povinnou znalostí",
+          fidelity_refused: "ptá se na absolutní hodnotu",
+          open_ended: "otevřená otázka",
+          support_suppressed: "málo různých dárců",
+          support_analysis_excluded: "analýza nesmí citovat",
+          support_indicative: "jen indikativní opora",
+          support_unknown: "opora se ukáže až ve sběru",
+          other: "důvod {code}",
+        },
       },
       edit: "Upravit",
       stepsFinished: "{done} z {total} kroků hotovo",

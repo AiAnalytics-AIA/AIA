@@ -303,6 +303,11 @@ describe("which questions a run will answer (run-recovery-and-truth 2b)", () => 
     expect(outlookCounts([])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 0, ANSWERABLE: 0 });
   });
 
+  it("counts a verdict this client does not know as unknown, never dropping the item", () => {
+    const later = { ...item("f", "ANSWERABLE"), verdict: "LATER" as QuestionOutlook["verdict"] };
+    expect(outlookCounts([later, item("g", "UNKNOWN")])).toEqual({ UNANSWERABLE: 0, AT_RISK: 0, UNKNOWN: 2, ANSWERABLE: 0 });
+  });
+
   it("never gives unknown the tone of an answer", () => {
     expect(verdictTone("UNKNOWN")).toBe("neutral");
     expect(verdictTone("ANSWERABLE")).toBe("done");

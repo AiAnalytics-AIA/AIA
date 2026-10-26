@@ -366,8 +366,8 @@ try {
     await page.goto(base + stagePath("dimensions") + "#sample");
     const sample = page.locator("[data-sample-view]");
     await sample.waitFor({ timeout: 30000 });
-    const forecast = page.getByRole("region", { name: "Odhad podpory před během" });
-    await forecast.getByText("odhad, ne výsledek").waitFor();
+    const forecast = page.getByRole("region", { name: "Kolik dat bude za čísly" });
+    await forecast.getByText("odhad před během, ne výsledek").waitFor();
     // The journey's identity edits, so Vzorek reads readiness on the revision its copy submits to:
     // the empty state ("odhad není") or a failed read is a failure here, never a pass.
     await forecast.getByText(/Podle pracovní kopie|odhad není|nepodařilo načíst/).first().waitFor({ timeout: 30000 });

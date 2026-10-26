@@ -9,13 +9,12 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
-import { t } from "@/i18n/t";
+import { t, tv } from "@/i18n/t";
 import { plural } from "@/lib/format";
 import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict } from "@/lib/api";
 import { codeWords } from "@/lib/reason-words";
-import { VERDICT_ORDER } from "@/lib/research-execution";
-import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookSummary, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow } from "@/lib/sample-view";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
 import { audienceReady } from "@/research/audience";
@@ -177,13 +176,17 @@ export function SampleArtifact({ project, readiness, onOpen, labels = dimensionL
         </div>
         <Composition readiness={readiness} />
       </Sec>
-      <Sec n={2} title="Odhad podpory před během" aside="odhad, ne výsledek" aia={sampleAia.section("forecast")}>
+      <Sec n={2} title="Kolik dat bude za čísly" aside="odhad před během, ne výsledek" aia={sampleAia.section("forecast")}>
         <Forecast readiness={readiness} />
-        <p className="text-sm text-ink-muted">
-          Skutečná podpora dvojic se ověří až z výsledných dat (
-          <button type="button" className="text-signal underline" onClick={() => onOpen("sociomap")}>Sociomapa</button>
-          ). Kvóta ji nezaručuje.
-        </p>
+        {/* Pair support is not forecast: AIA cannot ask who knows both brands before a run (R9). */}
+        <div className="flex items-start gap-2 text-sm text-ink-muted">
+          <span className="mt-1"><Glyph tone="inert" size={12} /></span>
+          <p className="min-w-0">
+            <span className="font-semibold text-ink">Mapa značek:</span> podporu dvojic AIA před během neodhadne; ověří se až z dat (
+            <button type="button" className="text-signal underline" onClick={() => onOpen("sociomap")}>Sociomapa</button>
+            ). Kvóta ji nezaručuje.
+          </p>
+        </div>
       </Sec>
       <Ready readiness={readiness} onOpen={onOpen} />
       <Sec n={4} title="Kdo bude odpovídat" aia={sampleAia.section("respondents")}>
@@ -235,34 +238,49 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
   );
 }
 
+/** §02's tiles, in the board's words; unanswerable only appears when an item is (spec vzorek V4). */
+const TILE: Record<OutlookVerdict, string> = {
+  ANSWERABLE: "Zodpověditelné otázky",
+  AT_RISK: "Ohrožené",
+  UNKNOWN: "Nelze říct předem",
+  UNANSWERABLE: "Bez odpovědi",
+};
+
+function shortReason(code: string): string {
+  const key = `research.exec.outlook.short.${code}`;
+  const words = t(key);
+  return words === key ? tv("research.exec.outlook.short.other", { code }) : words;
+}
+
 function Forecast({ readiness }: { readiness: SampleReadiness }) {
   if (readiness.kind === "loading") return <p className="text-sm text-ink-muted" role="status">Načítám odhad ze serveru…</p>;
   if (readiness.kind === "failed") return <p className="text-sm text-status-fault" role="alert">Odhad se nepodařilo načíst: {readiness.message}</p>;
   if (readiness.kind === "none") return <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže odhad není. Odhad je neznámý.</p>;
   const support = supportForecastOf(readiness.readiness);
-  const outlook = outlookSummary(readiness.readiness);
+  const tiles = outlookTiles(readiness.readiness);
   return (
     <>
       <p className="text-xs text-ink-muted">Podle pracovní kopie, revize {readiness.revision}</p>
       <div className="flex items-start gap-2" data-aia={sampleAia.forecast("support")}>
-        <span className="mt-1"><Glyph tone={support.known ? (STATUS_TONE[support.status] ?? "inert") : "inert"} size={12} title={support.known ? support.status : "neznámé"} /></span>
+        <span className="mt-1"><Glyph tone={support.known ? (STATUS_TONE[support.status] ?? "inert") : "inert"} size={12} title={support.known ? undefined : "neznámé"} /></span>
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Opora výsledků{support.known ? "" : ": neznámé"}</h3>
           <p className="text-sm">{support.message ?? "Server oporu pro tento běh předem nespočítal."}</p>
         </div>
       </div>
-      <div className="flex items-start gap-2" data-aia={sampleAia.forecast("outlook")}>
-        <span className="mt-1"><Glyph tone={outlook ? (outlook.UNANSWERABLE ? "fault" : outlook.AT_RISK ? "you" : outlook.UNKNOWN ? "inert" : "done") : "inert"} size={12} /></span>
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold">Na co běh odpoví{outlook ? "" : ": neznámé"}</h3>
-          {outlook ? (
-            <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-              {VERDICT_ORDER.map((v) => (
-                <li key={v} className="flex items-center gap-1.5"><Glyph tone={VERDICT_TONE[v]} size={10} /><span className="tabular-nums">{outlook[v]}</span> {t(`research.exec.outlook.verdict.${v}`)}</li>
-              ))}
-            </ul>
-          ) : <p className="text-sm">Server výhled otázek pro tento návrh nevrátil.</p>}
-        </div>
+      <div data-aia={sampleAia.forecast("outlook")}>
+        <h3 className="sr-only">Na co běh odpoví</h3>
+        {tiles ? (
+          <ul className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-2" aria-label="Na co běh odpoví">
+            {tiles.map((tile) => (
+              <li key={tile.verdict} className="rounded-card border border-border px-3 py-2" data-verdict={tile.verdict}>
+                <div className="flex items-center gap-1.5 text-xs text-ink-muted"><Glyph tone={VERDICT_TONE[tile.verdict]} size={10} />{TILE[tile.verdict]}</div>
+                <div className="text-2xl font-semibold tabular-nums">{tile.count}</div>
+                {tile.reason && tile.count ? <div className="text-xs text-ink-muted">{shortReason(tile.reason)}</div> : null}
+              </li>
+            ))}
+          </ul>
+        ) : <p className="text-sm">Na co běh odpoví: neznámé. Server výhled otázek pro tento návrh nevrátil.</p>}
       </div>
     </>
   );
