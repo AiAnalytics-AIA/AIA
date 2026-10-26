@@ -18,12 +18,14 @@ import { ObjectCard, RelationBlock } from "./ObjectMapPanel";
 /** Each map the stage draws, with whether the Sociomap register approves its method for reports (as MapExplained says it). */
 type Shown = readonly { battery: BatteryWithMaps; map: ObjectMapArtifact; approved: boolean }[];
 
-// Null: no stage has read its artifact yet, so whether an item is on the map is not known.
-let shown: Shown | null = null;
+// Null: no stage has read its artifact yet, so whether an item is on the map is not known. "unread": the
+// stage could not read it, said so rather than loading forever.
+type State = Shown | null | "unread";
+let shown: State = null;
 const listeners = new Set<() => void>();
 
 /** The maps the stage draws now; SociomapStage sets them once it has read its artifact. */
-export function setShownMaps(next: Shown | null): void {
+export function setShownMaps(next: State): void {
   if (next === shown) return;
   shown = next;
   listeners.forEach((l) => l());
@@ -32,7 +34,7 @@ export function setShownMaps(next: Shown | null): void {
 const NONE: Shown = [];
 
 /** A stage that left: no map is drawn, so nothing is on it. Only its own maps (another stage may have come). */
-export function clearShownMaps(mine: Shown | null): void {
+export function clearShownMaps(mine: State): void {
   if (mine !== null && shown === mine) setShownMaps(NONE);
 }
 
@@ -45,6 +47,7 @@ export function MapInspect({ target }: { target: string }): ReactNode {
   const maps = useSyncExternalStore(subscribe, () => shown, () => shown);
   const inspector = useItemInspector();
   if (maps === null) return <p className="muted">{t("research.exec.mapInspect.loading")}</p>;
+  if (maps === "unread") return <p className="muted">{t("research.exec.mapInspect.unread")}</p>;
   const at = readTarget(target);
   const found = at ? maps.find((m) => m.battery.battery_id === at.battery) : undefined;
   const index = (id: string) => found?.map.object_ids.indexOf(id) ?? -1;
@@ -71,5 +74,5 @@ export function MapInspect({ target }: { target: string }): ReactNode {
     const id = pairTarget(found.battery.battery_id, found.map.object_ids[k], found.map.object_ids[j]);
     if (id) inspector?.open({ id, title: t("research.exec.objectMap.panel.relationTitle") });
   };
-  return <div className="omw" data-testid="map-inspect-object"><ObjectCard battery={found.battery} map={found.map} selected={k} relation={null} onRelation={openPair} />{frozen}</div>;
+  return <div className="omw" data-testid="map-inspect-object"><ObjectCard battery={found.battery} map={found.map} selected={k} onRelation={openPair} />{frozen}</div>;
 }

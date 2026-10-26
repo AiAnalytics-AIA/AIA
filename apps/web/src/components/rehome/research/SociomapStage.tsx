@@ -86,10 +86,12 @@ export function SociomapStage({ run, artifact, loading, error, notice, after }: 
     return { battery_id: b.battery_id, title: b.title, objects: b.objects.filter((x) => placed.has(x.id)), respondents: densityGrid(map) !== null };
   }) ?? null, [panels]);
   // The item inspector opens an object or a relation of these maps, and of no other (MapInspect).
+  const unread = Boolean(error) && !artifact;
   useEffect(() => {
-    setShownMaps(panels);
-    return () => clearShownMaps(panels);
-  }, [panels]);
+    const mine = unread ? "unread" : panels;
+    setShownMaps(mine);
+    return () => clearShownMaps(mine);
+  }, [panels, unread]);
   const artifactId = artifact?.artifact_id ?? null;
   const [leadNote, setLeadNote] = useState({ artifact: artifactId, text: "" });
   useEffect(() => {

@@ -47,6 +47,12 @@ describe("a relation in the inspector", () => {
     expect(screen.getByText("Mapa se ještě načítá.")).toBeTruthy();
   });
 
+  it("says the map could not be read rather than load forever", () => {
+    act(() => { setShownMaps("unread"); });
+    render(<MapInspect target={pair} />);
+    expect(screen.getByText("Mapu tohoto běhu se nepodařilo načíst.")).toBeTruthy();
+  });
+
   it("says the item is not on this run's map rather than guess one", () => {
     show(map);
     render(<MapInspect target="pair:jina/x~y" />);
@@ -76,5 +82,9 @@ describe("an object in the inspector", () => {
     expect(body).toContain(hudba.objects.find((o) => o.id === a)!.label);
     expect(body).toContain("Průměrné hodnocení");
     expect(body).toContain("Provázanost (0–100)");
+    // Its relations open a pair in the drawer: buttons, not toggles left unpressed.
+    const rows = screen.getByTestId("object-map-detail-relations").querySelectorAll("button");
+    expect(rows.length).toBeGreaterThan(0);
+    rows.forEach((b) => expect(b.hasAttribute("aria-pressed")).toBe(false));
   });
 });

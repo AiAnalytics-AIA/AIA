@@ -960,7 +960,7 @@ const isPair = (r: [number, number] | null, i: number, j: number) => !!r && ((r[
 
 /** The panel's object detail (`objectDetail66`): the selected relation, then the object's numbers
  *  and its strongest reliable relations, all as the map stores them. */
-export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation: [number, number] | null; onRelation: (j: number) => void }) {
+export function ObjectCard({ battery, map, selected, relation, onRelation }: { battery: BatteryWithMaps; map: ObjectMapArtifact; selected: number; relation?: [number, number] | null; onRelation: (j: number) => void }) {
   const p = "research.exec.objectMap.panel";
   if (selected < 0) return <p className="omw-tip py-4 text-center">{t(`${p}.objectDetailEmpty`)}</p>;
   const o = objectDetail(battery, map, selected);
@@ -984,7 +984,7 @@ export function ObjectCard({ battery, map, selected, relation, onRelation }: { b
         <div data-testid="object-map-detail-relations">
           {/* Each relation opens the pair's detail, as a click on its line does: the canvas is no keyboard's. */}
           {o.relations.map((x) => (
-            <button key={x.id} type="button" className="omw-answer" aria-pressed={isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
+            <button key={x.id} type="button" className="omw-answer" aria-pressed={relation === undefined ? undefined : isPair(relation, selected, x.j)} onClick={() => onRelation(x.j)}>
               <span>{x.label}</span>{" "}<b>{signed(x.r)}</b>
               <span className="sr-only">{tv(`${p}.relationShow`, { a: o.label, b: x.label })}</span>
             </button>

@@ -3806,6 +3806,7 @@ export const cs = {
       mapInspect: {
         missing: "Tato položka na mapě tohoto běhu není.",
         loading: "Mapa se ještě načítá.",
+        unread: "Mapu tohoto běhu se nepodařilo načíst.",
         frozen: "Ze zmrazené mapy běhu; nic se nepřepočítává.",
       },
       mapStage: {

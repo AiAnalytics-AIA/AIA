@@ -193,7 +193,9 @@ Depends on `research-lead-workbench#14`, `#16`.
   maps take the Lead's views), "Mapa se ještě načítá." until the stage has read them, and none once it
   leaves, so the drawer never opens another run's map. Each shown map carries the register's approval of its
   method, so the drawer, read on its own, says "Jen pro výzkumníky studie" or "Metodika schválena pro
-  zprávy" as `MapExplained` does (stand-in review P2, #979). The Lead's "Vybrat"
+  zprávy" as `MapExplained` does (stand-in review P2, #979). A stage whose artifact could not be read says so
+  in the drawer ("Mapu tohoto běhu se nepodařilo načíst."), and the object card's relations there are buttons
+  that open the pair, not unpressed toggles. The Lead's "Vybrat"
   is #939's listener. Tests: `MapInspect.test.tsx` (the plan's test: "reads a pair with an undefined r as
   unknown, never as 0"); `ExecutionSteps.test.tsx` › "lets the item inspector open a relation of the map it
   draws, until it leaves". Still open: a respondent's detail in the inspector (no `respondent:` target yet,
