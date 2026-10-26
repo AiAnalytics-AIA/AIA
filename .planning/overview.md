@@ -695,6 +695,37 @@ removes OWNER, and the last active OWNER is never demoted (#782, OI-229). The Oc
 (plan [`security-audit-2026-10`](plans/security-audit-2026-10.md), #771) fixed S1-S8, S11 and S14;
 S9, S10, S12, S13 and S15-S23 are OI-203 to OI-215.
 
+**The owner's audit answers of 2026-10-25** (the audit page, about 21:15 UTC, relayed by coordinator 3;
+all thirty in [`mvp-owner-decisions.md`](mvp-owner-decisions.md) § The audit answers of 2026-10-25).
+*ADRs* (each ADR's status block and [`adr/README.md`](../docs/architecture/adr/README.md)): 0020-0024
+(b), reviewed one by one from a document per ADR (its questions, how it connects in AIA, inputs and
+outputs, an example for each complex topic); 0041 (b), accepted with amendments (Sonnet 5.5's
+capabilities, enough context for every document and action, a benchmark), the amendment being drafted,
+still Proposed; 0042 (a), accepted when `lead-client-knowledge` LK1 writes it (the Lead retrieves and
+searches relevant documents, "like claude projects / chatgpt folders"); 0027, 0034, 0036 and 0037 (a),
+each accepted once its methodology answer is written in. *Product* (in each plan): AUD-1 (a), the Lead
+reads and acts on result stages and never edits results (`lead-orchestration` LO8); AUD-2 (a), the Lead
+edits the report as proposed versions a person approves (`artifact-report` RPT9); AUD-6 (a), Simulace
+hidden for the MVP (`client-knowledge-lifecycle` K12); AUD-10 (b), a backend chunk first, then real
+bounds on Metodika → Upravit (no chunk yet); TWO-ROLES-5b (b), 5b reviewed against what was built first;
+RIR-5 (a), go (`research-integrity-report` 5); RD-EDITOR-ACTIVATION (a), go once OI-200's cookie fix is
+merged (`report-editor-hosting` 4). *Operations:* AUD-7 (a), plan the switch off Sonnet 4.5 now,
+develop first ("sonnet 5.5"), and AUD-8 (a), the fieldwork checkpoint on through SSM (OI-64), both
+prepared by the infra session; DR-SIGNOFF (a), the owner approves the proposed values on Settings → Deep
+Research himself (`deep-research-web-search` 1). *Planning* (`plans/mvp-master-plan.md`,
+`mvp-cohesion.md`): MP3 (b), plan by plan, and SCOPE-OVERRIDES (d), S2-S5 each reviewed individually,
+both being reviewed, not decided; MVPQ-06 rest (a), the proposed targets of evaluations 25, 26 and 39
+adopted; COHESION-Q5 (c), no dates; PERF-BUDGETS (b), per-journey numbers proposed in
+`mvp-acceptance-harness` 18's PR. *Open items* (`open-items.md`): OI-19 (b), re-issue the certificate
+naming RELIGION; OI-22 (a), runs keep going when a researcher leaves (closed); OI-24 (a), the population's
+policy (115 fields) the one authority; OI-35 (a), an HttpOnly cookie session before production; OI-51
+(a), clear the subpanel and filters on every preset change; OI-52 (b), a questionnaire needs a plain
+question; OI-53 (a), filter to the catalogue, the suggestion a Lead card rather than buttons; OI-75 (a),
+the aggregate allowed; OI-81 (b), keep the gate and stamp the delivery date once (the note "lets delete
+old studies", clarified as a "Smazat studii" feature, the plan `study-deletion.md`); OI-99 (c), redraw under new seeds and keep the first that passes, open
+while an artifact explores it; OI-159 (a), the organisation's live approvals for the acceptance
+organisation (closed).
+
 **Working model (owner, 2026-10-19).** This section is the roadmap. Each track has one owner,
 named here when its work starts; no two agents edit the same plan. An agent marks its own PR ready
 and handles review (MVP-22); **the owner merges**. The method owner works in AIA sessions under CLAUDE.md.

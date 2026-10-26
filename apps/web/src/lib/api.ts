@@ -7,7 +7,7 @@
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
-import type { EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
+import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
 import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
@@ -1426,6 +1426,9 @@ export const research = {
     runId: string,
     body: { variant: "internal" | "context"; deep_research_run_id?: string | null; line?: string | null; mode: EditorMode },
   ) => request<EditorOpened>("POST", `${studyPath(studyId)}/research/runs/${enc(runId)}/report/editor`, body),
+  /** A one-time ticket into the editor's origin for this person (report-editor-hosting): spent by
+   *  loading api.js through it, which sets the docs gate's cookie there. */
+  reportEditorTicket: () => request<DocsTicket>("POST", "/api/v1/session/docs-ticket"),
   /** An edit start this page made in an editing session (RPT8f): kept by AIA with its time of receipt. */
   reportEditorEdit: (studyId: string, runId: string, documentKey: string, body: { page: string; seq: number }) =>
     request<void>(
@@ -1661,6 +1664,12 @@ export const lead = {
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),
+  /** Start the Lead's turn on the messages that wait, once the conversation is free (any tab). */
+  answerQueued: (studyId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/queued`),
+  /** Withdraw a message that still waits: it stays stored, and no turn is sent it. */
+  withdraw: (studyId: string, turnId: string) =>
+    request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/withdraw`),
   /** What a turn could see, layer by layer, read from the context it froze (lead-conversation LC2). */
   manifest: (studyId: string, turnId: string) =>
     request<TurnManifest>("GET", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/manifest`),
@@ -1954,6 +1963,9 @@ export type DrSettingVersion = {
   state?: "IN_FORCE" | "APPROVED_BEFORE" | "PENDING" | "WITHDRAWN" | "DECLINED";
   /** Its proposer took it back (WITHDRAWN) or another administrator turned it down (DECLINED). */
   decline?: { kind: "WITHDRAWN" | "DECLINED"; by: string; reason: string; at: string } | null;
+  /** Whether the caller may approve it now (#897): false for their own proposal while independent
+   *  review is required. Absent from a server before it: the page offers it to an administrator. */
+  may_approve?: boolean;
 };
 /** `version_number` null: the approval was withdrawn and the code's default came back into force. */
 export type DrSettingApproval = { approval_id: number; version_number: number | null; approved_by: string; reason: string; approved_at: string };
@@ -1993,8 +2005,15 @@ export type ErrorTracking = {
   issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
   error: string | null;
 };
+/** Each AI activity's last answered call (settings-redesign F14, OI-75 (a)): OWNER and ADMIN
+ *  only. `last_answered` null: none recorded, which is neither working nor broken; `build` null:
+ *  the worker recorded none. */
+export type AiActivityAnswered = {
+  activities: { key: string; last_answered: { at: string; model: string; build: string | null } | null }[];
+};
 export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
 };
 
@@ -2058,7 +2077,13 @@ export type MethodValue = {
   value: unknown; absent: boolean;
   /** Where the value is a limit a design is held to, what crossing it does; empty otherwise. */
   effect: "" | "blocks_run" | "blocks_design" | "warns" | "changes_stored";
+  /** The range the module's check holds the field to, each limit proved against the check; null
+   *  (or absent, from an older API) where no check holds it. A limit with a `reference` is that
+   *  field's value in the draft. */
+  bound?: MethodBound | null;
 };
+export type MethodLimit = { side: "low" | "high"; value: number | null; reference: string | null; strict: boolean };
+export type MethodBound = { limits: MethodLimit[]; whole: boolean };
 /** A step's editable formula: its slot, the expression the engine computes today, and the
  *  LaTeX the domain writes from that expression (the page shows what runs). */
 export type MethodFormula = {
@@ -2091,6 +2116,8 @@ export type MethodModuleDetail = MethodModuleSummary & { preset: string | null; 
 export type MethodVersion = {
   version_number: number; name: string; base_preset: string; spec: Record<string, unknown>;
   formulas: Record<string, string>; payload_sha256: string; note: string; created_by: string; created_at: string;
+  /** The object map only: the Sociomap register's status for the method this version pins; null elsewhere, absent before the API said it. */
+  register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 export type MethodActivation = {
   activation_id: number; version_number: number | null; activated_by: string; reason: string; activated_at: string;
@@ -2104,6 +2131,8 @@ export type MethodInForce = {
 export type MethodVersions = {
   in_force: MethodInForce; may_administer: boolean; may_edit: boolean; presets: Record<string, Record<string, unknown>>;
   versions: MethodVersion[]; history: MethodActivation[];
+  /** The object map only: the register's status for the code's preset, whatever is in force. */
+  code_register_status?: "CLIENT_FACING" | "INTERNAL_ONLY" | null;
 };
 /** An edit: the whole specification and the formulas it replaces (by slot). */
 export type MethodEdit = { base_preset: string; spec: Record<string, unknown>; formulas: Record<string, string>; note?: string };

@@ -64,19 +64,28 @@ function questionnaireStage(p: ResearchProject, l: SetLimits = SET_PRESET): Lane
   const { questions, sets, empty, badSets } = questionnaireIssues(p, l);
   if (!questions && !sets) return { tone: "idle", line: "Zatím prázdný" };
   const count = [questions ? plural(questions, "otázka", "otázky", "otázek") : "", sets ? plural(sets, "sada", "sady", "sad") : ""].filter(Boolean).join(" · ");
-  if (empty) return { tone: "you", line: `${count} · ${empty} bez znění` };
-  if (badSets) return { tone: "you", line: `${count} · ${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` };
-  return { tone: "done", line: count };
+  const issues = [
+    // Tracked sets alone are no questionnaire (OI-52; readiness's questionnaire check FAILs it too).
+    questionnaireHasQuestions(p) ? "" : "bez běžné otázky",
+    empty ? `${empty} bez znění` : "",
+    badSets ? `${plural(badSets, "sada", "sady", "sad")} mimo ${setRange(l)}` : "",
+  ].filter(Boolean);
+  return issues.length ? { tone: "you", line: [count, ...issues].join(" · ") } : { tone: "done", line: count };
 }
 
 function audienceStage(p: ResearchProject): LaneStage {
   return audienceReady(p) ? { tone: "done", line: "Vybráno" } : { tone: "idle", line: "Nevybráno" };
 }
 
+/** How many dimensions are chosen, in words: "Bez dimenzí", "1 dimenze", "3 dimenze", "5 dimenzí". The
+ * stage track and Dimenze's dock say it the same way. */
+export function dimensionsChosen(count: number): string {
+  return count ? plural(count, "dimenze", "dimenze", "dimenzí") : "Bez dimenzí";
+}
+
 function personaStage(p: ResearchProject): LaneStage {
-  const approved = chosenDimensions(p);
   const n = Number(p.n) || 0;
-  const d = approved.length ? plural(approved.length, "dimenze", "dimenze", "dimenzí") : "Bez dimenzí";
+  const d = dimensionsChosen(chosenDimensions(p).length);
   return n ? { tone: "done", line: `${d} · N=${n}` } : { tone: "idle", line: d };
 }
 

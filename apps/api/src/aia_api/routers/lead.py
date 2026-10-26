@@ -38,8 +38,13 @@ from aia_core.application.research_lead import (
     LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
+    LeadHatchNotPending,
+    LeadHatchRefused,
+    LeadHatchUnavailable,
+    LeadMessageNotQueued,
     LeadNotHatched,
     LeadProfile,
+    LeadQueueFull,
     LeadRejected,
     LeadSelfUpdateDecided,
     LeadSelfUpdateNone,
@@ -53,6 +58,7 @@ from aia_core.application.research_lead import (
 )
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
+from aia_core.domain.lead_hatch import HatchInput
 from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
 from aia_core.domain.wallet import WalletChargeRefused
@@ -230,6 +236,13 @@ class LeadTurn(BaseModel):
     #: ``agent_job:<action>`` or ``research_run``); its card is approved through ``…/request``
     #: as the person's own, a ``chat_start``. ``null`` on every other turn.
     command: str | None = None
+    #: A person's message that waits for the Lead: no Lead turn was sent it and no withdrawal
+    #: names it (ADR 0041 decision 7). Derived from the rows, never stored.
+    queued: bool = False
+    #: A person's message the researcher withdrew before the Lead was sent it.
+    withdrawn: bool = False
+    #: The messages a Lead turn was sent, in queue order (its answer rows).
+    answers: list[str] = Field(default_factory=list)
 
 
 class TypedCommand(BaseModel):
@@ -388,10 +401,25 @@ class ResearcherLead(BaseModel):
     preferences: LeadPreferences
 
 
+class PendingHatchResponse(BaseModel):
+    """A hatch waiting for its researcher (lead-identity LI1): what they wrote and, once the
+    model answered, the files it wrote. Nothing in it is a Lead file yet."""
+
+    model_config = ConfigDict(extra="forbid")
+    hatch_id: str
+    input: dict[str, Any]
+    output: dict[str, Any] | None
+    created_at: datetime
+
+
 class LeadProfileResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     hatched: bool
     lead: ResearcherLead | None
+    #: Before the Lead is hatched: the hatch waiting for the caller's yes, if any.
+    pending_hatch: PendingHatchResponse | None = None
+    #: On accepting a hatch: the Lead's first words.
+    greeting: str | None = None
 
 
 # --------------------------------------------------------------------------- errors
@@ -421,8 +449,20 @@ def _lead_errors() -> Iterator[None]:
         raise _error(409, exc.reason, "Hatch your Research Lead first.") from exc
     except LeadAlreadyHatched as exc:
         raise _error(409, exc.reason, "Your Research Lead is already hatched.") from exc
+    except LeadHatchUnavailable as exc:
+        raise _error(409, exc.reason, "Hatching cannot be asked of the model here yet.") from exc
+    except LeadHatchNotPending as exc:
+        raise _error(409, exc.reason, "No hatch of yours waits for that.") from exc
+    except LeadHatchRefused as exc:
+        raise _error(
+            422, exc.reason, "A personal file may not name a client or a number.", files=exc.files
+        ) from exc
     except LeadBusy as exc:
         raise _error(409, exc.reason, "The Lead is still answering your last message.") from exc
+    except LeadQueueFull as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
+    except LeadMessageNotQueued as exc:
+        raise _error(409, exc.reason, str(exc)) from exc
     except LeadTurnNotReady as exc:
         raise _error(409, exc.reason, "The Lead has not finished this turn.") from exc
     except LeadSelfUpdateDecided as exc:
@@ -623,6 +663,48 @@ def read_omitted(
 
 
 @router.post(
+    "/lead/turns/queued",
+    response_model=LeadTurns,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Off, or not hatched"}},
+)
+def answer_queued(
+    scope: StudyScopeDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    store: ArtifactStoreDep,
+    response: Response,
+) -> LeadTurns:
+    """Start the Lead's turn on the caller's messages that wait, once the conversation is free:
+    201 with the Lead turn, or 200 with none when nothing waits or the Lead is still at work.
+    Any tab may ask; two asks start one turn (ADR 0041 decision 7)."""
+    external = store if settings.ai_analysis_external_context else None
+    with _lead_errors():
+        turns = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).answer_queued()
+    if not turns:
+        response.status_code = status.HTTP_200_OK
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+
+
+@router.post(
+    "/lead/turns/{turn_id}/withdraw",
+    response_model=LeadTurns,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not the caller's own message"},
+        409: {"model": ErrorResponse, "description": "The message no longer waits"},
+    },
+)
+def withdraw_message(turn_id: TurnIdPath, scope: StudyScopeDep, session: SessionDep) -> LeadTurns:
+    """Withdraw one of the caller's messages that still waits for the Lead: it stays stored,
+    and no turn is ever sent it."""
+    with _lead_errors():
+        turns = ResearchLead(session, scope).withdraw(turn_id)
+    return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns)])
+
+
+@router.post(
     "/lead/turns/{turn_id}/edits",
     response_model=EditDecisions,
     responses={409: {"model": ErrorResponse, "description": "Stale, or the turn is not done"}},
@@ -729,6 +811,54 @@ def hatch(org: OrganizationDep, session: SessionDep) -> LeadProfileResponse:
     chat, and the Lead changes its own files when asked."""
     with _lead_errors():
         return LeadProfileResponse.model_validate(LeadProfile(session, org).hatch())
+
+
+@profile_router.post(
+    "/hatches",
+    response_model=LeadProfileResponse,
+    status_code=201,
+    responses={409: {"model": ErrorResponse, "description": "Already hatched, or unavailable"}},
+)
+def request_hatch(
+    body: HatchInput, org: OrganizationDep, session: SessionDep
+) -> LeadProfileResponse:
+    """Ask the model to write the caller's Lead files from what they wrote (lead-identity LI1).
+    Refused by name (``lead_hatch_unavailable``) until the AIA organization exists to pay for
+    it: nothing is sent or charged, and no code writes the files instead."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(
+            LeadProfile(session, org).request_hatch(body.model_dump())
+        )
+
+
+@profile_router.post(
+    "/hatches/{hatch_id}/accept",
+    response_model=LeadProfileResponse,
+    responses={
+        409: {"model": ErrorResponse, "description": "No such pending hatch"},
+        422: {"model": ErrorResponse, "description": "A file names a client or a number"},
+    },
+)
+def accept_hatch(
+    org: OrganizationDep, session: SessionDep, hatch_id: str = Path(max_length=64)
+) -> LeadProfileResponse:
+    """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2), its
+    files checked again as they are kept. Answers the Lead and its first words."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(LeadProfile(session, org).accept_hatch(hatch_id))
+
+
+@profile_router.post(
+    "/hatches/{hatch_id}/discard",
+    response_model=LeadProfileResponse,
+    responses={409: {"model": ErrorResponse, "description": "No such pending hatch"}},
+)
+def discard_hatch(
+    org: OrganizationDep, session: SessionDep, hatch_id: str = Path(max_length=64)
+) -> LeadProfileResponse:
+    """ "Zadat znovu": the pending hatch is set aside; nothing of it became a Lead file."""
+    with _lead_errors():
+        return LeadProfileResponse.model_validate(LeadProfile(session, org).discard_hatch(hatch_id))
 
 
 @profile_router.put(

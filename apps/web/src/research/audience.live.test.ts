@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -211,5 +211,32 @@ describe("the built-in subpanels a search matches (audit B9)", () => {
     expect(matchingSubpanels(all, " MLADÍ ").map((s) => s.key)).toEqual(["young_18_29"]);
     expect(matchingSubpanels(all, "vestavěný").map((s) => s.key)).toEqual(["young_18_29"]);
     expect(matchingSubpanels(all, "nikdo")).toEqual([]);
+  });
+});
+
+describe("what a preset change clears (OI-51 (a))", () => {
+  it("everything a preset writes, back to the template's defaults; never the description", () => {
+    const { audience, cleared } = presetReset({
+      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, strategy: "filters", special_panel_key: "k", builtin_special_key: "b",
+      support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29", source_mode: "population",
+    } as never);
+    expect(cleared).toBe(true);
+    expect(audience).toEqual({
+      builtin_subpanel: "", filters: {}, segment: { mode: "none" }, strategy: "population", special_panel_key: "", builtin_special_key: "",
+      support_tier: "", subpanel_status: "", support_summary: {}, description: "Mladí 18–29", source_mode: "population",
+    });
+  });
+
+  it("counts a strategy as a change of who is sampled; support figures alone are not", () => {
+    expect(presetReset({ strategy: "filters" } as never).cleared).toBe(true);
+    expect(presetReset({ support_tier: "ROBUST", support_summary: { rows: 1 } } as never).cleared).toBe(false);
+    expect(presetReset({ strategy: "population", support_summary: {} } as never).cleared).toBe(false);
+  });
+
+  it("says nothing was cleared when there was nothing to clear, a null included", () => {
+    expect(presetReset({ description: "x" } as never).cleared).toBe(false);
+    expect(presetReset({ builtin_subpanel: "", filters: {}, segment: { mode: "none" } } as never).cleared).toBe(false);
+    expect(presetReset({ builtin_subpanel: null, filters: null, segment: null } as never).cleared).toBe(false);
+    expect(presetReset({ segment: { mode: "top" } } as never).cleared).toBe(true);
   });
 });

@@ -19,6 +19,16 @@ chunks:
   - "[x] RPT8f. Before activation, a hard gate beside RPT8e: the server decides an edited version's approval from the edit sequence (each edit start reported to AIA with a per-session sequence and its time of receipt; each save records the highest sequence its lastsave holds; approve_report(newest_of_line) refuses 409 report_edits_unsaved under the line's lock unless the newest stored version holds the sequence the page saw and no higher one arrived); AIA_ONLYOFFICE_URL stays unset until RPT8e and RPT8f are both ticked (the PM, 2026-10-24; owner: Zpráva)"
   - "[ ] RPT9. The Lead edits the same document: inline suggestions as tracked changes under the Lead's own name, with why, accepted or rejected one by one or all; direct edits per the researcher's setting (Q13) still attributed; every edit through the edit ops, every number a ledger ref passing the sentence check before accept"
   - "[ ] RPT10. Literature by the Lead: Interpretation Research proposed on a plan card (target, QUICK or STANDARD depth, STANDARD by default, cost), approved by the researcher, findings woven into the text with their sources (Q58); the panel's own start, depth and refresh removed once typed starts exist (Q48, LO5a.3), its findings readable beside the text"
+  - "[ ] RPT3c. One document bar: document, status, Připravit, approve, DOCX and PDF; every download moves into it, and 'Zpráva s rešerší' leaves the pane (follows RPT3 and RPT3a, with RPT5; spec szz Z2; Nigel P3, 26 Oct 2026; W3)"
+  - "[ ] RPT3d. The approval dialog: name, saved time, 'stáhnete přesně tuto verzi', the accepted-findings count (follows RPT3a; spec szz Z4; W3)"
+  - "[ ] RPT8b.1. A prose number's change shown inline as 'Upraveno ručně'; no 'Vrátit' inside the open editor (follows RPT8b; spec szz Z6; W3)"
+  - "[ ] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
+  - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
+  - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
+  - "[ ] RPT12. No ids on the stage (spec szz Z3; W3)"
+  - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
+  - "[ ] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
+  - "[ ] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
 ---
 # Artifact: Zpráva (Report)
 
@@ -573,6 +583,37 @@ no save). The version read takes the page's seen edit (`seen_key`, `seen_page`, 
 as `edits: {saved, reason}`; the doc bar's hold follows it alone, a read from before the page's newest edit counting
 for nothing, and guesses nothing (Codex on #880).
 
+*RPT8e, built (`feature/editor-api-integrity`); its last check is activation's.* `AIA_ONLYOFFICE_API_INTEGRITY`
+(`sha384-` and the digest's 64 base64 characters, refused at start otherwise): without it `report_editor_on` is false,
+so Zpráva opens nothing in the editor and the open route answers 404, whatever else is set. The open route answers it as
+`api_integrity`. The page then asks `POST /session/docs-ticket` for a one-time ticket and spends it first, a credentialed
+CORS request to `<docs>/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js` (`ticketUrl`, `spendTicket`:
+spending it sets the docs gate's cookie; the pane had loaded api.js without one, which the docs gate answers 401), then
+loads api.js at its canonical path with `integrity` and `crossorigin="use-credentials"` (`apiScriptUrl`,
+`scriptIntegrity`; `ReportEditor.tsx` `loadDocsApi`). The canonical path, not the ticket's URL as the script: ONLYOFFICE's
+api.js finds its base, and so its iframes' origin, by matching its script element's src against `api/documents/api.js`
+(getBasePath), which a ticket URL with an encoded `next` does not (Codex on #895). No integrity, no ticket, a ticket not
+spent or a script that does not hash to it: the read-only draft, said (`UNVERIFIED`, `UNREACHABLE`).
+`AIA_ONLYOFFICE_API_INTEGRITY` reaches the develop API through `deploy/develop/docker-compose.yml` from SSM
+`aia_onlyoffice_api_integrity` (`env.example`; `test_develop_host_configuration.py`: off without it, on with it). `deploy/develop/Caddyfile`'s
+docs site answers CORS with credentials for AIA's origin on those two paths alone (`@editor_script`, `defer`, so it
+replaces whatever the Document Server answers), held by `tools/caddy_routes.py`. Tests: `test_report_editor_api.py`
+(the integrity's form; the editor on only with it; the open route answers it), `report-editor.test.ts`,
+`ReportEditor.test.tsx` (the script's attributes, no integrity, no ticket), `test_caddy_routes.py`
+(`test_cors_anywhere_but_the_editors_script_for_aia_is_refused`); `report_editor_journey.mjs`: a ticket is spent before
+the script loads, api.js finds its base on the editor's origin at every width (the stand-in's api.js computes it as
+ONLYOFFICE's getBasePath does), and a swapped api.js runs nothing under Chromium's own integrity check. Left for activation (infra, with the
+owner's word): the integrity of the api.js the Document Server serves, set beside `AIA_ONLYOFFICE_URL`, and the page
+loaded once against the real Document Server; RPT8e is ticked then. The pinned image (9.4.0.1) ships no api.js, only
+`api.js.tpl`: at every container start `documentserver-flush-cache.sh` builds api.js with `{{HASH_POSTFIX}}` set from that
+start's date and minute, so a hash read from one running server fails the next restart (the infra session, 2026-10-25).
+The integrity is therefore taken from the api.js built by the pinned copy of that script, whose HASH_POSTFIX is a constant
+per image version (`e2c7b902106f86a68aabb088d5054ee0` for 9.4.0.1; infra's report-editor-hosting PR records it beside the
+image version and changes both together). For 9.4.0.1 that is
+`sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G`, checked after the deploy against the live file:
+`docker exec <the onlyoffice container> cat /var/www/onlyoffice/documentserver/web-apps/apps/api/documents/api.js |
+openssl dgst -sha384 -binary | base64`, which must print the digest after `sha384-`, and print it again after a restart.
+
 Every rule fails closed but one (the PM, 2026-10-24, choosing the one rule over a clean-report rule that, bound to the
 snapshot, decided nothing the first did not): a Document Server clock running ahead of AIA's by more than the gap between
 a save's last change and the next edit's report lets that save hold the edit; the clamp to AIA's receipt bounds it.
@@ -663,6 +704,9 @@ counts, dates, L-labels and seal; P14), and the audit's values under `run:<run>`
 `test_every_number_the_bundle_writes_is_locked_under_its_review`, `test_report_controls.py`
 `test_the_audits_values_print_locked_and_the_source_audit_keeps_them`.
 
+*The owner, 2026-10-25 (AUD-2 (a), the audit page, relayed by coordinator 3): the Lead edits the report as proposed versions a person
+approves; this chunk builds it.*
+
 **RPT9. The Lead in the document.** The Lead, on its own model (STUDY_LEAD), edits the same document
 through the edit operations:
 - **Suggestions (default, Q56, Q13):** each edit lands in the text as a tracked change under the Lead's
@@ -677,6 +721,10 @@ through the edit operations:
   that path in `domain/edit_ops` and the report modules' own apply step, so the import contract "no
   report path reads the Lead's notes (Q69)" (#719) still holds. If RPT9 ever needs something from
   `research_lead`, move that piece into `edit_ops` rather than loosening the contract.
+
+*The owner's answer (AUD-2, 2026-10-25, /pmstatus):* "(a) yes, as proposed versions a person approves". The Lead edits
+the final report directly only as proposed versions through the editor's version store (RPT8c), each approved by a
+person; built after the editor is live; every number stays locked to an admitted claim (ADR 0035).
 
 Acceptance (journey step): the Lead proposes two edits; both show in the text as its suggestions; one is
 accepted and one rejected; the version then approved (RPT3a) holds exactly the accepted one. Open: how
@@ -729,6 +777,20 @@ sentence refused by RD7 is marked at the sentence. Depends on `report-delivery#R
 - Zero paid jobs. 768 and 390 px depend on `research-lead-workbench#26b`-`#26d`.
 
 ## Findings
+
+- **The editor's script skipped its ticket (found sizing RPT8e, 2026-10-25): fixed on
+  `feature/editor-api-integrity`.** The pane loaded the Document Server's api.js straight from
+  `<docs>/web-apps/apps/api/documents/api.js` (`lib/report-editor.ts` `apiScriptUrl @ d75c35de`), but on the
+  real host every path there passes the docs gate, which needs the cookie only a spent one-time ticket sets
+  (report-editor-hosting.md:288, "the script load is the way in"; `POST /session/docs-ticket`,
+  `GET /session/docs?ticket&next`, both built). Consequence: on activation the docs gate answers api.js
+  401 and Zpráva falls back to read only on day one. The workbench's stand-in served api.js ungated, so no
+  journey showed it. Fix: the page spends the ticket first (`ticketUrl`, a credentialed CORS request), then
+  loads api.js at its canonical path under RPT8e's integrity with credentials; the docs site answers CORS
+  for AIA's origin on those two paths. Tests: `report-editor.test.ts` ("spends the ticket at the named
+  origin's session path…"), `ReportEditor.test.tsx` ("spends the ticket at the editor's origin before the
+  script loads", "keeps the read-only draft when no ticket is given or it is not spent…"),
+  `report_editor_journey.mjs` (a ticket spent before the script loads).
 
 - **F19 (research-lead-workbench, from #778's journey): fixed on `fix/report-states-the-brief`.** The
   internal draft never said what the person asked for: "Návrh studie" printed only how the study
@@ -796,3 +858,35 @@ CQ4 = Q58 (b), one document with the literature woven into its body (CHN8). A mo
 ## Doc follow-up
 
 - Register this plan and its chunks.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10).
+
+**RPT3d. Approval dialog** (spec `szz/Z4`; follows RPT3a; W3, lane G). The count after `artifact-analysis#ANL11`.
+
+**RPT8b.1. Upraveno ručně inline** (spec `szz/Z6`; follows RPT8b; W3, lane G). Decided by default (planning, open to Nigel's override): there is no "Vrátit" inside the open editor (it would need ONLYOFFICE's Automation API, a hypothesis; OQ27).
+
+**RPT8c.1. Editor config** (spec `szz/Z5`; follows RPT8c; W3, lane G). With RPT14.
+
+**RPT8d.1. Number detail** (spec `szz/Z7`; follows RPT8d, partly new; W3, lane G). After RPT8a part 3.
+
+**RPT11. Its own stage** (spec `szz/Z1`; W3, lane G).
+
+**RPT12. No ids** (spec `szz/Z3`; W3, lane G).
+
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+
+**RPT14. uiTheme** (spec `szz/T5`; W3, lane G).
+
+**RPT15. Brand fonts in the editor's DOCX** (spec `szz/T7`; W3, lane G). Nigel, 26 Oct 2026 (P7): keep the brand fonts in the editor DOCX. B6 decided (b), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: **embed the fonts on download**, as first chosen, not at save. The accepted trade-off: a downloaded editor-saved DOCX differs from its stored bytes, so `X-AIA-Artifact-Id` and the SHA-256 describe the stored version, and the download says it re-embedded the fonts. Test: the downloaded bytes carry the fonts, the headers name the stored artifact, and the response says the fonts were re-embedded.
+
+**Notes.**
+- RPT10 carries `szz/Z9` (literature only from the Lead card); RPT9 `szz/Z10`; RPT7 `szz/Z11`; RPT8e with `report-editor-hosting#4` carry `szz/T8`.

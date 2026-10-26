@@ -10,6 +10,10 @@ chunks:
   - "[ ] QST7. The questionnaire's length, by the rule the owner chooses"
   - "[x] QST8. Závislosti: what reads each set and question downstream (Sociomap, Results, Analysis), from the specification"
   - "[ ] QST9. Journey: Dotazník at 1440, 1100, 768 and 390 px, zero paid jobs"
+  - "[ ] QST10. One comparison set shared by Návrh and Dotazník ('Objekty', data-aia set:<id>), seen from both stages (spec navrh D6 + Q8; W2, after working-copy-edit-ops WCE8b)"
+  - "[ ] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
+  - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
+  - "[ ] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
 ---
 # Artifact: Dotazník (Questionnaire)
 
@@ -341,6 +345,31 @@ message (`questionnaire_import.py:324`, unreachable) is Czech too. Tests: `Quest
 "says an empty file, a refusal without words of its own and a lost connection in Czech" and "says a
 template the API would not give in Czech".
 
+*Finding QF-17 (OI-52, the data owner's answer, 2026-10-25 (b)):* a questionnaire made only of tracked
+sets is not complete; it needs at least one plain question. Before, readiness's `questionnaire` check always
+passed (`research_design.py:1457-1463 @ f7762d72`), Dotazník's track read a sets-only questionnaire as done
+(`lane.ts:63 @ f7762d72`) and its dock said "Dotazník je připravený" once the editor was open (`QuestionnaireStep.tsx:259 @ f7762d72`).
+Fix (fix/questionnaire-plain-question): the check FAILs with words that say why, the track reads "· bez běžné
+otázky", and the dock is not ready and says why; `assess_readiness` re-pinned in Metodika. Tests:
+`test_research_design.py` "a questionnaire of tracked sets only is not ready", `lane.test.ts`, `QuestionnaireStep.test.tsx`.
+
+*Finding QF-18 (keyboard audit, 2026-10-25):* a question's display condition editor drops keyboard focus to
+the page: "Podmínka zobrazení" and "Upravit podmínku" unmount as the form replaces them, and Uložit, Zrušit,
+Escape and Odebrat podmínku unmount what had focus in turn (`QuestionCondition.tsx:69 @ ffce5c72`), so a keyboard user starts again
+from the top. Fix (fix/questionnaire-condition-focus): the form opens with focus on the chosen question (or the
+first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts focus on the first enabled button
+left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
+into the condition form and back to its button when it closes" (all four ways out).
+
+*QST2, spec navrh/Q3 ("Měří" as short VO toggles):* each question and set listed every research question in
+full as its link chips (`QuestionnaireStep.tsx` `ResearchQuestionLinks` @ 25ce6493). Change
+(feature/questionnaire-vo-chips): each chip reads "VO n" (the strip's numbering), named "VO n: <question>"
+(the visible label in the name) with the question as its tooltip; the linked ones are written out under the
+chips, for touch. Once any item declares a link, an item linked to none says so in words, with what to do
+(before that, coverage is unknown for every item, coverageOf, never a gap on each card). Dangling links stay coral. Tests:
+`QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
+1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
@@ -348,5 +377,30 @@ template the API would not give in Czech".
 - open-items.md: number QF-9 (a question's × on a row of its own at 390 px) and QF-10 ("validačním gate"), closed by fix/questionnaire-audit-390.
 - open-items.md: number QF-11 (a scale's right label apart from its end at 390 px), QF-12 (the research card half English) and QF-14 (the preview's running numbers), closed by fix/questionnaire-audit-2; QF-13 (Dotazník's own Design Research start in the workbench) open, for the PM.
 - open-items.md: number QF-16 (an import's failure said in English), closed by fix/questionnaire-audit-3.
+- open-items.md: OI-52 answered by the data owner (2026-10-25, (b)) and closed by fix/questionnaire-plain-question (QF-17).
+- open-items.md: number QF-18 (the condition editor drops keyboard focus), closed by fix/questionnaire-condition-focus.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**QST10. The shared set** (spec `navrh/D6` and `navrh/Q8`, one chunk; no backend; W2, lane E). `set_edit` (WCE3a), after `working-copy-edit-ops#WCE8b`. The set's scale (the board's presets, or fixed 1-10 for the Sociomap) awaits the methodology owner (OQ9).
+
+**QST11. Respondent preview** (spec `navrh/Q5`; W1, lane E). Labels the server would leave out are named, as ScaleEditor does.
+
+**Notes.**
+- QST2 carries `navrh/Q1`, `navrh/Q2`, `navrh/Q3`; the strip moves to the inspector (register contradiction 7).
+- QST4 carries `navrh/Q4`: routing and familiarity shown disabled with the reason until `run-qc-and-checkpoint#RQC11` (contradiction 6).
+- QST5 carries `navrh/Q6` (per-item accept), now W1 with `working-copy-edit-ops#WCE8b` moved to W1.
+- QST6 carries `navrh/Q7`, with `research-lead-workbench#26f.1`.
+
+**QST12. One questionnaire editor** (Nigel, 26 Oct 2026 ~01:41 UTC, relayed by the PM coordinator: "its important that in the questionnaire there is no nahrat excel, sestavit rucne, sestavit with ai, becuse we only need one interface to create the question, and the user can create it manually, but can also upload an excel to the lead researcehr and the lead researcehr will create the questionnaire, if no excel is used the user can still use the lead researcher to help create it based on the previous stage inputs, client knowledgebase and deep research."). W1, lane E. Dotazník loses its "Způsob" radiogroup (`apps/web/src/i18n/cs.ts:2587-2591 @ 2e7fc1dd`, pathUpload / pathManual / pathAi) and keeps one editor, which also works on an empty questionnaire. Excel import moves to the Lead, as one use of any file given to the Lead (`lead-orchestration#LO18a`-`LO18b`), and AI drafting to the Lead's questionnaire job (`lead-orchestration#LO27`, with QST13). Ships in the same PR as LO18b, or after it, so the Excel import is never missing in between (planning's default and the Lead worker's; Nigel may split them). It belongs with #808 / QF-13, which already hides Dotazník's own workbench start. Test: Dotazník on an empty study shows the editor and no path choice; the import route stays (`apps/api/src/aia_api/routers/workspace.py:2318`).
+
+**QST13. Verified Design Research findings in the questionnaire jobs** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "All verified findings"). W1, for `lead-orchestration#LO27`. The two questionnaire contracts (`domain/research_agents.py`) read every verified finding of the Study's newest finished Design Research run, frozen at enqueue and labelled external context, never respondent evidence, as the Lead's `external_context_not_evidence` layer and Analýza's external context already are. A prompt version and harness bump, the frozen findings in the job's input fingerprint. Today the jobs read Design Research only where a person accepted it into the design. Test: a job enqueued after a sealed run carries its verified findings in the frozen context, and its fingerprint changes when a newer run seals.

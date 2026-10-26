@@ -17,6 +17,8 @@ Local only: the secret is the workbench's, fictional, and nothing here leaves th
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import io
 import json
 import re
@@ -40,12 +42,23 @@ WORKBENCH_EMAIL = "workbench@example.invalid"
 _NAME = re.compile(r"^[A-Za-z0-9._-]{1,80}$")
 
 
+#: The stand-in's api.js, which the journey serves for ``ORIGIN``.
+API_JS = REPO / "tools" / "ui_workbench" / "fixtures" / "report_editor" / "api.js"
+
+
+def integrity(script: bytes) -> str:
+    """``script``'s Subresource Integrity, as AIA_ONLYOFFICE_API_INTEGRITY takes it (RPT8e)."""
+    return "sha384-" + base64.b64encode(hashlib.sha384(script).digest()).decode("ascii")
+
+
 def settings() -> dict[str, str]:
-    """The API settings that switch the editor on for the workbench."""
+    """The API settings that switch the editor on for the workbench: the stand-in's api.js is
+    loaded under its own real integrity, as the pinned image's would be."""
     return {
         "onlyoffice_url": ORIGIN,
         "onlyoffice_jwt_secret": SECRET,
         "onlyoffice_callback_base": CALLBACK_BASE,
+        "onlyoffice_api_integrity": integrity(API_JS.read_bytes()),
     }
 
 

@@ -40,6 +40,7 @@ import {
   setAnalyticsChoice,
   setAudienceCategory,
   setAudienceEntry,
+  presetReset,
   setAudienceRange,
   specialSelected,
   uploadBody,
@@ -133,6 +134,14 @@ const classic = (call: string, g: G = {}): Ran => legacy.run<Ran>(`${RESET}${SET
 const classicAsync = (call: string, g: G = {}, before = ""): Promise<Ran> =>
   legacy.run<Promise<Ran>>(`(async()=>{${RESET}${SET}${before}await ${call};return ${OUT}})()`, globals(g));
 
+
+/**
+ * OI-51 (a), the product owner 2026-10-25: a preset change starts the audience afresh (presetReset),
+ * where the classic kept the previous subpanel, filters and support. AIA is the classic run on the
+ * audience that reset leaves, so everything else is still compared with the classic.
+ */
+const afresh = (p: ResearchProject): ResearchProject => ({ ...p, audience: presetReset(p.audience).audience });
+
 describe("which screen the audience step draws, and when it is ready", () => {
   const cases: [string, ResearchProject][] = [
     ["nothing chosen", base],
@@ -175,10 +184,12 @@ describe("the branch and strategy choosers are the classic ones", () => {
   for (const x of ["choose", "own", "analytics"] as const) {
     it(`setAudienceEntry(${x})`, () => {
       const p = withA({ source_mode: "population", dataset_id: "D", dataset_name: "N", filters: { vek: [1, 2] } }, { analytics_choice: "cz18" });
-      const ran = classic(`setAudienceEntry(${JSON.stringify(x)})`, { p });
+      // Choosing one's own audience is a preset change: it starts afresh (OI-51 (a)).
+      const ran = classic(`setAudienceEntry(${JSON.stringify(x)})`, { p: x === "own" ? afresh(p) : p });
       const got = setAudienceEntry(p, x);
       expect(got.project).toEqual(ran.p);
-      expect(ran.saves).toEqual([[got.reason, got.invalidateCheck]]);
+      expect(ran.saves).toEqual([[got.reason, false]]);
+      expect(got.invalidateCheck).toBe(x === "own"); // the filters it cleared invalidate the run check
       expect(ran.preview).toBeNull();
     });
   }
@@ -194,12 +205,21 @@ describe("the branch and strategy choosers are the classic ones", () => {
     }
   }
   for (const x of ["cz18", "cz_coming", "special"] as const) {
-    it(`setAnalyticsChoice(${x})`, () => {
-      const p = withA({ dataset_id: "D", builtin_subpanel: "s", special_panel_key: "k", special_catalog_key: "c", filters: { kraj: ["A"] } });
-      const ran = classic(`setAnalyticsChoice(${JSON.stringify(x)})`, { p });
+    it(`setAnalyticsChoice(${x}): the classic's, except that it starts afresh (OI-51 (a))`, () => {
+      const p = withA({
+        dataset_id: "D", builtin_subpanel: "s", special_panel_key: "k", special_catalog_key: "c", filters: { kraj: ["A"] },
+        strategy: "filters", support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Moje slova",
+      });
+      const ran = classic(`setAnalyticsChoice(${JSON.stringify(x)})`, { p: afresh(p) });
       const got = setAnalyticsChoice(p, x);
-      expect(got.project).toEqual(ran.p);
-      expect(ran.saves).toEqual([[got.reason, got.invalidateCheck]]);
+      // The classic's, but for the description, which a preset change keeps (the product owner, 2026-10-25).
+      expect(got.project).toEqual({ ...ran.p, audience: { ...ran.p.audience, description: "Moje slova" } });
+      const a = got.project.audience;
+      // Pinned directly, not through presetReset: everything the last preset wrote is gone.
+      expect([a.strategy, a.support_tier, a.subpanel_status, a.support_summary, a.special_panel_key]).toEqual(["population", "", "", {}, ""]);
+      expect([got.project.audience.builtin_subpanel, got.project.audience.filters]).toEqual(["", {}]);
+      expect(ran.saves).toEqual([[got.reason, false]]);
+      expect(got.invalidateCheck).toBe(true); // it cleared the subpanel and filters, so who is sampled changed
     });
   }
   it("the analytics branches' back button", () => {
@@ -219,25 +239,36 @@ describe("the special presets are SPECIAL_AUDIENCE_PRESETS and chooseSpecialPres
   });
   for (const x of [...SPECIAL_AUDIENCE_PRESETS.map((z) => z.key), "nope"]) {
     it(`choosing ${x} on a clean project`, () => {
-      const ran = classic(`chooseSpecialPreset(${JSON.stringify(x)})`);
+      const known = SPECIAL_AUDIENCE_PRESETS.some((z) => z.key === x);
+      const ran = classic(`chooseSpecialPreset(${JSON.stringify(x)})`, known ? { p: afresh(base) } : {});
       const got = chooseSpecialPreset(base, x, CATALOGUES);
       expect(got?.project ?? base).toEqual(ran.p);
       expect(ran.saves.at(-1) ?? null).toEqual(got ? [got.reason, got.invalidateCheck] : null);
     });
   }
-  it("a special preset keeps the previous subpanel and filters, as the classic does (OI-51)", () => {
-    const ran = classic("chooseSpecialPreset('doctors');chooseSpecialPreset('foreign_prague')", { p: withA({}, { audience_entry: "analytics", analytics_choice: "special" }) });
-    const first = chooseSpecialPreset(withA({}, { audience_entry: "analytics", analytics_choice: "special" }), "doctors", CATALOGUES)!;
+  // OI-51 (a), the product owner 2026-10-25: the classic kept the previous preset's subpanel and filters
+  // (`chooseSpecialPreset('doctors');chooseSpecialPreset('foreign_prague')` kept the doctors' filters);
+  // AIA clears them. Everything else is still the classic's.
+  it("a special preset after a population one: the doctors' subpanel and filters are gone, and it waits for an upload (OI-51 (a))", () => {
+    const start = withA({}, { audience_entry: "analytics", analytics_choice: "special" });
+    const kept = classic("chooseSpecialPreset('doctors');chooseSpecialPreset('foreign_prague')", { p: start });
+    expect(kept.p.audience).toMatchObject({ builtin_subpanel: "medical_doctors", filters: { profese: ["lékař"], vek: [25, 70] } }); // what the classic kept
+    const first = chooseSpecialPreset(start, "doctors", CATALOGUES)!;
     const got = chooseSpecialPreset(first.project, "foreign_prague", CATALOGUES)!;
-    expect(got.project).toEqual(ran.p);
-    expect(got.project.audience).toMatchObject({ dataset_name: "Cizinci žijící v Praze", builtin_subpanel: "medical_doctors", filters: { profese: ["lékař"], vek: [25, 70] } });
-    expect(audienceReady(got.project)).toBe(true);
+    const step1 = classic("chooseSpecialPreset('doctors')", { p: afresh(start) });
+    expect(first.project).toEqual(step1.p);
+    expect(got.project).toEqual(classic("chooseSpecialPreset('foreign_prague')", { p: afresh(step1.p) }).p);
+    expect([got.project.audience.dataset_name, got.project.audience.builtin_subpanel, got.project.audience.filters]).toEqual(["Cizinci žijící v Praze", "", {}]);
+    expect(audienceReady(got.project)).toBe(false); // a coming-soon preset needs its own data
   });
-  it("a special panel after a subpanel also keeps it (OI-51)", () => {
+  it("a special panel after a subpanel: the subpanel and its filters are gone (OI-51 (a))", () => {
     const first = chooseSpecialPreset(base, "young", CATALOGUES)!;
     const got = chooseSpecialPreset(first.project, "health", CATALOGUES)!;
-    expect(got.project).toEqual(classic("chooseSpecialPreset('young');chooseSpecialPreset('health')").p);
-    expect(got.project.audience.builtin_subpanel).toBe("young_18_29");
+    expect(classic("chooseSpecialPreset('young');chooseSpecialPreset('health')").p.audience.builtin_subpanel).toBe("young_18_29"); // what the classic kept
+    expect(got.project).toEqual(classic("chooseSpecialPreset('health')", { p: afresh(first.project) }).p);
+    expect([got.project.audience.builtin_subpanel, got.project.audience.filters]).toEqual(["", {}]);
+    // The young subpanel's support figures are gone; the special panel's own strategy and tier are written.
+    expect([got.project.audience.strategy, got.project.audience.subpanel_status, got.project.audience.support_summary]).toEqual(["special_panel", "", {}]);
   });
   it("the preset list marks the chosen one and the ones needing own data", () => {
     const p = withA({ special_catalog_key: "health" });

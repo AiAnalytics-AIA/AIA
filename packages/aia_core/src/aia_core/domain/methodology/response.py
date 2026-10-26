@@ -32,6 +32,7 @@ from pydantic import BaseModel
 
 from ..respondent_behavior import AIA_RESPONSE_V1, STYLES, ResponseProcessSpec
 from .catalogue import (
+    Bound,
     Evidence,
     EvidenceKind,
     MethodModule,
@@ -40,6 +41,9 @@ from .catalogue import (
     Preset,
     StepGroup,
     Symbol,
+    above,
+    at_least,
+    at_most,
 )
 
 __all__ = ["RESPONSE"]
@@ -402,6 +406,15 @@ _GROUPS: Final = (
     StepGroup("F", "Fiktivní soubor", ("roster",)),
 )
 
+_PROCESS: Final = f"{_D}.respondent_behavior:ResponseProcessSpec"
+#: The range each check holds a field to (F13); a coefficient is held only to be finite.
+_BOUNDS: Final = (
+    Bound("satisficing.cap", (at_least(0), at_most(1)), f"{_D}.respondent_behavior:Satisficing"),
+    Bound("reweight_limit", (above(0),), _PROCESS),
+    Bound("style_noise_floor", (above(0), at_most(1)), _PROCESS),
+    Bound("describe_threshold", (above(0),), _PROCESS),
+)
+
 RESPONSE: Final = MethodModule(
     id="response",
     title_cs="Odpověď respondenta: od pravděpodobností modelu k odpovědi",
@@ -410,6 +423,7 @@ RESPONSE: Final = MethodModule(
     in_force="aia-response-1",
     groups=_GROUPS,
     editable=True,
+    bounds=_BOUNDS,
     note_cs=(
         "Model odhadne pravděpodobnosti jednoho respondenta, mechanismy odpovědi je podle "
         "jeho stylu upraví a odpověď vylosuje kód; model odpověď nikdy nevybírá. Verze "

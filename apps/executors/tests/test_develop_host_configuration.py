@@ -387,7 +387,8 @@ SONNET_5_5_ENV = {
     "AIA_BEDROCK_CACHE_READ_USD_PER_MTOK": "0.11",
     "AIA_BEDROCK_CACHE_WRITE_USD_PER_MTOK": "2.75",
     "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "128000",
-    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "1000000",
+    # The product owner's choice for the first switch (2026-10-25), not the model's 1M.
+    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
     "AIA_BEDROCK_STRUCTURED_OUTPUT": "auto_tool",
     "AIA_BEDROCK_THINKING": "adaptive",
     "AIA_BEDROCK_ACCEPTS_SAMPLING": "false",
@@ -429,26 +430,33 @@ def test_the_route_models_profile_reaches_the_worker_and_unset_changes_nothing(
     assert api.deep_research_pricing().cache_write_usd_per_mtok == 2.75
 
 
+# docs/'s pinned image's api.js under its fixed cache tag (deploy/develop/docs/docker-compose.yml).
+PINNED_API_INTEGRITY = "sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G"
+
+
 def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The Document Server is not on AIA's network: it reaches the API on the public hostname
     (report-editor-hosting decision 4). The develop host hands the API that origin, and the
-    editor's routes are still off until the editor's URL and secret are set from SSM."""
+    editor's routes are still off until the editor's URL and secret are set from SSM. The api.js
+    integrity (RPT8e) is versioned in the Compose file beside the pinned image's fixed cache tag
+    (report-editor-hosting 4b), and SSM may override it."""
     dotenv = HOST_ENV
     off = _api_settings(_container("api", dotenv), monkeypatch)
     assert off.onlyoffice_callback_base == "https://aia.example.test"
     assert not off.report_editor_on
-    on = _api_settings(
-        _container(
-            "api",
-            {
-                **dotenv,
-                "AIA_ONLYOFFICE_URL": "https://docs.example.test",
-                "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
-            },
-        ),
+    editor = {
+        "AIA_ONLYOFFICE_URL": "https://docs.example.test",
+        "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
+    }
+    on = _api_settings(_container("api", {**dotenv, **editor}), monkeypatch)
+    assert on.report_editor_on
+    assert on.onlyoffice_api_integrity == PINNED_API_INTEGRITY
+    integrity = "sha384-" + "A" * 64
+    overridden = _api_settings(
+        _container("api", {**dotenv, **editor, "AIA_ONLYOFFICE_API_INTEGRITY": integrity}),
         monkeypatch,
     )
-    assert on.report_editor_on
+    assert overridden.onlyoffice_api_integrity == integrity
     assert "AIA_ONLYOFFICE_CALLBACK_BASE" not in _container("worker", dotenv)

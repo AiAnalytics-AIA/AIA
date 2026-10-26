@@ -661,6 +661,18 @@ alembic merge -m "merge the budget-lift and prompt-declaration heads" 8c2f4a6d1b
 alembic heads   # exactly one
 ```
 
+**A constraint name must fit PostgreSQL's 63 characters, prefix included.** The naming
+convention prepends `ck_<table>_` to a CHECK constraint's name; past 63 characters PostgreSQL
+truncates it with a hash suffix, and a later `op.f(...)` drop names a constraint that does not
+exist (lead-conversation LC5a, #817).
+
+```python
+# WRONG -- the stored name is ck_<table>_<name> cut to 63 characters with a hash; the drop misses it
+sa.CheckConstraint("...", name="<a name that with ck_<table>_ passes 63 characters>")
+op.drop_constraint(op.f("ck_<table>_<that name>"), "<table>")
+# RIGHT -- check len("ck_<table>_<name>") <= 63 before the migration is written
+```
+
 ## mypy --strict
 
 **An untyped third party leaks `Any` straight through a declared return type.**
@@ -1017,6 +1029,24 @@ headers = {"Content-Disposition": f'attachment; filename="{name}"'}
 from urllib.parse import quote
 fallback = name.encode("ascii", "replace").decode().replace("?", "_").replace('"', "_")
 headers = {"Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name)}"}
+```
+
+**An optional `Body()` parameter covers only a missing body.** A body FastAPI cannot parse is
+answered 422 before the handler runs, so a route that must refuse first (an unsigned request is 403,
+or 404 while the feature is off) never gets to. The report editor's callback reads the raw body in a
+dependency instead (`routers/report_editor.py:381 @ 5d5ed250`, `_callback_body`; #865).
+
+```python
+# WRONG -- an unparseable body is 422 before the signature is checked
+def callback(body: Annotated[dict[str, Any] | None, Body()] = None): ...
+
+# RIGHT -- read the bytes in a dependency; anything unparseable is {} and refused as unsigned
+async def _callback_body(request: Request) -> dict[str, Any]:
+    try:
+        parsed = json.loads(await request.body())
+    except (ValueError, RecursionError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
 ```
 
 ## Pydantic strict mode
@@ -1994,6 +2024,58 @@ element rules in `@layer base`.
 @layer base { .wb button { color: inherit; } }
 ```
 
+**A dynamic segment's page remounts on every change of that segment.** State that must survive a
+move between stages (the Lead's conversation, the split) lives in the layout above it. The workbench
+rendered each stage from `[stage]/page.tsx`, so every stage click remounted the whole screen (#835).
+`ResearchStages` now reads the stage in the layout (`components/aia/ResearchStudy.tsx:139 @
+5d5ed250`), and the stage page only answers an unknown stage with 404.
+
+```tsx
+// WRONG -- [stage]/page.tsx: the chat, the split and the study's reads remount on every stage
+export default function Page({ params }) { return <ResearchScreen step={stepFromSlug(params.stage)} />; }
+// RIGHT -- the layout draws the stage; the page returns null
+const segment = useSelectedLayoutSegment();   // in the [studyId] layout
+return <ResearchScreen step={stepFromSlug(segment)} frame={frame} />;
+```
+
+**An `sr-only` element in a scrolling grid needs a positioned ancestor inside the scroller.**
+`sr-only` is `position: absolute`. With no positioned ancestor inside the scrolling container it is
+placed against one outside it and widens the page (#859; `components/aia/settings/AccessPanel.tsx:277
+@ 5d5ed250`).
+
+```tsx
+// WRONG -- the label is positioned against the page, and the page scrolls sideways
+<div role="columnheader"><span className="sr-only">Deaktivovat</span></div>
+// RIGHT
+<div role="columnheader" className="relative"><span className="sr-only">Deaktivovat</span></div>
+```
+
+**With `@theme inline`, read a colour at runtime as `var(--X)`, never `var(--color-X)`.**
+`tokens-theme.css` maps `--color-X` onto the runtime property `--X` inline, so Tailwind emits
+`--color-X` only when a utility class uses it. A style that names `var(--color-hue-blue)` gets
+nothing where no class does, and the Metodika art drew no colour (#867;
+`components/aia/settings/MethodologyArt.tsx:7 @ 5d5ed250`).
+
+```tsx
+// WRONG -- defined only if some utility uses it
+style={{ color: "var(--color-hue-blue)" }}
+// RIGHT -- the runtime property tokens.css always defines
+style={{ color: "var(--hue-blue)" }}
+```
+
+**A control inside a page that forces `min-h` on every button opts out with `data-dense`.**
+Settings enlarges every button to a touch target (`[&_button:not([data-dense])]:!min-h-11`,
+`components/aia/settings/ControlPanel.tsx:752 @ 5d5ed250`), which an `!important` utility on the
+child cannot undo. The segmented bar and the few compact buttons carry `data-dense` (#870;
+`components/ui/ChoiceChips.tsx:82 @ 5d5ed250`).
+
+```tsx
+// WRONG -- the page's !min-h-11 wins over the bar's own height
+<button className="min-h-7">…</button>
+// RIGHT -- the page's selector leaves it out
+<button data-dense className="min-h-11 sm:min-h-7">…</button>
+```
+
 ## The 18.6.6 unit, run outside its container
 
 **It registers its population files at import, not at first request.**
@@ -2209,6 +2291,32 @@ copy nobody writes.
 `docker rm "$cid"`, copies files out of a volume without running anything of the
 image.
 
+**Compose interpolates the whole file for every command.** A `${VAR:?}` the file requires stops
+`docker compose down`, `ps` and `logs` too, so once the secret is gone (a rollback removed it) the
+service can no longer be stopped or read (#829). Keep the guard for `up`; give the other commands a
+placeholder (`deploy/develop/bin/docs.sh:20-22 @ 5d5ed250`).
+
+```bash
+# WRONG -- "required variable AIA_ONLYOFFICE_JWT_SECRET is missing a value" on down
+docker compose -f docs/docker-compose.yml down
+# RIGHT -- only up keeps the guard
+if [ "${1:-}" != "up" ]; then
+  export AIA_ONLYOFFICE_JWT_SECRET="${AIA_ONLYOFFICE_JWT_SECRET:-unused-unless-starting}"
+fi
+```
+
+**Under `set -euo pipefail`, a command substitution that fails ends the script silently.** In an
+assignment `c="$(curl …)"`, curl's non-zero exit (a refused connection, a timeout) is the
+assignment's status, and errexit stops there before any check prints (#829;
+`deploy/develop/bin/smoke-docs.sh:38 @ 5d5ed250`).
+
+```bash
+# WRONG -- a transport failure exits the smoke without a word
+c="$(code "$base/")"
+# RIGHT -- the empty or 000 code reaches the check that reports it
+c="$(code "$base/" || true)"
+```
+
 ## numba, numpy and scipy in the domain (aia-sociomap-5, #504)
 
 `aia-sociomap-5` ports the methodology owner's numerical code as written, so the domain imports
@@ -2218,6 +2326,13 @@ numpy, scipy and numba (pinned 2.5 / 1.18 / 0.68 in `packages/aia_core/pyproject
   and numba raises at import without a cache directory it can write. Wrong: rely on the default
   (beside the package). Right: `NUMBA_CACHE_DIR=/tmp/numba` in the image's environment
   (`deploy/docker/python.Dockerfile`).
+- **numba compiles holding the GIL.** Beside a server, compile in a separate process, never a
+  thread: in a thread the API's health p95 went from 8 ms to 60 ms (max 624 ms) for the minute the
+  compile took. And a read-only image's cache directory in `/tmp` is empty on every start, so the
+  first call after a deploy pays the whole compile (47.6 s against 8 s warm). Wrong: warm the
+  kernels in a `threading.Thread`, or count on a cache the image ships. Right: a low-priority child
+  process after start that writes the shared cache (`apps/api/src/aia_api/warmup.py:56 @ 5d5ed250`,
+  `AIA_SOCIOMAP_WARMUP_ENABLED`; #871).
 - **BB1 (soft-rank Spearman with Coulomb) is platform-dependent.** With identical library versions,
   macOS and Linux can give different BB1 maps from about 12 objects: last-bit differences in the
   compiled kernel, amplified by a chaotic criterion. A given image is deterministic. Wrong: a parity
@@ -2524,4 +2639,55 @@ try:
 except DtdDeclared as exc:
     raise DocumentRefused("the part declares a DTD", reason="document_malformed") from exc
 root = ET.fromstring(data)
+```
+
+## ONLYOFFICE Docs, the report editor (`deploy/develop/docs`)
+
+**Set a Document Server option in `local-production-linux.json`, never `local.json`.** The image's
+start script rewrites `local.json` at every start, the JWT secrets among it, and the loader reads
+`local-<NODE_ENV>.json` after it. Some options, `services.CoAuthoring.autoAssembly` (the five-minute
+force-save) among them, have no environment variable in 9.4.0.1 (#829;
+`deploy/develop/docs/docker-compose.yml:61-63 @ 5d5ed250`).
+
+```yaml
+# WRONG -- the start script rewrites local.json at every start
+- ./local.json:/etc/onlyoffice/documentserver/local.json:ro
+# RIGHT
+- ./local-production-linux.json:/etc/onlyoffice/documentserver/local-production-linux.json:ro
+```
+
+**The saved file behind a cookie gate.** The save callback's `url` is the Document Server's own
+signed `/cache/files/…?md5=…&expires=…` link, which AIA's API fetches server to server with no
+cookie. A gate over every path of the origin refuses that fetch, and no save is ever stored. Let
+exactly that shape past the gate (GET or HEAD, both signature parameters, the pinned path), let the
+Document Server's nginx check the signature, and drop `md5` and `expires` from every access log: a
+logged link opens the saved document without the gate until it expires (#829;
+`deploy/develop/Caddyfile:180-195 @ 5d5ed250`).
+
+```caddyfile
+# WRONG -- every path behind forward_auth: the API's fetch of the saved file is 401
+handle { forward_auth api:8000 { uri /api/v1/session/docs-gate } reverse_proxy onlyoffice:80 }
+# RIGHT -- the signed cache link alone goes by, without a cookie
+@cache_file {
+	method GET HEAD
+	path_regexp cache_file ^/cache/files/(?:[A-Za-z0-9_=-][A-Za-z0-9_.=-]*/)*[A-Za-z0-9_=-][A-Za-z0-9_.=-]*$
+	query md5=* expires=*
+}
+handle @cache_file { reverse_proxy onlyoffice:80 { header_up -Cookie } }
+```
+
+## Two clocks compared without a bound fail open when one runs ahead
+
+The report editor's approval holds every edit only once a save covers the last edit AIA received
+(RPT8f, #880). The save callback's `lastsave` is the Document Server's clock; the edit's receipt is
+AIA's. A Document Server running ahead makes a save look later than an edit it does not hold, and
+the approval passes over an unsaved edit. A change cannot be later than the message that reports
+it, so bound the remote time by the local receipt of that message, and log a remote time ahead of it
+as skew (`apps/api/src/aia_api/routers/report_editor.py:491 @ 5d5ed250`, `_held_through`).
+
+```python
+# WRONG -- the Document Server's lastsave compared with AIA's receipt of an edit report
+content_at = _lastsave(payload.get("lastsave"))
+# RIGHT -- min(lastsave, receipt): a clock ahead can make an edit look later, never held early
+content_at = _held_through(_lastsave(payload.get("lastsave")), now)
 ```

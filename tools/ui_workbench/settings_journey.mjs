@@ -22,7 +22,13 @@ page.on("pageerror", (error) => errors.push(String(error)));
 page.on("request", (request) => { if (!["GET", "HEAD", "OPTIONS"].includes(request.method()) && new URL(request.url()).pathname.startsWith("/api/")) writes.push({ method: request.method(), path: new URL(request.url()).pathname }); });
 const headers = { Authorization: "Bearer workbench@example.invalid" };
 const get = async (path) => { const r = await page.request.get(base + path, { headers }); assert(r.ok(), `${path}: ${r.status()}`); return r.json(); };
-const tab = async (id) => { await page.locator(`#tab-${id}`).click(); assert.equal(await page.locator(`#tab-${id}`).getAttribute("aria-selected"), "true"); return page.locator(`#panel-${id}`); };
+// A section is opened as a person does (prototype v54): the top bar's section menu, then its link.
+const menuButton = () => page.locator("[data-section-menu] > button");
+const tab = async (id) => {
+  await menuButton().click(); await page.locator(`[data-section-link="${id}"]`).click();
+  await page.locator(`#panel-${id}`).waitFor({ state: "visible" });
+  assert.equal(new URL(page.url()).hash, `#${id}`); return page.locator(`#panel-${id}`);
+};
 const measure = async (name) => {
   const size = await page.evaluate(() => ({ width: innerWidth, documentWidth: document.documentElement.scrollWidth }));
   if (size.documentWidth > size.width + 2) console.log(JSON.stringify(await page.evaluate(() => [...document.querySelectorAll("body *")].map(e => ({ tag: e.tagName, text: e.textContent?.slice(0,75), classes: e.className?.toString(), right: e.getBoundingClientRect().right, width: e.getBoundingClientRect().width })).filter(e => e.width && e.right > innerWidth + 2).slice(-20)), null, 2));
@@ -36,17 +42,75 @@ const chooseField = async (reference) => {
   const field = page.locator(`[data-field="${reference}"]`).first(); await field.waitFor(); return field;
 };
 try {
-  await page.goto(base + "/app/settings"); await page.getByRole("tablist", { name: "Oddíly nastavení" }).waitFor();
-  // The page's ten tabs; a Metodika module's own sub-tabs (#856) are another tablist.
-  assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).getByRole("tab").count(), 10);
-  // At 1440 every tab shows its line under its name (settings-redesign 1).
-  assert.equal(await page.locator("[data-tab-subtitle]:visible").count(), 10);
+  await page.goto(base + "/app/settings"); await menuButton().waitFor();
+  // No column of tabs (prototype v54): the section menu in the top bar, by click or the platform's
+  // shortcut (Chromium on Linux: Ctrl+K; ⌘K is Apple's and does nothing here).
+  assert.equal(await page.getByRole("tablist", { name: "Oddíly nastavení" }).count(), 0, "no tab column");
+  const menu = page.getByRole("dialog", { name: "Nastavení – přejít na" });
+  assert.equal(await menuButton().getAttribute("aria-keyshortcuts"), "Control+K");
+  assert.equal(await page.locator("[data-section-menu] [data-shortcut]").textContent(), "Ctrl K");
+  await page.locator("body").press("Meta+k"); await page.waitForTimeout(200);
+  assert.equal(await menu.count(), 0, "⌘K is not this platform's shortcut");
+  await page.locator("body").press("Control+k"); await menu.waitFor();
+  // Ten sections in three columns, each with its line.
+  assert.equal(await menu.getByRole("group").count(), 3); assert.equal(await menu.locator("[data-section-link]").count(), 10);
+  await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+  assert(await menuButton().evaluate((b) => b === document.activeElement), "Esc gives the focus back to the menu's button");
+  // The shortcut again closes it, the focus back on the button too.
+  await page.locator("body").press("Control+k"); await menu.waitFor(); await page.keyboard.press("Control+k"); await menu.waitFor({ state: "detached" });
+  assert(await menuButton().evaluate((b) => b === document.activeElement), "the shortcut closing the menu gives the focus back");
+  // A keyword finds its section, the search says how many, and Enter opens the first match.
+  await page.locator("body").press("Control+k"); await page.keyboard.type("Brave");
+  assert.equal(await menu.getByRole("status").textContent(), "1 oddíl"); await page.keyboard.press("Enter");
+  await page.locator("#panel-deep_research").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#deep_research");
+  // The shortcut is the field's own while a person types in one: no menu, the focus stays, the text too.
+  const typing = page.locator("#panel-deep_research input:visible").first(); await typing.click();
+  await page.keyboard.press("Control+k"); await page.waitForTimeout(200);
+  assert.equal(await menu.count(), 0, "Ctrl+K in a field opens no menu");
+  assert(await typing.evaluate((f) => f === document.activeElement), "Ctrl+K in a field keeps the focus there");
+  await page.keyboard.press("Escape");
+  // A link to a section from the page itself opens it (a next/link wrote #deep_research#access).
+  await page.locator('#panel-deep_research [data-dr-posture] a[href="#access"]').click();
+  await page.locator("#panel-access").waitFor({ state: "visible" }); assert.equal(new URL(page.url()).hash, "#access");
+  // (an administrator's button adds what waits on them: ", čeká na vás: n")
+  assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Přístup a schvalování");
+  // The entry keeps the framework's history state: Back from another page lands on Přístup, not on
+  // that page under Přístup's address (a bare #access entry had none, and Next ignored its popstate).
+  assert.equal(await page.evaluate(() => history.state?.__NA === true), true, "the in-page link's entry keeps Next's state");
+  await page.locator('aside a[href="/app/clients"], nav a[href="/app/clients"]').first().click();
+  await page.waitForURL((url) => url.pathname === "/app/clients");
+  await page.goBack(); await page.locator("#panel-access").waitFor({ state: "visible" });
+  assert.equal(new URL(page.url()).hash, "#access"); assert.equal(await page.evaluate(() => history.state?.__NA === true), true);
+  assert.equal(await page.locator("[data-section-menu]").count(), 1, "Back left another page on screen");
+  // A deep link opens its section, and the menu's button names it, the trail's current page.
+  await page.goto(base + "/app/settings#audit"); await page.locator("#panel-audit").waitFor({ state: "visible" });
+  assert.equal((await menuButton().getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
+  assert.equal((await page.getByRole("navigation", { name: "Kde jste" }).locator('[aria-current="page"]').getAttribute("aria-label")).split(",")[0], "Nastavení › Audit");
+  checks.push("The section menu opens on Ctrl+K (⌘K off Apple does nothing), closes on Esc or Ctrl+K with the focus back, says what the search found, opens Brave on Enter; Ctrl+K in a field stays the field's; the in-page Přístup link and #audit open their sections, and Back from Klienti lands on Přístup");
+  await page.goto(base + "/app/settings"); await menuButton().waitFor();
+  // Open, the menu fits every width (it ran past the viewport from 768 to 1330 px), and every
+  // section shows its line under its name.
+  for (const width of [1440, 1330, 1280, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 1000 }); await menuButton().click(); await menu.waitFor();
+    await measure(`section menu open at ${width}`);
+    const box = await menu.boundingBox(); assert(box && box.x >= 0 && box.x + box.width <= width + 1, `section menu inside the viewport at ${width}: ${JSON.stringify(box)}`);
+    const lines = await menu.locator("[data-section-link] > span > span:nth-child(2)").evaluateAll((spans) => spans.map((s) => s.offsetParent !== null && s.textContent.trim() !== ""));
+    assert.deepEqual(lines, Array(10).fill(true), `every section's line at ${width}`);
+    await page.keyboard.press("Escape"); await menu.waitFor({ state: "detached" });
+  }
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  checks.push("The open section menu stays inside the viewport at 1440, 1330, 1280, 1024, 768 and 390, every section with its line");
   for (const id of ["ai", "prompts", "deep_research", "methodology", "access", "studies", "audit", "system", "reference", "data"]) {
     const panel = await tab(id); await panel.locator("[data-tab-header] h1").waitFor();
     if (id === "ai") {
       for (const g of ["study", "run", "out", "dr", "client"]) assert.equal(await page.locator(`[data-ai-group="${g}"]`).count(), 1, `ai: group ${g}`);
       assert.equal(await page.locator('[data-activity="run_qc"][data-state="not_built"]').count(), 1, "ai: a not-built activity says so");
       await page.locator("#panel-ai [data-config]").waitFor();
+      // Each listed activity's last answered call, read from the ledger for an administrator
+      // (F14): when, or none recorded; never unread on a healthy API, never a claim it works.
+      const listed = (await get("/api/v1/settings")).ai_runtime.activities.length;
+      await waitFor(async () => await page.locator("#panel-ai [data-answered]").count() === listed, "ai: each activity's last answer");
+      assert.equal(await page.locator('#panel-ai [data-answered="unread"]').count(), 0, "ai: the last answers could not be read");
     }
     if (id === "prompts") {
       await page.getByLabel("Instrukce", { exact: true }).waitFor();
@@ -70,14 +134,14 @@ try {
     }
     await widths(`tab ${id}`); await screenshot(id);
   }
-  checks.push("All ten settings tabs load and fit desktop/tablet/phone without page overflow; each names its purpose under its name at 1440");
+  checks.push("All ten settings sections load and fit desktop/tablet/phone without page overflow");
   // One technical switch per page instead of a disclosure arrow by every value (product owner, 2026-10-13).
   for (const id of ["ai", "access", "studies", "audit", "reference"]) {
     const panel = await tab(id);
     assert.equal(await panel.locator("details, summary").count(), 0, `${id}: a disclosure is back`);
     // The prototype's head (v51): the tab's name as h1 and one paragraph; who may change it in chips.
     assert.equal(await panel.locator("[data-tab-header] p").count(), 1, `${id}: one lede`);
-    assert.equal(await panel.locator("[data-tab-header] [role=switch]").count(), 0, `${id}: the switch is the page's`);
+    assert.equal(await panel.locator("[data-tab-header] [role=switch]").count(), 1, `${id}: the page's one switch, at the end of the open section's head`);
     for (const [width, height] of [[1710, 1000], [1920, 1080]]) { await page.setViewportSize({ width, height }); await measure(`tab ${id} ${width}`); }
     await page.setViewportSize({ width: 1440, height: 900 }); await measure(`tab ${id} 1440x900`); await page.setViewportSize({ width: 1440, height: 1000 });
   }
@@ -311,6 +375,14 @@ try {
   await page.locator("[data-methodology-activate]").getByRole("radio", { name: "Návrat k výchozí metodě", exact: true }).click();
   await page.locator("[data-methodology-activate]").getByRole("button", { name: "Vrátit na výchozí", exact: true }).click();
   await page.locator("[data-in-force]").filter({ hasText: "z kódu" }).waitFor();
+  // Verze a aktivace lists the code's preset as a version, in force again (fidelity F6b).
+  await page.locator('[data-methodology-version="code"]').getByText("v platnosti", { exact: true }).waitFor();
+  // Porovnání with no edit: what is in force beside itself, computed only when asked.
+  await page.getByRole("tab", { name: "Porovnání", exact: true }).click();
+  await page.getByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech", exact: true }).click();
+  await page.locator("[data-compare-baseline]").waitFor({ timeout: 90000 }); await page.locator("[data-methodology-compare]").waitFor();
+  await widths("methodology comparison without an edit");
+  checks.push("Verze a aktivace lists the code's preset among the versions; Porovnání shows what is in force beside itself when asked, with no edit");
   checks.push("Methodology section edits retain values, invalid fields reject, replacements guard, stale comparisons clear, failed saves retry, saved versions activate separately and survive reload");
   assert.equal(writes.filter((r) => /agent-jobs|research\/runs|deep-research\/runs/.test(r.path)).length, 0); assert.deepEqual(errors, []);
   const report = { status: "PASS", checks, layouts, writes, pageErrors: errors, paidJobs: 0, defaultMethodologyHeight: defaultHeight }; writeFileSync(join(out, "checks.json"), JSON.stringify(report, null, 2)); console.log(JSON.stringify({ ...report, writes: writes.length, layouts: layouts.length, out }, null, 2));

@@ -424,6 +424,9 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 **New chunks.** 16 (W3), 18 (W4; D-48 in, its budget values open in the baseline).
 
+*The owner, 2026-10-25 (PERF-BUDGETS (b), the audit page, relayed by coordinator 3): planning proposes per-journey numbers in chunk
+18's PR, and the owner approves them there.*
+
 **Existing chunks, changed.**
 
 - **3 (G75).** `parity_status.py` computes MVP-ACCEPT-2's verdict from the acceptance step's own

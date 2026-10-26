@@ -23,6 +23,7 @@ from .observability import (
     install_exception_handlers,
 )
 from .routers import (
+    ai_activity,
     client_sources,
     deep_research,
     deep_research_reach,
@@ -175,6 +176,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(researcher_spend.router, prefix=API_PREFIX)
     app.include_router(deep_research_reach.router, prefix=API_PREFIX)
     app.include_router(system_status.router, prefix=API_PREFIX)
+    app.include_router(ai_activity.router, prefix=API_PREFIX)
     app.include_router(organization_spend.router, prefix=API_PREFIX)
     return app
 

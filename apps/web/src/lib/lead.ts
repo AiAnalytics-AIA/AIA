@@ -12,6 +12,7 @@ import { type ConditionRefusal, type ConditionValue, conditionRefusal, qId, sect
 import type { Analysis } from "@/research/store";
 import type { ResearchAgentJob } from "./api";
 import { parseAudienceId } from "./artifacts/audience";
+import type { MapFilter } from "./artifacts/sociomap";
 import { JOB_STAGE } from "./lead-cards";
 import { withFixer } from "./route-refusal";
 import type { WorkbenchStage } from "./workbench-stages";
@@ -37,11 +38,51 @@ export type RouteSetEdit = { op: "route_set"; question_id: string; condition: Co
 export type WorkingEdit = LeadEdit | RouteSetEdit;
 
 /** The Lead's view operations (research-lead-workbench 14): open a stage, point at an element,
- *  open an element's detail in the item drawer over its stage, show a stage's waiting changes. */
+ *  open an element's detail in the item drawer over its stage, show a stage's waiting changes; on
+ *  Sociomapa, select an element and set a display filter (artifact-sociomap SOC1's forms,
+ *  `readMapOp`). `select` and `filter` are not live yet: the server's output does not carry them
+ *  until the map applies them (LIVE_VIEW_OPS). */
 export type LeadView =
   | { op: "open_stage"; stage: WorkbenchStage }
   | { op: "show_diff"; stage: WorkbenchStage }
-  | { op: "focus" | "inspect"; target: string };
+  | { op: "focus" | "inspect"; target: string }
+  | { op: "select"; target: string }
+  | { op: "filter"; name: MapFilter; value: string };
+
+/** A Lead view the map applies (its picture only, never the map). */
+export type LeadMapView = Extract<LeadView, { op: "select" | "filter" }>;
+
+/** Sent with a LeadMapView when the Lead selects on Sociomapa or sets one of its display filters;
+ *  the map checks it (`readMapOp`) and changes its picture. A map that mounts after the move reads
+ *  the one waiting (`takeLeadMapView`). */
+export const LEAD_MAP_VIEW = "aia:lead-map-view";
+const leadMapView: { pending: LeadMapView | null } = { pending: null };
+
+/** Hands the map a Lead view: kept for a map not shown yet, and sent to the one on screen. */
+export function sendLeadMapView(view: LeadMapView): void {
+  leadMapView.pending = view;
+  window.dispatchEvent(new CustomEvent<LeadMapView>(LEAD_MAP_VIEW, { detail: view }));
+}
+
+/** The Lead view waiting for the map, taken once (a map that mounts after the move). */
+export function takeLeadMapView(): LeadMapView | null {
+  const view = leadMapView.pending;
+  leadMapView.pending = null;
+  return view;
+}
+
+const FILTER_WORDS: Readonly<Record<MapFilter, (value: string) => string>> = {
+  view: (v) => (v === "relief" ? "Mapa: reliéf" : "Mapa: shora"),
+  labels: (v) => (v === "on" ? "Mapa: popisky zapnout" : "Mapa: popisky vypnout"),
+  hide_weak: (v) => (v === "on" ? "Mapa: skrýt slabé vztahy" : "Mapa: ukázat slabé vztahy"),
+  mode: (v) => (v === "respondents" ? "Mapa respondentů" : "Mapa objektů"),
+  battery: (v) => `Mapa: sada ${v}`,
+};
+
+/** A Lead's map view in words, for its chip: what the picture becomes, never a code. */
+export function mapViewWords(view: LeadMapView, design?: TargetWords | null): string {
+  return view.op === "filter" ? FILTER_WORDS[view.name](view.value) : `Vybrat: ${targetLabel(view.target, design)}`;
+}
 
 /**
  * What a Lead's show_diff on `stage` shows (the owner, 2026-10-22): the Lead's edits still to
@@ -137,6 +178,12 @@ export type LeadTurn = {
   command?: string | null;
   /** What the turn applied at once to the Lead's own files and notes (a client note, forgetting one). */
   changes?: { name?: boolean; soul?: boolean; user?: boolean; remembered?: string[]; forgotten?: string[] } | null;
+  /** A person's message that waits for the Lead, stored on the server and shown in every tab
+   *  (ADR 0041 decision 7); withdrawn: taken back before any turn was sent it. */
+  queued?: boolean;
+  withdrawn?: boolean;
+  /** The messages a Lead turn was sent, in queue order. */
+  answers?: string[];
 };
 
 /**
@@ -768,6 +815,9 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
   lead_context_too_large: "Studie je pro jednu odpověď příliš velká. Zkuste se zeptat na konkrétní část.",
   lead_busy: "Vedoucí ještě odpovídá na předchozí zprávu.",
+  lead_queue_full: "Na Vedoucího už čeká pět zpráv. Počkejte, až odpoví.",
+  lead_message_not_queued: "Zpráva už nečeká: Vedoucí ji mezitím dostal.",
+  message_too_long: "Zpráva je příliš dlouhá: nejvýše 8 KB textu.",
   lead_not_hatched: "Nejdřív si vylíhněte vlastního Vedoucího výzkumu.",
   stale_card: "Studie se od přípravy této karty změnila; úloha se nespustila.",
   agent_context_too_large: "Studie je pro návrhovou úlohu příliš rozsáhlá (úloha přečte nejvýš 64 KB); nic se nespustilo. Zkraťte přílohy nebo design.",

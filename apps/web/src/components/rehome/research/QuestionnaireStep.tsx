@@ -77,7 +77,7 @@ import {
   type SetLimits,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
+import { COMPARISONS, CONCEPT_TEST, comparisonOf, coverageOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon, type IconName } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
@@ -256,11 +256,14 @@ export function QuestionnaireStep() {
   const dock = (
     <ActionDock
       back={{ href: stepHref("plan"), label: `2. ${t("aia.stages.plan")}` }}
-      ready={canGo && !emptyQuestions && !badSets}
+      ready={has && !emptyQuestions && !badSets}
       note={
         !canGo
           ? t("research.questionnaire.nextHint")
-          : emptyQuestions
+          : !has
+            // Tracked sets alone are no questionnaire (OI-52 (b)); readiness fails it too.
+            ? t(questionnaireCounts(p).sets ? "research.questionnaire.dockSetsOnly" : "research.questionnaire.nextHint")
+            : emptyQuestions
             ? tv("research.questionnaire.dockEmpty", { n: emptyQuestions })
             : badSets
               ? tv("research.questionnaire.dockSets", { n: badSets, ...setWords(setLimits) })
@@ -797,9 +800,10 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
       <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
-        {stated.map((rq) => (
+        {stated.map((rq, i) => (
           <li key={rq} className="flex flex-col gap-1.5 text-sm">
-            <span>{rq}</span>
+            {/* Numbered with the chips' key, so "VO n" is legible without hover (keyboard, touch). */}
+            <span>{tv("research.questionnaire.strip.rq", { n: i + 1 })} · {rq}</span>
             <ChoiceChips
               label={tv("research.questionnaire.comparisons.choose", { rq })}
               value={comparisonOf(state.project, rq) ?? NONE}
@@ -1003,6 +1007,8 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
   const stated = researchQuestionsOf(state.project);
   const links = linksOf(item);
   const dangling = danglingLinks(item, stated);
+  // Until some item declares a link, coverage is unknown for all of them (coverageOf), not a gap here.
+  const anyLinked = coverageOf(state.project).linked;
   if (!stated.length && !dangling.length) return <p className="mt-3 text-xs text-ink-muted">{t("research.questionnaire.links.none")}</p>;
   const on = (rq: string) => links.some((l) => linkKey(l) === linkKey(rq));
   return (
@@ -1014,7 +1020,17 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
             multiple
             label={t("research.questionnaire.links.choices")}
             value={stated.filter(on)}
-            options={stated.map((rq) => ({ key: rq, label: rq }))}
+            // Short "VO n" chips (spec navrh/Q3, QST2): the chip is named "VO n: <question>" and its
+            // tooltip is the question; the linked ones are written out under the chips, for touch.
+            options={stated.map((rq, i) => ({
+              key: rq,
+              label: (
+                <span title={rq}>
+                  {tv("research.questionnaire.strip.rq", { n: i + 1 })}
+                  <span className="sr-only">: {rq}</span>
+                </span>
+              ),
+            }))}
             // One toggled at a time: the one whose state the new value changes.
             onChange={(next) => {
               const flipped = stated.find((rq) => next.includes(rq) !== on(rq));
@@ -1034,6 +1050,13 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
           </button>
         ))}
       </div>
+      {stated.some(on) ? (
+        <ul aria-hidden="true" className="flex flex-col gap-0.5 text-xs text-ink-muted">
+          {stated.map((rq, i) => (on(rq) ? <li key={rq}>{tv("research.questionnaire.strip.rq", { n: i + 1 })} · {rq}</li> : null))}
+        </ul>
+      ) : stated.length && anyLinked ? (
+        <p className="text-xs text-ink-muted">{t("research.questionnaire.links.unlinked")}</p>
+      ) : null}
       {dangling.length ? <p className="text-xs text-status-you-ink">{t("research.questionnaire.links.dangling")}</p> : null}
     </fieldset>
   );

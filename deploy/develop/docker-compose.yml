@@ -212,6 +212,11 @@ services:
       # the Document Server is not on (report-editor-hosting decision 4). The editor's routes
       # answer only with it, the URL and the secret all set; the URL and secret unset, still 404.
       AIA_ONLYOFFICE_CALLBACK_BASE: https://${AIA_PUBLIC_HOSTNAME}
+      # The integrity the page's api.js must match (artifact-report RPT8e): docs/'s pinned image's
+      # api.js under its fixed cache tag (AIA_DS_CACHE_TAG), sha384-<base64>, versioned here beside
+      # it so an upgrade or a rollback carries its own; SSM aia_onlyoffice_api_integrity overrides
+      # it. Empty, Zpráva opens nothing in the editor whatever else is set.
+      AIA_ONLYOFFICE_API_INTEGRITY: ${AIA_ONLYOFFICE_API_INTEGRITY:-sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G}
     volumes:
       - ${AIA_POPULATION_DIR:-/opt/aia/population}:/srv/population:ro
     expose: ["8000"]

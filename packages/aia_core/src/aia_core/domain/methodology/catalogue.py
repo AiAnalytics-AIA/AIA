@@ -23,16 +23,19 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel
 
 from .expressions import Slot
 
 __all__ = [
+    "Bound",
     "BuiltinFormula",
     "ConstantRef",
     "Evidence",
     "EvidenceKind",
+    "Limit",
     "MethodModule",
     "MethodStep",
     "ParameterEffect",
@@ -41,6 +44,11 @@ __all__ = [
     "PreviewLine",
     "StepGroup",
     "Symbol",
+    "above",
+    "at_least",
+    "at_most",
+    "below",
+    "bound_of",
     "feeds_of",
 ]
 
@@ -100,6 +108,49 @@ class ParameterRef:
     label_cs: str
     unit: str = ""
     effect: ParameterEffect = ParameterEffect.NONE
+
+
+@dataclass(frozen=True, slots=True)
+class Limit:
+    """One side of a field's bound: a number, or another field of the same specification by
+    its dotted path, which the bound then reads from the draft it is checked against."""
+
+    side: Literal["low", "high"]
+    value: int | float | str
+    #: Strict: the limit itself is outside (``> 0``), not inside (``>= 0``).
+    strict: bool = False
+
+
+def at_least(value: int | float | str) -> Limit:
+    return Limit("low", value)
+
+
+def above(value: int | float | str) -> Limit:
+    return Limit("low", value, strict=True)
+
+
+def at_most(value: int | float | str) -> Limit:
+    return Limit("high", value)
+
+
+def below(value: int | float | str) -> Limit:
+    return Limit("high", value, strict=True)
+
+
+@dataclass(frozen=True, slots=True)
+class Bound:
+    """The range a check holds one editable field to (settings-redesign F13, AUD-10 (b)).
+
+    Never more than the check: ``guard`` is the ``module:qualname`` of the function that
+    refuses a value outside it, at the field's own path or the part that holds it, and the test
+    suite proves each limit under every preset that gives the field a number -- the value at the
+    limit kept, the value just past it refused. A field no check holds declares no bound, and
+    the editor says so; a field whose range differs between presets declares none either.
+    """
+
+    path: str
+    limits: tuple[Limit, ...]
+    guard: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -235,6 +286,13 @@ class MethodModule:
     preview: Callable[[BaseModel], tuple[PreviewLine, ...]] | None = None
     #: Where a person meets the preview's lines, as the page heads them.
     preview_title_cs: str = ""
+    #: The range each check holds an editable field to, by its path; a field absent has none.
+    bounds: tuple[Bound, ...] = ()
+
+
+def bound_of(module: MethodModule, path: str) -> Bound | None:
+    """The bound ``module`` declares for the field at ``path``; ``None`` where no check holds it."""
+    return next((b for b in module.bounds if b.path == path), None)
 
 
 def feeds_of(module: MethodModule, step_id: str) -> tuple[str, ...]:
