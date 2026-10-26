@@ -2141,3 +2141,13 @@ Reported by the Zadání owner: `workbench_journey.mjs` failed on develop 01babf
 high, outside the phone-width rule that gives every frame control 44 px (input-interactions I11). It joins
 that rule (`workbench.css`). Test: `workbench-css.test.ts` "makes the Lead pane's Vidí chip a 44 px target…",
 which fails without the change.
+
+### The dock's moved action keeps its place (2026-10-26, `fix/action-dock-stable-root`; follow-up to #936)
+
+From #936's stand-in review (P3): inside the workbench, `ActionDock` returned its header portal as the root
+when it had no note, and as a child of its card when it had one. A note arriving (PlanStep's, once the
+analysis loads) remounted the header's forward button, and a focused one lost its focus. The portal now
+stays first in one fragment, with the card beside it only when it has something to show. Test:
+`step.test.tsx` "ActionDock keeps its moved action, and the focus on it, when its note comes and goes",
+which fails without the change. The review's other P3, a comment beside the journey's `navStage`, fell
+away: #840's helper, taken in #936's merge, matches a stage's label exactly.
