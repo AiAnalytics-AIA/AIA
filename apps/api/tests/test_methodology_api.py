@@ -228,8 +228,11 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(owner: TestClient) -> 
         "preset": "aia-sociomap-5",
         "version_number": None,
         "name": "aia-sociomap-5",
+        # The register's answer for the method in force: the preset is approved for clients.
+        "register_status": "CLIENT_FACING",
     }
     assert (body["may_administer"], body["versions"], body["history"]) == (True, [], [])
+    assert body["code_register_status"] == "CLIENT_FACING"
 
 
 def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_preset(
@@ -252,11 +255,21 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
         "preset": None,
         "version_number": 1,
         "name": "aia-sociomap-3+e1",
+        # An edit is another method: internal until registered, never presumed approved.
+        "register_status": "INTERNAL_ONLY",
     }
+    assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["register_status"] == (
+        "INTERNAL_ONLY"
+    )
     back = owner.put(f"{SOCIOMAP}/activation", json={"version_number": None, "reason": "zpět"})
     assert back.json()["origin"] == "code"
+    assert back.json()["register_status"] == "CLIENT_FACING"
     body = owner.get(f"{SOCIOMAP}/versions").json()
     assert [v["version_number"] for v in body["versions"]] == [1]
+    # Verze a aktivace lists each version with the register's answer for it, and the code's
+    # preset beside them with its own.
+    assert body["versions"][0]["register_status"] == "INTERNAL_ONLY"
+    assert body["code_register_status"] == "CLIENT_FACING"
     assert [(a["version_number"], a["reason"]) for a in body["history"]] == [
         (None, "zpět"),
         (1, "ověřeno"),
@@ -385,7 +398,11 @@ def _support_edit(**lines: Any) -> dict[str, Any]:
 
 
 def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None:
-    presets = owner.get(f"{SUPPORT}/versions").json()["presets"]
+    support = owner.get(f"{SUPPORT}/versions").json()
+    # No register covers the support rules: the field says nothing rather than "approved".
+    assert support["in_force"]["register_status"] is None
+    assert support["code_register_status"] is None
+    presets = support["presets"]
     assert presets == {"aia-support-1": AIA_SUPPORT_V1.model_dump(mode="json")}
     looser = owner.post(f"{SUPPORT}/versions", json=_support_edit(results__min_layer_donors=10))
     stricter = owner.post(
@@ -395,6 +412,7 @@ def test_support_is_edited_both_ways_and_put_in_force(owner: TestClient) -> None
     assert (looser.status_code, stricter.status_code) == (201, 201)
     assert stricter.json()["spec"]["results"]["min_cell"] == 80
     assert stricter.json()["spec"]["analysis"]["n_guard"] is None
+    assert stricter.json()["register_status"] is None  # no register covers the support rules
     put = owner.put(f"{SUPPORT}/activation", json={"version_number": 2, "reason": "přísněji"})
     assert put.json()["name"] == "aia-support-1+e2"
 
@@ -563,12 +581,17 @@ def _readiness_draft(n: int, items: int) -> dict[str, Any]:
             "title": "Fiktivní nápoje",
             "n": n,
             "sections": [
+                # A plain question: tracked sets alone are no questionnaire (OI-52 (b)).
+                {
+                    "type": "questions",
+                    "questions": [{"text": "Jak?", "typ": "skala", "skala": [1, 5]}],
+                },
                 {
                     "type": "object_battery",
                     "title": "Nápoje",
                     "object_family": "nápoje",
                     "objects": [f"Nápoj {i}" for i in range(1, items + 1)],
-                }
+                },
             ],
         },
         "base_revision": None,
@@ -587,6 +610,21 @@ def test_each_limit_says_what_crossing_it_does_and_the_rule_reads_with_its_value
     steps = {s["id"]: s for s in body["step_details"]}
     assert steps["sample_size"]["reading_cs"] == "{sample_size.min} ≤ n ≤ {sample_size.max}"
     assert "chybějící n blokuje vždy" in steps["sample_size"]["keeps_cs"]
+
+
+def test_each_bounded_field_carries_its_checks_range_and_an_unbounded_one_none(
+    owner: TestClient,
+) -> None:
+    values = _values(owner.get(READINESS).json())
+    assert values["sample_size.min"]["bound"] == {
+        "limits": [{"side": "low", "value": 1.0, "reference": None, "strict": False}],
+        "whole": True,
+    }
+    # A limit read from another field names it; the draft's value is the limit.
+    assert values["sample_size.max"]["bound"]["limits"] == [
+        {"side": "low", "value": None, "reference": "sample_size.min", "strict": True}
+    ]
+    assert values["methodology_version"]["bound"] is None
 
 
 def test_the_readiness_check_previews_the_lines_the_code_writes_under_the_draft(

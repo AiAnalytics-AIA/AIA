@@ -1,5 +1,10 @@
 // Návrh's part of the Lead contract (artifact-design DSN1).
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { describe, expect, it } from "vitest";
+
+import { focusSelector, targetLabel } from "@/lib/lead";
 
 import { ARTIFACTS, parseAiaId } from "@/lib/workbench-artifacts";
 import { DESIGN_LABELS, PLAN_PARTS, type DesignKind, type PlanPart, designAllows, designLabel, designTarget, objectiveTarget, planTarget, sectionElement, sectionTargetOf } from "./design";
@@ -33,6 +38,20 @@ describe("Návrh's targets", () => {
 });
 
 describe("Návrh's section anchors", () => {
+  // The contract's plan grammar (packages/aia_core/tests/fixtures/lead_artifacts/contract.json), which the
+  // server's _PLAN_PARTS is held to as well: every part is drawn, focused and named, on both sides.
+  const FILE = JSON.parse(readFileSync(join(process.cwd(), "../../packages/aia_core/tests/fixtures/lead_artifacts/contract.json"), "utf8")) as {
+    targets: { kind: string; id: string }[];
+  };
+  const grammar = FILE.targets.find((t) => t.kind === "plan")!.id.split("|");
+  it("are exactly the contract's plan parts, each focused on its element and named in words by the Lead", () => {
+    expect(Object.keys(PLAN_PARTS).sort()).toEqual([...grammar].sort());
+    for (const part of grammar as PlanPart[]) {
+      expect(focusSelector(planTarget(part))).toBe(`[id="${PLAN_PARTS[part]}"]`);
+      expect(targetLabel(planTarget(part))).not.toBe("Návrh");
+    }
+  });
+
   it("open on the element PlanStep draws, and read back from it", () => {
     for (const part of Object.keys(PLAN_PARTS) as PlanPart[]) {
       const target = planTarget(part);

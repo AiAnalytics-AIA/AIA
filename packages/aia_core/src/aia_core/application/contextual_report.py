@@ -26,7 +26,7 @@ from aia_core.application.report import (
     sourced,
 )
 from aia_core.application.report_chapters import report_chapters
-from aia_core.application.report_document import beside, store_document_beside
+from aia_core.application.report_document import document_of, store_document_beside
 from aia_core.application.report_export import review_stamp_record
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.analysis import ANALYSIS_MODULES, AnalysisModuleId
@@ -64,7 +64,6 @@ from aia_core.domain.fieldwork import OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
 from aia_core.domain.report.control_tags import source_tag
 from aia_core.domain.report.controls import under
-from aia_core.domain.report.document_model import DOCUMENT_MODEL_MEDIA_TYPE
 from aia_core.domain.report.model import (
     ArtifactSource,
     Block,
@@ -974,17 +973,7 @@ def _store_document(
 def contextual_report_document(artifacts: ArtifactRepository, docx: Artifact) -> Artifact | None:
     """The newest document model stored beside exactly ``docx``, a stored report with literature;
     ``None`` for a version stored before its document was (it still downloads). Composes nothing."""
-    models = [
-        a
-        for a in artifacts.list_for_stage(
-            project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
-        )
-        if a.artifact_type == CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE
-        and a.content_type == DOCUMENT_MODEL_MEDIA_TYPE
-        and a.status is ArtifactStatus.VALID
-        and beside(a, docx)
-    ]
-    return models[-1] if models else None
+    return document_of(artifacts, docx, CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE)
 
 
 def prepared_drafts(

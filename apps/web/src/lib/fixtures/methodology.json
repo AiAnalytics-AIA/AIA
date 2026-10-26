@@ -102,6 +102,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze agregace",
         "origin": "specification",
@@ -582,6 +583,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Šířka top boxu",
         "origin": "specification",
@@ -591,6 +603,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko bootstrapu top boxu",
         "origin": "specification",
@@ -636,6 +659,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Replikace bootstrapu na možnost",
         "origin": "specification",
@@ -697,6 +731,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Replikace bootstrapu",
         "origin": "specification",
@@ -706,6 +751,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko bootstrapu",
         "origin": "specification",
@@ -753,6 +809,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu",
         "origin": "specification",
@@ -795,6 +852,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Vzory absolutní hodnoty (regex)",
         "origin": "code_constant",
@@ -814,6 +872,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Vzory relativního srovnání (regex)",
         "origin": "code_constant",
@@ -901,6 +960,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "changes_stored",
         "label_cs": "Desetinná místa podílů",
         "origin": "specification",
@@ -952,6 +1028,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "changes_stored",
         "label_cs": "Desetinná místa průměrů a SD",
         "origin": "specification",
@@ -1034,6 +1127,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze mezí připravenosti",
         "origin": "specification",
@@ -1068,7 +1162,7 @@
       "reading_cs": "{sample_size.min} ≤ n ≤ {sample_size.max}",
       "role_cs": "Kolik respondentů smí studie mít. Mimo rozsah AIA běh nespustí: výzkumník musí vzorek upravit.",
       "source_cs": "n zadané v kroku Dimenze a vzorek",
-      "source_sha256": "cd0da671d26406a380673d7c9f200961847a3c4e0b3522bf1643e01be2fcf3d7",
+      "source_sha256": "5e973cf7040644da7ff7bca27cab18dad2042e75243f49fac9f780715a179d20",
       "symbols": [
        {
         "latex": "n",
@@ -1085,6 +1179,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "blocks_run",
         "label_cs": "Nejmenší vzorek",
         "origin": "specification",
@@ -1094,6 +1199,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "sample_size.min",
+           "side": "low",
+           "strict": true,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "blocks_run",
         "label_cs": "Největší vzorek",
         "origin": "specification",
@@ -1145,6 +1261,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "blocks_design",
         "label_cs": "Nejméně položek",
         "origin": "specification",
@@ -1154,6 +1281,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "tracked_set.min",
+           "side": "low",
+           "strict": true,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "blocks_design",
         "label_cs": "Nejvíce položek",
         "origin": "specification",
@@ -1163,6 +1301,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "tracked_set.min",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "warns",
         "label_cs": "Doporučeno nejméně",
         "origin": "specification",
@@ -1172,6 +1321,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "tracked_set.recommended_min",
+           "side": "low",
+           "strict": false,
+           "value": null
+          },
+          {
+           "reference": "tracked_set.max",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "warns",
         "label_cs": "Doporučeno nejvíce",
         "origin": "specification",
@@ -1286,6 +1452,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze procesu odpovědi",
         "origin": "specification",
@@ -1410,6 +1577,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Mez exponentu (L)",
         "origin": "specification",
@@ -1466,6 +1644,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ (a)",
         "origin": "specification",
@@ -1475,6 +1654,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sklon se stylem (b)",
         "origin": "specification",
@@ -1530,6 +1710,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Koeficient (c)",
         "origin": "specification",
@@ -1590,6 +1771,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Koeficient (e)",
         "origin": "specification",
@@ -1645,6 +1827,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Koeficient (d)",
         "origin": "specification",
@@ -1705,6 +1888,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ (g)",
         "origin": "specification",
@@ -1714,6 +1898,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sklon se stylem (h)",
         "origin": "specification",
@@ -1723,6 +1908,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Strop podílu (λ max)",
         "origin": "specification",
@@ -1828,6 +2030,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "souhlasný sklon: vzdělání",
         "origin": "specification",
@@ -1837,6 +2040,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "souhlasný sklon: věk",
         "origin": "specification",
@@ -1846,6 +2050,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "souhlasný sklon: muž",
         "origin": "specification",
@@ -1855,6 +2060,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "vyhraněnost: vzdělání",
         "origin": "specification",
@@ -1864,6 +2070,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "vyhraněnost: věk",
         "origin": "specification",
@@ -1873,6 +2080,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "vyhraněnost: muž",
         "origin": "specification",
@@ -1882,6 +2090,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "ochota přiznat „nevím“: vzdělání",
         "origin": "specification",
@@ -1891,6 +2100,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "ochota přiznat „nevím“: věk",
         "origin": "specification",
@@ -1900,6 +2110,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "ochota přiznat „nevím“: muž",
         "origin": "specification",
@@ -1909,6 +2120,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "sdílnost: vzdělání",
         "origin": "specification",
@@ -1918,6 +2130,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "sdílnost: věk",
         "origin": "specification",
@@ -1927,6 +2140,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "sdílnost: muž",
         "origin": "specification",
@@ -1936,6 +2150,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "satisficing: vzdělání",
         "origin": "specification",
@@ -1945,6 +2160,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "satisficing: věk",
         "origin": "specification",
@@ -1954,6 +2170,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "satisficing: muž",
         "origin": "specification",
@@ -1963,6 +2180,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "citlivost na společenskou žádoucnost: vzdělání",
         "origin": "specification",
@@ -1972,6 +2190,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "citlivost na společenskou žádoucnost: věk",
         "origin": "specification",
@@ -1981,6 +2200,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "citlivost na společenskou žádoucnost: muž",
         "origin": "specification",
@@ -1990,6 +2210,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Dolní mez váhy šumu (φ)",
         "origin": "specification",
@@ -2071,6 +2308,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh výraznosti (θ)",
         "origin": "specification",
@@ -2301,6 +2549,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metodiky",
         "origin": "specification",
@@ -2420,6 +2669,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převod na škálu 0-1",
         "origin": "specification",
@@ -2531,6 +2781,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Normalizace na osobu",
         "origin": "specification",
@@ -2656,6 +2907,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Odhad vztahu",
         "origin": "specification",
@@ -2746,6 +2998,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ n",
         "origin": "specification",
@@ -2908,6 +3161,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hladina spolehlivosti",
         "origin": "specification",
@@ -2917,6 +3171,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší n s intervalem",
         "origin": "code_constant",
@@ -2971,6 +3226,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 4.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší n páru",
         "origin": "specification",
@@ -2980,6 +3246,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejnižší přípustné n_min",
         "origin": "code_constant",
@@ -3068,6 +3335,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh účinku",
         "origin": "specification",
@@ -3140,6 +3424,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Zřetelný vztah od |r̃|",
         "origin": "specification",
@@ -3201,6 +3502,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Míra falešných objevů q",
         "origin": "specification",
@@ -3256,6 +3574,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Pravidlo šumu zapnuto",
         "origin": "specification",
@@ -3265,6 +3584,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání na objekt T",
         "origin": "specification",
@@ -3274,6 +3604,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -3334,6 +3675,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": "relation.n_min",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Práh páru pro rozložení n_L",
         "origin": "specification",
@@ -3343,6 +3701,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Plná váha páru od n_plná",
         "origin": "specification",
@@ -3401,6 +3770,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl párů pod prahem s",
         "origin": "specification",
@@ -3410,6 +3796,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet partnerů p_min",
         "origin": "specification",
@@ -3497,6 +3894,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejméně objektů na mapě",
         "origin": "specification",
@@ -3506,6 +3904,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Minimum před aia-sociomap-4",
         "origin": "code_constant",
@@ -3601,6 +4000,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Cílová vzdálenost",
         "origin": "specification",
@@ -3670,6 +4070,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Algoritmus rozložení",
         "origin": "specification",
@@ -3679,6 +4080,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše iterací",
         "origin": "specification",
@@ -3688,6 +4090,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance zastavení",
         "origin": "specification",
@@ -3697,6 +4100,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rámec mapy",
         "origin": "specification",
@@ -3706,6 +4110,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah pravítka",
         "origin": "specification",
@@ -3715,6 +4120,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pevné pravítko",
         "origin": "code_constant",
@@ -3855,6 +4261,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          },
+          {
+           "reference": "layout.soft_rank_spearman.max_objects",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "BB1 od M_min objektů",
         "origin": "specification",
@@ -3864,6 +4287,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "BB1 do M_max objektů",
         "origin": "specification",
@@ -3873,6 +4297,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Váha odpuzování λ",
         "origin": "specification",
@@ -3882,6 +4317,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů pod 10 objekty",
         "origin": "specification",
@@ -3891,6 +4337,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů od 10 objektů",
         "origin": "specification",
@@ -3900,6 +4357,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko náhodných startů",
         "origin": "specification",
@@ -3909,6 +4377,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejvýše průchodů",
         "origin": "specification",
@@ -3987,6 +4466,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Náhodných startů",
         "origin": "specification",
@@ -3996,6 +4486,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podlaha κ",
         "origin": "specification",
@@ -4005,6 +4512,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Strop vah přesnosti C",
         "origin": "specification",
@@ -4183,6 +4701,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem b₁, b₂, b₃",
         "origin": "specification",
@@ -4192,6 +4711,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem před aia-sociomap-4",
         "origin": "code_constant",
@@ -4397,6 +4917,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh shody s_min",
         "origin": "specification",
@@ -4406,6 +4943,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet rozdělení S",
         "origin": "specification",
@@ -4415,6 +4963,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko rozdělení",
         "origin": "specification",
@@ -4424,6 +4983,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Převzorkování B",
         "origin": "specification",
@@ -4433,6 +5003,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko převzorkování",
         "origin": "specification",
@@ -4442,6 +5023,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Bezpečnostní násobek c",
         "origin": "specification",
@@ -4640,6 +5232,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška objektu",
         "origin": "specification",
@@ -4722,6 +5315,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet převzorkování B",
         "origin": "specification",
@@ -4731,6 +5335,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -4740,6 +5345,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu",
         "origin": "specification",
@@ -4749,6 +5355,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu před aia-sociomap-4",
         "origin": "code_constant",
@@ -4761,6 +5368,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Generátor",
         "origin": "code_constant",
@@ -4885,6 +5493,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Umístění respondentů",
         "origin": "specification",
@@ -5084,6 +5693,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina testu náhody α",
         "origin": "specification",
@@ -5093,6 +5719,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet hodnocení n_min",
         "origin": "specification",
@@ -5102,6 +5739,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Spolehlivá od M_min objektů",
         "origin": "specification",
@@ -5111,6 +5759,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka jádra hustoty σ_R",
         "origin": "specification",
@@ -5509,6 +6168,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Největší počet segmentů G_max",
         "origin": "specification",
@@ -5518,6 +6188,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Násobek penalizace BIC λ",
         "origin": "specification",
@@ -5527,6 +6208,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání B",
         "origin": "specification",
@@ -5536,6 +6228,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": "segments.max_segments",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně respondentů se sklonem",
         "origin": "specification",
@@ -5545,6 +6248,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně hodnocení pro sklon",
         "origin": "specification",
@@ -5554,6 +6268,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší podíl zisku g_min",
         "origin": "specification",
@@ -5563,6 +6294,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší segment π_min",
         "origin": "specification",
@@ -5572,6 +6320,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší oddělení S_min",
         "origin": "specification",
@@ -5581,6 +6340,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Příslušnost pro barvu r_min",
         "origin": "specification",
@@ -5590,6 +6366,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Oddělení zřetelných segmentů S_d",
         "origin": "specification",
@@ -5599,6 +6386,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina profilů q",
         "origin": "specification",
@@ -5608,6 +6412,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet jmenovaných objektů t",
         "origin": "specification",
@@ -5617,6 +6432,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
         "origin": "specification",
@@ -5626,6 +6452,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Téměř stejné mapy od tolika objektů",
         "origin": "specification",
@@ -5635,6 +6472,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka hraničního pásma b",
         "origin": "specification",
@@ -5644,6 +6492,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Velikost šumu v hodnoceních",
         "origin": "specification",
@@ -5653,6 +6512,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátorů",
         "origin": "specification",
@@ -5817,6 +6687,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška kopců, když se výšky neliší",
         "origin": "code_constant",
@@ -5888,6 +6759,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
         "origin": "code_constant",
@@ -6008,6 +6880,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Metoda terénu",
         "origin": "specification",
@@ -6017,6 +6890,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka kopce σ",
         "origin": "specification",
@@ -6026,6 +6910,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Původ šířky σ",
         "origin": "specification",
@@ -6035,6 +6920,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 256.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -6044,6 +6946,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Poloviční rozsah S",
         "origin": "specification",
@@ -6053,6 +6966,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -6062,6 +6992,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl rámu vyplněný objekty v",
         "origin": "specification",
@@ -6071,6 +7018,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejnižší relativní výška f",
         "origin": "specification",
@@ -6258,6 +7222,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metodiky",
         "origin": "specification",
@@ -6377,6 +7342,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převod na škálu 0-1",
         "origin": "specification",
@@ -6488,6 +7454,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Normalizace na osobu",
         "origin": "specification",
@@ -6613,6 +7580,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Odhad vztahu",
         "origin": "specification",
@@ -6703,6 +7671,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ n",
         "origin": "specification",
@@ -6865,6 +7834,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hladina spolehlivosti",
         "origin": "specification",
@@ -6874,6 +7844,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší n s intervalem",
         "origin": "code_constant",
@@ -6928,6 +7899,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 4.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší n páru",
         "origin": "specification",
@@ -6937,6 +7919,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejnižší přípustné n_min",
         "origin": "code_constant",
@@ -7025,6 +8008,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh účinku",
         "origin": "specification",
@@ -7097,6 +8097,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Zřetelný vztah od |r̃|",
         "origin": "specification",
@@ -7158,6 +8175,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Míra falešných objevů q",
         "origin": "specification",
@@ -7213,6 +8247,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Pravidlo šumu zapnuto",
         "origin": "specification",
@@ -7222,6 +8257,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání na objekt T",
         "origin": "specification",
@@ -7231,6 +8277,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -7291,6 +8348,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": "relation.n_min",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Práh páru pro rozložení n_L",
         "origin": "specification",
@@ -7300,6 +8374,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Plná váha páru od n_plná",
         "origin": "specification",
@@ -7358,6 +8443,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl párů pod prahem s",
         "origin": "specification",
@@ -7367,6 +8469,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet partnerů p_min",
         "origin": "specification",
@@ -7454,6 +8567,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejméně objektů na mapě",
         "origin": "specification",
@@ -7463,6 +8577,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Minimum před aia-sociomap-4",
         "origin": "code_constant",
@@ -7558,6 +8673,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Cílová vzdálenost",
         "origin": "specification",
@@ -7627,6 +8743,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Algoritmus rozložení",
         "origin": "specification",
@@ -7636,6 +8753,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše iterací",
         "origin": "specification",
@@ -7645,6 +8763,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance zastavení",
         "origin": "specification",
@@ -7654,6 +8773,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rámec mapy",
         "origin": "specification",
@@ -7663,6 +8783,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah pravítka",
         "origin": "specification",
@@ -7672,6 +8793,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pevné pravítko",
         "origin": "code_constant",
@@ -7812,6 +8934,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          },
+          {
+           "reference": "layout.soft_rank_spearman.max_objects",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "BB1 od M_min objektů",
         "origin": "specification",
@@ -7821,6 +8960,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "BB1 do M_max objektů",
         "origin": "specification",
@@ -7830,6 +8970,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Váha odpuzování λ",
         "origin": "specification",
@@ -7839,6 +8990,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů pod 10 objekty",
         "origin": "specification",
@@ -7848,6 +9010,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů od 10 objektů",
         "origin": "specification",
@@ -7857,6 +9030,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko náhodných startů",
         "origin": "specification",
@@ -7866,6 +9050,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejvýše průchodů",
         "origin": "specification",
@@ -7944,6 +9139,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Náhodných startů",
         "origin": "specification",
@@ -7953,6 +9159,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podlaha κ",
         "origin": "specification",
@@ -7962,6 +9185,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Strop vah přesnosti C",
         "origin": "specification",
@@ -8140,6 +9374,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem b₁, b₂, b₃",
         "origin": "specification",
@@ -8149,6 +9384,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem před aia-sociomap-4",
         "origin": "code_constant",
@@ -8354,6 +9590,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh shody s_min",
         "origin": "specification",
@@ -8363,6 +9616,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet rozdělení S",
         "origin": "specification",
@@ -8372,6 +9636,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko rozdělení",
         "origin": "specification",
@@ -8381,6 +9656,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Převzorkování B",
         "origin": "specification",
@@ -8390,6 +9676,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko převzorkování",
         "origin": "specification",
@@ -8399,6 +9696,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Bezpečnostní násobek c",
         "origin": "specification",
@@ -8597,6 +9905,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška objektu",
         "origin": "specification",
@@ -8679,6 +9988,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet převzorkování B",
         "origin": "specification",
@@ -8688,6 +10008,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -8697,6 +10018,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu",
         "origin": "specification",
@@ -8706,6 +10028,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu před aia-sociomap-4",
         "origin": "code_constant",
@@ -8718,6 +10041,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Generátor",
         "origin": "code_constant",
@@ -8842,6 +10166,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Umístění respondentů",
         "origin": "specification",
@@ -9041,6 +10366,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina testu náhody α",
         "origin": "specification",
@@ -9050,6 +10392,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet hodnocení n_min",
         "origin": "specification",
@@ -9059,6 +10412,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Spolehlivá od M_min objektů",
         "origin": "specification",
@@ -9068,6 +10432,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka jádra hustoty σ_R",
         "origin": "specification",
@@ -9466,6 +10841,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Největší počet segmentů G_max",
         "origin": "specification",
@@ -9475,6 +10861,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Násobek penalizace BIC λ",
         "origin": "specification",
@@ -9484,6 +10881,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání B",
         "origin": "specification",
@@ -9493,6 +10901,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": "segments.max_segments",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně respondentů se sklonem",
         "origin": "specification",
@@ -9502,6 +10921,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně hodnocení pro sklon",
         "origin": "specification",
@@ -9511,6 +10941,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší podíl zisku g_min",
         "origin": "specification",
@@ -9520,6 +10967,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší segment π_min",
         "origin": "specification",
@@ -9529,6 +10993,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší oddělení S_min",
         "origin": "specification",
@@ -9538,6 +11013,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Příslušnost pro barvu r_min",
         "origin": "specification",
@@ -9547,6 +11039,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Oddělení zřetelných segmentů S_d",
         "origin": "specification",
@@ -9556,6 +11059,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina profilů q",
         "origin": "specification",
@@ -9565,6 +11085,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet jmenovaných objektů t",
         "origin": "specification",
@@ -9574,6 +11105,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
         "origin": "specification",
@@ -9583,6 +11125,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Téměř stejné mapy od tolika objektů",
         "origin": "specification",
@@ -9592,6 +11145,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka hraničního pásma b",
         "origin": "specification",
@@ -9601,6 +11165,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Velikost šumu v hodnoceních",
         "origin": "specification",
@@ -9610,6 +11185,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátorů",
         "origin": "specification",
@@ -9774,6 +11360,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška kopců, když se výšky neliší",
         "origin": "code_constant",
@@ -9845,6 +11432,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
         "origin": "code_constant",
@@ -9965,6 +11553,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Metoda terénu",
         "origin": "specification",
@@ -9974,6 +11563,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka kopce σ",
         "origin": "specification",
@@ -9983,6 +11583,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Původ šířky σ",
         "origin": "specification",
@@ -9992,6 +11593,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 256.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -10001,6 +11619,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Poloviční rozsah S",
         "origin": "specification",
@@ -10010,6 +11639,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -10019,6 +11665,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl rámu vyplněný objekty v",
         "origin": "specification",
@@ -10028,6 +11691,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejnižší relativní výška f",
         "origin": "specification",
@@ -10215,6 +11895,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metodiky",
         "origin": "specification",
@@ -10334,6 +12015,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převod na škálu 0-1",
         "origin": "specification",
@@ -10445,6 +12127,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Normalizace na osobu",
         "origin": "specification",
@@ -10570,6 +12253,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Odhad vztahu",
         "origin": "specification",
@@ -10660,6 +12344,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ n",
         "origin": "specification",
@@ -10822,6 +12507,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hladina spolehlivosti",
         "origin": "specification",
@@ -10831,6 +12517,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší n s intervalem",
         "origin": "code_constant",
@@ -10885,6 +12572,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 4.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší n páru",
         "origin": "specification",
@@ -10894,6 +12592,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejnižší přípustné n_min",
         "origin": "code_constant",
@@ -10982,6 +12681,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh účinku",
         "origin": "specification",
@@ -11054,6 +12770,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Zřetelný vztah od |r̃|",
         "origin": "specification",
@@ -11115,6 +12848,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Míra falešných objevů q",
         "origin": "specification",
@@ -11170,6 +12920,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Pravidlo šumu zapnuto",
         "origin": "specification",
@@ -11179,6 +12930,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání na objekt T",
         "origin": "specification",
@@ -11188,6 +12950,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -11248,6 +13021,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": "relation.n_min",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Práh páru pro rozložení n_L",
         "origin": "specification",
@@ -11257,6 +13047,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Plná váha páru od n_plná",
         "origin": "specification",
@@ -11315,6 +13116,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl párů pod prahem s",
         "origin": "specification",
@@ -11324,6 +13142,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet partnerů p_min",
         "origin": "specification",
@@ -11411,6 +13240,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejméně objektů na mapě",
         "origin": "specification",
@@ -11420,6 +13250,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Minimum před aia-sociomap-4",
         "origin": "code_constant",
@@ -11515,6 +13346,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Cílová vzdálenost",
         "origin": "specification",
@@ -11584,6 +13416,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Algoritmus rozložení",
         "origin": "specification",
@@ -11593,6 +13426,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše iterací",
         "origin": "specification",
@@ -11602,6 +13436,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance zastavení",
         "origin": "specification",
@@ -11611,6 +13446,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rámec mapy",
         "origin": "specification",
@@ -11620,6 +13456,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah pravítka",
         "origin": "specification",
@@ -11629,6 +13466,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pevné pravítko",
         "origin": "code_constant",
@@ -11769,6 +13607,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          },
+          {
+           "reference": "layout.soft_rank_spearman.max_objects",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "BB1 od M_min objektů",
         "origin": "specification",
@@ -11778,6 +13633,7 @@
        },
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "BB1 do M_max objektů",
         "origin": "specification",
@@ -11787,6 +13643,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Váha odpuzování λ",
         "origin": "specification",
@@ -11796,6 +13663,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů pod 10 objekty",
         "origin": "specification",
@@ -11805,6 +13683,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů od 10 objektů",
         "origin": "specification",
@@ -11814,6 +13703,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko náhodných startů",
         "origin": "specification",
@@ -11823,6 +13723,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejvýše průchodů",
         "origin": "specification",
@@ -11901,6 +13812,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Náhodných startů",
         "origin": "specification",
@@ -11910,6 +13832,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podlaha κ",
         "origin": "specification",
@@ -11919,6 +13858,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Strop vah přesnosti C",
         "origin": "specification",
@@ -12097,6 +14047,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem b₁, b₂, b₃",
         "origin": "specification",
@@ -12110,6 +14061,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem před aia-sociomap-4",
         "origin": "code_constant",
@@ -12315,6 +14267,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh shody s_min",
         "origin": "specification",
@@ -12324,6 +14293,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet rozdělení S",
         "origin": "specification",
@@ -12333,6 +14313,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko rozdělení",
         "origin": "specification",
@@ -12342,6 +14333,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Převzorkování B",
         "origin": "specification",
@@ -12351,6 +14353,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko převzorkování",
         "origin": "specification",
@@ -12360,6 +14373,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Bezpečnostní násobek c",
         "origin": "specification",
@@ -12558,6 +14582,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška objektu",
         "origin": "specification",
@@ -12640,6 +14665,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet převzorkování B",
         "origin": "specification",
@@ -12649,6 +14685,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -12658,6 +14695,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu",
         "origin": "specification",
@@ -12670,6 +14708,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu před aia-sociomap-4",
         "origin": "code_constant",
@@ -12682,6 +14721,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Generátor",
         "origin": "code_constant",
@@ -12806,6 +14846,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Umístění respondentů",
         "origin": "specification",
@@ -13005,6 +15046,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina testu náhody α",
         "origin": "specification",
@@ -13014,6 +15072,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet hodnocení n_min",
         "origin": "specification",
@@ -13023,6 +15092,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Spolehlivá od M_min objektů",
         "origin": "specification",
@@ -13032,6 +15112,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka jádra hustoty σ_R",
         "origin": "specification",
@@ -13430,6 +15521,17 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Největší počet segmentů G_max",
         "origin": "specification",
@@ -13439,6 +15541,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Násobek penalizace BIC λ",
         "origin": "specification",
@@ -13448,6 +15561,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání B",
         "origin": "specification",
@@ -13457,6 +15581,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": "segments.max_segments",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně respondentů se sklonem",
         "origin": "specification",
@@ -13466,6 +15601,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně hodnocení pro sklon",
         "origin": "specification",
@@ -13475,6 +15621,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší podíl zisku g_min",
         "origin": "specification",
@@ -13484,6 +15647,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší segment π_min",
         "origin": "specification",
@@ -13493,6 +15673,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší oddělení S_min",
         "origin": "specification",
@@ -13502,6 +15693,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Příslušnost pro barvu r_min",
         "origin": "specification",
@@ -13511,6 +15719,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Oddělení zřetelných segmentů S_d",
         "origin": "specification",
@@ -13520,6 +15739,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina profilů q",
         "origin": "specification",
@@ -13529,6 +15765,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet jmenovaných objektů t",
         "origin": "specification",
@@ -13538,6 +15785,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
         "origin": "specification",
@@ -13547,6 +15805,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Téměř stejné mapy od tolika objektů",
         "origin": "specification",
@@ -13556,6 +15825,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka hraničního pásma b",
         "origin": "specification",
@@ -13565,6 +15845,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Velikost šumu v hodnoceních",
         "origin": "specification",
@@ -13574,6 +15865,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátorů",
         "origin": "specification",
@@ -13738,6 +16040,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška kopců, když se výšky neliší",
         "origin": "code_constant",
@@ -13809,6 +16112,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
         "origin": "code_constant",
@@ -13929,6 +16233,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Metoda terénu",
         "origin": "specification",
@@ -13938,6 +16243,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka kopce σ",
         "origin": "specification",
@@ -13947,6 +16263,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Původ šířky σ",
         "origin": "specification",
@@ -13956,6 +16273,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 256.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -13965,6 +16299,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Poloviční rozsah S",
         "origin": "specification",
@@ -13974,6 +16319,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -13983,6 +16345,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl rámu vyplněný objekty v",
         "origin": "specification",
@@ -13992,6 +16371,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejnižší relativní výška f",
         "origin": "specification",
@@ -14179,6 +16575,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metodiky",
         "origin": "specification",
@@ -14298,6 +16695,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převod na škálu 0-1",
         "origin": "specification",
@@ -14409,6 +16807,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Normalizace na osobu",
         "origin": "specification",
@@ -14534,6 +16933,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Odhad vztahu",
         "origin": "specification",
@@ -14624,6 +17024,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Základ n",
         "origin": "specification",
@@ -14786,6 +17187,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hladina spolehlivosti",
         "origin": "specification",
@@ -14795,6 +17197,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší n s intervalem",
         "origin": "code_constant",
@@ -14849,6 +17252,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 4.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší n páru",
         "origin": "specification",
@@ -14858,6 +17272,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejnižší přípustné n_min",
         "origin": "code_constant",
@@ -14946,6 +17361,23 @@
       "values": [
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh účinku",
         "origin": "specification",
@@ -15018,6 +17450,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Zřetelný vztah od |r̃|",
         "origin": "specification",
@@ -15079,6 +17528,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Míra falešných objevů q",
         "origin": "specification",
@@ -15134,6 +17600,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pravidlo šumu zapnuto",
         "origin": "specification",
@@ -15143,6 +17610,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání na objekt T",
         "origin": "specification",
@@ -15152,6 +17630,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -15212,6 +17701,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": "relation.n_min",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Práh páru pro rozložení n_L",
         "origin": "specification",
@@ -15221,6 +17727,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Plná váha páru od n_plná",
         "origin": "specification",
@@ -15279,6 +17796,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl párů pod prahem s",
         "origin": "specification",
@@ -15288,6 +17822,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet partnerů p_min",
         "origin": "specification",
@@ -15375,6 +17920,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejméně objektů na mapě",
         "origin": "specification",
@@ -15384,6 +17930,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Minimum před aia-sociomap-4",
         "origin": "code_constant",
@@ -15479,6 +18026,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Cílová vzdálenost",
         "origin": "specification",
@@ -15548,6 +18096,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Algoritmus rozložení",
         "origin": "specification",
@@ -15557,6 +18106,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše iterací",
         "origin": "specification",
@@ -15566,6 +18116,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance zastavení",
         "origin": "specification",
@@ -15575,6 +18126,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rámec mapy",
         "origin": "specification",
@@ -15584,6 +18136,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah pravítka",
         "origin": "specification",
@@ -15593,6 +18146,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pevné pravítko",
         "origin": "code_constant",
@@ -15733,6 +18287,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          },
+          {
+           "reference": "layout.soft_rank_spearman.max_objects",
+           "side": "high",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "BB1 od M_min objektů",
         "origin": "specification",
@@ -15742,6 +18313,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "BB1 do M_max objektů",
         "origin": "specification",
@@ -15751,6 +18323,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Váha odpuzování λ",
         "origin": "specification",
@@ -15760,6 +18343,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů pod 10 objekty",
         "origin": "specification",
@@ -15769,6 +18363,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Restartů od 10 objektů",
         "origin": "specification",
@@ -15778,6 +18383,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko náhodných startů",
         "origin": "specification",
@@ -15787,6 +18403,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejvýše průchodů",
         "origin": "specification",
@@ -15865,6 +18492,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Náhodných startů",
         "origin": "specification",
@@ -15874,6 +18512,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podlaha κ",
         "origin": "specification",
@@ -15883,6 +18538,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Strop vah přesnosti C",
         "origin": "specification",
@@ -16061,6 +18727,7 @@
       "values": [
        {
         "absent": true,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem b₁, b₂, b₃",
         "origin": "specification",
@@ -16070,6 +18737,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Hranice pásem před aia-sociomap-4",
         "origin": "code_constant",
@@ -16275,6 +18943,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh shody s_min",
         "origin": "specification",
@@ -16284,6 +18969,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet rozdělení S",
         "origin": "specification",
@@ -16293,6 +18989,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko rozdělení",
         "origin": "specification",
@@ -16302,6 +19009,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Převzorkování B",
         "origin": "specification",
@@ -16311,6 +19029,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko převzorkování",
         "origin": "specification",
@@ -16320,6 +19049,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Bezpečnostní násobek c",
         "origin": "specification",
@@ -16518,6 +19258,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška objektu",
         "origin": "specification",
@@ -16600,6 +19341,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet převzorkování B",
         "origin": "specification",
@@ -16609,6 +19361,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko generátoru",
         "origin": "specification",
@@ -16618,6 +19371,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu",
         "origin": "specification",
@@ -16630,6 +19384,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kvantily intervalu před aia-sociomap-4",
         "origin": "code_constant",
@@ -16642,6 +19397,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Generátor",
         "origin": "code_constant",
@@ -16766,6 +19522,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Umístění respondentů",
         "origin": "specification",
@@ -16965,6 +19722,23 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina testu náhody α",
         "origin": "specification",
@@ -16974,6 +19748,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší počet hodnocení n_min",
         "origin": "specification",
@@ -16983,6 +19768,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Spolehlivá od M_min objektů",
         "origin": "specification",
@@ -16992,6 +19788,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka jádra hustoty σ_R",
         "origin": "specification",
@@ -17390,6 +20197,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Největší počet segmentů G_max",
         "origin": "specification",
@@ -17399,6 +20217,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Násobek penalizace BIC λ",
         "origin": "specification",
@@ -17408,6 +20237,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet zamíchání B",
         "origin": "specification",
@@ -17417,6 +20257,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "segments.max_segments",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně respondentů se sklonem",
         "origin": "specification",
@@ -17426,6 +20277,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 3.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejméně hodnocení pro sklon",
         "origin": "specification",
@@ -17435,6 +20297,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší podíl zisku g_min",
         "origin": "specification",
@@ -17444,6 +20323,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší segment π_min",
         "origin": "specification",
@@ -17453,6 +20349,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejmenší oddělení S_min",
         "origin": "specification",
@@ -17462,6 +20369,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Příslušnost pro barvu r_min",
         "origin": "specification",
@@ -17471,6 +20395,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Oddělení zřetelných segmentů S_d",
         "origin": "specification",
@@ -17480,6 +20415,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Hladina profilů q",
         "origin": "specification",
@@ -17489,6 +20441,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet jmenovaných objektů t",
         "origin": "specification",
@@ -17498,6 +20461,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Počet map pro rozhodnutí (s nakreslenou)",
         "origin": "specification",
@@ -17507,6 +20481,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Téměř stejné mapy od tolika objektů",
         "origin": "specification",
@@ -17516,6 +20501,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka hraničního pásma b",
         "origin": "specification",
@@ -17525,6 +20521,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Velikost šumu v hodnoceních",
         "origin": "specification",
@@ -17534,6 +20541,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Semínko generátorů",
         "origin": "specification",
@@ -17698,6 +20716,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výška kopců, když se výšky neliší",
         "origin": "code_constant",
@@ -17769,6 +20788,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "H₀: poloviční šířka, stojí-li všechny objekty v jednom bodě",
         "origin": "code_constant",
@@ -17889,6 +20909,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Metoda terénu",
         "origin": "specification",
@@ -17898,6 +20919,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Šířka kopce σ",
         "origin": "specification",
@@ -17907,6 +20939,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Původ šířky σ",
         "origin": "specification",
@@ -17916,6 +20949,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 1.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 256.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -17925,6 +20975,17 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 2.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Poloviční rozsah S",
         "origin": "specification",
@@ -17934,6 +20995,23 @@
        },
        {
         "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -17943,6 +21021,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Podíl rámu vyplněný objekty v",
         "origin": "specification",
@@ -17952,6 +21047,23 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": true,
+           "value": 1.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Nejnižší relativní výška f",
         "origin": "specification",
@@ -18070,6 +21182,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metodiky",
         "origin": "specification",
@@ -18160,6 +21273,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Dolní konec škály",
         "origin": "specification",
@@ -18169,6 +21283,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Horní konec škály",
         "origin": "specification",
@@ -18296,6 +21411,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převod matice",
         "origin": "specification",
@@ -18305,6 +21421,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Chybějící buňka matice",
         "origin": "specification",
@@ -18314,6 +21431,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Náhrada za NaN",
         "origin": "code_constant",
@@ -18323,6 +21441,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Náhrada za +∞",
         "origin": "code_constant",
@@ -18332,6 +21451,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Náhrada za -∞",
         "origin": "code_constant",
@@ -18341,6 +21461,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejméně objektů",
         "origin": "code_constant",
@@ -18385,6 +21506,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Projekce pro polohu",
         "origin": "specification",
@@ -18434,6 +21556,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Cíl rozvinutí",
         "origin": "specification",
@@ -18443,6 +21566,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Ipsatizace",
         "origin": "specification",
@@ -18452,6 +21576,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Chybějící hodnocení",
         "origin": "specification",
@@ -18515,6 +21640,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Algoritmus rozložení",
         "origin": "specification",
@@ -18524,6 +21650,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozměry",
         "origin": "specification",
@@ -18533,6 +21660,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše iterací",
         "origin": "specification",
@@ -18542,6 +21670,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance zastavení",
         "origin": "specification",
@@ -18551,6 +21680,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko",
         "origin": "specification",
@@ -18624,6 +21754,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rámec mapy",
         "origin": "specification",
@@ -18633,6 +21764,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah",
         "origin": "specification",
@@ -18677,6 +21809,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Metrika výšky",
         "origin": "specification",
@@ -18686,6 +21819,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Metrika barvy",
         "origin": "specification",
@@ -18764,6 +21898,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nulový rozptyl pod",
         "origin": "code_constant",
@@ -18773,6 +21908,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "T-skór při nulovém rozptylu",
         "origin": "code_constant",
@@ -18852,6 +21988,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -18861,6 +21998,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Poloviční rozsah",
         "origin": "specification",
@@ -18870,6 +22008,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Šířka jádra",
         "origin": "specification",
@@ -18879,6 +22018,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -18888,6 +22028,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převýšení",
         "origin": "specification",
@@ -18933,6 +22074,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozlišení mřížky N",
         "origin": "specification",
@@ -18942,6 +22084,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Poloviční rozsah",
         "origin": "specification",
@@ -18951,6 +22094,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Šířka jádra",
         "origin": "specification",
@@ -18960,6 +22104,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Práh jádra",
         "origin": "specification",
@@ -18969,6 +22114,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Převýšení",
         "origin": "specification",
@@ -19014,6 +22160,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Normalizace",
         "origin": "specification",
@@ -19123,6 +22270,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Pravidlo vyřazení",
         "origin": "code_constant",
@@ -19132,6 +22280,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Méně umístěných objektů: mapa se označí",
         "origin": "code_constant",
@@ -19339,6 +22488,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Semínko náhodných startů",
         "origin": "specification",
@@ -19348,6 +22498,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Počet náhodných startů",
         "origin": "specification",
@@ -19393,6 +22544,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Iterace hladké fáze",
         "origin": "specification",
@@ -19438,6 +22590,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Iterace ordinální fáze",
         "origin": "specification",
@@ -19447,6 +22600,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Mezera g",
         "origin": "specification",
@@ -19497,6 +22651,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýše průchodů",
         "origin": "specification",
@@ -19506,6 +22661,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Počet směrů m",
         "origin": "specification",
@@ -19515,6 +22671,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Počáteční krok",
         "origin": "specification",
@@ -19524,6 +22681,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší krok",
         "origin": "specification",
@@ -19563,6 +22721,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Kola opravy",
         "origin": "specification",
@@ -19602,6 +22761,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Rozsah rámce",
         "origin": "code_constant",
@@ -19660,6 +22820,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze metody",
         "origin": "code_constant",
@@ -19669,6 +22830,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Status",
         "origin": "code_constant",
@@ -19845,6 +23007,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze pravidel",
         "origin": "specification",
@@ -19989,6 +23152,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejmenší surové n buňky",
         "origin": "specification",
@@ -19998,6 +23162,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Potlačit pod efektivním n",
         "origin": "specification",
@@ -20007,6 +23172,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Indikativní pod efektivním n",
         "origin": "specification",
@@ -20016,6 +23182,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Potlačit pod",
         "origin": "specification",
@@ -20025,6 +23202,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "results.min_layer_donors",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Indikativní pod",
         "origin": "specification",
@@ -20091,6 +23279,17 @@
       "values": [
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Nejmenší surové n buňky",
         "origin": "specification",
@@ -20100,6 +23299,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Potlačit pod efektivním n",
         "origin": "specification",
@@ -20109,6 +23319,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "analysis.n_guard",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": false
+        },
         "effect": "",
         "label_cs": "Indikativní pod efektivním n",
         "origin": "specification",
@@ -20118,6 +23339,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": false,
+           "value": 0.0
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Potlačit pod",
         "origin": "specification",
@@ -20127,6 +23359,17 @@
        },
        {
         "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": "analysis.min_layer_donors",
+           "side": "low",
+           "strict": false,
+           "value": null
+          }
+         ],
+         "whole": true
+        },
         "effect": "",
         "label_cs": "Indikativní pod",
         "origin": "specification",
@@ -20274,6 +23517,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Verze vážení",
         "origin": "specification",
@@ -20326,6 +23570,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Importní smlouva",
         "origin": "specification",
@@ -20335,6 +23580,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Výchozí role",
         "origin": "specification",
@@ -20344,6 +23590,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sloupec: výchozí (struktura 2025)",
         "origin": "specification",
@@ -20353,6 +23600,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sloupec: demografické (populace 2025, přibližně)",
         "origin": "specification",
@@ -20362,6 +23610,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sloupec: Sčítání 2021",
         "origin": "specification",
@@ -20371,6 +23620,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Sloupec: volby 2021 (srovnání)",
         "origin": "specification",
@@ -20481,6 +23731,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Očekávaný součet: výchozí (struktura 2025)",
         "origin": "specification",
@@ -20490,6 +23741,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance: výchozí (struktura 2025)",
         "origin": "specification",
@@ -20499,6 +23751,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Očekávaný součet: demografické (populace 2025, přibližně)",
         "origin": "specification",
@@ -20508,6 +23761,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance: demografické (populace 2025, přibližně)",
         "origin": "specification",
@@ -20517,6 +23771,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Očekávaný součet: Sčítání 2021",
         "origin": "specification",
@@ -20526,6 +23781,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance: Sčítání 2021",
         "origin": "specification",
@@ -20535,6 +23791,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Očekávaný součet: volby 2021 (srovnání)",
         "origin": "specification",
@@ -20544,6 +23801,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Tolerance: volby 2021 (srovnání)",
         "origin": "specification",
@@ -20595,6 +23853,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Dolní mez základní váhy",
         "origin": "code_constant",
@@ -20696,6 +23955,7 @@
       "values": [
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Nejvýš iterací",
         "origin": "code_constant",
@@ -20705,6 +23965,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Dolní mez váhy (ε)",
         "origin": "code_constant",
@@ -20714,6 +23975,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Násobek percentilu (κ)",
         "origin": "code_constant",
@@ -20723,6 +23985,7 @@
        },
        {
         "absent": false,
+        "bound": null,
         "effect": "",
         "label_cs": "Konvergence: největší změna váhy",
         "origin": "code_constant",

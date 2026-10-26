@@ -28,6 +28,17 @@ describe("designLane", () => {
     expect(designLane({ project: chosen, analysis: null }).persona).toEqual({ tone: "done", line: "2 dimenze · N=300" });
   });
 
+  it("gives the workbench's Dimenze its dimensions alone and Vzorek its N, so neither waits on the other (#945)", () => {
+    const chosen = project({ persona_dimensions: { approved: ["media", "cena"] } });
+    const lane = designLane({ project: { ...chosen, n: undefined } as ResearchProject, analysis: null });
+    // N is set on Vzorek now: Dimenze is done with its dimensions, whatever N is.
+    expect(lane.dimensions).toEqual({ tone: "done", line: "2 dimenze" });
+    expect(lane.sample).toEqual({ tone: "idle", line: "N nezadáno" });
+    const set = designLane({ project: chosen, analysis: null });
+    expect(set.sample).toEqual({ tone: "done", line: "N=300" });
+    expect(designLane({ project: project(), analysis: null }).dimensions).toEqual({ tone: "idle", line: "Bez dimenzí" });
+  });
+
   it("marks the brief done once it has a goal", () => {
     expect(designLane({ project: project({ goal: "Jak nás vnímají" }), analysis: null }).brief.tone).toBe("done");
   });
@@ -36,6 +47,15 @@ describe("designLane", () => {
     const p = project({ sections: [block(["Hlavní banka?", "  "]), banks] as never });
     expect(questionnaireIssues(p)).toEqual({ questions: 2, sets: 1, empty: 1, badSets: 0 });
     expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "2 otázky · 1 sada · 1 bez znění" });
+  });
+
+  it("says tracked sets alone are no questionnaire yet (OI-52, the data owner's (b))", () => {
+    const p = project({ sections: [banks] as never });
+    expect(designLane({ project: p, analysis: null }).questionnaire).toEqual({ tone: "you", line: "1 sada · bez běžné otázky" });
+    expect(blockers({ project: p, analysis: null })).toContainEqual({ step: "questionnaire", label: "Dotazník", detail: "Zatím nemá žádnou běžnou otázku" });
+    // A set outside the limits is still named beside it.
+    const small = project({ sections: [{ ...banks, objects: ["A", "B", "C"] }] as never });
+    expect(designLane({ project: small, analysis: null }).questionnaire.line).toBe("1 sada · bez běžné otázky · 1 sada mimo 4–40");
   });
 
   it("names a tracked set outside 4-40 in the plan and in the questionnaire", () => {

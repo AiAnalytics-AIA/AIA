@@ -22,12 +22,13 @@ import { MemorySearch } from "./MemorySearch";
 import { PopulationCharacteristicsSection } from "./PopulationCharacteristics";
 import { CARD, Empty, Loaded } from "./states";
 import { ControlPanel } from "./settings/ControlPanel";
+import { SectionMenu } from "./settings/SectionMenu";
 import { useResource } from "./useResource";
 
 export function IntelligencePage() {
   const [res, retry] = useResource(() => population.registry(), []);
   return (
-    <AppShell title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
+    <AppShell hero title={t("aia.intelligence.title")} sub={t("aia.intelligence.sub")}>
       <section className={`${CARD} max-w-2xl`}>
         <p className="text-sm leading-6">{t("aia.intelligence.text")}</p>
         <p role="status" className="mt-4 rounded-sm border border-border bg-surface-sunken p-3 text-sm leading-6 text-ink">
@@ -164,7 +165,7 @@ export function MemoryPage() {
   const [res, retry] = useResource(() => workspace.clients(), []);
   const [clientId, setClientId] = useState("");
   return (
-    <AppShell title={t("aia.memory.title")} sub={t("aia.memory.sub")}>
+    <AppShell hero title={t("aia.memory.title")} sub={t("aia.memory.sub")}>
       <Loaded res={res} retry={retry}>
         {(clients: ClientCard[]) => {
           if (!clients.length) return <Empty>{t("aia.memory.empty")}</Empty>;
@@ -200,15 +201,22 @@ export function MemoryPage() {
 
 export function SettingsPage() {
   const session = useSession();
-  const [me] = useResource(() => workspace.me(), []);
+  const [me, rereadMe] = useResource(() => workspace.me(), []);
+  // "Organizace <name> / Nastavení", as the prototype's top bar; a name the API did not send is
+  // left out, never guessed.
+  const organization = me.state === "ready" ? me.data.organization_name : null;
+  // The section is chosen in the top bar (prototype v54): "Organizace <name> / Nastavení › <sekce> ⌄".
+  const crumbs = organization ? [{ prefix: t("aia.settings.organization"), label: organization }] : [];
+  const mayAdminister = me.state === "ready" ? me.data.may_administer : me.state === "loading" ? null : false;
   return (
-    <AppShell title={t("aia.settings.title")} sub={t("aia.settings.sub")}>
-      <ControlPanel />
-      <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
-        <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
-        {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
-        <p className="mt-1">{t("aia.settings.accessNote")}</p>
-      </details>
+    <AppShell title={t("aia.settings.title")} crumbs={crumbs} crumbEnd={<SectionMenu mayAdminister={mayAdminister} />} topbar bleed>
+      <ControlPanel me={me} rereadMe={rereadMe} footer={
+        <details className="mt-6 border-t border-border pt-3 text-sm text-ink-muted">
+          <summary className="cursor-pointer font-medium"><span>{t("aia.settings.account")}</span>{session?.email ? <span className="font-normal"> · {session.email}</span> : null}</summary>
+          {me.state === "ready" ? <p className="mt-2">{tv("aia.settings.orgRole", { role: t(`aia.orgRoles.${me.data.organization_role}`) })}</p> : null}
+          <p className="mt-1">{t("aia.settings.accessNote")}</p>
+        </details>
+      } />
     </AppShell>
   );
 }

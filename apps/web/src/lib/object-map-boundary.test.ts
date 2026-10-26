@@ -17,6 +17,7 @@ const FILES = [
   "components/rehome/research/ObjectMapPanel.tsx",
   "components/rehome/research/SociomapStage.tsx",
   "components/rehome/research/MapExplained.tsx",
+  "components/rehome/research/MapInspect.tsx",
   "lib/map-explained.ts",
 ];
 

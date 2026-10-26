@@ -198,6 +198,30 @@ def test_with_self_approval_off_the_proposer_does_not_approve_alone(
     assert repo.approve(RETENTION, 1).origin is Origin.APPROVED
 
 
+def test_may_approve_reads_the_rule_the_approval_checks(scoped: Any, session: Any) -> None:
+    """What the page offers (Schválit) and what the approval allows are one rule."""
+    repo = _repo(scoped, session)
+    own = repo.propose(RETENTION, 90)
+    as_proposer = DeepResearchSettingsReader(session, scoped.admin_context)
+    # Self-approval on (the default): the proposer may approve their own.
+    assert as_proposer.may_approve(own) is True
+    scoped.scope_repo.set_self_approval(scoped.admin_context, allowed=False)
+    assert as_proposer.may_approve(own) is False
+    # Another administrator may; a member never does.
+    other = DeepResearchSettingsReader(session, _admin(scoped, "second@example.org"))
+    assert other.may_approve(own) is True
+    assert _reader(scoped, session).may_approve(own) is False
+    # Once someone else approved it, approving it again is not a new decision.
+    DeepResearchSettingsRepository(session, _admin(scoped, "third@example.org")).approve(
+        RETENTION, 1
+    )
+    assert as_proposer.may_approve(own) is True
+    # A withdrawn version is approved by nobody.
+    second = repo.propose(RETENTION, 120)
+    withdrawn = repo.decline(RETENTION, second.version_number, reason="ne")
+    assert other.may_approve(withdrawn) is False
+
+
 def test_live_readiness_follows_the_approvals(scoped: Any, session: Any) -> None:
     repo = _repo(scoped, session)
     before = _reader(scoped, session).effective().missing_for_live()

@@ -376,26 +376,33 @@ def test_an_invocation_target_reaches_the_worker_alone_and_unset_changes_nothing
     assert called["eu.test.lead-model:1"].target == lead_arn
 
 
+# docs/'s pinned image's api.js under its fixed cache tag (deploy/develop/docs/docker-compose.yml).
+PINNED_API_INTEGRITY = "sha384-GvDXeDqc5phAYnmC9y4Xcqp2tUzLFpycvFBKZUTmcHC7L9EGcn65wreOdiDiSd7G"
+
+
 def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_until_set(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The Document Server is not on AIA's network: it reaches the API on the public hostname
     (report-editor-hosting decision 4). The develop host hands the API that origin, and the
-    editor's routes are still off until the editor's URL and secret are set from SSM."""
+    editor's routes are still off until the editor's URL and secret are set from SSM. The api.js
+    integrity (RPT8e) is versioned in the Compose file beside the pinned image's fixed cache tag
+    (report-editor-hosting 4b), and SSM may override it."""
     dotenv = HOST_ENV
     off = _api_settings(_container("api", dotenv), monkeypatch)
     assert off.onlyoffice_callback_base == "https://aia.example.test"
     assert not off.report_editor_on
-    on = _api_settings(
-        _container(
-            "api",
-            {
-                **dotenv,
-                "AIA_ONLYOFFICE_URL": "https://docs.example.test",
-                "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
-            },
-        ),
+    editor = {
+        "AIA_ONLYOFFICE_URL": "https://docs.example.test",
+        "AIA_ONLYOFFICE_JWT_SECRET": "s" * 48,
+    }
+    on = _api_settings(_container("api", {**dotenv, **editor}), monkeypatch)
+    assert on.report_editor_on
+    assert on.onlyoffice_api_integrity == PINNED_API_INTEGRITY
+    integrity = "sha384-" + "A" * 64
+    overridden = _api_settings(
+        _container("api", {**dotenv, **editor, "AIA_ONLYOFFICE_API_INTEGRITY": integrity}),
         monkeypatch,
     )
-    assert on.report_editor_on
+    assert overridden.onlyoffice_api_integrity == integrity
     assert "AIA_ONLYOFFICE_CALLBACK_BASE" not in _container("worker", dotenv)

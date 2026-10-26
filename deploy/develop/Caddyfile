@@ -162,6 +162,18 @@ docs.{$AIA_PUBLIC_HOSTNAME} {
 		-Server
 	}
 
+	# The editor's script is loaded into AIA's pages under Subresource Integrity (artifact-report
+	# RPT8e), so as CORS with credentials, through the ticket: its redirect sets the docs cookie and
+	# api.js is fetched with it. Those two answers alone name AIA's origin, set whatever the Document
+	# Server answers itself (defer).
+	@editor_script path /__aia/session /web-apps/apps/api/documents/api.js
+	header @editor_script {
+		defer
+		Access-Control-Allow-Origin "https://{$AIA_PUBLIC_HOSTNAME}"
+		Access-Control-Allow-Credentials "true"
+		+Vary "Origin"
+	}
+
 	# A ticket for the docs cookie: the API's, and nothing else of the API is served here.
 	handle /__aia/session {
 		rewrite * /api/v1/session/docs?{query}

@@ -89,14 +89,18 @@ def census(docx: bytes) -> Census:
     """The tagged controls and loose numbers of ``docx``'s body, in document order.
 
     Raises ``DocumentRefused`` for a file past the ZIP bounds, not a ZIP, with no readable body or
-    with a body that declares a document type."""
+    with any XML part that declares a document type: a saved file is a stranger's, and every
+    part of it may be parsed later (its styles and footers by the review stamp)."""
     check_zip_bounds(docx, "DOCX")
     try:
         # The member is first inflated here: a missing body, a bad CRC, a corrupt stream, an
         # encrypted or unsupported member each raise their own error; all are a damaged file.
         with zipfile.ZipFile(io.BytesIO(docx)) as archive:
             body = archive.read(BODY)
-    except Exception as exc:
+            for info in archive.infolist():
+                if info.filename.endswith((".xml", ".rels")):
+                    refuse_dtd(archive.read(info.filename))
+    except Exception as exc:  # a DtdDeclared too: refused like a damaged file
         raise _malformed(exc) from exc
     try:
         refuse_dtd(body)

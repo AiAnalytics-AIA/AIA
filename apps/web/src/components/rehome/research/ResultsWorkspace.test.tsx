@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ResearchRun } from "@/lib/api";
 import { t, tv } from "@/i18n/t";
+import { usePanelShown } from "./panel-shown";
 import { ResultsWorkspace } from "./ResultsWorkspace";
 
 const run = { run_id: "RUN-frozen", design_revision_id: "REV-frozen", design_revision: 4, phase: "COMPLETED", actual_cost_usd: null } as ResearchRun;
@@ -206,4 +207,19 @@ it("names a call the run could not price beside the sum, never a bare zero", () 
 
 it("says the cost cannot be told when the run carries no spend, whatever its attempts sum to", () => {
   expect(spentLine({ actual_cost_usd: 0, spend: null })).toBe(t("research.exec.spend.unknown"));
+});
+
+it("tells each panel's content whether it is the one on screen, so a hidden one opens nothing (#964)", () => {
+  function Shown({ name }: { name: string }) {
+    return <p data-shown={name}>{String(usePanelShown())}</p>;
+  }
+  const watched = panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }));
+  render(<ResultsWorkspace run={run} panels={watched} progressHref={null} notice={null} />);
+  const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
+  // On mount, the overview: every panel is mounted, none is on screen.
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "false" });
+  fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
+  fireEvent.click(screen.getByRole("tab", { name: "Data" }));
+  expect(shown()).toEqual({ data: "true", maps: "false", report: "false" });
 });

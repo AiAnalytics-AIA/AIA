@@ -174,10 +174,10 @@ const originCode = await page.locator('[data-aia="receipt:respondents"] [data-or
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
-const spent = (await page.locator('[data-run-spend] [data-spend="spent"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
 // The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
-const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] dd').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
 if (!ceilingRow || ceilingRow.startsWith("nezaznamenán")) fail(`Náklady shows the run's ceiling as ${ceilingRow ?? "nothing"}`);
 ok(`Progress: Náklady reads the run's spend (0,00 USD on fictional fieldwork) and its recorded ceiling (${ceilingRow})`);
 await shot("2-progress");
@@ -240,6 +240,11 @@ const KNOWN = [
   /^(PUT|POST) \/api\/v1\/studies\/[^/]+\/workspace\/content$/,
   /^PUT \/api\/v1\/studies\/[^/]+\/workspace\/stage$/, // the stage a person is on, kept per visit
   /^POST \/api\/v1\/studies\/[^/]+\/design\/revisions$/,
+  // Zpráva opening its draft in the report editor, on a workbench started with it on
+  // (AIA_WORKBENCH_REPORT_EDITOR=true): a session for the draft, nothing paid (artifact-report RPT8d).
+  /^POST \/api\/v1\/studies\/[^/]+\/research\/runs\/[^/]+\/report\/editor$/,
+  // and the one-time ticket its script is loaded through (RPT8e)
+  /^POST \/api\/v1\/session\/docs-ticket$/,
 ];
 const starts = writes.filter((w) => /^POST \/api\/v1\/studies\/[^/]+\/research\/runs$/.test(w));
 const unknown = writes.filter((w) => !starts.includes(w) && !KNOWN.some((k) => k.test(w)));

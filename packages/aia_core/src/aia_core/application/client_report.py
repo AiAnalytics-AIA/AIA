@@ -46,7 +46,7 @@ from aia_core.domain.evidence.report_lift import MODELLED_CLIENT_REPORT_LIFT
 from aia_core.domain.evidence.validation import method_status
 from aia_core.domain.fieldwork import MODELLED_DISCLOSURE, OriginKind, origin_kind
 from aia_core.domain.pipeline import fingerprint
-from aia_core.domain.report.client_gate import GateCode, GateRefusal, client_gate
+from aia_core.domain.report.client_gate import GateCode, GateFinding, client_gate
 from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.evidence import EvidenceLedger
 from aia_core.domain.report.model import (
@@ -63,11 +63,13 @@ from aia_core.domain.report.model import (
     SpecSource,
     text,
 )
+from aia_core.domain.report.sentence_check import SentenceFinding, sentence_findings
 from aia_core.domain.report.validation import require_valid
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.storage import ArtifactStore
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 CLIENT_REPORT_ARTIFACT_TYPE = "research_client_docx"
 # The client report's document model beside its DOCX, under the same fingerprint
@@ -364,6 +366,9 @@ def _client_report(
         return approved, None
     composed = compose_client_report(session, scope, store, run_id=run_id)
     key = fingerprint(composed.sources)
+    # Two first reads store one draft: the second waits on the run's row and finds the first's
+    # (artifacts have no unique key), so the draft approved is the one read after.
+    WorkflowRepository(session, scope).lock_run(run_id)
     found = artifacts.find_reusable(
         project_id=run["project_id"],
         stage_type=CLIENT_REPORT_STAGE,
@@ -395,6 +400,9 @@ def _client_report(
             **review_stamp_record(data),
         },
         depends_on=list(composed.depends_on),
+        # Composed by code from the run; the person whose download stored it is not its author
+        # (RD8): its approval names the run's starter as the producer instead.
+        by_person=False,
     )
     _store_document(artifacts, run_id, artifact, composed.document, build)
     return artifact, data
@@ -471,19 +479,16 @@ def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
     return models[-1] if models else None
 
 
-class ClientGateRefused(Exception):
-    """The client deliverable may not be approved (RD0): every refusal, each by its block."""
-
-    def __init__(self, refusals: tuple[GateRefusal, ...]) -> None:
-        super().__init__("; ".join(f"{r.message} ({r.where})" for r in refusals))
-        self.refusals = refusals
-
-
-def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
-    """Refuse ``docx``, a stored client report, unless the document it was rendered from passes
-    the client deliverable's gate (RD0). A version with no stored document (stored before RD5a)
-    is not judged, so not passed: its next download stores the document beside it. Raises the
-    store's errors for a document that does not verify, and :class:`ClientGateRefused`."""
+def client_gate_findings(
+    artifacts: ArtifactRepository, docx: Artifact
+) -> tuple[GateFinding | SentenceFinding, ...]:
+    """What the client deliverable's checks (RD0) and the sentence check (RD7) find on
+    ``docx``, a stored client report, read from the document it was rendered from: warnings
+    the approval shows and records, never a
+    refusal (the product owner, 2026-10-22). A version with no stored document (stored before
+    RD5a) cannot be checked, which is itself the warning (``gate_unrecorded``: unknown, never
+    passed); its next download stores the document beside it. Raises the store's errors for a
+    document that does not verify."""
     model = _document_of(
         artifacts.list_for_stage(
             project_id=docx.project_id, revision=docx.revision, stage_type=docx.stage_type
@@ -491,15 +496,12 @@ def require_client_gate(artifacts: ArtifactRepository, docx: Artifact) -> None:
         docx,
     )
     if model is None:
-        raise ClientGateRefused(
-            (
-                GateRefusal(
-                    GateCode.UNRECORDED,
-                    "report",
-                    "verze nemá uložený dokument, brána ji nemůže posoudit; stáhněte ji znovu",
-                ),
-            )
+        return (
+            GateFinding(
+                GateCode.UNRECORDED,
+                "report",
+                "verze nemá uložený dokument, nelze ji ověřit; stáhněte ji znovu",
+            ),
         )
-    refusals = client_gate(read_document_payload(artifacts.read(model.artifact_id)))
-    if refusals:
-        raise ClientGateRefused(refusals)
+    document = read_document_payload(artifacts.read(model.artifact_id))
+    return (*client_gate(document), *sentence_findings(document))

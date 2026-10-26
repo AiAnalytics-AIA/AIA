@@ -3,7 +3,8 @@
 // module has a wayfinding accent (never a status colour, never green: green is "in force") and a
 // small inline drawing of what it computes. Decorative: aria-hidden; the card's title is the label.
 
-const v = (name: string) => `var(--color-${name})`;
+// The runtime properties tokens.css defines, never Tailwind's --color-*, which it emits only for a class in use.
+const v = (name: string) => `var(--${name})`;
 
 /** A module's accent: the card's top border and its arrow. Unknown modules read neutral. */
 const ACCENT: Record<string, string> = {
