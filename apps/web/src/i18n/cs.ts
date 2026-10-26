@@ -28,6 +28,12 @@ export const cs = {
     backToClient: "Zpět na klienta",
     mainNav: "Hlavní navigace",
     breadcrumbs: "Kde jste",
+    // The hero of a top-level page (UI-1): a figure the page could not read says so, never 0.
+    hero: {
+      figures: "Přehled stránky",
+      unknown: "neznámé",
+      unknownTitle: "Tuto hodnotu se nepodařilo zjistit.",
+    },
     navClients: "Klienti",
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",
@@ -58,6 +64,9 @@ export const cs = {
     clients: {
       title: "Klienti",
       sub: "Pro kterého klienta dnes pracujete?",
+      figureClients: "Klienti",
+      figureStudies: "Studie",
+      figureActive: "Aktivní práce",
       new: "Nový klient",
       newTitle: "Nový klient",
       newName: "Název klienta",
