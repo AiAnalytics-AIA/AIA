@@ -266,6 +266,19 @@ describe("LeadPane", () => {
     expect(screen.queryByText("Tato úloha pro tento návrh už proběhla")).toBeNull();
   });
 
+  it("says the most a prepared job can cost before it starts, and an unknown ceiling in words (LO23)", async () => {
+    state.turns = [
+      turn({ turn_id: "LDT-1", output: { reply: "Připravil.", request: { kind: "agent_job", action: "build_questionnaire", why: "Chybí." } }, ceiling_usd: 2 }),
+      turn({ turn_id: "LDT-2", output: { reply: "Další.", request: { kind: "agent_job", action: "analyze_brief", why: "Znovu." } }, ceiling_usd: null }),
+    ];
+    render(pane({ onRequest: vi.fn(async () => {}) }));
+    const known = await screen.findByText("2,00 USD");
+    expect(known.closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
+    // Unknown is said, never priced at zero.
+    expect(screen.getByText("neznámé").closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
+    expect(screen.queryByText("0,00 USD")).toBeNull();
+  });
+
   it("follows a person's typed start with their own card, which starts it on their approval (LO5)", async () => {
     state.turns = [
       turn({ turn_id: "LDT-7", actor: "person", text: "Navrhni dotazník: krátce", command: "agent_job:build_questionnaire", run_id: null, output: null }),

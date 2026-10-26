@@ -1402,7 +1402,7 @@ export const research = {
   /** The modules a person may ask again over the run's data; `stale`: those among them a model completed under an
    *  earlier harness, which today's refuses to re-admit (absent from an API older than PC3: none). */
   retryableModules: (studyId: string, runId: string) =>
-    request<{ run_id: string; modules: string[]; stale?: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
+    request<{ run_id: string; modules: string[]; stale?: string[]; ceiling_usd?: number | null }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
       .then((r) => ({ modules: Array.isArray(r.modules) ? r.modules : [], stale: Array.isArray(r.stale) ? r.stale : [] })),
   /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
   retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
