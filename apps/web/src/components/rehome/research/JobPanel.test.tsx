@@ -58,7 +58,7 @@ describe("the job panel's feed", () => {
     }));
     const { container } = render(<JobPanel job={agentJobUpdate(job("RUNNING", "RUNNING"), "Návrh dotazníku")} onCancel={() => {}} studyId="STU-1" />);
     const log = await screen.findByRole("log");
-    expect(within(log).getAllByRole("listitem").map((l) => l.textContent)).toEqual(["Worker krok převzal", "Připravený kontext; AI zpracovává návrh"]);
+    expect(within(log).getAllByRole("listitem").map((l) => l.textContent)).toEqual(["Krok začal", "Připravený kontext; AI zpracovává návrh"]);
     expect(container.querySelector<HTMLElement>("[data-orb]")?.style.width).toBe("64px");
     expect(urls.some((u) => u.startsWith("/api/v1/studies/STU-1/research/agent-jobs/JOB-1/events?since=0"))).toBe(true);
   });

@@ -26,6 +26,8 @@ const LAYER_WORDS: Readonly<Record<string, string>> = {
   study: "Studie",
   design: "Pracovní kopie a její rozbor",
   runs: "Běhy výzkumu",
+  deep_research: "Hloubkový výzkum studie",
+  targets: "Výsledky k výkladu",
   external_context_not_evidence: "Design Research (kontext, ne důkaz)",
   view: "Kde jste byli a vaše zpráva",
   memory: "Co jste spolu rozhodli",
@@ -37,11 +39,14 @@ const ITEMS: Readonly<Record<string, readonly [string, string, string]>> = {
   lead: ["poznámka", "poznámky", "poznámek"],
   knowledge: ["znalost", "znalosti", "znalostí"],
   runs: ["běh", "běhy", "běhů"],
+  deep_research: ["běh", "běhy", "běhů"],
+  targets: ["výsledek", "výsledky", "výsledků"],
   memory: ["záznam", "záznamy", "záznamů"],
 };
 
 const REASON_WORDS: Readonly<Record<string, string>> = {
   over_budget: "nevešla se do limitu vrstvy",
+  unreadable: "specifikaci běhu se nepodařilo přečíst",
 };
 
 const kb = (bytes: number) => `${(bytes / 1024).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} kB`;

@@ -187,7 +187,8 @@ try {
   await next.click();
   let dialog = page.getByRole("dialog");
   await dialog.waitFor({ timeout: 10000 });
-  assert.match(await dialog.innerText(), new RegExp(`Schválit interní zprávu, koncept ${k + 1} \\(ART-[0-9a-f]{16}\\)\\?`), "the question names the version");
+  // By name and saved time, never its id (RPT3d).
+  assert.match(await dialog.innerText(), new RegExp(`Schvalujete tuto verzi: Interní zpráva, koncept ${k + 1}, uloženou \\d+\\. \\d+\\. \\d{4} \\d{2}:\\d{2}\\.`), "the question names the version by its time");
   assert.equal(await page.evaluate(() => document.activeElement?.textContent), "Zrušit", "the safe choice holds the focus");
   await page.screenshot({ path: join(out, "1440-approval-dialog.png") });
   await save(`9${k + 1},5 %`);

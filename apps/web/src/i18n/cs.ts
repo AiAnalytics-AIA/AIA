@@ -1908,11 +1908,16 @@ export const cs = {
           setNever: "Nikdy",
           ofBudgetRest: "rozpočtu",
           remaining: "zbývá {usd}",
+          remainingUnknown: "zbývá: nezjištěno",
           nearLimit: "téměř vyčerpáno",
           profileRules: "Profil → Pravidla klienta",
           rules: "Pravidla",
           rulesOf: "Pravidla klienta {client}",
           moneyNames: "Co znamenají částky",
+          tableInfo: "Co znamenají částky a kdo je mění",
+          moneyInfo: "Co je {name}",
+          clientFilter: "Klient",
+          allClients: "Všichni klienti ({n})",
           thresholdBounds: "Od {min} USD, nejvýš rozpočet studie.",
           money: {
             studyBudget: "Strop, který útratu studie zastaví. Nastavuje se zde.",
@@ -2472,7 +2477,6 @@ export const cs = {
       backToBrief: "Zadání",
       understood: "Jak jsem zadání pochopil",
       objectives: "Co má výzkum zjistit",
-      hypotheses: "Co stojí za ověření",
       changed: "Upraveno podle vašich komentářů",
       principle: "Princip objektů",
       principleIntro: "Objekt je cokoli, co dává smysl porovnávat s ostatními položkami ve stejné sadě.",
@@ -2537,6 +2541,7 @@ export const cs = {
       jumpScope: "Rozsah",
       jumpUnderstanding: "Porozumění",
       jumpSets: "Sady · {n}",
+      jumpHypotheses: "Hypotézy · {n}",
       jumpQuestions: "Otázky AI · {a}/{b}",
       jumpComments: "Komentáře · {n}",
       openBrief: "Otevřít zadání",
@@ -2548,6 +2553,8 @@ export const cs = {
       variantTradeoffLabel: "Trade-off",
       understoodTitle: "Zkontrolujte, jak AI pochopila zadání",
       understoodHint: "Upravte text přímo; ke každé položce můžete přidat komentář pro AI.",
+      hypothesesTitle: "Hypotézy",
+      hypothesesHint: "Co má výzkum potvrdit nebo vyvrátit. Které měření hypotézu testuje, AIA zatím neurčuje.",
       principleSummary: "Princip objektů · co patří do jedné sady",
       setsHint: "Každá sada má položky stejného typu hodnocené na stejné škále; doporučeno {rmin}–{rmax}, nejvýše {max}.",
       setName: "Název sady",
@@ -2675,6 +2682,12 @@ export const cs = {
       previewEmpty: "Jakmile vzniknou otázky, uvidíte je zde očima respondenta.",
       previewQuestion: "Otázka {n}",
       previewSet: "Sledovaná sada {n} · {title}",
+      // What the preview leaves out, said (artifact-questionnaire QST11): 18.6.6 cut silently.
+      previewMoreOptions: { label: "+ {count}", one: "další možnost", few: "další možnosti", many: "dalších možností" },
+      previewMoreObjects: { label: "a stejně pro {count}", one: "další položku", few: "další položky", many: "dalších položek" },
+      previewLeftOut: { label: "+ {count} dotazníku, náhled ukazuje prvních {max}", one: "další položka", few: "další položky", many: "dalších položek" },
+      previewCondition: "Má podmínku zobrazení; zda ji běh přijme, rozhodne Kontrola.",
+      previewRangeUnread: "Rozsah škály nejde přečíst; opravte ho v režimu Upravit.",
       scale: "1–10",
       editorTag: "Osnova dotazníku",
       editorCounts: "{questions} · {sets}",
@@ -3325,10 +3338,24 @@ export const cs = {
         respondents: "{done} z {of} respondentů",
         modelSummary: "{answered} odpovědí modelu · {tokens} tokenů · {cost}",
         toolSummary: "{calls} volání webu",
-        claimed: "Worker krok převzal",
+        claimed: "Krok začal",
         succeeded: "Krok dokončen",
-        deferred: "Krok odložen: {reason}",
-        recovery: "Krok se zotavuje: {reason}",
+        // artifact-fieldwork FLD11: what the engine decided for a step, by its action (domain/workflow.py
+        // RecoveryAction, tests/fixtures/step_feed/actions.json); a reason with words of its own wins.
+        action: {
+          RETRY: "Krok se zopakuje",
+          PARK_PROVIDER: "Krok čeká na poskytovatele modelu",
+          PARK_CAPACITY: "Krok čeká, až bude mít poskytovatel modelu volnou kapacitu",
+          PARK_BUDGET: "Krok čeká, protože by překročil rozpočet studie.",
+          PARK_GATE: "Krok čeká na rozhodnutí člověka.",
+          RECOVERY_REQUIRED: "Krok se zastavil a sám se neopakuje.",
+          FAIL: "Krok selhal",
+          CANCEL: "Krok zrušen",
+          DEFER: "Krok čeká na své dílčí kroky",
+        },
+        // A resume, and a person's lift of the study's budget with its two amounts.
+        resumed: "Krok pokračuje",
+        budgetLifted: `${money.studyBudget} navýšen z {before} na {after}`,
         abandoned: "Pokus ukončen: {reason}",
         module: "modul {module}, kolo {turn}",
         aiSent: "Dotaz odeslán modelu",
@@ -3619,6 +3646,9 @@ export const cs = {
           "Krok se zastavil uprostřed placeného volání, jehož výsledek AIA nezná. Aby se nic nezaplatilo dvakrát, sám se neopakuje: běh lze zrušit a zopakovat, nebo nechat provozovatele volání dohledat.",
         attempts_exhausted: "Krok vyčerpal všechny pokusy a sám se neopakuje; běh lze zrušit a zopakovat.",
         recovery_required: "Krok se zastavil a sám se neopakuje; důvod AIA nezaznamenala. Běh lze zrušit a zopakovat.",
+        // Routine engine decisions a feed shows (FLD11): said, not shown as a code.
+        waiting_for_child_steps: "Krok čeká na dokončení svých dílčích kroků.",
+        released_by_worker: "Pracovní proces krok uvolnil; spustí se znovu.",
       },
       report: {
         status: {
@@ -3634,12 +3664,13 @@ export const cs = {
         // The question before an approval (input-interactions B22, Q33): the document, its variant,
         // the stored version and its format, and that it cannot be undone.
         approveAsk: {
-          internal: "interní zprávu",
-          with_review: "interní zprávu s rešerší {review}",
-          client: "klientskou zprávu",
           docx: "DOCX",
           docxPdf: "DOCX i jeho PDF",
-          question: "Schválit {what}, uloženou verzi {version} ({format})? Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          // By name and time, never the version's id (RPT3d, spec Z4).
+          question: "Schvalujete tuto verzi: {what}{when} ({format}).",
+          storedAt: ", vytvořenou {at}",
+          final: "Schválení nelze vrátit: tuto verzi pak nelze smazat ani nahradit.",
+          modelled: "Čísla jsou modelovaná; zpráva to u každého uvádí.",
           yes: "Schválit",
         },
         // A stored version's review as its file states it (research-integrity-report D2): only
@@ -3647,6 +3678,9 @@ export const cs = {
         review: {
           draft: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
           draftDocx: "Stav: Koncept · verze {version} — soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
+          // The same in the approval question, which names the version by its time (RPT3d).
+          fileDraft: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX i PDF této verze „SCHVÁLENO“ s datem.",
+          fileDraftDocx: "Soubor nese v zápatí „KONCEPT — NESCHVÁLENO“; po schválení ponese DOCX této verze „SCHVÁLENO“ s datem.",
           approved: "Stav: Schváleno {date} · verze {version} — DOCX i PDF této verze to nesou v zápatí",
           approvedDocx: "Stav: Schváleno {date} · verze {version} — DOCX této verze to nese v zápatí",
           older: "Schválení se zaznamená v AIA u tohoto uloženého souboru. Soubor se tím nemění a v zápatí dál nese „KONCEPT — NESCHVÁLENO“.",
