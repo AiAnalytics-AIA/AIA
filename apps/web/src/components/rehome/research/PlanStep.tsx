@@ -584,7 +584,7 @@ function SetCard({ set, limits, onAddObject, onRename, onRemove, onRemoveObject,
             <span>{first.low}</span>
             <span aria-hidden="true" className="flex flex-1 gap-0.5">
               {Array.from({ length: 10 }, (_, i) => (
-                <i key={i} className="block h-2 flex-1 rounded-sm border border-border-strong bg-surface-raised" />
+                <i key={i} className="block h-2 flex-1 rounded-mark border border-border-strong bg-surface-raised" />
               ))}
             </span>
             <span>{first.high}</span>

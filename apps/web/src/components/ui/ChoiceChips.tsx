@@ -11,7 +11,7 @@
 import { type KeyboardEvent, type ReactNode, useRef } from "react";
 
 import { rovingIndex, tabStop } from "@/lib/roving";
-import { FOCUS, TOUCH } from "./parts";
+import { CHIP_TOUCH, FOCUS } from "./parts";
 
 export type Choice<K extends string> = { key: K; label: ReactNode; disabled?: boolean };
 
@@ -61,7 +61,7 @@ export function ChoiceChips<K extends string>(
     <div role={props.multiple ? "group" : "radiogroup"} aria-label={label} data-look={look}
       // A full-size bar on a phone is a list, one segment a row: a long one (Správa dat's clients)
       // wrapped into a ragged bar otherwise. A small bar (a table cell's) stays a row and wraps.
-      className={`${segmented ? `max-w-full overflow-hidden rounded-[6px] border border-border-strong bg-surface-raised ${small ? "inline-flex flex-wrap" : "flex flex-col sm:inline-flex sm:flex-row sm:flex-wrap"}` : "flex flex-wrap gap-1.5"} ${className}`}>
+      className={`${segmented ? `max-w-full overflow-hidden rounded-control border border-border-strong bg-surface-raised ${small ? "inline-flex flex-wrap" : "flex flex-col sm:inline-flex sm:flex-row sm:flex-wrap"}` : "flex flex-wrap gap-1.5"} ${className}`}>
       {options.map((o, i) => {
         const on = isOn(o.key);
         return (
@@ -86,8 +86,8 @@ export function ChoiceChips<K extends string>(
               ? `inline-flex min-h-11 min-w-0 items-center border-border px-2.5 text-left text-xs last:border-0 ${small ? "whitespace-nowrap border-r" : "break-words py-1.5 border-b sm:border-b-0 sm:border-r [overflow-wrap:anywhere]"} disabled:cursor-not-allowed disabled:opacity-50 focus-visible:relative focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus-ring ${small ? "sm:min-h-7 sm:px-2" : "sm:min-h-8"} ${
                 on ? "bg-signal text-on-signal" : "text-ink hover:bg-surface-sunken"
               }`
-              : `inline-flex ${TOUCH} items-center gap-1.5 rounded-pill border px-3 text-[13px] transition-colors duration-[var(--duration-confirm)] disabled:opacity-50 ${FOCUS} ${
-              on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border bg-surface-raised text-ink hover:border-border-strong"
+              : `inline-flex ${CHIP_TOUCH} items-center gap-1.5 rounded-control border px-2 text-xs font-medium transition-colors duration-[var(--duration-confirm)] disabled:opacity-50 ${FOCUS} ${
+              on ? "border-signal bg-signal text-on-signal" : "border-border bg-surface-raised text-ink-muted hover:border-signal-edge hover:text-ink"
             }`}
           >
             {o.label}

@@ -40,6 +40,7 @@ from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
+from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -77,7 +78,9 @@ from ..infrastructure.client_knowledge_repository import ClientKnowledgeReposito
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
     LeadAlreadyHatched,
+    LeadHatchNotPending,
     LeadNotHatched,
+    PendingHatch,
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
@@ -103,6 +106,9 @@ __all__ = [
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
+    "LeadHatchNotPending",
+    "LeadHatchRefused",
+    "LeadHatchUnavailable",
     "LeadNotHatched",
     "LeadProfile",
     "LeadRejected",
@@ -139,6 +145,29 @@ class LeadUnavailable(Exception):
     """The deployment has not switched the Lead on (``AIA_AI_RESEARCH_LEAD_ENABLED``)."""
 
     reason = "research_lead_unavailable"
+
+
+class LeadHatchUnavailable(Exception):
+    """A hatch cannot be asked of the model yet (lead-identity LI1).
+
+    Its request needs a payer outside any client: the AIA organization the product owner
+    decided on 2026-10-25 ("create the AIA organization for charges spent that dont belong to
+    a single client"), which is not built. Until it is, asking is refused by name, before
+    anything is sent or charged; no code writes the files instead.
+    """
+
+    reason = "lead_hatch_unavailable"
+
+
+class LeadHatchRefused(Exception):
+    """The hatched files hold what a personal file may not (ADR 0030 decision 3): they are
+    not kept, by name, and the person writes again."""
+
+    reason = "client_fact_in_personal_file"
+
+    def __init__(self, files: Mapping[str, str]) -> None:
+        super().__init__(f"refused: {', '.join(sorted(files))}")
+        self.files = dict(files)
 
 
 class LeadDisabled(LeadUnavailable):
@@ -1493,7 +1522,7 @@ class LeadProfile:
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.get()
         if lead is None:
-            return {"hatched": False, "lead": None}
+            return {"hatched": False, "lead": None, "pending_hatch": _hatch(repo.pending_hatch())}
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
     def hatch(self) -> dict[str, Any]:
@@ -1501,12 +1530,61 @@ class LeadProfile:
         lead = repo.hatch()
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
+    # -- hatching (lead-identity LI1) ----------------------------------------
+
+    def request_hatch(self, hatch_input: Mapping[str, Any]) -> dict[str, Any]:
+        """Ask the model to write the caller's Lead files. Refused by name until the AIA
+        organization exists to pay for it; the input is validated first, so a person learns of
+        a wrong input before the payer's absence."""
+        HatchInput.model_validate(hatch_input)
+        if ResearcherLeadRepository(self.session, self.scope).get() is not None:
+            raise LeadAlreadyHatched("the Lead is already hatched")
+        raise LeadHatchUnavailable("hatching has no payer outside a client yet")
+
+    def accept_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2).
+        The model's answer is checked again here, as it is kept: its bounds and ADR 0030
+        decision 3's personal-file check against the organization's clients as they are now,
+        the chosen name included (review of #919)."""
+        repo = ResearcherLeadRepository(self.session, self.scope)
+        pending = repo.pending_hatch()
+        if pending is None or pending.hatch_id != hatch_id or pending.output is None:
+            raise LeadHatchNotPending(hatch_id)
+        hatch = HatchInput.model_validate(pending.input)
+        output = HatchOutput.model_validate(pending.output)
+        refused = hatch_refusals(output, repo.organization_client_names(), name=hatch.name)
+        if refused:
+            raise LeadHatchRefused(refused)
+        lead = repo.accept_hatch(hatch_id, name=hatch.name, soul=output.soul, user=output.user)
+        return {
+            "hatched": True,
+            "lead": _profile(lead, repo.active_notes()),
+            "greeting": output.greeting,
+        }
+
+    def discard_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Zadat znovu": the pending hatch is set aside; the person writes again, and a new
+        request is a new paid request with its own cost shown."""
+        ResearcherLeadRepository(self.session, self.scope).discard_hatch(hatch_id)
+        return self.read()
+
     def set_preferences(self, *, auto_accept_text_edits: bool) -> dict[str, Any]:
         """The caller sets their own Lead's preferences (plan inline-decisions chunk 2): the
         standing choice to have its text edits accepted without a click. Audited."""
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.set_preferences(auto_accept_text_edits=auto_accept_text_edits)
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
+
+
+def _hatch(pending: PendingHatch | None) -> dict[str, Any] | None:
+    if pending is None:
+        return None
+    return {
+        "hatch_id": pending.hatch_id,
+        "input": pending.input,
+        "output": pending.output,
+        "created_at": pending.created_at,
+    }
 
 
 def _profile(lead: ResearcherLead, notes: Sequence[LeadNote]) -> dict[str, Any]:

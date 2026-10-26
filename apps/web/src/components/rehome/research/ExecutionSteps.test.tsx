@@ -1826,7 +1826,8 @@ describe("Results", () => {
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("tab", { name: "Data" }));
     expect(await screen.findByText("Ověřené shrnutí.")).toBeTruthy();
-    expect(screen.getByText(/C1 → q1.mean/)).toBeTruthy();
+    // The claim's id and evidence ref are not printed on the stage (ANL10).
+    expect(screen.queryByText(/C1 → q1.mean/)).toBeNull();
     expect(screen.getByText(/Interní analýza fiktivních respondentů/)).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "AI analýza" }));
     fireEvent.click(screen.getByRole("button", { name: /Omezení.*Čeká/ }));
@@ -1923,6 +1924,18 @@ describe("Results", () => {
     expect(document.querySelectorAll("[data-answer-gap]")).toHaveLength(1);
   });
 
+  it("names a fictional run's origin in the header before any module has stored one (ANL10)", async () => {
+    api({ ...listed(run({ ...COMPLETED, steps: [...COMPLETED.steps, step("analysis_executive", "RUNNABLE", { kind: "research_analysis" })] })),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: false, data_origin_kind: null, pending: { executive: "RUNNABLE" }, modules: {} }),
+    });
+    render(<ResearchScreen step="results" frame={TEST_FRAME} />);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    await waitFor(() => expect(document.querySelector("[data-analysis-milestones]")).toBeTruthy());
+    // The analysis states no origin yet; the run is fictional, so the header says so, never "neznámý".
+    expect(document.querySelector("[data-analysis-header]")?.textContent).toMatch(/ · interní · fiktivní respondenti$/);
+  });
+
   it("covers every research question of the frozen design: its answer, the findings on the same measures, what is missing (ANL2)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_research_questions", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-7", analysis_outcome: "COMPLETED" }),
@@ -1956,6 +1969,13 @@ describe("Results", () => {
     const milestones = [...document.querySelectorAll("[data-analysis-milestones] li")];
     expect(milestones[0].textContent).toContain("Sběr dokončen");
     expect(milestones[0].getAttribute("data-done")).toBe("true");
+    // No run or claim ids on the stage (ANL10): the header names the run by its day and origin,
+    // and the module's own pane no longer prints claim → evidence ref.
+    const card = document.querySelector("[data-analysis-card]") as HTMLElement;
+    expect(card.querySelector("[data-analysis-header]")?.textContent).toMatch(/^Běh( z .+)? · interní · fiktivní respondenti$/);
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Části AI analýzy" })).getByRole("button", { name: /Výzkumné otázky/ }));
+    expect(card.textContent).not.toContain("RUN-1");
+    expect(card.textContent).not.toContain("q2.pct.2");
     // A finding chip brings the finding into view without a hash: a hash naming no view sends the
     // workspace back to Přehled (ANL8 audit, F4).
     const before = window.location.hash;
