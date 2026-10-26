@@ -102,6 +102,7 @@ from ..domain.evidence import (
     method_status,
     respondent_system_fingerprint,
 )
+from ..domain.evidence.report_lift import ModelledReportLift
 from ..domain.evidence.support import SupportSpec
 from ..domain.fieldwork import (
     JOINT_CERTIFICATE_METADATA,
@@ -156,6 +157,7 @@ __all__ = [
     "dataset_material",
     "harness_summary",
     "module_artifact",
+    "modules_asked",
     "native_sources",
     "prepare_module",
     "reconstruct_module",
@@ -647,6 +649,27 @@ def harness_summary(*, language: str, max_repairs: int = MAX_REPAIRS) -> Harness
     )
 
 
+def sources_evidence(
+    sources: NativeSources, *, report_lift: ModelledReportLift | None = None
+) -> NativeEvidence:
+    """The run's evidence table over its verified sources: the one construction its analysis,
+    its client report and Výsledky read (``report_lift`` is the client report's alone).
+
+    Nothing stores a validation of a respondent system yet (evidence-integrity 7 earns the
+    first), so a modelled run's evidence stays internal but for that lift."""
+    return native_evidence(
+        sources.specification,
+        sources.aggregate,
+        dataset_sha256=sources.refs.dataset.sha256,
+        origin=sources.dataset_origin,
+        support=sources.support.analysis,
+        respondent_system=sources.respondent_system,
+        joint_certificate=sources.joint_certificate,
+        validation=None,
+        report_lift=report_lift,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class PreparedModule:
     """Everything one module is judged on, and every reason it cannot run."""
@@ -674,18 +697,7 @@ def prepare_module(
     max_repairs: int = MAX_REPAIRS,
 ) -> PreparedModule:
     """Build one module's inputs from verified sources. Pure given the sources."""
-    evidence = native_evidence(
-        sources.specification,
-        sources.aggregate,
-        dataset_sha256=sources.refs.dataset.sha256,
-        origin=sources.dataset_origin,
-        support=sources.support.analysis,
-        respondent_system=sources.respondent_system,
-        joint_certificate=sources.joint_certificate,
-        # Nothing stores a validation of a respondent system yet (chunk 7 earns the first), so a
-        # modelled run's evidence stays internal.
-        validation=None,
-    )
+    evidence = sources_evidence(sources)
     inputs = AnalysisInputs(
         table=evidence.table,
         book=evidence.book,
@@ -1199,6 +1211,26 @@ class AnalysisNotRetryable(Exception):
         self.reason = reason
 
 
+def modules_asked(analysis: StoredAnalysis) -> int:
+    """How many modules an analysis retry of this run asks a model, the count its start prices
+    (``FrozenDataset.modules_asked``): the retryable ones, every module the run has no record
+    of (asked afresh), and every record the run itself paid for rather than reused. Never fewer
+    than ``len(analysis.retryable)``, so a ceiling priced on it is an upper bound
+    (lead-orchestration LO23: what ``…/analysis/retryable`` answers before the start)."""
+    retried = analysis.retryable
+    return sum(
+        1
+        for m in AnalysisModuleId
+        if m in retried
+        or (
+            m in analysis.records
+            and not _reused(analysis.records[m])
+            and analysis.records[m].attempts > 0
+        )
+        or (m not in analysis.records and m not in retried)
+    )
+
+
 def _reused(record: ModuleArtifact) -> bool:
     """True when a retry will reuse this outcome: a completed module under today's harness."""
     if record.outcome != "COMPLETED":
@@ -1280,17 +1312,7 @@ def retry_failed_modules(
             f"run {run_id} has no analysis module a model failed, left without a finding or an "
             "earlier harness stored",
         )
-    asked = sum(
-        1
-        for m in AnalysisModuleId
-        if m in retried
-        or (
-            m in analysis.records
-            and not _reused(analysis.records[m])
-            and analysis.records[m].attempts > 0
-        )
-        or (m not in analysis.records and m not in retried)
-    )
+    asked = modules_asked(analysis)
     previous = metadata.get("analysis_retry") or {}
     frozen = FrozenDataset(
         run_id=run_id,

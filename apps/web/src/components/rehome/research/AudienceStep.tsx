@@ -14,6 +14,7 @@
 // /population/audience-preview); where this deployment has none, the step says why. Whether a run
 // applies the filters is the run's pin, and readiness says it ("audience").
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 
@@ -24,6 +25,7 @@ import { ApiError, type AudienceCatalogue, population } from "@/lib/api";
 import { audienceFilterAia, audiencePartAia, audienceSubpanelAia } from "@/lib/artifacts/audience";
 import { rangeWords } from "@/lib/number-input";
 import { isNativeResult } from "@/lib/research-agent-jobs";
+import { stageHref } from "@/lib/workbench-stages";
 import { t, tv } from "@/i18n/t";
 import {
   type Catalog,
@@ -58,7 +60,9 @@ import {
   liveCatalog,
   liveSubpanels,
   matchingSubpanels,
-  liveVerdict,
+  feasibility,
+  type Feasibility,
+  filterCountLines,
   proposePayload,
   proposeText,
   rangeBounds,
@@ -81,6 +85,7 @@ import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
+import { useAudiencePreview } from "./useAudiencePreview";
 
 /** A filter refused whole, in words (filterProblems' reasons other than `values`). */
 const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
@@ -481,39 +486,77 @@ function ValueChips({ legend, values, chosen, disabled, onPick }: { legend: stri
   );
 }
 
-/** The feasibility preview: counted by the API over AIA's population, through the run's own functions. */
+/** The words of "Lze vytáhnout" and the tone each verdict reads in (unknown never good). */
+const FEASIBLE: Record<Feasibility["verdict"], { key: string; tone: string }> = {
+  yes: { key: "research.audience.feasibleYes", tone: "text-status-done" },
+  tight: { key: "research.audience.feasibleTight", tone: "text-status-you-ink" },
+  no: { key: "research.audience.feasibleNo", tone: "text-status-fault" },
+  unknown: { key: "research.audience.feasibleUnknown", tone: "text-ink-muted" },
+};
+
+/**
+ * Proveditelnost (AUD9, spec vzorek/A5): counted by the API over AIA's population, through the run's
+ * own functions, again after every change (useAudiencePreview), as three figures: whom the filters
+ * select, the sample's n and whether it can be drawn. A count not answered is said, never 0.
+ */
 function Preview({ catalog }: { catalog: Catalog }) {
-  const { store } = useResearch();
-  const [answer, setAnswer] = useState<{ ok: boolean; lines: string[]; seed?: number } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const check = async () => {
-    setBusy(true);
-    const p = store.get().project;
-    const n = Number(p.n);
-    try {
-      const r = await population.audiencePreview((p.audience.filters as Record<string, unknown>) || {}, Number.isFinite(n) && n >= 1 ? n : null);
-      setAnswer({ ...liveVerdict(r, catalog), seed: r.seed });
-    } catch (e: unknown) {
-      if (e instanceof ApiError && e.code === "audience_preview_unavailable") setAnswer({ ok: false, lines: [t("research.audience.previewUnavailable")] });
-      else setAnswer({ ok: false, lines: [tv("research.audience.previewFailed", { message: e instanceof Error ? e.message : String(e) })] });
-    } finally {
-      setBusy(false);
-    }
-  };
+  const { state, stepHref } = useResearch();
+  const p = state.project;
+  const size = Number(p.n);
+  const n = Number.isFinite(size) && size >= 1 ? size : null;
+  const { answer, error, busy } = useAudiencePreview((p.audience.filters as Record<string, unknown>) || {}, n, population.audiencePreview);
+  const verdict = feasibility(answer);
+  const lines = answer ? filterCountLines(answer, catalog) : [];
+  const unknown = t("research.audience.countUnknown");
+  const failed = error
+    ? error instanceof ApiError && error.code === "audience_preview_unavailable"
+      ? t("research.audience.previewUnavailable")
+      : tv("research.audience.previewFailed", { message: error instanceof Error ? error.message : String(error) })
+    : null;
   return (
-    <div data-aia={audiencePartAia("preview")} className="mt-4 border-t border-border pt-3">
-      <Button disabled={busy} onClick={() => void check()}>
-        {busy ? t("research.audience.previewRunning") : t("research.audience.previewButton")}
-      </Button>
-      {answer ? (
-        <div role="status" className={`mt-2 rounded-control border p-3 text-sm ${answer.ok ? "border-signal-edge bg-signal-tint" : "border-status-you-ink/40 bg-status-you-wash"}`}>
-          {answer.lines.map((l) => (
-            <p key={l}>{l}</p>
-          ))}
-          {answer.seed != null ? <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.previewSeed", { seed: answer.seed })}</p> : null}
-        </div>
-      ) : null}
-    </div>
+    <section data-aia={audiencePartAia("preview")} aria-labelledby="aud-feasibility" className="mt-4 border-t border-border pt-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 id="aud-feasibility" className="text-sm font-semibold">{t("research.audience.feasibilityTitle")}</h3>
+        <span className="text-xs text-ink-muted">{busy ? t("research.audience.previewRunning") : t("research.audience.feasibilityLive")}</span>
+      </div>
+      {/* Announced as it changes: the figures are the only answer a filter edit gets. */}
+      <div aria-live="polite" aria-busy={busy} className={`mt-2 ${busy && answer ? "opacity-60" : ""}`}>
+        {failed ? (
+          <p className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{failed}</p>
+        ) : (
+          <>
+            <dl className="grid gap-2 sm:grid-cols-3">
+              <div className="rounded-control border border-border bg-surface p-3">
+                <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySelected")}</dt>
+                <dd className="mt-1 text-lg font-semibold tabular-nums">{answer?.selected_rows != null ? answer.selected_rows.toLocaleString("cs-CZ") : unknown}</dd>
+                <dd className="text-xs text-ink-muted">{answer ? tv("research.audience.feasibilityOf", { rows: answer.population_rows.toLocaleString("cs-CZ") }) : null}</dd>
+              </div>
+              <div className="rounded-control border border-border bg-surface p-3">
+                <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySample")}</dt>
+                <dd className="mt-1 text-lg font-semibold tabular-nums">{n != null ? `N ${n.toLocaleString("cs-CZ")}` : t("research.audience.unset")}</dd>
+                <dd className="text-xs">
+                  {/* Client-side, as every stage link: a document load would drop an edit still waiting to save and the Lead's pane. */}
+                  <Link className="text-signal underline" href={stageHref("sample", stepHref)}>{t("research.audience.feasibilitySampleEdit")}</Link>
+                </dd>
+              </div>
+              <div className="rounded-control border border-border bg-surface p-3">
+                <dt className="text-xs text-ink-muted">{t("research.audience.feasibilityDraw")}</dt>
+                <dd className={`mt-1 text-lg font-semibold ${FEASIBLE[verdict.verdict].tone}`}>{t(FEASIBLE[verdict.verdict].key)}</dd>
+                <dd className="text-xs text-ink-muted">{verdict.text}</dd>
+              </div>
+            </dl>
+            {lines.length ? (
+              <ul className="mt-2 text-xs text-ink-muted">
+                {lines.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            ) : null}
+            {answer ? <p className="mt-1 text-xs text-ink-muted">{tv("research.audience.previewSeed", { seed: answer.seed })}</p> : null}
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 

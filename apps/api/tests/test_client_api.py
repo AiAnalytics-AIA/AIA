@@ -1142,3 +1142,158 @@ def test_a_put_is_logged_as_the_persons_and_cannot_change_a_declared_sociomap_in
         rows = WorkspaceEditRepository(session, scope).rows(after_revision=1)
     assert [(r.item_key, r.field) for r in rows] == [("content:brief:title", "text")]
     assert rows[0].by == WriteBy(ActorKind.PERSON, world.users["lead"], OpSource.UI)
+
+
+def _edit_rows(app: Any, world: Any, after: int) -> list[Any]:
+    from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+    from aia_core.infrastructure.workspace_edit_repository import WorkspaceEditRepository
+
+    with app.state.session_factory() as session:
+        scope = ScopeResolver(session).study_context(
+            AuthenticatedPrincipal(
+                user_id=world.users["lead"], organization_id=world.organization_id
+            ),
+            study_id=world.study_id(),
+        )
+        return WorkspaceEditRepository(session, scope).rows(after_revision=after)
+
+
+def test_a_persons_edits_apply_as_one_batch_logged_under_each_operation(
+    app: Any, lead: TestClient, world: Any
+) -> None:
+    """working-copy-edit-ops WCE3a: a stage sends its edits in the vocabulary; they apply in
+    order as one revision, each logged under its own operation as the person's, and the answer
+    carries the copy as saved."""
+    from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    assert lead.put(f"{url}/content", json={"content": BRIEF}).json()["revision"] == 1
+    applied = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "reason": "brief_objective_add",
+            "ops": [
+                {"op": "set_text", "field": "title", "value": "Nový název", "why": "person"},
+                {"op": "list_add", "list": "plan.objectives", "value": "Poznat", "why": "person"},
+            ],
+        },
+    )
+    assert applied.status_code == 200, applied.text
+    body = applied.json()
+    assert (body["revision"], body["deduplicated"]) == (2, False)
+    assert body["content"]["title"] == "Nový název"
+    assert body["content"]["research_plan"]["objectives"] == ["Poznat"]
+    assert body["analysis"]["objectives"] == ["Poznat"]
+    assert lead.get(f"{url}/content").json()["content"] == body["content"]
+    rows = _edit_rows(app, world, 1)
+    assert {r.op["op"] for r in rows} >= {"set_text", "list_add"}
+    assert all(r.by == WriteBy(ActorKind.PERSON, world.users["lead"], OpSource.UI) for r in rows)
+    assert all("why" not in r.op for r in rows)
+
+
+def test_a_batch_from_a_stale_revision_is_refused_as_a_save_is(
+    lead: TestClient, researcher: TestClient, world: Any
+) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    researcher.put(f"{url}/content", json={"content": {**BRIEF, "goal": "B"}, "base_revision": 1})
+    stale = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [{"op": "set_text", "field": "title", "value": "A", "why": "person"}],
+        },
+    )
+    assert stale.status_code == 409
+    assert (stale.json()["code"], stale.json()["details"]) == (
+        "stale_revision",
+        {"current_revision": 2},
+    )
+
+
+def test_a_batch_the_copy_does_not_take_whole_saves_nothing(
+    app: Any, lead: TestClient, world: Any
+) -> None:
+    """All or nothing: the stage applied every edit to its own copy, so a copy keeping some of them
+    is one the person never saw. A declared operation is refused by name, never applied."""
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    refused = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [
+                {"op": "set_text", "field": "title", "value": "Kept?", "why": "person"},
+                {"op": "list_remove", "list": "plan.objectives", "old": "Žádný", "why": "p"},
+            ],
+        },
+    )
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "edit_refused"
+    assert refused.json()["details"] == {"refused": {"1": "unknown_item"}, "current_revision": 1}
+    now = lead.get(f"{url}/content").json()
+    assert (now["revision"], now["content"]["title"]) == (1, BRIEF["title"])
+    assert _edit_rows(app, world, 1) == []
+
+    declared = lead.post(
+        f"{url}/ops",
+        json={"base_revision": 1, "ops": [{"op": "set_remove", "why": "person"}]},
+    )
+    # A declared operation has no payload yet: the vocabulary refuses its shape.
+    assert declared.status_code == 422
+
+
+def test_a_batch_is_validated_before_it_is_applied(lead: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace/ops"
+    edit = {"op": "set_text", "field": "title", "value": "A", "why": "person"}
+    assert lead.post(url, json={"ops": []}).status_code == 422
+    assert lead.post(url, json={"ops": [edit] * 101}).status_code == 422
+    assert lead.post(url, json={"ops": [{**edit, "why": ""}]}).status_code == 422
+    assert lead.post(url, json={"ops": [{**edit, "field": "n"}]}).status_code == 422
+    assert lead.post(url, json={"ops": [edit], "reason": "Bad Reason"}).status_code == 422
+
+
+def test_a_batch_writing_a_locked_sociomap_input_is_refused_as_an_edit(
+    lead: TestClient, world: Any
+) -> None:
+    """The lock arrives as ``edit_refused`` naming ``sociomap_input_locked``, which the web's store
+    answers by saving the copy whole under the PUT's own lock check (WCE3a)."""
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    question = {"id": "Q1", "text": "Jak často?", "typ": "skala", "skala": [1, 5]}
+    declared = {
+        **BRIEF,
+        "sections": [
+            {"id": "s", "type": "questions", "questions": [{**question, "sociomap_rating": True}]}
+        ],
+    }
+    assert lead.put(f"{url}/content", json={"content": declared}).json()["revision"] == 1
+    refused = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [
+                {"op": "question_edit", "question_id": "Q1", "text": "Jak moc?", "why": "person"}
+            ],
+        },
+    )
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "edit_refused"
+    assert refused.json()["details"]["refused"] == {"0": "sociomap_input_locked"}
+    assert lead.get(f"{url}/content").json()["revision"] == 1
+
+
+def test_a_batch_on_a_closed_study_is_refused_as_closed(lead: TestClient, world: Any) -> None:
+    url = f"{API}/studies/{world.study_id()}/workspace"
+    lead.put(f"{url}/content", json={"content": BRIEF})
+    status = f"{API}/studies/{world.study_id()}/status"
+    assert lead.put(status, json={"status": "ARCHIVED"}).status_code == 200
+    refused = lead.post(
+        f"{url}/ops",
+        json={
+            "base_revision": 1,
+            "ops": [{"op": "set_text", "field": "title", "value": "A", "why": "person"}],
+        },
+    )
+    assert refused.status_code == 403
+    assert refused.json()["code"] == "study_closed"

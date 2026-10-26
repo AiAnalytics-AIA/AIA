@@ -131,16 +131,25 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
     MethodStep(
         id="request",
         title_cs="Pravděpodobnosti od modelu",
-        formula_latex=r"p = (p_1, \dots, p_K) \text{ od modelu, jeden respondent, teplota } 0",
+        formula_latex=(
+            r"p = (p_1, \dots, p_K) \text{ od modelu, jeden respondent, teplota } 0"
+            r"\text{ (přijímá-li ji model)}"
+        ),
         implements=f"{_R}:build_request",
-        source_sha256="56d53a0992909f74f30137d293390724b674415e86a6a156114de4ce4523e7cd",
+        source_sha256="e53a4163d7d93c49692165cec4653ad41dd4c3d108b1bb5f0b7d3b432782d4b1",
         symbols=(Symbol("K", "počet možností otázky (u škály body a případně „nevím“)"),),
         evidence=(_DIVISION,),
-        tests=(f"{_TA}::test_the_request_carries_class_lineage_prompt_and_no_scope",),
+        tests=(
+            f"{_TA}::test_the_request_carries_class_lineage_prompt_and_no_scope",
+            f"{_TA}::test_a_model_that_takes_no_sampling_is_asked_without_a_temperature",
+        ),
         note_cs=(
             "Model dostane profil jednoho respondenta a vrátí pro každou uzavřenou otázku "
             "rozdělení pravděpodobností, nikdy odpověď. Disperzní teplota 18.6.6 "
-            "(dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1."
+            "(dispersion_calibration) přenesena není: AIA nemá kalibraci, teplota je 1. "
+            "Modelu, jehož profil nastavení vzorkování odmítá (např. Claude Sonnet 5.5), se "
+            "teplota neposílá a model vzorkuje podle svého výchozího nastavení; systém "
+            "respondenta tento profil nese ve vazbě na model, takže jeho otisk se změní."
         ),
     ),
     MethodStep(

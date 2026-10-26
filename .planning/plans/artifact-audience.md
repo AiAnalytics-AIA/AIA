@@ -136,6 +136,20 @@ cards). Tests: `AudienceStep.test.tsx` ("offers three strategies…", "a study s
 discover opens readable…"), `audience.live.test.ts` ("one strategy choice"), the audience and
 workspace journeys. Part 2 is the filter rows (`vzorek/A3`).
 
+**AUD9, as delivered (research stages v73, spec `vzorek/A5`; chunk added by the build plan).**
+Proveditelnost is asked again 400 ms after the last change of the filters or n
+(`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
+answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
+rows of the population's), "Vzorek" (the stored n, linked to Vzorek, where it is set since #945, through next/link so a pending save and the Lead's pane survive; Codex on #1002) and
+"Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
+(representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
+"kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the
+code knows. A count not answered reads "nezjištěno", never 0. Cost: one POST per settled change; the
+journey prints each preview's time on the machine it runs on. Open before merge: the p95 on develop
+(build plan). Tests: `useAudiencePreview.test.ts`, `audience.live.test.ts` ("Lze vytáhnout…"),
+`AudienceStep.test.tsx` ("Proveditelnost counts the audience in AIA without a click…"), the audience
+journey.
+
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
   population, counts only.

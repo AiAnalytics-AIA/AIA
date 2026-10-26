@@ -490,6 +490,9 @@ def test_a_delivered_study_keeps_its_results_and_refuses_new_work_under_one_code
     assert (failed["status"], failed["retryable"]) == ("FAILED", True)
     retryable = api.get(f"{_run_url(world, failed_id)}/analysis/retryable").json()
     assert retryable["modules"] == ["objects"]
+    # LO23: the most asking it again can cost, before it starts: one module, a draft and its two
+    # repairs, at the analysis reservation (1.0), as the retry's start works it out.
+    assert retryable["ceiling_usd"] == 1 * 3 * 1.0
     unstarted = _submit(api, world, _design(n=220, tea_measured=True))
     report, _, document = _report(api, world, run_id)
 

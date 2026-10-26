@@ -254,8 +254,11 @@ Signed: Nigel Blount, product owner ("ok lets sign it", relayed by the coordinat
 
 **Role.** `CORE`: carries an MVP gate. `SUPPORT`: needed, gates nothing alone. `CLOSE`: finished or
 superseded, to be verified and closed by its owner. `FOLD`: its remaining work belongs inside another
-plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan are
-**proposed** (◇): each plan's owner confirms in `MP3` (the owner, 2026-10-25: (b), plan by plan; being reviewed).
+plan. `POST`: after the MVP, by decision. The dispositions of plans outside the development plan were
+**proposed** (◇) and the owner reviewed them plan by plan in `MP3` (2026-10-25: (b)); **he answered every
+one on 2026-10-26** in the Decision Review (relayed by the PM coordinator), recorded row by row in §3.2.
+A CLOSE or FOLD unticks and deletes nothing: the plan keeps its chunks and its status, its body records
+the disposition, and its owner closes it with a pointer when the receiving plan has the work.
 
 ### 3.1 Core: carry an MVP gate
 
@@ -300,6 +303,7 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 | `run-qc-and-checkpoint` | S2 | I-1, I-2, I-3 | checkpoint before resumed fieldwork; event payload before Fieldwork UI; replacement method decision before RQC5 |
 | `report-delivery` | S3 | I-2, I-3 | a client-report contract, the evidence gate definitions (§11.4) |
 | `study-data-lifecycle` | S3 | I-5 | the deletion horizons (§11.4) |
+| `study-deletion` | S3 | I-5 (proposed) | **proposed core (planning, 26 Oct): all SD questions answered** (ADR 0043 accepted 2026-10-26, Q1-Q8 and SD-F1-NOW in the Decision Review); `study-data-lifecycle#SDL3`'s study half; SD7's client half first, as its own small PR (OI-232); a proposal of this register, not the owner's scope decision |
 | `production-environment` | S3 | I-5 | operator items (§11.5) |
 | `signed-off-sociomap-method` | S2 and the methodology owner | I-2 | the owner's D-13 (`-5` the only method); the methodology owner's register entry (MQ-01) before a `-5` map reaches a client |
 | `settings-redesign` | lane B: the Settings builder (S1) | I-1 (proposed) | **proposed core, 2026-10-26** (was SUPPORT in §3.2): the Settings pages are step 2-3 of `prototype-build`, every open chunk W1; Nigel may change it |
@@ -307,25 +311,27 @@ plan. `POST`: after the MVP, by decision. The dispositions of plans outside the 
 
 The waves of every chunk are in `.planning/mvp-execution-contracts.md` (the predecessor graph and the table of every other open chunk); this table no longer repeats them, so there is one place to keep true. `tools/master_check.py` fails on an open chunk of these plans with no wave.
 
-### 3.2 Outside the development plan: proposed disposition
+### 3.2 Outside the development plan: disposition
 
-| Plan | Proposed role | Why | Action |
+The owner's answer is quoted in each row: the Decision Review, 2026-10-26, relayed by the PM coordinator
+(REV-MP3-*). "Against" marks an answer that differs from the proposal.
+
+| Plan | Role | Why | Action |
 |---|---|---|---|
-| `productization-coherence` | SUPPORT (S1) | PC5 (stage track says the design changed after the run) and PC16 (rewording a question keeps its links) land inside artifacts 17-18 | add to workbench 17-18 as acceptance lines |
-| `client-workspace` | FOLD into `client-knowledge-lifecycle` (S3) | C6-C9 overlap K3, K2, K6; C8 contradicts ADR 0027 and F19 | re-scope C8, point C6-C9 at the lifecycle chunks |
-| `architecture-enforcement` | SUPPORT (S3) | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
-| `ai-research-activation` | FOLD into §4 and `MP7` | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
-| `run-recovery-and-truth` | CLOSE | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
-| `research-agent-workflows` | FOLD | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0 once `MP3` is run; no checkpoint work stays in the old plan |
-| `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
-| `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | CLOSE (verify) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | owners verify against `develop`, close |
-| `methodology-tab` | POST | S4d waits on the audit's author, W1c on panel source weighting, X1 is Simulation | none |
-| `panel-grounded-respondents` | POST | 7f-7h are the holdout validation that lifts client-facing analysis prose; the MVP's client report carries none (AC-13) | none |
-| `sociomapping-engine` | POST | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none |
-| `simulation-studio` | POST | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
+| `productization-coherence` | SUPPORT (S1), **accepted** 2026-10-26 ("Accept: SUPPORT (S1)") | PC5 (stage track says the design changed after the run) and PC16 (rewording a question keeps its links) land inside artifacts 17-18 | add to workbench 17-18 as acceptance lines |
+| `client-workspace` | FOLD into `client-knowledge-lifecycle` (S3), **accepted** 2026-10-26 ("Accept: FOLD into client-knowledge-lifecycle (S3)") | C6-C9 overlap K3, K2, K6; C8 contradicts ADR 0027 and F19 | C6 → `client-knowledge-lifecycle#K2f`, C7 → `#K2`, C9 → `#K6`; C8 re-scoped by the lifecycle's owner under ADR 0027; recorded in the plan |
+| `architecture-enforcement` | SUPPORT (S3), **accepted** 2026-10-26 ("Accept: SUPPORT (S3)") | the new tables must pass its contracts; chunk 9 (a digest on scope and claims) is security | schedule beside M1-M6; not gating |
+| `ai-research-activation` | FOLD into §4 and `MP7`, **accepted** 2026-10-26 ("Accept: FOLD into §4 and MP7") | its open chunk is the activation the AI route still lacks | close when `MP7` is done |
+| `run-recovery-and-truth` | CLOSE, **accepted** 2026-10-26 ("Accept: CLOSE") | chunk 4 (search beyond Wikipedia) is `deep-research-web-search` 51-52 | owner closes with a pointer |
+| `research-agent-workflows` | FOLD, **accepted** 2026-10-26 ("Accept: FOLD") | 5-8 are covered by D17's workers, Interpretation Research (30) and `evidence-integrity`, its I4 (OI-64, a per-respondent checkpoint) is now owned by `run-qc-and-checkpoint#RQC0` (§6, G26); **the transfer is done in this plan** | close with a pointer to RQC0; no checkpoint work stays in the old plan |
+| `mvp-workflow-assurance` | CLOSE A4, A5; keep A3 optional, **accepted** 2026-10-26 ("Accept: CLOSE A4 and A5; keep A3 optional") | A4-A5 define an older four-area MVP including Simulation; `mvp-acceptance-harness` replaces them | owner re-scopes, A3 is measured simplification |
+| `connected-research-assurance`, `contextual-research-settings-ux`, `desktop-ux-overhaul-handoff` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed CLOSE (verify)) | housekeeping chunks ("release checks, deploy, reconcile documentation") of finished work | none; each stays in progress with its own chunks |
+| `methodology-tab` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | S4d waits on the audit's author (R-1), W1c on panel source weighting, X1 is Simulation | none; outside the development plan, not POST |
+| `panel-grounded-respondents` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | 7f-7h are the holdout validation that lifts client-facing analysis prose; 7h waits for the methodology owner's confirmation of P1-P8 (ADR 0024 Q1 (a), 2026-10-26) | none; outside the development plan, not POST |
+| `sociomapping-engine` | **kept open as it is** (Nigel, 26 Oct: "Keep it open as it is"; against the proposed POST) | the SOMECS engine depends on the method owner's exports and decisions; the MVP uses `aia-sociomap-5` (MVPQ-13, D-13) | none; outside the development plan, not POST |
+| `simulation-studio` | POST, **accepted** 2026-10-26 ("Accept: POST") | Simulation is out of the MVP (`mvp-acceptance.md`) | S0 recorded as deferred |
 | `report-editor-hosting` | SUPPORT (S1, operations) | the ONLYOFFICE server and its gate for `artifact-report#RPT8`; activation (chunk 4) waits on OI-200 | registered 2026-10-25 (register drift) |
 | `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
-| `study-deletion` | ◇ answered (2026-10-26: Q1 (b), Q2-Q8 as recommended, ADR 0043 accepted) | the owner's "Smazat studii" (OI-81's note, 2026-10-25): a person deletes a study, built on `study-data-lifecycle` SDL3's study half; the client half is SB5 (#850) | SD0 done; planning proposes CORE in S3 with `study-data-lifecycle`; SD1-SD11 get waves when the coordinator schedules them |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
@@ -704,6 +710,8 @@ Also required are the cutover rollback
 rehearsed on develop, the Cognito and Google callbacks for the production hostname, and the
 activation profile of §4 `READY` on the production host. The proposed sizes are accepted (D-20); production's hostname is `app.ai-analytics.ai`
 (page Q15), and the Bedrock quota is an operator's (`mvp-target-architecture.md` §9).
+Legal's confirmation of OI-61 (panel-derived material to `bedrock-eu-primary`) is obtained before
+the first production release (ADR 0024 Q3 (a), "Before production", the owner, 2026-10-26).
 
 ## 10. Risks of the whole
 
@@ -805,8 +813,13 @@ The earlier S1 (draw the V3 header strip) is closed by MVPQ-01: the canonical V2
 | S4 | The permission panel shows the client's posture (OPEN or CLASSIFIED) and the strict class text applies to CLASSIFIED | Show the strict text for every client | `deep-research-web-search#53`; contradicts the open posture's intent |
 | S5 | Client PDF in the MVP | Client report DOCX only; amend AC-13 | `report-delivery#RD1`, `docs/migration/mvp-acceptance.md` |
 
-**2026-10-25 (SCOPE-OVERRIDES (d)):** "i want to review each individually". S2 to S5 go to a review page,
-one at a time; none is decided, and the plans stand as written until he answers each.
+**2026-10-25 (SCOPE-OVERRIDES (d)):** "i want to review each individually". S2 to S5 went to a review page,
+one at a time.
+
+**Decided 2026-10-26** (the Decision Review, relayed by the PM coordinator): **none is taken**, and the
+plans stand as written. S2 (a) "Don't take it: keep two meters"; S3 (a) "Don't take it: keep a private
+Lead per researcher"; S4 (a) "Don't take it: wording follows the posture"; S5 (a) "Don't take it: keep
+the client PDF" (RD1's client PDF is built, #883).
 
 ### 11.4 Open, with the chunks each blocks
 

@@ -1,6 +1,7 @@
 # ADR 0022 — Deep Research's policy values are data an Admin approves; switches, secrets and routes stay in the deployment
 
-**Status:** Proposed — develop (2026-10-07). To be implemented as
+**Status:** Accepted — 2026-10-26 (the product owner, Decision Review), with the
+[amendment of 2026-10-26](#amendment-2026-10-26) below. Proposed — develop (2026-10-07). To be implemented as
 [`deep-research-web-search.md`](../../../.planning/plans/deep-research-web-search.md) chunks 40–44.
 **Takes up** what [ADR 0020](0020-runtime-editable-system-prompts.md) left undecided ("a database
 row overriding that guard is a different decision"), for Deep Research's policy values only.
@@ -172,3 +173,40 @@ environment when it starts, and the database only for fan-out coordination.
 
 A production deployment needs these values per environment rather than per organization, a
 second engine needs policy settings, or the model route itself must be editable live.
+
+## Amendment, 2026-10-26
+
+The product owner's answers in the Decision Review, 2026-10-26 (relayed by the PM coordinator),
+verdict REV-ADR-0022-VERDICT: **(b) "Accept with the amendment described"**. The review's amendment
+was to record the study-scoped test policies and declines the code already has, and to decide OI-158
+(enforce or drop the per-run limit) so an approved cap means what it says. He answered both against
+the review's recommendation, and his choice is what this ADR now says:
+
+- **0022-Q1 (b): "Remove the test policies".** The study-scoped Deep Research test policy (a sandbox
+  approval for one fictional study, at most USD 20, with an expiry; `sandbox-research-approvals`,
+  done) leaves the product: live trials need the organization's own approvals under decision 6, and
+  "Per-client or per-study settings" in *Not decided here* now reads *decided: none*. Today it is the
+  table `deep_research_test_policies` (`packages/aia_core/src/aia_core/infrastructure/tables.py:2887 @
+  5d2ac5ac`), the repository's `propose_test_policy` / `approve_test_policy`
+  (`infrastructure/deep_research_settings_repository.py:553,626 @ 5d2ac5ac`), with no route or UI,
+  and a start that pins an approved one (`application/deep_research.py:821 @ 5d2ac5ac`,
+  `test_policy_approval`). Removing it is `deep-research-web-search#60` (W1). A run that already
+  pinned a test approval keeps reading as stored; nothing is rewritten.
+- **0022-Q2 (b): "Remove the setting".** `budgets.run_limit.<preset>` (`domain/deep_research/settings.py:366-378
+  @ 5d2ac5ac`) is approved, pinned and shown but bounds nothing (OI-158); it is removed from the
+  catalogue rather than enforced. A Deep Research run is bounded by the study's budget and the
+  start's confirmation threshold (ADR 0028's precedence) and by the run's own pinned ceiling, as
+  before. Because the setting is marked required for live (`_LIVE`), its removal also takes it off the
+  live-readiness list (decision 6). That is `deep-research-web-search#61` (W1).
+- **0022-Q3 (a): "Approve the organization's live settings for the acceptance organization".** Tier
+  B's live Deep Research uses the real path of decision 6, not a sandbox (OI-159, already closed the
+  same way on 2026-10-25).
+- **0022-Q4 (a): "An Admin on the page, as the ADR says, starting with develop's organization".** The
+  sign-off (`deep-research-web-search#1`) is an Admin's approvals on Settings → Deep Research, dated
+  and attributable in the settings' history, for develop's organization first.
+- **0022-Q5 (a): "Admin settings, as ADR 0023 already defers Deep Research scoring to this ADR".**
+  The source register and the confidence weights stay Admin settings here; the methodology owner is
+  consulted, not a second approver.
+
+The declines and withdrawals the status note of 2026-10-23 records are part of decision 3 as
+written there.

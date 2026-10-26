@@ -3567,7 +3567,8 @@ such a row cannot back a measured claim at admission.
 
 **Test.** A ledger test asserting a modelled-panel row never grades `MEASURED`.
 
-**Status.** Open; analysis-governance's call, with OI-9.
+**Status.** Open; decided 2026-10-26: fix it, the print grade follows the row's origin (the product
+owner, ADR 0024 Q6 (a), Decision Review, relayed by the PM coordinator). Owner: `report-delivery` RD13 (W2).
 
 ## OI-104 · Finding, closed · A panel start with no population asked to confirm its cost first
 
@@ -4945,7 +4946,9 @@ pinned run limit.
 
 **Test.** An enqueue whose ceiling exceeds an approved run limit answers 409 naming it.
 
-**Status.** Open.
+**Status.** Open; decided 2026-10-26: the product owner chose to remove the setting rather than enforce it
+(ADR 0022 Q2 (b), "Remove the setting", Decision Review, relayed by the PM coordinator). Closes when
+`deep-research-web-search#61` lands; the test becomes "the catalogue has no `budgets.run_limit.*` key".
 
 ---
 
@@ -6748,7 +6751,9 @@ client whose validation study started a confirmation; a second study's start of 
 refused `holdout_system_confirmation_started`.
 
 **Status.** Open, 2026-10-25. Owner: `study-deletion` SD7 (with `settings-backends` SB5, which built the
-client deletion).
+client deletion). *2026-10-26: to be built now, as its own small fix PR ahead of the rest of
+`study-deletion`* (REV-SD-F1-NOW (a), "Yes, a small fix PR now", the product owner in the Decision
+Review, relayed by the PM coordinator; Q4 (a), "Keep it, without content"); SD7 is W1.
 
 ---
 

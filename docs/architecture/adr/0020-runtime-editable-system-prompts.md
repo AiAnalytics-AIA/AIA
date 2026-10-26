@@ -1,6 +1,7 @@
 # ADR 0020 — System prompts are data an administrator edits; the rails stay code
 
-**Status:** Proposed — develop (2026-10-02). Implemented on
+**Status:** Accepted — 2026-10-26 (the product owner, Decision Review), with the
+[amendment of 2026-10-26](#amendment-2026-10-26) below. Proposed — develop (2026-10-02). Implemented on
 `feature/system-prompts-settings` ([plan](../../../.planning/plans/system-prompts-settings.md)).
 **Amends** [`research-agents.md`](../research-agents.md), which says no online prompt or
 policy change exists: a person can now edit and activate a prompt; nothing adapts one
@@ -166,3 +167,47 @@ Two things make "just let people edit the string" unsafe here:
 A composition registers the analysis or Deep Research steps; the respondent fieldwork
 fingerprint carries the prompt pin; a second organization needs prompts of its own that differ
 by client; or evaluation exists and an activation should be gated on it.
+
+## Amendment, 2026-10-26
+
+The product owner's answers in the Decision Review, 2026-10-26 (relayed by the PM coordinator),
+verdict REV-ADR-0020-VERDICT: **(b) "Accept with the amendment described"**. The amendment the review
+described: record D-15 (decision 7's draft test removed), list the nine wired slots including the
+Lead's, and correct the stale "not run by any composition" reason for the analysis and Deep Research
+prompts; keep plan chunks 7 and 13 as named follow-ups. Each sub-question as answered:
+
+- **0020-Q1 (a): "Amend: a draft is compared and activated, never run from Settings".** Decision 7
+  is replaced, not only superseded: a stored version is compared with what is in force and activated;
+  no route, Settings action or job runs a draft. Trying a wording on real model output means
+  activating it, which reaches every client of the organization at once (Q5), and resetting to the
+  code's wording is one activation row. `POST …/research/agent-jobs` takes no `prompt_version`
+  (`apps/api/src/aia_api/routers/research.py:3710 @ 5d2ac5ac`;
+  `test_system_prompts_api.py::test_a_job_runs_the_active_prompt_and_asking_for_a_version_is_refused`).
+  The Consequences' "test on a fictional study" is read as "compare, then activate".
+- **0020-Q2 (a): "Accept now; fix the stale reason word at once and keep chunks 7/13 as named
+  follow-ups".** Decision 4's reason `not_run_by_any_composition` is stale for both families it
+  names: the worker's default registry composes the analysis modules and the six Deep Research steps
+  (`apps/executors/src/aia_executors/registry.py:113,117 @ 5d2ac5ac`), while the slots still carry the
+  reason (`packages/aia_core/src/aia_core/domain/prompt_slots.py:50,158,175 @ 5d2ac5ac`) and Settings
+  words it as "žádné nasazení ho dnes nespouští" (`apps/web/src/i18n/cs.ts:901 @ 5d2ac5ac`). Read
+  decision 4 as: *the analysis module prompt and the five Deep Research prompts are run, but carry no
+  pin yet, so an edit would not reach a run reproducibly; they stay read-only until they do.* The code
+  fix is `system-prompts-settings#17` (W1). The named follow-ups stay `system-prompts-settings#7` (the
+  eight analysis modules editable and pinned per run, MVP-32, AC-03) and `#13` (the analysis and Deep
+  Research executors take a pin), both W3 (E19).
+- **The wired slots are nine**, not eight: the eight research-agent prompts and the study Lead's
+  (ADR 0026), on the same frame (`prompt_slots.py:126-148 @ 5d2ac5ac`). Decision 4's "Wired: the
+  eight research-agent prompts" reads "the eight research-agent prompts and the study Lead's".
+- **0020-Q3 (a): "Yes, for the MVP".** The AI respondent prompt stays code-only for the MVP
+  (`feeds_a_reuse_fingerprint`): its text is part of the respondent system ADR 0024's validation is
+  bound to, so a change is a release and a new validation.
+- **0020-Q4 (a): "Yes (current)".** The author's recorded declaration (`declares_no_client_data`)
+  classifies a stored version Class C, as decision 8 says; an operator classification of the exact
+  bytes can still only make it stricter.
+- **0020-Q5 (a): "Keep organization-level prompts".** A prompt belongs to the organization (decision
+  9); per-client prompts stay under *Revisit when*.
+
+Later, separately decided (Nigel, 26 Oct 2026, `prototype-build`): a researcher reads the prompts
+"Jen ke čtení" (`system-prompts-settings#15`) and only a person with the Metodik mark saves or
+activates one (`#16`); each needs its own amendment of decision 5, written in that chunk's PR. This
+amendment does not decide them.

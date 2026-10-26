@@ -1044,3 +1044,9 @@ operator-only, 13 workbench or test only. Rows changed by this PR are named in t
 | legacy | Pre-ADR-0021 Deep Research runs (legacy-unversioned) | yes |  |  | none: read as legacy-unversioned, never back-filled; a retry or interpretation refuses with RunNotGoverned |
 | legacy | Sociomap comparison map (aia-sociomap-1, contract 2) | yes | ExecutionSteps.tsx:1939-1946 |  | Computed on every run because read_methods requires exactly one contract-2 method; shown only as a collapsed comparison table, INTERNAL_ONLY |
 | legacy | Plan status at session start (tools/progress.py) | partial |  |  | Front-matter of several in-progress plans is stale: next chunks already shipped elsewhere or obsolete since ADR 0018 |
+
+## Disposition (MP3, 2026-10-26)
+
+**SUPPORT (S1)**, accepted (the product owner in the Decision Review, 2026-10-26, relayed by the PM
+coordinator: "Accept: SUPPORT (S1)"). PC5 and PC16 land inside `research-lead-workbench` 17-18 as
+acceptance lines.

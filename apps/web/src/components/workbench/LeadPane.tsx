@@ -15,7 +15,8 @@ import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { appRoutes } from "@/lib/app-routes";
 import { announceHatched } from "@/lib/rail-lead";
 import type { LeadOutput, LeadRequest, LeadState, LeadTurn, LeadView, ResearcherLead, RetryRun, SelfUpdateDecision } from "@/lib/lead";
-import { commandRequest, composerHint, droppedLines, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
+import { usdWords } from "@/lib/spend";
+import { commandRequest, composerHint, deepResearchFacts, droppedLines, isDeepResearchCard, leadReasonWords as reasonWords, mapViewWords, pendingSelfUpdate, targetLabel, type TargetWords, TYPED_UNDECIDED_WHY } from "@/lib/lead";
 import { conversationTimeline } from "@/lib/lead-cards";
 import { isDayBreak, withDayBreaks } from "@/lib/day-label";
 import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-stages";
@@ -463,7 +464,7 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
         <div className="bubble">{t.text}</div>
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
-      {typed ? <RequestCard r={typed} typed approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
+      {typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
       {/* A job found already started is shown where it started, once; this card points to it. */}
       {job && !t.request_decision?.reused ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards && !t.request_decision?.reused ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
@@ -530,7 +531,7 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
       </div>
       {o.request?.kind === "research_run" && cards
         ? <RunRequestCard studyId={studyId} why={o.request.why} canEdit={canEdit} prepare={cards.prepareRun} start={cards.startRun} stepHref={cards.stepHref} onStarted={(r) => cards.onRunStarted(t.turn_id, r)} />
-        : o.request ? <RequestCard r={o.request} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
+        : o.request ? <RequestCard r={o.request} ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, o.request!)} canEdit={canEdit} /> : null}
       {job ? <WorkerCardView job={job} studyId={studyId} onOpen={onOpenJob} onStage={cards?.onStage} onChanged={cards?.onJobsChanged} /> : null}
       {run && cards ? <RunCardView run={run} studyId={studyId} stepHref={cards.stepHref} /> : null}
       {last && !busy && o.follow?.length ? (
@@ -597,20 +598,23 @@ const REQUEST_WORDS: Record<LeadRequest["kind"], { title: string; action: string
   agent_job: { title: "Návrhová úloha AI", action: "Spustit úlohu" },
   research_run: { title: "Spuštění výzkumu", action: "Otevřít Kontrolu a spuštění" },
   analysis_retry: { title: "Opakování analýzy", action: "Zopakovat analýzu" },
-  design_research: { title: "Hloubkový výzkum k návrhu", action: "Otevřít hloubkový výzkum" },
-  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Otevřít výklad výsledků" },
-  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Otevřít hloubkový výzkum" },
+  design_research: { title: "Hloubkový výzkum k návrhu", action: "Spustit hloubkový výzkum" },
+  interpretation_research: { title: "Hloubkový výzkum k výkladu", action: "Spustit literární rešerši" },
+  deep_research_retry: { title: "Opakování hloubkového výzkumu", action: "Zopakovat hloubkový výzkum" },
 };
 
 /** `typed`: the person's own typed start (LO5), started by its approval whatever its kind: a run
  *  starts here on the deployment's run settings, under the same checks as Spuštění's. */
 const TYPED_RUN_WORDS = { title: "Spuštění výzkumu", action: "Spustit výzkum" };
 
-function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean }) {
+/** `ceiling`: the turn's `ceiling_usd` (LO23), the most its agent job can cost; undefined when
+ *  the server did not say (an older API), null when it is unknown. */
+function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }: { r: LeadRequest; approved: { run_id: string; reused?: boolean } | null; onApprove: () => Promise<void>; canEdit: boolean; typed?: boolean; ceiling?: number | null }) {
   const { walletOn, retryRun } = useContext(TypedCardFacts);
   const [state, setState] = useState<"open" | "busy" | "done" | "kept">(approved ? "done" : "open");
   const w = typed && r.kind === "research_run" ? TYPED_RUN_WORDS : REQUEST_WORDS[r.kind];
-  const paid = r.kind === "agent_job" || typed;
+  // A Deep Research card starts on its approval (LO5a.2), as an agent job does.
+  const paid = r.kind === "agent_job" || isDeepResearchCard(r) || typed;
   const decided = state === "done" || !!approved;
   // Approved on what an earlier approval had already started for this design: nothing started.
   const reused = !!approved?.reused;
@@ -625,16 +629,25 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false }: { r: Le
           <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
-            ? [{ label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
+            // A Deep Research card found the run a stage start (or another card) had made: no
+            // card of it is above, it may still be running, and it is not always "this design's".
+            ? [isDeepResearchCard(r)
+              ? { label: "Výsledek", value: "Tento hloubkový výzkum už běží nebo doběhl", sub: "Nic nového se nespustilo ani nezaplatilo; běh se sleduje v kroku, kde byl spuštěn." }
+              : { label: "Výsledek", value: r.kind === "research_run" ? "Tento návrh už běží nebo doběhl" : r.kind === "analysis_retry" ? "Analýza tohoto běhu se už opakuje" : "Tato úloha pro tento návrh už proběhla", sub: "Nic nového se nespustilo ani nezaplatilo; její karta je výše v konverzaci." }]
             : r.kind === "analysis_retry"
             // The stage's own retry (decision (b), 2026-10-22): no wallet charge, said in words.
             ? [{ label: "Co se stane", value: "Znovu se zeptá jen modulů analýzy, které v posledním běhu selhaly", sub: "Nad daty, která běh už sebral; nová data se nesbírají. Práh potvrzení se kontroluje jako na Výsledcích." },
               ...(decided ? [] : [{ label: "Který běh", value: retryRun ? retryRunWords(retryRun) : "Studie zatím nemá běh s AI analýzou" }]),
               { label: "Platba", value: "z rozpočtu studie", ...(walletOn ? { sub: "Opakování analýzy se nestrhává z Peněženky." } : {}) }]
+            : isDeepResearchCard(r)
+            ? deepResearchFacts(r, { walletOn, decided })
             : typed && r.kind === "research_run"
             ? [{ label: "Co se stane", value: "Spustí se výzkum s výchozím nastavením", sub: walletOn ? "Připravenost, práh potvrzení a Peněženka se kontrolují jako na Spuštění." : "Připravenost a práh potvrzení se kontrolují jako na Spuštění." }]
             : paid
-            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action }, { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
+            ? [{ label: "Úloha", value: ACTION_LABELS[(r as { action: string }).action as keyof typeof ACTION_LABELS] ?? (r as { action: string }).action },
+              // Before the start, the most the job can cost (LO23); unknown said in words, never 0.
+              ...(ceiling === undefined ? [] : [{ label: "Cena nejvýše", value: usdWords(ceiling), key: true }]),
+              { label: "Platba", value: "z rozpočtu studie", ...(decided ? {} : { sub: TYPED_UNDECIDED_WHY }) }]
             : [{ label: "Co se stane", value: "Otevře se krok, kde spuštění potvrdíte", sub: "Se všemi jeho kontrolami: připravenost, zodpověditelnost, limit útraty." }]} />
           {state === "open" ? (
             <div className="card__actions"><button type="button" className="btn btn--sm btn--quiet" onClick={() => setState("kept")}>Teď ne</button>
