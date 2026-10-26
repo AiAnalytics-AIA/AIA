@@ -209,6 +209,10 @@ class MemberResponse(BaseModel):
     #: erased after ``lead_erase_after``; ``None`` when not sealed.
     lead_sealed_at: datetime | None = None
     lead_erase_after: datetime | None = None
+    #: The member's last authenticated request (Přístup's Naposledy, settings-redesign F19),
+    #: read for an administrator only; ``None`` when they have made none since it was
+    #: recorded, or when the caller may not administer.
+    last_seen_at: datetime | None = None
 
 
 class MethodologistRequest(BaseModel):
@@ -635,17 +639,25 @@ def set_self_approval(
 # --------------------------------------------------------------------------- #
 
 
+def _aware(value: datetime | None) -> datetime | None:
+    """A stored time as UTC: SQLite hands it back naive, PostgreSQL aware."""
+    return value.replace(tzinfo=UTC) if value is not None and value.tzinfo is None else value
+
+
 def _members(admin: Any, repo: Any, session: Any) -> list[MemberResponse]:
-    """The members, each with their Lead's seal when an administrator reads them."""
+    """The members, each with their Lead's seal and last activity when an administrator
+    reads them."""
     seals = lead_seals(session, admin) if admin.may_administer else {}
     out = []
     for m in repo.members(admin):
         seal = seals.get(m["user_id"])
+        last_seen = m.pop("last_seen_at", None)
         out.append(
             MemberResponse(
                 **m,
                 lead_sealed_at=seal.sealed_at if seal else None,
                 lead_erase_after=seal.erase_after if seal else None,
+                last_seen_at=_aware(last_seen) if admin.may_administer else None,
             )
         )
     return out
@@ -796,7 +808,7 @@ def add_member(
 
     for member in repo.members(admin):
         if member["email"] == body.email.strip().lower():
-            return MemberResponse(**member)
+            return MemberResponse(**{**member, "last_seen_at": _aware(member["last_seen_at"])})
     raise HTTPException(  # pragma: no cover - the member was just written
         status_code=500, detail={"code": "internal_error", "message": "Member not found."}
     )
