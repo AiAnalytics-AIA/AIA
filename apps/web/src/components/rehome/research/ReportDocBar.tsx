@@ -22,10 +22,15 @@ type Status = { kind: "internal"; value: ResearchReport } | { kind: "with_review
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** The client report is DOCX only; the others as the server states their PDF. */
-function exportPdfWhy(kind: ExportKind, status: Status | null): string | null {
+/** The run's status names another version than the one on screen: its PDF, its ask and its edits
+ *  are not this document's (stand-in review of #985). */
+export const OTHER_VERSION = "Běh nyní uvádí jinou verzi zprávy, než je zde zobrazena; načtěte stránku znovu.";
+
+/** The client report is DOCX only; the others as the server states their PDF; a status not read
+ *  (loading, failed, or another version's) offers none. */
+function exportPdfWhy(kind: ExportKind, status: Status | null, unread: "loading" | "failed" | "other"): string | null {
   if (kind === "client") return "Klientská zpráva je zatím jen DOCX.";
-  if (!status) return "Stav PDF se načítá.";
+  if (!status) return unread === "other" ? OTHER_VERSION : unread === "failed" ? "Stav PDF se nepodařilo načíst." : "Stav PDF se načítá.";
   if (status.kind === "with_review") return variantPdfWhy(status.value);
   return pdfWhy(status.value.pdf, reviewStatus(status.value.review_state) === "APPROVED");
 }
@@ -36,9 +41,15 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   const [status, setStatus] = useState<{ at: string; value: Status } | null>(null);
   const [busy, setBusy] = useState(false);
   const [said, setSaid] = useState<{ at: string; words: string } | null>(null);
+  // The document whose status read failed: its PDF is said not read, not loading.
+  const [unreadAt, setUnreadAt] = useState<string | null>(null);
   // One document's status: another's (a switch, or a newer version) is never shown for it.
   const at = `${runId}:${kind}:${review ?? ""}:${stored.report_artifact_id}:${stored.review_state}`;
-  const current = status?.at === at ? status.value : null;
+  const read = status?.at === at ? status.value : null;
+  // The status is this document's only when it names the version and review on screen.
+  const other = read !== null && (read.value.artifact_id !== stored.report_artifact_id
+    || reviewStatus(read.value.review_state) !== reviewStatus(stored.review_state));
+  const current = other ? null : read;
   const pending = current?.kind === "with_review" ? variantPending(current.value) : current ? reportPdfPending(current.value.pdf) : false;
   useEffect(() => {
     if (kind === "client") return;
@@ -48,7 +59,11 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
       : research.report(studyId, runId).then((value): Status => ({ kind: "internal", value }))
     ).then(
       (value) => { if (live) setStatus({ at, value }); },
-      (error: unknown) => { if (live) setSaid({ at, words: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
+      (error: unknown) => {
+        if (!live) return;
+        setUnreadAt(at);
+        setSaid({ at, words: `Stav zprávy se nepodařilo načíst: ${message(error)}` });
+      },
     );
     void read();
     // Read again while its PDF is being made, so the PDF is offered once it exists.
@@ -57,7 +72,8 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   }, [studyId, runId, kind, review, at, pending]);
 
   const shown = { artifactId: stored.report_artifact_id, reviewState: stored.review_state };
-  const pdfReason = exportPdfWhy(kind, current);
+  const failed = unreadAt === at && read === null;
+  const pdfReason = exportPdfWhy(kind, current, other ? "other" : failed ? "failed" : "loading");
   const askable = current?.kind === "with_review" ? variantPdfAskable(current.value) : current ? pdfAskable(current.value.pdf) : false;
   const edits: ApprovedEdit[] = current?.value.approved_edits ?? [];
   const base = `AIA-${studyId}-${runId}-${kind === "with_review" ? "s-resersi" : kind === "client" ? "klient" : "zakladni"}`;
@@ -102,10 +118,10 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   return (
     <span className="contents" data-report-exports>
       <Button variant="quiet" className="!min-h-11" disabled={busy || !canAct} onClick={() => void download("docx")}>
-        <Icon name="download" size={16} /> DOCX
+        <Icon name="download" size={16} /> Stáhnout DOCX
       </Button>
       <Button variant="quiet" className="!min-h-11" disabled={busy || !canAct || pdfReason !== null} title={pdfReason ?? undefined} onClick={() => void download("pdf")}>
-        <Icon name="download" size={16} /> PDF
+        <Icon name="download" size={16} /> Stáhnout PDF
       </Button>
       {askable && canAct ? (
         <Button variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void askPdf()}>
@@ -114,11 +130,12 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
       ) : null}
       {edits.map((edit) => (
         <Button key={edit.artifact_id} variant="quiet" className="!min-h-11" disabled={busy || !canAct} onClick={() => void downloadEdit(edit)}>
-          <Icon name="download" size={16} /> Schválená úprava, koncept {edit.koncept} (DOCX)
+          <Icon name="download" size={16} /> Stáhnout schválenou úpravu, koncept {edit.koncept} (DOCX)
         </Button>
       ))}
       {/* Why no PDF, as text: a disabled button's title reaches no touch or keyboard reader. */}
-      {pdfReason && kind !== "client" && current ? <span data-pdf-why className="basis-full text-xs text-ink-muted">PDF: {pdfReason}</span> : null}
+      {pdfReason && kind !== "client" && (current || other) ? <span data-pdf-why className="basis-full text-xs text-ink-muted">{other ? pdfReason : `Proč není PDF: ${pdfReason}`}</span> : null}
+      {busy ? <span role="status" className="basis-full text-xs text-ink-muted">Čekám na odpověď…</span> : null}
       {words ? <span role="alert" className="basis-full text-sm text-status-fault">{words}</span> : null}
     </span>
   );

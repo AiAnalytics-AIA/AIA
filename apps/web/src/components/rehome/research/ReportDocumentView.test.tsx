@@ -153,8 +153,8 @@ describe("the stored draft in the pane", () => {
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     const bar = container.querySelector("[data-report-docbar]") as HTMLElement;
-    expect(within(bar).getByRole("button", { name: /DOCX/ })).toBeTruthy();
-    expect(within(bar).getByRole("button", { name: /^PDF$/ })).toBeTruthy();
+    expect(within(bar).getByRole("button", { name: /Stáhnout DOCX/ })).toBeTruthy();
+    expect(within(bar).getByRole("button", { name: /Stáhnout PDF/ })).toBeTruthy();
   });
 
   it("shows no run id, artifact id or review code anywhere on the stage (RPT12)", async () => {
