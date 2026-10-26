@@ -95,19 +95,35 @@ try {
   const data = workbench ? page.locator("section[aria-label='Data']:not([hidden])") : page.getByRole("tabpanel", { name: "Data" });
   assert(await data.locator("table").count() > 0);
   if (!workbench) {
-    await view("maps", "Sociomapy");
+    await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
     const map = page.getByTestId("object-map-sec_wb_set");
-    await map.getByRole("button", { name: "3D terén", exact: true }).click();
-    const terrain = map.getByTestId("object-map-3d");
+    // A signed-off map (aia-sociomap-5, the workbench's fixture) is drawn by the AIA panel since
+    // 72627bfb: 2D / 3D on its view rail ("3D prostor"), the camera on its canvas, turned by a drag
+    // (73560398 took the old "3D terén" view and its rotate buttons).
+    await map.getByRole("button", { name: "3D prostor", exact: true }).click();
+    const terrain = map.getByTestId("object-map-canvas");
     await terrain.waitFor();
     const initial = await terrain.getAttribute("data-camera");
-    // The camera controls sit in a disclosure since the approved composition (1eb36ab).
-    await map.locator("details summary").filter({ hasText: "Ovládání 3D pohledu" }).first().click();
-    await map.getByRole("button", { name: "Otočit vpravo", exact: true }).click();
+    // A drag on the canvas turns the map. The panel's bars and chips lie over parts of it, so the drag
+    // starts where the canvas itself is under the pointer.
+    const start = await terrain.evaluate((c) => {
+      const r = c.getBoundingClientRect();
+      for (let fy = 0.5; fy < 0.9; fy += 0.05) for (let fx = 0.3; fx < 0.7; fx += 0.05) {
+        const x = r.left + r.width * fx, y = r.top + r.height * fy;
+        if (document.elementFromPoint(x, y) === c) return { x, y };
+      }
+      return null;
+    });
+    assert(start, "no point of the map's canvas is free to drag");
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 140, start.y, { steps: 8 });
+    await page.mouse.up();
+    await page.waitForFunction(([el, before]) => el.getAttribute("data-camera") !== before, [await terrain.elementHandle(), initial], { timeout: 5000 }).catch(() => {});
     const rotated = await terrain.getAttribute("data-camera");
     assert.notEqual(rotated, initial, "3D rotation must change the view");
-    await view("data", "Data");
-    await view("maps", "Sociomapy");
+    await page.getByRole("tab", { name: "Data", exact: true }).click();
+    await page.getByRole("tab", { name: "Sociomapy", exact: true }).click();
     assert.equal(await terrain.getAttribute("data-camera"), rotated, "Switching sections must preserve the camera");
     await terrain.screenshot({ path: join(out, "canonical-map-3d.png") });
     for (const width of [1440, 1024, 768, 390]) {
@@ -160,10 +176,11 @@ try {
   const unexpected = httpErrors.filter(e => !(e.status === 404 && /\/(workspace\/content|knowledge|agent-jobs|analysis|report|design\/source)\b/.test(e.path)));
   assert.equal(unexpected.length, 0, JSON.stringify(unexpected));
   const riskyWrites = writes.filter(r => r.method !== "PUT" || !r.path.endsWith("/workspace/stage"));
-  // Opening Run freezes the existing design through the normal API; it never starts paid work. The
-  // report view, once on screen, asks to open the report editor (artifact-report RPT8c, #964): no work.
-  const noWork = (r) => r.method === "POST" && (r.path.endsWith("/design/revisions") || r.path.endsWith("/report/editor"));
-  assert.equal(riskyWrites.filter(r => !noWork(r)).length, 0, JSON.stringify(riskyWrites));
+  // Opening Run freezes the existing design through the normal API; it never starts paid work.
+  // Opening Zpráva asks for the report editor's session (RPT8d): the same line answers the same
+  // session, writes no research and costs nothing; next dev's Strict Mode asks twice.
+  const expected = (r) => r.method === "POST" && (r.path.endsWith("/design/revisions") || /\/research\/runs\/[^/]+\/report\/editor$/.test(r.path));
+  assert.equal(riskyWrites.filter(r => !expected(r)).length, 0, JSON.stringify(riskyWrites));
   writeFileSync(join(out, "journey.json"), JSON.stringify({ result: "PASS", checks, records, errors, httpErrors, writes, consoleErrors, failedRequests, abortedStageMarkers }, null, 2));
   console.log(`UX journey: PASS (${records.length} layout checks; ${checks.length} interaction checks; ${out})`);
 } catch (error) {

@@ -1,7 +1,8 @@
 # ADR 0043 — Deleting a study or a client: content gone, ledgers kept under a tombstone; a study hidden for 7 days first
 
-**Status:** Proposed — 2026-10-25. Not accepted until the product owner says so. Its study-specific
-decisions are the recommendations of `study-deletion` Q1-Q8 and change with his answers (SD0).
+**Status:** Accepted — 2026-10-26, by the product owner ("Q1 (b) 7-day window; Q2-Q8 as
+recommended; accept ADR 0043"). Proposed 2026-10-25; its study-specific decisions are the
+recommendations of `study-deletion` Q1-Q8, which he adopted unchanged (SD0).
 **Records** the owner's rule of 2026-10-22 for a client's deletion (settings-backends SB5, #850 @
 46fc909f), which no ADR holds today. **Builds on** [ADR 0031](0031-production-environment.md) §5
 (MVPQ-07: at most 30 days in backups and versions, the deletion journal replayed after a restore) and

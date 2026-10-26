@@ -25,6 +25,8 @@ def test_preview_then_delete_then_already_deleted(owner: TestClient, world: Any)
         "population_children": 0,
         "replaced_source_readings": None,
     }
+    # Nothing of the client is running: nothing holds the deletion back.
+    assert body["active_run_ids"] == []
     done = _delete(owner, client_id, body["confirm_token"])
     assert done.status_code == 200, done.text
     assert done.json()["already_deleted"] is False and done.json()["deleted"]["studies"] == 1
@@ -69,6 +71,46 @@ def test_kept_records_list_what_a_deletion_keeps(owner: TestClient) -> None:
         "deleted_clients",
     ]
     assert {r["kept_for"] for r in rows} == {"indefinite"}
+
+
+DESIGN = {
+    "title": "Ranní nápoj",
+    "goal": "Zjistit, zda nový nápoj dává smysl dojíždějícím.",
+    "n": 60,
+    "sections": [
+        {
+            "type": "questions",
+            "questions": [
+                {"id": "q1", "text": "Jak často pijete kávu?", "typ": "skala", "skala": [1, 5]}
+            ],
+        }
+    ],
+}
+
+
+def test_the_preview_names_the_runs_that_hold_the_deletion_back(
+    owner: TestClient, world: Any
+) -> None:
+    """A run of the client that has not ended is named in the preview, before the person
+    confirms (settings-redesign F22), and the deletion itself still refuses while it runs."""
+    made = world.design(owner, DESIGN)
+    assert made.status_code in (200, 201), made.text
+    started = owner.post(
+        f"{API}/studies/{world.study_id()}/research/runs",
+        json={"design_revision_id": made.json()["revision_id"]},
+    )
+    assert started.status_code == 201, started.text
+    run_id = str(started.json()["run_id"])
+    client_id = world.client_id("primary")
+    body = owner.post(f"{API}/clients/{client_id}/deletion").json()
+    assert body["active_run_ids"] == [run_id]
+    refused = _delete(owner, client_id, body["confirm_token"])
+    assert refused.status_code == 409
+    assert refused.json()["code"] == "client_has_active_work"
+    assert refused.json()["details"]["run_ids"] == [run_id]
+    # Another client's preview names none of it.
+    other = owner.post(f"{API}/clients/{world.client_id('other')}/deletion").json()
+    assert other["active_run_ids"] == []
 
 
 def test_the_preview_is_a_post_it_issues_a_confirmation(owner: TestClient, world: Any) -> None:
