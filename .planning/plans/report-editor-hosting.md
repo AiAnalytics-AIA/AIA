@@ -7,6 +7,11 @@ chunks:
   - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
   - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
+  - "[ ] 5. The AIA editor theme, its icons and their generator in the repository, with a token drift check; the icons wait on legal (OQ13) and the editor goes live with ONLYOFFICE's own icons until then (spec szz T1; W3)"
+  - "[ ] 6. The theme and icons mounted read-only; api.js's SRI unchanged (spec szz T2; W3, the icons after OQ13)"
+  - "[ ] 7. The brand fonts installed on the editor server, required, no longer optional (spec szz T3; W3)"
+  - "[ ] 8. The docs gate seeds the theme in localStorage (/__aia/theme) (spec szz T4; W3)"
+  - "[ ] 9. NOTICE names the mounts, and the AGPL §13 source offer for the redrawn sprites (spec szz T6; W3, blocked on legal OQ13)"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
 
@@ -691,3 +696,25 @@ the same request then logged `"/__aia/session?next=%2Fx"` in both its access and
     they exist.
   - **Test that would have caught it:** that CI step. It runs the real bundle step, in Actions' shell
     and with S3 stubbed, on `013f2e11` and on the current tree.
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**5. Theme, icons, generator** (spec `szz/T1`; W3, lane G). Open, legal (OQ13): the AIA icons are redrawn from ONLYOFFICE's AGPL sprites, a modified covered work. The editor goes live with ONLYOFFICE's own icons until legal decides; the theme alone may land first.
+
+**6. Mounted read-only** (spec `szz/T2`; W3, lane G).
+
+**7. Fonts on the server** (spec `szz/T3`; W3, lane G). This plan called them optional; the spec makes them required (contradiction 17).
+
+**8. Theme seeded** (spec `szz/T4`; W3, lane G). After 6.
+
+**9. NOTICE and source offer** (spec `szz/T6`; W3, lane G). Blocked on legal (OQ13); rewrites this plan's AGPL paragraph.
+
+**Notes.**
+- Chunk 4 (activation) with `artifact-report#RPT8e` carries `szz/T8`. This plan stays SUPPORT; its waves above are informational.
