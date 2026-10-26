@@ -42,15 +42,25 @@ afterEach(() => {
 });
 
 describe("Dotazník's choices", () => {
-  it("chooses a question's type with the arrows, one Tab stop for the group", async () => {
+  it("reads a question with no type as a single choice, as the compiler does", async () => {
+    const untyped = [{ ...SECTIONS[0], questions: [{ ...(SECTIONS[0] as { questions: Record<string, unknown>[] }).questions[0], typ: " " }] }, ...SECTIONS.slice(1)];
+    stub({ goal: "G", sections: untyped, ui_state: { questionnaire_path: "manual" } });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Jak často?");
+    expect(within(container.querySelector("#qedit_Q1") as HTMLElement).getByRole("button", { name: "Jedna odpověď, typ otázky" })).toBeTruthy();
+  });
+
+  it("chooses a question's type from its tag's menu, the current type not offered again (spec navrh/Q2)", async () => {
     const ws = stub({ goal: "G", sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
     const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findAllByDisplayValue("Jak často?");
-    const group = within(container.querySelector("#qedit_Q1") as HTMLElement).getByRole("radiogroup", { name: "Typ" });
-    const radios = within(group).getAllByRole("radio");
-    expect(radios.map((r) => r.tabIndex)).toEqual([0, -1, -1, -1]);
-    fireEvent.keyDown(radios[0]!, { key: "ArrowRight" });
-    await waitFor(() => expect(within(group).getByRole("radio", { checked: true }).textContent).toBe("Více odpovědí"));
+    const card = container.querySelector("#qedit_Q1") as HTMLElement;
+    expect(within(card).queryByRole("radiogroup", { name: "Typ" })).toBeNull();
+    fireEvent.click(within(card).getByRole("button", { name: "Jedna odpověď, typ otázky" }));
+    const menu = within(card).getByRole("menu", { name: "Jedna odpověď, typ otázky" });
+    expect((within(menu).getByRole("menuitem", { name: "Jedna odpověď" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Více odpovědí" }));
+    expect(await within(card).findByRole("button", { name: "Více odpovědí, typ otázky" })).toBeTruthy();
     await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 5000 });
   });
 });

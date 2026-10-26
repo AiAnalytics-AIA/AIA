@@ -115,6 +115,20 @@ try {
     assert(x.y < num.y + num.height && x.y + x.height > num.y, `the question's × at ${width}: ${Math.round(x.y - num.y)} px from its number`);
     check(`${width}: a question's × beside its number`);
 
+    // The type is a tag that opens its choices (spec navrh/Q2); the menu stays inside the page.
+    const typeTag = card.getByRole("button", { name: /, typ otázky$/ });
+    const tagBox = await typeTag.boundingBox();
+    assert(tagBox && tagBox.height >= (width < 640 ? 44 : 32) - 0.5, `the type tag's height at ${width}: ${tagBox?.height}`);
+    await typeTag.click();
+    const typeMenu = card.getByRole("menu", { name: /, typ otázky$/ });
+    await typeMenu.waitFor();
+    const menuBox = await typeMenu.boundingBox();
+    assert(menuBox && menuBox.x >= 0 && menuBox.x + menuBox.width <= width, `the type menu at ${width}: ${JSON.stringify(menuBox)}`);
+    await noOverflow(`type menu @${width}`);
+    await page.keyboard.press("Escape");
+    await typeMenu.waitFor({ state: "detached" });
+    check(`${width}: a question's type tag opens its menu inside the page`);
+
     // "Měří" as short VO chips (spec navrh/Q3): each reads "VO n", the question's text its name.
     const linkChips = card.getByRole("group", { name: "Odpovídá na výzkumné otázky" }).getByRole("button");
     const chipNames = await linkChips.evaluateAll((els) => els.map((el) => el.textContent ?? ""));

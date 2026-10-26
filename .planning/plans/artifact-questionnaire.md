@@ -370,6 +370,15 @@ chips, for touch. Once any item declares a link, an item linked to none says so 
 `QuestionnaireStep.test.tsx` "shows a question's links as VO chips…"; `questionnaire_journey.mjs` at
 1440/1100/768/390. QST2 stays open (Q1 and Q2 remain).
 
+*QST2, spec navrh/Q2 (part: the type as a tag):* a question's type was four chips across its card's header
+(`QuestionnaireStep.tsx:929-934` @ 59f3c7c6), where the board draws one tag. Change (feature/questionnaire-type-tag):
+the type is a tag ("Jedna odpověď ⌄") that opens its choices in a MenuButton, named "<type>, typ otázky", the
+current type shown and not offered again. MenuButton gains an optional `name` (the accessible name when the visible
+label alone would not say what the menu does; additive, the default unchanged), added here with the PM's go-ahead
+while lane A is on PBA5. Tests: `MenuButton.test.tsx` "names the button and the menu by `name`…",
+`QuestionnaireChoices.test.tsx` "chooses a question's type from its tag's menu…"; `questionnaire_journey.mjs` (the
+menu inside the page at 1440/1100/768/390) and `workspace_journey.mjs`.
+
 ## Doc follow-up
 
 - open-items.md: number QF-7 (the question's × named by its stored id), closed by fix/questionnaire-remove-label.
