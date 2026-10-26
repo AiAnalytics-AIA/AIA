@@ -41,7 +41,8 @@ function exportPdfWhy(kind: ExportKind, status: Status | null, unread: "loading"
 type Shown = { artifactId: string | null; reviewState: string | null | undefined; stamped: boolean | null | undefined; approvedOn: string | null | undefined };
 
 /** ``stored``: the document on screen; null for an internal draft (or report with literature) the
- *  pane cannot show, downloaded as the version the run names, read again before each download. */
+ *  pane cannot show, downloaded as the version the run names, read again before each download, or
+ *  for a client report it cannot show, downloaded as the server names it. */
 export function ReportExports({ studyId, runId, kind, review, stored, canAct }: {
   studyId: string; runId: string; kind: ExportKind; review: string | null; stored: StoredReportDocument | null; canAct: boolean;
 }) {
@@ -101,6 +102,9 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
   // The version a download must be: the one on screen, or the one the run names now.
   const expected = async (): Promise<{ artifactId: string | null; reviewState: string | null | undefined }> => {
     if (stored) return { artifactId: stored.report_artifact_id, reviewState: stored.review_state };
+    // A client report the pane cannot show has no status route of its own: no version is on screen,
+    // so the server's file is handed over as it names itself (as the card did).
+    if (kind === "client") return { artifactId: null, reviewState: null };
     const value: Status = kind === "with_review" && review !== null
       ? { kind: "with_review", value: await deepResearch.contextReport(studyId, runId, review) }
       : { kind: "internal", value: await research.report(studyId, runId) };
@@ -188,7 +192,7 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
       {carries ? <span data-file-carries className="basis-full text-xs text-ink-muted">{carries}</span> : null}
       {kind === "client" ? (
         <span data-client-hint className="basis-full text-xs text-ink-muted">
-          {t("research.exec.results.reportClientHint")}{approvedNow ? "" : ` ${t("research.exec.results.reportClientHintDraft")}`}
+          {t("research.exec.results.reportClientHint")}{version !== null && !approvedNow ? ` ${t("research.exec.results.reportClientHintDraft")}` : ""}
         </span>
       ) : null}
       {words ? <span role="alert" className="basis-full text-sm text-status-fault">{words}</span> : null}

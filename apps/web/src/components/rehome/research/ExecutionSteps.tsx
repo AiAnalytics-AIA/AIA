@@ -1803,7 +1803,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          {/* Downloads happen on the report card above (CompleteReport); approval on the document read, in Zpráva's doc bar (RPT3a). */}
+          {/* Read, downloaded and approved in Zpráva's doc bar (RPT3a, RPT3c); the card above says what the report holds. */}
           {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}

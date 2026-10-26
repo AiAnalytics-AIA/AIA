@@ -332,6 +332,9 @@ export function ReportDocumentView({ run, review: held = null, onReview }: { run
     // An internal draft the pane cannot show is still approved here, on the version its run names.
     // It is downloaded here too, as the version the run names (RPT3c: the card no longer does).
     const unshown = unshownInternal ? approval(null) : null;
+    // A client report the pane cannot show (stored before its document, or refused) is still the
+    // client's file: downloaded here, as the notice says, never approved unseen.
+    const unshownClient = kind === "client" && (loaded.state === "not_stored" || loaded.state === "refused");
     return (
       <div>
         {choose}{notice}
@@ -339,6 +342,11 @@ export function ReportDocumentView({ run, review: held = null, onReview }: { run
           <div className="mt-2 flex flex-wrap items-center gap-2" data-report-docbar>
             {unshown.button}
             <ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={null} canAct={mayReview} />
+          </div>
+        ) : null}
+        {unshownClient ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2" data-report-docbar>
+            <ReportExports studyId={frame.studyId} runId={run.run_id} kind="client" review={null} stored={null} canAct={mayReview} />
           </div>
         ) : null}
         {unshown?.after}

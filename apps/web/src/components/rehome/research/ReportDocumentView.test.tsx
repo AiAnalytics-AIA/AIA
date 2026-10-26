@@ -23,7 +23,7 @@ import { TEST_FRAME } from "./test-frame";
 vi.mock("@/lib/download", () => ({ saveBlob: vi.fn() }));
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), downloadReport: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), downloadReport: vi.fn(), downloadClientReport: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
 
@@ -55,7 +55,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   for (const f of [research.reportDocument, research.clientReportDocument, research.prepareClientReport, research.approveReport, research.report, research.openReportEditor,
-    deepResearch.runs, deepResearch.contextReport, deepResearch.contextReportDocument, deepResearch.prepareContextReport]) vi.mocked(f).mockReset();
+    research.downloadReport, research.downloadClientReport, saveBlob, deepResearch.runs, deepResearch.contextReport, deepResearch.contextReportDocument, deepResearch.prepareContextReport]) vi.mocked(f).mockReset();
 });
 
 describe("the stored draft in the pane", () => {
@@ -335,6 +335,13 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     await screen.findByText("K této verzi AIA dokument nesloží; lze ji jen stáhnout.");
     expect(screen.queryByRole("button", { name: "Připravit klientskou zprávu znovu" })).toBeNull();
     expect(research.prepareClientReport).toHaveBeenCalledTimes(1);
+    // As the notice says, it is downloaded here (stand-in review of #985: the card did, RPT3c), never approved unseen.
+    const file = new Blob(["docx"]);
+    vi.mocked(research.downloadClientReport).mockResolvedValue({ blob: file, filename: "klient.docx", artifactId: "ART-client-old", reviewState: "APPROVED_INTERNAL" } as never);
+    expect(screen.queryByRole("button", { name: /Schválit/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Stáhnout DOCX/ }));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(file, "klient.docx"));
+    expect(research.downloadClientReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1");
   });
 
   it("approves the internal draft it shows, naming the PDF the approval renders as the run states it at the ask, and says a producer's refusal in words", async () => {
@@ -517,6 +524,14 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
     expect(await screen.findByText(/Koncept DOCX stáhnete zde/)).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: /Stáhnout DOCX/ }));
     await waitFor(() => expect(saveBlob).toHaveBeenCalledTimes(1));
+    // Its status read again before the file is asked for (stand-in review of #985).
+    const reads = vi.mocked(research.report).mock.invocationCallOrder;
+    expect(reads[reads.length - 1]).toBeLessThan(vi.mocked(research.downloadReport).mock.invocationCallOrder[0]);
+    // A run that now names another version: that version's file is not handed over.
+    vi.mocked(research.report).mockResolvedValue({ artifact_id: "ART-newer", review_state: "DRAFT_UNAPPROVED", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+    fireEvent.click(screen.getByRole("button", { name: /Stáhnout DOCX/ }));
+    expect((await screen.findByRole("alert")).textContent).toContain("není verze");
+    expect(saveBlob).toHaveBeenCalledTimes(1);
   });
 
   it("offers the report with literature although the run's own report failed", async () => {
