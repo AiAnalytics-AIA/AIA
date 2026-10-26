@@ -39,6 +39,7 @@ import { Technical } from "./technical";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { describeError } from "./errors";
+import { sectionLinkClick, waitingChanged } from "./sections";
 
 const D = "aia.settings.deepResearch";
 const LABELS: Record<string, string> = cs.aia.settings.deepResearch.labels;
@@ -305,7 +306,7 @@ function Posture() {
         {t(`${D}.posture.text`)}{" "}
         <Link href="/app/clients" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.profile`)}</Link>
         {t(`${D}.posture.between`)}{" "}
-        <Link href="/app/settings#access" className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</Link>
+        <a href="#access" onClick={sectionLinkClick("access")} className={`text-signal hover:underline ${FOCUS}`}>{t(`${D}.posture.access`)}</a>
         {t(`${D}.posture.end`)}
       </p>
     </div>
@@ -632,6 +633,7 @@ function Approve({ settingKey, version, onCancel, onDone }: { settingKey: string
     setError(null);
     try {
       await deepResearchSettings.approve(settingKey, version, reason.trim());
+      waitingChanged();
       onDone();
     } catch (e) {
       setError(describeError(e));

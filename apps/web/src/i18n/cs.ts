@@ -1565,6 +1565,32 @@ export const cs = {
           CODE: "Verzovaná konstanta; mění se revidovanou změnou kódu.",
           INVARIANT: "Odmítnutí produktu. Nelze nastavit.",
         },
+        // The section menu in the top bar (prototype v54): ⌘K / Ctrl+K, a search by keyword, three columns.
+        menu: {
+          label: "Nastavení – přejít na",
+          button: "Nastavení › {section}",
+          search: "Hledat v nastavení",
+          placeholder: "Kam chcete jít? Zkuste práh, Brave, rozpočet…",
+          groups: { research: "Nastavení výzkumu", team: "Tým a peníze", operations: "Provoz" },
+          waiting: "čeká na vás: {n}",
+          none: "Nic nenalezeno pro „{q}“.",
+          found: { one: "oddíl", few: "oddíly", many: "oddílů" },
+          hintAnywhere: "odkudkoli",
+          hintFirst: "první výsledek",
+          hintClose: "zavřít",
+          keywords: {
+            methodology: "sociomapa vzorec parametr verze agregace vážení podpora potlačení práh připravenost metodik",
+            prompts: "prompt instrukce agent vedoucí verze",
+            deep_research: "brave wikipedia common crawl rešerše web dosah limit usd pravidla",
+            ai: "model bedrock respondent analýza přepínač provider",
+            access: "člen role pozvat správce vlastník samoschválení metodik",
+            studies: "rozpočet útrata práh potvrzení peněženka usd",
+            audit: "historie změna kdo kdy záznam",
+            system: "zdraví chyby smoke nasazení připravenost",
+            reference: "invariant konstanta nasazení třída dat pevná pravidla",
+            data: "smazat klient uchovávání retence záznamy",
+          },
+        },
         tabs: {
           label: "Oddíly nastavení",
           ai: "AI běh",
@@ -1978,6 +2004,14 @@ export const cs = {
           adminOnly: "Samoschválení nastavuje a vidí jen vlastník nebo správce.",
         },
         runtime: {
+          answered: {
+            at: "Naposledy odpověděl {when}",
+            on: "model {model}",
+            build: "build {build}",
+            none: "Zatím žádné zaznamenané odpovězené volání.",
+            unread: "Poslední odpověď se nepodařilo načíst.",
+            help: "Z účetní knihy volání celé organizace: kdy činnost naposledy dostala odpověď, ne zda odpoví teď.",
+          },
           powers:
             "AIA volá jazykové modely přes {provider}: vždy z workeru, přes jedinou řízenou bránu a proti rozpočtu studie. Prohlížeč ani API model nevolají.",
           credential: {
@@ -3029,7 +3063,7 @@ export const cs = {
       sampleStored: "Uloženo N={n}.",
       sampleStoredOutside: "Uložené N={n} je mimo platný rozsah {range}; spuštění ho odmítne. Zvolte jiné N.",
       sampleBelow: "Pod doporučeným N={n}: menší skupiny budou mít méně spolehlivé výsledky.",
-      dockNote: "{d} dimenzí · N={n}",
+      dockNote: "{d} · N={n}",
     },
     deep: {
       searchedNothing: "Tato rešerše nic nehledala: neodešel z ní žádný dotaz (zablokovaných stop: {blocked} z {tracks}).",

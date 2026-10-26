@@ -11,13 +11,14 @@
 // deployment). Neither is a connection, and the page says so.
 
 import Link from "next/link";
-import { type KeyboardEvent, type ReactNode, memo, useEffect, useState } from "react";
+import { type ReactNode, memo, useState } from "react";
 
 import type { PublicConfig } from "@/lib/public-config";
 import { t, tv } from "@/i18n/t";
 import { type ActivityState, type SwitchValues, activityState, approvedClasses } from "@/lib/ai-runtime";
 import {
   type AdminClient,
+  type AiActivityAnswered,
   type AuditEntry,
   type Me,
   type Member,
@@ -32,9 +33,11 @@ import {
   type Vocabularies,
   Unauthenticated,
   admin,
+  settingsStatus,
   workspace,
 } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
+import { relative } from "@/lib/format";
 import { nearLimitTally } from "@/lib/researcher-spend";
 import { ClientsCard, MembersCard, SelfApprovalCard } from "./AccessPanel";
 import { describeMemberError } from "./errors";
@@ -48,6 +51,8 @@ import { DataPanel } from "./DataPanel";
 import { SystemPanel } from "./SystemPanel";
 import { SETTING_HELP } from "./settings-guide";
 import { SystemPromptsPanel } from "./SystemPromptsPanel";
+import { useSection } from "./SectionMenu";
+import { SECTIONS, type SectionId } from "./sections";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Icon, type IconName } from "../../rehome/icons";
 import { Chip, Tag, TextInput } from "../../rehome/ui";
@@ -311,7 +316,30 @@ function SwitchWord({ value }: { value: boolean | null | undefined }) {
   return <span className="font-mono text-sm">{t(`${R}.switchValue.${value === null ? "invalid" : value ? "on" : "off"}`)}</span>;
 }
 
-function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null }) {
+/** An activity's last answered call, as the usage ledger recorded it (F14, OI-75 (a)): a fact about
+ *  the past, read by an OWNER or ADMIN. "None recorded" is not "not working", and an answer is
+ *  not "working now": the line says when, on which model, by which build, nothing more. */
+type Answered = Resource<AiActivityAnswered | null>;
+
+function LastAnswered({ answered, activity }: { answered: Answered; activity: string }) {
+  // Loading, or a member's (nothing asked): nothing said.
+  if (answered.state === "loading" || (answered.state === "ready" && answered.data === null)) return null;
+  // A read that failed, or an answer not of the shape asked for, says so and claims nothing.
+  if (answered.state !== "ready" || answered.data === null || !Array.isArray(answered.data.activities)) return <p data-answered="unread" className="mt-1 text-xs text-ink-muted">{t(`${R}.answered.unread`)}</p>;
+  const row = answered.data.activities.find((a) => a.key === activity);
+  if (!row) return null;
+  const last = row.last_answered;
+  if (!last) return <p data-answered="none" className="mt-1 text-xs text-ink-muted">{t(`${R}.answered.none`)}</p>;
+  return (
+    <p data-answered="at" title={t(`${R}.answered.help`)} className="mt-1 text-xs text-ink-muted">
+      <time dateTime={last.at}>{tv(`${R}.answered.at`, { when: relative(last.at) ?? last.at })}</time>
+      {" · "}{tv(`${R}.answered.on`, { model: last.model })}
+      {last.build ? <>{" · "}<span className="font-mono">{tv(`${R}.answered.build`, { build: last.build.slice(0, 7) })}</span></> : null}
+    </p>
+  );
+}
+
+function ActivityRow({ runtime, activity, switches, answered }: { runtime: NativeRuntime; activity: NativeActivity; switches: SwitchValues | null; answered: Answered }) {
   const state = activityState(runtime, activity, switches);
   const A = `${R}.activity.${activity.key}`;
   const named = switchFor(state);
@@ -328,6 +356,7 @@ function ActivityRow({ runtime, activity, switches }: { runtime: NativeRuntime; 
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
       <td className={TD}>
         <p data-reason className="break-words text-sm text-ink">{reasonFor(state, activity)}</p>
+        <LastAnswered answered={answered} activity={activity.key} />
         <Technical>
           <dl data-technical className="mt-2 grid grid-cols-1 gap-x-3 gap-y-1 text-xs sm:grid-cols-[auto_minmax(0,1fr)]">
             {named ? <><dt className="text-ink-faint">{t(`${R}.col.switches`)}</dt><dd className="break-all font-mono">{named}</dd></> : null}
@@ -393,8 +422,11 @@ function Tile({ label, children, note }: { label: string; children: ReactNode; n
 }
 
 /** Code facts from the settings document beside the deployment's switches from /config: AI běh. */
-function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies }) {
+function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: NativeRuntime; config: Part<RuntimeConfig>; vocab: Vocabularies; mayAdminister: boolean }) {
   const switches = config.ok ? config.data.switches : null;
+  // Each activity's last answered call: an organization-wide read, an OWNER's or ADMIN's alone
+  // (OI-75 (a)); a member asks nothing and is shown nothing of it.
+  const [answered] = useResource<AiActivityAnswered | null>(() => (mayAdminister ? settingsStatus.aiActivity() : Promise.resolve(null)), [mayAdminister]);
   const providers = runtime.providers.map((p) => p.label).join(", ");
   const states = runtime.activities.map((a) => activityState(runtime, a, switches).kind);
   const region = config.ok ? config.data.region : null;
@@ -447,7 +479,7 @@ function RuntimePanel({ runtime, config, vocab }: { runtime: NativeRuntime; conf
           {GROUPS.map((g) => (
             <tbody key={g} data-ai-group={g} className="divide-y divide-border">
               <tr><th colSpan={5} scope="rowgroup" className="px-2 pb-1 pt-4 text-left text-[11px] font-normal uppercase tracking-[0.06em] text-ink-faint">{t(`${R}.group.${g}`)}</th></tr>
-              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} />)}
+              {runtime.activities.filter((a) => groupOf(a.key) === g).map((a) => <ActivityRow key={a.key} runtime={runtime} activity={a} switches={switches} answered={answered} />)}
               {LISTED_ONLY.filter((e) => e.group === g && !runtime.activities.some((a) => a.key === e.key)).map((e) => <ListedOnlyRow key={e.key} entry={e} />)}
             </tbody>
           ))}
@@ -555,13 +587,8 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
 // never lost by looking at another. A group the API adds later still renders -- in
 // Reference -- so a new control is never hidden. What powers AIA comes first: every
 // reader needs it, the deployment's posture only administrators.
-export const TABS = ["methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data"] as const;
-export type TabId = (typeof TABS)[number];
-const TAB_GROUPS: { title: string; tabs: readonly TabId[] }[] = [
-  { title: "Nastavení výzkumu", tabs: ["methodology", "prompts", "deep_research", "ai"] },
-  { title: "Tým a peníze", tabs: ["access", "studies"] },
-  { title: "Provoz", tabs: ["audit", "system", "reference", "data"] },
-];
+const TABS = SECTIONS;
+type TabId = SectionId;
 /** A chip in a tab's head: who reads it and who may change it, as the prototype draws them. */
 type HeadChip = { label: string; tone?: "you" | "deployment"; glyph?: string };
 
@@ -607,58 +634,22 @@ const TAB_SECTIONS: Record<Exclude<TabId, "prompts" | "deep_research" | "methodo
 // Groups whose panel draws their rows itself (inside it), so they are not drawn twice.
 const OWN_ROWS = new Set(["ai_history"]);
 
-function tabFromHash(): TabId | null {
-  if (typeof window === "undefined") return null;
-  const id = window.location.hash.replace(/^#/, "");
-  return (TABS as readonly string[]).includes(id) ? (id as TabId) : null;
-}
-
 function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void; footer?: ReactNode }) {
   const { doc, runtime, members, clients, studies, levels, audit } = panel;
   const vocab = doc.vocabularies;
   const byKey = new Map(doc.groups.map((g) => [g.key, g]));
   const invariants = doc.groups.flatMap((g) => g.items.filter((i) => i.control === "INVARIANT"));
-  const [active, setActive] = useState<TabId>("methodology");
+  // The section is the page's address (#deep_research), chosen in the top bar's section menu
+  // (prototype v54): a link, a deep link and the back button all land on it.
+  const active = useSection();
   const [referenceQuery, setReferenceQuery] = useState("");
   const [referenceCategory, setReferenceCategory] = useState<string>("all");
   const [referenceOwner, setReferenceOwner] = useState<"all" | RefOwner>("all");
   const [technical, setTechnical] = useTechnicalChoice();
-  const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(new Set<TabId>(["methodology"]));
-  const select = (tab: TabId) => {
-    setActive(tab);
-    setDrawn((d) => (d.has(tab) ? d : new Set(d).add(tab)));
-    if (typeof window !== "undefined") window.history.replaceState(window.history.state, "", `#${tab}`);
-  };
-  // A link to /app/settings#prompts opens that tab. Read after mount so the server and the
-  // first client render agree.
-  useEffect(() => {
-    const fromHash = tabFromHash();
-    if (fromHash) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate the section from the browser URL after mount
-      setActive(fromHash);
-      setDrawn((d) => d.has(fromHash) ? d : new Set(d).add(fromHash));
-    }
-    const followHash = () => {
-      const tab = tabFromHash();
-      if (tab) { setActive(tab); setDrawn((d) => d.has(tab) ? d : new Set(d).add(tab)); }
-    };
-    window.addEventListener("hashchange", followHash);
-    window.addEventListener("popstate", followHash);
-    return () => { window.removeEventListener("hashchange", followHash); window.removeEventListener("popstate", followHash); };
-  }, []);
-  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    const at = TABS.indexOf(active);
-    const next =
-      (e.key === "ArrowRight" || e.key === "ArrowDown") ? TABS[(at + 1) % TABS.length]
-      : (e.key === "ArrowLeft" || e.key === "ArrowUp") ? TABS[(at + TABS.length - 1) % TABS.length]
-      : e.key === "Home" ? TABS[0]
-      : e.key === "End" ? TABS[TABS.length - 1]
-      : null;
-    if (!next) return;
-    e.preventDefault();
-    select(next);
-    document.getElementById(`tab-${next}`)?.focus();
-  };
+  // A section that reads its own route is drawn from its first visit on, and kept drawn after: a
+  // draft in it survives a visit elsewhere. Derived while rendering, from the section opened.
+  const [drawn, setDrawn] = useState<ReadonlySet<TabId>>(() => new Set<TabId>([active]));
+  if (!drawn.has(active)) setDrawn(new Set(drawn).add(active));
 
   // A member's role in words beside their spend ("Správce · Metodik"); unknown for anyone the
   // members list did not include.
@@ -669,7 +660,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     return `${role.charAt(0).toLocaleUpperCase("cs")}${role.slice(1)}${m.methodologist ? ` · ${t(`${P}.accessTab.metodik`)}` : ""}`;
   };
   const extra: Record<string, ReactNode> = {
-    ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
+    ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} mayAdminister={doc.may_administer} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
     access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
@@ -764,57 +755,28 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   const methodologist = panel.me?.ok ? panel.me.data.methodologist === true : null;
   return (
     <TechnicalProvider on={technical}>
-    <div data-settings-workspace className="flex min-w-0 flex-1 flex-col xl:flex-row [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
-      {/* The tab list as the prototype's plain column (v51): 228 px, a rule on its right; a
-          scrolling row with the names alone on a phone. */}
-      <div data-settings-tabs className="flex min-w-0 shrink-0 flex-col border-b border-border xl:w-[228px] xl:border-b-0 xl:border-r">
-      {/* The tabs and the switch under them stay put together as the page scrolls: the tabs alone
-          sticky let the switch slide under them. */}
-      <div className="flex min-w-0 flex-col xl:sticky xl:top-[47px]">
-      <div role="tablist" aria-label={t(`${P}.tabs.label`)} onKeyDown={onKey} className="flex min-w-0 gap-0.5 overflow-x-auto px-4 py-2 xl:flex-col xl:overflow-visible xl:px-3 xl:pb-3 xl:pt-5">
-        {TAB_GROUPS.map((group) => <div key={group.title} role="group" aria-label={group.title} className="flex shrink-0 gap-0.5 xl:flex-col">
-          <p className="hidden px-2.5 pb-1.5 pt-3.5 text-[11px] uppercase tracking-[0.06em] text-ink-faint xl:block">{group.title}</p>
-          {group.tabs.map((tab) => (
-          <button
-            key={tab}
-            id={`tab-${tab}`}
-            type="button"
-            role="tab"
-            aria-label={t(`${P}.tabs.${tab}`)}
-            aria-selected={active === tab}
-            aria-controls={`panel-${tab}`}
-            tabIndex={active === tab ? 0 : -1}
-            onClick={() => select(tab)}
-            className={`flex min-h-11 flex-col justify-center whitespace-nowrap rounded-[6px] px-2.5 py-[7px] text-left text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring xl:whitespace-normal ${active === tab ? "bg-signal-wash font-medium text-ink" : "text-ink-muted hover:bg-surface-sunken hover:text-ink"}`}
-          >
-            <span className="block">{t(`${P}.tabs.${tab}`)}</span>
-            <span data-tab-subtitle className="hidden text-xs font-normal leading-4 text-ink-faint xl:block">{t(`${P}.tabSubtitles.${tab}`)}</span>
-          </button>
-          ))}
-        </div>)}
-      </div>
-      {/* One switch for the whole page's technical detail (the product owner, 2026-10-13); the
-          prototype has no place for it, so it waits under the tabs, out of every head. */}
-      <div data-technical-switch className="flex justify-end px-4 pb-2 xl:justify-start xl:px-5 xl:pb-5">
-        <TechnicalSwitch on={technical} onChange={setTechnical} />
-      </div>
-      </div>
-      </div>
-      <div className="min-w-0 max-w-[1180px] flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
+    <div data-settings-workspace className="flex min-w-0 flex-1 flex-col [&_button:not([data-dense])]:!min-h-11 [&_select]:!min-h-11 [&_input:not([type=checkbox]):not([type=radio])]:!min-h-11 [&_summary]:!min-h-11">
+      {/* The sections are chosen in the top bar's menu (prototype v54); the content takes the width. */}
+      <div className="min-w-0 flex-1 px-4 pb-16 pt-4 md:px-8 md:pt-6">{TABS.map((tab) => {
         const chips = headChips(tab, doc.may_administer, methodologist);
         return (
-        <div key={tab} id={`panel-${tab}`} role="tabpanel" aria-labelledby={`tab-${tab}`} hidden={active !== tab} className="flex flex-col gap-4">
+        <section key={tab} id={`panel-${tab}`} data-section={tab} aria-labelledby={`section-${tab}-h`} hidden={active !== tab} className="flex flex-col gap-4">
           <header data-tab-header className="mb-0.5 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="font-serif text-2xl font-semibold leading-[30px]">{t(`${P}.tabs.${tab}`)}</h1>
+              <h1 id={`section-${tab}-h`} className="font-serif text-2xl font-semibold leading-[30px]">{t(`${P}.tabs.${tab}`)}</h1>
               <p data-tab-lede className="mt-1.5 max-w-[720px] text-sm leading-6 text-ink-muted">{t(`${P}.lede.${tab}`)}</p>
             </div>
-            {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
-              <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
-            ))}</div> : null}
+            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
+              {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
+                <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
+              ))}</div> : null}
+              {/* One switch for the whole page's technical detail (the product owner, 2026-10-13): the
+                  prototype has no place for it, so it sits at the end of the head, beside the chips. */}
+              {active === tab ? <div data-technical-switch><TechnicalSwitch on={technical} onChange={setTechnical} /></div> : null}
+            </div>
           </header>
           {OWN_TABS.has(tab) && !drawn.has(tab) ? null : body(tab)}
-        </div>
+        </section>
         );
       })}{footer}</div>
     </div>

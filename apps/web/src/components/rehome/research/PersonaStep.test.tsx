@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { PROPOSAL_AI_DONE, PROPOSAL_DONE, REQUEST_EMPTY } from "@/research/persona";
 import { FrameNavigation } from "../step";
+import { TOUCH_LINK } from "@/components/ui/parts";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
 import { TEST_FRAME, stagePath } from "./test-frame";
@@ -161,6 +162,28 @@ describe("Dimenze", () => {
     const { container } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     expect(await screen.findByText("jezdi_vlakem")).toBeTruthy();
     expect(container.querySelector("[data-aia^='own_dimension:']")).toBeNull();
+  });
+
+  it("the dock counts the chosen dimensions in Czech, as the stage track does", async () => {
+    const cases: [string[], RegExp][] = [
+      [[], /^Bez dimenzí · N=\d+$/],
+      [["cena"], /^1 dimenze · N=\d+$/],
+      [["cena", "media"], /^2 dimenze · N=\d+$/],
+      [["cena", "media", "zdravi", "politika", "duvera"], /^5 dimenzí · N=\d+$/],
+    ];
+    for (const [approved, words] of cases) {
+      aiaStub({ ...PLANNED, persona_dimensions: { approved } });
+      const { unmount } = render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+      // The dock's note (its polite live region), not the stage track's line.
+      await waitFor(() => expect([...document.querySelectorAll("span[aria-live='polite']")].map((e) => e.textContent).filter((x) => x?.includes("· N="))).toEqual([expect.stringMatching(words)]));
+      unmount();
+    }
+  }, 30_000);
+
+  it("the way to the run's population is a stand-alone link with the touch target (TOUCH_LINK)", async () => {
+    aiaStub(PLANNED, { [OWN_PATH]: () => ({ items: [] }) });
+    render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
+    expect((await screen.findByRole("link", { name: /Populace běhu/ })).className).toBe(TOUCH_LINK);
   });
 
   it("without any materialization from this study the section says so, and still leads to the run's population", async () => {
@@ -413,7 +436,7 @@ describe("Dimenze", () => {
     fireEvent.click(screen.getByRole("button", { name: /Zvýšit/ }));
     await savedWith("sample_n_1789");
     expect(lastSave().content.n).toBe(350);
-    expect(screen.getByText(/^\d+ dimenzí · N=350$/)).toBeTruthy(); // the dock's note
+    expect(screen.getAllByText(/^Bez dimenzí · N=350$/).some((e) => e.getAttribute("aria-live") === "polite")).toBe(true); // the dock's note, as the track says it
     const stepped = screen.getByRole("spinbutton", { name: "Počet respondentů" });
     expect(stepped).not.toBe(n); // a new stored n redraws the field (key)
     fireEvent.change(stepped, { target: { value: "100" } });
