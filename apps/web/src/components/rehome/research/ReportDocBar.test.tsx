@@ -13,7 +13,7 @@ vi.mock("@/lib/api", async () => ({
     report: vi.fn(), downloadReport: vi.fn(), downloadReportPdf: vi.fn(), downloadClientReport: vi.fn(), askReportPdf: vi.fn(),
     downloadReportEditorVersion: vi.fn(),
   },
-  deepResearch: { contextReport: vi.fn(), downloadContextReport: vi.fn(), downloadContextReportPdf: vi.fn(), askContextReportPdf: vi.fn() },
+  deepResearch: { contextReport: vi.fn(), downloadContextReport: vi.fn(), downloadContextReportPdf: vi.fn(), askContextReportPdf: vi.fn(), prepareContextReport: vi.fn() },
 }));
 vi.mock("@/lib/download", () => ({ saveBlob: vi.fn() }));
 
@@ -75,6 +75,27 @@ describe("the doc bar's exports (RPT3c)", () => {
     fireEvent.click(button(/^PDF$/));
     await waitFor(() => expect(saveBlob).toHaveBeenCalledTimes(1));
     expect(deepResearch.downloadContextReportPdf).toHaveBeenCalledWith("STU-1", "RUN-1", "RUN-deep");
+  });
+
+  it("keeps a report with literature of an earlier composition, says so, prepares it anew, and keeps it when that is refused", async () => {
+    const earlier = status({ state: "NOT_REQUESTED" }, { deep_research_run_id: "RUN-deep", artifact_id: "ART-context", contract: "aia-contextual-report-3", contract_current: false });
+    vi.mocked(deepResearch.contextReport).mockResolvedValue(earlier);
+    vi.mocked(deepResearch.prepareContextReport).mockRejectedValue(new Error("refused"));
+    show({ kind: "with_review", review: "RUN-deep", stored: { ...STORED, report_artifact_id: "ART-context" } });
+    expect(await screen.findByText(/podle dřívější skladby zprávy \(aia-contextual-report-3\)\. Stáhnout a schválit/)).toBeTruthy();
+    fireEvent.click(button(/Připravit znovu podle současné skladby/));
+    await waitFor(() => expect(deepResearch.prepareContextReport).toHaveBeenCalledWith("STU-1", "RUN-1", "RUN-deep"));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(button(/DOCX/)).toBeTruthy();
+  });
+
+  it("keeps an approved report with literature of an earlier composition the report, and offers no new one", async () => {
+    vi.mocked(deepResearch.contextReport).mockResolvedValue(status({ state: "READY" }, {
+      deep_research_run_id: "RUN-deep", artifact_id: "ART-context", review_state: "APPROVED_INTERNAL", contract: "aia-contextual-report-3", contract_current: false,
+    }));
+    show({ kind: "with_review", review: "RUN-deep", stored: { ...STORED, report_artifact_id: "ART-context", review_state: "APPROVED_INTERNAL" } });
+    expect(await screen.findByText(/a je schválená: zůstává zprávou této varianty/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Připravit znovu/ })).toBeNull();
   });
 
   it("downloads each approved edit as itself", async () => {

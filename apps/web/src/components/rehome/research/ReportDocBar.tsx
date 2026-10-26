@@ -90,6 +90,14 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
     if (why) throw new Error(why);
     saveBlob(got.blob, got.filename ?? `${base}-koncept-${edit.koncept}.docx`);
   });
+  // A report with literature stored under an earlier composition, prepared anew under today's: a new
+  // draft that needs its own approval; the earlier one stays if composing is refused. Never offered
+  // for an approved version, which stays the report (cross-review interactions#5).
+  const earlier = current?.kind === "with_review" && current.value.state === "READY" && current.value.contract_current === false ? current.value : null;
+  const earlierApproved = earlier !== null && reviewStatus(earlier.review_state) === "APPROVED";
+  const prepareAgain = () => act(async () => {
+    if (review !== null) setStatus({ at, value: { kind: "with_review", value: await deepResearch.prepareContextReport(studyId, runId, review) } });
+  });
   // The same stored draft rendered again by a new job, composing nothing.
   const askPdf = () => act(async () => {
     const value: Status = kind === "with_review" && review !== null
@@ -117,6 +125,16 @@ export function ReportExports({ studyId, runId, kind, review, stored, canAct }: 
           <Icon name="download" size={16} /> Schválená úprava, koncept {edit.koncept} (DOCX)
         </Button>
       ))}
+      {earlier ? (
+        <span data-variant-earlier className="basis-full text-xs text-ink-muted">
+          {earlierApproved
+            ? `Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy${earlier.contract ? ` (${earlier.contract})` : ""} a je schválená: zůstává zprávou této varianty a stahuje se taková, jaká byla schválena.`
+            : `Tato zpráva s rešerší byla připravena podle dřívější skladby zprávy${earlier.contract ? ` (${earlier.contract})` : ""}. Stáhnout a schválit ji lze dál; připravená znovu bude nový koncept, který potřebuje vlastní schválení.`}
+        </span>
+      ) : null}
+      {earlier && !earlierApproved && canAct ? (
+        <Button variant="quiet" className="!min-h-11" disabled={busy} onClick={() => void prepareAgain()}>Připravit znovu podle současné skladby</Button>
+      ) : null}
       {/* Why no PDF, as text: a disabled button's title reaches no touch or keyboard reader. */}
       {pdfReason && kind !== "client" && current ? <span data-pdf-why className="basis-full text-xs text-ink-muted">PDF: {pdfReason}</span> : null}
       {words ? <span role="alert" className="basis-full text-sm text-status-fault">{words}</span> : null}
