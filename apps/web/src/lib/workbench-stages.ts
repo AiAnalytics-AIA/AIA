@@ -69,12 +69,13 @@ export function stageOf(step: StepKey, hash: string): WorkbenchStage {
 const TONE: Record<LaneTone, Tone> = { done: "done", you: "you", running: "running", fault: "fault", idle: "inert" };
 
 /**
- * A stage's tone and line from the lane, keyed by step. Sample reads Dimenze's; Sběr dat reads
+ * A stage's tone and line from the lane, keyed by step. Dimenze and Vzorek read their own entries
+ * (`dimensions`, `sample`), not the classic track's shared persona step (#945); Sběr dat reads
  * Průběh's while a run moves, else Kontrola's; the result views read Výsledky's. Unknown says
  * nothing: an empty line and the inert tone, never a guess.
  */
-export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, LaneStage>>): { tone: Tone; line: string } {
-  const from = (step: StepKey) => {
+export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey | "dimensions" | "sample", LaneStage>>): { tone: Tone; line: string } {
+  const from = (step: StepKey | "dimensions" | "sample") => {
     const s = lane[step];
     return s ? { tone: TONE[s.tone], line: s.line } : { tone: "inert" as Tone, line: "" };
   };
@@ -82,5 +83,6 @@ export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey, 
     const p = lane.progress;
     return p && (p.tone === "running" || p.tone === "fault" || p.tone === "you") ? from("progress") : from("run");
   }
+  if (stage === "dimensions" || stage === "sample") return from(stage);
   return from(STAGES[stage].step);
 }

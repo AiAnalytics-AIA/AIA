@@ -339,6 +339,7 @@ def principal_from_credential(
             email=identity.email or f"{identity.subject}@unknown.invalid",
             display_name=identity.display_name or "",
             external_subject=identity.subject,
+            seen=True,
         )
     except SubjectMismatch as exc:
         # An attempt to sign in as someone else's account: the record worth keeping.

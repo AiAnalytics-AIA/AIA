@@ -27,8 +27,10 @@ export function Switch({ on, onChange, label, showLabel = false, disabled = fals
       onClick={() => onChange(!on)}
       className={`inline-flex shrink-0 items-center gap-2 rounded-sm px-1 text-sm text-ink-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS} ${className}`}
     >
-      <span aria-hidden="true" className={`relative inline-block h-5 w-[34px] shrink-0 rounded-pill transition-colors ${on ? "bg-signal" : "bg-border-strong"}`}>
-        <i className={`absolute top-0.5 block size-4 rounded-full bg-surface-raised transition-[left] ${on ? "left-4" : "left-0.5"}`} />
+      {/* The look contract's switch: a 40 x 24 track, the one round control; off is a sunken well with
+          a strong rule, on is the signal. */}
+      <span aria-hidden="true" data-switch-track="" className={`relative inline-block h-6 w-10 shrink-0 rounded-pill border transition-colors duration-[var(--duration-confirm)] motion-reduce:transition-none ${on ? "border-signal bg-signal" : "border-border-strong bg-surface-sunken"}`}>
+        <i className={`absolute top-[3px] block size-4 rounded-full transition-[left] duration-[var(--duration-confirm)] motion-reduce:transition-none ${on ? "left-[19px] bg-on-signal" : "left-[3px] bg-ink-muted"}`} />
       </span>
       {showLabel ? label : null}
     </button>

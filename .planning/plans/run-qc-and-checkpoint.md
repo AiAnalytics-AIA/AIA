@@ -23,6 +23,7 @@ chunks:
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
   - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
   - "[ ] RQC13. Fieldwork shows a question's stimulus to each respondent before the question, recorded in the answer's provenance (D-45)"
+  - "[ ] RQC7d. The sector disc by one quota field, over RQC7b's quota-cell fill (spec sber D5; W2)"
 ---
 # Run QC and a fieldwork checkpoint
 
@@ -383,3 +384,17 @@ population. A live AC-05 run on develop reads the Czech LIVE, never this.
 - `.planning/open-items.md`: IA-1 closed by RQC9 (anchor `research/persona.ts` `setSampleSize`, test
   `PersonaStep.test.tsx` "the sample: a value outside the server's valid n is refused and said, never
   clamped (IA-1)").
+
+## From the research build spec (2026-10-26)
+
+Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
+develop `bd0d1ad6` in the research chunk register (26 Oct 2026); waves recorded in
+`.planning/mvp-execution-contracts.md`. Lane and order: [`prototype-build.md`](prototype-build.md).
+A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`), because the
+ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
+follow-up chunk below.
+
+**RQC7d. Sector disc** (spec `sber/D5`; follows RQC7b; W2, lane E). `AIA_AI_FIELDWORK_QUOTA_FILL` measured on develop before it is on.
+
+**Notes.**
+- RQC7c carries `sber/P4` and `sber/D1`-`D4`: the disc is now drawn, so RQC7c is re-scoped to the counts it shows (register contradiction 8).
