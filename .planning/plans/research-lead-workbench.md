@@ -2144,3 +2144,13 @@ From the Zadání owner's `/code-review` on #986, three defects in `LeadPane.tsx
   and the open pane shows the composer's reason;
 - each click queued another copy; the same ask on its way, queued here or waiting on the server is dropped.
 Tests: `Workbench.layout.test.tsx` "a stage's 'Požádat Vedoucího'…" (three cases), each failing without the change.
+
+### The dock's moved action keeps its place (2026-10-26, `fix/action-dock-stable-root`; follow-up to #936)
+
+From #936's stand-in review (P3): inside the workbench, `ActionDock` returned its header portal as the root
+when it had no note, and as a child of its card when it had one. A note arriving (PlanStep's, once the
+analysis loads) remounted the header's forward button, and a focused one lost its focus. The portal now
+stays first in one fragment, with the card beside it only when it has something to show. Test:
+`step.test.tsx` "ActionDock keeps its moved action, and the focus on it, when its note comes and goes",
+which fails without the change. The review's other P3, a comment beside the journey's `navStage`, fell
+away: #840's helper, taken in #936's merge, matches a stage's label exactly.

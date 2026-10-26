@@ -102,8 +102,8 @@ export const ARTIFACTS: Readonly<Record<WorkbenchStage, ArtifactContract>> = {
     refusals: ["pole použije jen to, co dovolí politika pole (decide)"],
   },
   sample: {
-    stage: "sample", artifact: "working", edits: false,
-    view_ops: ["open_stage", "focus", "inspect"], targets: ["sample"],
+    stage: "sample", artifact: "working", edits: true,
+    view_ops: ["open_stage", "focus", "show_diff", "inspect"], targets: ["sample"],
     starts: [MEMORY],
     inputs: ["audience", "dimensions"],
     hands_off: [{ to: "fieldwork", form: "ResearchSpecification n" }],
