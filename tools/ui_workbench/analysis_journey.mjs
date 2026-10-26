@@ -12,6 +12,7 @@
  *   - the stage opens on its analysis, not ~1,800 px down the pane, and nothing in the coverage table is
  *     clipped (at 390 px each row is a card);
  *   - a finished run's milestones read "Sběr dokončen" done;
+ *   - every coverage row shows the answer's text and one state word (ANL2b);
  *   - a coverage finding chip keeps the analysis view (no hash that sends the workspace to Přehled);
  *   - a module stored BLOCKED reads "Potřebuje opravu", never "Hotovo".
  * Zero paid jobs: no research run, agent job, Deep Research run, analysis retry or Lead request is started.
@@ -102,9 +103,25 @@ try {
     const clipped = await coverage.evaluate((el) => { const t = el.querySelector("table"); return !!t && t.getBoundingClientRect().width > el.getBoundingClientRect().width + 1; });
     assert.equal(clipped, false, `@${width}: the coverage table is clipped`);
     // Below md each cell shows its column's name; on the full table the header row says it.
-    const names = await coverage.evaluate((el) => [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length);
-    if (width < 768) assert(names >= 3, `@${width}: the stacked cells show their column names`);
+    const { names, rowCount, verdicts, cells } = await coverage.evaluate((el) => ({
+      names: [...el.querySelectorAll("td span[aria-hidden]")].filter((n) => n.getBoundingClientRect().height > 0).length,
+      rowCount: el.querySelectorAll("tr[data-rq]").length,
+      verdicts: [...el.querySelectorAll("tr[data-rq]")].map((r) => r.getAttribute("data-verdict")),
+      // Each row: its Odpověď cell's text without its column name, and its Stav cell's word.
+      cells: [...el.querySelectorAll("tr[data-rq]")].map((r) => [...r.querySelectorAll("td")].map((td) => {
+        const c = td.cloneNode(true); c.querySelector("span[aria-hidden]")?.remove(); return (c.textContent ?? "").trim();
+      })),
+    }));
+    // Odpověď and Stav carry their names on a phone; the question needs none.
+    if (width < 768) assert.equal(names, rowCount * 2, `@${width}: the stacked cells show their column names`);
     else assert.equal(names, 0, `@${width}: the column names repeat beside the header row`);
+    // Each row's state is one of the stage's words (ANL2b).
+    const WORDS = { answered: "Odpovězeno", indicative: "Orientačně", no_data: "Bez dat", pending: "Čeká", unknown: "Neznámé" };
+    verdicts.forEach((v, i) => {
+      assert.equal(cells[i][2], WORDS[v ?? ""], `@${width}: row ${i + 1}'s Stav reads "${cells[i][2]}" for ${v}`);
+      // A stored analysis answers in words; the cell shows that text, never just a state.
+      if (v === "answered" || v === "indicative") assert(cells[i][1].length > 0 && cells[i][1] !== "—", `@${width}: row ${i + 1} shows no answer text`);
+    });
     // A finished run's fieldwork reads done (F1).
     const fieldworkDone = await page.locator("[data-analysis-milestones] li").first().getAttribute("data-done");
     assert.equal(fieldworkDone, "true", `@${width}: Sběr dokončen reads čeká on a finished run`);

@@ -19,6 +19,17 @@ type Module = ResearchAnalysis["modules"][string];
  */
 export type CoverageState = "answered" | "unsupported" | "gap" | "blocked" | "pending" | "unanswered";
 
+/**
+ * The row's state as Analýza says it (ANL2b, spec szz A3):
+ * - `answered`, Odpovězeno: answered citing an admitted claim, no gap recorded;
+ * - `indicative`, Orientačně: answered citing a claim, but the comparison it asked for could not be
+ *   made (the run recorded `segments_unavailable` at start);
+ * - `no_data`, Bez dat: a gap recorded at start, or an answer in words that cites no claim;
+ * - `pending`, Čeká: the research-questions module has not been stored yet, whatever was recorded at start;
+ * - `unknown`, Neznámé: that module did not pass its checks, or holds no answer. Never Odpovězeno.
+ */
+export type CoverageVerdict = "answered" | "indicative" | "no_data" | "pending" | "unknown";
+
 /** A finding, pointed at as `finding:<module>:<n>` (artifact-analysis §4). */
 export type FindingRef = { module: string; index: number };
 export const findingId = (f: FindingRef): string => `${f.module}:${f.index}`;
@@ -32,6 +43,7 @@ export type CoverageRow = {
   index: number;
   question: string;
   state: CoverageState;
+  verdict: CoverageVerdict;
   /** The answer as the module wrote it; null when there is none. */
   answer: string | null;
   /** What the run recorded at start about this question, in words (the API's), or the
@@ -42,6 +54,9 @@ export type CoverageRow = {
 };
 
 const RESEARCH_QUESTIONS_MODULE = "research_questions";
+/** The gap reason a run records for a research question that asks to compare segments, which no run
+ *  can yet (domain/research_trace.py TraceReason.SEGMENTS_UNAVAILABLE). */
+const SEGMENTS_UNAVAILABLE = "segments_unavailable";
 
 /** The measures a set of claim ids rests on, within one module. */
 function refsOf(module: Module, ids: readonly string[]): Set<string> {
@@ -89,6 +104,16 @@ export function coverage(
       : gap ? "gap"
       : !answer ? "unanswered"
       : cited.size ? "answered" : "unsupported";
-    return { index, question, state, answer: answer?.answer ?? null, gap, findings: linked };
+    // Indicative only when the segment comparison is the one thing the run could not do: another
+    // recorded reason (no citable measure, measures unanswered) leaves it without data.
+    const segmentsOnly = !!gapRecord?.reasons.length && gapRecord.reasons.every((r) => r === SEGMENTS_UNAVAILABLE);
+    const verdict: CoverageVerdict =
+      !rq ? "pending"
+      : state === "answered" ? "answered"
+      : state === "gap" && cited.size && segmentsOnly ? "indicative"
+      : state === "gap" || state === "unsupported" ? "no_data"
+      : state === "pending" ? "pending"
+      : "unknown";
+    return { index, question, state, verdict, answer: answer?.answer ?? null, gap, findings: linked };
   });
 }
