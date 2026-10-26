@@ -1611,8 +1611,7 @@ export const cs = {
             access: "člen role pozvat správce vlastník samoschválení metodik",
             studies: "rozpočet útrata práh potvrzení peněženka usd",
             audit: "historie změna kdo kdy záznam",
-            system: "zdraví chyby smoke nasazení připravenost",
-            reference: "invariant konstanta nasazení třída dat pevná pravidla",
+            system: "zdraví chyby smoke nasazení připravenost reference invariant konstanta třída dat pevná pravidla populace prostředí databáze pracovník",
             data: "smazat klient uchovávání retence záznamy",
           },
         },
@@ -1626,7 +1625,6 @@ export const cs = {
           studies: "Studie a rozpočty",
           audit: "Audit",
           system: "Stav systému",
-          reference: "Reference",
           data: "Správa dat",
         },
         tabSubtitles: {
@@ -1637,8 +1635,7 @@ export const cs = {
           access: "Členové, role, samoschválení",
           studies: "Rozpočty studií, útrata",
           audit: "Kdo co změnil a kdy",
-          system: "Připravenost, chyby",
-          reference: "Technické hodnoty, pevná pravidla",
+          system: "Připravenost, chyby, technické hodnoty",
           data: "Smazání klienta, uchovávané záznamy",
         },
         // Each tab's head as the prototype draws it (v51): one paragraph, who may change it in chips.
@@ -1650,8 +1647,7 @@ export const cs = {
           access: "Členství v organizaci je přístup: člen vidí všechny její klienty a studie. Samostatné udělování přístupu ke klientovi nebo studii neexistuje.",
           studies: "Rozpočty studií a útrata. Strop peněženky klienta se nastavuje v jeho Profilu → Pravidla.",
           audit: "Kdo co změnil a kdy. Jen ke čtení. Každá událost má český název, i ty nové: postoj dat, strop peněženky, štítek Metodik, zapečetění Vedoucího.",
-          system: "Je produkt opravdu zapnutý? Každý řádek ověřuje smoke test po nasazení, bez placeného volání. Jen ke čtení.",
-          reference: "Technické hodnoty a pevná pravidla. Nejsou to uživatelské volby; u každé je, kdo ji mění.",
+          system: "Je produkt opravdu zapnutý? Co je připravené, kam se hlásí chyby a s jakými technickými hodnotami a pevnými pravidly AIA běží. Jen ke čtení.",
           data: "Smazání klienta a záznamy, které zůstávají i po smazání, mezi nimi útrata AI a audit.",
         },
         chips: {
@@ -2246,6 +2242,8 @@ export const cs = {
         stages: { research: "Fáze výzkumu", simulation: "Fáze simulace" },
         roles: { permission: "Oprávnění" },
         reference: {
+          title: "Technické hodnoty a pevná pravidla",
+          intro: "S čím nasazení běží a co je dané kódem. Nejsou to uživatelské volby; u každé je, kdo ji mění. Prahy podpory jsou v Metodice → {support}.",
           categories: "Kategorie",
           all: "Vše",
           shown: "Zobrazeno {shown} z {total} hodnot",
