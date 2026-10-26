@@ -42,12 +42,32 @@ afterEach(() => {
 });
 
 describe("Dotazník's choices", () => {
-  it("reads a question with no type as a single choice, as the compiler does", async () => {
-    const untyped = [{ ...SECTIONS[0], questions: [{ ...(SECTIONS[0] as { questions: Record<string, unknown>[] }).questions[0], typ: " " }] }, ...SECTIONS.slice(1)];
-    stub({ goal: "G", sections: untyped, ui_state: { questionnaire_path: "manual" } });
+  it("reads a question with no type as a single choice and offers that choice to store it, as the compiler reads it", async () => {
+    const q1 = { ...(SECTIONS[0] as { questions: Record<string, unknown>[] }).questions[0], typ: undefined, kategorie: [] };
+    const untyped = [{ ...SECTIONS[0], questions: [q1] }, ...SECTIONS.slice(1)];
+    const ws = stub({ goal: "G", sections: untyped, ui_state: { questionnaire_path: "manual" } });
     const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     await screen.findAllByDisplayValue("Jak často?");
-    expect(within(container.querySelector("#qedit_Q1") as HTMLElement).getByRole("button", { name: "Jedna odpověď, typ otázky" })).toBeTruthy();
+    const card = container.querySelector("#qedit_Q1") as HTMLElement;
+    fireEvent.click(within(card).getByRole("button", { name: "Jedna odpověď, typ otázky" }));
+    const choice = within(within(card).getByRole("menu")).getByRole("menuitem", { name: "Jedna odpověď" }) as HTMLButtonElement;
+    // The compiler wants two options for it (too_few_categories): choosing it stores the type and Ano / Ne.
+    expect(choice.disabled).toBe(false);
+    fireEvent.click(choice);
+    await waitFor(() => expect(ws.saves.length).toBeGreaterThan(0), { timeout: 5000 });
+    const saved = (ws.saves.at(-1)!.content as { sections: { questions?: Record<string, unknown>[] }[] }).sections[0].questions![0];
+    expect([saved.typ, saved.kategorie]).toEqual(["vyber", ["Ano", "Ne"]]);
+  });
+
+  it("says a type of blanks alone is not chosen, as the compiler refuses it", async () => {
+    const q1 = { ...(SECTIONS[0] as { questions: Record<string, unknown>[] }).questions[0], typ: " " };
+    stub({ goal: "G", sections: [{ ...SECTIONS[0], questions: [q1] }, ...SECTIONS.slice(1)], ui_state: { questionnaire_path: "manual" } });
+    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findAllByDisplayValue("Jak často?");
+    const card = container.querySelector("#qedit_Q1") as HTMLElement;
+    fireEvent.click(within(card).getByRole("button", { name: "Typ nevybrán, typ otázky" }));
+    const items = within(within(card).getByRole("menu")).getAllByRole("menuitem") as HTMLButtonElement[];
+    expect(items.map((item) => item.disabled)).toEqual([false, false, false, false]);
   });
 
   it("chooses a question's type from its tag's menu, the current type not offered again (spec navrh/Q2)", async () => {

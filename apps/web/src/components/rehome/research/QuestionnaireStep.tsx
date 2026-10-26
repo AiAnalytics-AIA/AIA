@@ -911,8 +911,10 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const undo = useEditorUndo();
   const wording = useRef<WordingEdit | null>(null);
   const typ = String(q.typ || "");
-  // Read as the compiler reads it: trimmed, and none is a single choice (research_design.py _text, "vyber").
-  const current = TYPES.find(([key]) => key === (typ.trim() || "vyber"));
+  // Read as the compiler reads it: none is a single choice, then the value is trimmed
+  // (research_design.py:952, _text(raw.get("typ") or "vyber")), so blanks alone name no type.
+  const read = typ ? typ.replace(/\s+/g, " ").trim() : "vyber";
+  const current = TYPES.find(([key]) => key === read);
   const typeLabel = current ? t(`research.questionnaire.${current[1]}`) : t("research.questionnaire.typeUnset");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
@@ -934,8 +936,10 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
           <MenuButton
             label={typeLabel}
             name={tv("research.questionnaire.typeOf", { type: typeLabel })}
-            items={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`), disabled: key === current?.[0] }))}
-            onSelect={(key) => key !== current?.[0] && update((p) => changeQType(p, si, qi, key))}
+            // Only the type as stored is not offered again: an untyped or padded one is offered the
+            // type it reads as, which writes it and draws its editor (options, scale) as stored.
+            items={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`), disabled: key === typ }))}
+            onSelect={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
             className="[&>button]:min-h-11 sm:[&>button]:min-h-8"
           />
         </span>
