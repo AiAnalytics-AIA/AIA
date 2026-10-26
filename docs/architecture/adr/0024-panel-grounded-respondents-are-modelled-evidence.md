@@ -137,6 +137,17 @@ exists. It is a recorded exception to this section, not a change of its rule:
 
 Revoking it is removing that record; the chunk-7 validation, once earned, supersedes it.
 
+**Amendment, 2026-10-22: the client report's checks warn.** Since 2026-10-22 (the product owner:
+"lets get rid of these strict gates", "Relax RD0 too", "Warnings for all of it"; report-delivery
+RD0, #879), the client report's checks (`drill_down_content`, `unadmitted_number`,
+`ledger_not_client_facing`, `gate_unrecorded`, and the Interní dokument check once RD11 cites a
+client source) warn in the approval dialog, are named by where they are, and are recorded on the
+approval's ledger row (`approval_decisions.warnings`); none refuses
+(`packages/aia_core/src/aia_core/domain/report/client_gate.py:32-36 @ 5d5ed250`;
+`application/report_approval.py:151-170 @ 5d5ed250`; `infrastructure/tables.py:2010 @ 5d5ed250`).
+What composition admits is unchanged (only `CLIENT_FACING` claims); the researcher approves past
+what the checks name, on record.
+
 ### 5. Support counts donors, not respondents
 
 - Grounded respondents are drawn from synthetic rows that share survey donors. Support is the

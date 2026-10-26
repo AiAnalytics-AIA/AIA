@@ -3,7 +3,7 @@
 // reaches the API, every setting says how it is controlled, "not configured" and
 // "costs hidden" never read as zero, a change goes through the API and the
 // panel re-reads, and a refusal is shown as the API gave it.
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadConfig, resetConfigCache } from "@/lib/auth";
@@ -204,7 +204,7 @@ describe("the settings control panel", () => {
       ],
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const ownerRow = await waitFor(() => document.querySelector('[data-member="USR-1"]') as HTMLElement);
     expect(ownerRow.querySelector('[role="radiogroup"]')).toBeNull();
     expect(screen.getByText("Roli vlastníka mění jen vlastník.")).toBeTruthy();
@@ -215,7 +215,7 @@ describe("the settings control panel", () => {
   it("offers the organization's only active OWNER no demotion", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     await waitFor(() => expect(document.querySelector('[data-member="USR-1"]')).toBeTruthy());
     expect(screen.queryByRole("radiogroup", { name: "Role: owner@example.test" })).toBeNull();
     expect(screen.getByText("Jediný aktivní vlastník organizace o roli přijít nemůže.")).toBeTruthy();
@@ -232,7 +232,7 @@ describe("the settings control panel", () => {
         new Response('{"code":"insufficient_role","message":"The organization\'s last OWNER cannot be demoted or deactivated.","details":{"reason":"last_owner"}}', { status: 403 }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const roles = await screen.findByRole("radiogroup", { name: "Role: owner@example.test" });
     fireEvent.click(within(roles).getByRole("radio", { name: "výzkumník" }));
     const member = document.querySelector('[data-member="USR-1"]') as HTMLElement;
@@ -264,16 +264,49 @@ describe("the settings control panel", () => {
     render(<ControlPanel />);
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     await waitFor(() => expect(row.getAttribute("data-near")).toBe("true"));
-    expect(within(row).getByText(/92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno/)).toBeTruthy();
-    const link = within(row).getByRole("link", { name: "Profil → Pravidla", hidden: true });
+    // "92 % · ⚠" to the eye, the whole sentence to a screen reader; grey, never the fault's colour.
+    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · ⚠ · téměř vyčerpáno");
+    expect(row.className).toContain("bg-surface-sunken");
+    expect(row.className).not.toMatch(/status-(you|fault)/);
+    // Named with its client, so a list of links never reads "Pravidla" six times.
+    const link = within(row).getByRole("link", { name: "Pravidla klienta Klient A", hidden: true });
+    expect(link.getAttribute("title")).toBe("Profil → Pravidla klienta");
+    expect(link.className).toContain("min-h-11");
+    // The status is read here, not chosen (fidelity F7): its word and glyph, no picker.
+    expect(within(row).getByText("Aktivní")).toBeTruthy();
+    expect(within(row).queryByRole("radiogroup", { hidden: true })).toBeNull();
+    // The table's six columns, the money ones by their D-01 names.
+    const table = row.closest("table") as HTMLElement;
+    expect(within(table).getAllByRole("columnheader", { hidden: true }).map((h) => h.textContent)).toEqual(["Studie", "Stav", "Utraceno", "Rozpočet studie (USD)ⓘ", "Práh potvrzení (USD)ⓘ", "Peněženkaⓘ"]);
     expect(link.getAttribute("href")).toContain("/app/clients/CLI-a/profile");
     expect(screen.getByText("Cizí studie").closest("[data-study]")?.getAttribute("data-near")).toBeNull();
+  });
+
+  it("explains the four money names under the table, opened by a button, the client's budget included", async () => {
+    api();
+    render(<ControlPanel />);
+    await screen.findByText("Vnímání značky");
+    const names = document.querySelector("[data-money-names]") as HTMLElement;
+    const open = screen.getByRole("button", { name: /Co znamenají částky/, hidden: true });
+    expect(names.hidden).toBe(true);
+    fireEvent.click(open);
+    expect(open.getAttribute("aria-expanded")).toBe("true");
+    expect([...names.querySelectorAll("dt")].map((d) => d.textContent)).toEqual(["Rozpočet klienta", "Rozpočet studie", "Peněženka", "Práh potvrzení"]);
+    expect(names.textContent).toContain("Od 10 USD, nejvýš rozpočet studie.");
+  });
+
+  it("draws no spend for a study whose spend is unknown, never a 0 beside its budget", async () => {
+    api({ "GET /api/v1/studies/STU-1": () => ({ ...STUDY("STU-1", "Vnímání značky"), budget_usd: 100, spent_usd: null, remaining_usd: null }) });
+    render(<ControlPanel />);
+    const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
+    await waitFor(() => expect(within(row).getByText(/náklady nevidíte/)).toBeTruthy());
+    expect(row.querySelector("[data-spend-line]")).toBeNull();
   });
 
   it("changes the organization's self-approval where it is shown, then re-reads", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const org = await screen.findByRole("radiogroup", { name: "Samoschválení organizace" });
     // Nothing stored: Výchozí is chosen, and the default is said in words.
     expect(within(org).getByRole("radio", { name: "Výchozí" }).getAttribute("aria-checked")).toBe("true");
@@ -290,7 +323,7 @@ describe("the settings control panel", () => {
       "GET /api/v1/settings/client-rules": () => new Response('{"code":"http_404","message":"Not Found"}', { status: 404 }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     await within(panel).findByRole("radiogroup", { name: "Samoschválení organizace" });
     const order = [...panel.querySelectorAll("section[id^='set-']")].map((e) => e.id).filter((id) => ["set-members", "set-self-approval", "set-clients"].includes(id));
@@ -324,7 +357,7 @@ describe("the settings control panel", () => {
       ],
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     const rules = async (id: string) => waitFor(() => {
       const cell = panel.querySelector(`[data-client="${id}"] [data-client-rules]`) as HTMLElement | null;
@@ -361,7 +394,7 @@ describe("the settings control panel", () => {
     ]) {
       api({ "GET /api/v1/settings/client-rules": answer });
       render(<ControlPanel />);
-      fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+      await openSection("Přístup a schvalování");
       const panel = document.getElementById("panel-access") as HTMLElement;
       const card = panel.querySelector("#set-clients") as HTMLElement;
       await waitFor(() => expect(card.querySelector('[data-client-rules="unknown"]')).toBeTruthy());
@@ -381,7 +414,7 @@ describe("the settings control panel", () => {
     ];
     api({ "GET /api/v1/members": team });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     const jana = await waitFor(() => panel.querySelector('[data-member="USR-2"]') as HTMLElement);
     const mark = within(jana.parentElement as HTMLElement).getByRole("switch", { name: "Štítek Metodik: jana@example.test" });
@@ -398,7 +431,7 @@ describe("the settings control panel", () => {
     // An administrator who is not an OWNER reads the mark: the API refuses them (owner_only).
     api({ "GET /api/v1/members": team, "GET /api/v1/settings": () => ({ ...DOC(true), your_role: "ADMIN" }) });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const switches = await waitFor(() => { const all = screen.getAllByRole("switch", { name: /^Štítek Metodik:/ }); if (all.length < 3) throw new Error("not yet"); return all; });
     expect(switches.every((sw) => (sw as HTMLButtonElement).disabled)).toBe(true);
     expect(screen.getAllByText("Přiděluje jen vlastník.").length).toBeGreaterThan(0);
@@ -414,7 +447,7 @@ describe("the settings control panel", () => {
       "POST /api/v1/members/USR-2/deactivate": () => new Response(JSON.stringify({ code: "insufficient_role", message: "The organization's last OWNER cannot be demoted or deactivated.", details: { reason: "last_owner" } }), { status: 403 }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-3"]')).toBeTruthy());
     // Your own row offers no deactivation: you would lock yourself out.
@@ -443,7 +476,7 @@ describe("the settings control panel", () => {
       ],
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-5"]')).toBeTruthy());
     expect(panel.querySelector("[data-lead-sealed]")).toBeNull();
@@ -465,7 +498,7 @@ describe("the settings control panel", () => {
       "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: null, lead_erase_after: null }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
     expect(await screen.findByText("Jana: deaktivace hotova. Nepřihlásí se, studie zůstávají.")).toBeTruthy();
     expect(screen.queryByText(/Vedoucí je zapečetěn/)).toBeNull();
@@ -481,7 +514,7 @@ describe("the settings control panel", () => {
       ],
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     expect(await within(panel).findByRole("button", { name: "Deaktivovat jana@example.test" })).toBeTruthy();
     expect(within(panel).queryByRole("button", { name: "Deaktivovat owner@example.test" })).toBeNull();
@@ -496,7 +529,7 @@ describe("the settings control panel", () => {
       ],
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-2"]')).toBeTruthy());
     await waitFor(() => expect(called("GET", "/api/v1/workspace/me").length).toBeGreaterThan(0));
@@ -506,7 +539,7 @@ describe("the settings control panel", () => {
   it("draws the new member's row with the table's five cells (review of #859)", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     fireEvent.click(await within(panel).findByRole("button", { name: "+ Přidat člena" }));
     const table = within(panel).getByRole("table", { name: "Členové" });
@@ -527,7 +560,7 @@ describe("the settings control panel", () => {
       "POST /api/v1/members/USR-2/deactivate": () => ({ user_id: "USR-2", email: "jana@example.test", display_name: "Jana", is_active: false, organization_role: "MEMBER", methodologist: false, deactivated_at: "2026-10-23T04:00:00Z", lead_sealed_at: "2026-10-23T04:00:00Z", lead_erase_after: "2026-11-22T04:00:00Z" }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     fireEvent.click(await screen.findByRole("button", { name: "Deaktivovat jana@example.test" }));
     await waitFor(() => expect(called("POST", "/api/v1/members/USR-2/deactivate")).toHaveLength(1));
     expect(await screen.findByText(/Vedoucí je zapečetěn/)).toBeTruthy();
@@ -538,7 +571,7 @@ describe("the settings control panel", () => {
   it("sets, clears and adds a study's own self-approval rule, and returns the organization to the default", async () => {
     api({ "GET /api/v1/self-approval": () => ({ organization: false, clients: [], studies: [{ study_id: "STU-1", client_id: "CLI-a", allowed: false }] }) });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     const org = await within(panel).findByRole("radiogroup", { name: "Samoschválení organizace" });
     fireEvent.click(within(org).getByRole("radio", { name: "Výchozí" }));
@@ -562,7 +595,7 @@ describe("the settings control panel", () => {
   it("offers the Metodik mark and deactivation in each row, no longer says they are not in AIA, and explains each role", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const panel = document.getElementById("panel-access") as HTMLElement;
     await waitFor(() => expect(panel.querySelector('[data-member="USR-1"]')).toBeTruthy());
     expect(within(panel).getByRole("switch", { name: "Štítek Metodik: owner@example.test" })).toBeTruthy();
@@ -589,8 +622,8 @@ describe("the settings control panel", () => {
     // STU-2's GET fails (404 in the fake): the tile cannot say 0.
     api({ "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: true, currency: "USD", people: [] }) });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
-    const tile = (await within(panelOf("Studie a rozpočty")).findByText("Téměř vyčerpané rozpočty")).parentElement as HTMLElement;
+    await openSection("Studie a rozpočty");
+    const tile = (await within(panelOf("Studie a rozpočty")).findByText("Téměř vyčerpané")).parentElement as HTMLElement;
     await waitFor(() => expect(tile.textContent).toContain("neznámo"));
     expect(tile.textContent).toContain("u 1 nevíme");
     expect(tile.textContent).not.toMatch(/rozpočty0/);
@@ -670,7 +703,7 @@ describe("the reference", () => {
     doc.groups = [...doc.groups, { key: "workflow", items: [item("lease_seconds", 60, "CODE", "aia_core.domain.workflow:LEASE_SECONDS", "s")] }];
     api({ "GET /api/v1/settings": () => doc });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    await openSection("Reference");
     const panel = panelOf("Reference");
     fireEvent.change(await within(panel).findByRole("searchbox", { name: "Hledat technickou hodnotu" }), { target: { value: "lease" } });
     const row = await waitFor(() => { const r = panel.querySelector('[data-setting="lease_seconds"]') as HTMLElement | null; if (!r) throw new Error("no row"); return r; });
@@ -690,7 +723,7 @@ describe("what powers AIA", () => {
     api({ "GET /api/v1/settings": () => doc, "GET /config": () => CONFIG({ switches: { AIA_AI_RUNTIME_ENABLED: false, AIA_AI_ANALYSIS_ENABLED: false } }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("research_analysis")).toBeTruthy());
-    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(isOpen("AI běh")).toBe(true));
     const analysis = card("research_analysis");
     expect(within(analysis).getByRole("heading", { name: "Analýza výsledků výzkumu" })).toBeTruthy();
     expect(within(analysis).getByText(/Dokončená data a mapy zůstanou k dispozici/)).toBeTruthy();
@@ -702,7 +735,7 @@ describe("what powers AIA", () => {
     api();
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
-    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(isOpen("AI běh")).toBe(true));
     const ai = section("ai");
     expect(within(ai).getByText(/AIA volá jazykové modely přes Amazon Bedrock/)).toBeTruthy();
     expect(within(ai).getByText(/nepotřebuje předplatné Claude ani Claude Code/)).toBeTruthy();
@@ -873,7 +906,7 @@ describe("what powers AIA", () => {
     api({ "GET /config": () => ({ apiBase: "", build: { sha: null } }) });
     render(<ControlPanel />);
     await waitFor(() => expect(card("respondent_fieldwork").getAttribute("data-state")).toBe("unknown"));
-    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(isOpen("AI běh")).toBe(true));
     const alert = within(section("ai")).getByRole("alert");
     expect(alert.textContent).toMatch(/\/config nevrátil přepínače AI\. Konfiguraci nasazení se nepodařilo načíst/);
     expect(alert.textContent?.match(/Konfiguraci nasazení se nepodařilo načíst/g)).toHaveLength(1);
@@ -925,21 +958,26 @@ describe("what powers AIA", () => {
     expect(section("ai")).toBeTruthy();
   });
 
-  it("on the Settings page, the top bar is the breadcrumb, Organizace <name> / Nastavení, and each tab's h1 the one heading", async () => {
+  it("on the Settings page, the top bar is the breadcrumb, Organizace <name> / Nastavení › <sekce>, and each tab's h1 the one heading", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: false, organization_name: "Výzkumná agentura Delta" }) });
     render(<SettingsPage />);
     const crumbs = await screen.findByRole("navigation", { name: BREADCRUMBS });
-    await waitFor(() => expect(crumbs.textContent).toBe("OrganizaceVýzkumná agentura Delta/Nastavení"));
-    expect(within(crumbs).getByText("Nastavení").getAttribute("aria-current")).toBe("page");
-    await screen.findByRole("tablist");
-    const open = screen.getAllByRole("tab").find((x) => x.getAttribute("aria-selected") === "true") as HTMLElement;
-    expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual([open.getAttribute("aria-label")]);
+    await waitFor(() => expect(within(crumbs).getByText("Výzkumná agentura Delta")).toBeTruthy());
+    // "Nastavení › <sekce>" is the section menu's button, the trail's last step and its current
+    // page (prototype v54); the organization is a step on the way, not the page.
+    const menu = within(crumbs).getByRole("button", { name: /^Nastavení › AI běh/ });
+    expect(menu.getAttribute("aria-haspopup")).toBe("dialog");
+    expect(menu.getAttribute("aria-current")).toBe("page");
+    expect(crumbs.querySelectorAll("[aria-current]")).toHaveLength(1);
+    expect(within(crumbs).getAllByRole("listitem")).toHaveLength(2);
+    await sectionsDrawn();
+    expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual(["AI běh"]);
   });
 
   it("on the Settings page, who you are is read once and passed to the panel", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "owner@example.test", organization_role: "OWNER", may_administer: true, methodologist: true }) });
     render(<SettingsPage />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     await waitFor(() => expect(within(panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement).getByText("Vy: Metodik · můžete upravovat")).toBeTruthy());
     expect(called("GET", "/api/v1/workspace/me")).toHaveLength(1);
   });
@@ -954,7 +992,7 @@ describe("what powers AIA", () => {
     render(<SettingsPage />);
     const head = () => panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
     await waitFor(() => expect(within(head()).getByText("Upravuje jen Metodik")).toBeTruthy());
-    fireEvent.click(tab("Přístup a schvalování"));
+    await openSection("Přístup a schvalování");
     fireEvent.click(await within(panelOf("Přístup a schvalování")).findByRole("switch", { name: "Štítek Metodik: owner@example.test" }));
     await waitFor(() => expect(within(head()).getByText("Vy: Metodik · můžete upravovat")).toBeTruthy());
   });
@@ -970,14 +1008,17 @@ describe("what powers AIA", () => {
   it("on the Settings page, a name the API did not send is left out of the breadcrumb, never guessed", async () => {
     api();
     render(<SettingsPage />);
-    await screen.findByRole("tablist");
-    expect(screen.getByRole("navigation", { name: BREADCRUMBS }).textContent).toBe("Nastavení");
+    await sectionsDrawn();
+    const crumbs = screen.getByRole("navigation", { name: BREADCRUMBS });
+    expect(within(crumbs).getAllByRole("listitem")).toHaveLength(1);
+    expect(crumbs.textContent).not.toContain("Organizace");
+    expect(within(crumbs).getByRole("button", { name: /^Nastavení › / })).toBeTruthy();
   });
 
   it("on the Settings page, AI is one section, and the separate Bedrock card is gone", async () => {
     api();
     render(<SettingsPage />);
-    await waitFor(() => expect(tab("AI běh").getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(isOpen("AI běh")).toBe(true));
     expect(await screen.findByRole("heading", { name: "AI v AIA" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Amazon Bedrock" })).toBeNull();
     // Account details remain available without interrupting the settings task.
@@ -996,38 +1037,47 @@ describe("what powers AIA", () => {
 // ---------------------------------------------------------------- the tabs
 
 const BREADCRUMBS = "Kde jste";
-const tab = (name: string) => screen.getByRole("tab", { name });
-// The page's one technical switch, under the tab list (prototype v51 has no place for it in a head).
-const techSwitch = () => within(document.querySelector("[data-technical-switch]") as HTMLElement).getByRole("switch", { name: "Technické údaje" });
-const panelOf = (name: string) => document.getElementById(tab(name).getAttribute("aria-controls") as string) as HTMLElement;
+// A section is its address (#deep_research), chosen in the top bar's menu (prototype v54); the
+// panel follows the address, so a test opens one the way a link or the menu does.
+const SECTION_IDS: Record<string, string> = {
+  "Metodika": "methodology", "Systémové prompty": "prompts", "Deep Research": "deep_research", "AI běh": "ai",
+  "Přístup a schvalování": "access", "Studie a rozpočty": "studies", "Audit": "audit", "Stav systému": "system",
+  "Reference": "reference", "Správa dat": "data",
+};
+const panelOf = (name: string) => document.getElementById(`panel-${SECTION_IDS[name]}`) as HTMLElement;
+const isOpen = (name: string) => !!panelOf(name) && !panelOf(name).hidden;
+const sectionsDrawn = () => waitFor(() => expect(document.querySelector("[data-section]")).toBeTruthy());
+async function openSection(name: string) {
+  await sectionsDrawn();
+  // As the section menu does: the address replaced, its history state kept, the page told.
+  act(() => {
+    window.history.replaceState(window.history.state, "", `#${SECTION_IDS[name]}`);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
+  await waitFor(() => expect(isOpen(name)).toBe(true));
+}
+// The page's one technical switch, at the end of the open section's head.
+const techSwitch = () => within(document.querySelector("section[data-section]:not([hidden]) [data-technical-switch]") as HTMLElement).getByRole("switch", { name: "Technické údaje" });
 
 describe("the settings tabs", () => {
   beforeEach(() => {
     window.history.replaceState(null, "", "/app/settings");
   });
 
-  it("groups all ten settings tabs by purpose, each with its subtitle, and opens on methodology", async () => {
+  it("draws all ten sections, no tab list of its own (prototype v54), and opens on methodology", async () => {
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist", { name: "Oddíly nastavení" });
-    expect(screen.getAllByRole("tab").map((t) => t.getAttribute("aria-label"))).toEqual([
-      "Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat",
+    await sectionsDrawn();
+    expect(screen.queryByRole("tablist", { name: "Oddíly nastavení" })).toBeNull();
+    expect([...document.querySelectorAll("section[data-section]")].map((x) => x.getAttribute("data-section"))).toEqual([
+      "methodology", "prompts", "deep_research", "ai", "access", "studies", "audit", "system", "reference", "data",
     ]);
-    expect(screen.getByRole("group", { name: "Nastavení výzkumu" })).toBeTruthy();
-    expect(screen.getByRole("group", { name: "Tým a peníze" })).toBeTruthy();
-    expect(screen.queryByRole("group", { name: "Tým a útrata" })).toBeNull();
-    expect(screen.getByRole("group", { name: "Provoz" })).toBeTruthy();
-    // Each tab names what it holds under its title; the prototype's plain column has no icons.
-    expect(tab("Metodika").textContent).toContain("Jak se počítají mapy a čísla");
-    expect(tab("AI běh").textContent).toContain("Co pohání AI · jen ke čtení");
-    expect(tab("Správa dat").textContent).toContain("Smazání klienta, uchovávané záznamy");
-    for (const t of screen.getAllByRole("tab")) expect(t.querySelector("svg")).toBeNull();
-    expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
-    expect(panelOf("Metodika").hidden).toBe(false);
+    expect(isOpen("Metodika")).toBe(true);
     for (const other of ["Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
-      expect(panelOf(other).hidden).toBe(true);
-      expect(tab(other).getAttribute("aria-selected")).toBe("false");
+      expect(isOpen(other)).toBe(false);
     }
+    // Each section is named by its own h1.
+    expect(panelOf("Metodika").getAttribute("aria-labelledby")).toBe("section-methodology-h");
   });
 
   it("opens Stav systému and Správa dat as their own tabs, saying plainly what AIA does not have yet", async () => {
@@ -1035,18 +1085,18 @@ describe("the settings tabs", () => {
     const none = () => new Response('{"code":"http_404","message":"Not Found"}', { status: 404 });
     api({ "GET /api/v1/settings/system-status": none, "GET /api/v1/settings/error-tracking": none, "GET /api/v1/settings/kept-records": none });
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     // Not read until their tab is first opened: opening Settings fires no GlitchTip read (review of #854).
     await screen.findByText("Prostředí");
     for (const route of ["/api/v1/settings/system-status", "/api/v1/settings/error-tracking", "/api/v1/settings/kept-records"]) expect(called("GET", route)).toEqual([]);
-    fireEvent.click(tab("Stav systému"));
+    await openSection("Stav systému");
     await waitFor(() => expect(called("GET", "/api/v1/settings/error-tracking")).toHaveLength(1));
     expect(called("GET", "/api/v1/settings/kept-records")).toEqual([]);
     expect(panelOf("Stav systému").hidden).toBe(false);
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Připravenost po nasazení" })).toBeTruthy();
     expect(within(panelOf("Stav systému")).getByRole("heading", { name: "Hlášení chyb" })).toBeTruthy();
     expect((await within(panelOf("Stav systému")).findAllByText("V AIA zatím není")).length).toBe(2);
-    fireEvent.click(tab("Správa dat"));
+    await openSection("Správa dat");
     expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Smazat klienta" })).toBeTruthy();
     expect(within(panelOf("Správa dat")).getByRole("heading", { name: "Uchovávané záznamy" })).toBeTruthy();
     expect(await within(panelOf("Správa dat")).findByText("V AIA zatím není")).toBeTruthy();
@@ -1056,7 +1106,7 @@ describe("the settings tabs", () => {
   it("puts each group where its tab says, and the read-only material under Reference", async () => {
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     expect(panelOf("AI běh").contains(section("ai"))).toBe(true);
     expect(panelOf("Přístup a schvalování").contains(section("approvals"))).toBe(true);
     // The role matrix is reference material: drawn only with technical details on.
@@ -1074,16 +1124,16 @@ describe("the settings tabs", () => {
   it("heads each tab as the prototype does: a serif h1, one paragraph, who may change it in chips, and no disclosure", async () => {
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
     const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => `${c.textContent}|${c.getAttribute("data-chip-tone")}`);
     for (const name of ["Metodika", "Systémové prompty", "Deep Research", "AI běh", "Přístup a schvalování", "Studie a rozpočty", "Audit", "Stav systému", "Reference", "Správa dat"]) {
-      fireEvent.click(tab(name));
+      await openSection(name);
       const head = panelOf(name).querySelector("[data-tab-header]") as HTMLElement;
       expect(within(head).getByRole("heading", { level: 1 }).textContent).toBe(name);
       expect(head.querySelectorAll("p")).toHaveLength(1);
-      // The switch is the page's, under the tabs; no head carries it, and no "Platí pro · Mění" line.
-      expect(within(head).queryByRole("switch")).toBeNull();
+      // The page's one switch sits at the end of the open section's head; no "Platí pro · Mění" line.
+      expect(within(head).getAllByRole("switch")).toHaveLength(1);
       expect(head.querySelector("[data-tab-facts]")).toBeNull();
       if (name !== "Metodika") expect(panelOf(name).querySelectorAll("details, summary")).toHaveLength(0);
     }
@@ -1110,7 +1160,7 @@ describe("the settings tabs", () => {
   it("says in the heads what a member may not change, and names the Metodik mark only for its holder", async () => {
     api({ "GET /api/v1/workspace/me": () => ({ user_id: "USR-1", email: "m@example.test", organization_role: "MEMBER", may_administer: false, methodologist: true }) }, false);
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     const chips = (name: string) => [...(panelOf(name).querySelector("[data-tab-chips]")?.children ?? [])].map((c) => c.textContent);
     await waitFor(() => expect(chips("Metodika")).toEqual(["Čte každý člen", "Vy: Metodik · můžete upravovat"]));
     expect(chips("Systémové prompty")).toEqual(["Upravuje vlastník nebo správce"]);
@@ -1122,7 +1172,7 @@ describe("the settings tabs", () => {
   it("claims no Metodik mark when who you are could not be read", async () => {
     api({ "GET /api/v1/workspace/me": () => new Response('{"code":"internal","message":"x"}', { status: 500 }) });
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     const head = panelOf("Metodika").querySelector("[data-tab-chips]") as HTMLElement;
     expect(within(head).getByText("Upravuje jen Metodik")).toBeTruthy();
     expect(within(head).queryByText(/Vy: Metodik/)).toBeNull();
@@ -1131,19 +1181,19 @@ describe("the settings tabs", () => {
   it("draws Settings' one-of-a-few choices as the prototype's segmented bar (fidelity F3)", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const access = panelOf("Přístup a schvalování");
     expect((await within(access).findByRole("radiogroup", { name: "Samoschválení organizace" })).getAttribute("data-look")).toBe("segmented");
-    fireEvent.click(tab("Audit"));
+    await openSection("Audit");
     expect(within(panelOf("Audit")).getByRole("radiogroup", { name: "Období" }).getAttribute("data-look")).toBe("segmented");
-    fireEvent.click(tab("Reference"));
+    await openSection("Reference");
     expect(within(panelOf("Reference")).getByRole("radiogroup", { name: "Kdo mění" }).getAttribute("data-look")).toBe("segmented");
   });
 
   it("reads Reference as tables by category, filters by category and by who changes a value, and says what each means", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    await openSection("Reference");
     const reference = panelOf("Reference");
     const env = (await within(reference).findByText("Prostředí")).closest("tr") as HTMLElement;
     expect(env.getAttribute("data-owner")).toBe("deployment");
@@ -1167,7 +1217,7 @@ describe("the settings tabs", () => {
     doc.groups = doc.groups.map((g) => (g.key === "deployment" ? { ...g, items: [...g.items, { key: "eu_residency", value: true, control: "INVARIANT" as const, source: "ADR 0008", unit: null }] } : g));
     api({ "GET /api/v1/settings": () => doc });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Reference" }));
+    await openSection("Reference");
     const reference = panelOf("Reference");
     await within(reference).findByText("Prostředí");
     const keys = [...reference.querySelectorAll("tr[data-setting]")].map((r) => r.getAttribute("data-setting"));
@@ -1188,14 +1238,14 @@ describe("the settings tabs", () => {
   it("shows one panel at a time and keeps the others' state when switching back", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     expect(panelOf("Přístup a schvalování").hidden).toBe(false);
     expect(panelOf("AI běh").hidden).toBe(true);
     fireEvent.click(await within(panelOf("Přístup a schvalování")).findByRole("button", { name: "+ Přidat člena" }));
     const email = () => within(panelOf("Přístup a schvalování")).getByLabelText("E-mail nového člena") as HTMLInputElement;
     fireEvent.change(email(), { target: { value: "rozepsany@example.test" } });
-    fireEvent.click(tab("Audit"));
-    fireEvent.click(tab("Přístup a schvalování"));
+    await openSection("Audit");
+    await openSection("Přístup a schvalování");
     // Looking at another tab did not throw away what was typed and not added yet.
     expect(email().value).toBe("rozepsany@example.test");
   });
@@ -1204,41 +1254,42 @@ describe("the settings tabs", () => {
     window.history.replaceState(null, "", "/app/settings#reference");
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
-    await waitFor(() => expect(tab("Reference").getAttribute("aria-selected")).toBe("true"));
-    fireEvent.click(tab("Audit"));
+    await sectionsDrawn();
+    await waitFor(() => expect(isOpen("Reference")).toBe(true));
+    await openSection("Audit");
     expect(window.location.hash).toBe("#audit");
   });
 
-  it("moves between tabs with the arrow keys, wrapping at the ends", async () => {
+  it("follows the address when it changes from outside: the back button, a link to another section", async () => {
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
-    fireEvent.click(tab("AI běh"));
-    fireEvent.keyDown(tab("AI běh"), { key: "ArrowRight" });
-    expect(tab("Přístup a schvalování").getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tab("Přístup a schvalování"), { key: "ArrowLeft" });
-    fireEvent.keyDown(tab("AI běh"), { key: "ArrowLeft" });
-    expect(tab("Deep Research").getAttribute("aria-selected")).toBe("true");
-    fireEvent.keyDown(tab("Deep Research"), { key: "Home" });
-    expect(tab("Metodika").getAttribute("aria-selected")).toBe("true");
-    // Only the selected tab is in the tab order.
-    expect(tab("Metodika").tabIndex).toBe(0);
-    expect(tab("Audit").tabIndex).toBe(-1);
+    await openSection("AI běh");
+    act(() => {
+      window.history.replaceState(null, "", "/app/settings#deep_research");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    await waitFor(() => expect(isOpen("Deep Research")).toBe(true));
+    expect(isOpen("AI běh")).toBe(false);
+    // An address naming no section opens on Metodika, as the page does.
+    act(() => {
+      window.history.replaceState(null, "", "/app/settings#nothing");
+      window.dispatchEvent(new HashChangeEvent("hashchange"));
+    });
+    await waitFor(() => expect(isOpen("Metodika")).toBe(true));
   });
 
   it("does not ask for the prompts until the tab is opened, and never for a member", async () => {
     api();
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
-    fireEvent.click(tab("Systémové prompty"));
+    await openSection("Systémové prompty");
     await waitFor(() => expect(called("GET", "/api/v1/system-prompts")).toHaveLength(1));
     cleanup();
 
     api({}, false);
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Systémové prompty" }));
+    await openSection("Systémové prompty");
     expect(await screen.findByText(/Systémové prompty vidí a upravuje jen vlastník nebo správce/)).toBeTruthy();
     expect(called("GET", "/api/v1/system-prompts")).toEqual([]);
   });
@@ -1247,9 +1298,9 @@ describe("the settings tabs", () => {
     technicalOn();
     api({}, false);
     render(<ControlPanel />);
-    await screen.findByRole("tablist");
+    await sectionsDrawn();
     expect(called("GET", "/api/v1/deep-research/settings")).toEqual([]);
-    fireEvent.click(tab("Deep Research"));
+    await openSection("Deep Research");
     // A member reads them: the API, not the page, decides who may change one.
     await waitFor(() => expect(called("GET", "/api/v1/deep-research/settings")).toHaveLength(1));
     expect(panelOf("Deep Research").contains(section("deep_research"))).toBe(true);
@@ -1264,12 +1315,12 @@ describe("the settings tabs", () => {
 
 
 it("follows changed settings hashes and preserves the framework's navigation state", async () => {
-  api(); render(<ControlPanel />); await screen.findByRole("tablist");
+  api(); render(<ControlPanel />); await sectionsDrawn();
   window.history.replaceState({ __NA: true, marker: "preserve" }, "", "/app/settings");
-  fireEvent.click(tab("Audit")); expect(window.history.state).toMatchObject({ __NA: true, marker: "preserve" });
+  await openSection("Audit"); expect(window.history.state).toMatchObject({ __NA: true, marker: "preserve" });
   window.history.replaceState(window.history.state, "", "/app/settings#reference");
   fireEvent(window, new HashChangeEvent("hashchange"));
-  await waitFor(() => expect(tab("Reference").getAttribute("aria-selected")).toBe("true"));
+  await waitFor(() => expect(isOpen("Reference")).toBe(true));
 });
 
  it("explains what a setting does, keeps its technical source optional and formats money for a reader", async () => {
@@ -1285,7 +1336,7 @@ it("follows changed settings hashes and preserves the framework's navigation sta
     fireEvent.click(toggle);
     expect(env.querySelector("[data-technical]")?.textContent).toBeTruthy();
     expect(sessionStorage.getItem("aia.settings.technical")).toBe("1");
-    fireEvent.click(screen.getByRole("tab", { name: "Studie a rozpočty" }));
+    await openSection("Studie a rozpočty");
     expect(await screen.findByText("12,71 USD")).toBeTruthy();
     expect(screen.getByText(/zbývá 7,29 USD/)).toBeTruthy();
     expect(screen.queryByText("12.714524700000009")).toBeNull();
@@ -1301,7 +1352,7 @@ describe("usable settings controls", () => {
       "POST /api/v1/members": (b) => ({ user_id: "USR-9", display_name: "", is_active: true, organization_role: "MEMBER", ...(b as object) }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const roles = await screen.findByRole("radiogroup", { name: "Role: second@example.test" });
     fireEvent.click(within(roles).getByRole("radio", { name: "správce" }));
     await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(1));
@@ -1331,7 +1382,7 @@ describe("usable settings controls", () => {
       "POST /api/v1/members": (b) => ({ user_id: "USR-3", is_active: true, ...(b as object) }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const row = await waitFor(() => document.querySelector('[data-member="USR-3"]') as HTMLElement);
     fireEvent.click(within(row).getByRole("button", { name: /^Upravit: Jméno: second@example.test/ }));
     const field = within(row).getByLabelText("Jméno: second@example.test");
@@ -1357,7 +1408,7 @@ describe("usable settings controls", () => {
         : { user_id: "USR-3", is_active: true, ...(b as object) }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const row = await waitFor(() => document.querySelector('[data-member="USR-3"]') as HTMLElement);
     fireEvent.click(within(row).getByRole("button", { name: /^Upravit: Jméno: second@example.test/ }));
     const field = within(row).getByLabelText("Jméno: second@example.test");
@@ -1380,7 +1431,7 @@ describe("usable settings controls", () => {
       "POST /api/v1/members": (b) => ({ user_id: "USR-1", display_name: "", is_active: true, ...(b as object) }),
     });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     const mine = await screen.findByRole("radiogroup", { name: "Role: owner@example.test" });
     fireEvent.click(within(mine).getByRole("radio", { name: "správce" }));
     await waitFor(() => expect(called("POST", "/api/v1/members")).toHaveLength(1));
@@ -1391,7 +1442,7 @@ describe("usable settings controls", () => {
   it("refuses an address that is not an e-mail at the field, and sends nothing", async () => {
     api();
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Přístup a schvalování" }));
+    await openSection("Přístup a schvalování");
     fireEvent.click(await screen.findByRole("button", { name: "+ Přidat člena" }));
     const email = screen.getByLabelText("E-mail nového člena");
     fireEvent.change(email, { target: { value: "alice" } });
@@ -1406,7 +1457,7 @@ describe("usable settings controls", () => {
     const entry = (event_id: number, action: string) => ({ event_id, action, client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: null, payload: {}, created_at: null });
     api({ "GET /api/v1/access-audit": () => [entry(1, "METHODOLOGY_RESET"), entry(2, "DR_SETTING_WITHDRAWN")] });
     render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Audit" }));
+    await openSection("Audit");
     const audit = panelOf("Audit");
     expect(await within(audit).findByText("Návrat metodiky na verzi z kódu", { selector: "strong" })).toBeTruthy();
     expect(within(audit).getByText("Návrat pravidla rešerše na výchozí", { selector: "strong" })).toBeTruthy();
@@ -1415,7 +1466,7 @@ describe("usable settings controls", () => {
 
   it("puts the spend per researcher on Studie a rozpočty, read from its own route", async () => {
     api(); render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
+    await openSection("Studie a rozpočty");
     const panel = panelOf("Studie a rozpočty");
     expect(within(panel).getByRole("heading", { name: "Útrata podle výzkumníka" })).toBeTruthy();
     expect(await within(panel).findByText("Za toto období nikdo nic neutratil.")).toBeTruthy();
@@ -1424,7 +1475,7 @@ describe("usable settings controls", () => {
 
   it("filters studies without unmounting their budget drafts and searches the readable audit", async () => {
     api(); render(<ControlPanel />);
-    fireEvent.click(await screen.findByRole("tab", { name: "Studie a rozpočty" }));
+    await openSection("Studie a rozpočty");
     const study = document.querySelector('[data-study="STU-1"]') as HTMLElement;
     const budget = await within(study).findByRole("spinbutton", { name: "Rozpočet studie Vnímání značky" }) as HTMLInputElement;
     fireEvent.change(budget, { target: { value: "600" } });
@@ -1433,7 +1484,7 @@ describe("usable settings controls", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Hledat studii nebo klienta" }), { target: { value: "Vnímání" } });
     expect(budget.value).toBe("600");
     expect(study.hidden).toBe(false);
-    fireEvent.click(screen.getByRole("tab", { name: "Audit" }));
+    await openSection("Audit");
     expect(within(panelOf("Audit")).getByText("Záznam přístupu ke klientovi", { selector: "strong" })).toBeTruthy();
     fireEvent.change(screen.getByRole("combobox", { name: "Typ události v historii" }), { target: { value: "CLIENT_GRANT" } });
     expect(within(panelOf("Audit")).getByText("Zobrazeno 1 z 1 záznamů")).toBeTruthy();

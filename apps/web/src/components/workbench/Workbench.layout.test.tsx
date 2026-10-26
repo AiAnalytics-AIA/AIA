@@ -6,12 +6,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { useContext, useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ResearchProject } from "@/research/model";
-import { LEAD_REVEAL } from "@/lib/lead";
+import { LEAD_MAP_VIEW, LEAD_REVEAL, takeLeadMapView } from "@/lib/lead";
 import { ResearchStore } from "@/research/store";
 import type { ResearchAgentJob } from "@/lib/api";
 import { TEST_FRAME } from "../rehome/research/test-frame";
@@ -114,7 +114,7 @@ function Opener() {
   );
 }
 
-function bench(child = <Stage />, step: "questionnaire" | "plan" = "questionnaire") {
+function bench(child = <Stage />, step: "questionnaire" | "plan" | "results" = "questionnaire") {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
     <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
@@ -266,6 +266,26 @@ describe("the launcher and the drawer (26c)", () => {
     await waitFor(() => expect(document.activeElement?.id).toBe("composer"));
   });
 
+  it("a card's review steps the drawer aside, so the review is not drawn under it (the Dotazník audit)", async () => {
+    const done = { run_id: "RUN-q", action: "optimize_questionnaire", proposal_state: "pending", created_at: "2026-10-25T09:00:00Z", status: "COMPLETED", is_terminal: true, steps: [], design_revision_id: "REV-1", instruction: "", actual_cost_usd: 0 } as unknown as ResearchAgentJob;
+    const onOpenJob = vi.fn();
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        onAgentStarted={vi.fn()} jobs={[done]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    setWidth(800);
+    fireEvent.click(screen.getByRole("button", { name: /Otevřít konverzaci/ }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Zkontrolovat návrh" }));
+    expect(onOpenJob).toHaveBeenCalledWith(done);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Zpět k Vedoucímu" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
   it("a focus on what is not on screen asks its screen once to show it (a target in a closed window)", async () => {
     leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [{ op: "focus", target: "object:hudba/hudba-o2" }])] })];
     const asked: unknown[] = [];
@@ -344,6 +364,32 @@ describe("the compact header and stage navigator (26d)", () => {
     expect(document.querySelector(".shead__state")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
     expect(screen.getByRole("menu").textContent).toMatch(/Rozpočet nenastaven/);
+  });
+
+  it("keeps the study's status in the header, and under 768 px moves it into the menu's 44 px items (F7, I11)", async () => {
+    const refreshed: number[] = [];
+    const base = vi.mocked(fetch);
+    const sent: unknown[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+      if (String(url).endsWith("/studies/STU-1/status") && init?.method === "PUT") { sent.push(JSON.parse(String(init.body))); return new Response(JSON.stringify({ study_id: "STU-1", status: "ACTIVE" })); }
+      return base(url, init);
+    }));
+    const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
+    render(
+      <Workbench frame={{ ...TEST_FRAME, status: "DRAFT", refreshStudy: async () => { refreshed.push(1); } }} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null}
+        reload={vi.fn()} confirm={vi.fn(async () => true)} onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        <Stage />
+      </Workbench>,
+    );
+    expect(screen.getByRole("button", { name: "Stav: Rozpracováno" })).toBeTruthy();
+    setWidth(390);
+    expect(screen.queryByRole("button", { name: "Stav: Rozpracováno" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    const menu = screen.getByRole("menu", { name: "Nabídka" });
+    expect(menu.textContent).toContain("Stav: Rozpracováno");
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Změnit stav na Aktivní" }));
+    await waitFor(() => expect(sent).toEqual([{ status: "ACTIVE" }]));
+    await waitFor(() => expect(refreshed).toEqual([1]));
   });
 });
 
@@ -740,6 +786,59 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     bench();
     await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(push.mock.calls[0][0]).toMatch(/\/dimensions$/);
+  });
+});
+
+describe("the Lead's views on Sociomapa (research-lead-workbench 14)", () => {
+  const relief = { op: "filter", name: "view", value: "relief" } as const;
+  afterEach(() => {
+    takeLeadMapView();
+    window.location.hash = "";
+  });
+
+  it("moves to Sociomapa through the leave guard and keeps the Lead's filter for the map", async () => {
+    push.mockClear();
+    leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [relief])] })];
+    bench();
+    await waitFor(() => expect(push).toHaveBeenCalledTimes(1));
+    expect(push.mock.calls[0][0]).toMatch(/\/results#maps$/);
+    expect(takeLeadMapView()).toEqual(relief);
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("keeps nothing for the map when a leave guard stops the move", async () => {
+    push.mockClear();
+    let stopped = 0;
+    const guard = (e: MouseEvent) => {
+      e.preventDefault();
+      if (e.target instanceof HTMLAnchorElement) stopped += 1;
+    };
+    document.addEventListener("click", guard, true);
+    try {
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [relief])] })];
+      bench();
+      await waitFor(() => expect(stopped).toBe(1));
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+    expect(push).not.toHaveBeenCalled();
+    expect(takeLeadMapView()).toBeNull();
+  });
+
+  it("sends the map on screen the Lead's selection at once", async () => {
+    window.location.hash = "#maps";
+    const sent: unknown[] = [];
+    const on = (e: Event) => sent.push((e as CustomEvent<unknown>).detail);
+    window.addEventListener(LEAD_MAP_VIEW, on);
+    try {
+      const select = { op: "select", target: "object:set1/fio" };
+      leadReads = [leadState({ busy: true, turns: [leadTurn("T1", 1)] }), leadState({ turns: [leadTurn("T1", 1), leadTurn("T2", 2, [select])] })];
+      bench(<Stage />, "results");
+      await waitFor(() => expect(sent).toEqual([select]));
+      expect(push).not.toHaveBeenCalledWith(expect.stringMatching(/results/));
+    } finally {
+      window.removeEventListener(LEAD_MAP_VIEW, on);
+    }
   });
 });
 

@@ -679,13 +679,35 @@ describe("guided methodology editing", () => {
     const sigma = form.querySelector('[data-edit-row="terrain.sigma"]') as HTMLElement;
     expect(within(sigma).getByText(/^M6 Terén/)).toBeTruthy();
     expect(within(form.querySelector('[data-edit-row="relation.n_min"]') as HTMLElement).getByText(/^M2 Vztahy mezi objekty/)).toBeTruthy();
-    // The value it started from beside it, and no bound the domain does not declare.
+    // The value it started from beside it, the bound its check holds it to (F13), and no bound
+    // where the domain declares none.
     expect(sigma.querySelector("[data-original]")?.textContent).toBe("0,25");
-    expect(within(sigma).getByText("meze hlídá Zkontrolovat")).toBeTruthy();
+    expect(within(sigma).getByText("mez > 0")).toBeTruthy();
+    const objects = form.querySelector('[data-edit-row="layout.min_objects"]') as HTMLElement;
+    expect(within(objects).getByText("meze hlídá Zkontrolovat")).toBeTruthy();
     // A word or a list keeps a text field in the same row.
     const words = form.querySelector('[data-field="relation.estimator"]') as HTMLInputElement;
     expect(words.value).toBe("baseline_corrected_pearson");
     expect(words.closest("[data-edit-row]")?.querySelector("button")).toBeNull();
+  });
+
+  it("says each field's bound under the draft, and a value outside it at the field, never clamping it", async () => {
+    fakeApi(); render(<MethodologyPanel />); await openMap();
+    await openEditor();
+    const form = await editor();
+    const grid = await field(form, "terrain.grid_resolution");
+    const gridRow = grid.closest("[data-edit-row]") as HTMLElement;
+    expect(gridRow.querySelector("[data-bound]")?.getAttribute("data-bound")).toBe("mez 1–256");
+    expect(grid.getAttribute("aria-invalid")).toBe("false");
+    fireEvent.change(grid, { target: { value: "300" } });
+    expect(grid.value).toBe("300");
+    expect(grid.getAttribute("aria-invalid")).toBe("true");
+    expect(gridRow.querySelector("[data-outside-bound]")?.textContent).toBe("„300“ je mimo mez 1–256; Zkontrolovat ji odmítne.");
+    // A limit read from another field follows that field's draft.
+    const floorRow = (await field(form, "layout.layout_floor")).closest("[data-edit-row]") as HTMLElement;
+    expect(floorRow.querySelector("[data-bound]")?.getAttribute("data-bound")).toBe("mez 1–10");
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "12" } });
+    await waitFor(() => expect(floorRow.querySelector("[data-bound]")?.getAttribute("data-bound")).toBe("mez 1–12"));
   });
 
   it("steps a number by its own precision, ten at a time with Shift, and never clamps what is typed", async () => {

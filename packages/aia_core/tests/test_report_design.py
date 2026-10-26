@@ -187,9 +187,9 @@ def test_the_audiences_description_and_subpanel_are_kept_and_printed_when_given(
 
 
 def test_a_subpanel_left_from_a_population_choice_is_not_an_external_audiences() -> None:
-    """The audience step keeps the last built-in subpanel when the source moves outside AIA's
-    population (OI-51); an external audience did not come from it, so it is neither compiled
-    nor printed (Codex on #587)."""
+    """A design stored before OI-51 (a) (2026-10-25) can keep the last built-in subpanel after
+    the source moved outside AIA's population; an external audience did not come from it, so it
+    is neither compiled nor printed (Codex on #587)."""
     external = {
         **DESIGN,
         "audience": {

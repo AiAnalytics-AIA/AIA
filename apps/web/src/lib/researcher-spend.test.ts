@@ -131,4 +131,10 @@ describe("nearLimitTally / nearLimitWords", () => {
     expect(nearLimitWords(nearLimitTally([ok(100, 95), ok(null, null)]))).toBe("≥ 1");
     expect(nearLimitTally([ok(100, 95), { ok: false }, ok(null, null)])).toEqual({ near: 1, unknown: 2 });
   });
+
+  it("counts a study at exactly 90 % as near, and leaves a closed study out, as the tile's \"≥ 90 %\" says", () => {
+    const row = (spent_usd: number, status: string) => ({ ok: true as const, data: { budget_usd: 100, spent_usd, status } });
+    expect(nearLimitTally([row(90, "ACTIVE"), row(89.99, "ACTIVE")])).toEqual({ near: 1, unknown: 0 });
+    expect(nearLimitTally([row(95, "DELIVERED"), row(95, "ARCHIVED"), row(95, "CANCELLED"), row(95, "DRAFT")])).toEqual({ near: 1, unknown: 0 });
+  });
 });

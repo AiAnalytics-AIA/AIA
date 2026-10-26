@@ -178,6 +178,23 @@ From the browser audit of 2026-10-21 (workbench on develop `bfe6d15b`, the `audi
   #728's port, took this branch's copy. The next commit, `816fb230`, restores them; from there the
   file differs from develop `db44f5f3` only in `closeWhere`. No head this PR ships loses the test.
 
+- **OI-51, fixed by the product owner's answer (a), 2026-10-25.** A preset change kept the previous
+  audience's subpanel and filters, as 18.6.6 did. On the screen: "Vlastní publikum" and ČR připravujeme
+  kept both, and Speciální skupiny kept the filters; ČR 18+ already cleared them. `chooseSpecialPreset`
+  (the classic's port, not on the screen) kept them too.
+  - Anchor: `apps/web/src/research/audience.ts:94` (`setAnalyticsChoice`) and `:161`
+    (`chooseSpecialPreset`) @ f7762d72; `setAudienceEntry` above them.
+  - Fix: `presetReset`, used by every preset path, clears the subpanel, filters and segment (OI-51's
+    smallest fix). A change that cleared something invalidates the run check. The parity tests compare
+    the rest with the classic run on the reset audience.
+  - Tests: `AudienceStep.test.tsx` "switching preset clears the previous subpanel and filters";
+    `audience.live.test.ts` "what a preset change clears"; `audience.parity.test.ts` setAudienceEntry,
+    setAnalyticsChoice and the preset-after-preset cases; the audience journey's step 3.
+  - The description stays as it is on a preset change (the product owner, 2026-10-25). Still open:
+    a preset's strategy and the subpanel's support figures survive a preset change too. On the classic's
+    port a special panel's key does as well, which keeps a coming-soon preset after a special panel
+    "ready".
+
 ## 8. Owner questions
 
 None.
