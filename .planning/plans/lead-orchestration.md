@@ -1534,6 +1534,11 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
     run they know is moving. `lib/deep-research-started.ts` announces a card's run;
     `DeepResearchPanel` and `InterpretationResearch` read again and select it. Test:
     `DeepResearchPanel.test.tsx` (fails without the subscription).
+  - *The research run it interprets* (second round). An Interpretation card may target an older
+    run's result (the targets layer offers two runs), but Výsledky shows `?run=` or the newest.
+    The approval also answers `research_run_id`; from another stage the card opens Výsledky on
+    it, and on Výsledky already `useRun` follows the announcement. Test: `ExecutionSteps.test.tsx`
+    "turns to the research run an Interpretation card's review interprets" (fails without it).
 
 ### Doc follow-up (LO5a.2)
 
@@ -1552,7 +1557,8 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, `src/lib/lead.ts`: `isDeepResearchCard`, `deepResearchStage` (by the approval's
   `purpose`: Dotazník or Zpráva), `deepResearchFacts`; `src/lib/deep-research-started.ts`: a run a
   card started, announced to the Deep Research panels already on screen.
-- `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card.
+- `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card, and
+  an Interpretation card's `research_run_id` (the results it is shown under).
 
 ## From the research build spec (2026-10-26)
 

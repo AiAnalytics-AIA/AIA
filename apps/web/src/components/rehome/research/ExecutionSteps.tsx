@@ -17,6 +17,7 @@ import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
 import { stageHref, stageOf } from "@/lib/workbench-stages";
 import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
 import { LEAD_REVEAL } from "@/lib/lead";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import {
   ApiError,
   api,
@@ -1070,6 +1071,18 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
     }
     setVersion((v) => v + 1);
   }, []);
+  // An Interpretation run a Lead card started is shown under the research run it interprets
+  // (LO5a.2, review of #1006): the page already open turns to that run, `?run=` naming it.
+  useEffect(() => onDeepResearchStarted(({ purpose, researchRunId }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH" || !researchRunId) return;
+    followed.current = researchRunId;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("run") !== researchRunId) {
+      params.set("run", researchRunId);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params}${window.location.hash}`);
+    }
+    setVersion((v) => v + 1);
+  }), []);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;

@@ -261,8 +261,9 @@ export function pendingSelfUpdate(w: SelfUpdateWaiting | null | undefined): { no
 }
 
 export type EditDecisionResult = { workspace_revision: number | null; results: { index: number; status: "accepted" | "dismissed" | "refused"; reason: string | null }[] };
-/** `purpose`: a Deep Research card's run (LO5a.2), DESIGN_RESEARCH or INTERPRETATION_RESEARCH. */
-export type RequestApproval = { run_id: string; design_revision_id: string; status: string; purpose?: string | null };
+/** `purpose`: a Deep Research card's run (LO5a.2), DESIGN_RESEARCH or INTERPRETATION_RESEARCH;
+ *  `research_run_id`: an Interpretation run's research run, whose results show it. */
+export type RequestApproval = { run_id: string; design_revision_id: string; status: string; purpose?: string | null; research_run_id?: string | null };
 
 export type LeadState = {
   available: boolean; unavailable_reason: string | null; busy: boolean; turns: LeadTurn[];

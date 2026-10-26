@@ -3,7 +3,8 @@
 // when they mount and poll only a run they already know is moving, so without this a run started
 // while either is open stays out of sight until the page is reloaded (review of #1006).
 
-export type DeepResearchStarted = { runId: string; purpose: string | null };
+/** `researchRunId`: an Interpretation run's research run, the result it is shown under. */
+export type DeepResearchStarted = { runId: string; purpose: string | null; researchRunId?: string | null };
 
 const EVENT = "aia:deep-research-started";
 

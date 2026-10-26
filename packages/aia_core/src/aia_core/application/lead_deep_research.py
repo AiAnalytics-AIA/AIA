@@ -114,6 +114,12 @@ def card_target(frozen: Mapping[str, Any] | None, target_id: str | None) -> Rese
     raise ResearchTargetNotFound(str(wanted))
 
 
+def _research_run_id(target: object) -> str | None:
+    """The research run an Interpretation target is a result of; ``None`` for a design's."""
+    run_id = getattr(target, "research_run_id", None)
+    return str(run_id) if run_id is not None else None
+
+
 def _charge_kind(purpose: DeepResearchPurpose) -> ChargeKind:
     if purpose is DeepResearchPurpose.INTERPRETATION_RESEARCH:
         return ChargeKind.INTERPRETATION_RESEARCH
@@ -236,6 +242,8 @@ def approve_deep_research_card(
         "run_id": started.run_id,
         "design_revision_id": design_revision_id,
         "status": started.run["status"].value,
-        # Where its run is followed: a retry card does not say which checkpoint it retries.
+        # Where its run is followed: a retry card does not say which checkpoint it retries, and
+        # an Interpretation run is shown under the research run it interprets, not the newest.
         "purpose": spec.purpose.value,
+        "research_run_id": _research_run_id(spec.target),
     }

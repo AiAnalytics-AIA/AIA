@@ -233,6 +233,7 @@ def test_a_design_card_starts_one_run_on_its_focus_and_a_second_approval_returns
     again = _approve(researcher, world, turn_id)
     assert again.json()["run_id"] == body["run_id"]
     assert body["purpose"] == again.json()["purpose"] == "DESIGN_RESEARCH"
+    assert body["research_run_id"] is None and again.json()["research_run_id"] is None
     assert _written(app)["runs"] == 1 and _written(app)["cards"] == 1
     # The card's run is the stage's run: the same spec, found by idempotency.
     stage = researcher.post(
@@ -476,6 +477,9 @@ def test_an_interpretation_card_starts_on_the_candidate_its_turn_was_shown(
         json={"target": candidate["ref"], "preset_name": "STANDARD", "channels": ["WEB"]},
     )
     assert stage.status_code == 200 and stage.json()["run_id"] == approved.json()["run_id"]
+    # Shown under the research run it interprets, whichever is newest; asked again, the same.
+    assert approved.json()["research_run_id"] == run_id
+    assert _approve(researcher, world, turn_id).json()["research_run_id"] == run_id
 
 
 def test_a_target_the_turn_was_not_shown_is_404_and_a_moved_pin_is_refused(

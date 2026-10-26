@@ -536,6 +536,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [go, compact, drawer, layout, stage, frame.studyId, nameFromPage, store]);
 
   // A design job is approved on the server: the spend limit, the ledger row and the start together.
+  const stepHref = frame.stepHref;
   const onRequest = useCallback(async (turn: LeadTurn, r: LeadRequest) => {
     // A person's typed start (LO5) and a Deep Research card (LO5a.2) are started by their approval;
     // the Lead's research-run card opens its stage.
@@ -559,9 +560,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         // Its run is followed where the stage's own start shows it, and a panel already open
         // there reads it now rather than on its next mount.
         if (deep) {
-          announceDeepResearchStarted({ runId: started.run_id, purpose: started.purpose ?? null });
+          const researchRunId = started.research_run_id ?? null;
+          announceDeepResearchStarted({ runId: started.run_id, purpose: started.purpose ?? null, researchRunId });
           const at = deepResearchStage(r, started.purpose);
-          if (at) go(at);
+          // An Interpretation run is shown under the research run it interprets, which need not
+          // be the newest: from another stage the results open on that run (`?run=`); on Výsledky
+          // already, the page follows it on the announcement above.
+          if (at === "report" && researchRunId && STAGES.report.step !== step) {
+            guardedNavigate(`${stepHref("results")}?run=${encodeURIComponent(researchRunId)}#${STAGES.report.view ?? ""}`, (url) => router.push(url));
+          } else if (at) go(at);
         }
         return;
       } catch (e) {
@@ -588,7 +595,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         throw e;
       }
     }
-  }, [go, store, frame.studyId, confirm, onAgentStarted]);
+  }, [go, store, frame.studyId, stepHref, confirm, onAgentStarted, router, step]);
 
   // Alt+Shift+A / C / N: artifact focus, conversation focus, back to the split (the prototype's keys).
   useEffect(() => {
