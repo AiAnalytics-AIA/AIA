@@ -213,7 +213,7 @@ export function PlanStep() {
   const chips: { id: string; label: string; state: "done" | "you" | "neutral" }[] = [
     ...(variants.length ? [{ id: "plan-variants", label: t("research.plan.jumpScope"), state: "done" as const }] : []),
     { id: "plan-understanding", label: t("research.plan.jumpUnderstanding"), state: p.ui_state.plan_changed26 ? "done" : "neutral" },
-    // Done as Porozumění is: once a person changed the plan, never for hypotheses only proposed.
+    // Done as Porozumění is: once the plan was reworked from the person's comments (plan_changed26).
     { id: "plan-hypotheses", label: tv("research.plan.jumpHypotheses", { n: hypotheses }), state: hypotheses && p.ui_state.plan_changed26 ? "done" : "neutral" },
     { id: "plan-sets", label: tv("research.plan.jumpSets", { n: sets.length }), state: short ? "you" : sets.length ? "done" : "neutral" },
     ...(questions.length
