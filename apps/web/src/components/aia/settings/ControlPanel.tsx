@@ -100,6 +100,9 @@ export type Panel = {
   audit: Part<AuditEntry[]> | null;
   /** Who you are: null while the page that holds the read has not finished it. */
   me: Part<Me> | null;
+  /** When these reads were made (ms): the audit's hero windows count back from it, so a reload the
+   *  next Prague day counts the next day, as the audit table does (Codex on #983). */
+  readAt: number;
 };
 
 async function loadRuntimeConfig(): Promise<RuntimeConfig> {
@@ -135,7 +138,7 @@ async function loadPanel(readMe: boolean): Promise<Panel> {
     doc.may_administer ? part(admin.audit(AUDIT_PAGE)) : Promise.resolve(null),
     readMe ? part(workspace.me()) : Promise.resolve(null),
   ]);
-  return { doc, runtime, members, clients, studies, levels, audit, me };
+  return { doc, runtime, members, clients, studies, levels, audit, me, readAt: Date.now() };
 }
 
 // ---------------------------------------------------------------- atoms
@@ -834,8 +837,6 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
   // Each page's hero figures (F18), from the reads this page already made; a page whose figures its own
   // panel reads draws none until that panel hands them up.
   const H = `${P}.hero`;
-  // When the page was drawn: the audit's windows are counted back from it.
-  const [drawnAt] = useState(() => Date.now());
   // Figures a panel hands up from its own reads (hero-figures.tsx): Stav systému so far.
   const [handed, setHanded] = useState<Partial<Record<TabId, Figure[]>>>({});
   const hand = useCallback((section: TabId, figures: readonly Figure[] | undefined) => {
@@ -848,7 +849,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
       forbidden: t(`${H}.access.forbidden`), byDefault: t(`${H}.access.byDefault`),
     });
     // The audit is read only for an administrator: anyone else sees no figures, not unknown ones.
-    if (tab === "audit") return panel.audit === null ? undefined : auditFigures(panel.audit, AUDIT_PAGE, drawnAt, {
+    if (tab === "audit") return panel.audit === null ? undefined : auditFigures(panel.audit, AUDIT_PAGE, panel.readAt, {
       inPeriod: t(`${H}.audit.inPeriod`), today: t(`${H}.audit.today`), people: t(`${H}.audit.people`), last: t(`${H}.audit.last`),
     }, (iso) => relative(iso) ?? iso);
     return handed[tab];

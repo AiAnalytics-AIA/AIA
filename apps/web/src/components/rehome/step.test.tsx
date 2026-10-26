@@ -103,6 +103,31 @@ describe("Studio v3 step pieces", () => {
     }
   });
 
+  it("ActionDock keeps its moved action, and the focus on it, when its note comes and goes", () => {
+    // Stand-in review on #936: the moved action was the root without a note and the card's child with
+    // one, so a note arriving (PlanStep's, once the analysis loads) remounted a focused header button.
+    const primary = document.createElement("div");
+    document.body.appendChild(primary);
+    const header = { actions: null, status: null, primary, claimPrimary: () => () => {} };
+    const dock = (note: string | null) => (
+      <StageHeader.Provider value={header}>
+        <ActionDock note={note}><button type="button">Další</button></ActionDock>
+      </StageHeader.Provider>
+    );
+    try {
+      const view = render(dock(null));
+      const button = primary.querySelector("button")!;
+      button.focus();
+      view.rerender(dock("Připraveno"));
+      expect(primary.querySelector("button")).toBe(button);
+      expect(document.activeElement).toBe(button);
+      view.rerender(dock(null));
+      expect(primary.querySelector("button")).toBe(button);
+    } finally {
+      primary.remove();
+    }
+  });
+
   it("ActionDock says why a step is not ready, beside its way back and its action", () => {
     render(<ActionDock back={{ href: "/zpet", label: "Zpět" }} ready={false} note="Chybí cíl"><button>Další</button></ActionDock>);
     expect(screen.getByRole("link", { name: "Zpět" }).getAttribute("href")).toBe("/zpet");

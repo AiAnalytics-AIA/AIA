@@ -28,7 +28,7 @@ chunks:
   - "[x] F8. Deep Research: one flat rules table with Schválit/Stáhnout per row, readiness in the card head, Dosah always listing routes, the code's protections inside, unknown in ink (gaps 5, 6, 20, 21)"
   - "[x] F8b. Deep Research compacted (prototype v55): a one-line intro, ⓘ tooltips in place of captions, symbols; every ⓘ a real button, no amber"
   - "[x] F9. Přístup: three flat cards, the Naposledy column (gaps 7, 8)"
-  - "[ ] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
+  - "[x] F10. Audit: category tiles and the Důvod / změna column in words (gap 10)"
   - "[x] F11. AI běh tiles and activity columns, Reference categories and tiles (gaps 13, 19)"
   - "[ ] F12. Colour rules and copy: Stav systému's shared deployment not red, Správa dat's danger button, retention rows and inline Smaže se / Zůstane, Systémové prompty head chips and buttons (gaps 14, 15, 18)"
   - "[x] F12a. Moved to client-knowledge-lifecycle#K12 (AUD-6 (a), the product owner 2026-10-25: the Simulace tab and the new-simulation entry hidden for the MVP), built and ticked there (#898); nothing of it is left in this plan"
@@ -42,7 +42,7 @@ chunks:
   - "[x] F19. The Naposledy column served: last_seen_at on GET /members, which F9 shows (W1)"
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
   - "[x] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
-  - "[ ] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
+  - "[x] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
 ---
 # Settings redesign (Nastavení)
 
@@ -264,6 +264,12 @@ when the studies span more than one client, a filtered row hidden, never unmount
   days, today, who changed, the newest change; a window a full page does not reach back over unknown).
   Part 2: the pages whose panels read their own routes (Metodika, Systémové prompty, Deep Research, AI
   běh, Studie, Stav systému, Správa dat) hand their figures up; a page draws none until then.
+- F18, part 2a (built; the chunk stays open): the hand-up itself (`components/aia/settings/hero-figures.tsx`:
+  `HeroFiguresProvider` around the page, `useHeroFigures(section, figures)` in a panel, compared by
+  value, cleared on unmount) and its first page, Stav systému (`systemFigures`: the readiness checks
+  passed of those read, the environment, the web build; unknown where unread). Left for the rest of
+  part 2: Metodika, Systémové prompty, Deep Research, AI běh, Studie (the near-limit count would repeat
+  ResearcherSpendCard's tile; a figure of its own is still to be chosen) and Správa dat.
 
 **F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
   Built: `last_seen_at` on `MemberResponse`, for an OWNER or ADMIN (null otherwise, as the Lead's seal
@@ -280,6 +286,14 @@ when the studies span more than one client, a filtered row hidden, never unmount
   hover, "nikdy" for null, "nezjištěno" for an API that does not serve it; a member sees no column. The
   organization's self-approval in the card's one row beside the precedence; "Výchozí" kept (the code's
   third option) and the study rules kept in the card, against v58's two options and "ve studii".
+- F10: The table as prototype v99 draws it: Kdy, Kdo, Událost (the
+  category's dot with its name for a reader, the event, what it concerns) and Důvod / změna: the change in
+  words from what its writer stored (`apps/web/src/lib/audit-change.ts`): the scope repository's
+  "a -> b" reasons as money ("100 → 120 USD", "bez prahu"), status codes and roles in Czech, the
+  self-approval rule, a client's posture and wallet ceiling, methodology, prompt and Deep Research
+  versions; the person's reason (payload `why`, or the reason where the code writes none) under it. A
+  shape it does not know keeps its reason as written and invents no change; nothing at all is "—". The
+  category chips with their counts stay as chunk 8 built them; the search reads the change as shown.
 
 **F20. Čeká na rozpočet** (W1, lane B). Per-researcher spend by kind is built (F7); the tile needs an organization-scoped read of steps AWAITING_BUDGET, which ARCHITECTURE §3 allows only through `WorkQueue`: the read's shape is decided in the PR, or the tile waits. The same read serves `fronta-prace` later.
 
@@ -304,3 +318,20 @@ is cleared on each click; a copy the browser refuses selects the text in a read-
 - **Proposed (26 Oct 2026): this plan becomes core with waves** (master §3.1), every open chunk W1: the frame work with lane A in step 2 and the remaining pages in step 3 (`prototype-build.md`). Nigel may change it.
 - Nigel, 26 Oct 2026 ~00:35 UTC: "no narrower screens right now": the Settings pages are drawn at 1440 only; the product keeps the workbench's existing narrower layouts.
 - Decided by default (planning, open to Nigel's override): a study budget may go to 1,000,000 USD (the prototype's 10 000 is not adopted).
+
+## F22, as built
+
+Done (F22): `POST /clients/{id}/deletion` answers `active_run_ids`, the client's runs that have not ended
+(`application/client_deletion.py` `DeletionPreview.active_run_ids`, from `active_client_runs`, the list the
+deletion's own 409 names); the dialog names them in a needs-you block ("Klientovi právě běží …") and holds the
+act back while any is listed. The acknowledgement switch is replaced by the client's name typed exactly
+(spaces around it ignored, case kept) before "Smazat natrvalo". Absent from an older API, the list is
+unknown and no block is drawn; DELETE still refuses. Tests: `test_client_deletion_api.py`
+(`test_the_preview_names_the_runs_that_hold_the_deletion_back`), `SystemDataPanels.test.tsx`.
+
+Not done (F22): the kept records' lhůta still reads "bez lhůty". The 365 days of MVPQ-07 (closed 26 Oct
+2026) is decided, but nothing erases a usage, approval or audit row after 365 days
+(`packages/aia_core/src/aia_core/application/client_deletion.py:252-282`, every `kept_for` "indefinite";
+no job reads a retention for them), so "365 dní" would say what AIA does not do. **Finding:** the decided
+retention of the kept AI spend and audit rows is not enforced; the smallest fix is an operator command beside
+`lead_retention.py` that erases them past 365 days, after which `kept_for` and the lhůta read 365 days.

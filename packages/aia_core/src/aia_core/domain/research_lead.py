@@ -140,6 +140,7 @@ __all__ = [
     "context_identifiers",
     "context_sha256",
     "design_research_questions",
+    "filter_refusal",
     "freeze_context",
     "frozen_sample_size",
     "ground_edits",
@@ -155,6 +156,7 @@ __all__ = [
     "number_tokens",
     "question_add_problem",
     "readiness_layer",
+    "select_refusal",
     "self_update_base",
     "show_diff_refusal",
     "split_self_update",
@@ -168,7 +170,9 @@ __all__ = [
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 #: 2: the task describes Deep Research's two purposes, its presets and targets (LO5a.1).
-LEAD_PROMPT_VERSION: Final = "2"
+#: 3: the task says the Lead may select what the person pointed at on Sociomapa and set its
+#: display filters (#992; the product owner, 2026-10-26).
+LEAD_PROMPT_VERSION: Final = "3"
 #: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
 #: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
 LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
@@ -182,7 +186,9 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: 5: ``show_diff`` joins the view: a stage's waiting changes shown (research-lead-workbench 14).
 #: 6: the ``deep_research`` and ``targets`` layers, and a request's preset, focus, target and
 #: retry, each grounded against them (lead-orchestration LO5a.1).
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-6"
+#: 7: ``select`` (the element the person pointed at, on Sociomapa) and ``filter`` (a display
+#: filter of Sociomapa's, by its contract's names and values) join the view.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-7"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -301,7 +307,31 @@ class ShowDiff(Closed):
     stage: Stage
 
 
-ViewOp = Annotated[OpenStage | FocusItem | InspectItem | ShowDiff, Field(discriminator="op")]
+class SelectItem(Closed):
+    """Select an element on Sociomapa (an object or a pair); the map is never changed. Only the
+    element the person pointed at this turn: the context holds no map to name another by
+    (:func:`ground_view`)."""
+
+    op: Literal["select"]
+    target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
+
+
+class MapFilter(Closed):
+    """A display filter on Sociomapa, by the name and value its contract lists
+    (``lead_artifacts.FILTER_VALUES``): the picture changes, the computation never. Only the
+    filters the map's panel applies (Sociomapa (2), 2026-10-26): ``labels`` and ``hide_weak``
+    have no control on it, and ``battery`` takes the run's own ids, which the context does not
+    hold, so the Lead is not offered them."""
+
+    op: Literal["filter"]
+    name: Literal["view", "mode"]
+    value: str = Field(min_length=1, max_length=80, pattern=rf"^{ID_PATTERN}$")
+
+
+ViewOp = Annotated[
+    OpenStage | FocusItem | InspectItem | ShowDiff | SelectItem | MapFilter,
+    Field(discriminator="op"),
+]
 
 
 # --------------------------------------------------------------------------- requests
@@ -809,9 +839,10 @@ def inspect_refusal(
     return "not_in_context"
 
 
-#: The stages whose screens show their waiting changes. Zpráva declares ``show_diff`` too, for a
-#: draft's tracked changes, which wait for report-delivery RD5.
-SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions"})
+#: The stages whose screens show their waiting changes (Vzorek: a ``set_n``, artifact-sample
+#: SMP7). Zpráva declares ``show_diff`` too, for a draft's tracked changes, which wait for
+#: report-delivery RD5.
+SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions", "sample"})
 
 
 def show_diff_refusal(stage: str) -> str | None:
@@ -824,12 +855,44 @@ def show_diff_refusal(stage: str) -> str | None:
     )
 
 
+def select_refusal(target: str, content: Mapping[str, Any], focus: str | None) -> str | None:
+    """Why the Lead may not select ``target``, or None when it may: what :func:`target_refusal`
+    refuses; ``not_selectable`` for an element of a stage whose contract has no ``select``; then
+    ``not_in_context`` for anything but the element the person pointed at this turn, since the
+    context holds no map to name another by (an id made up would select nothing)."""
+    from .lead_artifacts import allows_view, stage_of  # lead_artifacts imports this module
+
+    reason = target_refusal(target, content)
+    if reason is not None:
+        return reason
+    stage = stage_of(target.partition(":")[0])
+    if stage is None or not allows_view(stage, "select"):
+        return "not_selectable"
+    return None if target == focus else "not_in_context"
+
+
+def filter_refusal(op: MapFilter) -> str | None:
+    """Why the Lead may not set this display filter, or None when it may: a value its contract
+    does not list is ``unknown_value``; a filter whose values only the run's map knows is
+    ``not_in_context``, since the context holds no map."""
+    from .lead_artifacts import FILTER_VALUES  # lead_artifacts imports this module
+
+    values = FILTER_VALUES["sociomap"][op.name]
+    if values is None:
+        return "not_in_context"
+    return None if op.value in values else "unknown_value"
+
+
 def ground_view(
-    output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+    output: LeadOutput,
+    content: Mapping[str, Any],
+    analysis: Mapping[str, Any] | None = None,
+    focus: str | None = None,
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the targets the working content can show, and the rest named
     (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`, a ``show_diff``
-    :func:`show_diff_refusal`). Opening a stage is always kept."""
+    :func:`show_diff_refusal`, a ``select`` :func:`select_refusal` against the person's
+    ``focus`` this turn, a ``filter`` :func:`filter_refusal`). Opening a stage is always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
@@ -840,6 +903,10 @@ def ground_view(
             if isinstance(op, InspectItem)
             else show_diff_refusal(op.stage)
             if isinstance(op, ShowDiff)
+            else select_refusal(op.target, content, focus)
+            if isinstance(op, SelectItem)
+            else filter_refusal(op)
+            if isinstance(op, MapFilter)
             else None
         )
         if reason is None:
@@ -995,6 +1062,9 @@ Co děláš:
   v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu. show_diff ukáže
   čekající změny fáze design, questionnaire nebo dimensions: tvé návrhy změn, o kterých
   výzkumník ještě nerozhodl, jinak nejnovější návrh specialisty, který čeká na kontrolu.
+  Na Sociomapě filter změní jen obraz mapy (name view: top nebo relief, mode: objects nebo
+  respondents) a select vybere objekt nebo dvojici, na kterou výzkumník ukázal (view.focus);
+  mapu ani výpočet nikdy nezměníš.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow

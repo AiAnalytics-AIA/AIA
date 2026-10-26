@@ -1629,6 +1629,45 @@ describe("each page's hero (F18)", () => {
     await openSection("Audit");
     await waitFor(() => expect(figures("Audit").slice(0, 3)).toEqual(["Události · 7 dní=1", "Dnes=1", "Kdo měnil=1"]));
   });
+
+  it("counts Dnes from the panel's newest read, so a reload past Prague's midnight agrees with the audit table", async () => {
+    // Settings left open over Prague's midnight (CET, UTC+1): a change reloads the panel, the mounted
+    // page stays, and its hero must count the new day as the table does (Codex on #983). Only the
+    // clock is faked; the session is stamped on it so it has not expired.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      vi.setSystemTime(new Date("2026-10-26T22:30:00Z")); // 23:30 in Prague, 26 October
+      sessionStorage.setItem("aia.session", JSON.stringify({ idToken: "tok", refreshToken: "r", expiresAt: Date.now() + 3 * 86_400_000, email: "owner@example.test", subject: "s" }));
+      const entry = (event_id: number, created_at: string) => ({ event_id, action: "MEMBER_ADDED", client_id: null, study_id: null, subject_user_id: null, actor_id: "USR-1", role: null, reason: "", payload: {}, created_at });
+      const yesterday = [entry(2, "2026-10-26T22:20:00Z"), entry(1, "2026-10-26T22:10:00Z")];
+      let reads = 0;
+      api({
+        "GET /api/v1/members": () => [
+          { user_id: "USR-1", email: "owner@example.test", display_name: "", is_active: true, organization_role: "OWNER" },
+          { user_id: "USR-3", email: "second@example.test", display_name: "Druhý", is_active: true, organization_role: "OWNER" },
+        ],
+        "POST /api/v1/members": (b) => ({ user_id: "USR-3", display_name: "Druhý", is_active: true, ...(b as object), organization_role: "ADMIN" }),
+        // The second read is after midnight: one event of the new day beside the two of the old.
+        "GET /api/v1/access-audit": () => (++reads === 1 ? yesterday : [entry(3, "2026-10-26T23:05:00Z"), ...yesterday]),
+      });
+      render(<ControlPanel />);
+      await openSection("Audit");
+      await waitFor(() => expect(figures("Audit")).toContain("Dnes=2"));
+      vi.setSystemTime(new Date("2026-10-26T23:10:00Z")); // 00:10 in Prague, 27 October
+      await openSection("Přístup a schvalování");
+      const roles = await screen.findByRole("radiogroup", { name: "Role: second@example.test" });
+      fireEvent.click(within(roles).getByRole("radio", { name: "správce" }));
+      await waitFor(() => expect(called("GET", "/api/v1/access-audit")).toHaveLength(2));
+      await openSection("Audit");
+      const audit = panelOf("Audit");
+      await waitFor(() => expect(within(audit).getByText(/Zobrazeno \d+ z 3 záznamů/)).toBeTruthy());
+      fireEvent.click(within(audit).getByRole("radio", { name: "Dnes" }));
+      expect(within(audit).getByText("Zobrazeno 1 z 3 záznamů")).toBeTruthy();
+      expect(figures("Audit")).toContain("Dnes=1");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("usable settings controls", () => {

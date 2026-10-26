@@ -477,11 +477,14 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     // In the drawer or the sheet the conversation steps aside so the person sees what the Lead pointed at.
     const last = ops[ops.length - 1];
     if (compact && last) setDrawerState(nextDrawer(drawer, { type: "view", target: last.op === "open_stage" || last.op === "show_diff" ? last.stage : last.op === "filter" ? "sociomap" : last.target }, layout).state);
+    // Sociomapa is moved to once per turn, however many of its views the turn carries.
+    let onMap: boolean | null = stage === "sociomap" ? true : null;
     for (const v of ops) {
       if (v.op === "open_stage") go(v.stage);
       else if (v.op === "select" || v.op === "filter") {
         // Sociomapa's picture: on another stage the map takes it once shown, if the move was not stopped.
-        if (stage === "sociomap" || go("sociomap")) sendLeadMapView(v);
+        onMap ??= go("sociomap");
+        if (onMap) sendLeadMapView(v);
       } else if (v.op === "inspect") {
         // The item drawer over the target's own stage, the one a person's click opens; on another
         // stage it opens once that stage is shown (the move remounts on a route change).
@@ -736,7 +739,13 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   // A stage may send the Lead a message as the person would type it (Návrh's "Požádat Vedoucího").
   const leadSend = useRef<((text: string) => void) | null>(null);
   const registerSend = useCallback((send: (text: string) => void) => { leadSend.current = send; }, []);
-  const askLead = useCallback((text: string) => leadSend.current?.(text), []);
+  // A stage's ask opens the conversation where its answer and card will be: the drawer or the sheet
+  // below 1100 px, the split's pane when the artifact had the whole width.
+  const askLead = useCallback((text: string) => {
+    if (compact) drawerEvent({ type: "open" });
+    else setMode((m) => (m === "artifact" ? "split" : m));
+    leadSend.current?.(text);
+  }, [compact, drawerEvent]);
 
   // A finished job's review opens on the stage its proposal changes (chunk 23): the stage's screen
   // opens it when it mounts (ResearchScreen, OPEN_REVIEW_KEY in the study's page memory).

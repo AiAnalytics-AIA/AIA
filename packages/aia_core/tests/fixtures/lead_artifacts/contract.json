@@ -31,12 +31,12 @@
     },
     {
       "op": "select",
-      "live": false,
+      "live": true,
       "what": "select an object or a pair on the map"
     },
     {
       "op": "filter",
-      "live": false,
+      "live": true,
       "what": "a display filter, named; it changes no computation"
     },
     {
@@ -45,6 +45,15 @@
       "what": "show a waiting proposal's or a draft's changes against what is in force"
     }
   ],
+  "filter_values": {
+    "sociomap": {
+      "view": ["top", "relief"],
+      "labels": ["on", "off"],
+      "hide_weak": ["on", "off"],
+      "mode": ["objects", "respondents"],
+      "battery": null
+    }
+  },
   "filters": {
     "sociomap": [
       "view",
@@ -551,10 +560,11 @@
     {
       "stage": "sample",
       "artifact": "working",
-      "edits": false,
+      "edits": true,
       "view_ops": [
         "open_stage",
         "focus",
+        "show_diff",
         "inspect"
       ],
       "targets": [

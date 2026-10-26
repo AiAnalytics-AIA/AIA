@@ -136,21 +136,27 @@ export function ActionDock({ back, note, ready = true, inHeader = true, children
   useLayoutEffect(() => claim?.(), [claim]);
   const action = <div className="flex shrink-0 items-center gap-2">{children}</div>;
   const moved = header ? (header.primary ? createPortal(action, header.primary) : null) : null;
-  // With its action in the header and nothing else to say, the dock draws no empty card.
-  if (header && !note && !(back && !framed)) return moved;
+  // With its action in the header and nothing else to say, the dock draws no empty card. The moved
+  // action keeps its place first, so a note coming or going never remounts it (or loses its focus).
+  const card = !header || note || (back && !framed);
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
-      {back && !framed ? (
-        <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${TOUCH} ${FOCUS}`}>
-          <Icon name="back" size={14} />
-          {back.label}
-        </Link>
+    <>
+      {moved}
+      {card ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-card border border-border bg-surface-raised px-3 py-2.5">
+          {back && !framed ? (
+            <Link href={back.href} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-sm text-sm text-ink-muted no-underline hover:text-ink ${TOUCH} ${FOCUS}`}>
+              <Icon name="back" size={14} />
+              {back.label}
+            </Link>
+          ) : null}
+          <span aria-live="polite" className={`ml-auto min-w-0 flex-[1_1_160px] text-right text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>
+            {note}
+          </span>
+          {header ? null : action}
+        </div>
       ) : null}
-      <span aria-live="polite" className={`ml-auto min-w-0 flex-[1_1_160px] text-right text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>
-        {note}
-      </span>
-      {header ? moved : action}
-    </div>
+    </>
   );
 }
 
@@ -306,7 +312,7 @@ export function ChipInput({ values, onAdd, onRemove, rename, label, placeholder,
             <span className="min-w-0 break-words">{v}</span>
           )}
           <button disabled={disabled} type="button" aria-label={`${t("research.step.remove")} ${v}`} onClick={() => onRemove(i)} className={`-my-1 -mr-1.5 inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-faint hover:text-ink ${FOCUS}`}>
-            ×
+            <Icon name="close" size={12} />
           </button>
         </span>
       ))}

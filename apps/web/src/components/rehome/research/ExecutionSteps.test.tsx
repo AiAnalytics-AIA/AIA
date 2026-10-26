@@ -14,13 +14,14 @@ import type { ResearchRun } from "@/lib/api";
 import signedOffFixture from "@/lib/fixtures/object-map-signed-off.json";
 import sociomappingFixture from "@/lib/fixtures/sociomapping.json";
 import { AnalysisInspect } from "./AnalysisInspect";
+import { LeadAskContext } from "./AskLead";
 import { ItemInspectorContext } from "@/components/workbench/item-inspector-context";
 import { ItemInspectBody } from "@/components/workbench/ItemInspectBody";
-import { sendLeadMapView, takeLeadMapView } from "@/lib/lead";
+import { sendLeadMapView, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
-import { RunResults, fixStep } from "./ExecutionSteps";
+import { RunResults, checkHref, fixStep } from "./ExecutionSteps";
 import { REPORT_APPROVED, type ReportApproved } from "./ReportDocumentView";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
@@ -186,11 +187,24 @@ afterEach(() => {
   sessionStorage.clear();
 });
 
+describe("checkHref", () => {
+  it("opens Vzorek for n and its support in the workbench, the persona step outside it", () => {
+    const href = (step: string) => `/s/${step}`;
+    for (const id of ["sample_size", "support_forecast", "sociomap_support"]) {
+      expect(checkHref(id, href, true)).toBe("/s/persona#sample");
+      expect(checkHref(id, href, false)).toBe("/s/persona");
+    }
+    // Every other check goes where fixStep sends it, in the workbench too.
+    expect(checkHref("dimensions", href, true)).toBe("/s/persona");
+    expect(checkHref("audience", href, true)).toBe("/s/audience");
+  });
+});
+
 describe("fixStep", () => {
   it("sends each readiness check to the stage where it is fixed", () => {
     // The ids the domain's readiness emits (research_design.assess_readiness, support_forecast,
-    // research_trace), a prefixed one standing for its kind; n and its support live on Dimenze,
-    // the audience on its own stage.
+    // research_trace), a prefixed one standing for its kind; n and its support on the persona step
+    // (the workbench links them to Vzorek, checkHref), the audience on its own stage.
     const where = {
       sample_size: "persona", support_forecast: "persona", sociomap_support: "persona", dimensions: "persona",
       audience: "audience",
@@ -2142,6 +2156,61 @@ describe("Results", () => {
     expect(audience.textContent).not.toContain("příliš málo respondentů");
   });
 
+  it("asks the Lead for the same-data round in the workbench, and names a module without a finding with its ways out (ANL4)", async () => {
+    const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
+      step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
+      step("analysis_hypotheses", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-9", analysis_outcome: "BLOCKED" }),
+    ] });
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, holding: ["executive", "hypotheses"], synthetic: true, pending: {}, modules: {
+        executive: { outcome: "COMPLETED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [],
+          diagnostic: { reason: "no_supported_finding", resolutions: ["same_data_retry", "changed_design", "more_data"] } },
+        hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [{ code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" }] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["executive", "hypotheses"] }),
+      // The run the typed "Zopakuj analýzu" retries: this one.
+      "GET /api/v1/studies/STU-1/lead": () => ({ analysis_retry_run: { run_id: "RUN-1", created_at: null, phase: "COMPLETED" } }),
+    });
+    layout.workbench = true;
+    onTestFinished(() => { layout.workbench = null; });
+    const asked: string[] = [];
+    render(<LeadAskContext.Provider value={(text) => asked.push(text)}><ResearchScreen step="results" frame={TEST_FRAME} /></LeadAskContext.Provider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const blocked = await screen.findByRole("region", { name: "Blokované nároky" });
+    const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
+    await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
+    // The round is the Lead's to prepare: no way to Průběh, one button sending the person's typed command.
+    expect(hypotheses.textContent).toContain("Vedoucí výzkumu");
+    expect(within(blocked).queryByRole("link", { name: "Zobrazit průběh běhu" })).toBeNull();
+    // A module without a supported finding, with the server's reason and ways out, never a finding.
+    const unsupported = screen.getByRole("region", { name: "Bez doloženého zjištění" });
+    const executive = unsupported.querySelector('[data-unsupported-module="executive"]') as HTMLElement;
+    expect(executive.getAttribute("data-reason")).toBe("no_supported_finding");
+    expect(executive.textContent).toContain("Zpráva na ni čeká");
+    expect(executive.textContent).toContain("zopakovat analýzu nad stejnými daty");
+    // What waits on the person comes before the milestones and the coverage.
+    const ways = document.querySelector("[data-analysis-ways-out]") as HTMLElement;
+    expect(ways.compareDocumentPosition(document.querySelector("[data-analysis-milestones]") as HTMLElement) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: "Opakovat analýzu" }));
+    expect(asked).toEqual(["Zopakuj analýzu"]);
+    cleanup();
+    // On a run the typed command would not retry (a newer one ran analysis), the round stays on Průběh.
+    api({ ...listed(analysed),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/artifacts/ART-4": () => AGGREGATE,
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis": () => ({ complete: false, synthetic: true, pending: {}, modules: {
+        hypotheses: { outcome: "BLOCKED", summary: null, research_question_answers: [], key_findings: [], claims: [], violations: [{ code: "EVIDENCE_REF_UNKNOWN", subject: "c1", detail: "q9.mean" }] },
+      } }),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-1/analysis/retryable": () => ({ run_id: "RUN-1", modules: ["hypotheses"] }),
+      "GET /api/v1/studies/STU-1/lead": () => ({ analysis_retry_run: { run_id: "RUN-9", created_at: null, phase: "COMPLETED" } }),
+    });
+    render(<LeadAskContext.Provider value={(text) => asked.push(text)}><ResearchScreen step="results" frame={TEST_FRAME} /></LeadAskContext.Provider>);
+    fireEvent.click(await screen.findByRole("tab", { name: "AI analýza" }));
+    const older = await screen.findByRole("region", { name: "Blokované nároky" });
+    await waitFor(() => expect(within(older).getByRole("link", { name: "Zobrazit průběh běhu" })).toBeTruthy());
+    expect(screen.queryByRole("button", { name: "Opakovat analýzu" })).toBeNull();
+  });
+
   it("names each blocked module's refusals in words with the way out the server gives, and never reads it as done (ANL4)", async () => {
     const analysed = run({ ...COMPLETED, steps: [...COMPLETED.steps,
       step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", artifact_id: "ART-6", analysis_outcome: "COMPLETED" }),
@@ -2415,7 +2484,7 @@ describe("Results", () => {
         return stage;
       };
       const canvases = (stage: HTMLElement) => within(stage).getAllByTestId("object-map-canvas");
-      afterEach(() => { takeLeadMapView(); });
+      afterEach(() => { takeLeadMapViews(); });
 
       it("hands a map the view sent before the stage drew it, and keeps nothing waiting", async () => {
         sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
@@ -2423,6 +2492,17 @@ describe("Results", () => {
         const stage = await drawn(1);
         await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
         expect(takeLeadMapView()).toBeNull();
+      });
+
+      it("applies every view sent before the stage drew its maps, in order, not the last alone", async () => {
+        // Codex on #992: a Lead turn with two map views, answered on another stage, kept only the second.
+        sendLeadMapView({ op: "select", target: `object:${battery.battery_id}/${idsOf(battery)[1]}` });
+        sendLeadMapView({ op: "filter", name: "view", value: "top" });
+        open(signedOff, true);
+        const stage = await drawn(1);
+        await waitFor(() => expect(canvases(stage)[0].getAttribute("data-selected")).toBe(idsOf(battery)[1]));
+        expect(JSON.parse(canvases(stage)[0].getAttribute("data-camera")!).pitch).toBe(0);
+        expect(takeLeadMapViews()).toEqual([]);
       });
 
       it("applies a stage-wide view sent before the maps were drawn to every map, not the first alone", async () => {

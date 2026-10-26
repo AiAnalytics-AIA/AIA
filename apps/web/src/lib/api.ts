@@ -1241,6 +1241,9 @@ export type ResearchAnalysis = {
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
+    /** What a module that states nothing says beside it (evidence-integrity 9a): `no_supported_finding` (it
+     *  holds the report) or `context_missing` (it holds nothing), with the server's ways out; null otherwise. */
+    diagnostic?: { reason: string; resolutions: string[] } | null;
   }>;
 };
 
@@ -2053,6 +2056,9 @@ export type ClientDeletionPreview = {
   kept: Partial<Record<"usage_rows" | "approval_rows" | "audit_rows", number>>;
   /** Not deleted until SDL2; null: not counted, never 0. */
   remains_until_sdl2: { population_children?: number | null; replaced_source_readings?: number | null };
+  /** The client's runs that have not ended, read as the preview was made: while any is listed the
+   *  deletion is refused (409 client_has_active_work). Absent from an older API: not known. */
+  active_run_ids?: string[];
   confirm_token: string; expires_at: string;
 };
 export type KeptRecord = { record: string; count: number; kept_for: string; why: string };

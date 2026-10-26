@@ -558,7 +558,23 @@ describe("Dimenze", () => {
   it("inside a frame with no next stage offers no forward action rather than the classic run step", async () => {
     aiaStub(PLANNED);
     render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
-    await screen.findByRole("spinbutton", { name: "Počet respondentů" });
+    await screen.findByRole("heading", { name: "Vybrané dimenze" });
     expect(screen.queryByRole("button", { name: /^Další/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Otevřít Vzorek" })).toBeNull();
+  }, 20_000);
+
+  it("inside the workbench has no sample size control; it links to Vzorek and counts the dimensions with sociodemografie (DIM3b)", async () => {
+    aiaStub({ ...PLANNED, persona_dimensions: { approved: ["cena", "media"] } });
+    const go = vi.fn();
+    const { container } = render(<FrameNavigation.Provider value={{ next: { label: "Vzorek", go } }}><ResearchScreen step="persona" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    await screen.findByRole("heading", { name: "Vybrané dimenze" });
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Použít doporučené N=/ })).toBeNull();
+    expect(container.querySelector("[data-aia='sample:n']")).toBeNull();
+    const note = [...container.querySelectorAll("span[aria-live='polite']")].map((x) => x.textContent ?? "");
+    expect(note).toContain("3 dimenze včetně sociodemografie");
+    expect(note.some((x) => x.includes("N="))).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Otevřít Vzorek" }));
+    expect(go).toHaveBeenCalledOnce();
   }, 20_000);
 });
