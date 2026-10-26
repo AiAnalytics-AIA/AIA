@@ -164,6 +164,27 @@ export function removeDimension(p: ResearchProject, id: string): Change {
   return { project: { ...project, persona_dimensions: { ...(project.persona_dimensions as Obj), approved: [...a] } }, reason: "dimension_catalog_remove" };
 }
 
+/**
+ * "Vrátit" after a change to the chosen dimensions (input-interactions I6): `before` and `after` are the
+ * selection either side of that change. Unchanged since, the selection is put back exactly, order
+ * included. Changed since, only that change is taken back over what is there now: what it added comes
+ * out, what it took away goes back at its old place; whatever was chosen meanwhile stays.
+ */
+export function undoChosen(p: ResearchProject, before: readonly string[], after: readonly string[]): Change {
+  const now = chosenDimensions(p);
+  let ids: string[];
+  if (now.length === after.length && now.every((id, i) => id === after[i])) ids = [...before];
+  else {
+    const added = new Set(after.filter((id) => !before.includes(id)));
+    ids = now.filter((id) => !added.has(id));
+    before.forEach((id, i) => {
+      if (!after.includes(id) && !ids.includes(id)) ids.splice(Math.min(i, ids.length), 0, id);
+    });
+  }
+  const pd = ((p.persona_dimensions as Obj | undefined) || {}) as Obj;
+  return { project: { ...p, persona_dimensions: { ...pd, approved: ids } }, reason: "dimension_restore" };
+}
+
 /** autofillPersonaDims */
 export function autofill(p: ResearchProject): Change {
   const pd = ((p.persona_dimensions as Obj | undefined) || {}) as Obj;
