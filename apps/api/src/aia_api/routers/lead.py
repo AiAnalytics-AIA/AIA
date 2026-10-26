@@ -785,8 +785,13 @@ def approve_request(
     run settings (the ones ``POST …/research/runs`` uses), held to the same threshold and, with
     ``AIA_STUDY_WALLET_ENABLED``, to the wallet (409 ``outside_wallet``, ``ceiling_unknown``),
     and recorded as ``chat_start``. A run start's refusals are that route's."""
+    # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job a card approves reads the Study's
+    # pinned Design Research findings, as the stage's start does (artifact-questionnaire QST13).
+    external = store if settings.ai_analysis_external_context else None
     with _lead_errors(), run_start_errors():
-        started = ResearchLead(session, scope, enabled=settings.research_lead_on).approve_request(
+        started = ResearchLead(
+            session, scope, enabled=settings.research_lead_on, external_store=external
+        ).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
             reservation_usd=settings.ai_research_reservation_usd,

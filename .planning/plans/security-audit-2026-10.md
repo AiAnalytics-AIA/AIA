@@ -13,7 +13,7 @@ chunks:
   - "[ ] 10. DOCX table rows read one cell per w:tc, never repeated by gridSpan or vMerge past a bound (S10)"
   - "[x] 11. No entity expands in an XLSX source or attachment (S11; #709: refuse_dtd over every workbook member before openpyxl, not defusedxml)"
   - "[ ] 12. AIA_MAX_REQUEST_BYTES is enforced by the API, per route, or removed from Settings (S12)"
-  - "[ ] 13. A web fetch has an overall deadline, not only a per-read timeout (S13)"
+  - "[x] 13. A web fetch has an overall deadline, not only a per-read timeout (S13; #999: one 120 s deadline per fetch across its redirects and robots.txt reads, a watchdog that shuts the socket from the TLS handshake on)"
   - "[x] 14. Only an OWNER grants or removes OWNER, and the last OWNER is never demoted (S14; the product owner chose option (b) on 2026-10-22; #782, merged 2026-10-22)"
   - "[ ] 15. ScopeRepository.deactivate_user acts only on a member of the admin's organization (S15)"
   - "[ ] 16. Hardening: email_verified, a CSP, worker log fields redacted, URL userinfo and AWS key shapes redacted, workflow inputs through env, GlitchTip on its own network (S16-S21)"
@@ -275,6 +275,43 @@ what a bound on one path misses.
   5. Fix: an overall deadline in the read loop, after which the fetch raises
      `ToolCallFailed(reason="timeout")`.
   6. Test: a stub wire that trickles bytes is cut at the deadline.
+  Fixed (#999): one deadline per fetch, `FETCH_DEADLINE_S` = 120 s, set by `WebFetcher` and
+  read by the wire through `fetch_time_left()`, so a redirect hop or a robots.txt read never
+  starts a fresh one; a hop or request with no time left is not sent, and the connect is
+  bounded by what is left. The clock starts with the fetch's first request, so waiting for a
+  host's lock or crawl-delay turn is not spent from it. A robots.txt read the fetch's own
+  deadline cut is not held against that host (it would be refused for the robots TTL, 24 h). In the wire a watchdog
+  shuts the socket at the deadline, watched from `_new_conn` through a `dup()`: the TLS
+  handshake, the status and headers, and a chunked body's size lines and trailers are read
+  inside calls that never return to the body loop (Codex and the stand-in review on #999).
+  The body loop also checks the clock and reads with `read1`. A timeout says `RESPONDED`
+  once a status line came, `UNKNOWN` before, `NOT_SENT` when nothing was sent. Measured:
+  urllib3 2.8 `read(10)` waited 3.0 s to fill a 0.3 s trickle while `read1` returned each
+  byte; a trickled TLS handshake was held 8.04 s before (CPython bounds a handshake by the
+  connect timeout), cut at the 0.5 s deadline after. Tests in `test_web_public_fetch.py`:
+  `test_a_trickling_answer_is_cut_at_the_fetchs_overall_deadline`,
+  `test_a_trickle_the_body_loop_never_sees_is_cut_by_the_watchdog` (chunked trailers,
+  headers), `test_a_trickled_tls_handshake_is_cut_by_the_watchdog`,
+  `test_one_deadline_holds_across_a_fetchs_redirects`,
+  `test_a_request_with_no_time_left_is_never_sent`,
+  `test_waiting_for_a_hosts_turn_is_not_spent_from_the_deadline`,
+  `test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host`.
+  Not covered: DNS (`SystemResolver.resolve`, `getaddrinfo`) runs before any request and
+  outside the deadline; the resolver has no timeout of its own. After a fetch's first request,
+  waiting for another host's lock and the pacer's crawl-delay sleep are not cut at the
+  deadline either (`PublicHttpsTransport.get`'s `_host_lock`, `host_pacing` `_sleep`): the
+  next request then finds no time left and is not sent, so a fetch's wall time is its queue
+  time, plus up to its deadline, plus those waits, each bounded by the lock holders ahead
+  (their own deadlines) and a crawl delay of at most 30 s (the stand-in review on #999).
+- **S13b. The Brave search wire has the same per-read-only timeout** (found reviewing #999).
+  1. Claim: `web_retrieval_brave.py`'s own urllib3 request has connect and read timeouts and
+     no overall deadline.
+  2. Anchor: `packages/aia_core/src/aia_core/infrastructure/web_retrieval_brave.py` ~470-500
+     @ 3fceb72e (the wire's request and its `timeout` refusal).
+  3. Reproduction: hypothesis; the same trickle as S13, from the search API's host.
+  4. Consequence: a stalled Brave answer holds a priced search step (Class C, NON_EU).
+  5. Fix: the same watchdog and deadline as `UrllibWire`, or the request made through it.
+  6. Test: a trickling local server behind the Brave wire is cut at its deadline.
 - **S14. An ADMIN can promote anyone to OWNER, and can demote every OWNER.**
   1. Claim: `add_member` overwrites an existing membership's role after
      `require_administer()` alone. There is no "only an OWNER sets OWNER" rule and no

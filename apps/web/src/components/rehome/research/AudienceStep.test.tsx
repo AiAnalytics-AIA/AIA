@@ -358,7 +358,7 @@ describe("Audience", () => {
       // The screen marks exactly what the contract names, the subpanels under Zúžit included.
       const marks = [...container.querySelectorAll("[data-aia^='audience:']")].map((e) => e.getAttribute("data-aia"));
       expect(marks.sort()).toEqual(audienceTargets({ audience: { filters } } as unknown as ResearchProject, { preview: true, subpanels: catalogue.subpanels.map((sp) => sp.key) }).sort());
-      expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Ověřit proveditelnost");
+      expect(container.querySelector(focusSelector("audience:preview"))!.textContent).toContain("Proveditelnost");
     });
 
     it("without a population, the filters target is the note that says why", async () => {
@@ -389,17 +389,29 @@ describe("Audience", () => {
       noUnitCalls();
     });
 
-    it("the preview counts the audience in AIA and says whether n can be drawn", async () => {
+    it("Proveditelnost counts the audience in AIA without a click and says whether n can be drawn (AUD9)", async () => {
       aiaStub(
         { ui_state: ANALYTICS, n: 500, audience: { strategy: "filters", source_mode: "population", filters: { vek: { min: 30, max: 59 } } } },
         live({ [PREVIEW]: () => ({ version_id: "DSV-1", version_label: "v17_4_0", population_rows: 18766, selected_rows: 5120, selected_donors: 1400, filters_applied: { vek: { min: 30, max: 59 } }, audience: { ok: true }, n: 500, sample: { ok: false, reason: "sampling_unrepresentative", message: "x" }, seed: 20261012 }) }),
       );
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
-      const status = await screen.findByRole("status");
-      expect(status.textContent).toContain("Filtry vyberou 5\u00a0120 z 18\u00a0766 lidí populace v17_4_0");
-      expect(status.textContent).toMatch(/nebyl reprezentativní/);
+      const figures = (await screen.findByText("Lze vytáhnout")).closest("[aria-live]") as HTMLElement;
+      await waitFor(() => expect(figures.getAttribute("aria-busy")).toBe("false"));
+      expect(figures.getAttribute("aria-live")).toBe("polite");
+      expect(figures.textContent).toContain("5\u00a0120");
+      expect(figures.textContent).toContain("lidí z 18\u00a0766");
+      expect(figures.textContent).toContain("N 500");
+      // n is set on Vzorek (#945): the figure links there.
+      // Followed in the app (next/link), never as a document load: audience_journey.mjs step 2c.
+      expect(within(figures).getByRole("link", { name: "upravit na Vzorku" }).getAttribute("href")).toMatch(/#sample$/);
+      expect(within(figures).getByText("Ne")).toBeTruthy();
+      expect(figures.textContent).toMatch(/nebyl reprezentativní/);
+      expect(posted(PREVIEW)).toHaveLength(1);
       expect(posted(PREVIEW)[0]!.body).toEqual({ filters: { vek: { min: 30, max: 59 } }, n: 500 });
+      // A filter changed is counted again, without a click.
+      fireEvent.click(screen.getByRole("button", { name: /Zlínský kraj/ }));
+      await waitFor(() => expect(posted(PREVIEW)).toHaveLength(2));
+      expect(posted(PREVIEW)[1]!.body).toEqual({ filters: { vek: { min: 30, max: 59 }, kraj: ["Zlínský kraj"] }, n: 500 });
       noUnitCalls();
     });
 
@@ -410,11 +422,13 @@ describe("Audience", () => {
         live({ [PREVIEW]: () => ({ version_id: "DSV-1", version_label: "v17_4_0", population_rows: 18766, selected_rows: 900, selected_donors: 400, filters_applied: { vek: { min: 30, max: 59 }, kraj: { values: ["Zlínský kraj"] } }, per_filter: { vek: 5120, kraj: 1200 }, audience: { ok: true }, n: null, sample: null, seed: 20261012 }) }),
       );
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
-      const status = await screen.findByRole("status");
-      expect(status.textContent).toContain("Filtry vyberou 900 z 18\u00a0766");
-      expect(status.textContent).toMatch(/Samotný filtr .+: 5\u00a0120 lidí\./);
-      expect(status.textContent).toMatch(/Samotný filtr .+: 1\u00a0200 lidí\./);
+      const figures = (await screen.findByText("Lze vytáhnout")).closest("[aria-live]") as HTMLElement;
+      await waitFor(() => expect(figures.getAttribute("aria-busy")).toBe("false"));
+      expect(figures.textContent).toContain("900");
+      expect(figures.textContent).toMatch(/Samotný filtr .+: 5\u00a0120 lidí\./);
+      expect(figures.textContent).toMatch(/Samotný filtr .+: 1\u00a0200 lidí\./);
+      // No sample answered: whether it can be drawn is unknown, never "Ano".
+      expect(within(figures).getByText("Neznámé")).toBeTruthy();
       noUnitCalls();
     });
 
@@ -424,8 +438,9 @@ describe("Audience", () => {
         live({ [PREVIEW]: () => new Response(JSON.stringify({ code: "audience_preview_unavailable", message: "no" }), { status: 503 }) }),
       );
       render(<ResearchScreen step="audience" frame={TEST_FRAME} />);
-      fireEvent.click(await screen.findByRole("button", { name: "Ověřit proveditelnost" }));
-      expect((await screen.findByRole("status")).textContent).toContain("populace k ní není připojená");
+      const figures = (await screen.findByText("Proveditelnost")).closest("section")!.querySelector("[aria-live]") as HTMLElement;
+      await waitFor(() => expect(figures.textContent).toContain("populace k ní není připojená"));
+      expect(figures.textContent).not.toContain("Lze vytáhnout"); // no figure for what was not counted
     });
 
     it("announces how many factors the factor search shows, as the person types", async () => {

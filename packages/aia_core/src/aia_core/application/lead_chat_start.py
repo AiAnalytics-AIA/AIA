@@ -279,7 +279,12 @@ def approve_chat_start(
         assert command.action is not None
         action = command.action
         revision = submit_design(_SOURCE_STAGE.get(action.value, "questionnaire"))
-        jobs = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd)
+        # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job reads the study's pinned Design
+        # Research findings, as the stage's start does (artifact-questionnaire QST13).
+        external = run_start.store if run_start is not None and run_start.external_context else None
+        jobs = ResearchAgentJobs(
+            session, scope, reservation_usd=reservation_usd, external_store=external
+        )
         found = existing_start(
             session,
             scope,

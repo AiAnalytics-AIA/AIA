@@ -691,3 +691,10 @@ blocked module in the step list; an inventory on 2026-10-16 (@ c809315b) found t
   report (reportStatus: NONE, COMPOSING, NOT_MADE, FAILED, REFUSED, DRAFT, APPROVED, UNKNOWN;
   reviewStatus; approvalRefusal), read by CompleteReport, the internal report panel, project
   memory's runLabels and Interpretation Research".
+
+## Disposition (MP3, 2026-10-26)
+
+**CLOSE**, accepted (the product owner in the Decision Review, 2026-10-26, relayed by the PM
+coordinator: "Accept: CLOSE"). Chunk 4 (Deep Research source diversity beyond Wikipedia) is
+`deep-research-web-search` 51-52; the owner closes the plan with that pointer. The chunk is left as
+it is.

@@ -2179,3 +2179,12 @@ away: #840's helper, taken in #936's merge, matches a stage's label exactly.
   (`SociomapStage.tsx`, two lines, agreed with Sociomapa), and a turn moves to the map once. Tests:
   `ExecutionSteps.test.tsx` "applies every view sent before the stage drew its maps, in order…",
   `Workbench.layout.test.tsx` "keeps every map view of one turn for the map, in order", each failing without it.
+
+### The Lead's prompt version 3 (2026-10-26, `fix/lead-prompt-version-3`)
+
+#992 changed the Lead's baseline task text (the select and filter instruction on Sociomapa) but left
+`LEAD_PROMPT_VERSION` at "2", following the show_diff precedent; Settings' baseline label and each turn's
+`prompt_version` then named two wordings, told apart only by the SHA-256. The product owner (2026-10-26):
+"yes lets upgrade the Leads prompt". It is "3". `test_prompt_slots.py` "the Lead's baseline wording changes only
+with its version" pins the baseline's SHA-256 to its version, so the next wording change without a bump fails.
+An organization with an activated stored Lead prompt keeps it until it rebases on the new baseline.

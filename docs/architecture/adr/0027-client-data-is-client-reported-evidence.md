@@ -14,6 +14,15 @@ written in; the owner asked for the same review document as for ADRs 0020 to 002
 how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
 unchanged until the methodology answer is written in and he accepts it.
 
+**Decision note, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator):
+Q2 is answered, MQ-17 (a) "Never" (see *Open questions*). Still open, left for the methodology owner: Q1
+(MQ-16), Q4 (MQ-18) and the verdict; the status is unchanged.
+
+**Decision note, 2026-10-26, later** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator):
+- **0027-Q5 (a):** `APPROVE_GATE` accepts a data contract (`client-data-in-analysis` chunk 2).
+- **0027-Q6 (b):** besides the person's classification, any column the hints flag as personal is refused
+  unless the person overrides it explicitly, on record (`client-data-in-analysis` chunk 3).
+
 **Date:** 2026-10-19. **Amended 2026-10-20** with the product owner's MVPQ-05 answer (decisions 3, 6 and
 Q3; `mvp-owner-decisions.md`) and the support question the cross-check found (Q4, master plan G51).
 
@@ -111,8 +120,11 @@ Three facts of the code frame it:
 
 - **Q1.** How a benchmark states its gap when the two supports differ greatly (a modelled n of 300
   against a client's 40,000 rows): one interval rule, or each side's own?
-- **Q2.** Whether a client's survey answers may also ground AI respondents later (decision 7's
-  calibration), and who decides it: the methodology owner.
+- ~~**Q2.** Whether a client's survey answers may also ground AI respondents later (decision 7's
+  calibration), and who decides it: the methodology owner.~~ Answered 2026-10-26 (MQ-17 (a), "Never",
+  the product owner in the Decision Review, relayed by the PM coordinator; shared with ADR 0037): a
+  client's survey answers never condition the personas; client data stays a separate comparison,
+  never mixed in (decision 7).
 - ~~**Q3.** The exact label words beside each number in the report.~~ Answered 2026-10-20 (MVPQ-05):
   *z dat klienta* beside each number; source and period once (decision 6).
 - **Q4** (the cross-check, master plan G51). A client number has no respondent n or effective n, so
@@ -120,4 +132,4 @@ Three facts of the code frame it:
   amount or rate. Decide the support a client aggregate or record count carries (exact counts or
   row count as n, or an explicit "not a sample" status, never an invented effective n), the metric
   and unit set a client number may take, and when an interval is required
-  (`client-data-in-analysis#0`). Q1, Q2 and Q4 are the methodology owner's.
+  (`client-data-in-analysis#0`). Q1 and Q4 are the methodology owner's.
