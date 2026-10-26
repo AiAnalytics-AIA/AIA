@@ -31,11 +31,11 @@ import { ResearchContext, type RunJob } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
-import Link from "next/link";
 import { AgentBudgetWaits } from "./AgentBudgetWaits";
 import { useResearchAgents } from "./useResearchAgents";
 import { type StudyFrame, useStudyFrame } from "./frame";
 import { DesignSourceNote } from "./DesignSourceNote";
+import { ReopenStudy, StudyStatusMenu } from "./StudyStatus";
 import { STEP_SCREENS } from "./steps";
 import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
@@ -60,9 +60,10 @@ type Loaded =
   | { kind: "failed"; message: string }
   | { kind: "awaiting_migration" }
   | { kind: "unrecoverable"; template: Template; canEdit: boolean }
-  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null };
+  /** `forCanEdit`: what the study allowed (the session's `canEdit`) when this store was built. */
+  | { kind: "ready"; store: ResearchStore; template: Template; origin: string | null; forCanEdit?: boolean };
 
-type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown> };
+type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -82,10 +83,21 @@ function stableItemIds(): Promise<boolean> {
 }
 
 /** The study's working content, loaded once and kept while the person stays in the study (its layout). */
-export function ResearchSession({ studyId, initialContent, children }: { studyId: string; initialContent?: WorkingContent; children: ReactNode }) {
+export function ResearchSession({ studyId, initialContent, canEdit, children }: { studyId: string; initialContent?: WorkingContent; canEdit?: boolean; children: ReactNode }) {
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const [version, setVersion] = useState(0);
   const [memory] = useState(() => new Map<string, unknown>());
+  // A change the store being replaced could not save (the study closed under it): said, never dropped.
+  const [lost, setLost] = useState<string | null>(null);
+  // The store is built read-only or not from what the study allowed when it loaded. A status changed
+  // on the study (reopened, closed) changes that: the content is read again and the store rebuilt, so
+  // a reopened study takes edits and a closed one refuses them at the field, never silently (#892).
+  const editable = useRef(canEdit);
+  useEffect(() => {
+    if (canEdit === undefined || editable.current === canEdit) return;
+    editable.current = canEdit;
+    setVersion((v) => v + 1);
+  }, [canEdit]);
 
   useEffect(() => {
     let live = true;
@@ -98,29 +110,40 @@ export function ResearchSession({ studyId, initialContent, children }: { studyId
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit, itemIds });
+        // Read-only when the content says so or the study does: never a store that takes edits the
+        // study refuses, nor one the screen would show enabled while it drops them.
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit || editable.current === false, itemIds });
         store = s;
-        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin });
+        setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin, forCanEdit: editable.current });
       },
       (e: unknown) => live && setLoaded({ kind: "failed", message: message(e) }),
     );
     return () => {
       live = false;
-      store?.dispose();
+      store?.dispose((e) => setLost(message(e)));
     };
   }, [studyId, version, initialContent]);
 
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null, forCanEdit: editable.current } : l));
   }, [studyId]);
 
-  const value = useMemo(
-    () => ({ studyId, loaded, retry: () => setVersion((v) => v + 1), startAgain, memory }),
-    [studyId, loaded, startAgain, memory],
-  );
+  // A store built for what the study allowed before is not handed out: until the store for what it
+  // allows now is in, the stages wait (loading), so no field is enabled over a store that drops its
+  // edits, nor a read-only one shown over a store still taking them (Codex on #892).
+  const value = useMemo(() => {
+    const current: Loaded = loaded.kind === "ready" && canEdit !== undefined && loaded.forCanEdit !== canEdit ? { kind: "loading" } : loaded;
+    return { studyId, loaded: current, retry: () => setVersion((v) => v + 1), startAgain, memory, lost };
+  }, [studyId, loaded, canEdit, startAgain, memory, lost]);
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
+}
+
+/** A change the replaced store could not save when the study's status changed under it. */
+function LostEdit() {
+  const lost = useContext(SessionContext)?.lost;
+  return lost ? <p role="alert" data-lost-edit className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{tv("aia.study.status.lost", { reason: lost })}</p> : null;
 }
 
 /** The stages a person edits the design on: read-only, as one, when the study may not change. */
@@ -131,7 +154,7 @@ const DESIGN_STEPS: ReadonlySet<StepKey> = new Set<StepKey>(["brief", "plan", "q
  * and where it is reopened. Without it, a delivered study looked editable and every save was
  * refused as a role the person has (productization-coherence PC1).
  */
-export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["closed"]> }) {
+export function ClosedStudyNotice({ closed, studyId, onChanged, hold }: { closed: NonNullable<StudyFrame["closed"]>; studyId: string; onChanged?: () => Promise<void> | void; hold?: (on: boolean) => void }) {
   const when = closed.deliveredAt ? new Date(closed.deliveredAt).toLocaleDateString("cs-CZ") : null;
   const title =
     closed.status === "DELIVERED" && when
@@ -141,16 +164,17 @@ export function ClosedStudyNotice({ closed }: { closed: NonNullable<StudyFrame["
     <section role="status" data-study-closed={closed.status} className="mb-4 max-w-3xl rounded-sm border border-border-strong bg-surface-sunken p-3 text-sm leading-6 text-ink">
       <p className="font-semibold">{title}</p>
       <p>{t("aia.study.closed.help")}</p>
-      <p className="text-ink-muted">
-        <Link href={`${appRoutes.settings()}#studies`} className="text-signal underline">{t("aia.study.closed.reopen")}</Link>.
-      </p>
+      {/* Reopened here, in place: the study is where its status is changed (F7). */}
+      {onChanged ? <div className="mt-2"><ReopenStudy studyId={studyId} onChanged={onChanged} hold={hold} /></div> : null}
     </section>
   );
 }
 
 /** The AIA frame of one stage: client, study and stage in the breadcrumbs, the study's stages in its track. */
-function StageChrome({ frame, step, state, status, help, children }: {
-  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode; children: ReactNode;
+function StageChrome({ frame, step, state, status, help, flush, children }: {
+  frame: StudyFrame; step: StepKey; state?: Pick<ResearchState, "project" | "analysis"> | null; status?: ReactNode; help?: ReactNode;
+  /** Saves what is typed before the study's status changes (the store's flush). */
+  flush?: () => Promise<unknown>; children: ReactNode;
 }) {
   const onTrack = TRACK_STEPS.includes(step);
   // The track carries the order: a stage on it is named without its number.
@@ -170,13 +194,14 @@ function StageChrome({ frame, step, state, status, help, children }: {
       back={{ href: appRoutes.client(frame.clientId), label: t("aia.backToClient") }}
       eyebrow={onTrack ? undefined : t("aia.kind.RESEARCH")}
       status={status}
-      action={help}
+      action={frame.status && frame.refreshStudy ? <>{help}<StudyStatusMenu studyId={frame.studyId} status={frame.status} onChanged={frame.refreshStudy} beforeChange={flush} hold={frame.holdEdits} /></> : help}
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
         <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
       ) : null}
-      {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+      <LostEdit />
+      {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
       {children}
     </AppShell>
   );
@@ -260,9 +285,12 @@ function useWorkbenchSwitch(): boolean | null {
   return on;
 }
 
-function Ready({ store, template, origin, memory, step, frame, reload }: {
+function Ready({ store, template, origin, memory, step, frame: given, reload }: {
   store: ResearchStore; template: Template; origin: string | null; memory: Map<string, unknown>; step: StepKey; frame: StudyFrame; reload: () => void;
 }) {
+  // The stages may edit only what the store that receives the edit takes: the study's permission and
+  // the store's own editability, never the first alone.
+  const frame = useMemo(() => (given.canEdit && !store.editable ? { ...given, canEdit: false } : given), [given, store]);
   const state = useSyncExternalStore(store.subscribe, store.get, store.get);
   const { onStage, stepHref } = frame;
   useEffect(() => {
@@ -415,7 +443,8 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
               </section> : null}
             </>)}>
             {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
-            {frame.closed ? <ClosedStudyNotice closed={frame.closed} /> : null}
+            <LostEdit />
+            {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
             {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
             <div className="flex min-w-0 flex-col gap-4">
@@ -429,7 +458,7 @@ function Ready({ store, template, origin, memory, step, frame, reload }: {
           </Workbench>
         )}</InspectorProvider>
       ) : (
-      <StageChrome frame={frame} step={step} state={state} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
+      <StageChrome frame={frame} step={step} state={state} flush={() => store.flush()} status={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}>
           <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
           {origin ? <p role="status" data-content-origin="18.6.6" className="mb-4 max-w-3xl rounded-sm border border-border bg-surface-raised p-3 text-sm leading-6 text-ink">{origin}</p> : null}
           <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (

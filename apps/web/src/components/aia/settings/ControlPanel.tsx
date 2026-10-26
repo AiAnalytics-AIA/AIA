@@ -660,14 +660,22 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     document.getElementById(`tab-${next}`)?.focus();
   };
 
+  // A member's role in words beside their spend ("Správce · Metodik"); unknown for anyone the
+  // members list did not include.
+  const roleOf = (userId: string): string | null => {
+    const m = members.ok ? members.data.find((x) => x.user_id === userId) : undefined;
+    if (!m) return null;
+    const role = t(`aia.orgRoles.${m.organization_role}`);
+    return `${role.charAt(0).toLocaleUpperCase("cs")}${role.slice(1)}${m.methodologist ? ` · ${t(`${P}.accessTab.metodik`)}` : ""}`;
+  };
   const extra: Record<string, ReactNode> = {
     ai: <RuntimePanel runtime={doc.ai_runtime} config={runtime} vocab={vocab} />,
     ai_history: <HistoryPanel vocab={vocab} items={byKey.get("ai_history")?.items ?? []} />,
     access: <MembersCard members={members} vocab={vocab} canAdminister={doc.may_administer} yourRole={doc.your_role} reload={reload} myId={panel.me?.ok ? panel.me.data.user_id : null} />,
     studies: (
       <>
-        <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} />
-        <StudiesTable studies={studies} clients={clients} vocab={vocab} reload={reload} />
+        <ResearcherSpendCard nearLimitCount={studies.ok ? nearLimitTally(studies.data.map(({ detail }) => detail)) : null} roleOf={roleOf} />
+        <StudiesTable studies={studies} clients={clients} reload={reload} />
       </>
     ),
     approvals: (
@@ -712,6 +720,13 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
     if (tab === "methodology") return <MethodologySection members={members} />;
     if (tab === "system") return <SystemPanel mayAdminister={doc.may_administer} />;
     if (tab === "data") return <DataPanel mayAdminister={doc.may_administer} clients={clients} reload={reload} />;
+    // Studie a rozpočty as prototype v51 draws it: the figures, the spend by researcher and the
+    // studies straight under the tab's head, in no further card; the settings document's own rows
+    // for the group wait under technical details.
+    if (tab === "studies") return <div id="set-studies" className="flex min-w-0 flex-col gap-4">
+      {extra.studies}
+      {groupItems("studies").length ? <Technical><Sub>{t(`${P}.relatedSettings`)}</Sub><div data-setting-rows>{groupItems("studies").map((item) => <SettingRow key={item.key} item={item} />)}</div></Technical> : null}
+    </div>;
     const keys = [...TAB_SECTIONS[tab].filter(present), ...(tab === "reference" ? unknown : [])];
     return (
       <>
