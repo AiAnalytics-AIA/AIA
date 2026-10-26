@@ -135,10 +135,10 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
         <div key={list} role={rq ? "region" : undefined} aria-labelledby={rq ? rqHeading : undefined}>
           <div className="flex flex-wrap items-baseline justify-between gap-x-3">
             {TITLE[list] ? <h3 id={rq ? rqHeading : undefined} className="text-[13px] font-semibold">{t(TITLE[list])}</h3> : null}
-            {rq ? <span className="text-xs text-ink-faint">{t("research.plan.coverage.aside")}</span> : null}
+            {rq ? <span data-no-quote className="text-xs text-ink-faint">{t("research.plan.coverage.aside")}</span> : null}
           </div>
           {cov ? (
-            <p role={cov.line.alert ? "alert" : undefined} className={`mt-0.5 text-[13px] ${cov.line.alert ? "text-status-fault-ink" : "text-ink-muted"}`}>{cov.line.words}</p>
+            <p data-no-quote role={cov.line.alert ? "alert" : undefined} className={`mt-0.5 text-[13px] ${cov.line.alert ? "text-status-fault-ink" : "text-ink-muted"}`}>{cov.line.words}</p>
           ) : null}
           {n[list].length ? (
             <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
@@ -189,7 +189,7 @@ function Narrative({ disabled, onQuote, lists, summary, coverage, undo }: {
             // What the server traces that the list does not show (the objectives or the goal it reads
             // when the list is empty, or a copy whose plan and analysis disagree): never hidden.
             <div className="mt-2" role="group" aria-label={t("research.plan.coverage.elsewhere")}>
-              <p className="text-[13px] font-semibold">{t("research.plan.coverage.elsewhere")}</p>
+              <p data-no-quote className="text-[13px] font-semibold">{t("research.plan.coverage.elsewhere")}</p>
               <ul className="mt-1 flex flex-col gap-1 text-sm leading-6">
                 {cov.elsewhere.map((row) => (
                   <li key={row.text}>

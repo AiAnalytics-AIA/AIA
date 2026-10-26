@@ -775,6 +775,18 @@ describe("Návrh: Výzkumné otázky a co je měří", () => {
     fireEvent.mouseUp(question.parentElement!);
     await act(() => new Promise((r) => setTimeout(r, 50)));
     expect(screen.queryByRole("button", { name: "Přidat komentář" })).toBeNull();
+    // Nor AIA's other words beside the list: the status line and the aside.
+    for (const own of [within(s).getByText(/Podle pracovní kopie, revize/), within(s).getByText("pokrytí počítá AIA ze stejných pravidel jako Spuštění")]) {
+      const text = own.firstChild as Text;
+      const r = document.createRange();
+      r.setStart(text, 0);
+      r.setEnd(text, 8);
+      window.getSelection()!.removeAllRanges();
+      window.getSelection()!.addRange(r);
+      fireEvent.mouseUp(own);
+      await act(() => new Promise((res) => setTimeout(res, 50)));
+      expect(screen.queryByRole("button", { name: "Přidat komentář" })).toBeNull();
+    }
     // The question's words alone still quote.
     const own = document.createRange();
     own.setStart(question, 0);
