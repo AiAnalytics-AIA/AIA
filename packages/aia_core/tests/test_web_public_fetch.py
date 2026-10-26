@@ -795,6 +795,7 @@ def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPat
         retrieval_mode = RetrievalMode.LIVE
 
         def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            fetch_time_left()  # a first request (its robots.txt read) starts the clock
             now[0] = 130.0
             return UrllibWire().get(
                 address=PUBLIC, host="stats.example", target="/a", headers={}, max_bytes=10
@@ -810,5 +811,92 @@ def test_a_request_with_no_time_left_is_never_sent(monkeypatch: pytest.MonkeyPat
     )
     with pytest.raises(ToolCallFailed) as failed:
         fetcher.fetch("https://stats.example/a")
-    assert failed.value.reason == "timeout" and failed.value.delivery is Delivery.NOT_SENT
-    assert _FakePool.created == []  # no connection was opened
+    assert failed.value.reason == "timeout"
+    # This request was never sent (no connection opened), but the fetch's first one was:
+    # the call as a whole says it may have been served.
+    assert failed.value.delivery is Delivery.UNKNOWN
+    assert _FakePool.created == []
+
+
+def test_waiting_for_a_hosts_turn_is_not_spent_from_the_deadline() -> None:
+    hops = _SlowHops()
+    hops.now = 0.0
+
+    class _Queued(_SlowHops):
+        def get(self, url: str, *, address: str, max_bytes: int) -> FetchedResponse:
+            if not self.left:
+                self.now += 500.0  # queued behind the host's other fetches, nothing sent
+            return super().get(url, address=address, max_bytes=max_bytes)
+
+    queued = _Queued()
+    fetcher = WebFetcher(
+        transport=queued,
+        resolver=Resolver({"stats.example": (PUBLIC,), "hop1.example": (PUBLIC,)}),
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=lambda: queued.now,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed):
+        fetcher.fetch("https://stats.example/a")
+    assert queued.left[0] == 120.0  # the clock started with the first request, not the queue
+
+
+class _DeadlineWire(Wire):
+    """A wire that does what UrllibWire does with the fetch's time, on a fake clock: each
+    request costs ``cost`` seconds, and one that runs out of time fails ``timeout``."""
+
+    cost: ClassVar[dict[tuple[str, str], float]] = {}
+
+    def get(
+        self, *, address: str, host: str, target: str, headers: Mapping[str, str], max_bytes: int
+    ) -> FetchedResponse:
+        left = fetch_time_left()
+        assert left is not None and left > 0
+        spent = self.cost.get((host, target), 0.0)
+        self.clock.now += spent
+        if spent >= left:
+            self.sent.append(Sent(self.clock.now, address, host, target, dict(headers), max_bytes))
+            raise ToolCallFailed("deadline", reason="timeout", delivery=Delivery.UNKNOWN)
+        return super().get(
+            address=address, host=host, target=target, headers=headers, max_bytes=max_bytes
+        )
+
+
+def test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host() -> None:
+    # A hostile page holds the fetch to 119.5 s (with its pacing), then redirects to a host
+    # that never was slow; that host's robots.txt read runs out of the fetch's time. The
+    # fetch fails timeout, and nothing is held about the other host.
+    clock = Clock()
+    allow = _robots("User-agent: *\nAllow: /\n")
+    wire = _DeadlineWire(
+        clock,
+        {
+            ("stats.example", "/robots.txt"): allow,
+            ("stats.example", "/a"): _redirect("https://news.example/x"),
+            ("news.example", "/robots.txt"): allow,
+            ("news.example", "/x"): _ok(PAGE),
+        },
+    )
+    _DeadlineWire.cost = {("stats.example", "/a"): 118.5, ("news.example", "/robots.txt"): 1.0}
+    resolver = Resolver({"stats.example": (PUBLIC,), "news.example": (OTHER,)})
+    transport = PublicHttpsTransport(
+        contact=CONTACT, resolver=resolver, wire=wire, monotonic=clock.monotonic, sleep=clock.sleep
+    )
+    fetcher = WebFetcher(
+        transport=transport,
+        resolver=resolver,
+        adapter_id="public-https-1",
+        clock=lambda: NOW,
+        monotonic=clock.monotonic,
+        deadline_s=120.0,
+    )
+    with pytest.raises(ToolCallFailed) as failed:
+        fetcher.fetch("https://stats.example/a")
+    assert failed.value.reason == "timeout"
+    assert wire.targets()[-1] == "news.example/robots.txt"  # the read the deadline cut
+    assert transport.known_refusal("https://news.example/x") is None  # nothing held
+    # A fresh fetch of that host, with a deadline of its own, reads its robots.txt again.
+    _DeadlineWire.cost = {}
+    fetcher.fetch("https://news.example/x")
+    assert wire.targets().count("news.example/robots.txt") == 2

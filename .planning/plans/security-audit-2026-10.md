@@ -277,7 +277,10 @@ what a bound on one path misses.
   6. Test: a stub wire that trickles bytes is cut at the deadline.
   Fixed (#999): one deadline per fetch, `FETCH_DEADLINE_S` = 120 s, set by `WebFetcher` and
   read by the wire through `fetch_time_left()`, so a redirect hop or a robots.txt read never
-  starts a fresh one; a hop or request with no time left is not sent. In the wire a watchdog
+  starts a fresh one; a hop or request with no time left is not sent, and the connect is
+  bounded by what is left. The clock starts with the fetch's first request, so waiting for a
+  host's lock or crawl-delay turn is not spent from it. A robots.txt read the fetch's own
+  deadline cut is not held against that host (it would be refused for the robots TTL, 24 h). In the wire a watchdog
   shuts the socket at the deadline, watched from `_new_conn` through a `dup()`: the TLS
   handshake, the status and headers, and a chunked body's size lines and trailers are read
   inside calls that never return to the body loop (Codex and the stand-in review on #999).
@@ -290,7 +293,9 @@ what a bound on one path misses.
   `test_a_trickle_the_body_loop_never_sees_is_cut_by_the_watchdog` (chunked trailers,
   headers), `test_a_trickled_tls_handshake_is_cut_by_the_watchdog`,
   `test_one_deadline_holds_across_a_fetchs_redirects`,
-  `test_a_request_with_no_time_left_is_never_sent`.
+  `test_a_request_with_no_time_left_is_never_sent`,
+  `test_waiting_for_a_hosts_turn_is_not_spent_from_the_deadline`,
+  `test_a_robots_read_the_fetchs_deadline_cut_is_not_held_against_the_host`.
   Not covered: DNS (`SystemResolver.resolve`, `getaddrinfo`) runs before any request and
   outside the deadline; the resolver has no timeout of its own.
 - **S13b. The Brave search wire has the same per-read-only timeout** (found reviewing #999).

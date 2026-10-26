@@ -59,6 +59,7 @@ from .web_retrieval import (
     SearchResponse,
     ToolCallFailed,
     extract_page,
+    fetch_out_of_time,
     fetch_time_left,
 )
 
@@ -124,7 +125,8 @@ class UrllibWire:
     request has a deadline (security-audit-2026-10 S13), past which the fetch fails ``timeout``:
     ``deadline_s``, or what is left of the fetch in progress (``fetch_time_left``), whichever
     is less, so a redirect or a robots.txt read never starts a fresh one. A request with no
-    time left is not sent. Two things keep the deadline:
+    time left is not sent, and the connect is bounded by it too. Two things keep the
+    deadline:
 
     * a watchdog shuts the connection's socket at the deadline. The TLS handshake, the status
       and headers, and a chunked body's size lines and trailers are all read inside calls
@@ -134,7 +136,8 @@ class UrllibWire:
     * the body loop checks the clock between reads, and reads with ``read1``, one socket read
       at a time (``read`` would wait to fill its amount).
 
-    A timeout says ``RESPONDED`` once a status line has come, ``UNKNOWN`` before.
+    A timeout says ``RESPONDED`` once a status line has come, ``NOT_SENT`` when no connection
+    was made, ``UNKNOWN`` between.
     """
 
     def __init__(
@@ -219,7 +222,10 @@ class UrllibWire:
                 "GET",
                 target,
                 headers=dict(headers),
-                timeout=u.Timeout(connect=self._connect_timeout_s, read=self._read_timeout_s),
+                # The connect is outside the watchdog (no socket exists yet): bound it too.
+                timeout=u.Timeout(
+                    connect=min(self._connect_timeout_s, budget), read=self._read_timeout_s
+                ),
                 retries=False,
                 redirect=False,
                 preload_content=False,
@@ -238,14 +244,14 @@ class UrllibWire:
             body = bytearray()
             while len(body) <= max_bytes:
                 if self._clock() - started > budget:
-                    raise _deadline_passed(answered=True)
+                    raise _deadline_passed(answered=True, sent=True)
                 chunk = read(min(65_536, max_bytes + 1 - len(body)), decode_content=False)
                 if not chunk:
                     break
                 body.extend(chunk)
             if expired.is_set():
                 # A socket shut under a read can end it as if the server had: never a page.
-                raise _deadline_passed(answered=True)
+                raise _deadline_passed(answered=True, sent=True)
             return FetchedResponse(
                 status=int(response.status),
                 headers=answered,
@@ -259,7 +265,7 @@ class UrllibWire:
             if expired.is_set():
                 # Past the deadline, whatever broke the request broke because its socket was
                 # shut under it (or after it): the deadline is the reason.
-                raise _deadline_passed(answered=response is not None) from exc
+                raise _deadline_passed(answered=response is not None, sent=bool(sockets)) from exc
             failure = _wire_failure(u, exc)
             if failure is exc:
                 raise
@@ -281,13 +287,20 @@ def _shut(sock: Any) -> None:
         sock.shutdown(socket.SHUT_RDWR)
 
 
-def _deadline_passed(*, answered: bool) -> ToolCallFailed:
-    """The deadline as the fetch's failure: ``RESPONDED`` once a status line came, else
-    ``UNKNOWN`` (the request may have reached the server; nothing came back)."""
+def _deadline_passed(*, answered: bool, sent: bool) -> ToolCallFailed:
+    """The deadline as the fetch's failure: ``RESPONDED`` once a status line came,
+    ``NOT_SENT`` when no connection was ever made, else ``UNKNOWN`` (the request may have
+    reached the server; nothing came back)."""
+    if answered:
+        delivery = Delivery.RESPONDED
+    elif not sent:
+        delivery = Delivery.NOT_SENT
+    else:
+        delivery = Delivery.UNKNOWN
     return ToolCallFailed(
         "the answer did not arrive within the fetch's deadline",
         reason="timeout",
-        delivery=Delivery.RESPONDED if answered else Delivery.UNKNOWN,
+        delivery=delivery,
     )
 
 
@@ -582,6 +595,10 @@ class PublicHttpsTransport:
                     hop_host, hop_address = next_host, addresses[0]
             return RobotsPolicy.unavailable("too_many_redirects")
         except (ToolCallFailed, FetchRefused) as exc:
+            if isinstance(exc, ToolCallFailed) and fetch_out_of_time():
+                # The fetch's own deadline ran out, not the host: nothing is learned about
+                # it, and nothing is held (a held "unavailable" would refuse it for a day).
+                raise
             # Unreachable (RFC 9309 2.3.1.4): nothing on the host is requested.
             return RobotsPolicy.unavailable(exc.reason)
 

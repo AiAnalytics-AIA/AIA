@@ -94,6 +94,7 @@ __all__ = [
     "WebFetcher",
     "extract_links",
     "extract_page",
+    "fetch_out_of_time",
     "fetch_time_left",
     "load_recorded_web",
     "page_snapshot",
@@ -117,25 +118,57 @@ class ToolCallFailed(Exception):
 #: (security-audit-2026-10 S13). A read timeout bounds one read; this bounds the fetch.
 FETCH_DEADLINE_S: Final = 120.0
 
-_TIME_LEFT: ContextVar[Callable[[], float] | None] = ContextVar("aia_fetch_time_left", default=None)
+
+class _FetchClock:
+    """One fetch's deadline. It starts with the fetch's first request, not before: waiting
+    for a host's turn (its lock, its crawl delay before anything is sent) is not time a
+    server holds, and a fetch queued behind others must not be spent before it sends."""
+
+    def __init__(self, monotonic: Callable[[], float], deadline_s: float) -> None:
+        self._monotonic = monotonic
+        self._deadline_s = deadline_s
+        self._started: float | None = None
+
+    @property
+    def started(self) -> bool:
+        """Whether a request of this fetch has been sent."""
+        return self._started is not None
+
+    def left(self, *, start: bool) -> float:
+        if self._started is None:
+            if not start:
+                return self._deadline_s
+            self._started = self._monotonic()
+        return self._started + self._deadline_s - self._monotonic()
+
+
+_FETCH_CLOCK: ContextVar[_FetchClock | None] = ContextVar("aia_fetch_clock", default=None)
 
 
 def fetch_time_left() -> float | None:
     """Seconds left of the fetch in progress in this context, or ``None`` outside one.
 
-    A wire bounds its request by it, so a redirect or a robots.txt read never starts a
-    fresh deadline of its own."""
-    left = _TIME_LEFT.get()
-    return None if left is None else left()
+    A wire asks as it sends, and bounds its request by the answer, so a redirect or a
+    robots.txt read never starts a fresh deadline of its own; the first ask starts the
+    fetch's clock."""
+    clock = _FETCH_CLOCK.get()
+    return None if clock is None else clock.left(start=True)
+
+
+def fetch_out_of_time() -> bool:
+    """Whether the fetch in progress has sent and has no time left: a failure now is the
+    deadline's, not the host's (so nothing is learned about the host from it)."""
+    clock = _FETCH_CLOCK.get()
+    return clock is not None and clock.started and clock.left(start=False) <= 0
 
 
 @contextmanager
-def _fetch_deadline(left: Callable[[], float]) -> Iterator[None]:
-    token = _TIME_LEFT.set(left)
+def _fetch_deadline(clock: _FetchClock) -> Iterator[None]:
+    token = _FETCH_CLOCK.set(clock)
     try:
         yield
     finally:
-        _TIME_LEFT.reset(token)
+        _FETCH_CLOCK.reset(token)
 
 
 # --------------------------------------------------------------------------- #
@@ -612,13 +645,18 @@ class WebFetcher:
         ``host_out_of_scope``, a later hop as ``redirect_out_of_scope`` -- in both
         cases before anything is sent to that host.
         """
-        limit = self._monotonic() + self._deadline_s
-
-        def left() -> float:
-            return limit - self._monotonic()
-
-        with _fetch_deadline(left):
-            return self._hops(url, max_bytes=max_bytes, host_allowed=host_allowed, left=left)
+        clock = _FetchClock(self._monotonic, self._deadline_s)
+        with _fetch_deadline(clock):
+            try:
+                return self._hops(url, max_bytes=max_bytes, host_allowed=host_allowed, clock=clock)
+            except ToolCallFailed as exc:
+                if exc.delivery is Delivery.NOT_SENT and clock.started:
+                    # This request was not sent, but an earlier one of the same fetch was:
+                    # the call as a whole may have been served.
+                    raise ToolCallFailed(
+                        str(exc), reason=exc.reason, delivery=Delivery.UNKNOWN
+                    ) from exc
+                raise
 
     def _hops(
         self,
@@ -626,17 +664,17 @@ class WebFetcher:
         *,
         max_bytes: int,
         host_allowed: HostFilter | None,
-        left: Callable[[], float],
+        clock: _FetchClock,
     ) -> tuple[str, list[str], FetchedResponse]:
         redirects: list[str] = []
         current = url
         while True:
-            if left() <= 0:
+            if clock.left(start=False) <= 0:
                 # One deadline for the whole fetch: no hop starts once it has passed.
                 raise ToolCallFailed(
                     "the fetch's deadline passed before this request",
                     reason="timeout",
-                    delivery=Delivery.RESPONDED if redirects else Delivery.NOT_SENT,
+                    delivery=Delivery.NOT_SENT,
                 )
             host = check_url(current)
             if host_allowed is not None and not host_allowed(host):
