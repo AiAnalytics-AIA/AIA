@@ -118,6 +118,26 @@ describe("the panel's controls", () => {
     expect(canvas().getAttribute("data-selected")).toBe("");
   });
 
+  it("opens the terrain Hladký, switches it to Blokový from Nastavení mapy, redraws, and remembers the choice", async () => {
+    window.localStorage.removeItem("aia.objectMap.terrain");
+    onTestFinished(() => window.localStorage.removeItem("aia.objectMap.terrain"));
+    const { unmount } = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    // jsdom has no WebGL: the smooth terrain's frame still draws, as the blocky terrain.
+    await nextFrame(0);
+    expect(canvas().getAttribute("data-terrain")).toBe("smooth");
+    const before = frames;
+    openSettings();
+    expect(screen.getByRole("button", { name: "Hladký" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Blokový" }));
+    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
+    expect(screen.getByRole("button", { name: "Blokový" }).getAttribute("aria-pressed")).toBe("true");
+    await nextFrame(before);
+    expect(window.localStorage.getItem("aia.objectMap.terrain")).toBe("blocky");
+    unmount();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
+  });
+
   it("switches Absolutni / Relativni and the relation display, redrawing each time", async () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     await nextFrame(0);
