@@ -16,11 +16,12 @@ chunks:
   - "[ ] CPR13. Přidat podklady: Vložit odkaz, one public URL kept as the client's source (W2, after client-knowledge-lifecycle#K2e)"
   - "[ ] CPR14. Remove Projektová paměť: off the global navigation (three items left), its pages redirected, its search folded into Výzkumy (CPR9); the memory search and reuse routes stay (Nigel, 27 Oct; W1)"
   - "[ ] CPR15. The library's layout: kinds as a segment, the open item in a 380 px drawer (W1)"
-  - "[ ] CPR16. Label colours without green: the swatch picker offers no green, which belongs to the version in force alone; what happens to existing green labels is the owner's open Q2 (W1)"
-  - "[ ] CPR17. Znalosti as a Drive (canvas v6): the folder tree on the left, a breadcrumb whose every part is a drop target, a row or tile view, every client file in one list (GET /clients/{id}/sources), a row dragged onto a folder moved at once with Vrátit for 8 s, the same actions in the ⋯ menu and on right-click, a details panel, the Interní switch on a file, Přečíst znovu; renaming a file waits on the owner's open Q1 (W2, with study-files#SF3)"
+  - "[ ] CPR16. Label colours without green: GREEN dropped from LabelColour, a migration recolouring every stored green label teal, the picker offering no green, which belongs to the version in force alone (Q2, Nigel 27 Oct; W1)"
+  - "[ ] CPR17. Znalosti as a Drive (canvas v6): the folder tree on the left, a breadcrumb whose every part is a drop target, a row or tile view, every client file in one list (GET /clients/{id}/sources), a row dragged onto a folder moved at once with Vrátit for 8 s, the same actions in the ⋯ menu and on right-click, a details panel, the Interní switch on a file, Přečíst znovu; a file renamed in place, no new revision, audited (Q1); 'Smazat…' in the file menu with its confirmation (CPR22) (W2, with study-files#SF3)"
   - "[ ] CPR18. Aktivita: the client's source occurrences as a timeline (who added what, when, from where) (W2, after study-files#SF4)"
   - "[ ] CPR19. Journey: the four client tabs at 1440 px with the narrower layouts kept, the hero's figures, a client sorted and searched, a profile field edited in place and read back, a file added to a chosen folder; zero paid jobs (W2)"
   - "[ ] CPR20. Removing a contact on Profil with Vrátit: today it is removed at once, with no undo and no confirmation (ProfileArea.tsx:261-262); the removal held for Vrátit as the design draws it (a defect; W1)"
+  - "[ ] CPR22. Smazat znalost: deleting a knowledge item (a brand or competitor on Profil too) from its menu, a confirmation that says it is permanent and that studies keep their copies, no undo; on client-knowledge-lifecycle#K19's route (Q3, Nigel 27 Oct; W2, after K19)"
   - "[ ] CPR21. The Petrol core v4 visual base brought into apps/web/src/design/tokens.json (then npm run tokens and make web_design), a separate chunk after the redesign's screens (the design-system session's canvas v10; W3)"
 ---
 # Client pages redesign: Klienti, the client's tabs and Přidat podklady
@@ -99,8 +100,10 @@ ceiling, data posture and self-approval changes from the audit too, each with th
 (`client-knowledge-lifecycle#K15`) and never an e-mail. Test: a budget change reads in the history with who and
 when.
 
-**CPR4. The client hero** (W1). Five figures (the canvas: studies, knowledge, waiting, files, budget), each from the
-API, unknown in words. Test: a figure the API leaves null reads "neznámé".
+**CPR4. The client hero** (W1). Since canvas v16 a compact header: one line with the tile, the client's name, a
+status chip, a coral "N ke schválení" link and the actions; the description on one line below; the figures (the
+canvas: studies, knowledge, waiting, files, budget) quiet on the tab row, a figure a tab already counts dropped; each
+from the API, unknown in words. Test: a figure the API leaves null reads "neznámé".
 
 **CPR5. Tabs and actions** (W1). Underline tabs; Přidat podklady (secondary) and Nový výzkum (primary) in the hero
 on every tab. Test: every tab shows both, in the same place.
@@ -171,18 +174,20 @@ ADR 0015's navigation.
 **CPR15. The library's layout** (W1). Kinds as a segment (not pills); the open item in a 380 px drawer; the review
 views as `client-knowledge-lifecycle#K14` names them. Test: the drawer opens on `?item=` at 380 px.
 
-**CPR16. Labels without green** (W1). `LabelColour.GREEN` stays in the API
-(`packages/aia_core/src/aia_core/domain/knowledge.py:353`); the picker stops offering it. **Open (the owner's Q2):**
-what happens to the existing green labels; not decided here, and until it is they render as stored. Test: the picker
-has no green.
+**CPR16. Labels without green** (W1; Q2, Nigel 27 Oct). Green belongs to the version in force alone. `GREEN` is
+dropped from `LabelColour` (`packages/aia_core/src/aia_core/domain/knowledge.py:353`) and from the web's palette
+(`apps/web/src/lib/knowledge-library.ts:52`); one migration rewrites every stored green label to teal (`TEAL`, added
+if the enum lacks it), audited as one system change; the picker offers no green. Test: the migration turns a green
+label teal and its downgrade restores it; the API refuses `GREEN`; the picker has no green.
 
 **CPR17. Znalosti as a Drive** (W2; canvas v6, with `study-files#SF3`'s tree and moves). The folder tree on the left;
 a breadcrumb whose every part is a drop target; a row or tile view; every client file in one list from the sources
 route the web does not read yet (`client_sources.py:295`); a row dragged onto a folder moves at once with Vrátit for
 8 s (`components/ui` UndoToast), the same actions in the ⋯ menu and on right-click; a details panel; the "Interní
 dokument" switch on a file (`PUT …/sources/{id}/internal`); Přečíst znovu (`POST …/sources/{id}/reading`). SF3 owns
-the tree, the "Přesunout do…" dialog and a new subfolder opening with its name selected. **Open (the owner's Q1):**
-does renaming a file create a new knowledge revision? No file rename is built here until it is answered. Test: the
+the tree, the "Přesunout do…" dialog and a new subfolder opening with its name selected. **Renaming a file**
+(Q1, Nigel 27 Oct): in place in the list and the details panel, the name only, no new knowledge revision and no
+approval, audited. "Smazat…" in the file menu opens CPR22's confirmation. Test: the
 file list matches the sources route; a drag onto a breadcrumb part moves the file and Vrátit puts it back; Přečíst
 znovu shows the new reading.
 
@@ -197,20 +202,28 @@ the click: no undo, no confirmation. The design gives it Vrátit: the row leaves
 the Vrátit window closes, or, if the server removes at once, Vrátit re-creates the contact with its fields (the PR
 says which and why). Test: remove, Vrátit, the contact is back after a reload; remove and wait, it is gone.
 
+**CPR22. Smazat znalost** (W2; Q3, Nigel 27 Oct; after `client-knowledge-lifecycle#K19`). "Smazat znalost…" on
+an item and "Smazat…" in a file's menu (canvas v17), and a brand's or competitor's remove on Profil, each opening one
+confirmation: the item is deleted for good, studies that used it keep their frozen copy, no undo. Test: a confirmed
+delete removes the item from the library; a study's frozen context still reads it; cancelling deletes nothing.
+
 **CPR21. Petrol core v4 into tokens.json** (W3; a separate chunk after the screens). The design-system session's
 canvas v10 is the source; `apps/web/src/design/tokens.json` is the design system's one source (CLAUDE.md § 2), so the
 change is made there, then `npm run tokens`, and `make web_design` holds (contrast, palette and accent evidence).
 Test: `make web_design`; the client journey (CPR19) passes on the new tokens.
 
-## Open questions for the owner (from the canvas, board 0, §03; recorded, not decided)
+## The owner's answers (from the canvas, board 0, §03; Nigel, 27 Oct 2026 (the Klienti canvas session, relayed by the PM coordinator; the folder rule in the PM coordinator's chat ~10:00 UTC))
 
-- **Q1. Does renaming a file create a new knowledge revision?** The file's name is the knowledge item's name; a file
-  browser renames without one. Open, on CPR17 and `study-files#SF3`.
-- **Q2. What happens to the existing green labels?** The picker loses green (the owner's "label colours without
-  green"); the stored green labels are open, on CPR16.
-- **Q3. Is a knowledge item retired or deleted?** Open for a single item, on `client-knowledge-lifecycle#K6` and
-  CPR17's details panel. A deleted folder's files are retired by the owner's own decision of 27 Oct
-  (`study-files#SF2`), which this question does not reopen.
+- **Q1. Renaming a file:** the name changes, with no new knowledge revision and no approval; the rename is audited
+  (CPR17, `study-files#SF3`).
+- **Q2. Green labels:** green leaves the palette and existing green labels are recoloured teal by a migration
+  (CPR16).
+- **Q3. Removing a knowledge item:** deleted permanently after a confirmation, no undo, brands and competitors too;
+  studies that used it keep their frozen copy; audited (`client-knowledge-lifecycle#K19`, CPR22). A folder's files
+  go the same way ("Deleted too, like Q3", `study-files#SF2`).
+- **Compact headers (canvas v16):** every hero is a compact header. On a client page, one line: the tile, the
+  client's name, a status chip, a coral "N ke schválení" link and the actions, the description on one line below,
+  the figures quiet on the tab row (a figure a tab already counts dropped). CPR4 builds this header, not a tall hero.
 
 ## Doc follow-up
 

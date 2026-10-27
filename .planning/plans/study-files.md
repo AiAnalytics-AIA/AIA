@@ -2,8 +2,8 @@
 status: planned
 chunks:
   - "[ ] SF1. Folders inside folders, the server: client_knowledge_folders.parent_id (migration), a name unique within its parent instead of within the client, a folder moved into another folder (a cycle refused by name), each folder's path in the folder routes' answers; every folder there today becomes a root folder (W2)"
-  - "[ ] SF2. Deleting a folder deletes what is inside it: the subfolders go and every file's knowledge item is retired (Vyřazeno), after a preview that counts the folders and files; audited, one transaction; the retired state lands here, ahead of client-knowledge-lifecycle#K6 (W2, after SF1)"
-  - "[ ] SF3. The folder tree on screen (canvas v6): the library's folders as a tree, a folder dragged into a folder, a file dragged onto a folder and moved at once with Vrátit for 8 s, a 'Přesunout do…' dialog for keyboard users, a new subfolder opening with its name selected, the delete confirmation naming how many files go; renaming waits on the owner's open Q1 (W2, after SF1 and SF2)"
+  - "[ ] SF2. Deleting a folder deletes what is inside it, for good: the subfolders go and every file's knowledge item is deleted permanently, after a preview that counts the folders and files and a confirmation, no undo; studies keep their frozen copies; audited, one transaction; the item deletion is client-knowledge-lifecycle#K19's, landed here first if SF2 comes first (W2, after SF1)"
+  - "[ ] SF3. The folder tree on screen (canvas v6): the library's folders as a tree, a folder dragged into a folder, a file dragged onto a folder and moved at once with Vrátit for 8 s, a 'Přesunout do…' dialog for keyboard users, a new subfolder opening with its name selected, the delete confirmation naming how many files go; a file renamed in place, no new revision (Q1) (W2, after SF1 and SF2)"
   - "[ ] SF4. A source occurrence names its study: client_source_occurrences.study_id (migration; null for every occurrence before), written by every writer that adds a file from inside a study (W2)"
   - "[ ] SF5. Each study's folders, made by AIA: Studie / <název studie> / Vstupy and Výstupy, made for a new study and, for a study from before, when its first new file arrives; files there today stay where they are (W2, after SF1)"
   - "[ ] SF6. Brief files filed: a file attached on Zadání is kept as one of the client's sources with this study's occurrence and its knowledge item filed in the study's Vstupy (W2, after SF4 and SF5; with artifact-brief#BRF7's class rule)"
@@ -53,8 +53,14 @@ give the study) and Výstupy (what the study hands out). No plan held it. Today:
 - **Real nesting.** Folders get a parent (a migration), there is a tree in the browser, and folders move into
   folders. Each study gets "Studie / <name> / Vstupy, Výstupy" created automatically. "all current files can stay
   where they are, this will count for new files after the build".
-- **Deleting a folder** with subfolders and files deletes everything inside. Its files are retired (their
-  knowledge items set to Vyřazeno). A confirmation names how many files go.
+- **Deleting a folder** with subfolders and files deletes everything inside, permanently: the files' knowledge
+  items are deleted, not retired, after a confirmation that names how many files go, with no undo (superseded on
+  27 Oct by the single-item rule below; the earlier "retired" reading is withdrawn).
+- **Q1, Q2, Q3 decided** (Nigel, 27 Oct 2026 (the Klienti canvas session, relayed by the PM coordinator; the folder rule in the PM coordinator's chat ~10:00 UTC)): a file **renamed** changes its name only, no new knowledge revision and no
+  approval, recorded in the audit; **green labels** are removed from the palette and existing ones recoloured teal;
+  a knowledge item **deleted** is deleted permanently after a confirmation, no undo (brands and competitors too),
+  studies that used it keep their frozen copy, the deletion is audited. "Deleted too, like Q3" for a folder's files
+  (Nigel, in the PM coordinator's chat).
 - **Downloads.** Every file downloaded from a study is filed in its Výstupy as one of the client's sources, once per
   SHA-256. Approval files nothing (Nigel, earlier: "not approved, downloaded").
 - **Chat files.** A file given to the Lead is kept as a client source in the study's Vstupy. A person may move it,
@@ -72,11 +78,11 @@ give the study) and Výstupy (what the study hands out). No plan held it. Today:
 
 - **Migrations:** SF1 (`parent_id`, the unique constraint replaced) and SF4 (`study_id` on an occurrence), each its
   own Alembic revision, one migration head at a time (the serial migration lane, ARCHITECTURE.md §8).
-- **Retirement:** SF2 retires knowledge items, and no retired state exists yet (`domain/knowledge.py` has none).
-  `client-knowledge-lifecycle#K6` (retirement, correction, conflicts) is W3, after SF2's W2, so SF2 lands the
-  retired state itself: an item set Vyřazeno by a new revision with provenance, read as retired, never offered to a
-  study's context. K6 keeps correction, conflicts and dependent-study visibility, and a single item's Vyřadit. Both
-  are S3's (proposed here, planning, 2026-10-27; K6's owner confirms).
+- **Deletion, not retirement:** SF2 deletes knowledge items for good. Today the only DELETE routes are a contact, a
+  folder and a label (`routers/workspace.py:1588, 1748, 1832 @ dbaa7720`), so an item's deletion is new:
+  `client-knowledge-lifecycle#K19` builds it (W2), and SF2 uses it, landing it itself if it comes first. A study's
+  frozen knowledge context (K4, `FrozenKnowledgeContext`) keeps the deleted item's revision as frozen. No retired
+  state is built for this.
 - **The file in a Lead turn:** SF7 after `lead-orchestration#LO18a`.
 - **The brief file's class:** SF6 with `artifact-brief#BRF7` (a brief's files Class A by rule, "Veřejné" by a
   person), so a brief file kept as a client source keeps the class BRF7 gives it.
@@ -94,19 +100,21 @@ folder moved under another answers its path; a cycle is refused; two folders of 
 are allowed, under one parent refused.
 
 **SF2. A folder deleted with what is inside it** (W2). `GET …/knowledge/folders/{id}/deletion` counts the
-subfolders and files that go; `DELETE` removes the subtree and retires every file's knowledge item (Vyřazeno, a
-new revision with provenance; the source's bytes kept), one transaction, audited with the counts.
+subfolders and files that go; `DELETE` removes the subtree and deletes every file's knowledge item permanently (K19's deletion: the item, its
+revisions out of the library; a study's frozen copy kept; the source's bytes kept while another item or occurrence
+still names them), one transaction, audited with the counts.
 Replaces today's rule (items stay, in no folder, `workspace.py:1749-1752`). Test: deleting a folder with one
-subfolder and three files retires three items, and the preview said three.
+subfolder and three files deletes three items, the preview said three, and a study that froze one of them still
+reads its frozen copy.
 
 **SF3. The folder tree on screen** (W2; canvas v6, "Znalosti drawn as a Google Drive"). The library's folder pane
 as a tree; drag a folder onto a folder and a file onto a folder (the existing `PUT …/knowledge/placement`,
 `workspace.py:1853`, for files), the move made at once with Vrátit for 8 s; a "Přesunout do…" dialog for keyboard
 users (arrow keys in the tree, `lib/roving.ts`); a new subfolder opens with its name already selected; the delete
-confirmation names the count SF2's preview gives ("Smazat složku a 3 soubory"), with the files' retirement in words.
+confirmation names the count SF2's preview gives ("Smazat složku a 3 soubory"), saying the files are deleted for good and studies keep their copies.
 The breadcrumb drop targets, the row and tile view and the details panel are `client-pages-redesign#CPR17`'s.
-**Open (the owner's Q1):** does renaming a file create a new knowledge revision? Folder renames exist today; a file
-rename is not built until it is answered. Test: a component test for the tree's keyboard, the dialog, Vrátit after
+**Renaming a file (Q1, decided 27 Oct):** in place, the name only, no new knowledge revision and no approval; the
+rename is audited. Test: a component test for the tree's keyboard, the dialog, Vrátit after
 a move and the confirmation's count.
 
 **SF4. An occurrence names its study** (W2). `client_source_occurrences.study_id`, null for every occurrence
@@ -174,9 +182,8 @@ run's answers and a download in Výstupy, a folder with a subfolder deleted with
 
 ## Open questions
 
-The owner's, from the client canvas, recorded and not decided: **Q1** (does renaming a file create a new knowledge
-revision?) on SF3; **Q3** (is a knowledge item retired or deleted?) for a single item, on
-`client-knowledge-lifecycle#K6`. A deleted folder's files are retired by the owner's own decision of 27 Oct (SF2).
+Q1 to Q3 were decided on 27 Oct (see the owner's decisions above): rename without a revision, green labels
+recoloured teal, deletion permanent for an item and for a folder's files.
 
 Decided by default (planning, 2026-10-27, open to Nigel's override): a person may delete a
 study's folders and AIA makes them again for the next file (SF5); a download that cannot be filed still downloads
@@ -185,7 +192,7 @@ study's folders and AIA makes them again for the next file (SF5); a download tha
 ## Doc follow-up
 
 - `CLAUDE.md` § 2, when SF1 lands: `client_knowledge_repository.py`'s folders are nested (a parent, a path, a
-  subtree delete that retires its files); when SF4 lands: an occurrence names its study.
+  subtree delete that deletes its files); when SF4 lands: an occurrence names its study.
 - `CLAUDE.md` § 2, when RA2 lands: the answer files' renderer and where it lives.
 - `CLAUDE.md` § 2, when SF10 lands: the client workspace is Přehled, Výzkumy, Znalosti, Profil (Simulace hidden for the MVP; Data
   folded into Znalosti).

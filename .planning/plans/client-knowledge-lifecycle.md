@@ -37,6 +37,7 @@ chunks:
   - "[ ] K16. 'Cena nejvýše' of AI proposals from a document, the server: the run's ceiling quoted before the start, confirmed by the person, asked again when it grows (lead-orchestration#LO29's rule) (Nigel, 27 Oct 2026; W1)"
   - "[ ] K17. The ceiling on 'Navrhnout znalosti' before the start, 'horní mez, ne odhad', unknown never zero, asked again when it grows (W1, after K16)"
   - "[ ] K18. After the MVP: the Data Library's shared-layer flow, as the prototypes draw it (Nigel, 27 Oct 2026)"
+  - "[ ] K19. Deleting a knowledge item for good: DELETE …/knowledge/{item_id} (a person with the right permission), the item and its revisions out of the library, a study's frozen copy kept, the source's bytes kept while anything else names them, audited; no retired state (Q3, Nigel 27 Oct; W2)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -941,11 +942,10 @@ partly built). Nothing scheduled.
 **K9 on Klienti.** Nigel, 27 Oct 2026: the cross-client "needs me today" is in the MVP, on Klienti. K9 stays this
 plan's (its read); its place on the directory is `client-pages-redesign#CPR8`.
 
-**K6 and `study-files#SF2`.** Nigel, 27 Oct 2026: deleting a folder retires its files (their items set to Vyřazeno).
-`study-files#SF2` is W2 and K6 is W3, so SF2 lands the retired state (an item set Vyřazeno by a new revision, read as
-retired, never offered to a study's context); K6 keeps correction, conflicts, dependent-study visibility and a single
-item's Vyřadit, and builds on it (proposed by planning, 2026-10-27; K6's owner confirms).
-
-**K6: the owner's open Q3** (the client canvas, recorded 2026-10-27, not decided): is a knowledge item retired or
-deleted? K6's single-item Vyřadit waits for the answer. A deleted folder's files are retired by the owner's own
-decision (`study-files#SF2`), which the question does not reopen.
+**K19 and K6: deletion, not retirement** (Nigel, 27 Oct 2026 (the Klienti canvas session, relayed by the PM coordinator; the folder rule in the PM coordinator's chat ~10:00 UTC)). Q3: a knowledge item is deleted permanently after a confirmation,
+no undo, brands and competitors too; studies that used it keep their frozen copy (K4's `FrozenKnowledgeContext`); the
+deletion is audited. A folder's files are deleted the same way (`study-files#SF2`; the earlier "retired" reading is
+withdrawn). K19 builds the item deletion (W2): today the only DELETE routes are a contact, a folder and a label
+(`apps/api/src/aia_api/routers/workspace.py:1588, 1748, 1832 @ dbaa7720`). K6 keeps correction, conflicts and
+dependent-study visibility; it no longer builds a retired state or a Vyřadit, and "dependent-study visibility" now
+includes saying an item a study froze has since been deleted. The screens are `client-pages-redesign#CPR22`.

@@ -543,6 +543,8 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-pages-redesign#CPR19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client canvas v7's defect (a contact removed with no undo); wave proposed here |
 | `client-pages-redesign#CPR21` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the visual base Petrol core v4 (the design-system session's canvas v10) into tokens.json, a separate later chunk; wave proposed here |
+| `client-pages-redesign#CPR22` | W2 | Nigel, 27 Oct 2026, Q3 (the Klienti canvas session, relayed by the PM coordinator): deleting a knowledge item, the screens; after K19 |
+| `client-knowledge-lifecycle#K19` | W2 | Nigel, 27 Oct 2026, Q3: deleting a knowledge item for good, the route; before `study-files#SF2` uses it |
 | `research-lead-workbench#53` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Q44); wave proposed here |
 | `research-lead-workbench#54` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (run card cancel); wave proposed here |
 | `research-lead-workbench#55` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (folded card rows); wave proposed here |
