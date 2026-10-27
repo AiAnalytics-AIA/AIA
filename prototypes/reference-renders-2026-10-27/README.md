@@ -6,10 +6,10 @@ anything lost in the move.
 
 | Folder | What | Exported in | Images |
 |---|---|---|---|
-| `clients-2026-10-27/` | AIA Klienti – prototyp, v19, core v4.3 | #1026 | 8 boards |
+| `clients-2026-10-27/` | AIA Klienti – prototyp, v20, core v4.3 | #1026 | 8 boards |
 | `research-stages-2026-10-27/` | AIA Výzkumné kroky – prototyp, v95, core v4.3 | #1027 | 24 boards |
 | `settings-2026-10-27/` | AIA Nastavení – prototyp, v117 (`1793098752-b063`), core v4.3 | #1028 | 11 boards |
-| `design-system-2026-10-27/` | AIA Design System v3.2 (artifact `1793098287-902c`), its `index.html` in light and dark | #1031 | 2 pages |
+| `design-system-2026-10-27/` | AIA Design System v3.2 (artifact v12, `1793100361-1081`), its `index.html` in light and dark | #1031 | 2 pages |
 | `ux-upgrade-2026-10-27/` | The before/after page of the UX upgrade (`1793072278-450e`) | #1031 | 1 page |
 
 Each board image is named `NN-<board>.webp`, in the order of the board list in the canvas's `canvas.json`.
