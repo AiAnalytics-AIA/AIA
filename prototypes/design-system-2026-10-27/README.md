@@ -8,6 +8,7 @@ person and number in it is fictional.
 |---|---|
 | Live artifact (private to the owner's account) | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> |
 | Exported version | v11, artifact version id `1793098287-902c`, 27 Oct 2026 |
+| Before / after | [`../ux-upgrade-2026-10-27/`](../ux-upgrade-2026-10-27/): the UX upgrade's audits and 12 screens before and after |
 | Product code it matches | draft PRs #1022 (`feature/ux-upgrade`: Petrol, the AI spark edge, the command palette, one way to save, undo, pay and fail) and #1030 (`feature/ux-shared-components`: StatusPill, Value, StaleMark, AiJobCard, ItemReview) |
 
 ## How to open it
@@ -24,7 +25,7 @@ artifact, with a light/dark switch. It loads only files in this folder:
 | `components/<Name>/README.md` | A component's rules: anatomy, states, behaviour, what it replaces in `apps/web` with `file:line` |
 | `tokens.json`, `tokens.css` | The tokens: Petrol colours in light and dark, type, spacing, radii, motion |
 | `bundle.css` | The components' stylesheet: core v4.1 plus the AI layer of core v4.2 |
-| `aia-core-v4.2.css` | The shared stylesheet the three prototype canvases (Klienti, Výzkumné kroky, Nastavení) load since 27 Oct |
+| `aia-core-v4.3.css` | The shared stylesheet the three prototype canvases load: Klienti v19, Výzkumné kroky v94, Nastavení v117. It is v4.2 plus the rail fix: hover, active, brand and foot use `--shellstrong`, not v3's `#fff`, which turned hovered items white on the light rail. It also adds `.ph-dots-three` |
 | `docs/brand-book.md` | The artifact's README: foundations, colour and status rules, type, the Interakce catalogue's summary |
 | `docs/co-nahrazuje-co.md` | Every old form in `apps/web` and what replaces it |
 | `docs/otazky-k-rozhodnuti.md` | D1–D15, the questions only the owner decides, each with a recommendation |
