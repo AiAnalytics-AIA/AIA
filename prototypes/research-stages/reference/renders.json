@@ -1,0 +1,252 @@
+[
+ {
+  "board": "Analysis.dc.html",
+  "title": "10 · Analýza",
+  "w": 1440,
+  "h": 2700,
+  "text_chars": 5584,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Analysis.webp"
+ },
+ {
+  "board": "Audience.dc.html",
+  "title": "4 · Cílová skupina",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4463,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Audience.webp"
+ },
+ {
+  "board": "Brief.dc.html",
+  "title": "1 · Zadání",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 5587,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-Brief.webp"
+ },
+ {
+  "board": "Cards.dc.html",
+  "title": "Karty Vedoucího",
+  "w": 1440,
+  "h": 2600,
+  "text_chars": 5790,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-Cards.webp"
+ },
+ {
+  "board": "CardsF.dc.html",
+  "title": "Karty Vedoucího v chatu (nové)",
+  "w": 1440,
+  "h": 5200,
+  "text_chars": 12629,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-CardsF.webp"
+ },
+ {
+  "board": "ChatA.dc.html",
+  "title": "Chat A · Přepis",
+  "w": 440,
+  "h": 900,
+  "text_chars": 432,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-ChatA.webp"
+ },
+ {
+  "board": "ChatB.dc.html",
+  "title": "Chat B · Bubliny",
+  "w": 440,
+  "h": 900,
+  "text_chars": 356,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-ChatB.webp"
+ },
+ {
+  "board": "ChatC.dc.html",
+  "title": "Chat C · Časová osa",
+  "w": 440,
+  "h": 900,
+  "text_chars": 374,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-ChatC.webp"
+ },
+ {
+  "board": "ChatD.dc.html",
+  "title": "Chat D · Kompaktní záznam",
+  "w": 440,
+  "h": 900,
+  "text_chars": 265,
+  "errors": [],
+  "failed_requests": [],
+  "image": "09-ChatD.webp"
+ },
+ {
+  "board": "ChatE.dc.html",
+  "title": "Chat E · Rozhodnutí nahoře",
+  "w": 440,
+  "h": 900,
+  "text_chars": 392,
+  "errors": [],
+  "failed_requests": [],
+  "image": "10-ChatE.webp"
+ },
+ {
+  "board": "ChatF.dc.html",
+  "title": "Chat F · Bubliny na časové ose (nový)",
+  "w": 440,
+  "h": 900,
+  "text_chars": 296,
+  "errors": [],
+  "failed_requests": [],
+  "image": "11-ChatF.webp"
+ },
+ {
+  "board": "Design.dc.html",
+  "title": "2 · Návrh",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 6257,
+  "errors": [],
+  "failed_requests": [],
+  "image": "12-Design.webp"
+ },
+ {
+  "board": "Dimensions.dc.html",
+  "title": "5 · Dimenze",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4742,
+  "errors": [],
+  "failed_requests": [],
+  "image": "13-Dimensions.webp"
+ },
+ {
+  "board": "Fieldwork.dc.html",
+  "title": "7 · Sběr dat",
+  "w": 1440,
+  "h": 2800,
+  "text_chars": 5799,
+  "errors": [],
+  "failed_requests": [],
+  "image": "14-Fieldwork.webp"
+ },
+ {
+  "board": "FieldworkDisc.dc.html",
+  "title": "7b · Respondenti při sběru dat",
+  "w": 1100,
+  "h": 900,
+  "text_chars": 787,
+  "errors": [],
+  "failed_requests": [],
+  "image": "15-FieldworkDisc.webp"
+ },
+ {
+  "board": "Main.dc.html",
+  "title": "Přehled, kritika a předání",
+  "w": 1440,
+  "h": 2600,
+  "text_chars": 13270,
+  "errors": [],
+  "failed_requests": [],
+  "image": "16-Main.webp"
+ },
+ {
+  "board": "Marks.dc.html",
+  "title": "Značka Vedoucího · 5 variant",
+  "w": 1440,
+  "h": 1240,
+  "text_chars": 1075,
+  "errors": [],
+  "failed_requests": [],
+  "image": "17-Marks.webp"
+ },
+ {
+  "board": "Questionnaire.dc.html",
+  "title": "3 · Dotazník",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 6384,
+  "errors": [],
+  "failed_requests": [],
+  "image": "18-Questionnaire.webp"
+ },
+ {
+  "board": "Report.dc.html",
+  "title": "11 · Zpráva",
+  "w": 1440,
+  "h": 2800,
+  "text_chars": 5480,
+  "errors": [
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failed_requests": [
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7Bshot%7D%7D"
+  ],
+  "image": "19-Report.webp"
+ },
+ {
+  "board": "Results.dc.html",
+  "title": "8 · Výsledky",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 5012,
+  "errors": [],
+  "failed_requests": [],
+  "image": "20-Results.webp"
+ },
+ {
+  "board": "Sample.dc.html",
+  "title": "6 · Vzorek",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4141,
+  "errors": [],
+  "failed_requests": [],
+  "image": "21-Sample.webp"
+ },
+ {
+  "board": "Sociomap.dc.html",
+  "title": "9 · Sociomapa (schválená dílna)",
+  "w": 1440,
+  "h": 4300,
+  "text_chars": 3424,
+  "errors": [],
+  "failed_requests": [],
+  "image": "22-Sociomap.webp"
+ },
+ {
+  "board": "ReportEditor.dc.html",
+  "title": "11b · Editor zprávy: vzhled a ověření",
+  "w": 1440,
+  "h": 2900,
+  "text_chars": 4315,
+  "errors": [
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failed_requests": [
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotDef%7D%7D",
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotAia%7D%7D"
+  ],
+  "image": "23-ReportEditor.webp"
+ },
+ {
+  "board": "Overview.dc.html",
+  "title": "Přehled studie (nový, UX v4)",
+  "w": 1440,
+  "h": 2200,
+  "text_chars": 2771,
+  "errors": [],
+  "failed_requests": [],
+  "image": "24-Overview.webp"
+ }
+]
