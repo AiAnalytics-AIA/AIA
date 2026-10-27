@@ -189,7 +189,7 @@ table.cfg{border-collapse:collapse;width:100%;font-size:13px;min-width:720px}
 table.cfg th{text-align:left;font:500 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:6px 10px 6px 0;border-bottom:1px solid var(--border)}
 table.cfg td{border-top:1px solid var(--border);padding:8px 10px 8px 0;vertical-align:top;color:var(--muted)}
 table.cfg td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px;max-width:260px;overflow-wrap:anywhere}
-.st-ON{background:var(--builtwash);color:var(--built)}
+.st-ON,.st-MATCH{background:var(--builtwash);color:var(--built)}
 .st-OFF{background:var(--faultwash);color:var(--fault)}
 .st-PARTIAL,.st-MISMATCH{background:var(--warnwash);color:var(--warn)}
 .st-MISSING{background:var(--faultwash);color:var(--fault)}
@@ -202,7 +202,7 @@ table.cfg td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px
     <div>
       <div class="eyebrow">AIA · product build</div>
       <h1>AIA Build Map</h1>
-      <p class="lede">Every plan in the repository, grouped by the page it changes, with its progress, what it depends on and what is still open. Built from the plan files on develop, so a rebuild is always the current state.</p>
+      <p class="lede">Every plan in the repository, grouped by the page it changes, with its progress, what it depends on and what is still open. Built by <span class="mono">tools/build_map/</span> from the plan files on develop, so a rebuild is always the current state.</p>
     </div>
     <div class="stamp" id="stamp"></div>
   </header>

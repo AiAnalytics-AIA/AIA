@@ -260,9 +260,9 @@
         "note": "Prototypes on core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
       },
       {
-        "t": "#1015 -5 terrain: IDW with a plain/falloff switch",
-        "who": "Aram",
-        "note": "10 fixes posted; Aram re-approves the fingerprint"
+        "t": "#1036 prototypes into undated folders",
+        "who": "merge gate",
+        "note": "Approved by Nigel; one re-run of a flaky web test queued; merges when green"
       },
       {
         "t": "Read-only AWS access for the audit",
@@ -358,13 +358,6 @@
       "blocks": "the shared account's security",
       "from": "infra audit, 27 Oct",
       "rec": "Use an IAM user or role for console work; keep root locked away with MFA."
-    },
-    {
-      "who": "Nigel",
-      "q": "ACTION: sign off Brave and approve the Deep Research values on Settings → Deep Research (you chose to keep it on and sign off now)",
-      "blocks": "deep-research-web-search 1, 51, 54",
-      "from": "27 Oct",
-      "rec": "Sign off with the proposed values; Deep Research has run on priced Brave since 14 Oct, so the sign-off catches the plan up with reality."
     },
     {
       "who": "Nigel",
@@ -487,7 +480,7 @@
     },
     {
       "who": "Operator",
-      "q": "One SSM session on the develop host: bin/smoke.sh, docs.sh and errors.sh status, one Lead turn's worker log, the budget's spend, and who calls Haiku 4.5 (60-330 calls a day, not AIA's role)",
+      "q": "One SSM session on the develop host: bin/smoke.sh, docs.sh and errors.sh status, one Lead turn's worker log, the budget's spend",
       "blocks": "the NEEDS OPERATOR rows: population on host, ONLYOFFICE, ADR 0022 approvals, budgets",
       "from": "infra audit, 27 Oct",
       "rec": "Do it this week: it closes most of the audit's unknowns in one sitting."
@@ -519,13 +512,6 @@
       "blocks": "sociomap-5-web 9",
       "from": "27 Oct",
       "rec": "Name it or drop it; the three scenarios are planned either way."
-    },
-    {
-      "who": "Nigel",
-      "q": "IAM user makli-bedrock calls Haiku 4.5 ~240-300 times a day from one IP, with two active access keys ('Local Cli', 'bedrock'). It isn't AIA. Whose is it, and do those keys stay?",
-      "blocks": "cost attribution and the shared account's security",
-      "from": "27 Oct",
-      "rec": "Find the owner today; if nobody claims it, disable both keys (reversible) rather than delete them."
     },
     {
       "who": "Operator",
