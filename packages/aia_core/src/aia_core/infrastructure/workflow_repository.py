@@ -2787,6 +2787,43 @@ class WorkflowRepository:
         self._session.flush()
         return True
 
+    def record_finding_review(
+        self, run_id: str, *, subject_id: str, decision: str, comment: str
+    ) -> LedgerEntry:
+        """Write a person's decision on one key finding of a run (artifact-analysis ANL11):
+        ``accepted``, ``edited``, ``dropped`` or ``undone``; ``comment`` names the module outcome
+        it was made on and an edit's wording (``domain/analysis/review.py`` ``review_comment``).
+        Append-only: a later row replaces an earlier one when read (``reviews_of``). The producer
+        is whoever started the run. Needs ``APPROVE_GATE``, which the worker's scope does not
+        hold. The caller has checked the finding and the wording
+        (``application/analysis_review.py``)."""
+        self.scope.require(Permission.APPROVE_GATE)
+        if decision not in ("accepted", "edited", "dropped", "undone"):
+            raise ValueError("a finding is accepted, edited, dropped or undone")
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.ANALYSIS_FINDING,
+            subject_id=subject_id,
+            run_id=run_id,
+            project_id=run.project_id,
+            project_revision=run.project_revision,
+            decision=decision,
+            comment=comment,
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return _ledger_entry(row)
+
     def record_lead_job_approval(
         self,
         lead_run_id: str,

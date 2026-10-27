@@ -27,6 +27,11 @@ from aia_core.application.analysis_results import (
     retry_failed_modules,
     stored_analysis,
 )
+from aia_core.application.analysis_review import (
+    FindingReviewRefused,
+    finding_reviews,
+    review_finding,
+)
 from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
@@ -117,6 +122,13 @@ from aia_core.application.researcher_spend import run_spend_of, run_spends
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.artifact import finding_diagnostic
+from aia_core.domain.analysis.modules import AnalysisModuleId
+from aia_core.domain.analysis.review import (
+    MAX_WORDING,
+    FindingDecision,
+    FindingKey,
+    FindingReview,
+)
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.answerability import (
     ANSWERABILITY_RULES,
@@ -2458,6 +2470,107 @@ def run_analysis(
             for module, outcome in analysis.modules.items()
         },
     }
+
+
+class FindingReviewRequest(BaseModel):
+    """A person's decision on one key finding; ``wording`` only with ``edited``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: FindingDecision
+    # Bounded here for the request's size; the wording's own limit is checked once stripped.
+    wording: str | None = Field(default=None, max_length=2 * MAX_WORDING)
+
+
+def _review(review: FindingReview) -> dict[str, Any]:
+    return {
+        "module": review.key.module.value,
+        "index": review.key.index,
+        "decision": review.decision.value,
+        "wording": review.wording,
+        "decided_by": review.decided_by,
+        "decided_at": review.decided_at.isoformat(),
+        "self_approved": review.self_approved,
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/analysis/findings",
+    response_model=dict[str, Any],
+    summary="Each key finding's review in force: accepted, edited or dropped",
+)
+def run_finding_reviews(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> dict[str, Any]:
+    """The newest decision on each of the run's key findings (artifact-analysis ANL11), made on the
+    module outcome the run shows (an analysis retry's reused outcome keeps its reviews). A finding
+    no one decided, or whose decision was undone, is absent: unknown, never accepted."""
+    try:
+        reviews = finding_reviews(session, scope, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        raise _not_found("run") from exc
+    return {"run_id": run_id, "reviews": [_review(r) for _, r in sorted(reviews.items())]}
+
+
+@router.put(
+    "/research/runs/{run_id}/analysis/findings/{module}/{index}",
+    response_model=dict[str, Any],
+    summary="Accept, edit, drop or undo one key finding of a run",
+    responses={
+        404: {"model": ErrorResponse, "description": "The run or the finding does not exist"},
+        422: {"model": ErrorResponse, "description": "The edited wording cannot stand"},
+    },
+)
+def review_run_finding(
+    run_id: RunIdPath,
+    module: AnalysisModuleId,
+    index: Annotated[int, Path(ge=0, le=999)],
+    body: FindingReviewRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """Needs ``APPROVE_GATE``. One row in the approval ledger (subject ``analysis_finding``),
+    never an overwrite: a later decision replaces an earlier one when read, and ``undone`` takes
+    the finding back to undecided. An edit keeps the finding's cited claims; every number in its
+    wording must be one of theirs (422 ``wording_numbers`` names the others)."""
+    if (body.wording is not None) != (body.decision is FindingDecision.EDITED):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "wording_mismatch", "message": "Only an edit carries a wording."},
+        )
+    try:
+        review = review_finding(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            key=FindingKey(module, index),
+            decision=body.decision,
+            wording=body.wording,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except FindingReviewRefused as exc:
+        if exc.reason == "finding_not_found":
+            raise _not_found("finding") from exc
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": exc.reason,
+                "message": "The edited wording cannot stand.",
+                "details": {"numbers": list(exc.numbers)},
+            },
+        ) from exc
+    return {"run_id": run_id, "review": _review(review) if review is not None else None}
 
 
 # The report is read only through the run that produced it.

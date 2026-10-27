@@ -157,6 +157,7 @@ __all__ = [
     "dataset_material",
     "harness_summary",
     "module_artifact",
+    "module_outcomes",
     "modules_asked",
     "native_sources",
     "prepare_module",
@@ -1138,6 +1139,14 @@ def _stored_record(
     if record.surface is ClaimSurface.INTERNAL:
         scope.require(Permission.EDIT_STUDY)
     return record, artifact
+
+
+def module_outcomes(
+    session: Session, scope: StudyContext, *, run_id: str
+) -> dict[AnalysisModuleId, str]:
+    """Each analysis module's stored outcome id for one run, from its steps alone (no artifact
+    read); a module without one is absent."""
+    return _split(_run(session, scope, run_id))[0]
 
 
 def stored_analysis(
