@@ -2,11 +2,12 @@
 
 A snapshot of the Design canvas "AIA Nastavení – prototyp"
 (<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7>, private to the owner's account), exported on
-27 Oct 2026 at about 10:20 UTC. It replaces nothing: [`../settings-v99/`](../settings-v99/) stays as the
+27 Oct 2026 at about 11:15 UTC. It replaces nothing: [`../settings-v99/`](../settings-v99/) stays as the
 26 Oct snapshot. Design reference only, no product code; every client, person and number is fictional.
 
-- **Version:** artifact version `1793094882-5e7e`, the canvas as it stood after v112. It includes the
-  owner's own canvas edit renaming the hatch start button to "Vypěstovat".
+- **Version:** v117, artifact version `1793098752-b063`, on core v4.3. It includes the owner's own canvas
+  edit renaming the hatch start button to "Vypěstovat" and the design-system session's v4.3 pass (the owner,
+  27 Oct 11:10 UTC: "i need these to be included").
 - **How to read it:** as in [`../README.md`](../README.md) § How to read a `.dc.html` file. Each
   `.dc.html` is one canvas artboard that loads `./support.js`, the canvas runtime, which is not exported.
   `canvas.json` gives each board's size, position and order.
@@ -14,7 +15,7 @@ A snapshot of the Design canvas "AIA Nastavení – prototyp"
 
 | File | What | Canvas asset |
 |---|---|---|
-| `assets/aia-core.css` | Core v4.2, the shared stylesheet: the Petrol palette, the shell (Dock rail, top bar with ⌘K palette and activity tray), the components and the Phosphor icons. Written by the design-system session from Settings' core v3 | `9fff001fbed19c1025ff49feadc9a25c` |
+| `assets/aia-core.css` | Core v4.3, the shared stylesheet: the Petrol palette, the shell (Dock rail, top bar with ⌘K palette and activity tray), the components and the Phosphor icons. Written by the design-system session from Settings' core v3 | `be52e47160b1f8335f5ed91f934ae252` |
 | `assets/aia-settings.css` | Settings-only: Metodika steps and maps, KPI tiles, the compact hero. Loaded second on the nine Settings boards | `88037ffee3c58d5ab72ffad1caf4bfc2` |
 | `assets/thinking-orb.js` | thinking-orbs 0.3.2 (MIT, Jakub Antalik) as a `<thinking-orb>` element; licence in its header | `6659cc2592302e4ff9bbdaaa4c953b68` |
 | `assets/889c3d28bc209704c3ef7887107cb48d.webp` | The Metodika Sociomapa card's placeholder image | `889c3d28bc209704c3ef7887107cb48d` |
@@ -43,10 +44,13 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
 - **The Petrol design system,** written by the design-system session (session_01WhkCbrxP4R2kgtfDvr4VRt)
   on the owner's word of 27 Oct ("Not just color, the whole design system and UX of all the open
   prototypes"):
-  - core v4.2 in place of core v3;
+  - core v4.3 in place of core v3;
   - a petrol accent, AI drawn graphite with a blue "spark" edge, orange for "čeká na vás";
   - a rail that follows the theme;
-  - the global ⌘K palette and the activity tray in the top bar.
+  - the global ⌘K palette and the activity tray in the top bar;
+  - the rail's hover and current item drawn in the rail's own ink (core v4.3), so text no longer turns white
+    on the light rail;
+  - Projektová paměť removed from the rail and the ⌘K palette.
   
   Its rules are in Design System v3.1 (<https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4>).
 - **Compact heroes** (the owner, 27 Oct: "all the heros in each page have no visual hierrchy and take
@@ -88,9 +92,6 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
 
 ## Still open
 
-- **Rail hover is unreadable** (the owner, 27 Oct): on the light rail the hovered item's text turns
-  white. The cause is two hover rules in core v4.2 that still hard-code `#fff`. The fix belongs to the
-  design-system session, which owns core; it isn't fixed in this snapshot.
 - **The flyout's Můj Vedoucí card** (no Lead yet) still draws the test tube in the old colour. It is
   drawn by core.
 - **The Metodika Sociomapa card** keeps a placeholder image until aia-sociomap-5 renders live ("lets
@@ -106,5 +107,5 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
   - the flyout's Můj Vedoucí card;
   - the collapsed rail's dot and ring;
   - the hero on the hatch page.
-- **The compact hero lives in `aia-settings.css`;** core v4.2 still carries the old 189 px hero, so
+- **The compact hero lives in `aia-settings.css`;** core v4.3 still carries the old 189 px hero, so
   other canvases (Klienti) keep it until the design-system session folds this in.
