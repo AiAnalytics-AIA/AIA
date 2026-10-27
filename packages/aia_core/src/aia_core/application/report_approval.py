@@ -42,6 +42,7 @@ from aia_core.application.report_document import document_of
 from aia_core.application.report_editor_saves import content_held
 from aia_core.application.report_variants import approval_asks_pdf, draft_pdf_ready, request_pdf
 from aia_core.application.research import ResearchRuns, research_artifacts
+from aia_core.domain.deep_research.documents import DocumentRefused
 from aia_core.domain.report.client_gate import edited_client_gate
 from aia_core.domain.report.document_model import read_document_payload
 from aia_core.domain.report.editor import (
@@ -50,11 +51,20 @@ from aia_core.domain.report.editor import (
     UnsavedEdits,
     unsaved_edits,
 )
-from aia_core.domain.report.saved_changes import SavedChanges, Uncomparable, read_changes_payload
+from aia_core.domain.report.saved_changes import (
+    SavedChanges,
+    Uncomparable,
+    read_changes_payload,
+    written_texts,
+)
 from aia_core.domain.report.sentence_check import sentence_findings
 from aia_core.domain.scope import Permission, StudyContext
 from aia_core.infrastructure.artifact_repository import Artifact, ArtifactRepository, ArtifactStatus
-from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
+from aia_core.infrastructure.report_docx.census import census
+from aia_core.infrastructure.report_editor_repository import (
+    EditorVersion,
+    ReportEditorRepository,
+)
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
@@ -302,4 +312,17 @@ def edited_client_warnings(
         changes = SavedChanges((), Uncomparable.NO_BASELINE)
     else:
         changes = read_changes_payload(json.loads(artifacts.read(version.changes_artifact_id)))
-    return [*base, *(f.to_json() for f in edited_client_gate(changes))]
+    found = edited_client_gate(changes, _written(artifacts, version))
+    return [*base, *(f.to_json() for f in found)]
+
+
+def _written(
+    artifacts: ArtifactRepository, version: EditorVersion
+) -> dict[str, frozenset[str]] | None:
+    """Per tag, the texts code wrote in ``version``'s line's composed draft (koncept 1, the
+    baseline its changes were compared with), so a copied control is told from a retyped one;
+    ``None`` when the draft does not read as a DOCX: then no added text counts as a copy."""
+    try:
+        return written_texts(census(artifacts.read(version.line_id)))
+    except DocumentRefused:
+        return None

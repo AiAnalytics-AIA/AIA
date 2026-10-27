@@ -4,22 +4,31 @@ drill-down content or an unadmitted number is each a warning naming its block (w
 
 from __future__ import annotations
 
+import copy
+import io
+import zipfile
+from collections.abc import Callable, Mapping
 from dataclasses import replace
 from types import MappingProxyType
 from typing import Any
 
+from lxml import etree
 from report_samples import build
 
 from aia_core.domain.evidence.claims import ClaimLevel, ClaimSurface
 from aia_core.domain.report.client_gate import GateCode, client_gate, edited_client_gate
 from aia_core.domain.report.document_model import document_payload
-from aia_core.domain.report.model import Paragraph, Quote, ReportDocument, Section, Value
+from aia_core.domain.report.model import Paragraph, Quote, ReportDocument, Section, Text, Value
 from aia_core.domain.report.saved_changes import (
     ChangeKind,
     SavedChange,
     SavedChanges,
     Uncomparable,
+    compare,
+    written_texts,
 )
+from aia_core.infrastructure.report_docx.census import census
+from aia_core.infrastructure.report_docx.renderer import DocxRenderer
 
 
 def _without_quotes(document: ReportDocument) -> ReportDocument:
@@ -108,8 +117,16 @@ def test_a_document_of_an_older_contract_is_not_judged_so_not_passed(report_ledg
 # -- a saved editor version of a client report (artifact-report RPT13) ------------------------
 
 
-def _edited(*changes: SavedChange, uncomparable: Uncomparable | None = None) -> list[Any]:
-    return [f.to_json() for f in edited_client_gate(SavedChanges(changes, uncomparable))]
+#: What code wrote under each tag in the line's composed draft, for the hand-built cases.
+_WRITTEN: Mapping[str, frozenset[str]] = {"trust_total": frozenset({"42,5 %"})}
+
+
+def _edited(
+    *changes: SavedChange,
+    uncomparable: Uncomparable | None = None,
+    written: Mapping[str, frozenset[str]] | None = _WRITTEN,
+) -> list[Any]:
+    return [f.to_json() for f in edited_client_gate(SavedChanges(changes, uncomparable), written)]
 
 
 _TEXT = {
@@ -133,17 +150,101 @@ def test_a_retyped_or_typed_number_is_unadmitted_and_the_text_is_never_passed() 
             "code": "unadmitted_number",
             "where": "text",
             "message": "číslo 73 % napsané ručně mimo připuštěná čísla"
-            " („Téměř tři čtvrtiny, 73 %, souhlasí.…“)",
+            " („Téměř tři čtvrtiny, 73 %, souhlasí.“)",
         },
         _TEXT,
     ]
 
 
-def test_a_removed_number_or_a_copy_under_its_own_tag_prints_nothing_new() -> None:
-    assert _edited(
-        SavedChange(ChangeKind.REMOVED, "trust_total", was="42,5 %"),
-        SavedChange(ChangeKind.ADDED, "trust_total", now="42,5 %"),
-    ) == [_TEXT]
+def test_a_typed_numbers_paragraph_is_marked_cut_only_where_it_was() -> None:
+    long = "Téměř tři čtvrtiny lidí, celkem 73 %, souhlasí s tím, že banka jedná férově a otevřeně."
+    (typed, _text) = _edited(SavedChange(ChangeKind.TYPED, now="73 %", paragraph=long))
+    assert typed["message"].endswith(f"(„{long[:60]}…“)")
+
+
+def test_a_removed_number_or_a_copy_of_what_code_wrote_under_its_tag_prints_nothing_new() -> None:
+    assert _edited(SavedChange(ChangeKind.REMOVED, "trust_total", was="42,5 %")) == [_TEXT]
+    assert _edited(SavedChange(ChangeKind.ADDED, "trust_total", now="42,5 %")) == [_TEXT]
+
+
+def test_a_control_copied_and_retyped_is_unadmitted() -> None:
+    """Review of #1017 (P1): ``added`` is any surplus text under a tag, not only a copy."""
+    retyped = {
+        "code": "unadmitted_number",
+        "where": "trust_total",
+        "message": "číslo přidané ručně: 99 %",
+    }
+    assert _edited(SavedChange(ChangeKind.ADDED, "trust_total", now="99 %")) == [retyped, _TEXT]
+    # A tag code never wrote holds nothing admitted to copy.
+    assert _edited(SavedChange(ChangeKind.ADDED, "trust_praha", now="42,5 %"))[0] == {
+        "code": "unadmitted_number",
+        "where": "trust_praha",
+        "message": "číslo přidané ručně: 42,5 %",
+    }
+    # What code wrote unknown, no added text is a copy: unknown is never passed.
+    assert _edited(SavedChange(ChangeKind.ADDED, "trust_total", now="42,5 %"), written=None) == [
+        {**retyped, "message": "číslo přidané ručně: 42,5 %"},
+        _TEXT,
+    ]
+
+
+_W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
+def _saved(docx: bytes, edit: Callable[[etree._Element], None]) -> bytes:
+    """``docx`` as an editor would save it after ``edit`` to its body."""
+    out = io.BytesIO()
+    with zipfile.ZipFile(io.BytesIO(docx)) as source, zipfile.ZipFile(out, "w") as target:
+        for info in source.infolist():
+            data = source.read(info)
+            if info.filename == "word/document.xml":
+                root = etree.fromstring(data)
+                edit(root)
+                data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+            target.writestr(info, data)
+    return out.getvalue()
+
+
+def _copy_control(tag: str, text: str | None) -> Callable[[etree._Element], None]:
+    """The control ``tag`` copied beside itself, its copy retyped to ``text`` (``None``: kept)."""
+
+    def edit(root: etree._Element) -> None:
+        (sdt,) = (
+            s
+            for s in root.iter(f"{_W}sdt")
+            if any(t.get(f"{_W}val") == tag for t in s.iter(f"{_W}tag"))
+        )
+        twin = copy.deepcopy(sdt)
+        if text is not None:
+            first, *rest = twin.iter(f"{_W}t")
+            first.text = text
+            for t in rest:
+                t.text = ""
+        sdt.addnext(twin)
+
+    return edit
+
+
+def test_a_copied_control_retyped_is_unadmitted_through_the_census(report_doc: Any) -> None:
+    """The real path a save takes (``census``, ``compare``) and the baseline the approval reads:
+    a locked number copied and then retyped prints a number no admitted claim holds, while a
+    plain copy prints the admitted one again."""
+    draft = DocxRenderer().render(
+        report_doc(Paragraph((Text("Bance důvěřuje "), Value("trust_total"), Text(" lidí."))))
+    )
+    baseline = census(draft)
+    written = written_texts(baseline)
+
+    def numbers(edit: Callable[[etree._Element], None]) -> list[tuple[str, str]]:
+        changes = compare(baseline, census(_saved(draft, edit)))
+        return [
+            (f.code.value, f.where)
+            for f in edited_client_gate(changes, written)
+            if f.code is GateCode.UNADMITTED_NUMBER
+        ]
+
+    assert numbers(_copy_control("trust_total", "99 %")) == [("unadmitted_number", "trust_total")]
+    assert numbers(_copy_control("trust_total", None)) == []
 
 
 def test_a_save_with_nothing_to_compare_is_unknown_never_passed() -> None:

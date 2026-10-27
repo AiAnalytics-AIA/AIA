@@ -99,12 +99,19 @@ def settings() -> Settings:
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 
-def _docx(value: str = "42,5 %", prose: str = "Bance důvěřuje") -> bytes:
-    """A report body with one locked number, ``value`` under ``trust_total``."""
+def _docx(
+    value: str = "42,5 %", prose: str = "Bance důvěřuje", *, copy: str | None = None
+) -> bytes:
+    """A report body with one locked number, ``value`` under ``trust_total``; ``copy``: a second
+    control under the same tag holding that text, as a control copied in the editor."""
+    control = '<w:sdt><w:sdtPr><w:tag w:val="trust_total"/></w:sdtPr><w:sdtContent>'
+    twin = (
+        f"{control}<w:r><w:t>{copy}</w:t></w:r></w:sdtContent></w:sdt>" if copy is not None else ""
+    )
     body = (
         f'<w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>{prose} </w:t></w:r>'
-        '<w:sdt><w:sdtPr><w:tag w:val="trust_total"/></w:sdtPr><w:sdtContent>'
-        f"<w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt></w:p></w:body></w:document>"
+        f"{control}<w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt>{twin}"
+        "</w:p></w:body></w:document>"
     )
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as z:
@@ -1008,7 +1015,7 @@ def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved
             "code": "unadmitted_number",
             "where": "text",
             "message": "číslo 73 napsané ručně mimo připuštěná čísla"
-            " („Bance důvěřuje 73 % lidí, z nich 50 %…“)",
+            " („Bance důvěřuje 73 % lidí, z nich 50 %“)",
         },
         {
             "code": "gate_unrecorded",
@@ -1037,6 +1044,36 @@ def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved
     got = researcher.get(f"{versions}/{version}/download")
     assert got.status_code == 200 and got.headers["X-AIA-Artifact-Id"] == version
     assert "-klient-" in got.headers["Content-Disposition"]
+
+def test_a_client_control_copied_and_retyped_is_an_unadmitted_number(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """Review of #1017 (P1), through the save's own census and comparison: a second
+    ``trust_total`` control retyped to a number code never wrote is flagged, a plain copy of the
+    number it wrote is not."""
+    run_id, draft = _reported_run(app, researcher, world)
+    _stored_client(app, world, run_id, draft)
+    me = world.users["researcher"]
+    versions = f"{_editor(world, run_id)}/versions"
+
+    def warnings_of(saved: bytes) -> list[dict[str, Any]]:
+        config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+        url = saves.put(saved)
+        sent = _callback(client, config["config"], status=6, url=url, users=[me])
+        assert sent.json() == {"error": 0}
+        newest = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+        said = researcher.get(f"{versions}/{newest['version_artifact_id']}").json()
+        assert said["changes"]["changes"][0]["kind"] == "added"
+        return [w for w in said["warnings"] if w["code"] == "unadmitted_number"]
+
+    assert warnings_of(_docx(copy="99 %")) == [
+        {
+            "code": "unadmitted_number",
+            "where": "trust_total",
+            "message": "číslo přidané ručně: 99 %",
+        }
+    ]
+    assert warnings_of(_docx(copy="42,5 %")) == []
 
 
 def _editor_saved_docx() -> bytes:
