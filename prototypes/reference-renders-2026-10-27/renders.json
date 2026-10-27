@@ -1,0 +1,485 @@
+[
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Main.dc.html",
+  "title": "0 · Přehled prototypu",
+  "w": 1440,
+  "h": 2577,
+  "text_chars": 6891,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Main.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Clients.dc.html",
+  "title": "1 · Klienti",
+  "w": 1440,
+  "h": 2488,
+  "text_chars": 4802,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Clients.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Overview.dc.html",
+  "title": "2 · Přehled klienta",
+  "w": 1440,
+  "h": 3550,
+  "text_chars": 6836,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-Overview.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Studies.dc.html",
+  "title": "3 · Výzkumy (paměť sloučena)",
+  "w": 1440,
+  "h": 2812,
+  "text_chars": 6592,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-Studies.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Knowledge.dc.html",
+  "title": "4 · Znalosti jako Disk (Data sloučena)",
+  "w": 1440,
+  "h": 3827,
+  "text_chars": 8654,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-Knowledge.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "KnowledgeItem.dc.html",
+  "title": "5 · Znalosti: schvalování a položka",
+  "w": 1440,
+  "h": 2931,
+  "text_chars": 6218,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-KnowledgeItem.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Intake.dc.html",
+  "title": "6 · Přidat podklady",
+  "w": 1440,
+  "h": 3421,
+  "text_chars": 5466,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-Intake.webp"
+ },
+ {
+  "canvas": "clients-2026-10-27",
+  "board": "Profile.dc.html",
+  "title": "7 · Profil",
+  "w": 1440,
+  "h": 3586,
+  "text_chars": 6944,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-Profile.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Analysis.dc.html",
+  "title": "10 · Analýza",
+  "w": 1440,
+  "h": 2700,
+  "text_chars": 5584,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Analysis.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Audience.dc.html",
+  "title": "4 · Cílová skupina",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4463,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Audience.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Brief.dc.html",
+  "title": "1 · Zadání",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 5587,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-Brief.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Cards.dc.html",
+  "title": "Karty Vedoucího",
+  "w": 1440,
+  "h": 2600,
+  "text_chars": 5790,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-Cards.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "CardsF.dc.html",
+  "title": "Karty Vedoucího v chatu (nové)",
+  "w": 1440,
+  "h": 5200,
+  "text_chars": 12629,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-CardsF.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatA.dc.html",
+  "title": "Chat A · Přepis",
+  "w": 440,
+  "h": 900,
+  "text_chars": 432,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-ChatA.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatB.dc.html",
+  "title": "Chat B · Bubliny",
+  "w": 440,
+  "h": 900,
+  "text_chars": 356,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-ChatB.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatC.dc.html",
+  "title": "Chat C · Časová osa",
+  "w": 440,
+  "h": 900,
+  "text_chars": 374,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-ChatC.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatD.dc.html",
+  "title": "Chat D · Kompaktní záznam",
+  "w": 440,
+  "h": 900,
+  "text_chars": 265,
+  "errors": [],
+  "failed_requests": [],
+  "image": "09-ChatD.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatE.dc.html",
+  "title": "Chat E · Rozhodnutí nahoře",
+  "w": 440,
+  "h": 900,
+  "text_chars": 392,
+  "errors": [],
+  "failed_requests": [],
+  "image": "10-ChatE.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ChatF.dc.html",
+  "title": "Chat F · Bubliny na časové ose (nový)",
+  "w": 440,
+  "h": 900,
+  "text_chars": 296,
+  "errors": [],
+  "failed_requests": [],
+  "image": "11-ChatF.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Design.dc.html",
+  "title": "2 · Návrh",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 6257,
+  "errors": [],
+  "failed_requests": [],
+  "image": "12-Design.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Dimensions.dc.html",
+  "title": "5 · Dimenze",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4742,
+  "errors": [],
+  "failed_requests": [],
+  "image": "13-Dimensions.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Fieldwork.dc.html",
+  "title": "7 · Sběr dat",
+  "w": 1440,
+  "h": 2800,
+  "text_chars": 5799,
+  "errors": [],
+  "failed_requests": [],
+  "image": "14-Fieldwork.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "FieldworkDisc.dc.html",
+  "title": "7b · Respondenti při sběru dat",
+  "w": 1100,
+  "h": 900,
+  "text_chars": 978,
+  "errors": [],
+  "failed_requests": [],
+  "image": "15-FieldworkDisc.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Main.dc.html",
+  "title": "Přehled, kritika a předání",
+  "w": 1440,
+  "h": 2600,
+  "text_chars": 13270,
+  "errors": [],
+  "failed_requests": [],
+  "image": "16-Main.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Marks.dc.html",
+  "title": "Značka Vedoucího · 5 variant",
+  "w": 1440,
+  "h": 1240,
+  "text_chars": 1075,
+  "errors": [],
+  "failed_requests": [],
+  "image": "17-Marks.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Questionnaire.dc.html",
+  "title": "3 · Dotazník",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 6384,
+  "errors": [],
+  "failed_requests": [],
+  "image": "18-Questionnaire.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Report.dc.html",
+  "title": "11 · Zpráva",
+  "w": 1440,
+  "h": 2800,
+  "text_chars": 5480,
+  "errors": [
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failed_requests": [
+   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7Bshot%7D%7D"
+  ],
+  "image": "19-Report.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Results.dc.html",
+  "title": "8 · Výsledky",
+  "w": 1440,
+  "h": 2500,
+  "text_chars": 5012,
+  "errors": [],
+  "failed_requests": [],
+  "image": "20-Results.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Sample.dc.html",
+  "title": "6 · Vzorek",
+  "w": 1440,
+  "h": 2400,
+  "text_chars": 4141,
+  "errors": [],
+  "failed_requests": [],
+  "image": "21-Sample.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Sociomap.dc.html",
+  "title": "9 · Sociomapa (schválená dílna)",
+  "w": 1440,
+  "h": 4300,
+  "text_chars": 3424,
+  "errors": [],
+  "failed_requests": [],
+  "image": "22-Sociomap.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "ReportEditor.dc.html",
+  "title": "11b · Editor zprávy: vzhled a ověření",
+  "w": 1440,
+  "h": 2900,
+  "text_chars": 4315,
+  "errors": [
+   "Failed to load resource: the server responded with a status of 404 (Not Found)",
+   "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "failed_requests": [
+   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7BshotDef%7D%7D",
+   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7BshotAia%7D%7D"
+  ],
+  "image": "23-ReportEditor.webp"
+ },
+ {
+  "canvas": "research-stages-2026-10-27",
+  "board": "Overview.dc.html",
+  "title": "Přehled studie (nový, UX v4)",
+  "w": 1440,
+  "h": 2200,
+  "text_chars": 2771,
+  "errors": [],
+  "failed_requests": [],
+  "image": "24-Overview.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Main.dc.html",
+  "title": "Metodika",
+  "w": 1440,
+  "h": 1060,
+  "text_chars": 1826,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Main.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Prompts.dc.html",
+  "title": "Systémové prompty",
+  "w": 1440,
+  "h": 1090,
+  "text_chars": 1400,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Prompts.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "DeepResearch.dc.html",
+  "title": "Deep Research",
+  "w": 1440,
+  "h": 1450,
+  "text_chars": 2172,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-DeepResearch.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "AI.dc.html",
+  "title": "AI běh",
+  "w": 1440,
+  "h": 1310,
+  "text_chars": 1987,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-AI.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Access.dc.html",
+  "title": "Přístup a schvalování",
+  "w": 1440,
+  "h": 1200,
+  "text_chars": 1868,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-Access.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Studies.dc.html",
+  "title": "Studie a rozpočty",
+  "w": 1440,
+  "h": 1110,
+  "text_chars": 1688,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-Studies.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Audit.dc.html",
+  "title": "Audit",
+  "w": 1440,
+  "h": 930,
+  "text_chars": 1653,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-Audit.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "System.dc.html",
+  "title": "Stav systému",
+  "w": 1440,
+  "h": 1560,
+  "text_chars": 2316,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-System.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Data.dc.html",
+  "title": "Správa dat",
+  "w": 1440,
+  "h": 930,
+  "text_chars": 934,
+  "errors": [],
+  "failed_requests": [],
+  "image": "09-Data.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "Hatch.dc.html",
+  "title": "Vypěstovat Vedoucího",
+  "w": 1440,
+  "h": 1050,
+  "text_chars": 661,
+  "errors": [],
+  "failed_requests": [],
+  "image": "10-Hatch.webp"
+ },
+ {
+  "canvas": "settings-2026-10-27",
+  "board": "LeadSettings.dc.html",
+  "title": "Můj Vedoucí",
+  "w": 1440,
+  "h": 2110,
+  "text_chars": 2390,
+  "errors": [],
+  "failed_requests": [],
+  "image": "11-LeadSettings.webp"
+ }
+]
