@@ -166,9 +166,16 @@ wording from "modelováno: AI respondenti z populace" (something in the shape "m
 nad AI respondenty, skóre k datu…").
 
 **6. Sociomap compatibility guard.** `research_sociomapping.py`'s dataset reader refuses (not
-warns) a `FieldworkDataset` whose respondents carry more than one distinct `FS_WORLD_ID`, and a
-request to combine two `WorldOutcome`-derived datasets into one Sociomap run. Test: a dataset
-built from two worlds raises `sociomap_mixed_worlds_refused` before any statistic is computed.
+warns) a `FieldworkDataset` whose respondents carry more than one distinct `InoculatedWorld.sha256`
+(`domain/simulation/inoculation.py:442`, content-addressed), and a request to combine two
+respondent datasets from different worlds into one Sociomap run. **Not keyed on `FS_WORLD_ID`
+or `world_id()` alone**: `world_id()` (`domain/simulation/reference.py:83-87`) is purely a
+function of `world_index` — `world_001` for index 0 regardless of seed or world model — so two
+different runs' first worlds share a display id while differing in seed, world model and
+content. A guard keyed on the display id would pass exactly the mixed-world case it exists to
+catch. Test: a dataset built from two worlds with identical `world_id`/`FS_WORLD_ID` but
+different `InoculatedWorld.sha256` (different seeds or world models at the same index) still
+raises `sociomap_mixed_worlds_refused` before any statistic is computed.
 
 **7. Cost and workflow wiring.** A `SIMULATION` workflow's respondent-run step reserves budget
 at `n (respondents) x worlds x variants x blocks` requests, through the same `reserve_budget`
