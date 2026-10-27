@@ -1,7 +1,7 @@
 """the client report opens in the report editor (artifact-report RPT13)
 
 Revision ID: 184381bbcfef
-Revises: 124dedc8f7b1
+Revises: b7d1f3a5c9e2
 Created: 2026-10-26
 
 The product owner decided B2 (a) on 2026-10-26: the client report is edited in the editor too, and
@@ -15,7 +15,7 @@ from __future__ import annotations
 from alembic import op
 
 revision: str = "184381bbcfef"
-down_revision: str | None = "124dedc8f7b1"
+down_revision: str | None = "b7d1f3a5c9e2"
 branch_labels = None
 depends_on = None
 

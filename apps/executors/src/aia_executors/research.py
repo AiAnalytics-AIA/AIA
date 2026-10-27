@@ -39,6 +39,7 @@ from aia_core.domain.fieldwork import (
     persona_source_of,
     validate_dataset,
 )
+from aia_core.domain.fieldwork_events import PROGRESS_EVERY, FieldworkEvent, progress
 from aia_core.domain.methodology.pins import (
     UNIT_AGGREGATION_PIN,
     read_aggregation_pin,
@@ -453,6 +454,19 @@ _ROUTING_UNAVAILABLE_MESSAGE = (
 )
 
 
+def _report_produced(context: StepContext, respondents: int) -> None:
+    """A dataset produced at once (the workbench's fictional fieldwork) reported as the AI runtime
+    reports its own (artifact-fieldwork FLD12, sber G7): ``fieldwork_progress`` every
+    :data:`PROGRESS_EVERY` respondents and at the last, nothing sent or replayed, no cells, once the
+    dataset is stored. Without it Průběh's disc could not be shown without a paid run."""
+    for done in sorted({*range(PROGRESS_EVERY, respondents + 1, PROGRESS_EVERY), respondents}):
+        if done > 0:
+            context.progress(
+                FieldworkEvent.PROGRESS,
+                **progress(respondents=done, of=respondents, sent=0, replayed=0),
+            )
+
+
 class FieldworkExecutor(_Step):
     """Produce the run's fieldwork dataset from its recorded source, or park.
 
@@ -577,6 +591,8 @@ class FieldworkExecutor(_Step):
                     ),
                 },
             )
+        if created and source is not FieldworkSource.AI_RUNTIME:
+            _report_produced(context, len(dataset.respondents))
         context.progress(
             _DATA_READY[origin_kind(dataset.origin)],
             artifact_id=artifact.artifact_id,

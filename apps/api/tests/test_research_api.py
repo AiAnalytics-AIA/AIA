@@ -397,6 +397,40 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
+def test_finding_reviews_are_read_and_refused_through_the_study_the_path_names(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """artifact-analysis ANL11: a run's finding reviews are found only through its study, a
+    finding the analysis does not hold is 404, and only an edit carries a wording."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision).json()
+    base = f"{_runs(world)}/{run['run_id']}/analysis/findings"
+
+    listed = researcher.get(base)
+    assert listed.status_code == 200, listed.text
+    assert listed.json() == {"run_id": run["run_id"], "reviews": []}
+
+    # No module has an outcome yet: there is no finding to decide on.
+    refused = researcher.put(f"{base}/executive/0", json={"decision": "accepted"})
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "finding_not_found"
+    mismatch = researcher.put(
+        f"{base}/executive/0", json={"decision": "accepted", "wording": "Čaj vede."}
+    )
+    assert (mismatch.status_code, mismatch.json()["code"]) == (422, "wording_mismatch")
+    assert researcher.put(f"{base}/nonsense/0", json={"decision": "accepted"}).status_code == 422
+    assert researcher.put(f"{base}/executive/0", json={"decision": "kept"}).status_code == 422
+
+    # Another client's study does not hold this run.
+    wrong = f"{_runs(world, 'other_client')}/{run['run_id']}/analysis/findings"
+    assert other_client_lead.get(wrong).status_code == 404
+    assert (
+        other_client_lead.put(f"{wrong}/executive/0", json={"decision": "accepted"}).status_code
+        == 404
+    )
+
+
 def _store_internal_report(
     app: FastAPI,
     world: Any,

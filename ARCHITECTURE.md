@@ -136,7 +136,7 @@ under `AIA_ENV=local` or `test`; an unset or unknown `AIA_ENV` counts as deploye
 | the API never executes workflow steps | Expensive work inside a request, holding a lease exactly as long as a browser stays connected |
 | the API never builds or invokes the model gateway or an adapter | A model call inside a request: no lease, no reservation, no heartbeat, no recovery |
 | only the AI runtime composition (`aia_executors/ai_runtime.py`) builds the Bedrock adapter | A route nobody configured, built from values nobody validated |
-| only the work queue may query across studies | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
+| only the work queue may query across studies; and Settings → AI běh's aggregate of each activity's last answered call (`infrastructure/ai_usage_repository.py` `last_answered_calls`, OI-75 (a)): OWNER and ADMIN, no client, study, person or cost | An unscoped `WorkflowRepository` anywhere but `WorkQueue` -- a query over every client's studies |
 | the approval ledger is touched only by its repositories (`workflow_repository.py`, `artifact_repository.py`), and never by the API, the worker or the executors | A decision row written where nobody checked the permission it needs |
 | approval-ledger subjects are named only through `ApprovalSubject` (`domain/approval_ledger.py`), never as a string of their own in an app | A subject written in one module and matched in another drifting from the CHECK (A6) |
 | the study wallet's tables are touched only by `StudyWalletRepository`, and never by the API, the worker or the executors (four rules) | A wallet charge or cap compared outside the study row's lock, so two starts overspend it |
