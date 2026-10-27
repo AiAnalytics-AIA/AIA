@@ -256,9 +256,14 @@
   "queue": {
     "now": [
       {
-        "t": "UX upgrade of every prototype (done, core v4.3), exported to the repo, and draft PR #1022 (tokens, components)",
+        "t": "Design system in the product: #1022 merged (Petrol, AI spark edge, ⌘K, components); #1030 (five shared components) stacked on it",
         "who": "design-system session",
-        "note": "Prototypes on core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
+        "note": "Prototypes on core v4.3 in prototypes/<name>/ (undated, #1036). #1030 waits on Nigel's word."
+      },
+      {
+        "t": "#1015 -5 terrain by IDW: merged 27 Oct",
+        "who": "Aram",
+        "note": "Five non-blocking follow-ups for Aram on the PR"
       },
       {
         "t": "Read-only AWS access for the audit",
@@ -354,6 +359,13 @@
       "blocks": "the shared account's security",
       "from": "infra audit, 27 Oct",
       "rec": "Use an IAM user or role for console work; keep root locked away with MFA."
+    },
+    {
+      "who": "Nigel",
+      "q": "ACTION: sign off Brave and approve the Deep Research values on Settings → Deep Research (you chose to keep it on and sign off now)",
+      "blocks": "deep-research-web-search 1, 51, 54",
+      "from": "27 Oct",
+      "rec": "Sign off with the proposed values; Deep Research has run on priced Brave since 14 Oct, so the sign-off catches the plan up with reality."
     },
     {
       "who": "Nigel",
@@ -476,7 +488,7 @@
     },
     {
       "who": "Operator",
-      "q": "One SSM session on the develop host: bin/smoke.sh, docs.sh and errors.sh status, one Lead turn's worker log, the budget's spend",
+      "q": "One SSM session on the develop host: bin/smoke.sh, docs.sh and errors.sh status, one Lead turn's worker log, the budget's spend, and who calls Haiku 4.5 (60-330 calls a day, not AIA's role)",
       "blocks": "the NEEDS OPERATOR rows: population on host, ONLYOFFICE, ADR 0022 approvals, budgets",
       "from": "infra audit, 27 Oct",
       "rec": "Do it this week: it closes most of the audit's unknowns in one sitting."
@@ -508,6 +520,13 @@
       "blocks": "sociomap-5-web 9",
       "from": "27 Oct",
       "rec": "Name it or drop it; the three scenarios are planned either way."
+    },
+    {
+      "who": "Nigel",
+      "q": "IAM user makli-bedrock calls Haiku 4.5 ~240-300 times a day from one IP, with two active access keys ('Local Cli', 'bedrock'). It isn't AIA. Whose is it, and do those keys stay?",
+      "blocks": "cost attribution and the shared account's security",
+      "from": "27 Oct",
+      "rec": "Find the owner today; if nobody claims it, disable both keys (reversible) rather than delete them."
     },
     {
       "who": "Operator",
