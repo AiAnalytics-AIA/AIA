@@ -145,3 +145,10 @@ All routes are under `/api/v1`, in Czech-free JSON; errors use the one error con
   scoped transaction would deadlock against it). Anchor: `application/client_deletion.py`
   `delete_client`; test `test_client_knowledge.py::test_a_checked_source_is_refused_under_a_deleted_clients_tombstone`.
 - **SB2 merged as #830** (32475bdc), with S15 fixed there.
+
+## SB2's horizon superseded (2026-10-27)
+
+Nigel, 27 Oct 2026 (in the PM coordinator's chat): the sealed Lead is kept **365 days, not 30**. SB2 stays ticked as
+built (30 days, #830); the change to 365 days, in code and tests, is `settings-redesign#F26`, with ADR 0030's
+amendment as that PR's Doc follow-up. The table above ("How long a sealed Lead is kept: 30 days") describes SB2 as
+built and is superseded by F26.

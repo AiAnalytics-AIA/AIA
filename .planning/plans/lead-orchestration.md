@@ -45,7 +45,10 @@ chunks:
   - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
   - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
   - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
-  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the newest Design Research run (artifact-questionnaire#QST13) (Nigel, 26 Oct; W1)"
+  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the study's Design Research runs, not the newest run's first 24 (artifact-questionnaire#QST13, #QST14; amended 2026-10-27) (Nigel, 26 Oct; W1)"
+  - "[ ] LO28. The Deep Research cards' price before approval, the server: a Design, Interpretation or retry card's request answers its quoted ceiling_usd before the person approves, as LO23 does for a design job (Nigel, 27 Oct 2026; W1)"
+  - "[ ] LO29. A confirmation names the ceiling it confirmed: a start (a card, a typed start, a document's AI proposals) whose ceiling grew after the person's yes is asked again, 409 with the new ceiling, never started on the old yes and never shown as an error (Nigel, 27 Oct 2026; W1)"
+  - "[ ] LO30. A reused run's spend: an agent job that reused an earlier run answers reused_run_id and its spend is attributed to that run, never counted twice (as #1006 did for Deep Research; Nigel, 27 Oct 2026; W2)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -1653,4 +1656,31 @@ follow-up chunk below.
 - **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
 - **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.
 
-**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13`, every verified finding of the newest Design Research run (Nigel, 01:47 UTC: "All verified findings"). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.
+**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13` and `#QST14`, every verified finding of the study's Design Research runs (Nigel, 01:47 UTC: "All verified findings"; amended 2026-10-27: QST13 as built reads the newest run's findings, capped at 24, which QST14 lifts). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**LO28. Deep Research cards priced** (W1, lane C). Every paid card shows its price before approval (Nigel, 27 Oct 2026).
+The three Deep Research cards (LO5a.1) are approved on the quote LO5a.2 computes at approval
+(`application/lead_deep_research.py`, #1006), but the card does not answer that ceiling before the person decides.
+Serve it on the turn's request, from the same quote, for the design, interpretation and retry cards. Test: each card's
+request answers `ceiling_usd`; an unquotable one answers unknown, never 0.
+
+**LO29. Re-ask when the ceiling grows** (W1). A person's yes names the ceiling it confirmed (the ledger's confirmation
+row); a start whose ceiling is now higher answers 409 with the new ceiling, the card asks again in words ("Cena se
+zvýšila na nejvýše …"), never an error state, and nothing starts on the old yes. One rule for the Lead's cards, the
+typed starts and a document's AI proposals (`client-knowledge-lifecycle#K16`). Test: a yes at 1.20 USD, the ceiling now
+1.50: 409 with 1.50; a yes at 1.50 starts.
+
+**LO30. Reused-run spend** (W2). The workflow repository already names a reused run (`reused_run_id`,
+`infrastructure/workflow_repository.py:2845-2881 @ dbaa7720`); `AgentJobResponse` and the card's spend do not say it.
+Answer `reused_run_id` and attribute the spend to it, so a reused job costs nothing new and says why. Test: a job that
+reused a run answers its id and no new spend.
