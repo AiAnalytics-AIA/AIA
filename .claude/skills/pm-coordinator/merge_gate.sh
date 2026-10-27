@@ -14,8 +14,9 @@ sha=$(jq -r .head.sha <<<"$j"); dr=$(jq -r .draft <<<"$j")
 [ "$dr" = true ] && { echo "#$pr draft"; exit 1; }
 base=$(jq -r .base.ref <<<"$j"); [ "$base" != develop ] && { echo "#$pr base $base (stacked; waits for retarget)"; exit 1; }
 [ "$st" != clean ] && { echo "#$pr state $st"; exit 1; }
-r=$(gh api "repos/aianalytics-aia/aia/commits/$sha/check-runs?per_page=50" --jq '[.check_runs[]|(.conclusion//.status)]')
+r=$(gh api "repos/aianalytics-aia/aia/commits/$sha/check-runs?per_page=50" --jq '[.check_runs[]|(.conclusion//.status)]') || { echo "#$pr check runs unreadable"; exit 1; }
 bad=$(jq '[.[]|select(.!="success" and .!="skipped")]|length' <<<"$r"); n=$(jq length <<<"$r")
+[[ "$bad" =~ ^[0-9]+$ && "$n" =~ ^[0-9]+$ ]] || { echo "#$pr check runs unreadable: $r"; exit 1; }
 min=12; grep -qx "$pr" docsonly.txt 2>/dev/null && min=1
 [ "$bad" != 0 -o "$n" -lt $min ] && { echo "#$pr checks $r"; exit 1; }
 t=$(gh api repos/aianalytics-aia/aia/pulls/$pr/ccr/review_threads --jq '[.[]?|select(.resolved==false)]|length')

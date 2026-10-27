@@ -50,6 +50,8 @@ exports" and the relay rule); `.claude/skills/pmstatus/` (the session sweep); `.
 
 It merges with a merge commit, pinned to the head sha (`PUT …/merge` with `sha`), removes the pin and appends
 the merge to `merged.log`. A PR listed in `after.txt` waits until the PR it names has merged.
+A read that fails (no answer, or not the shape expected) refuses; it never counts as a pass.
+`test_merge_gate.sh` checks that against a mocked `gh`: run it after any change to the gate.
 
 `merge_loop.sh` runs the gate every 4 minutes for up to 2 hours over every pin, printing a PR's line only
 when it changes. Run it in the background (Bash `run_in_background`); when it reaches its 2-hour limit with
