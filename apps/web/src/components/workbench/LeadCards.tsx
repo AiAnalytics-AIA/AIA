@@ -15,7 +15,7 @@ import { type ReactNode, useState } from "react";
 import { researchAgents, research, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { activityOf } from "@/lib/step-activity";
 import { readBudget } from "@/lib/budget-line";
-import { budgetFacts, ceilingWords, pillClass, runCard, runRequestPill, runRequestPlan, workerCard, type CardTone, type RunRequestPlan } from "@/lib/lead-cards";
+import { budgetFacts, ceilingWords, runCard, runRequestPill, runRequestPlan, workerCard, type CardTone, type RunRequestPlan } from "@/lib/lead-cards";
 import { STAGES, type WorkbenchStage } from "@/lib/workbench-stages";
 import { t } from "@/i18n/t";
 import type { StepKey } from "@/research/steps";
@@ -24,14 +24,12 @@ import { useStepActivity } from "../rehome/research/useStepActivity";
 import { Glyph } from "./Glyph";
 import { Icon } from "./Icons";
 import { Sparkle } from "../rehome/icons";
+import { StatusPill } from "../rehome/ui";
 import { errorText } from "@/lib/error-words";
 
 /** One fact of a card: its label, its value, and a smaller muted line under it. */
 export type Fact = { label: string; value: ReactNode; key?: boolean; sub?: ReactNode };
 
-export function Pill({ word, tone }: { word: string; tone: CardTone }) {
-  return <span className={pillClass(tone)} data-card-pill><Glyph tone={tone} size={10} />{word}</span>;
-}
 
 /** A card's key facts as label/value rows (the prototype's kvgrid). */
 export function Facts({ facts }: { facts: Fact[] }) {
@@ -76,7 +74,7 @@ export function WorkerCardView({ job, studyId, onOpen, onStage, onChanged }: {
         <div className="card__titlerow">
           <span className="act__type" title="Úloha AI"><Sparkle size={13} /></span>
           <span className="act__title">{c.title}</span>
-          <Pill word={c.word} tone={c.tone} />
+          <StatusPill tone={c.tone}>{c.word}</StatusPill>
         </div>
         <StepActivityPanel orb={c.orb} activity={activityOf(feed, c.stepId)} startedAt={c.startedAt} label={c.title} />
         <Facts facts={facts} />
@@ -112,7 +110,7 @@ export function RunCardView({ run, studyId, stepHref }: { run: ResearchRun; stud
         <div className="card__titlerow">
           <span className="act__type" title="Výzkumný běh"><Icon name="worker" size={13} /></span>
           <span className="act__title">{c.title}</span>
-          <Pill word={c.reading.label} tone={c.tone} />
+          <StatusPill tone={c.tone}>{c.reading.label}</StatusPill>
         </div>
         {c.running ? <StepActivityPanel orb={c.running.orb} activity={activityOf(feed, c.running.step.step_id)} startedAt={c.running.step.started_at} label={c.running.label} /> : null}
         <Facts facts={facts} />
@@ -207,7 +205,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
       <div className={`dec${decided ? " is-decided" : ""}`}>
         <div className="dec__body">
           {decided ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
-          <div className="card__titlerow"><p className="dec__title">Spuštění výzkumu</p><Pill word={pill.word} tone={pill.tone} /></div>
+          <div className="card__titlerow"><p className="dec__title">Spuštění výzkumu</p><StatusPill tone={pill.tone}>{pill.word}</StatusPill></div>
           <p className="dec__reason">{why}</p>
           <Facts facts={facts} />
           {prepared?.existing ? <p className="cap">Na této revizi návrhu už běh je: <Link href={`${stepHref("progress")}?run=${encodeURIComponent(prepared.existing.run_id)}`} className="linkbtn">Průběh</Link>.</p> : null}

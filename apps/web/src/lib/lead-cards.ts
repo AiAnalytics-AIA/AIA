@@ -213,14 +213,6 @@ export function leadOwnsAiStarts(layout: "workbench" | "classic"): boolean {
   return layout === "workbench";
 }
 
-/** A card's state pill: the workbench's statepill modifier for its tone. */
-export function pillClass(tone: CardTone): string {
-  if (tone === "running") return "statepill statepill--running";
-  if (tone === "fault") return "statepill statepill--fault";
-  if (tone === "you" || tone === "world") return "statepill statepill--proposed";
-  if (tone === "done") return "statepill statepill--accepted";
-  return "statepill";
-}
 
 /** The prepared run card's state pill: before the check, then what the check found, then the decision. */
 export function runRequestPill(plan: RunRequestPlan | null, state: "open" | "kept" | "started" | "existing"): { word: string; tone: CardTone } {

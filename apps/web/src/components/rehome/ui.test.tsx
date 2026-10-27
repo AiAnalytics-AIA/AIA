@@ -3,7 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { AiButton, FaultNote } from "./ui";
+import { AiButton, FaultNote, StatusPill, type StatusTone } from "./ui";
 
 describe("FaultNote", () => {
   it("is the one alert box: announced, in the fault wash, its spacing the caller's", () => {
@@ -26,5 +26,19 @@ describe("AiButton", () => {
       expect(b.className).not.toMatch(/\bbg-ai\b|text-ai-ink|border-ai-edge/);
       expect(b.querySelector("svg.ai-sparkle")).toBeTruthy();
     }
+  });
+});
+
+describe("StatusPill", () => {
+  it("says every state with its word and its shape, never by colour alone", () => {
+    const tones: StatusTone[] = ["running", "you", "world", "fault", "done", "cancelled", "inert"];
+    render(<>{tones.map((t) => <StatusPill key={t} tone={t}>{t}</StatusPill>)}<StatusPill tone="neutral">bez stavu</StatusPill></>);
+    for (const t of tones) {
+      const pill = screen.getByText(t).closest("[data-status-pill]") as HTMLElement;
+      expect(pill.dataset.tone).toBe(t);
+      expect(pill.querySelector(`svg.glyph[data-tone="${t}"]`)).toBeTruthy();
+    }
+    // Neutral states no status: a word, no shape that could be read as one.
+    expect((screen.getByText("bez stavu").closest("[data-status-pill]") as HTMLElement).querySelector("svg")).toBeNull();
   });
 });

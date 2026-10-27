@@ -23,7 +23,7 @@ import {
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import Link from "next/link";
-import { Button, Chip, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, StatusPill, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -268,7 +268,7 @@ function Contacts({ clientId, contacts, mayEdit, onChanged }: { clientId: string
                     <td className="py-2 pr-3 text-ink-muted">{c.role}</td>
                     <td className="py-2 pr-3 font-mono text-xs">{c.email}</td>
                     <td className="py-2 pr-3">
-                      <Chip tone="neutral">{c.receives_reports ? t("aia.profile.contact.yes") : t("aia.profile.contact.no")}</Chip>
+                      <StatusPill tone="neutral">{c.receives_reports ? t("aia.profile.contact.yes") : t("aia.profile.contact.no")}</StatusPill>
                     </td>
                     {mayEdit ? (
                       <td className="whitespace-nowrap py-2 text-right">
@@ -460,7 +460,7 @@ export function ProfileArea() {
                 <dl className="mt-3 grid grid-cols-[7rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
                   <dt className="text-ink-muted">{t("aia.profile.status")}</dt>
                   <dd>
-                    <Chip tone="neutral">{t(`aia.client.status.${client.status}`)}</Chip>
+                    <StatusPill tone="neutral">{t(`aia.client.status.${client.status}`)}</StatusPill>
                   </dd>
                   <dt className="text-ink-muted">{t("aia.profile.yourRole")}</dt>
                   <dd>{roleLabel(client.your_role)}</dd>

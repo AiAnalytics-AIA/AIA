@@ -58,11 +58,6 @@
 .chip--run { border-color: var(--signal-edge); background: var(--status-running-wash); color: var(--ink); }
 .chip--line { border-style: dashed; }
 .chip--ink { border-color: var(--ink); color: var(--ink); }
-.statepill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 2px; font-size: 12px; font-weight: 500; border: 1px solid var(--border-strong); }
-.statepill--working { border-style: dashed; }
-.statepill--proposed { border-color: var(--status-you); background: var(--status-you-wash); color: var(--status-you-ink); }
-.statepill--accepted { border-color: var(--ink); }
-.statepill--frozen { background: var(--surface-inverse); color: var(--ink-inverse); border-color: var(--surface-inverse); }
 
 /* ---------- app frame ---------- */
 /* The prototype's .app root is .wb itself (above): the workbench fills the viewport. */
@@ -597,8 +592,6 @@
 .split__left[hidden] { display: none; }
 
 /* cards in the conversation (chunk 23): title and state pill, key facts as label/value rows, actions */
-.statepill--fault { border-color: var(--status-fault); color: var(--status-fault); }
-.statepill--running { border-color: var(--status-running); color: var(--status-running); border-style: dashed; }
 .card__eyebrow { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--status-you-ink); margin: 0 0 4px 0; }
 .card__titlerow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 2px 0; }
 .card__titlerow .dec__title { margin: 0; }

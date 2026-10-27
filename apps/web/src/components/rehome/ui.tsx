@@ -14,6 +14,7 @@ import {
 
 import type { Tone } from "@/lib/tone";
 import { t } from "@/i18n/t";
+import { Glyph, type GlyphTone } from "../workbench/Glyph";
 import { Icon, type IconName, Sparkle } from "./icons";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -80,13 +81,21 @@ const TONE = {
   fault: "text-status-fault bg-status-fault-wash border-status-fault/40",
   done: "text-status-done bg-surface-sunken border-border",
   neutral: "text-ink-muted bg-surface-sunken border-border",
-} as const satisfies Record<Tone, string>;
+  cancelled: "text-ink-muted bg-surface-sunken border-border line-through decoration-ink-faint",
+  inert: "text-ink-muted bg-surface-raised border-dashed border-border-strong",
+} as const satisfies Record<StatusTone, string>;
 
-const GLYPH: Record<Tone, IconName> = {
-  running: "running", you: "you", world: "world", fault: "fault", done: "done", neutral: "dot",
+/** Every state a status pill can say: the design system's six families, plus what ended without
+ *  finishing (cancelled) and what has nothing to do (inert, a card kept or already run). */
+export type StatusTone = Tone | "cancelled" | "inert";
+
+/** The shape that carries each state (Glyph's grammar: circles for the machine, squares with pause
+ *  bars for what waits, dashed for what is inert); none for neutral, which states no status. */
+const GLYPH: Record<StatusTone, GlyphTone | null> = {
+  running: "running", you: "you", world: "world", fault: "fault", done: "done",
+  cancelled: "cancelled", inert: "inert", neutral: null,
 };
 
-/** A status, drawn: glyph and label always, so colour is never the only cue. */
 /**
  * One row of a section (v73 X1's well item): a tone below the sheet, no border; its mono id at
  * the left, its text, its actions at the right. A list item: its section's list is the caller's.
@@ -107,10 +116,15 @@ export function FaultNote({ children, className = "", ...rest }: ComponentProps<
   return <p role="alert" className={`rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault ${className}`} {...rest}>{children}</p>;
 }
 
-export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
+/**
+ * A status, drawn: its shape and its word always, so colour is never the only cue. The one status
+ * pill: stages, studies, clients, runs, AI jobs and the Lead's cards all say their state with it.
+ */
+export function StatusPill({ tone, children, title }: { tone: StatusTone; children: ReactNode; title?: string }) {
+  const glyph = GLYPH[tone];
   return (
-    <span data-tone={tone} className={`inline-flex min-h-6 items-center gap-1 rounded-control border px-2 text-xs font-medium leading-4 ${TONE[tone]}`}>
-      <Icon name={GLYPH[tone]} size={12} />
+    <span data-tone={tone} data-status-pill title={title} className={`inline-flex min-h-6 items-center gap-1.5 rounded-control border px-2 text-xs font-medium leading-4 whitespace-nowrap ${TONE[tone]}`}>
+      {glyph ? <Glyph tone={glyph} size={11} /> : null}
       {children}
     </span>
   );

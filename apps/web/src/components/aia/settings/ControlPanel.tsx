@@ -60,7 +60,7 @@ import { InfoButton } from "./InfoButton";
 import { FOCUS } from "../../ui/parts";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
 import { Icon, type IconName } from "../../rehome/icons";
-import { Chip, Tag, TextInput } from "../../rehome/ui";
+import { StatusPill, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Loaded } from "../states";
 import { type Resource, useResource } from "../useResource";
 
@@ -372,7 +372,7 @@ function ActivityRow({ runtime, activity, switches, answered }: { runtime: Nativ
           </dl>
         </Technical>
       </td>
-      <td className={`${TD} whitespace-nowrap`}><Chip tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</Chip></td>
+      <td className={`${TD} whitespace-nowrap`}><StatusPill tone={STATE_TONE[state.kind]}>{t(`${R}.state.${state.kind}`)}</StatusPill></td>
       <td className={`${TD} break-all font-mono text-xs`}>{(own.length ? own : [runtime.switch]).join(" + ")}</td>
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${activity.key}`)}</td>
     </tr>
@@ -411,7 +411,7 @@ function ListedOnlyRow({ entry }: { entry: (typeof LISTED_ONLY)[number] }) {
         <p className="mt-0.5 text-[13px] leading-5 text-ink-muted">{t(`${A}.text`)}</p>
         <p data-reason className="mt-1 break-words text-xs leading-5 text-ink-muted">{t(`${R}.reason.${!entry.built ? "notBuilt" : entry.key === "population_personas" ? "unreadApi" : "unread"}`)}</p>
       </td>
-      <td className={`${TD} whitespace-nowrap`}><Chip tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</Chip></td>
+      <td className={`${TD} whitespace-nowrap`}><StatusPill tone="neutral">{t(`${R}.state.${entry.built ? "unread" : "not_built"}`)}</StatusPill></td>
       <td className={`${TD} break-all font-mono text-xs`}>{entry.switch}</td>
       <td className={`${TD} text-xs`}>{t(`${R}.modelOf.${entry.key}`)}</td>
     </tr>

@@ -23,7 +23,8 @@ import { STAGES, isWorkbenchStage, type WorkbenchStage } from "@/lib/workbench-s
 import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
-import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { StatusPill } from "../rehome/ui";
+import { Facts, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 import { LeadSees } from "./LeadSees";
 import { errorText } from "@/lib/error-words";
 
@@ -627,7 +628,7 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }
       <div className={`dec${state === "done" || state === "kept" ? " is-decided" : ""}`}>
         <div className="dec__body">
           {state === "done" || state === "kept" ? null : <p className="card__eyebrow">{typed ? "Váš příkaz" : "Rozhodnutí patří vám"}</p>}
-          <div className="card__titlerow"><p className="dec__title">{w.title}</p><Pill word={pill.word} tone={pill.tone} /></div>
+          <div className="card__titlerow"><p className="dec__title">{w.title}</p><StatusPill tone={pill.tone}>{pill.word}</StatusPill></div>
           {decided && r.why === TYPED_UNDECIDED_WHY ? null : <p className="dec__reason">{r.why}</p>}
           <Facts facts={reused
             // A Deep Research card found the run a stage start (or another card) had made: no
