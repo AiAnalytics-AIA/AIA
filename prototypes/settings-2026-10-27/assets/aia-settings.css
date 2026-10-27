@@ -1,0 +1,42 @@
+/* aia-settings.css: Settings-only parts (Metodika steps and maps, KPI tiles), on aia-core.css tokens. */
+.head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px;flex-wrap:wrap}
+.subtabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:14px 0 16px;flex-wrap:wrap}
+.subtabs button{border:0;background:none;min-height:40px;padding:0 12px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtabs button.on{color:var(--ink);border-color:var(--signal);font-weight:500}
+.subtabs button:disabled{opacity:.45;cursor:not-allowed}
+.modcard{text-align:left;width:100%;background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.modcard:hover{border-color:var(--sedge);background:var(--stint)}
+.stagehead{display:flex;justify-content:space-between;padding:12px 0 8px;border-bottom:1px solid var(--border);margin-top:8px}
+.step{border:1px solid var(--border);border-radius:6px;margin-top:6px;background:var(--raised)}
+.stepbtn{display:flex;gap:10px;align-items:center;width:100%;min-height:44px;padding:0 12px;border:0;background:none;text-align:left}
+.stepbody{padding:0 12px 12px 50px;font-size:13px}
+.formula{font-family:"Source Serif 4",Georgia,serif;font-size:16px;padding:10px 12px;background:var(--sunken);border-radius:6px;margin:8px 0;overflow-x:auto}
+.param{display:grid;grid-template-columns:minmax(0,1fr) 140px 160px;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px dashed var(--border);font-size:13px}
+.param.changed{background:var(--stint)}
+.mapbox{background:#14171c;border-radius:8px;height:220px;position:relative;overflow:hidden}
+.mapbox .o{position:absolute;transform:translate(-50%,-50%);font-size:11px;color:#f4f1ec;display:flex;flex-direction:column;align-items:center;gap:2px}
+.mapbox .pin{width:10px;height:10px;border-radius:50%;background:#9ec5f4;outline:1px dashed rgba(244,241,236,.4);outline-offset:6px}
+.mapbox .o.mv .pin{background:#ffd23f}
+.mapbox .lbl{position:absolute;left:10px;top:8px;font-size:11px;color:#c3c0ba}
+.up{color:var(--fault)}
+.bar{height:8px;border-radius:4px;background:var(--sunken);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink)}
+.newrow td{background:var(--stint)}
+.expand td{background:var(--sunken)}
+.kpi .ic .ph{width:16px;height:16px}
+/* Compact hero (Nigel, 27 Oct: "no visual hierarchy and take up so much space"): one band, title + lede left, figures right */
+.aia .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:40px;row-gap:2px;align-items:end;padding:2px 0 16px;margin-bottom:18px}
+.aia .hero-top{display:contents}
+.aia .hero-top>.eyebrow{grid-column:1;grid-row:1;align-self:start;font-size:11px}
+.aia .hero-top>:not(.eyebrow){grid-column:2;grid-row:1;justify-self:end;align-self:start}
+.aia .hero>.hero-h,.aia .hero>.hero-id{grid-column:1;grid-row:2;margin:2px 0 0}
+.aia .hero .hero-h{font:600 30px/36px var(--serif);letter-spacing:-.01em}
+.aia .hero-lede{grid-column:1;grid-row:3;margin:4px 0 0;font-size:13.5px;line-height:20px;color:var(--muted);max-width:64ch}
+.aia .hero-meta{grid-column:2;grid-row:2/4;align-self:end;display:flex;gap:0;margin:0;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.aia .hero-meta>div,.aia .hero-meta>sc-if>div{display:flex;flex-direction:column-reverse;justify-content:flex-end;gap:1px;padding:8px 16px;min-width:84px;border-left:1px solid var(--border)}
+.aia .hero-meta>div:first-child,.aia .hero-meta>sc-if:first-child>div{border-left:0}
+.aia .hero-meta dt{font-size:11px;line-height:14px;color:var(--faint);white-space:nowrap}
+.aia .hero-meta dd{font-size:20px;line-height:26px;font-weight:600;margin:0;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.aia .hero-meta dd.mono{font-size:15px}
+.aia .hero-meta div:has(>dd.you){background:var(--youwash);border-radius:7px}
+.aia .hero-meta dd.you{color:var(--youink)}
