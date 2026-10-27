@@ -1,0 +1,148 @@
+{
+  "_at": "27 Oct, corrected 10:02 UTC with read-only access (aia-claude-observe); develop on 4b0aac80",
+  "aia_ai_runtime_enabled": {
+    "state": "ON",
+    "note": "Route model Claude Sonnet 4.5 (end of life 2027-04-08); agreement and grant in place. Only 3-12 invocations a day since 21 Oct."
+  },
+  "aia_ai_route_approved_for": {
+    "state": "ON",
+    "note": "The audit found design jobs, roster fieldwork, analysis and report+PDF configured READY."
+  },
+  "aia_ai_research_agents_enabled": {
+    "state": "ON",
+    "note": "Design jobs configured READY."
+  },
+  "aia_ai_research_lead_enabled": {
+    "state": "PARTIAL",
+    "note": "The Lead model is set to Sonnet 5.5, whose agreement is AVAILABLE since 27 Oct 11:15. AIA has never called 5.5 (31 Sonnet 4.5 calls since 20 Oct); the next Lead turn is the first. All 3 failed steps in 7 days are Lead turns (SCHEMA_VIOLATION after repair)."
+  },
+  "aia_ai_population_personas_enabled": {
+    "state": "ON",
+    "note": "Population established: CZ_LIVE v17_4_0, STATIC v17_1_2; every deploy re-confirms dictionaries and catalogues. audience-catalogue-cpu 4 still unticked (CPU healthy, 9-11 %)."
+  },
+  "aia_ai_analysis_enabled": {
+    "state": "ON",
+    "note": "Analysis configured READY."
+  },
+  "aia_ai_client_source_proposals_enabled": {
+    "state": "UNKNOWN",
+    "note": "Not reported by the audit; CLAUDE.md says off, also on develop."
+  },
+  "aia_deep_research_enabled": {
+    "state": "MISMATCH",
+    "note": "On since 14 Oct with priced Brave (key, price), fan-out, agent-directed, lead and 7 connectors, before the owner's Brave sign-off (deep-research-web-search 1, 51, 54 open)."
+  },
+  "aia_deep_research_agent_directed": {
+    "state": "ON",
+    "note": "On; connectors still unverified (deep-research-web-search 54)."
+  },
+  "aia_deep_research_lead": {
+    "state": "ON",
+    "note": "On."
+  },
+  "ADR 0022 approvals": {
+    "state": "UNKNOWN",
+    "note": "In the database; needs an operator read."
+  },
+  "aia_web_research_workbench": {
+    "state": "UNKNOWN",
+    "note": "/config unreadable from the audit's network; on in the develop Compose file."
+  },
+  "AIA_LEAD_PLANS_ENABLED": {
+    "state": "OFF",
+    "note": "Deliberately absent: not built yet."
+  },
+  "aia_report_pdf_enabled": {
+    "state": "ON",
+    "note": "Report + PDF configured READY."
+  },
+  "AIA_RUN_QC_ENABLED": {
+    "state": "OFF",
+    "note": "Deliberately absent: not built yet."
+  },
+  "clients.data_posture": {
+    "state": "UNKNOWN",
+    "note": "Per client, in the database."
+  },
+  "Cognito, Google callbacks": {
+    "state": "PARTIAL",
+    "note": "Cognito and Google callbacks MATCH for develop. GlitchTip's API token is in SSM but has full admin scopes; replace it with a read-only one. GlitchTip cannot email (no email host, SES sandbox)."
+  },
+  "Bedrock agreement: Claude Sonnet 5.5": {
+    "state": "MATCH",
+    "needed_by": "the Lead on its own model (sonnet-5-5-switch)",
+    "set_by": "Nigel (accept the agreement)",
+    "evidence": "get-foundation-model-availability shows AVAILABLE",
+    "note": "AVAILABLE since 27 Oct 11:15 (one playground call, made as the account root user)."
+  },
+  "Application inference profiles + cost tags": {
+    "state": "MISSING",
+    "needed_by": "AC-15 cost reconciliation, the cost alarm before production (develop-spend-attribution 1-4)",
+    "set_by": "operator, Terraform",
+    "evidence": "a tagged profile ARN in SSM; Bedrock spend in the budget",
+    "note": "The develop budget sees tagged spend (USD 42.89 of 100 this month), but Bedrock calls go through untagged system profiles, so model spend is invisible to it."
+  },
+  "Application alarms": {
+    "state": "MISSING",
+    "needed_by": "knowing the product broke (API 5xx, failed smoke, parked runs, Bedrock errors)",
+    "set_by": "operator",
+    "evidence": "CloudWatch alarms beyond the 3 host alarms",
+    "note": "Only host-level alarms exist (3, OK, SNS email)."
+  },
+  "ONLYOFFICE Document Server": {
+    "state": "ON",
+    "needed_by": "the report editor (report-editor-hosting 4)",
+    "set_by": "operator",
+    "evidence": "the deploy smoke's docs rows",
+    "note": "Running and healthy: deploy 4b0aac80's smoke passed every docs row, including api.js integrity. Only the plan tick on report-editor-hosting 4 is missing."
+  },
+  "Restore exercised": {
+    "state": "MISSING",
+    "needed_by": "the first production release (PE9a)",
+    "set_by": "operator",
+    "evidence": "a recorded restore",
+    "note": "Nightly and pre-deploy pg_dump exist; no restore exercised."
+  },
+  "Production environment": {
+    "state": "MISSING",
+    "needed_by": "release",
+    "set_by": "operator (production-environment PE0-PE12)",
+    "evidence": "app.ai-analytics.ai answers",
+    "note": "As planned: the zone exists, no app record, no RDS."
+  },
+  "Haiku 4.5 usage in the account": {
+    "state": "MISMATCH",
+    "needed_by": "—",
+    "set_by": "Nigel",
+    "evidence": "CloudTrail: IAM user makli-bedrock",
+    "note": "Not AIA: IAM user makli-bedrock, ~240-300 Converse calls a day from one IP, two active access keys ('Local Cli', 'bedrock'). Decide whose it is and whether the keys stay."
+  },
+  "Smoke shows the AI switches (MP6)": {
+    "state": "MISSING",
+    "needed_by": "knowing a green deploy has a working product (mvp-master-plan MP6)",
+    "set_by": "code (MP6)",
+    "evidence": "the smoke lists each activation row READY or NOT_READY",
+    "note": "The smoke's AI row still says the AI runtime is off by default though SSM has it on, and there are no activation-profile rows."
+  },
+  "Secrets encryption (KMS)": {
+    "state": "MISMATCH",
+    "needed_by": "secret isolation in the shared account",
+    "set_by": "operator",
+    "evidence": "/aia/develop SecureStrings under a customer-managed KMS key granted to the instance role only",
+    "note": "Every develop SecureString uses the AWS-managed aws/ssm key, so anyone in the shared account who may read a parameter can decrypt it."
+  },
+  "Audit trail (CloudTrail, Bedrock logging)": {
+    "state": "MISSING",
+    "needed_by": "audit beyond 90 days; model-call evidence",
+    "set_by": "operator",
+    "evidence": "a CloudTrail trail; Bedrock invocation logging",
+    "note": "No trail and no invocation logging; the 90-day event history covers Converse calls only."
+  },
+  "Worker health (7 days)": {
+    "state": "PARTIAL",
+    "needed_by": "—",
+    "set_by": "—",
+    "evidence": "worker logs",
+    "note": "87 steps succeeded, 3 failed (22, 23, 25 Oct), 3 waited on the provider, 2 on budget; only smoke runs since 25 Oct. Failure reasons are in the DB and GlitchTip, not the logs."
+  }
+}

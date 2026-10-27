@@ -1,0 +1,564 @@
+{
+  "epics": [
+    {
+      "id": "study",
+      "name": "Studie",
+      "sub": "The research stages a researcher works through, from brief to report, and the workbench they sit in",
+      "where": "Klient → Výzkumy → a study"
+    },
+    {
+      "id": "lead",
+      "name": "Vedoucí",
+      "sub": "The AI research Lead: the conversation beside every stage, the jobs it runs, its memory and identity",
+      "where": "beside every stage; Můj Vedoucí"
+    },
+    {
+      "id": "client",
+      "name": "Klient",
+      "sub": "A client's workspace: Přehled, Výzkumy (with past studies' search and reuse), Znalosti (with Data folded in), Profil; Simulace hidden; the client's money and data lifecycle",
+      "where": "Klienti → a client"
+    },
+    {
+      "id": "intel",
+      "name": "Společenská inteligence",
+      "sub": "AIA's shared population and the AI respondents drawn from it",
+      "where": "Společenská inteligence"
+    },
+    {
+      "id": "settings",
+      "name": "Nastavení",
+      "sub": "Settings and Metodika: who can do what, budgets, AI, prompts, and every formula",
+      "where": "Nastavení"
+    },
+    {
+      "id": "engines",
+      "name": "Engines",
+      "sub": "No page of their own: the Sociomap maths, Deep Research and the evidence rules that the stages call",
+      "where": "behind Sociomapa, Analýza, Návrh, Zpráva"
+    },
+    {
+      "id": "platform",
+      "name": "Platform",
+      "sub": "Running and governing the product: infrastructure, security, cost, AI routes, acceptance tests and the plan register itself",
+      "where": "no page; develop and production"
+    }
+  ],
+  "assign": {
+    "study": [
+      "artifact-brief",
+      "artifact-design",
+      "artifact-questionnaire",
+      "artifact-audience",
+      "artifact-dimensions",
+      "artifact-sample",
+      "artifact-fieldwork",
+      "artifact-results",
+      "artifact-sociomap",
+      "artifact-analysis",
+      "artifact-report",
+      "artifact-chain-to-draft-report",
+      "research-lead-workbench",
+      "working-copy-edit-ops",
+      "input-interactions",
+      "run-qc-and-checkpoint",
+      "report-delivery",
+      "report-editor-hosting",
+      "complete-study-report",
+      "assumptions-and-open-answer-coding",
+      "segment-maps-and-drilldown",
+      "sociomap-5-web",
+      "research-integrity-report",
+      "productization-coherence"
+    ],
+    "lead": [
+      "lead-orchestration",
+      "lead-conversation",
+      "lead-identity",
+      "lead-client-knowledge",
+      "research-agent-workflows"
+    ],
+    "client": [
+      "client-knowledge-lifecycle",
+      "client-workspace",
+      "client-budget",
+      "client-data-in-analysis",
+      "study-deletion",
+      "study-data-lifecycle",
+      "simulation-studio",
+      "study-files",
+      "client-pages-redesign"
+    ],
+    "intel": [
+      "panel-grounded-respondents",
+      "audience-catalogue-cpu"
+    ],
+    "settings": [
+      "settings-redesign",
+      "system-prompts-settings",
+      "methodology-tab",
+      "two-roles-human-ai-gates",
+      "contextual-research-settings-ux",
+      "fronta-prace"
+    ],
+    "engines": [
+      "signed-off-sociomap-method",
+      "sociomapping-engine",
+      "sociomap-formula-corrections",
+      "deep-research",
+      "deep-research-web-search",
+      "class-b-search-route",
+      "evidence-integrity"
+    ],
+    "platform": [
+      "ai-research-activation",
+      "architecture-enforcement",
+      "develop-spend-attribution",
+      "mvp-acceptance-harness",
+      "mvp-master-plan",
+      "mvp-workflow-assurance",
+      "prototype-build",
+      "production-environment",
+      "security-audit-2026-10",
+      "sonnet-5-5-switch",
+      "prompt-caching",
+      "run-recovery-and-truth",
+      "connected-research-assurance",
+      "desktop-ux-overhaul-handoff"
+    ]
+  },
+  "done_keywords": [
+    [
+      "lead",
+      [
+        "lead-"
+      ]
+    ],
+    [
+      "settings",
+      [
+        "settings",
+        "prompt-proposal",
+        "truthful-ai",
+        "methodology",
+        "two-roles"
+      ]
+    ],
+    [
+      "client",
+      [
+        "client",
+        "project-memory"
+      ]
+    ],
+    [
+      "intel",
+      [
+        "population",
+        "panel",
+        "sqlite-panel"
+      ]
+    ],
+    [
+      "engines",
+      [
+        "sociomap",
+        "deep-research",
+        "brave",
+        "evidence",
+        "analysis-label",
+        "object-map",
+        "sandbox-research",
+        "usable-classification",
+        "simulation"
+      ]
+    ],
+    [
+      "study",
+      [
+        "research",
+        "report",
+        "artifact",
+        "run-gate",
+        "step-activity",
+        "progress-follows",
+        "thinking-orbs",
+        "inline-decisions",
+        "context-report",
+        "studio",
+        "interface",
+        "design-system",
+        "login",
+        "ux-audit",
+        "ai-workflow",
+        "agent-runtime",
+        "ai-runtime",
+        "branded"
+      ]
+    ],
+    [
+      "platform",
+      [
+        ""
+      ]
+    ]
+  ],
+  "roles": {
+    "post": [
+      "simulation-studio",
+      "class-b-search-route",
+      "fronta-prace"
+    ]
+  },
+  "stage_purpose": {
+    "Zadání": "What the client needs to decide. The researcher writes the goal, the decision it feeds, the context and any files. Everything after this stage is checked against it.",
+    "Návrh": "The research design: research questions, hypotheses and the comparisons that would answer them. Deep Research can propose design evidence here; a person accepts it.",
+    "Dotazník": "The questionnaire: questions and rating batteries. Each item says which research question it measures, so coverage can be checked before anything runs.",
+    "Cílová skupina": "Who should answer: filters on AIA's Czech population (age, region, education, subpanels), with a live count of how many people match.",
+    "Dimenze": "Which traits the AI respondents carry into their answers (for example ecology or personality), chosen from the population's catalogue.",
+    "Vzorek": "How many respondents, whether the design is ready to run, what the run can cost at most, and whether the answers will be reportable at that n.",
+    "Sběr dat": "The run itself. AI respondents, fictional or drawn from the population, answer the questionnaire. Each answer is drawn by code from the model's probabilities; progress and cost show live.",
+    "Výsledky": "The numbers per question with 95 % intervals. A result is suppressed when its support is too thin, and fictional data is labelled every time.",
+    "Sociomapa": "The object map: how respondents relate the rated objects to each other, computed by the signed-off method -5 and drawn as terrain.",
+    "Analýza": "Eight analysis modules turn the numbers into findings. A number enters a finding only when the evidence rules admit it; a person reviews each key finding.",
+    "Zpráva": "The report: composed from the stages, edited in the editor, approved by a person and downloaded as DOCX or PDF. Only a modelled run gets a client report."
+  },
+  "proposed_chunks": [
+    {
+      "id": "RA-1",
+      "stage": "Sběr dat",
+      "title": "Store every answer's probabilities with the run's dataset",
+      "why": "The model returns probabilities and code draws each answer. The answers are stored (research_fieldwork_dataset); the probabilities appear not to be. They are the paid part.",
+      "state": "planned in study-files (#1021)"
+    },
+    {
+      "id": "RA-2",
+      "stage": "Sběr dat",
+      "title": "Respondent answers as XLSX (Odpovědi, Kódovník, O datech)",
+      "why": "A file a person can open, built from the stored dataset, labelled modelled or fictional on every copy.",
+      "state": "planned in study-files (#1021)"
+    },
+    {
+      "id": "RA-3",
+      "stage": "Sběr dat",
+      "title": "File the XLSX and the JSON original in the study's Výstupy when the run finishes",
+      "why": "Keeps what was paid for, next to the study. Waits on per-study folders (B18).",
+      "state": "planned in study-files (#1021)"
+    },
+    {
+      "id": "RA-4",
+      "stage": "Zpráva",
+      "title": "Every download from a study filed in its Výstupy, once per SHA-256",
+      "why": "Nigel, 27 Oct: 'not approved, downloaded'. Today a download stores nothing.",
+      "state": "planned in study-files RA4 (#1021)"
+    }
+  ],
+  "queue": {
+    "now": [
+      {
+        "t": "UX upgrade of every prototype (done, core v4.3), exported to the repo, and draft PR #1022 (tokens, components)",
+        "who": "design-system session",
+        "note": "Prototypes on core v4.3 (Klienti v19, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
+      },
+      {
+        "t": "#1015 -5 terrain: IDW with a plain/falloff switch",
+        "who": "Aram",
+        "note": "10 fixes posted; Aram re-approves the fingerprint"
+      },
+      {
+        "t": "Read-only AWS access for the audit",
+        "who": "done",
+        "note": "aia-claude-observe attached; findings folded into Configuration"
+      }
+    ],
+    "next": [
+      {
+        "ref": "research-lead-workbench#26f",
+        "t": "One rule for every stage: a Lead card instead of a button",
+        "blocks": "BRF4, DSN7, QST6, AUD5, DIM5, DIM8, FLD6, ANL6, RES6"
+      },
+      {
+        "ref": "working-copy-edit-ops#WCE3a",
+        "t": "Finish moving the web's save onto the server's edit vocabulary (part 1, the ops route, is merged as #1013)",
+        "blocks": "BRF2, DSN9, DSN13, QST10, WCE3b, WCE3c, WCE4"
+      },
+      {
+        "ref": "research-lead-workbench#7",
+        "t": "Agent proposals inline in the artifact, accepted change by change",
+        "blocks": "BRF4, DSN7, QST5, AUD5, DIM5, QST10"
+      },
+      {
+        "ref": "research-lead-workbench#15",
+        "t": "The artifact frame: working copy, history, provenance",
+        "blocks": "BRF5, SOC2, the revision stepper on every stage"
+      },
+      {
+        "ref": "lead-orchestration#LO5a.3",
+        "t": "Typed Deep Research starts from the Lead",
+        "blocks": "DSN5, QST6, RES6, RPT10, SOC5"
+      },
+      {
+        "ref": "assumptions-and-open-answer-coding#AOC1",
+        "t": "Tracked assumptions as an item on the shared vocabulary",
+        "blocks": "BRF2's Předpoklady, AUD assumptions"
+      }
+    ],
+    "later": [
+      {
+        "t": "Suggesting mode and comments, Google Docs style, on every artifact",
+        "note": "Nigel, 27 Oct: the Lead's edits as tracked changes accepted or rejected in place, and the Lead and other users leave comments. A W2 chunk after per-change accept (rlw#7, WCE6); to be planned"
+      },
+      {
+        "t": "#928 one Dotazník editor: merges with LO18b",
+        "note": "Fixed and checked (merge 8a252902 pushed); held so Excel import is never missing (Nigel, 27 Oct)"
+      },
+      {
+        "t": "The new design system into tokens.json and the product",
+        "note": "After the prototypes' Petrol upgrade; a build chunk to plan"
+      },
+      {
+        "t": "Sealed Lead kept 365 days, not 30 (Nigel, 27 Oct)",
+        "note": "ADR 0030 amendment; settings-backends SB2's horizon in code and tests; the 365-day erase job for AI spend and audit (settings-redesign F22)"
+      },
+      {
+        "t": "Retire Sociomap methods -1 to -4; -5 the only one",
+        "note": "New plan; 3 owner questions open"
+      },
+      {
+        "t": "Data class gates advisory on staging and production",
+        "note": "Nigel: out of the MVP; deployment.py refuses it today"
+      },
+      {
+        "t": "Report figures: the researcher chooses the map terrain",
+        "note": "Follow-up to #1015"
+      },
+      {
+        "t": "Redo BRF7 (brief files Class A) and DSN14's comment author",
+        "note": "Lost with archived containers; plans record what they held"
+      }
+    ]
+  },
+  "questions": [
+    {
+      "who": "Nigel",
+      "q": "ACTION: run one Lead turn on develop. The Sonnet 5.5 agreement is now AVAILABLE (your admin's playground call, 27 Oct 11:15), so the next turn is the Lead's first on 5.5 and the first since the v3 prompt.",
+      "blocks": "sonnet-5-5-switch 2; knowing whether v3 fixed the Lead's SCHEMA_VIOLATION failures",
+      "from": "infra audit, 27 Oct",
+      "rec": "Do it today, with GlitchTip open: if it still fails, the code session replays the three failed turns."
+    },
+    {
+      "who": "Code session",
+      "q": "All 3 failed steps in 7 days are Lead turns failing SCHEMA_VIOLATION after their one repair: on 25 Oct numbers not in the context (domain/research_lead.py:706), on 22 and 23 Oct 'request' sent as a non-object. Replay the three on the recorded harness against the v3 prompt (10a2a44e).",
+      "blocks": "the Lead as the AI start path; tier B",
+      "from": "infra audit (GlitchTip), 27 Oct",
+      "rec": "One small chunk in the Lead plan: replay first, fix only what still fails."
+    },
+    {
+      "who": "Nigel",
+      "q": "CloudTrail shows the console session that accepted the Sonnet agreement acting as the AWS account's root user.",
+      "blocks": "the shared account's security",
+      "from": "infra audit, 27 Oct",
+      "rec": "Use an IAM user or role for console work; keep root locked away with MFA."
+    },
+    {
+      "who": "Nigel",
+      "q": "ACTION: sign off Brave and approve the Deep Research values on Settings → Deep Research (you chose to keep it on and sign off now)",
+      "blocks": "deep-research-web-search 1, 51, 54",
+      "from": "27 Oct",
+      "rec": "Sign off with the proposed values; Deep Research has run on priced Brave since 14 Oct, so the sign-off catches the plan up with reality."
+    },
+    {
+      "who": "Nigel",
+      "q": "Retiring Sociomap -1 to -4: what do old runs show, is 18.6.6 parity retired, and is #1015 finished first?",
+      "blocks": "the new 'sociomap-5 only' plan",
+      "from": "tonight",
+      "rec": "Old runs say 'retired method, run again'; retire 18.6.6 parity and keep F1-F9 as history; let Aram finish #1015 first, then one session removes -1 to -4 in small PRs."
+    },
+    {
+      "who": "Nigel",
+      "q": "'Lead researcher' chooses the report's map terrain: the person running the study, or the AI Lead?",
+      "blocks": "report terrain follow-up",
+      "from": "tonight",
+      "rec": "The person running the study, chosen per report in the editor."
+    },
+    {
+      "who": "Nigel",
+      "q": "Návrh F-DSN-4, OQ5 and RPT8e (the signed-in editor check)",
+      "blocks": "artifact-design, artifact-report RPT8e",
+      "from": "26 Oct",
+      "rec": "Take each as the Návrh and Zpráva sessions proposed; they are small and block nothing else."
+    },
+    {
+      "who": "Nigel",
+      "q": "Review ADRs 0020 to 0024 one by one (the explainer document you asked for)",
+      "blocks": "ADR statuses",
+      "from": "25 Oct",
+      "rec": "Ask for the explainer document first, then decide each in one sitting."
+    },
+    {
+      "who": "Nigel",
+      "q": "The UX upgrade is in the prototypes at core v4.3 (Klienti v19, Výzkumné kroky v95, Nastavení v117; Design System v3.2; the rail hover fixed, Projektová paměť gone) and exported to the repo with 46 reference images (#1026-#1029, #1031). Draft PR #1022 holds the tokens and first components. Should it be built into the product now (CPR21), or after the client pages redesign?",
+      "blocks": "client-pages-redesign CPR21; every screen's look",
+      "from": "27 Oct",
+      "rec": "After the client pages redesign, as you said: CPR21 lands the tokens once the redesigned pages exist, so nothing is restyled twice."
+    },
+    {
+      "who": "Nigel",
+      "q": "UX audit (#1022): the study inspector and the Lead's cards say the same things in two places. Which one owns each piece?",
+      "blocks": "research-lead-workbench frame, every stage",
+      "from": "27 Oct",
+      "rec": "The stage owns the state and actions; the Lead's cards only propose and report, linking to the stage."
+    },
+    {
+      "who": "Nigel",
+      "q": "UX audit (#1022): Spuštění has two ways to start a run (the stage button and the Lead's run card). Keep one, or both?",
+      "blocks": "artifact-fieldwork FLD6, rlw#37",
+      "from": "27 Oct",
+      "rec": "Keep both as one action: the Lead's card opens Spuštění's own start, so there is one confirmation and one ledger row."
+    },
+    {
+      "who": "Nigel",
+      "q": "UX audit (#1022): the study budget shows three times on one screen. Where should it live?",
+      "blocks": "artifact-sample SMP4b, Vzorek / Spuštění",
+      "from": "27 Oct",
+      "rec": "Once, in the study bar; Vzorek and Spuštění show only what this run would cost against it."
+    },
+    {
+      "who": "Nigel",
+      "q": "UX audit (#1022): six different chip implementations. Make one shared chip component the rule?",
+      "blocks": "input-interactions, CPR21",
+      "from": "27 Oct",
+      "rec": "Yes: one Chip component in input-interactions, with the six migrated as their screens are touched."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "#1015: the IDW power's range and re-approval of the -5 fingerprint",
+      "blocks": "signed-off-sociomap-method",
+      "from": "tonight",
+      "rec": "Aram picks the range (the review suggests 1 to 10) and re-approves the fingerprint in the same PR."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "The methodology packet MQ-01 to MQ-24, and MVPQ-02b (how open answers are coded)",
+      "blocks": "sociomap-formula-corrections, assumptions-and-open-answer-coding AOC4",
+      "from": "20 Oct",
+      "rec": "Answer MQ-02 and MQ-05 first: they unblock the -5 segment work (E14, E29-E31)."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "MVPQ-10: what a replaced respondent does to weights and support",
+      "blocks": "run-qc-and-checkpoint RQC5",
+      "from": "20 Oct",
+      "rec": "Until answered, RQC5 builds the mechanism and labels the limit."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "OQ8 / OQ9: Kish n on Výsledky; a set's scale by the board's presets",
+      "blocks": "artifact-results RES3, artifact-questionnaire QST10",
+      "from": "26 Oct",
+      "rec": "Show Kish n beside n on Výsledky; take the board's presets for a set's scale."
+    },
+    {
+      "who": "Operator",
+      "q": "Tick report-editor-hosting chunk 4 (the Document Server runs and passes the smoke) and teach the smoke the activation rows (MP6)",
+      "blocks": "the editor's plan state; trusting a green deploy",
+      "from": "27 Oct",
+      "rec": "Tick chunk 4 now; schedule MP6 in W0, since it's the check that keeps configuration honest."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "ADRs 0027, 0034, 0036 and 0037 accepted once their methodology answers are written in (0036-Q7: methodologically relevant data)",
+      "blocks": "those ADRs",
+      "from": "25 Oct",
+      "rec": "Write the methodology answers into each ADR, then accept them together."
+    },
+    {
+      "who": "Legal",
+      "q": "OQ13: may the editor use the AGPL icon sprites?",
+      "blocks": "report-editor-hosting 5, 9",
+      "from": "26 Oct",
+      "rec": "Ship with ONLYOFFICE's own icons until legal answers; the sprites are cosmetic."
+    },
+    {
+      "who": "Operator",
+      "q": "Production: hostname, Cognito callbacks, RDS sizing, Bedrock quota and retention evidence, the Brave sign-off",
+      "blocks": "production-environment, MP7",
+      "from": "20 Oct",
+      "rec": "Not needed for develop; schedule after the W1 build so production starts from a working product."
+    },
+    {
+      "who": "Operator",
+      "q": "One SSM session on the develop host: bin/smoke.sh, docs.sh and errors.sh status, one Lead turn's worker log, the budget's spend, and who calls Haiku 4.5 (60-330 calls a day, not AIA's role)",
+      "blocks": "the NEEDS OPERATOR rows: population on host, ONLYOFFICE, ADR 0022 approvals, budgets",
+      "from": "infra audit, 27 Oct",
+      "rec": "Do it this week: it closes most of the audit's unknowns in one sitting."
+    },
+    {
+      "who": "Operator",
+      "q": "Replace the GlitchTip API token in SSM (aia_glitchtip_api_token has full admin scopes) with a read-only one before the next deploy; add an email route out of the SES sandbox and application alarms (API 5xx, failed smoke, parked runs, Bedrock errors)",
+      "blocks": "Stav systému's error panel; knowing the product broke",
+      "from": "infra audit, 27 Oct",
+      "rec": "Yes, before the next live run: today a broken product would go unnoticed."
+    },
+    {
+      "who": "Operator",
+      "q": "Application inference profiles with cost tags (develop-spend-attribution 1-4): the develop budget cannot see any Bedrock spend today",
+      "blocks": "AC-15 and the cost alarm before production",
+      "from": "infra audit, 27 Oct",
+      "rec": "Yes, before any paid acceptance run (AC-15)."
+    },
+    {
+      "who": "Operator",
+      "q": "Verify the population on the develop host (synced, LIVE established) and the catalogue CPU, then close audience-catalogue-cpu 4 (Nigel kept panel personas on, 27 Oct)",
+      "blocks": "panel fieldwork, complete-study-report B6",
+      "from": "27 Oct",
+      "rec": "Verify and close chunk 4; panel runs depend on it."
+    },
+    {
+      "who": "Nigel",
+      "q": "Sociomap what-if: you ticked 'Something else' beside leave objects out, one segment, shift ratings. What else should a scenario be able to change?",
+      "blocks": "sociomap-5-web 9",
+      "from": "27 Oct",
+      "rec": "Name it or drop it; the three scenarios are planned either way."
+    },
+    {
+      "who": "Nigel",
+      "q": "IAM user makli-bedrock calls Haiku 4.5 ~240-300 times a day from one IP, with two active access keys ('Local Cli', 'bedrock'). It isn't AIA. Whose is it, and do those keys stay?",
+      "blocks": "cost attribution and the shared account's security",
+      "from": "27 Oct",
+      "rec": "Find the owner today; if nobody claims it, disable both keys (reversible) rather than delete them."
+    },
+    {
+      "who": "Operator",
+      "q": "Move /aia/develop SecureStrings to a customer-managed KMS key granted to the instance role only; add a CloudTrail trail and Bedrock invocation logging",
+      "blocks": "secret isolation in the shared account; audit beyond 90 days",
+      "from": "27 Oct",
+      "rec": "Yes, before any real client data reaches develop."
+    }
+  ],
+  "agile": [
+    [
+      "Epic",
+      "A page or area a person uses (Studie, Vedoucí, Klient …). Engines and Platform are enabler epics: no page, but the pages depend on them."
+    ],
+    [
+      "Feature",
+      "A plan file in .planning/plans. Each has a status and its chunks in its front matter."
+    ],
+    [
+      "Story",
+      "A chunk: one reviewable PR that builds and passes tests on its own."
+    ],
+    [
+      "Release",
+      "The MVP. A plan is Core when it carries an MVP gate in the master plan's register (§3.1)."
+    ],
+    [
+      "Board",
+      "One ordered queue: Now (in flight), Next (the single build session takes these in order), Later (decided but not scheduled)."
+    ],
+    [
+      "Definition of done",
+      "Merged into develop with CI green and a review on the exact head, the chunk ticked in its plan, and its Doc follow-up applied by the next docs PR."
+    ]
+  ]
+}
