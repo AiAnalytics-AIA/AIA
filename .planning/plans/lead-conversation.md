@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
+  - "[x] LC0. ADR 0041 accepted by the product owner (Proposed in this plan's PR): the relayed answers Q25-Q30 confirmed"
   - "[x] LC1. The layer table and the manifest: freeze_context as a pipeline over declared layers (order, floor, ceiling, over-policy, class rule), today's values first, a manifest stored per turn"
   - "[x] LC2. Co Vedoucí vidí: the Vidí chip opens the last turn's manifest in words, layer by layer, with what was left out and why"
   - "[x] LC3. The decision digest: a code-built record of what this conversation decided (edits, cards, notes, self-updates, lookups) in the conversation-memory layer, never dropped"
@@ -31,7 +31,7 @@ chunks:
 The chat-centric capabilities the product owner asked for on 2026-10-20 (22:25 UTC): session memory,
 context management, and the message operations of a mature chat product, built inside ADR 0026's
 closed output and the governed gateway. Architecture:
-[ADR 0041](../../docs/architecture/adr/0041-lead-conversation-and-context.md) (Proposed). Evidence
+[ADR 0041](../../docs/architecture/adr/0041-lead-conversation-and-context.md) (Accepted with Amendment 1, 2026-10-26). Evidence
 and the gap table: [`evidence/lead-chat-capabilities.md`](../evidence/lead-chat-capabilities.md).
 
 **Owner: S1** (the Lead's lane, as `lead-orchestration`). Every chunk is open. Written during the
@@ -109,7 +109,7 @@ decisions, as this plan carries them:
   fictional study, its count and cost stated before it starts, at most USD 50, and only on Nigel's
   word for that stated cost. It repeats when the model, the prompt or the share table changes.
 
-LC0 stays open until the amendment's text is in ADR 0041 (planning's docs PR, Doc follow-up below).
+LC0 stayed open until the amendment's text was in ADR 0041; it was written in on 2026-10-27, and LC0 is ticked.
 
 **LC0. ADR 0041 accepted.** The coordinator relayed the owner's answers from the PM status page
 (2026-10-20 22:39-22:42 UTC): Q25 (a) the digest plus a model summary, "ensure we are using an
@@ -591,13 +591,13 @@ search.
 
 ## Doc follow-up (for the docs PR, not this branch)
 
-- `docs/architecture/adr/0041-lead-conversation-and-context.md`: Amendment 1 (the owner,
-  2026-10-26), A1-A5 as written under "ADR 0041 Amendment 1, accepted" above, with the four answers
-  (fraction 0.5, USD 50 per paid benchmark run, word search for the MVP); status Accepted with
-  Amendment 1. Then LC0 is ticked.
+- *Applied 2026-10-27:* `docs/architecture/adr/0041-lead-conversation-and-context.md`: Amendment 1 (the
+  owner, 2026-10-26), A1-A5 as written under "ADR 0041 Amendment 1, accepted" above, with the four
+  answers (fraction 0.5, USD 50 per paid benchmark run, word search for the MVP); status Accepted with
+  Amendment 1. LC0 is ticked.
 - `docs/architecture/adr/0042-*.md`: written as A3 (see `lead-client-knowledge.md` Doc follow-up).
 
-- `docs/architecture/adr/README.md`: add ADR 0041 (Proposed).
+- *Applied:* `docs/architecture/adr/README.md`: ADR 0041's row, now Accepted with Amendment 1.
 - `CLAUDE.md` § The map, `domain/research_lead.py`: "the layer table (`LeadLayer`) and
   `ContextManifest`" once LC1 lands; `apps/web/src/components/workbench/` LeadPane: "Co Vedoucí vidí"
   once LC2 lands.
