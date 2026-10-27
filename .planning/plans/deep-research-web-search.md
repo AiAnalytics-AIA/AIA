@@ -54,7 +54,7 @@ chunks:
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
-  - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
+  - "[x] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
   - "[x] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition (#844 @ 170823e4)"
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py not built yet)"
   - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
@@ -1190,6 +1190,25 @@ in code calls Gemini; the arm runs when chunk 26 does.
   live before chunk 1 records § 4's extraction items and 27 activates.
 
 ## 13. Measurements and decisions log
+
+**Chunk 51, ticked without Common Crawl (the owner, 2026-10-27).** Nigel: "tick #51 without Common Crawl,
+yes to #54".
+
+- **What is on.** Develop's SSM, read-only on 27 Oct, has every switch of this chunk except Common Crawl:
+  `aia_deep_research_enabled`, web search `brave`, the 7 connectors (datastat, nkod, eurostat, openalex, ares,
+  crossref, wayback), `aia_deep_research_agent_directed=true`, `aia_deep_research_lead=true`, fan-out.
+- **Approvals in force.** The approvals were in force (a priced quote answered 200 on 26 Oct; see chunk 1's
+  entry below).
+- **Common Crawl stays off.** There is no `AIA_DEEP_RESEARCH_COMMON_CRAWL*` key. Its priced us-east-1 Athena
+  route is a later switch, and chunk 54's Common Crawl clause is met by keeping it out of the first
+  activation.
+- **Not verified by an agent.** The chunk's test, a recorded run whose `GET …/deep-research/runs/{id}` names
+  Brave, a connector and the archive, was not read: run records are in AIA's database, and the container logs
+  do not name the routes a run used.
+- **Chunk 54 stays open.** Nigel approved the live probes, but the second account's container could not run
+  them: its network policy refused all seven hosts (403 on CONNECT). AIA's own connectors also refuse a proxy
+  by design (`HostScopedClient`). The probes need the hosts allowed in that environment, or a run from the
+  develop host.
 
 **Chunk 1, the owner's sign-off, 2026-10-27.** Nigel kept Deep Research on, and signed off Brave and the
 Deep Research values: "these should all be settled". He was answering the second account's PM coordinator,
