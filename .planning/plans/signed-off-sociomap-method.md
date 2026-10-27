@@ -13,7 +13,7 @@ chunks:
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
   - "[x] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4) (#823, merged 2026-10-23)"
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
-  - "[ ] 12. The -5 terrain by inverse-distance weighting: framed_relative_idw (terrain.idw_power in (0, 10]) the method's terrain, the falloff variant stored beside it in every -5 run, the envelope no longer drawn; the register approves the new -5 fingerprint b2992c12… beside 959a5877… (the methodology owner 2026-10-26, Nigel 2026-10-27; #1015)"
+  - "[x] 12. The -5 terrain by inverse-distance weighting: framed_relative_idw (terrain.idw_power in (0, 10]) the method's terrain, the falloff variant stored beside it in every -5 run, the envelope no longer drawn; the register approves the new -5 fingerprint b2992c12… beside 959a5877… (the methodology owner 2026-10-26, Nigel 2026-10-27; #1015)"
   - "[ ] 13. The report's map terrain chosen by the study's lead researcher: each map figure of the internal and the client report drawn in the terrain chosen from those the run stored (plain IDW by default), the figure saying which; the choice recorded with the study (Nigel 2026-10-27: 'editable and configurable by the lead researcher'; whether that is the person running the study or the AI Lead is open)"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
@@ -371,3 +371,5 @@ Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backe
   (plain IDW under `-5`) and says which. **Open question:** "the lead researcher" means the person
   running the study, or the study's AI Lead (Build Map question; Nigel's answer of 2026-10-27 named
   the role, not which).
+
+Chunk 12 ticked: #1015 merged into develop on 2026-10-27 (`aabb37e2`), after Codex and a second review found nothing blocking. Five follow-ups (a near-zero distance in the IDW weight, the alternate terrain's three fields required together, Metodika's note on where the map opens, the kernel slot's help, timing the four IDW grids) are on the PR for Aram.
