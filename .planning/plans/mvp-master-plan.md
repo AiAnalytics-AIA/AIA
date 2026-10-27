@@ -336,6 +336,7 @@ The owner's answer is quoted in each row: the Decision Review, 2026-10-26, relay
 | `security-audit-2026-10` | SUPPORT (S3) | the October security audit's fixes; its open findings are OI-203 to OI-215 | registered 2026-10-25 (register drift) |
 | `sonnet-5-5-switch` | SUPPORT (operations) | AUD-7 (a): develop's route model from Claude Sonnet 4.5 to Claude Sonnet 5.5; chunk 1 (the code, #907) built, chunks 2-5 the infra session's | registered 2026-10-27 (register drift) |
 | `prompt-caching` | SUPPORT (planned) | prompt caching on the Bedrock route behind `AIA_AI_PROMPT_CACHE` (off), measured first (#912) | registered 2026-10-27 (register drift); no chunk is scheduled |
+| `design-system-v2` | SUPPORT (S1, beside `prototype-build` lane A), **Nigel, 2026-10-27** ("register design-system-v2 as SUPPORT") | the code half of the design system: tokens, then shared components, then the screens' parts (DS0-DS26; DS12 and DS23-DS26 landed in #1022). The core screen plans build on its parts, but it gates nothing alone: no MVP gate is about the look, and its cleanup chunks (DS18, DS22) should not hold a release | registered 2026-10-27 (register drift, added by #1022). Overlaps settled by each plan's owner before building: DS23 (Petrol into `tokens.json`) already did most of `client-pages-redesign#CPR21`, which is re-scoped to what DS23 left; DS8 (one Chip), DS13 (Segmented, Tabs) and DS14 (Switch) are checked against `input-interactions`' shared primitives, which own the inputs |
 
 ### 3.3 In the development plan and after the MVP, by decision
 
