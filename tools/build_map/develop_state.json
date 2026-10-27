@@ -1,5 +1,5 @@
 {
-  "_at": "27 Oct: audit 10:02 UTC (aia-claude-observe); Bedrock, the host role, SSM, CloudTrail and the container logs re-read by the second account's coordinator at 13:22 UTC (read calls only)",
+  "_at": "27 Oct, corrected 10:02 UTC with read-only access (aia-claude-observe); develop on 4b0aac80",
   "aia_ai_runtime_enabled": {
     "state": "ON",
     "note": "Route model Claude Sonnet 4.5 (end of life 2027-04-08); agreement and grant in place. Only 3-12 invocations a day since 21 Oct."
@@ -14,7 +14,7 @@
   },
   "aia_ai_research_lead_enabled": {
     "state": "PARTIAL",
-    "note": "The Lead model is set to Sonnet 5.5, whose agreement is AVAILABLE since 27 Oct 11:15. AIA has never called 5.5 (31 Sonnet 4.5 calls since 20 Oct); the next Lead turn is the first. All 3 failed steps in 7 days are Lead turns (SCHEMA_VIOLATION after repair). Checked 13:22 UTC: the host role's grant covers eu.anthropic.claude-sonnet-5-5, and CloudTrail shows no call from it yet."
+    "note": "The Lead model is set to Sonnet 5.5, whose agreement is AVAILABLE since 27 Oct 11:15. AIA has never called 5.5 (31 Sonnet 4.5 calls since 20 Oct); the next Lead turn is the first. All 3 failed steps in 7 days are Lead turns (SCHEMA_VIOLATION after repair)."
   },
   "aia_ai_population_personas_enabled": {
     "state": "ON",
@@ -29,8 +29,8 @@
     "note": "Not reported by the audit; CLAUDE.md says off, also on develop."
   },
   "aia_deep_research_enabled": {
-    "state": "MATCH",
-    "note": "SSM: on, Brave at USD 5.00 per 1000 (prices as of 14 Oct), fan-out, agent-directed, lead, 7 connectors, Wikipedia off. In-app approvals in force: a priced quote on 26 Oct 01:02 UTC answered 200, where an unapproved setting answers 409. Nigel, 27 Oct: the Brave sign-off is settled; deep-research-web-search 1 is ticked by the next plan PR."
+    "state": "MISMATCH",
+    "note": "On since 14 Oct with priced Brave (key, price), fan-out, agent-directed, lead and 7 connectors, before the owner's Brave sign-off (deep-research-web-search 1, 51, 54 open)."
   },
   "aia_deep_research_agent_directed": {
     "state": "ON",
@@ -109,6 +109,13 @@
     "set_by": "operator (production-environment PE0-PE12)",
     "evidence": "app.ai-analytics.ai answers",
     "note": "As planned: the zone exists, no app record, no RDS."
+  },
+  "Haiku 4.5 usage in the account": {
+    "state": "MISMATCH",
+    "needed_by": "—",
+    "set_by": "Nigel",
+    "evidence": "CloudTrail: IAM user makli-bedrock",
+    "note": "Not AIA: IAM user makli-bedrock, ~240-300 Converse calls a day from one IP, two active access keys ('Local Cli', 'bedrock'). Decide whose it is and whether the keys stay."
   },
   "Smoke shows the AI switches (MP6)": {
     "state": "MISSING",
