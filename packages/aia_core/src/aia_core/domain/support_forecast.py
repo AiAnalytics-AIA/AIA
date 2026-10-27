@@ -116,7 +116,9 @@ class SupportForecast:
             return ReportableState.MET
         if self.analysis is SupportStatus.INDICATIVE:
             return ReportableState.INDICATIVE
-        return ReportableState.NOT_FOUND if self.reportable_n is None else ReportableState.NEEDS_MORE
+        if self.reportable_n is None:
+            return ReportableState.NOT_FOUND
+        return ReportableState.NEEDS_MORE
 
 
 def _statuses(

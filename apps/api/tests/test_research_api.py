@@ -2838,10 +2838,11 @@ def test_readiness_names_an_unforecast_sufficient_n_unknown_never_good(
 def test_every_sufficient_n_is_served_with_what_it_stands_for(
     analysis: str | None, reportable_n: int | None, state: str
 ) -> None:
-    from aia_api.routers.research import support_forecast_response
     from aia_core.domain.evidence import SupportStatus
     from aia_core.domain.fieldwork import PersonaSource
     from aia_core.domain.support_forecast import SupportForecast
+
+    from aia_api.routers.research import support_forecast_response
 
     forecast = SupportForecast(
         persona_source=PersonaSource.FICTIONAL_ROSTER,
