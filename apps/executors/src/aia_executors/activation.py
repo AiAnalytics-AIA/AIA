@@ -33,6 +33,7 @@ from typing import Final
 
 from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.licence_determinations import PANEL_APPROVED_ROUTE
+from aia_core.domain.population.czech import CZ_SYNTHETIC_V17
 from aia_core.domain.residency import DataClass
 from aia_core.infrastructure.report_pdf import report_pdf_from_env
 
@@ -42,11 +43,15 @@ from .deep_research_runtime import (
     BRAVE_AS_OF_KEY,
     BRAVE_KEY,
     BRAVE_PRICE_KEY,
+    COMMON_CRAWL_KEY,
+    CONNECTORS_KEY,
     ENABLED_KEY,
     LEAD_KEY,
     WEB_SEARCH_KEY,
     agent_directed,
     brave_price_per_call,
+    common_crawl,
+    connectors,
     deep_research_enabled,
     lead,
     web_search,
@@ -157,13 +162,40 @@ def _study_lead(c: _Composition) -> Readiness:
     return _passes(s, (_A, _B), f"turns answer on {model}", "every turn parks")
 
 
+#: The population the panel path reads: its import contract, which pins each companion's file
+#: and each version's panel by size; bin/sync-population.sh lands them under their base names.
+POPULATION_CONTRACT: Final = CZ_SYNTHETIC_V17
+
+
 def _asset_root(env: Mapping[str, str]) -> Readiness:
+    """READY only when every file the contract pins is there, readable, at its pinned size: a
+    stat each, never a hash (the import judged the bytes)."""
     root = (env.get("AIA_POPULATION_ASSET_ROOT") or "").strip()
     if not root:
         return Readiness(False, "AIA_POPULATION_ASSET_ROOT is not set")
-    if not os.path.isdir(root) or not os.listdir(root):
-        return Readiness(False, f"{root} holds no population (bin/sync-population.sh)")
-    return Readiness(True, f"{root} holds the population")
+    if not os.path.isdir(root):
+        return Readiness(False, f"{root} is not a directory (bin/sync-population.sh)")
+    with os.scandir(root) as entries:
+        sizes = {
+            e.name: e.stat().st_size for e in entries if e.is_file() and os.access(e.path, os.R_OK)
+        }
+    contract = POPULATION_CONTRACT
+    missing = [c.asset_id for c in contract.companions if sizes.get(c.asset_id) != c.byte_size]
+    missing += [
+        f"the {v.label} panel"
+        for v in contract.known_versions
+        if not any(
+            name.endswith(f"_{v.label}.csv.gz") and size == v.byte_size
+            for name, size in sizes.items()
+        )
+    ]
+    if missing:
+        return Readiness(
+            False,
+            f"{root} lacks {len(missing)} file(s) {contract.contract_id} pins, "
+            f"among them {', '.join(missing[:3])} (bin/sync-population.sh)",
+        )
+    return Readiness(True, f"{root} holds every file {contract.contract_id} pins")
 
 
 def _population_personas(c: _Composition) -> Readiness:
@@ -217,6 +249,23 @@ def _deep_research(c: _Composition) -> Readiness:
         return Readiness(False, f"{WEB_SEARCH_KEY} is {search}, not brave")
     brave_price_per_call(c.env)  # its dated price and its key's reference, refused by name
     return Readiness(True, "search route brave, priced")
+
+
+def _deep_research_connectors(c: _Composition) -> Readiness:
+    if not deep_research_enabled(c.env):
+        return _off(ENABLED_KEY)
+    listed = connectors(c.env)
+    if not listed:
+        return Readiness(False, f"{CONNECTORS_KEY} lists none")
+    return Readiness(True, f"listed: {', '.join(listed)}")
+
+
+def _common_crawl(c: _Composition) -> Readiness:
+    if not deep_research_enabled(c.env):
+        return _off(ENABLED_KEY)
+    if not common_crawl(c.env):
+        return _off(COMMON_CRAWL_KEY)
+    return Readiness(True, "the Athena URL index and the archive are composed")
 
 
 def _agent_directed(c: _Composition) -> Readiness:
@@ -307,6 +356,18 @@ PROFILE: Final = (
         "Deep Research reach (AC-11)",
         (ENABLED_KEY, WEB_SEARCH_KEY, BRAVE_PRICE_KEY, BRAVE_AS_OF_KEY, BRAVE_KEY),
         _deep_research,
+    ),
+    ActivationRow(
+        "deep_research_connectors",
+        "the connectors (AC-11)",
+        (CONNECTORS_KEY,),
+        _deep_research_connectors,
+    ),
+    ActivationRow(
+        "deep_research_common_crawl",
+        "Common Crawl's index and archive (AC-11)",
+        (COMMON_CRAWL_KEY,),
+        _common_crawl,
     ),
     ActivationRow(
         "deep_research_agent_directed",

@@ -5,10 +5,21 @@ from __future__ import annotations
 
 import socket
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from aia_executors.activation import PROFILE, Readiness, judge
+from aia_executors.activation import POPULATION_CONTRACT, PROFILE, Readiness, judge
+
+#: What bin/sync-population.sh lands on the develop host, by base name.
+SYNC_LIST = Path(__file__).resolve().parents[3] / "deploy" / "develop" / "population" / "v17.files"
+
+#: A fictional contract small enough to write: one companion and one panel version.
+FICTIONAL_CONTRACT = SimpleNamespace(
+    contract_id="fictional/v1",
+    companions=(SimpleNamespace(asset_id="COMPANION.csv", byte_size=9),),
+    known_versions=(SimpleNamespace(label="v1_0", byte_size=7),),
+)
 
 _AI_ROWS = (
     "ai_runtime",
@@ -58,6 +69,8 @@ ON: dict[str, str] = {
     "AIA_DEEP_RESEARCH_BRAVE_USD_PER_1000": "5",
     "AIA_DEEP_RESEARCH_BRAVE_PRICES_AS_OF": "2026-10-01",
     "AIA_DEEP_RESEARCH_BRAVE_API_KEY": "brave-secret-value",
+    "AIA_DEEP_RESEARCH_CONNECTORS": "wayback",
+    "AIA_DEEP_RESEARCH_COMMON_CRAWL": "true",
     "AIA_DEEP_RESEARCH_AGENT_DIRECTED": "true",
     "AIA_DEEP_RESEARCH_LEAD": "true",
     "AIA_REPORT_PDF_ENABLED": "true",
@@ -66,9 +79,14 @@ ON: dict[str, str] = {
 
 
 @pytest.fixture
-def on(tmp_path: Path) -> dict[str, str]:
-    (tmp_path / "panel.csv").write_text("fictional\n", encoding="utf-8")
-    return {**ON, "AIA_POPULATION_ASSET_ROOT": str(tmp_path)}
+def on(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[str, str]:
+    """Every switch on, over a fictional population that holds every file its contract pins."""
+    monkeypatch.setattr("aia_executors.activation.POPULATION_CONTRACT", FICTIONAL_CONTRACT)
+    population = tmp_path / "population"
+    population.mkdir()
+    (population / "COMPANION.csv").write_bytes(b"a,b\n1,2\n\n")
+    (population / "PANEL_v1_0.csv.gz").write_bytes(b"\x1f\x8b0000\n")
+    return {**ON, "AIA_POPULATION_ASSET_ROOT": str(population)}
 
 
 @pytest.fixture
@@ -176,7 +194,37 @@ def test_panel_personas_without_the_population_on_disk_are_not_ready(
     empty.mkdir()
     rows = _rows({**on, "AIA_POPULATION_ASSET_ROOT": str(empty)})
     assert not rows["population_personas"].ready and not rows["population_assets"].ready
-    assert rows["population_assets"].reason.endswith("holds no population (bin/sync-population.sh)")
+    assert rows["population_assets"].reason == (
+        f"{empty} lacks 2 file(s) fictional/v1 pins, among them COMPANION.csv, the v1_0 panel "
+        "(bin/sync-population.sh)"
+    )
+
+
+def test_a_placeholder_or_a_truncated_panel_is_not_the_population(on: dict[str, str]) -> None:
+    """Codex on #1050: a directory that is not empty is not yet a population. A file the
+    contract does not name, or the panel at another size, reads NOT_READY."""
+    root = Path(on["AIA_POPULATION_ASSET_ROOT"])
+    (root / "PANEL_v1_0.csv.gz").write_bytes(b"\x1f\x8b")
+    (root / "placeholder").write_text("x", encoding="utf-8")
+    rows = _rows(on)
+    assert not rows["population_assets"].ready
+    assert "the v1_0 panel" in rows["population_assets"].reason
+    assert not rows["population_personas"].ready
+
+
+def test_the_panels_the_profile_looks_for_are_the_ones_the_sync_lands() -> None:
+    """The real contract's panels, by their label and size, are the files
+    bin/sync-population.sh lands (test_population_carry_over holds the companions)."""
+    landed = {}
+    for line in SYNC_LIST.read_text(encoding="utf-8").splitlines():
+        if line.strip() and not line.startswith("#"):
+            _, size, _, path = line.split()
+            landed[path.rsplit("/", 1)[-1]] = int(size)
+    for version in POPULATION_CONTRACT.known_versions:
+        found = [n for n, s in landed.items() if n.endswith(f"_{version.label}.csv.gz")]
+        assert found and landed[found[0]] == version.byte_size, version.label
+    for companion in POPULATION_CONTRACT.companions:
+        assert landed[companion.asset_id] == companion.byte_size
 
 
 def test_the_lead_on_without_its_keys_parks_every_turn(on: dict[str, str]) -> None:
@@ -195,6 +243,19 @@ def test_deep_research_needs_research_agents_and_a_priced_brave(on: dict[str, st
     keyless = {k: v for k, v in on.items() if k != "AIA_DEEP_RESEARCH_BRAVE_API_KEY"}
     assert _rows(keyless)["deep_research"] == Readiness(
         False, "AIA_DEEP_RESEARCH_WEB_SEARCH=brave needs AIA_DEEP_RESEARCH_BRAVE_API_KEY"
+    )
+
+
+def test_deep_research_without_connectors_or_common_crawl_is_not_ready(on: dict[str, str]) -> None:
+    """Codex on #1050: Deep Research on with a priced Brave composes no connector and no archive
+    when none is listed and Common Crawl is off; each says so on a row of its own."""
+    rows = _rows({**on, "AIA_DEEP_RESEARCH_CONNECTORS": "", "AIA_DEEP_RESEARCH_COMMON_CRAWL": ""})
+    assert rows["deep_research"].ready
+    assert rows["deep_research_connectors"] == Readiness(
+        False, "AIA_DEEP_RESEARCH_CONNECTORS lists none"
+    )
+    assert rows["deep_research_common_crawl"] == Readiness(
+        False, "AIA_DEEP_RESEARCH_COMMON_CRAWL is not true"
     )
 
 
@@ -228,10 +289,10 @@ def test_report_pdfs_on_without_libreoffice_are_not_ready(
 def test_a_directory_that_cannot_be_read_is_not_ready_never_a_failed_smoke(
     on: dict[str, str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    def refused(_: str) -> list[str]:
+    def refused(_: str) -> Any:
         raise PermissionError(13, "Permission denied", "/srv/population/v17")
 
-    monkeypatch.setattr("aia_executors.activation.os.listdir", refused)
+    monkeypatch.setattr("aia_executors.activation.os.scandir", refused)
     rows = _rows(on)
     assert rows["population_assets"] == Readiness(
         False, "[Errno 13] Permission denied: '/srv/population/v17'"

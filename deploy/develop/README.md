@@ -440,8 +440,9 @@ worker's environment, read by the parsers the worker starts with, plus the web's
 `/config` for the workbench. The smoke prints each row `ok` when it is READY and
 `NOT_READY` with its reason otherwise; the rows are the runtime, the route's classes,
 research agents, the Lead, panel personas, analysis, client-source proposals, Deep
-Research with Brave, agent-directed mode, Deep Research's lead, report PDFs, the
-two switches not built yet, the population's files and error tracking.
+Research with Brave, its connectors, Common Crawl, agent-directed mode, Deep Research's
+lead, report PDFs, the two switches not built yet, the population's files (every file the
+Czech contract pins, at its pinned size) and error tracking.
 A NOT_READY row never fails the deploy. The last line counts them, and Settings → Stav
 systému lists them as *Nezapnuto*. No row makes a call. The ADR 0022 approvals and each
 client's data posture are organization decisions, so their evidence is in Settings and
