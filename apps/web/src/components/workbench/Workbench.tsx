@@ -46,6 +46,7 @@ import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
 import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
+import { ItemReview } from "../rehome/ItemReview";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { ItemInspectBody } from "./ItemInspectBody";
@@ -947,32 +948,16 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   onAccept: (keys: string[]) => void; onDismiss: (keys: string[]) => void;
 }) {
   const content = { project: state.project, analysis: state.analysis };
-  const keys = items.map((x) => x.key);
   return (
-    <div className="artbar artbar--you edits" role="region" aria-label={EDITS_LABEL}>
-      <div className="edits__head">
-        <Glyph tone="you" size={12} />
-        <div className="artbar__grow"><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</div>
-        <button type="button" className="btn btn--sm btn--quiet" onClick={() => onDismiss(keys)}>Zahodit vše</button>
-        <button type="button" className="btn btn--sm btn--primary" disabled={!canEdit} onClick={() => onAccept(keys)}>Přijmout vše</button>
-      </div>
-      {items.map(({ key, edit }) => {
-        const d = describeEdit(content, edit);
-        const m = marks[key];
-        return (
-          <div key={key} className="chg" data-aia={`lead-edit.${key}`}>
-            <div className="chg__h">
-              <span className="grow">{d.where}</span>
-              {typeof m === "object" ? <span className="chg__refused">{m.refused}</span> : null}
-              <button type="button" className="btn btn--sm btn--quiet" onClick={() => onDismiss([key])}>Zahodit</button>
-              <button type="button" className="btn btn--sm" disabled={!canEdit} onClick={() => onAccept([key])}>Přijmout</button>
-            </div>
-            {d.before !== null ? <div className="chg__before">{d.before}</div> : null}
-            {d.after !== null ? <div>{d.after}</div> : null}
-            {edit.why ? <div className="chg__why">Proč: {edit.why}</div> : null}
-          </div>
-        );
-      })}
+    <div className="artbar artbar--you edits">
+      <ItemReview mode="each" label={EDITS_LABEL} canEdit={canEdit} onAccept={onAccept} onDismiss={onDismiss}
+        head={<><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</>}
+        items={items.map(({ key, edit }) => {
+          const d = describeEdit(content, edit);
+          const m = marks[key];
+          return { id: key, where: d.where, before: d.before, after: d.after, why: edit.why || null,
+            refused: typeof m === "object" ? m.refused : null, data: { "data-aia": `lead-edit.${key}` } };
+        })} />
     </div>
   );
 }

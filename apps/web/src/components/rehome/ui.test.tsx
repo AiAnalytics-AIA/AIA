@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 // The interface primitives that carry a rule of their own.
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AiButton, FaultNote, StaleMark, StatusPill, type StatusTone, Value } from "./ui";
 import { usdWords } from "@/lib/spend";
 import { AiJobCard } from "./AiJobCard";
+import { ItemReview } from "./ItemReview";
 
 afterEach(cleanup);
 
@@ -97,5 +98,37 @@ describe("AiJobCard", () => {
       expect(card.querySelector("[data-status-pill]")).toBeTruthy();
     }
     expect(screen.getByText("0,40 USD").hasAttribute("data-fact-key")).toBe(true);
+  });
+});
+
+describe("ItemReview", () => {
+  const items = [
+    { id: "a", where: "Dotazník · upravit otázku", before: "Znáte?", after: "Znáte značku?", why: "Jasnější" },
+    { id: "b", where: "Dotazník · přidat otázku", after: "Kolik?" },
+    { id: "c", where: "Návrh · cíl", after: "Hotovo", decided: "Přijato" },
+  ];
+
+  it("decides each item, or all still open, and never offers a decided one again", () => {
+    const onAccept = vi.fn(); const onDismiss = vi.fn();
+    render(<ItemReview mode="each" label="Návrhy Vedoucího" head="Vedoucí navrhuje 3 změny" canEdit items={items} onAccept={onAccept} onDismiss={onDismiss} />);
+    const region = screen.getByRole("region", { name: "Návrhy Vedoucího" });
+    expect(within(region).getAllByRole("button", { name: "Přijmout" })).toHaveLength(2);
+    expect(within(region).getByText("Znáte?").hasAttribute("data-review-before")).toBe(true);
+    expect(within(region).getByText("Proč: Jasnější")).toBeTruthy();
+    fireEvent.click(within(region).getByRole("button", { name: "Přijmout vše" }));
+    expect(onAccept).toHaveBeenCalledWith(["a", "b"]);
+    fireEvent.click(within(region).getAllByRole("button", { name: "Zahodit" })[1]!);
+    expect(onDismiss).toHaveBeenCalledWith(["b"]);
+  });
+
+  it("ticks only what may be taken, and keeps a decided item ticked and closed", () => {
+    const onToggle = vi.fn();
+    render(<ItemReview mode="select" label="Položky" canEdit selected={new Set(["a"])} onToggle={onToggle} footer={<p>pata</p>}
+      items={[{ ...items[0]!, selectable: true }, { ...items[1]!, selectable: false }, { ...items[2]!, selectable: true }, { id: "gap", where: "Mezera" }]} />);
+    const boxes = screen.getAllByRole("checkbox") as HTMLInputElement[];
+    expect(boxes.map((b) => [b.checked, b.disabled])).toEqual([[true, false], [false, true], [true, true]]);
+    fireEvent.click(boxes[0]!);
+    expect(onToggle).toHaveBeenCalledWith("a");
+    expect(screen.getByText("pata")).toBeTruthy();
   });
 });
