@@ -40,7 +40,9 @@ function useOptionalRouter(): { push: (href: string) => void } | null {
   }
 }
 
-export function CommandPalette() {
+/** `chord`: false where another control owns the key (Settings' section menu), so the button does
+ *  not promise a shortcut that opens something else there. */
+export function CommandPalette({ chord: showChord = true }: { chord?: boolean } = {}) {
   const router = useOptionalRouter();
   const apple = useSyncExternalStore(noChange, appleKeys, () => null);
   const [open, setOpen] = useState(false);
@@ -117,7 +119,7 @@ export function CommandPalette() {
     }
   };
 
-  const chord = apple === null ? null : apple ? "⌘K" : "Ctrl K";
+  const chord = !showChord || apple === null ? null : apple ? "⌘K" : "Ctrl K";
   return (
     <>
       <button

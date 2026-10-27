@@ -54,6 +54,7 @@ import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import { useWorkingImpact } from "./useWorkingImpact";
+import { CommandPalette } from "../aia/CommandPalette";
 import "./workbench.css";
 import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
 import { t, tv } from "@/i18n/t";
@@ -1062,6 +1063,7 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
       </button>
       {narrow ? null : <span className="shead__state"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</span>}
       <span className="shead__spacer" />
+      {narrow ? null : <CommandPalette />}
       {pending > 0 && !narrow ? <button type="button" className="shead__pending" onClick={onPending}><Glyph tone="you" size={11} />Čeká na vás: {pending}</button> : null}
       {narrow ? null : (
         <span className="budgetmini" title="Rozpočet studie: utraceno / limit">

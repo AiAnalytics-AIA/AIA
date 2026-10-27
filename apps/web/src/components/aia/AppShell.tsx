@@ -203,7 +203,7 @@ export function AppShell({
               <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
                 <Breadcrumbs crumbs={crumbs.length || crumbEnd ? crumbs : [{ label: title }]} strong end={crumbEnd} />
               </div>
-              <div className="ml-auto flex flex-wrap items-center gap-3"><CommandPalette />{status}{action}</div>
+              <div className="ml-auto flex flex-wrap items-center gap-3"><CommandPalette chord={!path.startsWith("/app/settings")} />{status}{action}</div>
             </div>
           </header>
         ) : (
@@ -219,13 +219,17 @@ export function AppShell({
                 {back.label}
               </Link>
             ) : null}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Breadcrumbs crumbs={crumbs} />
-              <div className="ml-auto"><CommandPalette /></div>
-            </div>
+            {/* The palette sits on the trail's row; a page with no trail keeps it beside its action. */}
+            {crumbs.length ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Breadcrumbs crumbs={crumbs} />
+                <div className="ml-auto"><CommandPalette /></div>
+              </div>
+            ) : null}
             {hero ? (
               <div className="pb-[22px] pt-3">
-                <Hero eyebrow={eyebrow} title={title} lede={sub} edit={edit} figures={figures} aside={status} action={action} />
+                <Hero eyebrow={eyebrow} title={title} lede={sub} edit={edit} figures={figures} aside={status}
+                  action={crumbs.length ? action : <span className="flex flex-wrap items-center gap-3"><CommandPalette />{action}</span>} />
               </div>
             ) : (
             <div className={`flex flex-wrap ${alignActionStart ? "items-start" : "items-end"} justify-between gap-4 pb-5 pt-2`}>
@@ -239,6 +243,7 @@ export function AppShell({
                 {sub ? <p className="mt-1 text-sm leading-6 text-ink-muted">{sub}</p> : null}
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                {crumbs.length ? null : <CommandPalette />}
                 {status}
                 {action}
               </div>
