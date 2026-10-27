@@ -4507,6 +4507,7 @@ export const cs = {
     swatch: "{label}: {colour}",
     undo: "Vrátit",
     undoClose: "Zavřít",
+    pendingCommit: "Neuloženo · Enter nebo odchod z pole uloží",
     spend: {
       kinds: {
         spend_confirm: "Potvrzení útraty",

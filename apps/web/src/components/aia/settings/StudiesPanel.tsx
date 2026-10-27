@@ -88,7 +88,7 @@ function Budget({ costs, reload }: { costs: Study; reload: () => void }) {
   // anything is sent (the API itself refuses only a negative budget). Open holds are not in it.
   const min = Math.ceil((costs.spent_usd ?? 0) * 100) / 100;
   return <>
-    <Stepper label={tv(`${S}.budgetOf`, { study: costs.name })} value={answered.value} min={min} max={MAX_USD} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
+    <Stepper deferred label={tv(`${S}.budgetOf`, { study: costs.name })} value={answered.value} min={min} max={MAX_USD} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
       onCommit={(v) => refusal.guard(() => admin.setStudyBudget(costs.study_id, v)).then(() => { answered.hold(v); reload(); })} note={tv(`${S}.budgetFloor`, { min: formatNumber(min, 2) })} />
     {refusal.shown}
   </>;
@@ -102,7 +102,7 @@ function Threshold({ costs, reload }: { costs: Study; reload: () => void }) {
   const refusal = useRefusal();
   const max = Math.max(MIN_THRESHOLD_USD, budget);
   return <>
-    <Stepper label={tv(`${S}.thresholdOf`, { study: costs.name })} value={limit} min={MIN_THRESHOLD_USD} max={max} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
+    <Stepper deferred label={tv(`${S}.thresholdOf`, { study: costs.name })} value={limit} min={MIN_THRESHOLD_USD} max={max} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
       note={limit === null ? t(`${S}.never`) : null}
       onCommit={(v) => refusal.guard(() => research.setSpendConfirm(costs.study_id, v)).then(() => { answered.hold(v); reload(); })} />
     {refusal.shown}

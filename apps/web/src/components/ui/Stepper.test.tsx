@@ -325,3 +325,29 @@ describe("Stepper save note (design system v3, I-Ukladani)", () => {
     }
   });
 });
+
+describe("Stepper for money (deferred, design system v3, I-Penize)", () => {
+  it("moves the draft on each press and saves once, on Enter", () => {
+    const save = vi.fn();
+    render(<Stepper deferred label="Počet respondentů" value={400} onCommit={save} min={50} max={5000} step={10} />);
+    fireEvent.click(plus());
+    fireEvent.click(plus());
+    fireEvent.keyDown(field(), { key: "ArrowUp" });
+    expect(save).not.toHaveBeenCalled();
+    expect((field() as HTMLInputElement).value).toBe("430");
+    expect(screen.getByText("Neuloženo · Enter nebo odchod z pole uloží")).toBeTruthy();
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith(430);
+  });
+
+  it("restores the saved value on Escape and saves nothing", () => {
+    const save = vi.fn();
+    render(<Stepper deferred label="Počet respondentů" value={400} onCommit={save} min={50} max={5000} step={10} />);
+    fireEvent.click(plus());
+    fireEvent.keyDown(field(), { key: "Escape" });
+    expect((field() as HTMLInputElement).value).toBe("400");
+    fireEvent.blur(field());
+    expect(save).not.toHaveBeenCalled();
+  });
+});

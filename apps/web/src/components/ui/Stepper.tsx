@@ -15,7 +15,7 @@ import { Icon } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS, SaveNote } from "./parts";
 
 export function Stepper({
-  value, onCommit, onProblem, label, min, max, step = 1, decimals = 0, unit, unitShown = true, disabled = false, showBounds = true, note, className = "",
+  value, onCommit, onProblem, label, min, max, step = 1, decimals = 0, unit, unitShown = true, disabled = false, showBounds = true, note, className = "", deferred = false,
 }: {
   /** The saved value; null when none is set yet (the field is empty until one is chosen). */
   value: number | null;
@@ -48,8 +48,14 @@ export function Stepper({
   /** A line under the field (a recommendation, a save state); an error takes its place. */
   note?: ReactNode;
   className?: string;
+  /**
+   * The value is money or a proposal (design system v3, I-Penize): a press or an arrow only moves
+   * the draft, and Enter or leaving the field saves it once, never a save per step.
+   */
+  deferred?: boolean;
 }) {
   const bounds: NumberBounds = { min, max, step, decimals };
+  const input = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<string | null>(null);
   // I9: an error is shown from the first refused commit, then checked live as the person types.
   const [problem, setShownProblem] = useState<string | null>(null);
@@ -156,6 +162,13 @@ export function Stepper({
   const press = (direction: 1 | -1, big: boolean) => {
     const next = stepNumber(base(), direction, bounds, big);
     if (next === null) return;
+    if (deferred) {
+      // The draft moves; the focus goes to the field, so leaving it (or Enter) saves it once.
+      setDraft(formatNumber(next, decimals > 0 ? decimals : undefined));
+      setProblem(null);
+      input.current?.focus();
+      return;
+    }
     settle();
     commit(next);
   };
@@ -225,6 +238,7 @@ export function Stepper({
               }
             }}
             onKeyDown={onKey}
+            ref={input}
             onBlur={() => commitDraft()}
             className="w-[7ch] min-w-0 border-x border-border bg-transparent px-1 text-center text-sm tabular-nums text-ink outline-none disabled:text-ink-faint"
           />
@@ -238,6 +252,8 @@ export function Stepper({
       </span>
       {problem ? (
         <span id={errorId} role="alert" className="text-xs leading-4 text-status-fault">{problem}</span>
+      ) : deferred && draft !== null ? (
+        <span className="text-xs leading-4 text-ink-muted">{t("input.pendingCommit")}</span>
       ) : note ? (
         <span className="text-xs leading-4 text-ink-muted">{note}</span>
       ) : null}

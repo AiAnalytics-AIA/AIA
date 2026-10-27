@@ -81,7 +81,7 @@ export function ClientRulesEditor({ clientId, clientName, mayAdminister }: { cli
         <p className="text-xs leading-5 text-ink-muted">{t(`${R}.ceilingHelp`)}</p>
         {mayAdminister ? (
           <div className="mt-2 flex flex-wrap items-start gap-2">
-            <Stepper label={t(`${R}.ceiling`)} value={rules.wallet_ceiling_usd} min={0} max={MAX_CEILING_USD} step={10} decimals={2} unit="USD" disabled={busy}
+            <Stepper deferred label={t(`${R}.ceiling`)} value={rules.wallet_ceiling_usd} min={0} max={MAX_CEILING_USD} step={10} decimals={2} unit="USD" disabled={busy}
               onCommit={(v) => send({ wallet_ceiling_usd: v })} />
             {rules.wallet_ceiling_usd !== null ? <Button small disabled={busy} onClick={() => void send({ wallet_ceiling_usd: null }).catch(() => {})}>{t(`${R}.clear`)}</Button> : null}
           </div>

@@ -463,7 +463,7 @@ function ProposeInPlace({ setting: s, onChanged, onOpen }: { setting: DrSetting;
   if (kind === "whole" || kind === "decimal") {
     const { min, max } = bound(s);
     return <>
-      <Stepper label={label} value={typeof s.value === "number" ? s.value : null} min={min} max={max} decimals={kind === "whole" ? 0 : 4} step={kind === "whole" ? 1 : 0.5}
+      <Stepper deferred label={label} value={typeof s.value === "number" ? s.value : null} min={min} max={max} decimals={kind === "whole" ? 0 : 4} step={kind === "whole" ? 1 : 0.5}
         unit={unitOf(s) || undefined} showBounds={false} note={bounds(s)} onCommit={(v) => propose(v)} />
       {shown}
     </>;
