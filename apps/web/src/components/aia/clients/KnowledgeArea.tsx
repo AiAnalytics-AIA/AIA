@@ -196,7 +196,7 @@ const viewRequested = (params: URLSearchParams): LibraryView | null => {
   return v === "review" || v === "unfiled" || v === "old" ? v : null;
 };
 
-const SECTION_HEAD = "mx-2 mb-1 mt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+const SECTION_HEAD = "mx-2 mb-1 mt-3 text-xs font-medium text-ink-faint";
 
 /** A folder or a label just deleted, or about to be once its row is confirmed. */
 type Doomed = { kind: "folder"; folder: KnowledgeFolder } | { kind: "label"; label: KnowledgeLabel };

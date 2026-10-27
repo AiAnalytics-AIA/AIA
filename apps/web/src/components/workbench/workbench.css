@@ -276,7 +276,7 @@
 .composer__send { margin-left: auto; width: 32px; height: 32px; border-radius: 16px; border: 0; background: var(--ink); color: var(--surface-raised); display: inline-flex; align-items: center; justify-content: center; }
 .composer__send[disabled] { background: var(--border); cursor: default; }
 .composer__stop { margin-left: auto; width: 32px; height: 32px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--surface-raised); display: inline-flex; align-items: center; justify-content: center; }
-.composer__hint { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; line-height: 16px; color: var(--ink-faint); padding: 5px 6px 0 6px; }
+.composer__hint { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; line-height: 16px; color: var(--ink-faint); padding: 5px 6px 0 6px; }
 .follow { max-width: 58rem; margin: 2px auto 8px auto; padding: 0 18px 0 52px; }
 .follow__btn { display: flex; gap: 8px; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--border); background: transparent; padding: 6px 0; font-size: 13px; line-height: 18px; color: var(--ink-muted); }
 .follow__btn:hover { color: var(--ink); }

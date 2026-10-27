@@ -155,7 +155,7 @@ export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null
     <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5">
-          <h3 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h3>
+          <h2 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h2>
           {/* A real disclosure: a keyboard and a touch open what the ⓘ explains, not only a hover. */}
           <button type="button" aria-expanded={explained} aria-controls="researcher-spend-about" aria-label="Jak se útrata počítá"
             title={about} onClick={() => setExplained((v) => !v)} data-dense
