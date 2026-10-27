@@ -11,6 +11,8 @@ chunks:
   - "[ ] LI7. Every Settings page's rail links Můj Vedoucí (ControlPanel), the artboards' rail"
   - "[ ] LI8. The 'AIA' house entity that pays for charges belonging to no single client (a hatch first): its ADR, drafted by the Lead worker; how LI0's allowance relates to it decided there (Nigel, 26 Oct 2026; W3)"
   - "[ ] LI9. The hatch wording follows 'grow their own from a test tube': vypěstovat / zkumavka / roste in every screen, copy and test, never Líhnutí / Vylíhnout / se líhne (Nigel, 26 Oct 2026; W3)"
+  - "[ ] LI10. Můj Vedoucí's chat preview behind 'Náhled v chatu', in three states: Klid, Přemýšlí, and Akce běží with a streaming action card (LI5's preview as the Settings prototype v99 draws it; W3)"
+  - "[ ] LI11. The Vypěstovat page's hero, on prototype-build#PBA4's component (W3, with LI4)"
 ---
 # The Lead's identity: hatching, its mark and Můj Vedoucí
 
@@ -272,3 +274,20 @@ follow-up chunk below.
 - Decided by default (planning, open to Nigel's override): SOUL is bounded at 2,800 bytes (the prototype's 2,000 characters not adopted); skills are derived from the worker registry (LI6); the Lead asks before saving a client note.
 - LI7 is widened by lane A: Můj Vedoucí on the rail on every page, built as `prototype-build#PBA2`; LI7 ticks when PBA2 lands.
 - P4, Nigel 26 Oct 2026: five Lead marks, "i chose these five specifically" (LI2, LI3).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**LI10. Náhled v chatu** (W3, lane H). LI5 names "a chat preview"; the prototype puts it behind a "Náhled v chatu"
+button with three states: Klid, Přemýšlí, and Akce běží with a streaming action card (the card as the Lead pane draws it,
+fed by a fixture, never a paid turn). Test: each state renders; the preview sends nothing.
+
+**LI11. The Vypěstovat hero** (W3, lane H). The hatching page's top as PBA4's hero (eyebrow, serif title, one line), with
+LI9's words. Test: the hero renders on Vypěstovat and nowhere in a stage.

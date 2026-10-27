@@ -16,6 +16,7 @@ chunks:
   - "[x] SOC13. The map's overlays: one bar with popovers, a view rail bottom right, the legend as a chip, the side sheet beside the map, fading while the map moves, keys"
   - "[x] SOC11b. A copy pass on the stage: Stress-1, PROGRESS D6, Top vztahy, a dead key (reopens SOC11; spec szz S1; W2)"
   - "[x] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
+  - "[ ] SOC15. Evidence grades on the map: the report's glyph on every map node and the legend beside the map (Nigel, 27 Oct 2026; W2, with artifact-results#RES13)"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -407,3 +408,16 @@ follow-up chunk below.
 
 **Notes.**
 - SOC4 carries `szz/S3`; SOC5 `szz/S4` (with `artifact-report#RPT10`, `lead-orchestration#LO5a.3`); SOC8 `szz/S6`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**SOC15. Grades on the map** (W2, lane F). RES13's component on each node, and its legend in the map's legend. Test: a
+modelled run's nodes carry the modelled glyph.

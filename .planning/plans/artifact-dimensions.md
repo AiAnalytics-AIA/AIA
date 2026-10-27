@@ -10,6 +10,11 @@ chunks:
   - "[x] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
   - "[ ] DIM7. 'podpoří …' per dimension and §01 'Co dimenze podpoří', from the persona-topic feeds (spec vzorek D3; W2, blocked on master I5)"
   - "[ ] DIM8. The dead 'Faktory společnosti' card and the AI suggestion card removed (spec vzorek D6; W2)"
+  - "[ ] DIM9. Withdraw a dimension request, the server: a dimension a study requested (a knowledge proposal) withdrawn while it is pending, audited; who may withdraw is who may propose (spec vzorek D-gap 4; W2)"
+  - "[ ] DIM10. 'Stáhnout žádost' on a pending dimension request (W2, after DIM9)"
+  - "[ ] DIM11. The chosen own dimension in the working copy, the server: persona.population_version_id saved like any edit, readiness and start reading it as their default (spec vzorek D4, D-gap 2; DIM4's server half; W2)"
+  - "[ ] DIM12. 'Použít v běhu' on an own dimension's row, stored through DIM11; Sběr dat's population choice opens on it (spec vzorek D4; W2, after DIM11; Q-D1 open)"
+  - "[ ] DIM13. Catalogue rows marked dimension:<id> (dimensionAia), so the Lead's 'Ukázat' focuses an unchosen catalogue dimension (spec vzorek D5; W2)"
 ---
 # Artifact: Dimenze (Dimensions)
 
@@ -278,3 +283,29 @@ on Vzorek, within the server's limits, and not on Dimenze" (ResearchScreen.workb
 **Notes.**
 - DIM2 carries `vzorek/D2`; DIM5 `vzorek/D5`; DIM6 `vzorek/D7` (its stepper steps move to Vzorek).
 - DIM4 carries `vzorek/D4`. Decided by default (planning, 26 Oct 2026, open to Nigel's override): the own dimension is chosen on Dimenze, shipped after master G28 (register contradiction 11 with SMP5 and today's code).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**DIM9-DIM10. Withdraw a request** (W2, lane F). Spec `vzorek` D-gap 4: a dimension request cannot be withdrawn from
+the study (a knowledge proposal; `workspace.proposeFromStudy` has no inverse, a **hypothesis**). DIM9 adds the
+withdrawal (pending only, audited, the proposal kept as withdrawn); DIM10 the button. Test: a pending request withdrawn
+leaves no pending proposal and an audit row.
+
+**DIM11-DIM12. The chosen child stored** (W2, lane F). DIM4's working-copy field: today the child is a start parameter
+(`API/research.py:332 @ bd0d1ad6`) chosen on Sběr dat (`R/ExecutionSteps.tsx:930`). DIM11 stores it in the working copy
+and makes readiness (which already takes `population_version_id`) and start read it as their default; DIM12 is the
+toggle. Owner question Q-D1 (spec `vzorek` D4) stays open: ship the toggle before G28 (a run over a child draws the same
+personas, master §6.1), or keep the link to Sběr dat. Test: the toggle stores the child; Sběr dat opens on it; an unknown
+target never reads "v toleranci".
+
+**DIM13. dimension:<id> marks** (W2, lane F). Spec `vzorek/D5`: catalogue rows carry `dimensionAia(id)`
+(`apps/web/src/lib/artifacts/dimensions.ts:10 @ bd0d1ad6`), so "Ukázat: <catalogue dimension>" can focus a row not
+chosen. Test: a Lead focus on an unchosen catalogue dimension scrolls to its row.

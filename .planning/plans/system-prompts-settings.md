@@ -18,6 +18,7 @@ chunks:
   - "[ ] 15. A researcher reads the system prompts 'Jen ke čtení': a member read route, an ADR 0020 amendment (Nigel, 26 Oct 2026; W1)"
   - "[ ] 16. System prompts edited and switched on only with the Metodik mark; owners and admins without it read (Nigel, 26 Oct 2026; W1)"
   - "[ ] 17. The stale reason word: the analysis and Deep Research slots stop saying not_run_by_any_composition (the default registry runs both); they read as run but not yet pinned, in the domain and on Settings (ADR 0020 amendment 2026-10-26, Q2 (a); W1)"
+  - "[ ] 18. The 'Text / Změny' switch on a prompt: it opens on Změny when a version waits, the change counted '+n −m' (the Settings prototype v99; reworks chunk 10; W1)"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -364,3 +365,18 @@ Review, relayed by the PM coordinator). The analysis module and the five Deep Re
 chunks 7 and 13 pin it; the old word leaves the domain and `cs.ts`. Test: the slot registry names no
 slot `not_run_by_any_composition` while the default registry composes its step, and the Settings panel
 shows the new words for `aia.analysis.module`. Chunks 7 and 13 stay the named follow-ups (W3, E19).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**18. Text / Změny** (W1, lane B). The Settings prototype v99 (Systémové prompty): a segment switches the editor between
+the text and its changes against the version in force; a prompt with a waiting version opens on Změny; the change is
+counted "+n −m" (lines added and removed). Chunk 10 built the compare without the switch. Test: a prompt with a waiting
+version opens on Změny and shows its counts.
