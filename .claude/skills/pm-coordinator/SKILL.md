@@ -45,13 +45,19 @@ exports" and the relay rule); `.claude/skills/pmstatus/` (the session sweep); `.
 - it is not a draft, its base is `develop`, and its `mergeable_state` is `clean`;
 - every check run succeeded or was skipped, with at least 12 runs (1 for a docs-only PR);
 - no unresolved review threads;
-- Codex completed on the exact head, or a review starting `[Claude review, Codex stand-in]` exists on that
-  exact head.
+- Codex completed on the exact head, or a clean stand-in review on that exact head.
+
+**A stand-in review** is a PR review whose body starts with `[Claude review, Codex stand-in]`, posted on the
+head it reviewed, with a line `Verdict: clean` when no P1 or P2 is open, else `Verdict: findings`. Only the
+newest stand-in on the head counts, and only as a comment or approval: one requesting changes, dismissed, or
+without `Verdict: clean` refuses. (Every session posts as Nigel, and GitHub refuses an approval of one's own
+PR, so a stand-in is normally a comment; the verdict line is what the gate reads.)
 
 It merges with a merge commit, pinned to the head sha (`PUT …/merge` with `sha`), removes the pin and appends
 the merge to `merged.log`. A PR listed in `after.txt` waits until the PR it names has merged.
-A read that fails (no answer, or not the shape expected) refuses; it never counts as a pass.
-`test_merge_gate.sh` checks that against a mocked `gh`: run it after any change to the gate.
+A read that fails, fails on a later page, or is not the shape expected refuses; it never counts as a pass.
+`test_merge_gate.sh` checks every refusal and both ways to merge against a mocked `gh`: run it after any
+change to the gate.
 
 `merge_loop.sh` runs the gate every 4 minutes for up to 2 hours over every pin, printing a PR's line only
 when it changes. Run it in the background (Bash `run_in_background`); when it reaches its 2-hour limit with
@@ -65,7 +71,7 @@ pins left, start it again.
 | `pins.txt` | `PR:sha8`, one per line; the colon is required |
 | `docsonly.txt` | a PR number per line: needs 1 check run, not 12 |
 | `after.txt` | `PR:PR`: the first merges only after the second |
-| `codex-stuck.txt` | a PR number per line: Codex stuck "running" on the head is not waited for (a stand-in review is still required) |
+| `codex-stuck.txt` | a PR number per line: Codex stuck "running" on the head is not waited for (a clean stand-in review is still required) |
 | `merged.log` | written by the gate: one line per merge |
 
 A PR is pinned only after Nigel said to merge it, or when the standing permission covers it. **Re-pin after
