@@ -4428,6 +4428,11 @@ export const cs = {
       "Co AIA zatím nemá, říká tam, kde to potkáte, například simulace, ověření a další krok výzkumu, Data Library, klientský report nebo filtry publika z panelu.",
     openAia: "Otevřít AIA",
   },
+  pageNotFound: {
+    title: "Tato stránka v AIA není",
+    text: "Adresa je chybná, nebo stránka už neexistuje. Klienty, jejich výzkumy a nastavení najdete z úvodní stránky.",
+    openClients: "Otevřít klienty",
+  },
   pageError: {
     title: "Tuto stránku se nepodařilo zobrazit",
     text: "Chyba byla zaznamenána a tým AIA ji uvidí. Zkuste stránku načíst znovu; vaše uložená práce zůstává v AIA.",
