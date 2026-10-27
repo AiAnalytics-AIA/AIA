@@ -335,6 +335,10 @@ describe("a client's workspace", () => {
     render(inClient("CLI-a", <ProfileArea />));
     const contacts = (await screen.findByRole("heading", { name: "Kontakty" })).closest("section")!;
     expect(within(contacts).getByText("jana@klient.test")).toBeTruthy();
+    // Esc leaves the form unsent, as Zrušit does.
+    fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
+    fireEvent.keyDown(within(contacts).getByRole("textbox", { name: "Jméno" }), { key: "Escape" });
+    expect(within(contacts).queryByRole("textbox", { name: "Jméno" })).toBeNull();
     fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
     fireEvent.change(within(contacts).getByRole("textbox", { name: "Jméno" }), { target: { value: "Petr" } });
     fireEvent.click(within(contacts).getByRole("checkbox", { name: "Dostává výsledky" }));

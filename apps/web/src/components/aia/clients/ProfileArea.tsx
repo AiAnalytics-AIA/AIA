@@ -176,6 +176,8 @@ function ContactForm({ initial, onSubmit, onCancel }: { initial: ContactWrite; o
         e.preventDefault();
         if (c.name.trim()) onSubmit(c);
       }}
+      // Esc leaves the form, as Zrušit does (design system v3, I-Klavesnice).
+      onKeyDown={(e) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); onCancel(); } }}
     >
       <Field label={t("aia.profile.contact.name")}>
         <TextInput value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} autoFocus />
