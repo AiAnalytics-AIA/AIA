@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Klient – Výzkumy</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="assets/aia-core-v4.2.css">
+<link rel="stylesheet" href="assets/aia-client.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+</style>
+</helmet>
+<div class="aia cl" data-theme="{{theme}}" data-area="vyzkumy" style="position: relative">
+  <nav class="asb" aria-label="Hlavní navigace">
+    <a class="as-brand" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><rect width="40" height="40" rx="7.2" fill="#0f1215"></rect><circle cx="8" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="8" r="2.3" fill="#6ac5e8"></circle><circle cx="26" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="26" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="8" cy="32" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="32" r="2.3" fill="#ece9e4"></circle></svg><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+    <div class="as-sec" aria-hidden="true">Pracovní prostor</div>
+    <ul class="as-nav">
+      <li><a href="Clients.dc.html" class="on" aria-current="page"><span class="as-tile blue"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1"/></svg></span><span class="as-l">Klienti</span></a></li>
+      <li><a href="#"><span class="as-tile green"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6"/></svg></span><span class="as-l">Společenská inteligence</span></a></li>
+      <li><a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile slate"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span><span class="as-l">Nastavení</span></a></li>
+    </ul>
+    <div class="as-gap"></div>
+    <a class="as-lead" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile"><span style="width: 18px; height: 18px; display: inline-grid"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle cx="27" cy="16" r="2.40" fill="var(--ai)" fill-opacity="1.00"></circle></svg></span></span><span class="as-l">Můj Vedoucí</span></a>
+    <div class="as-foot"><span class="as-av" aria-hidden="true">JM</span><span class="as-l" style="min-width: 0; flex: 1"><b title="Jana Malá">Jana Malá</b><a href="#">Účet a nastavení</a></span><button class="as-out" type="button" aria-label="Odhlásit se" title="Odhlásit se"><svg width="15" height="15" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg></button></div>
+  </nav>
+  <div class="main">
+    <header class="as-top"><div class="as-bar"><nav aria-label="Kde jste" style="flex: 1"><ol class="as-crumbs"><li><a href="Clients.dc.html">Klienti</a></li><li><span class="sep" aria-hidden="true">/</span><a href="Overview.dc.html">Pivovar Zlatá Hora (fiktivní)</a></li><li><span class="sep" aria-hidden="true">/</span><b aria-current="page">Výzkumy</b></li></ol></nav><details class="v4-cmd"><summary class="v4-cmd-b" aria-label="Hledat nebo spustit (Ctrl K)"><i class="ph ph-magnifying-glass s" aria-hidden="true"></i>Hledat nebo spustit…<span class="kbd">⌘K</span></summary><div class="cmdk" role="dialog" aria-label="Příkazová paleta"><div class="cmdk-in"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input type="text" aria-label="Hledat klienty, výzkumy, znalosti, nastavení a akce" placeholder="Klient, výzkum, znalost, nastavení nebo akce…"><span class="cmdk-scope">Vše</span></div><div class="cmdk-list"><div class="cmdk-grp">Čeká na vás</div><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Posoudit návrh dotazníku <span class="sub">Vnímání značek ležáků 2026 · Dotazník</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Doplnit rozhodnutí do Zadání <span class="sub">Vnímání značek ležáků 2026 · Zadání</span></span></a><a class="cmdk-it you" href="KnowledgeItem.dc.html"><i class="ph ph-pause-circle"></i><span class="grow">Znalosti ke schválení <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Pravidla Deep Research ke schválení <span class="sub">Nastavení · Deep Research</span></span></a><div class="cmdk-grp">Přejít</div><a class="cmdk-it " href="Clients.dc.html"><i class="ph ph-buildings"></i><span class="grow">Klienti </span><span class="kbd">G</span><span class="kbd">K</span></a><a class="cmdk-it " href="Overview.dc.html"><i class="ph ph-buildings"></i><span class="grow">Pivovar Zlatá Hora <span class="sub">klient</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-squares-four"></i><span class="grow">Vnímání značek ležáků 2026 <span class="sub">přehled studie · 2 čekají na vás</span></span></a><a class="cmdk-it " href="Knowledge.dc.html"><i class="ph ph-book-open"></i><span class="grow">Znalosti klienta <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-gear-six"></i><span class="grow">Nastavení </span><span class="kbd">G</span><span class="kbd">N</span></a><div class="cmdk-grp">Akce</div><a class="cmdk-it " href="Studies.dc.html"><i class="ph ph-plus"></i><span class="grow">Nový výzkum <span class="sub">u klienta Pivovar Zlatá Hora</span></span><span class="kbd">N</span></a><a class="cmdk-it " href="Intake.dc.html"><i class="ph ph-upload-simple"></i><span class="grow">Přidat podklady <span class="sub">soubory, tabulky, text</span></span><span class="kbd">U</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-sparkle"></i><span class="grow">Analyzuj zadání <span class="sub">úloha Vedoucího</span></span><span class="amt">≤ 0,40 USD</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-rocket-launch"></i><span class="grow">Spustit výzkum <span class="sub">Sběr dat · Kontrola a spuštění</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-file-arrow-down"></i><span class="grow">Stáhnout zprávu <span class="sub">DOCX nebo PDF</span></span></a></div><div class="cmdk-ft"><span><span class="kbd">↑</span><span class="kbd">↓</span> vybrat</span><span><span class="kbd">Enter</span> otevřít</span><span><span class="kbd">Esc</span> zavřít</span><span style="margin-left:auto"><span class="kbd">?</span> všechny zkratky</span></div></div></details><details class="v4-tray"><summary class="v4-tray-b" aria-label="Nic neběží, 2 věci čekají na vás"><span class="n">0</span> běží<span class="v4-dot you" aria-hidden="true" style="margin-left:6px"></span><span class="n">2</span> čekají</summary><div class="tray" role="dialog" aria-label="Probíhá a čeká"><div class="tray-h"><span class="grow">Probíhá a čeká</span><span class="cap">Vnímání značek ležáků 2026</span></div><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Analýza zadání čeká na vás</b><span>úloha Vedoucího · nejvýše 0,40 USD · spustíte na Zadání</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Návrh dotazníku čeká na vás</b><span>přijměte nebo zahoďte změny na Dotazníku</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><span class="tx"><b>Běh 1 · hotovo</b><span>400 AI respondentů · 22 měření · návrh se od běhu změnil</span></span></a></div></details></div></header>
+    <div class="clhero-ground">
+      <div class="content" style="padding-bottom: 0">
+        <header class="clhead">
+          <span class="mono-tile" aria-hidden="true">ZH</span>
+          <div class="ch-id"><div class="ch-title"><h1>Pivovar Zlatá Hora (fiktivní)</h1><span class="chip">Aktivní</span></div><p class="ch-sub"><span class="tx">Rodinný pivovar z Vysočiny: tři ležáky a nealko. Výzkum potřebuje k rozhodování o ceně a komunikaci.</span><a href="Profile.dc.html">O klientovi</a></p></div>
+          <a class="ch-you" href="Knowledge.dc.html"><span class="st"><i class="g you sm"></i></span>4 ke schválení</a><div class="hero-acts"><button class="btn" type="button"><i class="ph ph-upload-simple" aria-hidden="true"></i>Přidat podklady</button><button class="btn primary" type="button"><i class="ph ph-plus" aria-hidden="true"></i>Nový výzkum</button></div>
+        </header>
+        <div class="ch-tabrow"><nav class="ctabs" aria-label="Oblasti klienta">
+          <a href="Overview.dc.html"><i class="ph ph-house-simple" aria-hidden="true"></i>Přehled</a>
+          <a class="on" href="Studies.dc.html" aria-current="page"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>Výzkumy<span class="cnt">3</span><span class="sr">, otevřených: 3</span></a>
+          <a href="Knowledge.dc.html"><i class="ph ph-book-open" aria-hidden="true"></i>Znalosti<span class="cnt you">4</span><span class="sr">, čeká na schválení: 4</span></a>
+          <a href="Profile.dc.html"><i class="ph ph-user" aria-hidden="true"></i>Profil</a>
+        </nav><dl class="ch-facts"><div><a href="Knowledge.dc.html"><dt>Znalosti</dt><dd>38</dd></a></div><div><a href="Knowledge.dc.html"><dt>Soubory</dt><dd>11</dd></a></div><div><a href="Profile.dc.html"><dt>Rozpočet klienta · zbývá</dt><dd>31,40 <span class="unit">USD z 50,00</span></dd></a></div></dl></div>
+      </div>
+    </div>
+    <div class="content" style="padding-top: 0">
+      <div class="abody">
+        <section class="sec" aria-labelledby="h-list">
+          <div class="sh"><span class="num">01</span><h2 id="h-list">Výzkumy klienta</h2><span class="grow"></span><span class="cap" role="status">{{shownLine}}</span></div>
+          <div class="sb">
+            <div class="tools">
+              <label class="findbox" style="flex: 1 1 360px; max-width: 520px"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><span class="sr">Hledat ve výzkumech klienta: v názvech i v tom, co říkají jejich designy</span><input type="text" placeholder="Název, cíl, rozhodnutí, výzkumná otázka, sekce dotazníku, dimenze…" value="{{q}}" onChange="{{setQ}}"></label>
+              <sc-if value="{{searching}}" hint-placeholder-val="{{ false }}"><button class="btn quiet sm" type="button" onClick="{{clearQ}}"><i class="ph ph-x" aria-hidden="true"></i>Zrušit hledání</button></sc-if>
+              <span class="grow"></span>
+              <span class="cap">Řadit</span>
+              <span class="seg sm" role="group" aria-label="Řadit výzkumy"><sc-for list="{{sorts}}" as="o" hint-placeholder-count="2"><button class="{{o.cls}}" type="button" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}</button></sc-for></span>
+            </div>
+            <div class="tools" style="margin-top: -4px">
+              <span class="seg sm" role="group" aria-label="Stav studií"><sc-for list="{{filters}}" as="o" hint-placeholder-count="5"><button class="{{o.cls}}" type="button" aria-pressed="{{o.on}}" onClick="{{o.pick}}">{{o.l}}<span class="cnt">{{o.n}}</span></button></sc-for></span>
+              <sc-if value="{{short}}" hint-placeholder-val="{{ false }}"><span class="cap">V designech hledá od dvou znaků; zatím jen v názvech.</span></sc-if>
+            </div>
+            <div class="grid" role="table" aria-label="Výzkumy klienta" style="grid-template-columns: minmax(0, 1.9fr) 130px 170px minmax(0, 1.1fr) 100px 44px">
+              <div class="tr" role="row"><span class="th" role="columnheader">Studie</span><span class="th" role="columnheader">Krok</span><span class="th" role="columnheader">Stav</span><span class="th" role="columnheader">Přineslo do znalostí</span><span class="th num" role="columnheader">Upraveno</span><span class="th" role="columnheader"><span class="sr">Akce</span></span></div>
+              <sc-for list="{{rows}}" as="s" hint-placeholder-count="6">
+                <div class="{{s.trc}}" role="row">
+                  <span class="td top" role="cell"><i class="ph ph-magnifying-glass" aria-hidden="true" style="width: 16px; height: 16px; color: var(--faint); flex: none; margin-top: 2px"></i><span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><a class="rowbtn" href="#"><span class="t">{{s.name}}</span><span class="s">{{s.sub}}</span></a><sc-if value="{{s.why}}" hint-placeholder-val="{{ false }}"><span class="cap why">{{s.whyF}}: „{{s.pre}}<mark class="hitm">{{s.hit}}</mark>{{s.post}}“</span></sc-if></span></span>
+                  <span class="td" role="cell">{{s.stage}}</span>
+                  <span class="td" role="cell"><span class="st"><i class="{{s.g}}"></i>{{s.st}}</span></span>
+                  <span class="td" role="cell" style="flex-wrap: wrap; gap: 4px 10px"><sc-if value="{{s.acc}}" hint-placeholder-val="{{ true }}"><span>přijato {{s.acc}}</span></sc-if><sc-if value="{{s.wait}}" hint-placeholder-val="{{ false }}"><a href="KnowledgeItem.dc.html" style="color: var(--youink); font-weight: 500">čeká {{s.wait}}</a></sc-if><sc-if value="{{s.rej}}" hint-placeholder-val="{{ false }}"><span class="cap">zamítnuto {{s.rej}}</span></sc-if><sc-if value="{{s.nothing}}" hint-placeholder-val="{{ false }}"><span class="cap">zatím nic</span></sc-if></span>
+                  <span class="td num" role="cell">{{s.when}}</span>
+                  <span class="td" role="cell" style="position: relative; padding: 4px"><button class="btn quiet sm" type="button" aria-label="Akce studie {{s.name}}" aria-haspopup="menu" aria-expanded="{{s.menuOpen}}" onClick="{{s.menu}}" style="min-width: 28px; padding: 0 4px"><i class="ph ph-list" aria-hidden="true"></i></button>
+                    <sc-if value="{{s.menuOpen}}" hint-placeholder-val="{{ false }}"><div class="ctx" role="menu" style="top: 34px; width: 290px"><a class="ctxa" role="menuitem" href="#"><i class="ph ph-arrow-square-out" aria-hidden="true"></i>Otevřít ({{s.stage}})</a><button type="button" role="menuitem" onClick="{{s.reuse}}"><i class="ph ph-copy" aria-hidden="true"></i>Použít jako základ nového výzkumu…</button></div></sc-if>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}"><p class="empty">{{emptyLine}}</p></sc-if>
+            <p class="cap" style="margin-top: 4px">Dobrý design z minula? V menu ⋯ u studie, nebo v hlavičce studie: <b style="color: var(--ink); font-weight: 500">Použít jako základ nového výzkumu</b>. Projektová paměť jako samostatná stránka není (Nigel 27. 10.); její staré adresy přesměrují sem.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status" style="position: absolute; top: 560px; left: 50%; bottom: auto">{{toast}}</div></sc-if>
+
+    <sc-if value="{{reusing}}" hint-placeholder-val="{{ false }}">
+      <div class="scrim" style="position: absolute; align-items: flex-start; padding-top: 260px"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ru-h" style="width: 620px; max-width: calc(100% - 32px)">
+        <h2 id="ru-h" style="font-size: 18px; line-height: 24px; font-weight: 600">Nový výzkum z designu „{{rName}}“</h2>
+        <p class="cap" style="margin-top: 4px">Přenese se design jedné revize: zadání, cíle, výzkumné otázky, dotazník, dimenze a cílová skupina. Data respondentů, výsledky, zprávy ani náklady ne.</p>
+        <div class="field" style="margin-top: 16px"><span class="lbl" id="ru-rev">Revize designu</span><span class="seg sm" role="radiogroup" aria-labelledby="ru-rev" style="align-self: flex-start"><sc-for list="{{revs}}" as="r" hint-placeholder-count="3"><button class="{{r.cls}}" type="button" role="radio" aria-checked="{{r.on}}" onClick="{{r.pick}}">{{r.l}}</button></sc-for></span><span class="cap">{{revMeta}}</span></div>
+        <dl class="ckv" style="grid-template-columns: 130px minmax(0, 1fr); gap: 6px 14px; margin-top: 12px; padding: 12px 14px; background: var(--well); border-radius: 8px">
+          <sc-for list="{{rDesign}}" as="d" hint-placeholder-count="4"><dt>{{d.f}}</dt><dd>{{d.t}}</dd></sc-for>
+        </dl>
+        <div class="field" style="margin-top: 16px"><span class="lbl" id="ru-into">Kam</span><span class="seg sm" role="radiogroup" aria-labelledby="ru-into" style="align-self: flex-start"><button class="{{newCls}}" type="button" role="radio" aria-checked="{{intoNew}}" onClick="{{pickNew}}">Nový výzkum</button><button class="{{emptyCls}}" type="button" role="radio" aria-checked="{{intoEmpty}}" onClick="{{pickEmpty}}">Prázdný výzkum klienta</button></span></div>
+        <sc-if value="{{intoNew}}" hint-placeholder-val="{{ true }}"><div class="field" style="margin-top: 10px"><label class="lbl" for="ru-n">Název</label><input id="ru-n" type="text" value="{{newName}}" onChange="{{setName}}"></div></sc-if>
+        <sc-if value="{{intoEmpty}}" hint-placeholder-val="{{ false }}"><div class="field" style="margin-top: 10px"><span class="lbl">Prázdný výzkum</span><span class="cap" style="font-size: 13px; color: var(--ink)">Nealko 2027: koncepty</span><span class="cap">Jen výzkum bez obsahu; jinak to AIA odmítne („Výzkum už má obsah“).</span></div></sc-if>
+        <p class="note" style="margin-top: 14px"><i class="ph ph-quotes" aria-hidden="true"></i><span>Na každém kroku nového výzkumu bude vidět: <b>Design převzat z „{{rName}}“, revize {{revN}}</b>, i se štítky původních běhů.</span></p>
+        <div class="row" style="justify-content: flex-end; margin-top: 18px"><button class="btn quiet" type="button" onClick="{{closeReuse}}">Zrušit</button><button class="btn primary" type="button" onClick="{{doReuse}}"><i class="ph ph-plus" aria-hidden="true"></i>Založit výzkum</button></div>
+      </div></div>
+    </sc-if>
+    <section class="crit" aria-labelledby="crit-h">
+      <h2 id="crit-h">UX kritika · Výzkumy, Projektová paměť (sloučená) a skrytá Simulace</h2>
+      <p class="lede">Tabulka studií jednoho druhu se stavovými filtry; dnes nad ní hledání v projektové paměti, která má i vlastní globální stránku. Nigel 27. 10.: paměť zmizí, Výzkumy mají jedno hledání a každá studie „Použít jako základ nového výzkumu“ (CPR9, CPR14). Kód <span class="mono">develop @ a1a9a45c</span>; C/ = apps/web/src/components/aia/clients/, A/ = …/components/aia/, L/ = apps/web/src/lib/.</p>
+      <div class="crit-top">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <figure class="shot"><h3><i class="ph ph-eye" aria-hidden="true"></i>Dnes: Výzkumy (1440 px)</h3><img src="assets/dcacde473b2854d0f245a836cad8d87f.jpg" alt="Dnešní Výzkumy: pole Hledat v minulých studiích, filtry jako pilulky, tabulka Studie, Stav, Přineslo do znalostí, Upraveno"><figcaption class="cap">Stav „Aktivní“ modře jako běžící proces; filtry jako pilulky.</figcaption></figure>
+          <figure class="shot"><h3><i class="ph ph-eye" aria-hidden="true"></i>Dnes: Simulace přímým odkazem</h3><img src="assets/5b1dfd7f0c2c4be1f0177d6786038240.jpg" alt="Dnešní Simulace: záložka chybí, stránka nabízí Nový výzkum"><figcaption class="cap">Záložka skrytá záměrně; stránka ale nabízí „Nový výzkum“.</figcaption></figure>
+          <figure class="shot"><h3><i class="ph ph-eye" aria-hidden="true"></i>Dnes: paměť s vybraným klientem (1440 px)</h3><img src="assets/9ab047be2e1ddc3b9106498a19155def.jpg" alt="Dnešní Projektová paměť: hero, rozbalovací seznam Klient, pole hledání a věta Napište alespoň dva znaky"><figcaption class="cap">Než se napíše dotaz, nic dalšího se neukáže.</figcaption></figure>
+        </div>
+        <div class="cgrid">
+          <sc-for list="{{crit}}" as="c" hint-placeholder-count="5">
+            <div class="{{c.cls}}"><h3><span class="lt">{{c.l}}</span>{{c.t}}</h3><ul><sc-for list="{{c.items}}" as="x" hint-placeholder-count="3"><li>{{x.t}}<span class="anc">{{x.a}}</span></li></sc-for></ul></div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="cb" style="margin-top: 18px">
+        <h3><span class="lt">f</span>Funkce dnes → kde jsou v prototypu</h3>
+        <div class="fnlist"><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div>
+          <sc-for list="{{fns}}" as="f" hint-placeholder-count="26"><li><span class="i">{{f.i}}</span><span>{{f.t}}<span class="anc">{{f.a}}</span></span><span class="w">{{f.w}}</span></li></sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2569}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { f: 'current', sort: 'mod', q: '', menu: null, ru: null, rev: 0, into: 'new', name: '', toast: null, made: [] }; }
+  renderVals() {
+    const s = this.state;
+    const D = (cil, roz, vo, sek, dim) => [['Cíl', cil], ['K rozhodnutí', roz], ['Výzkumné otázky', vo], ['Sekce dotazníku', sek], ['Dimenze', dim]];
+    const S = [
+      { id: 's1', name: 'Vnímání značek ležáků 2026', sub: 'Výzkum', stage: 'Dotazník', status: 'DRAFT', acc: 0, wait: 2, rej: 0, when: 'před 12 min', m: 1, revs: [['pracovní verze', 'neodesláno · dnes']], d: D('Jak pijáci vnímají Zlatou Horu vedle Kozla a Bernarda.', 'Kam posunout komunikaci 2026?', 'Které vlastnosti pijáci spojují se značkou? · Liší se mladší pijáci?', 'Pití piva · Značky · Image', 'Vztah k tradici') },
+      { id: 's2', name: 'Cenový test 12°', sub: 'Výzkum · běh z 24. 10.', stage: 'Zpráva', status: 'IN_REVIEW', acc: 3, wait: 1, rej: 1, when: 'včera', m: 2, revs: [['revize 1', 'Zadání · 18. 10.'], ['revize 2', 'Dotazník · 22. 10. · běh 24. 10.']], d: D('Ověřit cenu 12° v plechovce proti konkurenci.', 'Cena 12° v plechovce: 34, 36, nebo 38 Kč?', 'Jak citliví jsou pijáci 12° na cenu?', 'Pití piva · Cena · Demografie', 'Cenová citlivost') },
+      { id: 's3', name: 'Nealko 2027: koncepty', sub: 'Výzkum', stage: 'Nezahájeno', status: 'DRAFT', acc: 0, wait: 0, rej: 0, when: 'před 4 dny', m: 3, revs: [], d: [] },
+      { id: 's4', name: 'Cenový test 11° (2024)', sub: 'Výzkum · předáno 3. 6. 2025', stage: 'Zpráva', status: 'DELIVERED', acc: 6, wait: 0, rej: 2, when: 'před 5 měs.', m: 4, revs: [['revize 1', 'Zadání · 12. 5. 2025'], ['revize 2', 'Dotazník · 20. 5. 2025 · běh 28. 5.'], ['revize 3', 'Dotazník · 30. 5. 2025 · běh 3. 6.']], d: D('Zjistit, zda cena nad Kozlem neodradí stálé pijáky Zlaté Hory 11°.', 'Zdražit 11° o 2 Kč, nebo cenu držet?', 'Jak citliví jsou stálí pijáci na cenu? · Kterou konkurenci zvolí při zdražení?', 'Pití piva · Značky · Cena · Demografie', 'Vztah k tradici · Cenová citlivost') },
+      { id: 's5', name: 'Pilotní dotazník 2023', sub: 'Výzkum', stage: 'Zadání', status: 'ARCHIVED', acc: 0, wait: 0, rej: 0, when: 'před 1 rokem', m: 5, revs: [['revize 1', 'Zadání · 2. 2. 2023']], d: D('Vyzkoušet krátký dotazník o pití piva doma.', 'Má smysl dělat výzkum pravidelně?', 'Kde a kdy pijáci pijí pivo?', 'Pití piva', '') },
+      { id: 's6', name: 'Tracking značky 2024', sub: 'Výzkum', stage: 'Výsledky', status: 'CANCELLED', acc: 1, wait: 0, rej: 0, when: 'před 1 rokem', m: 6, revs: [['revize 1', 'Dotazník · 4. 3. 2024 · běh 10. 3.']], d: D('Sledovat znalost a oblibu značky v čase.', 'Funguje regionální kampaň?', 'Roste spontánní znalost značky?', 'Značky · Média', 'Vztah k tradici') },
+      ...s.made
+    ];
+    const ST = { DRAFT: ['g inert', 'Rozpracováno'], ACTIVE: ['g inert', 'Aktivní'], IN_REVIEW: ['g you', 'Ke kontrole · na vás'], DELIVERED: ['g done', 'Předáno'], ARCHIVED: ['g inert', 'Archivováno'], CANCELLED: ['g inert', 'Zrušeno'] };
+    const closed = (x) => x.status === 'ARCHIVED' || x.status === 'CANCELLED';
+    const narrow = (x) => x.status === 'IN_REVIEW' ? 'review' : x.status === 'DELIVERED' ? 'delivered' : closed(x) ? 'archived' : 'open';
+    const inF = (x, f) => f === 'current' ? !closed(x) : narrow(x) === f;
+    const F = [['current', 'Aktuální'], ['open', 'Rozpracované'], ['review', 'Ke kontrole'], ['delivered', 'Předané'], ['archived', 'Archiv']];
+    const EMPTY = { current: 'Všechny studie tohoto klienta jsou v archivu.', open: 'Nic rozpracovaného.', review: 'Nic nečeká na kontrolu.', delivered: 'Zatím nic předaného.', archived: 'Archiv je prázdný.' };
+    const fold = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLocaleLowerCase('cs');
+    const q = s.q.trim(), nq = fold(q), deep = q.length > 1;
+    const match = (x) => {
+      if (!q) return { ok: true };
+      if (fold(x.name).includes(nq)) return { ok: true };
+      if (!deep) return { ok: false };
+      for (const [f, t] of x.d) { const i = fold(t).indexOf(nq); if (i >= 0) { const a = Math.max(0, i - 34); return { ok: true, why: true, whyF: f, pre: (a ? '…' : '') + t.slice(a, i), hit: t.slice(i, i + q.length), post: t.slice(i + q.length, i + q.length + 40) + (i + q.length + 40 < t.length ? '…' : '') }; } }
+      return { ok: false };
+    };
+    let rows = S.map((x) => ({ x, mm: match(x) })).filter(({ x, mm }) => inF(x, s.f) && mm.ok);
+    rows.sort(s.sort === 'name' ? (a, b) => a.x.name.localeCompare(b.x.name, 'cs') : (a, b) => a.x.m - b.x.m);
+    const ru = S.find((x) => x.id === s.ru);
+    const toast = (t) => { this.setState({ toast: t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null }), 6000); };
+    const rv = ru && ru.revs.length ? ru.revs[Math.min(s.rev, ru.revs.length - 1)] : null;
+    return {
+      theme: this.props.theme ?? 'light',
+      filters: F.map(([k, l]) => ({ l, n: S.filter((x) => inF(x, k) && match(x).ok).length, on: s.f === k, cls: s.f === k ? 'on' : '', pick: () => this.setState({ f: k }) })),
+      sorts: [['mod', 'Naposledy upravené'], ['name', 'Podle názvu']].map(([k, l]) => ({ l, on: s.sort === k, cls: s.sort === k ? 'on' : '', pick: () => this.setState({ sort: k }) })),
+      q: s.q, setQ: (e) => this.setState({ q: e.target.value }), clearQ: () => this.setState({ q: '' }), searching: !!q, short: q.length === 1,
+      shownLine: q ? rows.length + (rows.length === 1 ? ' výzkum odpovídá' : rows.length > 1 && rows.length < 5 ? ' výzkumy odpovídají' : ' výzkumů odpovídá') + ' „' + q + '“' : rows.length + ' z ' + S.length + ' výzkumů',
+      rows: rows.map(({ x, mm }) => ({ ...x, ...mm, why: !!mm.why, trc: x.status === 'IN_REVIEW' ? 'tr you' : 'tr', g: ST[x.status][0], st: ST[x.status][1], nothing: !x.acc && !x.wait && !x.rej,
+        menuOpen: s.menu === x.id, menu: (e) => { e.stopPropagation(); this.setState({ menu: s.menu === x.id ? null : x.id }); },
+        reuse: () => { if (!x.revs.length) { this.setState({ menu: null }); toast('„' + x.name + '“ zatím nemá design, ze kterého by šlo vyjít.'); return; } this.setState({ menu: null, ru: x.id, rev: x.revs.length - 1, into: 'new', name: x.name + ' (z minula)' }); } })),
+      empty: !rows.length, emptyLine: q ? (deep ? 'Nic z názvů ani z toho, co designy říkají, neodpovídá „' + q + '“' + (s.f !== 'archived' ? '. Zkuste i Archiv.' : '.') : 'Žádný výzkum v tomto výběru se tak nejmenuje.') : EMPTY[s.f],
+      toast: s.toast,
+      reusing: !!ru, rName: ru ? ru.name : '', revN: rv ? rv[0].replace('revize ', '') : '', revMeta: rv ? rv[1] : '',
+      revs: ru ? ru.revs.map((r, i) => ({ l: r[0], on: i === s.rev, cls: i === s.rev ? 'on' : '', pick: () => this.setState({ rev: i }) })) : [],
+      rDesign: ru ? ru.d.filter((d) => d[1]).map(([f, t]) => ({ f, t })) : [],
+      intoNew: s.into === 'new', intoEmpty: s.into === 'empty', newCls: s.into === 'new' ? 'on' : '', emptyCls: s.into === 'empty' ? 'on' : '',
+      pickNew: () => this.setState({ into: 'new' }), pickEmpty: () => this.setState({ into: 'empty' }),
+      newName: s.name, setName: (e) => this.setState({ name: e.target.value }),
+      closeReuse: () => this.setState({ ru: null }),
+      doReuse: () => { const nm = s.into === 'new' ? (s.name.trim() || ru.name + ' (z minula)') : 'Nealko 2027: koncepty'; const cite = 'design z „' + ru.name + '“, ' + rv[0];
+        this.setState({ ru: null, made: s.into === 'new' ? [{ id: 'n' + Date.now(), name: nm, sub: 'Výzkum · ' + cite, stage: 'Zadání', status: 'DRAFT', acc: 0, wait: 0, rej: 0, when: 'teď', m: 0, revs: [['revize 1', 'převzato · teď']], d: ru.d }, ...s.made] : s.made });
+        toast('Založeno: „' + nm + '“ (' + cite + '). V AIA by se teď otevřelo jeho Zadání.'); },
+      crit: [
+        { l: 'a', t: 'Co stránky ukazují', cls: 'cb', items: [
+          { t: 'Výzkumy: nad nadpisem pole „Hledat v minulých studiích“; filtry Aktuální, Rozpracované, Ke kontrole, Předané, Archiv s počty; řazení v rozbalovacím seznamu; tabulka Studie, Stav, Přineslo do znalostí, Upraveno.', a: 'C/StudyList.tsx:40-41, 64-127, 136-146 · L/study-table.ts:7-36' },
+          { t: 'Projektová paměť (globální položka): klient z rozbalovacího seznamu, hledání v designech, minulý výzkum jen ke čtení s revizemi, běhy a „Použít tento design“.', a: 'A/GlobalPages.tsx:164-200 · A/MemorySearch.tsx:24-104 · A/MemoryStudy.tsx:40-353' } ] },
+        { l: 'b', t: 'Co sbírají', cls: 'cb', items: [
+          { t: 'Filtr, řazení, dotaz do paměti (300 ms, aspoň 2 znaky); v paměti klient, revize, běh a kam design použít (nový s názvem, nebo prázdný výzkum).', a: 'C/StudyList.tsx:57-58 · A/MemorySearch.tsx:37, 48 · A/MemoryStudy.tsx:180-183, 212, 221' } ] },
+        { l: 'c', t: 'Interakce', cls: 'cb', items: [
+          { t: 'Název studie otevře její poslední krok. Jakmile se hledá v paměti, tabulka i filtry zmizí; zásah otevře minulý výzkum jen ke čtení; Založit z tohoto designu založí výzkum a otevře ho.', a: 'C/StudyList.tsx:106 · A/MemorySearch.tsx:24-50, 83 · A/MemoryStudy.tsx:188-203' } ] },
+        { l: 'd', t: 'Co chybí nebo mate', cls: 'cb d', items: [
+          { t: 'Dvě hledání: zúžit seznam a najít v designech; hledání v paměti tabulku nahradí a popisek „v minulých studiích“ najde i současné.', a: 'C/StudyList.tsx:148-156 · A/MemorySearch.tsx:24-50' },
+          { t: 'Paměť je samostatná globální stránka, i když hledá vždy jen u jednoho klienta; drobeček vede na stránku bez klienta.', a: 'A/GlobalPages.tsx:175-192 · A/MemoryStudy.tsx:50' },
+          { t: '„Aktivní“ má tón running, i když nic neběží; krok staršími slovy; IN_REVIEW „V kontrole“ proti filtru „Ke kontrole“.', a: 'C/StudyList.tsx:26-30, 115 · i18n/cs.ts:62, 235, 251-262' },
+          { t: 'Zamítnuté návrhy studie API posílá, tabulka je neukáže; filtry jako pilulky.', a: 'L/study-table.ts:51-55 · C/StudyList.tsx:72' },
+          { t: 'V paměti: fiktivní data červeně, kód kroku („z kroku {stage}“), nativní přepínače.', a: 'A/MemoryStudy.tsx:126, 212, 221, 310' } ] },
+        { l: 'e', t: 'Co prototyp mění (Nigel 27. 10.: Projektová paměť pryč)', cls: 'cb', items: [
+          { t: 'Jedno hledání: název i to, co říká design (cíl, rozhodnutí, výzkumné otázky, sekce, dimenze), bez diakritiky; pod názvem proč zásah odpovídá; tabulka i filtry zůstanou a počty filtrů hledání sledují.', a: 'list 01 · GET …/memory/search' },
+          { t: 'Použít jako základ nového výzkumu v menu ⋯ každé studie (a v hlavičce studie): revize segmentem, co design říká, Nový / prázdný výzkum, název; citace „Design převzat z …, revize N“ na každém kroku nového výzkumu.', a: 'dialog · POST …/memory/reuse' },
+          { t: 'Globální navigace má tři položky; staré adresy /app/memory přesměrují na Výzkumy klienta.', a: 'levý panel · CPR14' },
+          { t: 'Krok slovy workbenche, stav glyfem (Ke kontrole korálově), Přineslo do znalostí i se zamítnutými; Simulace dál skrytá (K12).', a: 'tabulka · C/ClientContext.tsx:107-113' } ] }
+      ],
+      fns: [
+        ['Seznam studií klienta jednoho druhu', 'C/StudyList.tsx:34-54', 'List 01'],
+        ['Filtry Aktuální … Archiv s počty', ':64-78 · L/study-table.ts:17-36', 'Segment s počty'],
+        ['Řazení: naposledy upravené / název', ':79-86', 'Segment Řadit'],
+        ['Druh a krok, nebo Nezahájeno', ':110', 'Sloupec Krok, podtitulek'],
+        ['Stav studie', ':115', 'Sloupec Stav, glyf + slovo'],
+        ['Přijato / čeká ve znalostech', ':136-146', 'Sloupec + zamítnuto'],
+        ['Čeká pod stavem na telefonu', ':116-120', 'Beze změny pro úzkou šířku'],
+        ['Čas poslední změny', ':123', 'Sloupec Upraveno'],
+        ['Otevřít studii v posledním kroku', ':106', 'Název, nebo ⋯ Otevřít'],
+        ['Nový výzkum', 'C/ClientContext.tsx:147', 'Hlavní akce v hlavičce'],
+        ['Simulace přímým odkazem', 'C/ClientContext.tsx:107-113', 'Beze změny (skrytá)'],
+        ['Paměť: vybrat klienta', 'A/GlobalPages.tsx:174-181', 'Netřeba: Výzkumy jsou u klienta'],
+        ['Paměť: hledat v designech', 'A/MemorySearch.tsx:24-50', 'To jedno hledání'],
+        ['Paměť: zásah, zdroj, shodná pole', 'A/MemorySearch.tsx:83-100', 'Řádek „Cíl: …“ pod názvem'],
+        ['Paměť: otevřít pracovní prostor klienta', 'A/GlobalPages.tsx:185-187', 'Netřeba: jste u klienta'],
+        ['Paměť: minulý výzkum jen ke čtení', 'A/MemoryStudy.tsx:40-67', 'Studie sama (výzkumný prototyp)'],
+        ['Paměť: revize designu', ':107-137', 'Segment Revize v dialogu'],
+        ['Paměť: co revize říká', ':139-170', 'Co design říká v dialogu'],
+        ['Paměť: jen pracovní verze, označená', ':246-265', 'Revize „pracovní verze“'],
+        ['Paměť: použít design do nového výzkumu', ':177-243', 'Dialog: Nový výzkum + název'],
+        ['Paměť: použít do prázdného výzkumu', ':224-235', 'Dialog: Prázdný výzkum klienta'],
+        ['Paměť: odmítnutí slovy', ':199-201', 'Beze změny (v dialogu)'],
+        ['Paměť: běhy revize, data, zpráva', ':267-353', 'Průběh a Výsledky studie'],
+        ['Paměť: výsledky běhu jen ke čtení', ':318-330', 'Výsledky studie'],
+        ['Paměť: otevřít živý výzkum', ':56-62', 'Název studie'],
+        ['Citace převzatého designu (DesignSourceNote)', 'rehome/research/DesignSourceNote', 'Beze změny; text v dialogu']
+      ].map(([t, a, w], i) => ({ i: i + 1, t, a, w }))
+    };
+  }
+}
+</script>
+</body>
+</html>
