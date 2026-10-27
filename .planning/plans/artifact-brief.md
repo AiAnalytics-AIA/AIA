@@ -163,6 +163,34 @@ Every item is an `Item` (`src/components/ui.tsx:52`): edit in place, remove, mov
   no problem types; AIA keeps them). Deviation from B-3: the goal stays the stage's first field, a
   textarea with its sentence starters and count, not a Kontext item -- it is what a new study is
   written from. Still to come in BRF2: Předpoklady as a link (B-6, after AOC1).
+- *Landed, the v73 board's body* (spec navrh B1, B2, B3, B5; BriefStep, `research/brief-readiness.ts`):
+  - the order is now the v73 board's: Cíl, Cíle, Rozhodnutí, Typ problému, Kontext, Podklady. This
+    supersedes the order above, and `BRIEF_FIELDS` follows it;
+  - each section carries its cap on the right (povinné / volitelné);
+  - the goal asks only "Co potřebujete zjistit?". Its sentence starters, the 40-character "sentence"
+    rule and "Navrhnout z cíle" are gone, and the title is a plain field;
+  - "Připravenost" is one chip per section in page order. Each chip scrolls to its section and focuses
+    it. A missing required section waits on the person; an optional one never does. There is no
+    percentage, and nothing gates the analysis, which keeps `canAnalyse` (advisory, the 26 Oct default);
+  - an empty Rozhodnutí says "chybí" and offers three starters, which fill an empty field only. A note
+    says what the decision is for;
+  - Kontext keeps all four fields, in a two-column grid (spec B5 owner question: the board shows two).
+  Waiting on `research-lead-workbench#36` (spec X1): the header slot, StepSection's number and need
+  state, and WellItem. Until then the caps use StepSection's `aside`, the chips sit at the top of the
+  body, and the analysis action stays in the inspector without the old panel's rows.
+  Tests: `BriefStep.test.tsx` "sections render in the board's order…", "a readiness chip per
+  section…", "an empty decision shows chybí…", "context fields render in a two-column grid", and
+  `brief-readiness.test.ts`.
+- *Landed, the header* (spec navrh B1, B7; BRF2, BRF4; on `research-lead-workbench#36`, #936):
+  - in the workbench the readiness chips stand in the stage header's status slot;
+  - "Požádat Vedoucího o analýzu" sits in its action slot and sends the typed command "Analyzuj
+    zadání", which the Lead answers with its analysis card. Nothing starts until the person
+    approves that card;
+  - the header's primary is the frame's "Návrh", and the inspector's workbench block is gone;
+  - the sections take StepSection's number, cap and need ("chybí" on an empty decision);
+  - outside the workbench the stage keeps its own analysis button, and the chips stand in place.
+  Tests: `ResearchScreen.workbench.test.tsx` "goes on from Zadání to Návrh through the header's frame
+  button…", "asks the Lead for the brief's analysis from the header…".
 
 - *Landed, Typ problému as toggle chips* (audit A24): the shared ChoiceChips (I3): one Tab stop,
   arrows move, a press toggles one type through `toggleProblemType` (an empty goal still filled
@@ -295,6 +323,8 @@ follow-up chunk below.
 
 **Notes.**
 **BRF7. A brief's files are Class A by rule** (spec `navrh/B6`, OQ18; W1, lane E). B4 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: a brief's files are Class A by rule, like a client's sources; a person may mark one Veřejné, which makes it Class B. A material-rule change in `domain/material_rules.py` (today a brief's file and link take `MaterialRule.DESIGN`, Class B, `packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 40b16d58`) with BRF3's pill. An ADR 0008 implication: the amendment note goes under Doc follow-up in its PR. Test: an unmarked brief file classes A, a file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one.
+
+*Lost work, not built (PM coordinator, 26 Oct 2026).* Part 1 was built once and lost: commit `35487a6b2` on `feature/brief-file-class`, local to the Zadání session and never pushed (Nigel withdrew its push at 13:10 UTC for usage limits), went with the session's container when it was archived at 23:19 UTC. Nothing of it is on any branch; BRF7 starts again from this entry. What it held, as a guide to the redo: the Class A rule for a brief's files in `material_rules.py`, unless marked Veřejné (Class B); an endpoint answering each file's class; the design jobs reading that class; the Lead's turn adding a `brief_files` part, Class A, in the design layer (`domain/research_lead.py` `context_classification`, `lead_context.PART_LAYERS`), agreed with the integration coordinator. Its lint, typecheck, layer and exposure checks and 631 lead and prompt tests passed; the full suite had one failure not yet identified. Part 2, the web (BRF3's pill from the server's class, the Veřejné toggle on each file), was never started. Nigel's decision that each part keeps its own class (BRF7, 26 Oct 2026) stands.
 
 Every other Zadání row of the spec maps to an open chunk.
 - BRF2 carries `navrh/B1`, `navrh/B2`, `navrh/B3`, `navrh/B5`, on `research-lead-workbench#36`.

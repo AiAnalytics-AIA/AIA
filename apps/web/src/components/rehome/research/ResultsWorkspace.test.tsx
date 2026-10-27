@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { useState } from "react";
 import type { ResearchRun } from "@/lib/api";
 import { t, tv } from "@/i18n/t";
+import { usePanelShown } from "./panel-shown";
 import { ResultsWorkspace } from "./ResultsWorkspace";
 
 const run = { run_id: "RUN-frozen", design_revision_id: "REV-frozen", design_revision: 4, phase: "COMPLETED", actual_cost_usd: null } as ResearchRun;
@@ -206,4 +207,120 @@ it("names a call the run could not price beside the sum, never a bare zero", () 
 
 it("says the cost cannot be told when the run carries no spend, whatever its attempts sum to", () => {
   expect(spentLine({ actual_cost_usd: 0, spend: null })).toBe(t("research.exec.spend.unknown"));
+});
+
+// RES9 (spec sber/V1): in the workbench each view is a stage of its own, named by the hash.
+const stage = (hash: string) => {
+  window.history.replaceState(null, "", `/results${hash}`);
+  return render(<ResultsWorkspace tabs={false} run={run} panels={panels} progressHref="/progress?run=RUN-frozen"
+    notice={<p>Fiktivní data</p>} lead={<p>Karta zprávy</p>} />);
+};
+
+it("shows only the view the stage's hash names in the workbench, with no tabs and no overview", () => {
+  stage("#data");
+  expect(screen.queryByRole("tablist")).toBeNull();
+  expect(screen.queryByRole("tab")).toBeNull();
+  expect(screen.queryByText("Co chcete prozkoumat?")).toBeNull();
+  expect(screen.queryByText("Od výsledků k souvislostem a zprávě")).toBeNull();
+  expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).toBeNull();
+  expect(screen.getByText("Zvolená rešerše").closest("[hidden]")).not.toBeNull();
+  // The fictional-data notice is said on every view.
+  expect(screen.getByText("Fiktivní data")).toBeTruthy();
+});
+
+it("opens Výsledky's data where the stage names no view, never an overview", () => {
+  stage("");
+  expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).toBeNull();
+  cleanup();
+  stage("#overview");
+  expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).toBeNull();
+});
+
+it("keeps the report card with Zpráva and a hidden view's own state across stages in the workbench", () => {
+  stage("#maps");
+  expect(screen.getByText("Karta zprávy").closest("[hidden]")).not.toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Úhel 0" }));
+  window.history.replaceState(null, "", "/results#report");
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  expect(screen.getByText("Karta zprávy").closest("[hidden]")).toBeNull();
+  window.history.replaceState(null, "", "/results#maps");
+  fireEvent(window, new HashChangeEvent("hashchange"));
+  expect(screen.getByRole("button", { name: "Úhel 15" })).toBeTruthy();
+});
+
+it("keeps the run's record under Technické údaje in the workbench, closed", () => {
+  stage("#data");
+  const details = screen.getByText("Technické údaje").closest("details");
+  expect(details).not.toBeNull();
+  expect(details?.open).toBe(false);
+  expect(details?.textContent).toContain("RUN-frozen");
+  expect(details?.textContent).toContain(t("research.exec.spend.spent"));
+});
+
+it("keeps its tabs and overview in the classic layout", () => {
+  view();
+  expect(screen.getByRole("tablist")).toBeTruthy();
+  expect(screen.getByText("Co chcete prozkoumat?")).toBeTruthy();
+  expect(screen.queryByText("Technické údaje")).toBeNull();
+});
+
+it("says a stage's view is not in this run, never the data under its name", () => {
+  stage("#analysis");
+  // Absent or withheld from this person (a 403 hides an artifact): said without claiming which.
+  expect(screen.getByRole("note").textContent).toBe("Tuto část výsledků tu nelze zobrazit: běh ji nemá, nebo vám není přístupná.");
+  expect(screen.getByText("Výsledná tabulka").closest("[hidden]")).not.toBeNull();
+});
+
+it("keeps each view's description and the run's progress link in the workbench", () => {
+  stage("#maps");
+  expect(screen.getByText("Uložené mapy").closest("[hidden]")).toBeNull();
+  expect(screen.getByRole("link", { name: "Průběh tohoto běhu →" }).getAttribute("href")).toBe("/progress?run=RUN-frozen");
+});
+
+it("puts the report card with Zpráva's view in the workbench, inside what opens scrolled to", () => {
+  stage("#report");
+  const card = screen.getByText("Karta zprávy");
+  const view = screen.getByText("Zvolená rešerše").closest("section");
+  expect(card.closest("[data-results-stage]")).not.toBeNull();
+  expect(card.closest("[data-results-stage]")).toBe(view?.closest("[data-results-stage]"));
+  expect(card.compareDocumentPosition(view!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+it("tells each panel's content whether it is the one on screen, so a hidden one opens nothing (#964)", () => {
+  function Shown({ name }: { name: string }) {
+    return <p data-shown={name}>{String(usePanelShown())}</p>;
+  }
+  const watched = panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }));
+  render(<ResultsWorkspace run={run} panels={watched} progressHref={null} notice={null} />);
+  const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
+  // On mount, the overview: every panel is mounted, none is on screen.
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "false" });
+  fireEvent.click(screen.getByRole("tab", { name: "Rešerše a zpráva" }));
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
+  fireEvent.click(screen.getByRole("tab", { name: "Data" }));
+  expect(shown()).toEqual({ data: "true", maps: "false", report: "false" });
+});
+
+it("tells only the stage's own view it is on screen in the workbench, so a hidden one opens nothing (#964)", () => {
+  function Shown({ name }: { name: string }) {
+    return <p data-shown={name}>{String(usePanelShown())}</p>;
+  }
+  window.history.replaceState(null, "", "/results#report");
+  render(<ResultsWorkspace tabs={false} run={run} panels={panels.map((p) => ({ ...p, content: <Shown name={p.id} /> }))} progressHref={null} notice={null} />);
+  const shown = () => Object.fromEntries([...document.querySelectorAll("[data-shown]")].map((e) => [e.getAttribute("data-shown"), e.textContent]));
+  expect(shown()).toEqual({ data: "false", maps: "false", report: "true" });
+});
+
+it("keeps the comparability caveat on the numbers in sight in the workbench, not under Technické údaje", () => {
+  const edited = { ...run, methodology: {
+    sociomap: { name: "aia-sociomap-5", stored: false }, support: { name: "aia-support-1", stored: false },
+    aggregation: { name: "aia-aggregate-1", stored: false }, response: { name: "aia-response-1+e1", stored: true },
+    response_deviates: true,
+  } } as ResearchRun;
+  window.history.replaceState(null, "", "/results#data");
+  render(<ResultsWorkspace tabs={false} run={edited} panels={panels} progressHref={null} notice={null} />);
+  const notes = document.querySelectorAll("[data-response-deviation]");
+  expect(notes).toHaveLength(1);
+  expect(notes[0].closest("details")).toBeNull();
+  expect(notes[0].textContent).toContain("je nelze přímo srovnávat s výsledky 18.6.6");
 });

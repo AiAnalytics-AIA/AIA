@@ -23,6 +23,7 @@ The fixture the rows are held to is ``tests/fixtures/lead_artifacts/contract.jso
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any, Final, Literal
 
@@ -34,6 +35,7 @@ from .research_lead import STAGES, Stage
 __all__ = [
     "ARTIFACTS",
     "FIELDS",
+    "FILTER_VALUES",
     "LIVE_TARGETS",
     "LIVE_VIEW_OPS",
     "REPORT_SECTIONS",
@@ -80,8 +82,28 @@ class ViewOpKind(StrEnum):
 
 #: The view operations the Lead's output carries today (``research_lead.ViewOp``).
 LIVE_VIEW_OPS: Final = frozenset(
-    {ViewOpKind.OPEN_STAGE, ViewOpKind.FOCUS, ViewOpKind.INSPECT, ViewOpKind.SHOW_DIFF}
+    {
+        ViewOpKind.OPEN_STAGE,
+        ViewOpKind.FOCUS,
+        ViewOpKind.INSPECT,
+        ViewOpKind.SHOW_DIFF,
+        ViewOpKind.SELECT,
+        ViewOpKind.FILTER,
+    }
 )
+
+#: The display filters a stage's ``filter`` names, and each one's values: a filter changes the
+#: picture, never a computation (artifact-sociomap SOC1, the web's ``FILTER_VALUES``). ``None``:
+#: the run's own values (a battery id), which only the run's map knows.
+FILTER_VALUES: Final[Mapping[str, Mapping[str, tuple[str, ...] | None]]] = {
+    "sociomap": {
+        "view": ("top", "relief"),
+        "labels": ("on", "off"),
+        "hide_weak": ("on", "off"),
+        "mode": ("objects", "respondents"),
+        "battery": None,
+    },
+}
 
 
 class TargetKind(StrEnum):
@@ -322,8 +344,8 @@ ARTIFACTS: Final[dict[str, ArtifactContract]] = {
         _row(
             "sample",
             "working",
-            edits=False,
-            view_ops=("inspect",),
+            edits=True,
+            view_ops=("show_diff", "inspect"),
             targets=("sample",),
             starts=(_MEMORY,),
             inputs=("audience", "dimensions"),

@@ -459,7 +459,7 @@ class GovernedModelGateway:
         repairs_left = agent.schema_repair_attempts
         schema_name = _schema_name(agent.agent_id) if schema is not None else ""
         thinking = request.thinking_budget_tokens is not None
-        profile = descriptor.request_profile
+        profile = lane.resolution.request_profile
         # A thinking call cannot be forced to use the tool, and a model whose profile
         # offers the tool rather than forcing it (``auto_tool``) never is: either way
         # it is told to answer through it. The instruction is part of what is sent,

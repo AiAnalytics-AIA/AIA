@@ -398,3 +398,20 @@ follow-up chunk below.
 
 **Notes.**
 - RQC7c carries `sber/P4` and `sber/D1`-`D4`: the disc is now drawn, so RQC7c is re-scoped to the counts it shows (register contradiction 8).
+
+## ADR 0036's answered items (2026-10-26): what RQC5 is built to
+
+The product owner answered part of ADR 0036 in the Decision Review, 2026-10-26 (relayed by the PM
+coordinator; `docs/architecture/adr/0036-respondent-replacement-admission.md`, decision notes). The ADR
+stays Proposed; MQ-15a, MQ-15b, 0036-Q7, 0036-Q8 and the verdict are left for the methodology owner.
+RQC5 takes these as acceptance conditions:
+
+- **0036-Q4 (a) "By row":** the exclusion pin names population rows, not donors. Test: a substitute
+  may share a donor with a kept respondent, never a row with any original respondent.
+- **0036-Q5 (a) "Refuse when off":** `run.replace` refuses by name while `AIA_AI_FIELDWORK_CHECKPOINT`
+  is off (OI-64). Test: with the switch off the start answers the refusal and queues nothing.
+- **0036-Q6 (a) "Within the original's quota cells, not as an independent representative sample":**
+  substitutes are drawn within the original run's quota cells (`PanelSample.quota_cells`), never as a
+  fresh representative draw (OI-99); the sampler mode itself follows MQ-15a's method.
+- **MQ-15c (a) "Report Kish n of run 2, beside run 1's":** the side-by-side report (ADR 0036 decision 6)
+  prints both runs' Kish effective n.

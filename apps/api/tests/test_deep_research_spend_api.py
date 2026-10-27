@@ -264,7 +264,7 @@ def test_a_start_on_a_paid_live_route_is_refused_naming_what_live_still_needs(
         free = router.deep_research_prices(settings)
         return DeepResearchPrices({**free.prices, CallKind.SEARCH: RoutePrice.per_call(0.005)})
 
-    monkeypatch.setattr(router, "_study_prices", paid)
+    monkeypatch.setattr(router, "study_prices", paid)
     refused = _start(researcher, world, _revision(researcher, world))
     assert refused.status_code == 409, refused.text
     assert refused.json()["code"] == "live_settings_unapproved"

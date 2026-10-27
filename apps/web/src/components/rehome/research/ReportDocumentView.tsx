@@ -20,11 +20,12 @@ import { useFrame } from "./frame-hook";
 import { useItemInspector } from "@/components/workbench/item-inspector-context";
 import { ItemInspector } from "./ItemInspector";
 import { EditorDocBar } from "./EditorDocBar";
+import { ReportExports } from "./ReportDocBar";
 import { type EditorShown, ReportEditor } from "./ReportEditor";
 import { canReview } from "./frame";
 import { type Ask, AskDialog, Button } from "../ui";
 import { t } from "@/i18n/t";
-import { approvalQuestion, pdfStatesReview, reviewLine, reviewsFor, type VersionReview } from "@/lib/report-variant";
+import { approvalQuestion, fileLine, pdfStatesReview, reviewLabel, reviewsFor, type VersionReview } from "@/lib/report-variant";
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
@@ -46,18 +47,6 @@ type Loaded =
   | { state: "failed"; message: string }
   | { state: "ready"; stored: StoredReportDocument; doc: ReportDocumentModel };
 
-/** Fired with the run id when the pane prepares a client report, so the report card reads it. */
-export const CLIENT_PREPARED = "aia:client-report-prepared";
-
-/** Fired when a person approves in the pane's doc bar (artifact-report RPT3a): what was approved, as
- *  the server answered, so the report card says it without approving anything itself. */
-export const REPORT_APPROVED = "aia:report-approved";
-export type ReportApproved = {
-  runId: string; kind: Kind; artifactId: string; reviewState: string; approvedOn: string | null; stamped: boolean | null;
-  /** The literature review of a report with one (`kind` with_review), else null. */
-  review?: string | null;
-};
-
 type Approved = Awaited<ReturnType<typeof research.approveReport>>;
 
 /** A composed draft's approval asked from the editor's doc bar: why it must wait, or null. */
@@ -76,7 +65,8 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind, review
   loaded: Loaded; prepare: () => void; approved: (version: string, done: Approved) => void;
 } {
   const step = stepOf(run, "report");
-  const ready = step?.status === "SUCCEEDED";
+  // A report with literature is composed on its own: the run's own report need not have succeeded.
+  const ready = kind === "with_review" || step?.status === "SUCCEEDED";
   const key = `${studyId}:${run.run_id}:${step?.status ?? ""}:${step?.artifact_id ?? ""}:${kind}:${review ?? ""}`;
   const [answer, setAnswer] = useState<{ key: string; loaded: Loaded } | null>(null);
   // The document asked for now: an answer for another (a prepare that returns after a switch) is dropped.
@@ -121,11 +111,7 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind, review
     const prepared = kind === "with_review" && review !== null
       // Stored once with its document, its PDF asked for; then that document read (RPT3a).
       ? deepResearch.prepareContextReport(studyId, run.run_id, review).then(() => deepResearch.contextReportDocument(studyId, run.run_id, review))
-      : research.prepareClientReport(studyId, run.run_id).then((stored) => {
-        // The report card says the version read here, never one it would have to download first.
-        window.dispatchEvent(new CustomEvent(CLIENT_PREPARED, { detail: run.run_id }));
-        return stored;
-      });
+      : research.prepareClientReport(studyId, run.run_id);
     settle(prepared, key, () => current.current === key, true);
   }, [key, kind, review, settle, studyId, run.run_id]);
   // An approval made here, as the server answered it, on the version it names: the document stays
@@ -139,7 +125,10 @@ function useReportDocument(studyId: string, run: ResearchRun, kind: Kind, review
   return { loaded: answer?.key === key ? answer.loaded : { state: "loading" }, prepare, approved };
 }
 
-export function ReportDocumentView({ run }: { run: ResearchRun }) {
+/** ``review``: the literature review the results page holds (InterpretationResearch's "Použít ve
+ *  zprávě"); choosing it opens the report with that review here, and choosing a document here tells
+ *  ``onReview`` which review it carries, null for none (RPT3c, spec Z9). */
+export function ReportDocumentView({ run, review: held = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
   const frame = useFrame();
   // The client report exists only for a run whose respondents were modelled from the population;
   // the pane shows one document at a time, so the Lead's report: ids name exactly one.
@@ -167,7 +156,16 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [frame.studyId, run.run_id, mayReview, reviewReads]);
   const offered = reviews?.runId === run.run_id ? reviews.list : [];
-  const [chosen, setChosen] = useState<{ kind: Kind; review: string | null }>({ kind: "internal", review: null });
+  const [chosen, setChosen] = useState<{ kind: Kind; review: string | null }>(held ? { kind: "with_review", review: held } : { kind: "internal", review: null });
+  // The page's review moved (chosen on the review panel): the pane follows that change, during
+  // render; a document chosen here is the pane's own and is only told onward.
+  const [followed, setFollowed] = useState(held);
+  if (held !== followed) {
+    setFollowed(held);
+    // A review completed since the list was read is offered once the list is read again.
+    if (held) setReviewReads((n) => n + 1);
+    setChosen(held ? { kind: "with_review", review: held } : (was) => (was.kind === "with_review" ? { kind: "internal", review: null } : was));
+  }
   const kind: Kind = chosen.kind === "client" ? (offersClient ? "client" : "internal")
     : chosen.kind === "with_review" ? (offered.some((r) => r.run_id === chosen.review) ? "with_review" : "internal") : "internal";
   const review = kind === "with_review" ? chosen.review : null;
@@ -192,10 +190,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
   // `editor`: asked from the editor's doc bar (RPT8d), where the draft is koncept 1 of the line shown:
   // approved as that line's newest, and only while `held()` says no edit waits to be stored, read on
   // the yes as on the ask (an edit can start while the status is read or the question is open).
+  // Asked by the document's name and when its version was stored (RPT3d, spec Z4), never its id.
+  // The client report's numbers are modelled.
   const confirm = (slot: string, version: string, file: VersionReview, pdf: boolean, shown: StoredReportDocument | null, editor?: EditorAsk) => {
-    const question = approvalQuestion(kind, version, { pdf, review });
-    // What the file carries, as the card says it (D2): known only when stamped.
-    const carries = reviewLine(file, pdf);
+    const title = kind === "with_review" ? offered.find((r) => r.run_id === review)?.title : null;
+    const question = approvalQuestion(title ? `${KIND_NAME[kind]} · ${title}` : KIND_NAME[kind], { storedAt: file.storedAt, pdf, modelled: kind === "client" });
+    // What the file carries (D2): known only when stamped; the version named above, not by its id.
+    const carries = fileLine(file, pdf);
     // The version's checks (RD0 on the client report, RD7 on every report): warnings named in the
     // question, recorded with the yes.
     const warned = warningsWords(shown?.warnings, shown?.document);
@@ -212,7 +213,6 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           (done) => {
             setAct(shown ? null : { slot, ask: null, busy: false, refused: null, done: true });
             if (shown) approved(version, done);
-            tell(done);
           },
           (error: unknown) => setAct({ slot, ask: null, busy: false, refused: unsavedWords(error) ?? approvalRefusal(error) }),
         );
@@ -220,21 +220,13 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     };
     setAct({ slot, ask, busy: false, refused: null });
   };
-  // What was approved, as the server answered, told to the report card, which approves nothing.
-  const tell = (done: Approved) => {
-    const detail: ReportApproved = {
-      runId: run.run_id, kind, artifactId: done.artifact_id, reviewState: done.review_state,
-      approvedOn: done.approved_on ?? null, stamped: done.stamped ?? null, review,
-    };
-    window.dispatchEvent(new CustomEvent<ReportApproved>(REPORT_APPROVED, { detail }));
-  };
   // `shown`: the document on screen, or null for an internal draft or a report with literature the
   // pane cannot show (stored before its document, or refused), approved as the version its run
   // names: the DOCX its download hands over, as the card approved it before.
   const askApproval = (shown: StoredReportDocument | null, editor?: EditorAsk) => {
     const slot = slotOf(shown);
     if (kind === "client") {
-      if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped }, false, shown);
+      if (shown) confirm(slot, shown.report_artifact_id, { version: shown.report_artifact_id, reviewState: shown.review_state, approvedOn: shown.approved_on, stamped: shown.stamped, storedAt: shown.stored_at }, false, shown);
       return;
     }
     // An internal draft's approval, with or without literature, also approves its PDF, so the
@@ -258,8 +250,6 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
             setAct(null);
             approved(version, done);
           } else setAct({ slot, ask: null, busy: false, refused: null, done: true });
-          // The card hears it too, so it never shows a draft the pane says is approved.
-          tell(done);
           return;
         }
         // A version saved over the draft in the editor stands over it: the draft is not offered.
@@ -267,7 +257,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         if (over) return refuse(over);
         const held = editor?.held();
         if (held) return refuse(held);
-        confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped },
+        confirm(slot, version, { version, reviewState: report.review_state, approvedOn: report.approved_on, stamped: report.stamped, storedAt: report.stored_at },
           pdfStatesReview(report.review_state, report.pdf, report.approval_renders_pdf), shown, editor);
       },
       (error: unknown) => { if (slotNow.current === slot) setAct({ slot, ask: null, busy: false, refused: `Stav zprávy se nepodařilo načíst: ${message(error)}` }); },
@@ -307,6 +297,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     if (k !== kind || r !== review) inspector?.closeWhere(`report:ref:${kind}:`);
     setChosen({ kind: k, review: r });
     setStack(closeStack);
+    const carries = k === "with_review" ? r : null;
+    if (carries !== held) onReview?.(carries);
   };
   const openOwn = useCallback((ref: string) => setStack((s) => openEntry(s, { id: ref, title: `Tvrzení ${ref}`, sub: "Číslo ve zprávě a jeho evidence" })), []);
   const back = useCallback(() => setStack(backEntry), []);
@@ -318,7 +310,7 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     { kind: "internal", review: null, label: KIND_NAME.internal },
     ...(offersClient ? [{ kind: "client" as const, review: null, label: KIND_NAME.client }] : []),
     // One per completed review; named by its title where several could be told apart by nothing else.
-    ...offered.map((r) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${r.title ?? r.run_id}` : KIND_NAME.with_review })),
+    ...offered.map((r, i) => ({ kind: "with_review" as const, review: r.run_id, label: offered.length > 1 ? `${KIND_NAME.with_review} · ${reviewLabel(r, i)}` : KIND_NAME.with_review })),
   ];
   const choose = docs.length > 1 ? (
     <div role="group" aria-label="Dokument" className="mb-2 flex flex-wrap gap-2" data-report-kind>
@@ -333,11 +325,33 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     </div>
   ) : null;
   const notice = noticeOf(loaded, kind, prepare, mayReview);
-  if (notice === undefined) return null;
+  // Nothing stored for this document: the picker still offers the others (a report with literature
+  // is prepared whatever the run's own report did).
+  if (notice === undefined) return choose ? <div>{choose}</div> : null;
   if (notice !== null || loaded.state !== "ready") {
     // An internal draft the pane cannot show is still approved here, on the version its run names.
+    // It is downloaded here too, as the version the run names (RPT3c: the card no longer does).
     const unshown = unshownInternal ? approval(null) : null;
-    return <div>{choose}{notice}{unshown ? <div className="mt-2 flex flex-wrap items-center gap-2">{unshown.button}</div> : null}{unshown?.after}</div>;
+    // A client report the pane cannot show (stored before its document, or refused) is still the
+    // client's file: downloaded here, as the notice says, never approved unseen.
+    const unshownClient = kind === "client" && (loaded.state === "not_stored" || loaded.state === "refused");
+    return (
+      <div>
+        {choose}{notice}
+        {unshown ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2" data-report-docbar>
+            {unshown.button}
+            <ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={null} canAct={mayReview} />
+          </div>
+        ) : null}
+        {unshownClient ? (
+          <div className="mt-2 flex flex-wrap items-center gap-2" data-report-docbar>
+            <ReportExports studyId={frame.studyId} runId={run.run_id} kind="client" review={null} stored={null} canAct={mayReview} />
+          </div>
+        ) : null}
+        {unshown?.after}
+      </div>
+    );
   }
 
   const { stored, doc } = loaded;
@@ -366,7 +380,8 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
         <DocSection key={section.id} section={section} entry={entry} onClaim={open} refs={Object.keys(doc.ledger.refs)} marks={marks} />
       ))}
       <footer className="mt-6 border-t border-border pt-2 font-sans text-[11px] text-ink-muted" data-report-foot>
-        {stored.review_state === "APPROVED_INTERNAL" ? "Schváleno" : "Koncept"} · {stored.review_state} · {run.run_id} · revize {doc.meta.revision} · dokument {stored.artifact_id}
+        {/* No ids on the stage (RPT12): the review in words and the revision the draft was composed from. */}
+        {reviewWords(stored, kind === "client" ? "client" : "internal")} · revize {doc.meta.revision}
       </footer>
     </article>
   );
@@ -376,14 +391,16 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
     <div className="@container" data-report-document="ready"><div className="flex min-w-0 flex-col gap-3 @3xl:flex-row @3xl:items-start">
       <div className="min-w-0 flex-1">
         {choose}
-        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar>
+        {/* The version shown, for the tests and the journeys, never as text (RPT12). */}
+        <div className="mb-2.5 flex flex-wrap items-center gap-2 text-xs text-ink-muted" data-report-docbar data-report-version={inEditor ? undefined : stored.report_artifact_id}>
           <span className="font-semibold text-ink">{KIND_NAME[kind]}</span>
           {inEditor ? <span>· v editoru</span> : (
             <>
               <span>· {reviewWords(stored, kind === "client" ? "client" : "internal")}</span>
               {stored.approval ? <span data-approval>· {approvalWords(stored.approval, stored.approved_on)}</span> : null}
-              <span className={`font-mono ${WRAPS}`}>· {stored.report_artifact_id}</span>
               {controls.button}
+              {/* Every export of the document on screen, from where it is read (RPT3c). */}
+              <ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={stored} canAct={mayReview} />
             </>
           )}
         </div>
@@ -395,8 +412,9 @@ export function ReportDocumentView({ run }: { run: ResearchRun }) {
           // Read again once the composed draft's review moves (koncept 1 approved through the pane).
           <EditorDocBar
             key={`${docId}:${stored.review_state}`} studyId={frame.studyId} runId={run.run_id} shown={inEditor} composedId={stored.report_artifact_id}
-            documentName={kind === "with_review" ? "zprávu s rešerší" : "interní zprávu"} canApprove={canReview(frame)}
-            approveComposed={(held, seen) => askApproval(stored, { held, seen })} onApproved={tell} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
+            documentName={KIND_NAME[kind]} canApprove={canReview(frame)} canExport={mayReview}
+            composedExports={<ReportExports studyId={frame.studyId} runId={run.run_id} kind={kind} review={review} stored={stored} canAct={mayReview} />}
+            approveComposed={(held, seen) => askApproval(stored, { held, seen })} onOpenLine={(l) => setLineAsked({ doc: docId, line: l })}
           />
         ) : null}
         {controls.after}
@@ -432,7 +450,6 @@ function Coverage({ lines }: { lines: CoverageLine[] }) {
           <li key={i} data-coverage={line.kind} className="min-w-0 break-words">
             <span className="font-medium">{line.label}</span>: {line.state}
             {line.why ? <span className="text-ink-muted"> — {line.why}</span> : null}
-            {line.ref ? <span className={`font-mono text-xs text-ink-muted ${WRAPS}`}> · {line.ref}</span> : null}
           </li>
         ))}
       </ul>
@@ -460,13 +477,13 @@ function noticeOf(loaded: Loaded, kind: Kind, prepare: () => void, mayPrepare: b
     // again: that stores its document, the only one it can be approved on (RD0, RPT3a).
     case "not_stored": return (
       <div role="note" className="flex flex-wrap items-center gap-3 text-sm text-ink-muted" data-report-document="not_stored">
-        <span>Tuto zprávu AIA složila dřív, než začala ukládat její dokument; v panelu ji proto zobrazit nelze.{kind !== "client" ? " Koncept DOCX stáhnete níže." : ""}</span>
+        <span>Tuto zprávu AIA složila dřív, než začala ukládat její dokument; v panelu ji proto zobrazit nelze.{kind !== "client" ? " Koncept DOCX stáhnete zde." : ""}</span>
         {again}
       </div>
     );
     case "refused": return (
       <div role="alert" className="flex flex-wrap items-center gap-3 text-sm text-status-fault" data-report-document="refused">
-        <span>Uložený dokument zprávy neodpovídá jejímu souboru DOCX nebo je v jiném formátu; AIA ho nezobrazí.{kind !== "client" ? " Koncept DOCX stáhnete níže." : ""}</span>
+        <span>Uložený dokument zprávy neodpovídá jejímu souboru DOCX nebo je v jiném formátu; AIA ho nezobrazí.{kind !== "client" ? " Koncept DOCX stáhnete zde." : ""}</span>
         {again}
       </div>
     );

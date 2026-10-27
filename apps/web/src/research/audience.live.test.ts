@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AudienceCatalogue, AudiencePreview } from "@/lib/api";
 
-import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, liveVerdict, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset } from "./audience";
+import { applyPopulationSubpanel, factorRefusal, filterableFactors, liveCatalog, liveSubpanels, feasibility, setAudienceRange, setRange, filterCountLines, type Catalog, filterProblems, CATALOGUE_TOP_VALUES, rangeBounds, boundOf, endUnreadable, storedRange, pickValues, matchingValues, matchingSubpanels, presetReset, normalizeEntry, strategyOf, keptPaths, setAudienceDescription, chooseStrategy, detachSubpanel } from "./audience";
 import type { ResearchProject } from "./model";
 
 const project = (audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state: {} }) as unknown as ResearchProject;
@@ -120,29 +120,29 @@ describe("the preview in words", () => {
   it("names each filter's own count beside the combined one, by the catalogue's label (AUD3)", () => {
     const two: AudiencePreview = { ...PREVIEW, selected_rows: 900, filters_applied: { vek: { min: 30, max: 59 }, kraj: { values: ["Zlínský kraj"] } }, per_filter: { vek: 5120, kraj: 1200 } };
     const cat = { factors: [{ id: "vek", label: "Věk" }, { id: "kraj", label: "Kraj" }] } as Catalog;
-    expect(liveVerdict(two, cat).lines.slice(0, 3)).toEqual([
-      "Filtry vyberou 900 z 18\u00a0766 lidí populace v17_4_0 (1\u00a0400 různých dárců).",
-      "Samotný filtr Věk: 5\u00a0120 lidí.",
-      "Samotný filtr Kraj: 1\u00a0200 lidí.",
-    ]);
+    expect(filterCountLines(two, cat)).toEqual(["Samotný filtr Věk: 5\u00a0120 lidí.", "Samotný filtr Kraj: 1\u00a0200 lidí."]);
     // Without the catalogue, the id; one filter alone is the combined count and is not repeated.
     expect(filterCountLines(two, null)[1]).toBe("Samotný filtr kraj: 1\u00a0200 lidí.");
     expect(filterCountLines(PREVIEW, cat)).toEqual([]);
     expect(filterCountLines({ ...two, per_filter: null }, cat)).toEqual([]);
   });
 
-  it("says what the filters select and whether n can be drawn", () => {
-    expect(liveVerdict(PREVIEW)).toEqual({ ok: true, lines: ["Filtry vyberou 5 120 z 18 766 lidí populace v17_4_0 (1 400 různých dárců).", "Vzorek N=500 z tohoto publika lze vybrat."] });
-    expect(liveVerdict({ ...PREVIEW, sample: { ok: true, status: "PASS_WEIGHTED" } }).lines[1]).toContain("až po kalibraci");
+  it("Lze vytáhnout: Ano only on the server's PASS, Těsně on PASS_WEIGHTED, unknown never Ano (AUD9)", () => {
+    expect(feasibility(PREVIEW)).toEqual({ verdict: "yes", text: "N 500 z tohoto publika vybereme." });
+    expect(feasibility({ ...PREVIEW, sample: { ok: true, status: "PASS_WEIGHTED" } })).toEqual({ verdict: "tight", text: "Reprezentativní až po kalibraci vah." });
+    expect(feasibility(null).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, n: null, sample: null }).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, sample: { ok: true } }).verdict).toBe("unknown");
+    expect(feasibility({ ...PREVIEW, sample: { ok: true, status: "PASS_SOMEHOW" } })).toEqual({ verdict: "unknown", text: "Stav výběru PASS_SOMEHOW AIA nezná." });
   });
 
-  it("says each refusal in Czech, with the unit's own reasons", () => {
-    const small = liveVerdict({ ...PREVIEW, n: 8, sample: { ok: false, reason: "sampling_unrepresentative", message: "a sample of 8 ..." } });
-    expect(small.ok).toBe(false);
-    expect(small.lines[1]).toMatch(/nebyl reprezentativní/);
-    const bad = liveVerdict({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
-    expect(bad).toEqual({ ok: false, lines: ["Některý filtr nelze použít: vek: očekáván interval min/max."] });
-    expect(liveVerdict({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).lines[0]).toContain("something_new");
+  it("Ne says each refusal in Czech, with the unit's own reasons", () => {
+    const small = feasibility({ ...PREVIEW, n: 8, sample: { ok: false, reason: "sampling_unrepresentative", message: "a sample of 8 ..." } });
+    expect(small.verdict).toBe("no");
+    expect(small.text).toMatch(/nebyl reprezentativní/);
+    const bad = feasibility({ ...PREVIEW, selected_rows: null, audience: { ok: false, reason: "sampling_filter_invalid", reasons: ["vek: očekáván interval min/max"] }, sample: null });
+    expect(bad).toEqual({ verdict: "no", text: "Některý filtr nelze použít: vek: očekáván interval min/max." });
+    expect(feasibility({ ...PREVIEW, audience: { ok: false, reason: "something_new" }, sample: null }).text).toContain("something_new");
   });
 });
 
@@ -215,12 +215,22 @@ describe("the built-in subpanels a search matches (audit B9)", () => {
 });
 
 describe("what a preset change clears (OI-51 (a))", () => {
-  it("the subpanel, filters and segment, nothing else", () => {
+  it("everything a preset writes, back to the template's defaults; never the description", () => {
     const { audience, cleared } = presetReset({
-      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters",
+      builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, segment: { mode: "top" }, strategy: "filters", special_panel_key: "k", builtin_special_key: "b",
+      support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29", source_mode: "population",
     } as never);
     expect(cleared).toBe(true);
-    expect(audience).toEqual({ builtin_subpanel: "", filters: {}, segment: { mode: "none" }, special_panel_key: "k", support_tier: "ROBUST", description: "Moje slova", strategy: "filters" });
+    expect(audience).toEqual({
+      builtin_subpanel: "", filters: {}, segment: { mode: "none" }, strategy: "population", special_panel_key: "", builtin_special_key: "",
+      support_tier: "", subpanel_status: "", support_summary: {}, description: "Mladí 18–29", source_mode: "population",
+    });
+  });
+
+  it("counts a strategy as a change of who is sampled; support figures alone are not", () => {
+    expect(presetReset({ strategy: "filters" } as never).cleared).toBe(true);
+    expect(presetReset({ support_tier: "ROBUST", support_summary: { rows: 1 } } as never).cleared).toBe(false);
+    expect(presetReset({ strategy: "population", support_summary: {} } as never).cleared).toBe(false);
   });
 
   it("says nothing was cleared when there was nothing to clear, a null included", () => {
@@ -228,5 +238,72 @@ describe("what a preset change clears (OI-51 (a))", () => {
     expect(presetReset({ builtin_subpanel: "", filters: {}, segment: { mode: "none" } } as never).cleared).toBe(false);
     expect(presetReset({ builtin_subpanel: null, filters: null, segment: null } as never).cleared).toBe(false);
     expect(presetReset({ segment: { mode: "top" } } as never).cleared).toBe(true);
+  });
+});
+
+describe("one strategy choice (research stages v73, spec vzorek/A1)", () => {
+  const ANALYTICS_UI = { audience_entry: "analytics", analytics_choice: "cz18" };
+  const study = (ui_state: Record<string, unknown>, audience: Record<string, unknown> = {}) => ({ audience, briefing: {}, ui_state }) as unknown as ResearchProject;
+
+  it("writes the one entry AIA has on a choice, and leaves a study already there as it is", () => {
+    const fresh = study({ audience_entry: "own", other: 1 });
+    expect(normalizeEntry(fresh).ui_state).toEqual({ audience_entry: "analytics", analytics_choice: "cz18", other: 1 });
+    const there = study({ audience_entry: "analytics", analytics_choice: "cz18" });
+    expect(normalizeEntry(there)).toBe(there);
+  });
+
+  it("shows a strategy only where one was chosen: ČR 18+, or a subpanel's filters", () => {
+    expect(strategyOf(study({}))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "own" }, { strategy: "filters" }))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "analytics" }))).toBeNull();
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "cz18" }))).toBe("population");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "discover" }))).toBe("discover");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "special" }, { builtin_subpanel: "young_18_29" }))).toBe("filters");
+    expect(strategyOf(study({ audience_entry: "analytics", analytics_choice: "special" }, { special_catalog_key: "health" }))).toBeNull();
+  });
+
+  it("names what a study stored on a path the screen no longer offers", () => {
+    expect(keptPaths(study({ audience_entry: "own" }, { dataset_id: "A1", dataset_name: "Lékaři ČR" }))).toEqual([{ kind: "dataset", name: "Lékaři ČR" }]);
+    expect(keptPaths(study({ audience_entry: "own" }, { dataset_id: "" }))).toEqual([]);
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "special" }, { special_catalog_key: "health", dataset_name: "Zdravotníci" }))).toEqual([{ kind: "special", name: "Zdravotníci" }]);
+    // A subpanel's filters are read as Zúžit, not kept apart.
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "special" }, { builtin_subpanel: "young_18_29", special_catalog_key: "young" }))).toEqual([]);
+    expect(keptPaths(study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "discover" }))).toEqual([{ kind: "discover" }]);
+  });
+
+  it("a choice starts afresh as a preset change does, and keeps a description the person wrote (OI-51 (a))", () => {
+    const young = study({ audience_entry: "analytics", analytics_choice: "special" }, { strategy: "filters", builtin_subpanel: "young_18_29", filters: { vek: [18, 29] }, support_tier: "ROBUST", description: "Mladí 18–29" });
+    const whole = chooseStrategy(young, "population")!;
+    expect(whole.project.ui_state).toMatchObject({ audience_entry: "analytics", analytics_choice: "cz18" });
+    expect(whole.project.audience).toMatchObject({ strategy: "population", builtin_subpanel: "", filters: {}, support_tier: "", description: "Mladí 18–29" });
+    expect(whole.invalidateCheck).toBe(true);
+    // A new study, or the classic's own narrowed wording, reads "ČR 18+" under the whole population.
+    expect(chooseStrategy(study({}), "population")!.project.audience.description).toBe("ČR 18+");
+    expect(chooseStrategy(study({}), "population")!.invalidateCheck).toBe(false);
+    const narrowed = study({ audience_entry: "analytics", analytics_choice: "cz18" }, { strategy: "filters", description: "Zúžená cílová populace" });
+    expect(chooseStrategy(narrowed, "population")!.project.audience.description).toBe("ČR 18+");
+    expect(chooseStrategy(study({}), "filters")!.project.audience).toMatchObject({ strategy: "filters", description: "Zúžená cílová populace" });
+    // Nothing to do: the same choice, or the path AIA cannot run.
+    expect(chooseStrategy(narrowed, "filters")).toBeNull();
+    expect(chooseStrategy(study({}), "discover")).toBeNull();
+  });
+
+  it("a filter edit leaves a chosen subpanel behind: its name and support go, the description stays", () => {
+    const young = study(ANALYTICS_UI, { strategy: "filters", builtin_subpanel: "young_18_29", filters: {}, support_tier: "ROBUST", subpanel_status: "ready", support_summary: { rows: 2785 }, description: "Mladí 18–29" });
+    const edit = { project: young, reason: "audience_filter", invalidateCheck: false };
+    expect(detachSubpanel(edit)).toEqual({ ...edit, invalidateCheck: true, project: { ...young, audience: { ...young.audience, builtin_subpanel: "", support_tier: "", subpanel_status: "", support_summary: {} } } });
+    // A study on the classic's special path keeps its filters as Zúžit's (Codex on #1000).
+    const special = study({ audience_entry: "analytics", analytics_choice: "special" }, { strategy: "filters", builtin_subpanel: "young_18_29", filters: { kraj: ["A"] } });
+    const detached = detachSubpanel({ project: special, reason: "audience_filter", invalidateCheck: false }).project;
+    expect(detached.ui_state).toMatchObject(ANALYTICS_UI);
+    expect(strategyOf(detached)).toBe("filters");
+    expect(detached.audience.filters).toEqual({ kraj: ["A"] });
+    // Nothing chosen: the edit passes through as it is.
+    const plain = { project: study(ANALYTICS_UI, { filters: { kraj: ["A"] } }), reason: "audience_filter", invalidateCheck: false };
+    expect(detachSubpanel(plain)).toBe(plain);
+  });
+
+  it("writes the description as typed, nothing else", () => {
+    expect(setAudienceDescription(study({}, { description: "ČR 18+", filters: { kraj: ["A"] } }), "Sportovci").audience).toEqual({ description: "Sportovci", filters: { kraj: ["A"] } });
   });
 });

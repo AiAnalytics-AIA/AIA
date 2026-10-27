@@ -1,17 +1,15 @@
 "use client";
 
-// 1. Zadání, rebuilt (research-flow-rehome.md, chunk 2) and drawn as Studio v3
-// (studio-v3.md, chunk 3): the classic renderBrief and its two wrappers as four
-// numbered sections -- the goal, the problem types, the attachments and links,
-// the further context -- a readiness panel beside them, and the AI analysis that
-// turns it into a plan in the step's dock. What each control does to the project
-// is src/research/brief.ts, parity-tested against the original; this file only
-// draws it. The sentence starters and "Navrhnout z cíle" write the same fields a
-// person types into; nothing here calls a model but the analysis.
+// 1. Zadání, rebuilt (research-flow-rehome.md, chunk 2) and drawn as the v73 board
+// (artifact-brief BRF2, spec navrh B1-B5): six numbered sections in the board's order -- the
+// goal, the objectives, the decision, the problem types, the further context, the materials --
+// a readiness chip per section above them, and the AI analysis that turns it into a plan beside
+// them. What each control does to the project is src/research/brief.ts, parity-tested against the
+// original; this file only draws it. The decision's starters write the same field a person types
+// into; nothing here calls a model but the analysis.
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { type DragEvent, type ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { type DragEvent, useContext, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import { workspace } from "@/lib/api";
@@ -20,8 +18,10 @@ import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { type BriefMaterials, classLabel, classOf } from "@/lib/material-class";
 import { briefElementId, contextField, materialAia } from "@/lib/artifacts/brief";
 import { aiaId } from "@/lib/workbench-artifacts";
+import { namesOne } from "@/lib/lead";
 import { OBJECTIVE_MAX, addObjective, objectivesEditable, objectivesOf, removeObjective, restoreObjective, setObjective } from "@/research/brief-objectives";
 import { itemProblem, narrativeOf } from "@/research/plan-narrative";
+import { CONTEXT_FIELDS, type ReadinessChip, briefReadiness } from "@/research/brief-readiness";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { InlineText } from "../../ui/InlineText";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
@@ -34,7 +34,6 @@ import {
   addLink,
   attachmentLine,
   canAnalyse,
-  editBrief,
   fileToBase64,
   removeAttachment,
   restoreAttachment,
@@ -43,13 +42,17 @@ import {
   toggleProblemType,
 } from "@/research/brief";
 import { type Attachment, PROBLEM_TYPES, type ResearchProject, selectedProblemTypes } from "@/research/model";
+import type { Analysis, PersonEdit } from "@/research/store";
 import { Icon, type IconName } from "../icons";
-import { FrameNavigation, StepSection } from "../step";
+import { FrameNavigation, StageHeaderSlot, StepSection } from "../step";
 import { InspectorSlot } from "./Inspector";
 import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
-import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
+import { useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+
+/** The typed start command the Lead stores as the person's own and answers with its analysis card. */
+const ANALYSE_COMMAND = "Analyzuj zadání";
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -58,50 +61,47 @@ const INPUT = `rounded-control border border-border-strong text-ink placeholder:
 /** The longest text a brief field takes: the edit vocabulary's set_text value (edit_ops VALUE_MAX_CHARS). */
 const CONTEXT_MAX = 4000;
 
-/** A goal this long reads as a sentence; shorter, the AI will have to ask. */
-const GOAL_SENTENCE = 40;
-
-/** The further context, in the order the classic form showed it. */
-const CONTEXT: { field: BriefingField; label: string }[] = [
-  { field: "product_description", label: "research.brief.productDescription" },
-  { field: "situation", label: "research.brief.situation" },
-  { field: "what_is_known", label: "research.brief.whatIsKnown" },
-  { field: "constraints", label: "research.brief.constraints" },
-];
+/** The further context, in the order the classic form showed it, each with its label. */
+const CONTEXT_LABEL: Record<(typeof CONTEXT_FIELDS)[number], string> = {
+  product_description: "research.brief.productDescription",
+  situation: "research.brief.situation",
+  what_is_known: "research.brief.whatIsKnown",
+  constraints: "research.brief.constraints",
+};
+const CONTEXT = CONTEXT_FIELDS.map((field) => ({ field, label: CONTEXT_LABEL[field] }));
 
 function contextValue(p: ResearchProject, field: TopField | BriefingField): string {
   return field === "decision_use" ? p.decision_use || "" : String((p.briefing as Record<string, unknown>)[field] || "");
 }
 
-/**
- * "Navrhnout z cíle": a short title from the goal's first clause, without its
- * sentence starter. Done in the browser; the person can change it like any title.
- */
-function titleFromGoal(goal: string): string {
-  const words = goal
-    .trim()
-    .replace(/^(Chceme zjistit|Rozhodujeme mezi|Potřebujeme ověřit)(,?\s+(jak|zda|jestli|co|kdo|proč))?\s*/i, "")
-    .split(/[.,;:!?]/)[0]!
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 5)
-    .join(" ");
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
 const jumpTo = (id: string) => document.getElementById(id)?.scrollIntoView?.({ behavior: "smooth", block: "start" });
 
+/** A readiness chip's way to its section: scrolled to and focused, so the next Tab is inside it. */
+function goToSection(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  jumpTo(id);
+  if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "-1");
+  el.focus({ preventScroll: true });
+}
+
+type Design = { project: ResearchProject; analysis: Analysis | null };
+const isTopField = (field: TopField | BriefingField): field is TopField => field === "title" || field === "goal" || field === "decision_use";
+
 export function BriefStep() {
-  const { store, state, stepHref } = useResearch();
+  const { store, state, stepHref, frame } = useResearch();
   const router = useRouter();
   // Inside the workbench the frame opens the next stage (its leave guard, its heading's focus); outside it, the route.
   const frameNav = useContext(FrameNavigation);
   const p = state.project;
   const { analyse: runAnalysis, resume, failure, busy } = useAnalysis();
   const leadOwnsAiStarts = useLeadOwnsAiStarts();
+  const ask = useAskLead();
 
+  // editBrief as the vocabulary's set_text (the same rule: a brief edit drops the analysis, a title keeps it).
+  // Never refused here: the stored brief is completed to an object on load (defaultsMerge).
   const edit = (field: TopField | BriefingField, value: string) =>
-    store.update(({ project, analysis }) => editBrief(project, analysis, field, value));
+    store.apply([{ op: "set_text", field: isTopField(field) ? field : `briefing.${field}`, value }]);
 
   // analyzeBrief -> ensureAnalysis1776 -> go('plan').
   const analyse = async () => {
@@ -117,17 +117,13 @@ export function BriefStep() {
 
   const selected = new Set(selectedProblemTypes(p));
   const goal = p.goal || "";
-  const goalLength = goal.trim().length;
-  const attachments = p.briefing.attachments || [];
-  const filled = [...CONTEXT.map((c) => contextValue(p, c.field)), p.decision_use || ""].filter((v) => v.trim()).length;
   const ready = canAnalyse(p);
-  const score = [goalLength >= GOAL_SENTENCE, selected.size > 0, attachments.length > 0, filled > 0].filter(Boolean).length * 25;
 
   const uploads = useUploads();
   // One undo offer for the whole stage (I6): a removal anywhere replaces the last offer, never sits
   // beside it (Codex on #641).
   const undo = useUndo();
-  const note = ready ? (goalLength < GOAL_SENTENCE && !selected.size ? t("research.brief.dockShort") : t("research.brief.dockReady")) : t("research.brief.dockMissing");
+  const note = ready ? t("research.brief.dockReady") : t("research.brief.dockMissing");
 
   return (
     <div
@@ -137,49 +133,37 @@ export function BriefStep() {
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) uploads.setOver(false); }}
       onDrop={(e) => { if (hasFiles(e)) uploads.drop(e); }}
     >
-      <InspectorSlot>
-        <Readiness
-          score={score}
-          ready={ready}
-          rows={[
-            { id: "brief-goal", label: "research.brief.readyGoal", need: true, ok: goalLength >= GOAL_SENTENCE,
-              detail: goalLength ? tv("research.brief.chars", { n: goalLength }) + (goalLength < GOAL_SENTENCE ? t("research.brief.readyGoalShort") : "") : t("research.brief.readyGoalEmpty") },
-            { id: "brief-type", label: "research.brief.readyTypes", need: true, ok: selected.size > 0,
-              detail: selected.size ? tv("research.brief.readyTypesN", { n: selected.size }) : t("research.brief.readyTypesEmpty") },
-            { id: "brief-files", label: "research.brief.readyFiles", need: false, ok: attachments.length > 0,
-              detail: attachments.length ? tv("research.brief.readyFilesN", { n: attachments.length }) : t("research.brief.readyFilesEmpty") },
-            { id: "brief-context", label: "research.brief.readyContext", need: false, ok: filled > 0,
-              detail: filled ? tv("research.brief.readyContextN", { n: filled }) : t("research.brief.readyContextEmpty") },
-          ]}
-        >
-          <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
-          {!leadOwnsAiStarts ? (
+      {leadOwnsAiStarts ? (
+        // In the workbench the Lead runs the analysis: the header asks it in the typed command's words
+        // (lead_commands "Analyzuj zadání"), and its card starts the job on the person's approval
+        // (spec navrh B7, BRF4). The header's primary is the frame's "Návrh".
+        ask ? (
+          <StageHeaderSlot slot="actions">
+            {/* Portalled out of the stage's read-only fieldset, so it carries the edit right itself; and it
+                asks for nothing the stage's own analysis would refuse (canAnalyse). */}
+            <Button small disabled={!frame.canEdit || !ready} title={ready ? undefined : note} onClick={() => ask(ANALYSE_COMMAND)}>{t("research.brief.askLead")}</Button>
+          </StageHeaderSlot>
+        ) : null
+      ) : (
+        <InspectorSlot>
+          <aside aria-label={t("research.brief.readyTitle")} className="flex flex-col gap-2 rounded-card border border-border bg-surface-raised p-3.5">
+            <p aria-live="polite" className={`text-[13px] leading-5 ${ready ? "text-ink-muted" : "text-status-you-ink"}`}>{note}</p>
             <AiButton variant="primary" className="w-full justify-center !min-h-11" onClick={analyse} disabled={busy || !ready}>
               {t("research.brief.next")}
               <Icon name="next" size={14} />
             </AiButton>
-          ) : (
-            <>
-              {frameNav?.next ? (
-                <Button className="w-full justify-center !rounded-control !min-h-11" onClick={() => frameNav.next?.go()}>
-                  Pokračovat na Návrh
-                  <Icon name="next" size={14} />
-                </Button>
-              ) : (
-                <Link href={stepHref("plan")} className="inline-flex w-full items-center justify-center gap-1 rounded-control border border-border-strong px-3 !min-h-11 text-sm no-underline">
-                  Pokračovat na Návrh
-                  <Icon name="next" size={14} />
-                </Link>
-              )}
-              <AskLead className="mt-2" what="Analýzu zadání" />
-            </>
-          )}
-        </Readiness>
-      </InspectorSlot>
+            <p className="text-xs leading-4 text-ink-muted">{t("research.brief.readyNote")}</p>
+          </aside>
+        </InspectorSlot>
+      )}
+
+      <StageHeaderSlot slot="status">
+        <ReadinessChips chips={briefReadiness(state)} />
+      </StageHeaderSlot>
 
       {failure ? <AnalysisFailureCard failure={failure} onRetry={analyse} onContinue={(id) => void continueAnalysis(id)} /> : null}
 
-      <StepSection id="brief-goal" n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")}>
+      <StepSection id={briefElementId("goal")} n={1} lead title={t("research.brief.goalTitle")} hint={t("research.brief.goalHint")} cap={t("research.brief.capRequired")}>
         <textarea
           aria-label={t("research.brief.goalLabel")}
           placeholder={t("research.brief.goalPlaceholder")}
@@ -187,50 +171,22 @@ export function BriefStep() {
           onChange={(e) => edit("goal", e.target.value)}
           className={`block min-h-24 w-full resize-y bg-surface-raised px-3 py-2.5 text-[15px] leading-6 ${INPUT}`}
         />
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-ink-muted">{t("research.brief.startWith")}</span>
-          {[0, 1, 2].map((i) => {
-            const starter = t(`research.brief.starters.${i}`);
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => edit("goal", goal.trim() ? `${goal.trim()} ${starter}` : starter)}
-                className={`min-h-7 rounded-pill border border-dashed border-border-strong px-2.5 text-xs leading-5 text-ink-muted hover:border-solid hover:text-ink ${FOCUS}`}
-              >
-                {starter.trim()}…
-              </button>
-            );
-          })}
-          {goalLength ? (
-            <span className={`ml-auto font-mono text-[11px] ${goalLength < GOAL_SENTENCE ? "text-status-you-ink" : "text-ink-faint"}`}>
-              {tv("research.brief.chars", { n: goalLength })}
-            </span>
-          ) : null}
-        </div>
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <label className="flex min-w-60 flex-1 flex-col gap-1">
-            <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")} · {t("research.brief.optional")}</span>
-            <TextInput id={briefElementId("title")} className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
-          </label>
-          <Button variant="quiet" className="!rounded-control" disabled={!goalLength} onClick={() => edit("title", titleFromGoal(goal))}>
-            {t("research.brief.suggestTitle")}
-          </Button>
-        </div>
+        <label className="mt-3 flex flex-col gap-1">
+          <span className="text-xs font-medium text-ink-muted">{t("research.brief.titleLabel")}</span>
+          <TextInput id={briefElementId("title")} className="w-full !rounded-control" value={titleValue(p)} placeholder={t("research.brief.titlePlaceholder")} onChange={(e) => edit("title", e.target.value)} />
+        </label>
       </StepSection>
 
       <Objectives undo={undo} />
 
       <Decision edit={edit} p={p} />
 
-      <Context edit={edit} p={p} />
-
       <StepSection
-        id="brief-type"
-        n={5}
+        id={briefElementId("type")}
+        n={4}
         title={t("research.brief.typesTitle")}
         hint={t("research.brief.typesHelp")}
-        aside={selected.size ? <span className="font-mono text-xs text-ink-muted">{tv("research.brief.readyTypesN", { n: selected.size })}</span> : null}
+        cap={t("research.brief.capTypes")}
       >
         <ChoiceChips
           multiple
@@ -254,6 +210,9 @@ export function BriefStep() {
           }}
         />
       </StepSection>
+
+      <Context edit={edit} p={p} />
+
 
       <Attachments uploads={uploads} undo={undo} />
 
@@ -286,17 +245,25 @@ function Objectives({ undo }: { undo: Undo }) {
   // Návrh's rule and words for the same list (plan-narrative itemProblem), read from the copy as it
   // is now, not as it was rendered; index null for a new item.
   const repeat = (text: string, index: number | null) => itemProblem(narrativeOf(store.get()), "objectives", text, index);
+  // An objective's change as the vocabulary's edit (WCE3a); where the copy cannot take it as one (the
+  // list not where the vocabulary reads it), the same change made whole, as before.
+  // An item the vocabulary names by its words is written whole when another reads the same (stored before
+  // repeats were refused), so the edit never lands on the other one.
+  const objective = (edit: PersonEdit, whole: (d: Design) => Design, reason: string) => {
+    const named = "old" in edit && !namesOne(objectivesOf(store.get()).map((o) => o.text), edit.old);
+    if (named || store.apply([edit], { reason })) store.update(whole, { reason });
+  };
   const remove = (index: number) => {
     const { removed } = removeObjective(store.get(), index);
     if (removed === null) return;
-    store.update((d) => removeObjective(d, index).design, { reason: "brief_objective_remove" });
+    objective({ op: "list_remove", list: "plan.objectives", old: removed }, (d) => removeObjective(d, index).design, "brief_objective_remove");
     undo.offer({
       message: tv("research.brief.objectiveRemoved", { text: removed.length > 60 ? `${removed.slice(0, 57)}…` : removed }),
       undo: () => store.update((d) => restoreObjective(d, index, removed), { reason: "brief_objective_restore" }),
     });
   };
   return (
-    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")}>
+    <StepSection id={briefElementId("objectives")} n={2} title={t("research.brief.objectivesTitle")} hint={t("research.brief.objectivesHint")} cap={t("research.brief.capObjectives")}>
       {items.length ? (
         <ol className="flex flex-col gap-1.5">
           {items.map((o, i) => (
@@ -308,7 +275,7 @@ function Objectives({ undo }: { undo: Undo }) {
                 value={o.text}
                 label={tv("research.brief.objectiveLabel", { n: i + 1 })}
                 rules={{ maxLength: OBJECTIVE_MAX, validate: (v) => repeat(v, i) }}
-                onCommit={(text) => store.update((d) => setObjective(d, i, text), { reason: "brief_objective" })}
+                onCommit={(text) => objective({ op: "list_replace", list: "plan.objectives", old: o.text, value: text }, (d) => setObjective(d, i, text), "brief_objective")}
               />
               <Button small variant="quiet" aria-label={tv("research.brief.objectiveRemoveAria", { n: i + 1 })} onClick={() => remove(i)}>
                 ×
@@ -331,7 +298,7 @@ function Objectives({ undo }: { undo: Undo }) {
           onCreate={(text) => {
             const problem = repeat(text, null);
             if (problem) return problem;
-            store.update((d) => addObjective(d, text), { reason: "brief_objective_add" });
+            objective({ op: "list_add", list: "plan.objectives", value: text }, (d) => addObjective(d, text), "brief_objective_add");
           }}
         />
       ) : null}
@@ -344,61 +311,48 @@ function hasFiles(e: DragEvent): boolean {
   return Array.from(e.dataTransfer?.types || []).includes("Files") || (e.dataTransfer?.files?.length ?? 0) > 0;
 }
 
-const ROW_LOOK = {
-  ok: { glyph: "done", look: "bg-status-done/14 text-status-done" },
-  need: { glyph: "you", look: "bg-status-you-wash text-status-you-ink" },
-  optional: { glyph: "dot", look: "bg-surface-sunken text-ink-faint" },
-} as const satisfies Record<string, { glyph: IconName; look: string }>;
+const CHIP_LOOK = {
+  done: { glyph: "done", look: "border-border text-ink", icon: "text-status-done" },
+  you: { glyph: "you", look: "border-status-you-ink/40 bg-status-you-wash text-status-you-ink", icon: "" },
+  optional: { glyph: "dot", look: "border-border text-ink-muted", icon: "text-ink-faint" },
+  unknown: { glyph: "dot", look: "border-dashed border-border-strong text-ink-muted", icon: "text-ink-faint" },
+} as const satisfies Record<ReadinessChip["state"], { glyph: IconName; look: string; icon: string }>;
 
-/** "Připravenost zadání": what the brief has, each row a way to the section that gives it. */
-function Readiness({ score, ready, rows, children }: {
-  score: number;
-  ready: boolean;
-  rows: { id: string; label: string; need: boolean; ok: boolean; detail: string }[];
-  /** The stage's action, closing the list: what the readiness is for. */
-  children?: ReactNode;
-}) {
+const CHIP_WORDS: Record<ReadinessChip["state"], string> = {
+  done: "research.brief.chipDone",
+  you: "research.brief.chipWaits",
+  optional: "research.brief.capOptional",
+  unknown: "research.brief.chipUnknown",
+};
+
+/**
+ * "Připravenost" (spec navrh B2): one chip per section, in the page's order, each a link to its
+ * section. A required section that is missing waits on the person; an optional one never does.
+ * Advisory: nothing here gates the analysis.
+ */
+function ReadinessChips({ chips }: { chips: ReadinessChip[] }) {
   return (
-    <aside aria-label={t("research.brief.readyTitle")} className="flex flex-col gap-3 rounded-card border border-border bg-surface-raised p-3.5">
-      <div>
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-sm font-semibold">{t("research.brief.readyTitle")}</h2>
-          <span className="font-mono text-xs text-ink-muted">{score} %</span>
-        </div>
-        <div aria-hidden="true" className="mt-2 h-1 rounded-sm bg-surface-sunken">
-          <div className={`h-1 rounded-sm ${ready ? "bg-signal" : "bg-status-you-ink"}`} style={{ width: `${score}%` }} />
-        </div>
-      </div>
-      <ul className="flex flex-col gap-1">
-        {rows.map((r) => {
-          const look = ROW_LOOK[r.ok ? "ok" : r.need ? "need" : "optional"];
-          return (
-            <li key={r.id}>
-              <button
-                type="button"
-                onClick={() => jumpTo(r.id)}
-                className={`grid w-full grid-cols-[20px_1fr] items-start gap-2 rounded-control p-1.5 text-left hover:bg-surface-sunken ${FOCUS}`}
-              >
-                <span aria-hidden="true" className={`inline-flex size-5 items-center justify-center rounded-full ${look.look}`}>
-                  <Icon name={look.glyph} size={12} />
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[13px] font-medium leading-[18px]">
-                    {t(r.label)}
-                    {r.need ? null : <span className="font-normal text-ink-faint"> · {t("research.brief.optional")}</span>}
-                  </span>
-                  <span className="block text-xs text-ink-muted">{r.detail}</span>
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
-        {children}
-        <p className="text-xs leading-4 text-ink-muted">{t("research.brief.readyNote")}</p>
-      </div>
-    </aside>
+    <nav aria-label={t("research.brief.readiness")} className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-1 text-xs font-medium text-ink-muted">{t("research.brief.readiness")}</span>
+      {chips.map((c) => {
+        const look = CHIP_LOOK[c.state];
+        const state = t(CHIP_WORDS[c.state]);
+        return (
+          <a
+            key={c.target}
+            href={`#${c.target}`}
+            data-state={c.state}
+            onClick={(e) => { e.preventDefault(); goToSection(c.target); }}
+            className={`inline-flex min-h-7 items-center gap-1 rounded-pill border px-2.5 text-xs no-underline ${look.look} ${FOCUS}`}
+          >
+            <Icon name={look.glyph} size={12} className={look.icon} />
+            {t(c.label)}
+            <span className="sr-only">: {state}</span>
+            {c.required ? null : <span aria-hidden="true" className="text-ink-faint">· {t("research.brief.capOptional")}</span>}
+          </a>
+        );
+      })}
+    </nav>
   );
 }
 
@@ -407,8 +361,34 @@ function Readiness({ score, ready, rows, children }: {
  * where it is shown (I1). D-44 took the decision list out, so it is `decision_use`, one item.
  */
 function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
+  const empty = !(p.decision_use || "").trim();
+  // Tab from the open field blurs it (committing what was typed) before the starter takes the focus,
+  // so the row goes only once the focus has landed outside it, never from under it. Once the
+  // decision has words, a starter writes nothing.
+  const [wasEmpty, setWasEmpty] = useState(empty);
+  const [lingering, setLingering] = useState(false);
+  // A starter chosen closes the row; only typed text, committed as the focus moves on, leaves it lingering.
+  const [chosen, setChosen] = useState(false);
+  if (wasEmpty !== empty) {
+    setWasEmpty(empty);
+    setLingering(!empty && !chosen);
+    setChosen(false);
+  }
+  const row = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!lingering) return;
+    const id = setTimeout(() => { if (!row.current?.contains(document.activeElement)) setLingering(false); });
+    return () => clearTimeout(id);
+  }, [lingering]);
   return (
-    <StepSection id={briefElementId("decision_use")} n={3} title={t("research.brief.decisionTitle")} hint={t("research.brief.decisionHint")}>
+    <StepSection
+      id={briefElementId("decision_use")}
+      n={3}
+      title={t("research.brief.decisionTitle")}
+      hint={t("research.brief.decisionHint")}
+      need={empty}
+      cap={t("research.brief.capRequired")}
+    >
       <InlineText
         multiline
         value={p.decision_use || ""}
@@ -417,6 +397,34 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
         rules={{ required: false, maxLength: CONTEXT_MAX }}
         onCommit={(v) => edit("decision_use", v)}
       />
+      {/* Starters write a whole sentence into an empty decision only, never onto a person's text (spec navrh B3). */}
+      {empty || lingering ? (
+        <div
+          ref={row}
+          className="mt-2 flex flex-wrap items-center gap-1.5"
+          onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setLingering(false); }}
+        >
+          <span className="text-xs text-ink-muted">{t("research.brief.decisionStartWith")}</span>
+          {[0, 1, 2].map((i) => (
+            <button
+              key={i}
+              type="button"
+              aria-disabled={!empty || undefined}
+              onClick={() => {
+                if (!empty) return;
+                setChosen(true);
+                edit("decision_use", t(`research.brief.decisionStarters.${i}.text`));
+              }}
+              className={`min-h-7 rounded-pill border border-dashed border-border-strong px-2.5 text-xs leading-5 text-ink-muted hover:border-solid hover:text-ink ${FOCUS}`}
+            >
+              {t(`research.brief.decisionStarters.${i}.label`)}
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <p className={`mt-2 text-xs ${empty ? "text-status-you-ink" : "text-ink-muted"}`}>
+        {empty ? t("research.brief.decisionNoteEmpty") : t("research.brief.decisionNoteFilled")}
+      </p>
     </StepSection>
   );
 }
@@ -428,8 +436,8 @@ function Decision({ p, edit }: { p: ResearchProject; edit: (field: TopField | Br
  */
 function Context({ p, edit }: { p: ResearchProject; edit: (field: TopField | BriefingField, value: string) => void }) {
   return (
-    <StepSection id={briefElementId("context")} n={4} optional title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")}>
-      <dl className="flex flex-col gap-3">
+    <StepSection id={briefElementId("context")} n={5} title={t("research.brief.contextTitle")} hint={t("research.brief.contextHint")} cap={t("research.brief.capOptional")}>
+      <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {CONTEXT.map((c) => (
           <div key={c.field} id={briefElementId(contextField(c.field))} className="flex flex-col gap-1">
             <dt className="text-xs font-medium text-ink-muted">{t(c.label)}</dt>
@@ -590,17 +598,14 @@ function Attachments({ uploads, undo }: { uploads: Uploads; undo: Undo }) {
 
   return (
     <StepSection
-      id="brief-files"
+      id={briefElementId("files")}
       n={6}
-      optional
       title={t("research.brief.filesTitle")}
       hint={t("research.brief.attachHelpAnywhere")}
-      aside={
-        list.length ? (
-          <span className="font-mono text-xs text-ink-muted">
-            {tv("research.brief.readyFilesN", { n: list.length })} · {t("research.brief.dataClassAside")}
-          </span>
-        ) : null
+      cap={
+        list.length
+          ? `${t("research.brief.capOptional")} · ${tv("research.brief.readyFilesN", { n: list.length })} · ${t("research.brief.dataClassAside")}`
+          : t("research.brief.capOptional")
       }
     >
       <input

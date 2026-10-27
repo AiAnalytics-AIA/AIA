@@ -198,15 +198,22 @@ export type EditorVersionRead = {
   edits?: { saved: boolean; reason: string | null };
 };
 
+/** What an approval records and hands over (RPT3d, spec Z4), said in every approval question. */
+export const EXACT = "Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi.";
+
 const stamp = new Intl.DateTimeFormat("cs-CZ", {
   day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Prague",
 });
+
+/** A stored time in Prague's words ("23. 10. 2026 22:10"); one that does not parse is said as
+ *  stored, never guessed. */
+export const timeWords = (iso: string): string => (Number.isNaN(Date.parse(iso)) ? iso : stamp.format(new Date(iso)));
 
 /** "Koncept 3, uložen 23. 10. 2026 22:10 · Jana Nováková": the version and who saved it; an author
  *  the server does not name (no display name, or no longer a member) is "neznámý autor", never
  *  presumed a member; a time that does not parse is said as stored, never guessed. */
 export function savedWords(v: Pick<EditorVersionRead, "koncept" | "saved_at" | "author_names">): string {
-  const at = Number.isNaN(Date.parse(v.saved_at)) ? v.saved_at : stamp.format(new Date(v.saved_at));
+  const at = timeWords(v.saved_at);
   const who = v.author_names.map((n) => n ?? "neznámý autor").join(", ");
   return v.koncept === 1
     ? `Koncept 1 (složená zpráva), uložen ${at}`
@@ -274,7 +281,8 @@ export function changesListed(changes: SavedChange[], max = 8): string {
 
 /** The question an edited version's approval asks: the version by name, and what it changed. */
 export function editedApprovalQuestion(v: EditorVersionRead, document: string): string {
-  const head = `Schválit ${document}, koncept ${v.koncept} (${v.version_artifact_id})?`;
+  // By name and saved time, never its id (RPT3d, spec Z4).
+  const head = `Schvalujete tuto verzi: ${document}, koncept ${v.koncept}, uloženou ${timeWords(v.saved_at)}. ${EXACT}`;
   const edited = editedWords(v);
   if (!edited) return `${head} Je to složená zpráva bez ručních úprav.`;
   const list = v.changes?.changes.length ? ` ${changesListed(v.changes.changes)}.` : "";

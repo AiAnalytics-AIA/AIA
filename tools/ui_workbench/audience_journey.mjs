@@ -8,14 +8,15 @@
  * fictional_population.py) and `make ui-fixtures`. It starts a new research study through
  * the API and then, in the browser, on Cílová skupina:
  *
- *   * ČR 18+ → Zúžit cílovou skupinu: no "V AIA zatím není" on the filters; the factor
+ *   * Koho mají výsledky reprezentovat: one choice of three (R4), Najít ve výsledcích disabled;
+ *     Zúžit: no "V AIA zatím není" on the filters; the factor
  *     editor lists the population's factors; choosing a region and an age range saves
  *     exactly those filters (an empty upper bound is left out, OI-50), read back after a
  *     reload;
- *   * Ověřit proveditelnost: the API counts the fictional population and the step says how
- *     many people the filters select and that N=300 can be drawn;
- *   * Speciální skupiny: the built-in subpanels; one is chosen and saved as its filter, one
- *     the population's policy refuses cannot be; special panels still say they are not in AIA.
+ *   * Proveditelnost: asked again after every change, no button; the API counts the fictional
+ *     population and the step says how many people the filters select and that N=300 can be drawn;
+ *   * the built-in subpanels under Zúžit; one is chosen and saved as its filter, one the
+ *     population's policy refuses cannot be; Celá ČR 18+ then clears them (OI-51 (a)).
  *
  * Every request is recorded. The journey fails on any request to a path the unit served,
  * on a 502 from the facade and on any page error. Nothing is sent to a model.
@@ -90,17 +91,23 @@ page.on("pageerror", (e) => errors.push(String(e)));
 page.on("request", (r) => requests.push({ method: r.method(), url: r.url() }));
 const bad = [];
 page.on("response", (r) => { if (r.status() === 502) bad.push(r.url()); });
+// Each preview's time to its answer (AUD9 asks one per change): measured here, on develop before merge.
+const previewMs = [];
+page.on("requestfinished", (r) => { if (r.url().endsWith("/population/audience-preview")) previewMs.push(r.timing().responseEnd); });
 const shot = (name) => page.screenshot({ path: join(OUT, `${name}.png`), fullPage: true });
 const saved = () => page.waitForResponse((r) => r.url().endsWith(`/studies/${study.study_id}/workspace/content`) && r.request().method() === "PUT" && r.ok(), { timeout: 30000 });
 const text = async (t, what) => page.getByText(t).first().waitFor({ timeout: 60000 }).catch(async () => { await shot(`missing-${what}`); fail(`${what}: "${t}" not shown`); });
 
 // 1. ČR 18+, narrowed: the factor editor from the population, filters saved as chosen.
 await page.goto(stage("audience"), { waitUntil: "load", timeout: 180000 });
-await page.getByRole("radio", { name: /Audience AI Analytics/ }).click({ timeout: 120000 });
-await page.getByRole("radio", { name: /Česká populace \(\+18\)/ }).click({ timeout: 60000 });
-await page.getByRole("radio", { name: /Zúžit cílovou skupinu/ }).click({ timeout: 60000 });
+const strategies = page.getByRole("radiogroup", { name: "Koho mají výsledky reprezentovat?" });
+await strategies.waitFor({ timeout: 120000 });
+if ((await strategies.getByRole("radio").count()) !== 3) fail("Cílová skupina should offer exactly three strategies (R4)");
+if (await page.getByText("Odkud mají respondenti pocházet?").count()) fail("the source question is still shown");
+if (!(await strategies.getByRole("radio", { name: /Najít ve výsledcích/ }).isDisabled())) fail("Najít ve výsledcích is offered though AIA cannot run it");
+await strategies.getByRole("radio", { name: /^Zúžit/ }).click({ timeout: 60000 });
 await text(`z populace ${catalogue.version_label}`, "the catalogue's version");
-if (await page.getByRole("radio", { name: /Zúžit cílovou skupinu/ }).getByText("V AIA zatím není").count()) fail("the filters still say they are not in AIA");
+if (await strategies.getByRole("radio", { name: /^Zúžit/ }).getByText("V AIA zatím není").count()) fail("the filters still say they are not in AIA");
 ok("Cílová skupina: the filters come from AIA's population, not 'V AIA zatím není'");
 const region = catalogue.factors.find((f) => f.id === "kraj")?.values?.[0]?.value;
 if (!region) fail("the catalogue has no region values");
@@ -144,14 +151,32 @@ ok("Cílová skupina: the age range is two steppers at 1440/1100/768/390 without
 await shot("1b-range-390");
 await page.setViewportSize({ width: 1440, height: 1100 });
 
-// 2. The preview: counted by the API, through the run's own sampler.
-const previewed = page.waitForResponse((r) => r.url().endsWith("/population/audience-preview") && r.ok(), { timeout: 120000 });
-await page.getByRole("button", { name: "Ověřit proveditelnost" }).click();
-await previewed;
-await text("Filtry vyberou", "the preview's count");
-await text("Vzorek N=300", "the sampler's verdict");
-ok("Ověřit proveditelnost: the API counted the audience and the sampler can draw N=300");
+// 2. Proveditelnost: counted by the API, through the run's own sampler, without a click (AUD9).
+const previews = requests.filter((r) => r.method === "POST" && r.url.endsWith("/population/audience-preview")).length;
+if (!previews) fail("Proveditelnost was not asked as the filters changed");
+const figures = page.locator('[data-aia="audience:preview"] [aria-live="polite"]');
+await figures.and(page.locator('[aria-busy="false"]')).waitFor({ timeout: 120000 });
+await text("lidí z", "the preview's count");
+const drawable = (await figures.innerText()).match(/Lze vytáhnout\s+(Ano|Těsně)/);
+if (!drawable) fail(`the sampler should draw N=300 from the audience: ${await figures.innerText()}`);
+if (await page.getByRole("button", { name: "Ověřit proveditelnost" }).count()) fail("Proveditelnost still waits for a button");
+ok(`Proveditelnost: ${previews} previews asked as the filters changed, no button; the sampler's verdict for N=300 is ${drawable[1]}`);
 await shot("2-preview");
+
+// 2c. "upravit na Vzorku" right after a filter edit: followed in the app, so the edit still waiting to
+// save is kept and nothing reloads (Codex on #1002).
+await page.evaluate(() => { window.__aiaSameDocument = true; });
+const second = catalogue.factors.find((f) => f.id === "kraj")?.values?.[1]?.value;
+if (!second) fail("the catalogue has a single region");
+await page.getByRole("button", { name: new RegExp(second.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) }).first().click();
+await page.getByRole("link", { name: "upravit na Vzorku" }).click();
+await page.waitForURL(/#sample$/, { timeout: 60000 });
+if (!(await page.evaluate(() => window.__aiaSameDocument === true))) fail("upravit na Vzorku reloaded the document");
+const keptSave = async () => ((await content()).content.audience.filters.kraj || []).includes(second);
+for (let i = 0; i < 40 && !(await keptSave()); i += 1) await page.waitForTimeout(250);
+if (!(await keptSave())) fail(`the region chosen just before leaving was not saved: ${JSON.stringify((await content()).content.audience.filters)}`);
+ok("upravit na Vzorku: followed in the app right after a filter edit; the edit is saved, nothing reloaded");
+await page.goto(stage("audience"), { waitUntil: "load", timeout: 180000 });
 
 // 2b. The factor groups and values chosen, never typed (input-interactions I3, audit B7, B8), at four widths.
 const regionChip = page.getByRole("button", { name: regionName }).first();
@@ -168,14 +193,7 @@ for (const width of [1440, 1100, 768, 390]) {
 await page.setViewportSize({ width: 1440, height: 1100 });
 ok("Cílová skupina: factor groups and values are chips at 1440/1100/768/390, 44 px tall on a phone, without overflow");
 
-// 3. Speciální skupiny: the built-in subpanels.
-const presetSave = saved();
-await page.getByRole("radio", { name: /Speciální skupiny/ }).click();
-await presetSave;
-// OI-51 (a): a preset change starts afresh; the region and age chosen above are not carried over.
-const afterPreset = (await content()).content.audience;
-if (JSON.stringify(afterPreset.filters) !== "{}" || afterPreset.builtin_subpanel) fail(`Speciální skupiny kept the previous audience: ${JSON.stringify({ filters: afterPreset.filters, builtin_subpanel: afterPreset.builtin_subpanel })}`);
-ok("Speciální skupiny: the region and age chosen before are cleared, not carried into the new preset (OI-51 (a))");
+// 3. The built-in subpanels, under Zúžit.
 const usable = catalogue.subpanels.find((s) => s.usable === true);
 const refused = catalogue.subpanels.find((s) => s.usable === false);
 if (!usable || !refused) fail("the fictional population should make one subpanel usable and one not");
@@ -186,8 +204,7 @@ await page.getByRole("radio", { name: nameOf(usable.name) }).click();
 await subpanelSave;
 const audience = (await content()).content.audience;
 if (audience.builtin_subpanel !== usable.key || JSON.stringify(audience.filters) !== JSON.stringify(usable.filters)) fail(`the subpanel saved ${JSON.stringify(audience)}`);
-await text("speciální panely a vlastní publikum", "special panels not in AIA");
-ok(`Speciální skupiny: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
+ok(`Subpanely: ${usable.name} saved as its filter ${JSON.stringify(usable.filters)}; ${refused.name} refused by policy`);
 await shot("3-subpanels");
 
 // 3b. The subpanels under a search (input-interactions I3, audit B9), at four widths.
@@ -206,36 +223,23 @@ const chosenLeft = await subpanels.getByRole("radio", { checked: true }).count()
 if (left !== 1 || chosenLeft !== 1) fail(`a search that matches nothing should leave only the chosen ${usable.name}: ${left} shown`);
 await text("Hledání odpovídá 0 z", "the search's count");
 await search.fill("");
-ok(`Speciální skupiny: ${catalogue.subpanels.length} subpanels under a search at 1440/1100/768/390 without overflow; a search that matches nothing keeps the chosen one and says 0`);
+ok(`Subpanely: ${catalogue.subpanels.length} subpanels under a search at 1440/1100/768/390 without overflow; a search that matches nothing keeps the chosen one and says 0`);
 
-// 4. Najít ideální skupinu: Discover's two values edited in place (input-interactions I1, audit B11), at four widths.
-await page.getByRole("radio", { name: /Česká populace \(\+18\)/ }).click();
-const strategySave = saved(); // the strategy's own save lands before the field's is awaited
-await page.getByRole("radio", { name: /Najít ideální skupinu z výsledků/ }).click();
-await strategySave;
-const SUCCESS = "Co má ideální člověk udělat / jak poznáme úspěch?";
-const successValue = page.getByRole("button", { name: /^Upravit: Co má ideální člověk/ });
+// 4. Celá ČR 18+ after Zúžit: who the subpanel sampled is not carried over (OI-51 (a)), at four widths.
+const wholeSave = saved();
+await strategies.getByRole("radio", { name: /Celá ČR 18\+/ }).click();
+await wholeSave;
+const whole = (await content()).content.audience;
+if (JSON.stringify(whole.filters) !== "{}" || whole.builtin_subpanel || whole.strategy !== "population") fail(`Celá ČR 18+ kept the previous audience: ${JSON.stringify({ strategy: whole.strategy, filters: whole.filters, builtin_subpanel: whole.builtin_subpanel })}`);
 for (const width of [1440, 1100, 768, 390]) {
   await page.setViewportSize({ width, height: 1000 });
-  await successValue.waitFor({ timeout: 30000 });
+  await strategies.waitFor({ timeout: 30000 });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   if (overflow > 0) fail(`${width} px: the page overflows by ${overflow} px`);
 }
 await page.setViewportSize({ width: 1440, height: 1100 });
-await successValue.click();
-const successField = page.getByRole("textbox", { name: SUCCESS });
-await successField.fill("Zahodí to");
-await successField.press("Escape");
-if (await successField.count()) fail("Esc did not close the success criterion's field");
-if ((await successValue.innerText()).includes("Zahodí to")) fail("Esc kept the typed value");
-await successValue.click();
-await successField.fill("Koupí a doporučí známým");
-const discoverSave = saved();
-await successField.press("Control+Enter");
-await discoverSave;
-if ((await content()).content.audience.success_definition !== "Koupí a doporučí známým") fail("the success criterion was not saved as typed");
-ok("Najít ideální skupinu: the success criterion edited in place at 1440/1100/768/390 without overflow; Esc restores, Ctrl+Enter saves");
-await shot("4-discover");
+ok("Celá ČR 18+: the subpanel and its filters cleared (OI-51 (a)); the three strategies at 1440/1100/768/390 without overflow");
+await shot("4-strategy");
 
 await browser.close();
 const toUnit = requests.filter((r) => { try { return UNIT_PATH.test(new URL(r.url).pathname); } catch { return false; } });
@@ -244,4 +248,9 @@ if (toUnit.length) fail(`requests to the unit's paths: ${toUnit.map((r) => `${r.
 if (bad.length) fail(`502 responses: ${bad.join(" | ")}`);
 if (errors.length) fail(`page errors: ${errors.join(" | ")}`);
 ok(`${requests.length} requests, none to a path of the unit, no 502`);
+if (previewMs.length) {
+  const sorted = [...previewMs].sort((a, b) => a - b);
+  const p95 = sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)];
+  ok(`${previewMs.length} previews; median ${Math.round(sorted[Math.floor(sorted.length / 2)])} ms, p95 ${Math.round(p95)} ms on this machine`);
+}
 console.log(`audience journey: PASS (screenshots and requests.json in ${OUT})`);

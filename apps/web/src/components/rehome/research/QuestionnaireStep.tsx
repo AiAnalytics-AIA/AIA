@@ -44,6 +44,8 @@ import {
   restoreQuestion,
   restoreSection,
   respondentPreview,
+  previewLeftOut,
+  PREVIEW_ITEMS,
   sections,
   setObjectFamily,
   priceBandsOf,
@@ -62,10 +64,14 @@ import {
   type SetLimits,
 } from "@/research/questionnaire";
 import type { ResearchProject } from "@/research/model";
-import { COMPARISONS, CONCEPT_TEST, comparisonOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
+import { DESCRIBED_POINTS_MAX } from "@/research/scale-labels";
+import { plural } from "@/lib/format";
+import { pyTrue } from "@/research/readers";
+import { COMPARISONS, CONCEPT_TEST, comparisonOf, coverageOf, danglingLinks, linkKey, linksOf, researchQuestionsOf, setComparison, setConceptTest, toggleQuestionLink, toggleSectionLink, togglesConceptTest } from "@/research/trace";
 import { Icon } from "../icons";
 import { ActionDock, ChipInput, FrameNavigation, InlineConfirm, Segmented, Switch } from "../step";
 import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { MenuButton } from "@/components/ui/MenuButton";
 import { InlineCreateRow } from "@/components/ui/InlineCreateRow";
 import { InlineText } from "@/components/ui/InlineText";
 import { TOUCH } from "@/components/ui/parts";
@@ -263,7 +269,7 @@ export function QuestionnaireStep() {
       <div className="flex flex-wrap items-start gap-4">
         <Outline />
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-          {tab === "edit" ? <Editor update={update} /> : <Preview items={respondentPreview(p)} />}
+          {tab === "edit" ? <Editor update={update} /> : <PreviewOf p={p} />}
         </div>
       </div>
       <section className={CARD} aria-labelledby="q-final">
@@ -302,7 +308,7 @@ function QuestionnaireReadiness() {
           <li key={r.label}>
             <button type="button" disabled={!r.go} onClick={r.go} className={`grid w-full grid-cols-[18px_1fr] items-start gap-2 rounded-control p-1.5 text-left enabled:hover:bg-surface-sunken ${FOCUS}`}>
               <span aria-hidden="true" className={`mt-px inline-flex size-[18px] items-center justify-center rounded-full ${r.ok ? "bg-status-done text-surface-raised" : "bg-status-you text-ink"}`}>
-                {r.ok ? <Icon name="done" size={10} /> : <span className="text-[11px] font-bold leading-none">!</span>}
+                {r.ok ? <Icon name="done" size={10} /> : <span className="text-[11px] font-semibold leading-none">!</span>}
               </span>
               <span className="min-w-0">
                 <span className="block text-[13px] font-medium leading-[18px]">{r.label}</span>
@@ -316,7 +322,18 @@ function QuestionnaireReadiness() {
   );
 }
 
-function Preview({ items }: { items: PreviewItem[] }) {
+function PreviewOf({ p }: { p: ResearchProject }) {
+  const items = respondentPreview(p);
+  return <Preview items={items} leftOut={previewLeftOut(p, items.length)} />;
+}
+
+/** A preview count in Czech: its label with the count's word by its number (lib/format plural). */
+const cut = (key: string, n: number, extra: Record<string, string | number> = {}) =>
+  tv(`${key}.label`, { count: plural(n, t(`${key}.one`), t(`${key}.few`), t(`${key}.many`)), ...extra });
+/** The rows of a set the preview draws: one, then "a stejně pro dalších n" (spec navrh/Q5; 18.6.6 drew two). */
+const SET_ROWS = 1;
+
+function Preview({ items, leftOut }: { items: PreviewItem[]; leftOut: number }) {
   return (
     <section aria-labelledby="q-preview" className="max-w-[560px]">
       <h2 id="q-preview" className="sr-only">{t("research.questionnaire.previewTitle")}</h2>
@@ -328,6 +345,7 @@ function Preview({ items }: { items: PreviewItem[] }) {
               <li key={it.index} className={CARD}>
                 <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewQuestion", { n: it.number })}</div>
                 <div className="mt-0.5 text-[15px] font-medium leading-6">{it.text}</div>
+                {it.conditional ? <p className="mt-1 text-xs text-ink-muted">{t("research.questionnaire.previewCondition")}</p> : null}
                 {it.options.length ? (
                   <div className="mt-3 flex flex-col gap-1.5">
                     {it.options.map((o, i) => (
@@ -336,9 +354,14 @@ function Preview({ items }: { items: PreviewItem[] }) {
                         {o}
                       </span>
                     ))}
+                    {it.moreOptions ? <span className="text-xs text-ink-muted">{cut("research.questionnaire.previewMoreOptions", it.moreOptions)}</span> : null}
                   </div>
                 ) : it.scale ? (
-                  <ScaleBoxes low={it.scale[0]} high={it.scale[1]} />
+                  it.range ? (
+                    <ScaleBoxes low={it.scale[0]} high={it.scale[1]} from={it.range[0]} to={it.range[1]} />
+                  ) : (
+                    <p className="mt-2 text-xs text-ink-muted">{t("research.questionnaire.previewRangeUnread")}</p>
+                  )
                 ) : (
                   <div aria-hidden="true" className="mt-3 h-16 rounded-control border border-border bg-surface" />
                 )}
@@ -346,12 +369,13 @@ function Preview({ items }: { items: PreviewItem[] }) {
             ) : (
               <li key={it.index} className={`${CARD} border-t-[3px] border-t-hue-violet`}>
                 <div className="text-xs text-ink-muted">{tv("research.questionnaire.previewSet", { n: it.number, title: it.title })}</div>
-                {it.rows.slice(0, 2).map((r, i) => (
+                {it.rows.slice(0, SET_ROWS).map((r, i) => (
                   <div key={i} className="mt-3">
                     <div className="text-sm font-medium">{r}</div>
-                    <ScaleBoxes low={it.low} high={it.high} />
+                    {it.range ? <ScaleBoxes low={it.low} high={it.high} from={it.range[0]} to={it.range[1]} /> : <p className="mt-2 text-xs text-ink-muted">{t("research.questionnaire.previewRangeUnread")}</p>}
                   </div>
                 ))}
+                {it.objects > SET_ROWS ? <p className="mt-2 text-xs text-ink-muted">{cut("research.questionnaire.previewMoreObjects", it.objects - SET_ROWS)}</p> : null}
               </li>
             ),
           )
@@ -359,19 +383,22 @@ function Preview({ items }: { items: PreviewItem[] }) {
           <li className="text-sm text-ink-muted">{t("research.questionnaire.previewEmpty")}</li>
         )}
       </ol>
+      {leftOut ? <p className="mt-3 text-[13px] text-ink-muted">{cut("research.questionnaire.previewLeftOut", leftOut, { max: PREVIEW_ITEMS })}</p> : null}
     </section>
   );
 }
 
+/** A scale's points, every one up to eleven; a wider range drawn as its ends either side of "…". */
 function ScaleBoxes({ low, high, from = 1, to = 10 }: { low: string; high: string; from?: number; to?: number }) {
-  const n = Math.max(0, Math.min(12, to - from + 1));
+  const n = to - from + 1;
+  const shown: (number | null)[] = n <= DESCRIBED_POINTS_MAX ? Array.from({ length: n }, (_, i) => from + i) : [from, from + 1, null, to - 1, to];
   return (
-    <div className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+    <div data-scale-points={n} className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
       <span className="shrink-0">{low}</span>
       <span aria-hidden="true" className="flex flex-1 gap-0.5">
-        {Array.from({ length: n }, (_, i) => (
-          <i key={i} className="flex h-6 flex-1 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-mono text-[10px] not-italic">
-            {from + i}
+        {shown.map((v, i) => (
+          <i key={i} className="flex h-6 min-w-0 flex-1 items-center justify-center rounded-sm border border-border-strong bg-surface-raised font-mono text-[10px] not-italic">
+            {v ?? "…"}
           </i>
         ))}
       </span>
@@ -525,9 +552,10 @@ function ResearchQuestionComparisons({ update }: { update: Update }) {
       <h3 className="text-[15px] font-semibold">{t("research.questionnaire.comparisons.title")}</h3>
       <p className="mt-1 text-[13px] text-ink-muted">{t("research.questionnaire.comparisons.help")}</p>
       <ul className="mt-3 flex flex-col gap-2">
-        {stated.map((rq) => (
+        {stated.map((rq, i) => (
           <li key={rq} className="flex flex-col gap-1.5 text-sm">
-            <span>{rq}</span>
+            {/* Numbered with the chips' key, so "VO n" is legible without hover (keyboard, touch). */}
+            <span>{tv("research.questionnaire.strip.rq", { n: i + 1 })} · {rq}</span>
             <ChoiceChips
               label={tv("research.questionnaire.comparisons.choose", { rq })}
               value={comparisonOf(state.project, rq) ?? NONE}
@@ -584,7 +612,14 @@ function QuestionBlock({ n, firstQ, sec, si, update }: { n: number; firstQ: numb
     <article id={`qblock_${sec.id || si}`} data-aia={marks.sections[si]} className="scroll-mt-40 rounded-panel bg-surface-sunken p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="font-mono text-[11px] uppercase tracking-[0.08em] text-ink-faint">{tv("research.questionnaire.blockHead", { n, q: countWords("questions", qs.length) })}</div>
+          {/* B n, as the outline and the board number it (spec navrh/Q2), and its count. */}
+          <div className="flex items-center gap-2">
+            <span className="whitespace-nowrap rounded-md border border-border-strong px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-muted">
+              <span aria-hidden="true">{tv("research.questionnaire.blockHead", { n })}</span>
+              <span className="sr-only">{tv("research.questionnaire.untitledBlock", { n })}</span>
+            </span>
+            <span className="text-xs text-ink-muted">{countWords("questions", qs.length)}</span>
+          </div>
           {/* The block as a heading: navigable by a screen reader, and the title the Lead names it by (lead.ts titleOf). */}
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledBlock", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.blockTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
@@ -627,15 +662,18 @@ const TYPES = [
   ["skala", "typeScale"],
   ["otevrena", "typeOpen"],
 ] as const;
-type TypeKey = (typeof TYPES)[number][0];
-const typeKey = (typ: string): TypeKey | null => TYPES.find(([key]) => key === typ)?.[0] ?? null;
 
-/** questionCard: the type as pills, the text, and below it what the type needs. */
+/** questionCard: the type as a tag, the text, and below it what the type needs. */
 function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Question; si: number; sectionId: string | undefined; qi: number; update: Update }) {
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const wording = useRef<WordingEdit | null>(null);
   const typ = String(q.typ || "");
+  // Read as the compiler reads it: none is a single choice, then the value is trimmed
+  // (research_design.py:952, _text(raw.get("typ") or "vyber")), so blanks alone name no type.
+  const read = typ ? typ.replace(/\s+/g, " ").trim() : "vyber";
+  const current = TYPES.find(([key]) => key === read);
+  const typeLabel = current ? t(`research.questionnaire.${current[1]}`) : t("research.questionnaire.typeUnset");
   const skala = q.skala || [1, 10];
   const labels = q.popisky_skaly || ["vůbec", "zcela"];
   // A question without wording stops the run: marked where it is, not only in the dock.
@@ -643,19 +681,26 @@ function QuestionCard({ n, q, si, sectionId, qi, update }: { n: number; q: Quest
   const hint = `${questionElementId(q)}_missing`;
   return (
     <div id={questionElementId(q)} data-aia={marks.questions[si]?.[qi]} data-unworded={unworded || undefined} className={`scroll-mt-40 rounded-card border bg-surface-raised p-4 ${FOCUS} ${unworded ? "border-status-you shadow-[0_0_0_3px_var(--status-you-wash)]" : "border-border"}`}>
-      {/* The number and the × keep the row's ends; the type chips wrap between them, so on a phone
-          the × stays beside its question's number instead of falling to a row of its own. Both ends
-          take a chip's height (TOUCH), so they sit level with the chips' first row. */}
+      {/* The number and the × keep the row's ends and the type tag sits between them, so on a phone
+          the × stays beside its question's number. All three take a touch target's height (TOUCH). */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-2">
         <span className={`flex items-center ${TOUCH}`}>
           <span className="rounded-md bg-signal-wash px-1.5 py-0.5 font-mono text-xs font-semibold text-signal" title={String(q.id || "")}>Q{n}</span>
         </span>
-        <ChoiceChips
-          label={t("research.questionnaire.questionType")}
-          value={typeKey(typ)}
-          options={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`) }))}
-          onChange={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
-        />
+        {/* The type as a tag that opens its choices (spec navrh/Q2; the board draws a tag, not chips):
+            named "<type>, typ otázky", the current one shown and not offered again. The trigger takes
+            a touch target's height, 44 px on a phone (MenuButton's own small size is 28). */}
+        <span className={`flex items-center ${TOUCH}`}>
+          <MenuButton
+            label={typeLabel}
+            name={tv("research.questionnaire.typeOf", { type: typeLabel })}
+            // Only the type as stored is not offered again: an untyped or padded one is offered the
+            // type it reads as, which writes it and draws its editor (options, scale) as stored.
+            items={TYPES.map(([key, label]) => ({ key, label: t(`research.questionnaire.${label}`), disabled: key === typ }))}
+            onSelect={(key) => key !== typ && update((p) => changeQType(p, si, qi, key))}
+            className="[&>button]:min-h-11 sm:[&>button]:min-h-8"
+          />
+        </span>
         <Button
           small
           variant="quiet"
@@ -731,6 +776,8 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
   const stated = researchQuestionsOf(state.project);
   const links = linksOf(item);
   const dangling = danglingLinks(item, stated);
+  // Until some item declares a link, coverage is unknown for all of them (coverageOf), not a gap here.
+  const anyLinked = coverageOf(state.project).linked;
   if (!stated.length && !dangling.length) return <p className="mt-3 text-xs text-ink-muted">{t("research.questionnaire.links.none")}</p>;
   const on = (rq: string) => links.some((l) => linkKey(l) === linkKey(rq));
   return (
@@ -742,7 +789,17 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
             multiple
             label={t("research.questionnaire.links.choices")}
             value={stated.filter(on)}
-            options={stated.map((rq) => ({ key: rq, label: rq }))}
+            // Short "VO n" chips (spec navrh/Q3, QST2): the chip is named "VO n: <question>" and its
+            // tooltip is the question; the linked ones are written out under the chips, for touch.
+            options={stated.map((rq, i) => ({
+              key: rq,
+              label: (
+                <span title={rq}>
+                  {tv("research.questionnaire.strip.rq", { n: i + 1 })}
+                  <span className="sr-only">: {rq}</span>
+                </span>
+              ),
+            }))}
             // One toggled at a time: the one whose state the new value changes.
             onChange={(next) => {
               const flipped = stated.find((rq) => next.includes(rq) !== on(rq));
@@ -762,6 +819,13 @@ function ResearchQuestionLinks({ item, onToggle }: { item: Question | Section; o
           </button>
         ))}
       </div>
+      {stated.some(on) ? (
+        <ul aria-hidden="true" className="flex flex-col gap-0.5 text-xs text-ink-muted">
+          {stated.map((rq, i) => (on(rq) ? <li key={rq}>{tv("research.questionnaire.strip.rq", { n: i + 1 })} · {rq}</li> : null))}
+        </ul>
+      ) : stated.length && anyLinked ? (
+        <p className="text-xs text-ink-muted">{t("research.questionnaire.links.unlinked")}</p>
+      ) : null}
       {dangling.length ? <p className="text-xs text-status-you-ink">{t("research.questionnaire.links.dangling")}</p> : null}
     </fieldset>
   );
@@ -845,6 +909,18 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
   const marks = useLeadMarks();
   const undo = useEditorUndo();
   const [confirming, setConfirming] = useState(false);
+  const { canEdit } = useFrame();
+  const familiarityBox = useRef<HTMLDivElement>(null);
+  // Read as the compiler reads the flag (bool()), so an empty {} or [] is no requirement.
+  const familiarityStored = pyTrue(sec.familiarity_required);
+  // "Vypnout" takes its button away: focus is owed to the line that replaces it, given once that line
+  // is rendered (AGENTS.md: after the render that mounts it, never on a frame guess).
+  const familiarityFocusOwed = useRef(false);
+  useEffect(() => {
+    if (familiarityStored || !familiarityFocusOwed.current) return;
+    familiarityFocusOwed.current = false;
+    familiarityBox.current?.querySelector<HTMLElement>("p")?.focus();
+  }, [familiarityStored]);
   const l = useContext(SetLimitsContext);
   const labels = sec.scale_labels || ["vůbec", "velmi"];
   const objects = sec.objects || [];
@@ -861,7 +937,7 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
     <article id={setElementId(sec, si)} data-aia={marks.sections[si]} className={`scroll-mt-40 flex flex-col gap-3 rounded-card border border-border border-t-[3px] border-t-hue-violet bg-surface-raised p-4 ${FOCUS}`}>
       {/* The name keeps 12rem; on a phone the count and Smazat wrap below it rather than squeeze it. */}
       <div className="flex flex-wrap items-start gap-3">
-        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet">{tv("research.questionnaire.setBadge", { n })}</span>
+        <span className="mt-1 whitespace-nowrap rounded-md bg-hue-violet/12 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-hue-violet"><span aria-hidden="true">{tv("research.questionnaire.setBadge", { n })}</span><span className="sr-only">{tv("research.questionnaire.untitledSet", { n })}</span></span>
         <div className="min-w-[12rem] flex-1">
           <h3 className="sr-only">{sec.title?.trim() || tv("research.questionnaire.untitledSet", { n })}</h3>
           <InlineField strong label={t("research.questionnaire.setTitle")} value={sec.title || ""} onChange={(v) => update((p) => setSectionField(p, si, "title", v))} />
@@ -946,9 +1022,26 @@ function TrackedSet({ n, sec, si, update }: { n: number; sec: Section; si: numbe
         perPoint={false}
         onChange={(v) => update((p) => setSetScaleLabels(p, si, v.labels), "scale")}
       />
-      <div className="flex flex-col gap-1">
-        <Switch checked={Boolean(sec.familiarity_required)} onChange={(on) => update((p) => setSectionField(p, si, "familiarity_required", on))} label={<b className="font-semibold">{t("research.questionnaire.familiarity")}</b>} />
-        <p className="pl-[44px] text-xs text-ink-muted">{t("research.questionnaire.familiarityHelp")}</p>
+      {/* No switch for what a run refuses (spec navrh/Q4, R9; readiness battery_familiarity); a set stored
+          with it says so and can drop it. */}
+      <div ref={familiarityBox}>
+        {familiarityStored ? (
+          <div data-familiarity-stored className="flex flex-wrap items-center gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-xs">
+            <span className="min-w-[min(100%,16rem)] flex-1">{t("research.questionnaire.familiarityStored")}</span>
+            <Button
+              small
+              disabled={!canEdit}
+              onClick={() => {
+                familiarityFocusOwed.current = true;
+                update((p) => setSectionField(p, si, "familiarity_required", false), "familiarity");
+              }}
+            >
+              {t("research.questionnaire.familiarityOff")}
+            </Button>
+          </div>
+        ) : (
+          <p tabIndex={-1} className={`text-xs text-ink-muted ${FOCUS}`}>{t("research.questionnaire.familiarityUnavailable")}</p>
+        )}
       </div>
       {togglesConceptTest(sec) ? (
         <div className="flex flex-col gap-1">

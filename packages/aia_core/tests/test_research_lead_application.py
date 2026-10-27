@@ -265,7 +265,7 @@ def test_a_parked_turn_says_why_and_does_not_hold_the_conversation(
     assert len(_message(_lead(scope, session), "Jsi tam?")) == 2
 
 
-def _park_on_budget(session: Any, scope: Any, requested: float | None = 0.5) -> Any:
+def _park_on_budget(session: Any, scope: Any, requested: Any = 0.5) -> Any:
     """The worker's side of a turn whose reservation passes the study's budget, with the error
     the worker records (``requested_usd``: the hold the turn asked for)."""
     workflows = WorkflowRepository(session, scope)
@@ -408,14 +408,41 @@ def test_a_turn_parked_behind_more_than_a_page_of_later_runs_is_still_sent(
     assert set_study_budget(session, scope, 5.0)[1] == [first[-1]["run_id"]]
 
 
-def test_a_parked_turn_whose_hold_is_unknown_stays_parked(scoped: Any, session: Any) -> None:
+@pytest.mark.parametrize("requested", [None, True, -1.0, "0.5"])
+def test_a_parked_turn_whose_hold_is_unknown_stays_parked(
+    scoped: Any, session: Any, requested: Any
+) -> None:
+    """A hold the attempt did not record as a number of USD is unknown, and unknown never fits:
+    a bool or a negative hold passed as one. (NaN and inf cannot be stored in PostgreSQL's JSONB;
+    _recorded_hold refuses them below.)"""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     _message(_lead(scope, session))
-    _park_on_budget(session, scope, requested=None)
+    _park_on_budget(session, scope, requested=requested)
     assert set_study_budget(session, scope, 500.0)[1] == []
     assert _lead(scope, session).state()["turns"][-1]["status"] == "WAITING"
+
+
+@pytest.mark.parametrize(
+    ("value", "hold"),
+    [
+        (0.5, 0.5),
+        (2, 2.0),
+        (0, 0.0),
+        (None, None),
+        (True, None),
+        (-1.0, None),
+        ("0.5", None),
+        (float("nan"), None),
+        (float("inf"), None),
+    ],
+)
+def test_a_recorded_hold_is_a_finite_non_negative_number_of_usd(value: Any, hold: Any) -> None:
+    """NaN compared as fitting anything, so it is refused here, beside inf."""
+    from aia_core.application.research_lead import _recorded_hold
+
+    assert _recorded_hold(value) == hold
 
 
 def test_a_greeting_does_not_supersede_a_message_waiting_for_budget(
@@ -603,6 +630,12 @@ def test_another_researchers_decisions_are_not_in_my_digest(scoped: Any, session
                 "reply": "Připravil.",
                 "request": {"kind": "agent_job", "action": "analyze_brief", "why": WHY},
             },
+            ["job"],
+        ),
+        # A Deep Research card is started on the person's approval through the ledger
+        # (LO5a.2), so it waits until decided, as an agent job does (review of #1006).
+        (
+            {"reply": "Doplňme literaturu.", "request": {"kind": "design_research", "why": WHY}},
             ["job"],
         ),
     ],
@@ -1059,6 +1092,38 @@ JOB = {
 }
 
 
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store(
+    scoped: Any, session: Any, monkeypatch: pytest.MonkeyPatch, switched_on: bool
+) -> None:
+    """artifact-questionnaire QST13: the Lead's store (set only with
+    AIA_AI_ANALYSIS_EXTERNAL_CONTEXT) reaches the questionnaire job its card approves."""
+    from aia_core.application.research import ResearchAgentJobs
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    build = {
+        "reply": "Připravil jsem dotazník.",
+        "request": {
+            "kind": "agent_job",
+            "action": "build_questionnaire",
+            "why": "Návrh je hotový.",
+        },
+    }
+    scope, turn_id = _ready(scoped, session, build)
+    store = InMemoryArtifactStore() if switched_on else None
+    _lead(scope, session, external_store=store).approve_request(
+        turn_id, confirm_cost_usd=None, reservation_usd=None
+    )
+    assert given == ([store] if switched_on else [])
+
+
 def test_approving_a_prepared_job_starts_it_once_and_records_it(scoped: Any, session: Any) -> None:
     scope, turn_id = _ready(scoped, session, JOB)
     started = _lead(scope, session).approve_request(
@@ -1280,3 +1345,43 @@ def test_external_context_is_frozen_only_when_switched_on_and_pinned(
     broken = frozen(_lead(scope, session, external_store=store), "Rozbitá?")
     assert layer(broken, EXTERNAL_LAYER)["lines"] == []
     assert layer(broken, EXTERNAL_LAYER)["unavailable"] == "context_unverified"
+
+
+def test_a_deep_research_run_of_the_study_is_in_the_turns_context(
+    scoped: Any, session: Any
+) -> None:
+    """lead-orchestration LO5a.1 (F-DRL-4): the Lead could not see the study's Deep Research,
+    so it could neither say where a rešerše stands nor name a run to retry. With none, the
+    layer is absent and the context is what it was."""
+    from aia_core.application.deep_research import DeepResearchRuns
+
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _save(scope, session, {**CONTENT, "research_plan": {"research_questions": ["Proč?"]}})
+
+    def frozen(text: str) -> dict[str, Any]:
+        turns = _message(_lead(scope, session), text)
+        context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+        _complete(session, scope, {"reply": "Ano."})
+        return context
+
+    before = frozen("Běží rešerše?")
+    names = [e["layer"] for e in before["layers"]]
+    assert "deep_research" not in names and "targets" not in names
+    # The research questions a focus may name are shown with their ids (review of #925), on a
+    # copy that stores none.
+    from aia_core.domain.research_lead import request_ids
+
+    shown = layer(before, "design")["research_questions"]
+    assert [q["text"] for q in shown] == ["Proč?"]
+    assert request_ids(before).research_questions == {shown[0]["id"]}
+    revision = StudyDesignRepository(session, scope).latest()
+    assert revision is not None
+    started = DeepResearchRuns(session, scope).start(
+        design_revision_id=revision.revision_id, preset_name="QUICK", prices=None
+    )
+    entry = layer(frozen("A teď?"), "deep_research")["runs"]
+    assert [(r["run_id"], r["purpose"], r["target"], r["preset"]) for r in entry] == [
+        (started.run_id, "DESIGN_RESEARCH", "návrh výzkumu", "QUICK")
+    ]
+    assert entry[0]["actual_cost_usd"] is None  # nothing spent yet: unknown, never 0

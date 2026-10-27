@@ -296,6 +296,7 @@ INSPECT_COPY: dict[str, Any] = {
         ("rq:rq_tea", None),  # Návrh allows inspect, and the copy holds it
         ("hypothesis:hyp_tea", None),
         ("plan:sets", None),  # a Návrh section by its name
+        ("plan:hypotheses", None),  # the hypotheses' own section (artifact-design DSN12)
         ("rq:rq_made_up", "unknown_item"),  # an id the copy does not hold
         ("hypothesis:hyp_x", "unknown_item"),
         ("plan:everything", "unknown_item"),
@@ -350,8 +351,8 @@ def test_an_inspect_target_is_held_to_the_focus_grammar() -> None:
 
 
 def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
-    """Návrh, Dotazník and Dimenze show their waiting changes; Zpráva declares show_diff for a
-    draft's tracked changes, which do not exist yet; Zadání declares none."""
+    """Návrh, Dotazník, Dimenze and Vzorek show their waiting changes; Zpráva declares show_diff
+    for a draft's tracked changes, which do not exist yet; Zadání declares none."""
     output = LeadOutput.model_validate(
         _output(
             view=[
@@ -369,7 +370,72 @@ def test_show_diff_only_where_the_stage_shows_its_waiting_changes() -> None:
         {"index": 1, "op": "show_diff", "reason": "not_available"},
         {"index": 2, "op": "show_diff", "reason": "not_available"},
     ]
+    sample = LeadOutput.model_validate(_output(view=[{"op": "show_diff", "stage": "sample"}]))
+    assert (
+        ground_view(sample, INSPECT_COPY)[0].view == sample.view
+    )  # a set_n waits on Vzorek (SMP7)
     assert not _valid(_output(view=[{"op": "show_diff", "stage": "nowhere"}])).ok
+
+
+def test_the_lead_selects_on_the_map_only_what_the_person_pointed_at() -> None:
+    """The context holds no map, so a select names the person's own pointing or nothing; a stage
+    whose contract has no select (a questionnaire question) is refused by name."""
+    pointed = "object:set1/fio"
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "select", "target": pointed},
+                {"op": "select", "target": "pair:set1/fio~air"},
+                {"op": "select", "target": "question:q3"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, INSPECT_COPY, focus=pointed)
+    assert [op.model_dump() for op in grounded.view] == [{"op": "select", "target": pointed}]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "select", "reason": "not_in_context"},
+        {"index": 2, "op": "select", "reason": "not_selectable"},
+    ]
+    # With no pointing, nothing on the map can be selected.
+    assert ground_view(output, INSPECT_COPY)[0].view == []
+    assert not _valid(_output(view=[{"op": "select", "target": "object set1"}])).ok
+
+
+def test_a_map_filter_takes_only_the_contract_s_names_and_values() -> None:
+    """A display filter by Sociomapa's own names and values; a battery is the run's to name, and
+    the context holds no map, so the Lead is not offered it (stand-in review on #992)."""
+    output = LeadOutput.model_validate(
+        _output(
+            view=[
+                {"op": "filter", "name": "view", "value": "relief"},
+                {"op": "filter", "name": "view", "value": "sideways"},
+            ]
+        )
+    )
+    grounded, dropped = ground_view(output, INSPECT_COPY)
+    assert [op.model_dump() for op in grounded.view] == [
+        {"op": "filter", "name": "view", "value": "relief"}
+    ]
+    assert [d.model_dump() for d in dropped] == [
+        {"index": 1, "op": "filter", "reason": "unknown_value"},
+    ]
+    assert not _valid(_output(view=[{"op": "filter", "name": "battery", "value": "set1"}])).ok
+    assert not _valid(_output(view=[{"op": "filter", "name": "threshold", "value": "0.3"}])).ok
+    # The panel has no labels or weak-links control: the Lead is not offered them.
+    assert not _valid(_output(view=[{"op": "filter", "name": "labels", "value": "off"}])).ok
+    assert not _valid(_output(view=[{"op": "filter", "name": "hide_weak", "value": "on"}])).ok
+    assert not _valid(_output(view=[{"op": "filter", "name": "view", "value": "a b"}])).ok
+
+
+def test_every_stage_the_contract_lets_show_diff_shows_it_or_waits() -> None:
+    """The contract and the gate cannot drift: a stage whose row declares show_diff is shown, or is
+    Zpráva, whose tracked changes wait for RD5."""
+    from aia_core.domain.lead_artifacts import ARTIFACTS, allows_view
+    from aia_core.domain.research_lead import SHOW_DIFF_STAGES
+
+    declared = {stage for stage in ARTIFACTS if allows_view(stage, "show_diff")}
+    assert declared - SHOW_DIFF_STAGES == {"report"}
+    assert declared >= SHOW_DIFF_STAGES
 
 
 def test_bounds_on_lists_reply_and_follow() -> None:

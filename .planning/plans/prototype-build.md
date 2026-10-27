@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] PB1. Finish what is open and decide: the open PRs in flight landed or closed, Nigel's decisions of 25-26 Oct 2026 recorded in the plans (this docs PR), OQ13 to legal and the methodology owner's two items asked (W0)"
   - "[ ] PB2. The look and the frame in apps/web: lane A's PBA1-PBA7 and lane B's Settings frame (W1)"
@@ -7,13 +7,13 @@ chunks:
   - "[ ] PB4. W2: the audience and results stages (Cílová skupina, Dimenze, Výsledky, Sociomapa), the Lead's money and actions (W2)"
   - "[ ] PB5. W3: Analýza, Zpráva and the report editor, the Lead's identity (W3)"
   - "[ ] PB6. Data class gates advisory in the MVP deployments: develop-class-advisory's AIA_DATA_CLASS_GATES=advisory allowed in staging and production too, every class still computed and recorded; accept gates, spend confirmations, the budget stop, evidence gates, the Sociomap register, EU residency and the licence gate stay (Nigel, 26 Oct; W1; owner: the Lead worker, with the AI-runtime lane)"
-  - "[ ] PBA1. Lane A, the AppShell Dock rail: 64 px of icons at rest, 240 px on hover or focus, the motion as the Settings prototype draws it, on every page (W1)"
-  - "[ ] PBA2. Lane A, Můj Vedoucí on the rail on every page, opening Vypěstovat when no Lead exists, else Můj Vedoucí (lead-identity LI7 widened; W1)"
+  - "[x] PBA1. Lane A, the AppShell Dock rail: 64 px of icons at rest, 240 px on hover or focus, the motion as the Settings prototype draws it, on every page (W1)"
+  - "[x] PBA2. Lane A, Můj Vedoucí on the rail on every page, opening Vypěstovat when no Lead exists, else Můj Vedoucí (lead-identity LI7 widened; W1)"
   - "[ ] PBA3. Lane A, the Nastavení flyout opened from the rail item: nine sections in three groups, Reference gone into Stav systému (after #900 and settings-redesign F17; W1)"
-  - "[ ] PBA4. Lane A, the hero component (eyebrow, serif title, lede, edit chip, figures), on top-level pages only (UI-1; W1)"
-  - "[ ] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
-  - "[ ] PBA6. Lane A, the primitives to the look contract: radii 6/8/10, chips 24/6, switch 40x24, dialog 560/10, toast, table header on sunken, no font weight 700 (W1)"
-  - "[ ] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
+  - "[x] PBA4. Lane A, the hero component (eyebrow, serif title, lede, edit chip, figures), on top-level pages only (UI-1; W1)"
+  - "[x] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
+  - "[x] PBA6. Lane A, the primitives to the look contract: radii 6/8/10, chips 24/6, switch 40x24, dialog 560/10, toast, table header on sunken, no font weight 700 (W1)"
+  - "[x] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
 ---
 # Prototype build: from the approved prototypes to the product
 

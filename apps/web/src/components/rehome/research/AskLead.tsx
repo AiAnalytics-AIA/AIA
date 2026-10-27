@@ -20,7 +20,7 @@ export function useLeadOwnsAiStarts(): boolean {
 
 /** Send the Lead a message from a stage, as the person would type it (the workbench provides it). */
 export const LeadAskContext = createContext<((text: string) => void) | null>(null);
-const useAskLead = () => useContext(LeadAskContext);
+export const useAskLead = () => useContext(LeadAskContext);
 
 export function AskLead({ what, className = "" }: { what: string; className?: string }) {
   return (

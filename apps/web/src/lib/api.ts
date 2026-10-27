@@ -9,7 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
 import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision, WorkingEdit } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
@@ -506,6 +506,8 @@ export type WorkingContent = {
 };
 
 export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
+/** A batch of edits saved (POST …/workspace/ops, WCE3a): the save, and the copy as AIA now holds it. */
+export type WorkingOpsSave = WorkingSave & { content: Record<string, unknown>; analysis: Record<string, unknown> | null };
 
 /** What the brief keeps of an attached file (AttachmentResponse): never where it is stored. */
 export type AttachmentRecord = {
@@ -904,6 +906,9 @@ export const workspace = {
     studyId: string,
     body: { content: unknown; analysis: unknown; base_revision: number | null; reason: string },
   ) => request<WorkingSave>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/content`, body),
+  /** A person's edits in the working copy's vocabulary, applied in order as one batch, all or none (WCE3a). */
+  applyOps: (studyId: string, body: { ops: WorkingEdit[]; base_revision: number | null; reason: string }) =>
+    request<WorkingOpsSave>("POST", `/api/v1/studies/${enc(studyId)}/workspace/ops`, body),
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
   attach: (studyId: string, body: { filename: string; data_b64: string }) =>
@@ -1096,6 +1101,9 @@ export type ResearchStep = {
   analysis_outcome?: "COMPLETED" | "BLOCKED" | null;
   /** Why a step stopped for recovery; null or absent when it did not, or its attempts were not read. */
   recovery_reason?: "paid_call_uncertain" | "attempts_exhausted" | null;
+  /** A step waiting for budget: the hold it asked for and what the study had left (FLD10); null when
+   *  not waiting, its attempts were not read, or the stop named no price -- unknown, never zero. */
+  budget_need?: { requested_usd: number; remaining_usd: number } | null;
   /** How the API reads `data_origin`: SIMULATED, MODELLED or UNKNOWN; absent from an older API. */
   data_origin_kind?: string | null;
 };
@@ -1228,6 +1236,9 @@ export type ResearchAnalysis = {
     key_findings: { text: string; claim_ids: string[] }[];
     claims: { claim_id: string; evidence_ref: string; value: number; decimals?: number; indicative: boolean; data_origin: string | null }[];
     violations: { code: string; subject: string; detail: string }[];
+    /** What a module that states nothing says beside it (evidence-integrity 9a): `no_supported_finding` (it
+     *  holds the report) or `context_missing` (it holds nothing), with the server's ways out; null otherwise. */
+    diagnostic?: { reason: string; resolutions: string[] } | null;
   }>;
 };
 
@@ -1265,6 +1276,8 @@ export type ReportVariant = {
    * footers (D2: approved, DOCX and PDF say SCHVÁLENO; false: stored before that layout). */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** When the draft was stored (RPT3d); null where its record has none, absent from an older API. */
+  stored_at?: string | null;
   internal_only: true;
   pdf?: ReportPdf | null;
   /** Whether approving the draft now gives its approved version a PDF too: approving asks for one
@@ -1288,6 +1301,8 @@ export type ResearchReport = {
   /** As ReportVariant's: the day it was approved, and whether its file states its review. */
   approved_on?: string | null;
   stamped?: boolean | null;
+  /** As ReportVariant's: when it was stored (RPT3d). */
+  stored_at?: string | null;
   /** Who approved it and when, from the ledger (report-delivery RD2); null for a draft. */
   approval?: Approval | null;
   artifact_id?: string;
@@ -1382,7 +1397,7 @@ export const research = {
   /** The modules a person may ask again over the run's data; `stale`: those among them a model completed under an
    *  earlier harness, which today's refuses to re-admit (absent from an API older than PC3: none). */
   retryableModules: (studyId: string, runId: string) =>
-    request<{ run_id: string; modules: string[]; stale?: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
+    request<{ run_id: string; modules: string[]; stale?: string[]; ceiling_usd?: number | null }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
       .then((r) => ({ modules: Array.isArray(r.modules) ? r.modules : [], stale: Array.isArray(r.stale) ? r.stale : [] })),
   /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
   retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>
@@ -1789,6 +1804,9 @@ export type Member = {
   deactivated_at?: string | null;
   /** Their Research Lead's seal (ADR 0030): unreadable from lead_sealed_at, erased after lead_erase_after. */
   lead_sealed_at?: string | null; lead_erase_after?: string | null;
+  /** Their own last authenticated request (F19), for an OWNER or ADMIN: null is never; absent, an
+   *  API that does not serve it (unknown). Null for anyone who may not administer. */
+  last_seen_at?: string | null;
 };
 
 export type AdminClient = {
@@ -1995,8 +2013,15 @@ export type ErrorTracking = {
   issues_7d: { title: string; culprit: string | null; count: number | null; last_seen: string | null; url: string | null }[];
   error: string | null;
 };
+/** Each AI activity's last answered call (settings-redesign F14, OI-75 (a)): OWNER and ADMIN
+ *  only. `last_answered` null: none recorded, which is neither working nor broken; `build` null:
+ *  the worker recorded none. */
+export type AiActivityAnswered = {
+  activities: { key: string; last_answered: { at: string; model: string; build: string | null } | null }[];
+};
 export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
+  aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
 };
 
@@ -2026,6 +2051,9 @@ export type ClientDeletionPreview = {
   kept: Partial<Record<"usage_rows" | "approval_rows" | "audit_rows", number>>;
   /** Not deleted until SDL2; null: not counted, never 0. */
   remains_until_sdl2: { population_children?: number | null; replaced_source_readings?: number | null };
+  /** The client's runs that have not ended, read as the preview was made: while any is listed the
+   *  deletion is refused (409 client_has_active_work). Absent from an older API: not known. */
+  active_run_ids?: string[];
   confirm_token: string; expires_at: string;
 };
 export type KeptRecord = { record: string; count: number; kept_for: string; why: string };

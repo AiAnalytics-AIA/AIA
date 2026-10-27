@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] SD0. The owner answers Q1-Q8 below and accepts ADR 0043; the answers are written into this file and the ADR, nothing built before"
+  - "[x] SD0. The owner answers Q1-Q8 below and accepts ADR 0043; the answers are written into this file and the ADR, nothing built before"
   - "[ ] SD1. A study's tombstone columns: studies.deleted_at, deleted_by and purge_after (migration), carried on the domain Study; nothing reads them yet"
   - "[ ] SD2. Every reader refuses a deleted study: ScopeResolver.study_context and accessible_studies, studies_in_client, the admin study listing, project memory search; a test per reader"
   - "[ ] SD3. The delete itself: GET /studies/{id}/deletion (counts and a one-time confirmation, the SB5 ticket shape) and DELETE /studies/{id}, under the study row lock, refused by name (runs not ended, an open hold, the Q2 rule), audited STUDY_DELETED with counts"
@@ -78,6 +78,40 @@ children.
 the need to reopen an old study in order to clear it away.
 
 ## Design questions for the owner
+
+**Answered 2026-10-26 by the product owner, in planning 3's session:** "Q1 (b) 7-day window; Q2-Q8
+as recommended; accept ADR 0043". So:
+
+| Q | Answer | What it means |
+|---|---|---|
+| Q1 | (b) | Soft delete: hidden at once, restorable for 7 days, then purged (SD5); SDL2's S3 noncurrent-version lifecycle is 23 days, so MVPQ-07's 30 days count from the click |
+| Q2 | (c) | Any member deletes or restores a study that is not `DELIVERED` and holds no approved report or client report; an OWNER or ADMIN for one that does |
+| Q3 | (c) | All of the study's content goes; the confirmation counts it first and offers each approved report's download |
+| Q4 | (a) | The holdout confirmation row is kept content-free under the tombstone (SD7, OI-232) |
+| Q5 | (a) | Refused while a run has not ended or a hold is `RESERVED`; the person cancels first |
+| Q6 | (a) | Pending proposals and the knowledge selection go; accepted knowledge stays, its provenance reading smazaná studie |
+| Q7 | (a) | Gone from project memory and reuse sources at once; a reusing study keeps its copy and citation, its note saying Zdrojová studie byla smazána |
+| Q8 | (a) | Smazat studii… in the study status menu, the checkbox dialog with counts and the wording below, a toast with Vrátit, a Smazané studie view with Obnovit |
+
+**Confirmed 2026-10-26 in the Decision Review** (the product owner, relayed by the PM coordinator),
+the same answers, quoted: Q1 (b) "Hidden for 7 days, then purged"; Q2 (c) "Any member, unless the
+study is delivered or holds an approved or client report; then OWNER/ADMIN"; Q3 (c) "All go, after
+showing the counts and offering the approved reports to download first"; Q4 (a) "Keep it, without
+content"; Q5 (a) "Refuse while a run is live or money is held; budget and wallet close, ledgers stay";
+Q6 (a) "Its pending proposals and its knowledge selection go; accepted knowledge stays, marked
+'smazaná studie'"; Q7 (a) "Gone from search and reuse; a study that reused it keeps its copy and
+citation, marked 'source deleted', with no link"; Q8 (a) "'Smazat studii…' in the study's status
+menu". And **REV-SD-F1-NOW (a): "Yes, a small fix PR now"**: SD7's client half (Finding F1, OI-232) is
+built now, as its own small PR, ahead of the rest of this plan (below). Q5's "budget and wallet close"
+is SD3's: the delete closes the study's budget and wallet; their ledgers stay. *2026-10-26:* SD7's client half
+is done by #1012 (`9d25112d`, OI-232 closed); its study half waits for study deletion.
+
+**Register (proposed, planning, 26 Oct: all SD questions answered).** This plan is proposed core in
+master §3.1 (S3, I-5); waves in `mvp-execution-contracts.md`: SD7 W1 (the client half now), SD1-SD6 and
+SD8-SD10 W3, SD11 W4 with `study-data-lifecycle#SDL6`. A proposal of the plan register, not the
+product owner's scope decision.
+
+ADR 0043 is Accepted (2026-10-26). The questions and recommendations below are kept as asked.
 
 Each question is asked once. Where MVPQ-07 or the owner's SB5 rule of 2026-10-22 already settled
 something, it is marked settled and not asked.
@@ -192,7 +226,7 @@ something, it is marked settled and not asked.
 
 ## ADR needed?
 
-**Yes: ADR 0043, drafted as Proposed** (`docs/architecture/adr/0043-study-deletion.md`). Deletion
+**Yes: ADR 0043, drafted as Proposed and accepted by the owner on 2026-10-26** (`docs/architecture/adr/0043-study-deletion.md`). Deletion
 crosses scope, the money and approval ledgers, artifacts and audit. ADR 0031 §5 records only
 MVPQ-07's retention and journal (`0031-production-environment.md:89-94`); ADR 0019 records the roles
 and gates, not deletion; the owner's rule of 2026-10-22, content gone and ledgers kept under a
@@ -240,6 +274,13 @@ twice.
 **SD7. Holdout confirmation kept (Finding F1).** `erase_client_holdouts`
 (`holdout_repository.py:264-272`) and SD5 keep `holdout_confirmations` rows (content-free) under
 the tombstone. Test in Finding F1.
+
+**SD7 is built now, as its own small PR** (REV-SD-F1-NOW (a), "Yes, a small fix PR now", the product
+owner, 2026-10-26, Decision Review, relayed by the PM coordinator). The client half first: client
+deletion (SB5, live code) keeps the confirmation row content-free, so a deleted client never frees its
+respondent system to be confirmed again (OI-232); the test is
+`test_client_deletion.py::test_a_deleted_clients_confirmation_still_holds_its_system`. It needs none
+of SD1-SD6. The study half (SD5 keeping the row) lands with SD5; SD7 ticks when both hold.
 
 **SD8. Reader-side words.** `DesignSourceNote`: Zdrojová studie byla smazána, no link; a knowledge
 item's provenance names a deleted study as smazaná studie; Settings' study and audit lists show the

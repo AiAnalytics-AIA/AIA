@@ -27,6 +27,7 @@ the caller's Lead; its files change only through chat, by the Lead's ``self_upda
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
@@ -34,12 +35,22 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
+from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
+from ..domain.lead_research_targets import (
+    DEEP_RESEARCH_RUNS,
+    RUNS_FOR_TARGETS,
+    FinishedRun,
+    ModuleOutcome,
+    deep_research_layer,
+    targets_layer,
+)
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
@@ -52,6 +63,9 @@ from ..domain.research_lead import (
     RUNS_IN_CONTEXT,
     STAGES,
     AgentJobRequest,
+    DeepResearchRetryRequest,
+    DesignResearchRequest,
+    InterpretationResearchRequest,
     LeadContextTooLarge,
     LeadNote,
     LeadOutput,
@@ -59,6 +73,7 @@ from ..domain.research_lead import (
     ResearcherLead,
     SelfUpdate,
     context_sha256,
+    design_research_questions,
     freeze_context,
     is_text_edit,
     new_turn_id,
@@ -70,18 +85,21 @@ from ..domain.research_lead import (
 )
 from ..domain.research_template import research_template
 from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
-from ..domain.workflow import StepRunStatus
+from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..domain.workspace import edited_from_current
+from ..infrastructure.artifact_repository import ArtifactNotFound
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
     LeadAlreadyHatched,
+    LeadHatchNotPending,
     LeadNotHatched,
+    PendingHatch,
     ResearcherLeadRepository,
 )
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.storage import ArtifactStore
+from ..infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from ..infrastructure.study_design_repository import StudyDesignRepository
 from ..infrastructure.study_lead_repository import StudyLeadRepository
 from ..infrastructure.study_workspace_repository import (
@@ -90,8 +108,15 @@ from ..infrastructure.study_workspace_repository import (
 )
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
+from .deep_research import DeepResearchRuns
 from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
-from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force
+from .lead_deep_research import (
+    DeepResearchCardRequest,
+    DeepResearchCardSettings,
+    DeepResearchCardUnavailable,
+    approve_deep_research_card,
+)
+from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
 
@@ -103,6 +128,9 @@ __all__ = [
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
+    "LeadHatchNotPending",
+    "LeadHatchRefused",
+    "LeadHatchUnavailable",
     "LeadNotHatched",
     "LeadProfile",
     "LeadRejected",
@@ -126,6 +154,12 @@ _DIGEST_SUBJECTS: Final = frozenset(
 )
 #: A greeting within this long of the Lead's last turn is a no-op: the Lead has spoken.
 GREETING_WINDOW: Final = timedelta(hours=8)
+
+#: The Lead's request kinds a person decides through the ledger (approve_request): each waits in
+#: the decision digest until decided. A research run's card only opens its stage.
+_LEDGER_CARDS: Final = frozenset(
+    {"agent_job", "design_research", "interpretation_research", "deep_research_retry"}
+)
 #: The stage a Design Revision is submitted from when a Lead-prepared job starts, by action,
 #: as the web submits it before its own buttons start the same job.
 _SOURCE_STAGE: Final[dict[ResearchAction, str]] = {
@@ -139,6 +173,29 @@ class LeadUnavailable(Exception):
     """The deployment has not switched the Lead on (``AIA_AI_RESEARCH_LEAD_ENABLED``)."""
 
     reason = "research_lead_unavailable"
+
+
+class LeadHatchUnavailable(Exception):
+    """A hatch cannot be asked of the model yet (lead-identity LI1).
+
+    Its request needs a payer outside any client: the AIA organization the product owner
+    decided on 2026-10-25 ("create the AIA organization for charges spent that dont belong to
+    a single client"), which is not built. Until it is, asking is refused by name, before
+    anything is sent or charged; no code writes the files instead.
+    """
+
+    reason = "lead_hatch_unavailable"
+
+
+class LeadHatchRefused(Exception):
+    """The hatched files hold what a personal file may not (ADR 0030 decision 3): they are
+    not kept, by name, and the person writes again."""
+
+    reason = "client_fact_in_personal_file"
+
+    def __init__(self, files: Mapping[str, str]) -> None:
+        super().__init__(f"refused: {', '.join(sorted(files))}")
+        self.files = dict(files)
 
 
 class LeadDisabled(LeadUnavailable):
@@ -378,7 +435,13 @@ def _view(
         base["edit_decisions"] = dict(decisions.get("edits") or {})
         request = decisions.get("request")
         if request:
-            base["request_decision"] = {"status": "approved", "run_id": request.get("run_id")}
+            base["request_decision"] = {
+                "status": "approved",
+                "run_id": request.get("run_id"),
+                # A Deep Research card approved on a run another start had made (LO5a.2);
+                # absent otherwise, as before (the API reads it as false).
+                **({"reused": True} if request.get("reused") else {}),
+            }
         if decisions.get("self_update"):
             base["self_update_decision"] = dict(decisions["self_update"])
     if run is None or not run.get("steps"):
@@ -449,8 +512,8 @@ def release_lead_budget_waits(
     asked = workflows.last_attempt_errors([step_id for _, step_id in waiting])
     released: list[str] = []
     for run_id, step_id in waiting:
-        requested = (asked.get(step_id) or {}).get("error", {}).get("requested_usd")
-        if not isinstance(requested, int | float) or float(requested) > remaining + 1e-9:
+        requested = _recorded_hold((asked.get(step_id) or {}).get("error", {}).get("requested_usd"))
+        if requested is None or requested > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
         try:
@@ -462,9 +525,19 @@ def release_lead_budget_waits(
             )
         except BudgetWaitNotLiftable:
             continue  # superseded or cancelled since it was listed
-        remaining -= float(requested)
+        remaining -= requested
         released.append(run_id)
     return released
+
+
+def _recorded_hold(value: object) -> float | None:
+    """A parked attempt's ``requested_usd`` as a hold, or None when it is not a finite,
+    non-negative number of USD: NaN compares as fitting anything and a bool is an int, so either
+    would be taken to fit, which is unknown scored as good."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return None
+    hold = float(value)
+    return hold if math.isfinite(hold) and hold >= 0 else None
 
 
 def set_study_budget(
@@ -493,6 +566,9 @@ class ResearchLead:
     #: With the API's ``ai_analysis_external_context`` on, the store a turn reads the Study's
     #: newest Design Research bundle from (evidence-integrity 7); ``None``: no external context.
     external_store: ArtifactStore | None = None
+    #: The store each finished run's specification is read from for the ``targets`` layer
+    #: (lead-orchestration LO5a.1); ``None``: the turn is offered no Interpretation target.
+    store: ArtifactStore | None = None
     clock: Callable[[], datetime] = field(default=lambda: datetime.now(UTC))
 
     def _turns(self) -> StudyLeadRepository:
@@ -1080,9 +1156,16 @@ class ResearchLead:
         wallet_enabled: bool = False,
         workspace_revision: int | None = None,
         retry_run_id: str | None = None,
+        deep_research: DeepResearchCardSettings | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
         decision 7).
+
+        A Deep Research card (``design_research``, ``interpretation_research``,
+        ``deep_research_retry``) starts on the server too (lead-orchestration LO5a.2, amending
+        D7 for those kinds): :func:`~aia_core.application.lead_deep_research.
+        approve_deep_research_card`, on ``deep_research``'s prices, mode and store, with the
+        same once-only rule, Lead switch and (for a design card) LO10 check as a design job.
 
         The person's own typed command (a person's turn naming a ``command``, LO5) is approved
         here too, by :func:`~aia_core.application.lead_chat_start.approve_chat_start`: not Lead
@@ -1136,7 +1219,11 @@ class ResearchLead:
         turn, output = self._completed(turn_id)
         assert turn.run_id is not None
         request = output.request
-        if not isinstance(request, AgentJobRequest):
+        card = isinstance(
+            request,
+            DesignResearchRequest | InterpretationResearchRequest | DeepResearchRetryRequest,
+        )
+        if not isinstance(request, AgentJobRequest) and not card:
             raise NotAPaidRequest("this turn prepared no paid job")
         self._turns().lock()
         workflows = self._workflows()
@@ -1144,17 +1231,43 @@ class ResearchLead:
         if approved:
             # Approved before any switch-off: the job exists and is answered as it is, so a
             # retry after a lost response is never misreported as refused (review of #561).
-            jobs = ResearchAgentJobs(self.session, self.scope)
-            run = jobs.get(str(approved["run_id"]))
+            run = (
+                DeepResearchRuns(self.session, self.scope).get(str(approved["run_id"]))
+                if card
+                else ResearchAgentJobs(self.session, self.scope).get(str(approved["run_id"]))
+            )
             return {
                 "run_id": run["run_id"],
                 "design_revision_id": run["metadata"]["design_revision_id"],
                 "status": run["status"].value,
+                **(
+                    {
+                        "purpose": run["metadata"].get("purpose"),
+                        "research_run_id": (run["metadata"].get("target") or {}).get(
+                            "research_run_id"
+                        ),
+                    }
+                    if card
+                    else {}
+                ),
             }
         # Q42: only an approval that would create a job is held by the switch, before anything
         # is submitted, created, written or held.
         if _model_prepared(turn) and not self.enabled:
             raise LeadDisabled("the Research Lead is switched off; its card waits until it is on")
+        if isinstance(
+            request,
+            DesignResearchRequest | InterpretationResearchRequest | DeepResearchRetryRequest,
+        ):
+            return self._approve_deep_research(
+                turn,
+                request,
+                deep_research=deep_research,
+                confirm_cost_usd=confirm_cost_usd,
+                wallet_enabled=wallet_enabled,
+                workspace_revision=workspace_revision,
+            )
+        assert isinstance(request, AgentJobRequest)
         # Read once: the revision checked is the one submitted, so a save landing after the
         # check leaves the next card stale and never runs this job on an unchecked design.
         content, _analysis, current = self._working_content()
@@ -1164,7 +1277,12 @@ class ResearchLead:
         # The confirmation threshold's one rule, the job start's own (lead-orchestration LO15):
         # asked here before the design is submitted, and again by the start, which records the
         # job's spend row; this turn's approval row carries the same figures.
-        jobs = ResearchAgentJobs(self.session, self.scope, reservation_usd=reservation_usd)
+        jobs = ResearchAgentJobs(
+            self.session,
+            self.scope,
+            reservation_usd=reservation_usd,
+            external_store=self.external_store,
+        )
         confirmed = jobs.spend_gate(confirm_cost_usd)
         spend: dict[str, float] | None = None
         if confirmed is not None:
@@ -1201,6 +1319,45 @@ class ResearchLead:
             "design_revision_id": revision.revision_id,
             "status": started.run["status"].value,
         }
+
+    def _approve_deep_research(
+        self,
+        turn: LeadTurn,
+        request: DeepResearchCardRequest,
+        *,
+        deep_research: DeepResearchCardSettings | None,
+        confirm_cost_usd: float | None,
+        wallet_enabled: bool,
+        workspace_revision: int | None,
+    ) -> dict[str, Any]:
+        """A Deep Research card's start (LO5a.2). A design card researches the working content
+        the card was prepared on (LO10: the turn's working revision, else stale unless the
+        person names the current one), submitted as its Design Revision; an Interpretation or a
+        retry card reads no working content."""
+        if deep_research is None:
+            raise DeepResearchCardUnavailable("no Deep Research start is composed here")
+        content: dict[str, Any] | None = None
+        current: int | None = None
+        if isinstance(request, DesignResearchRequest):
+            content, _analysis, current = self._working_content()
+            if workspace_revision != current and not self._only_own_accepts(turn, current):
+                raise LeadCardStale(current, turn.workspace_revision)
+
+        def submit() -> Any:
+            assert content is not None
+            return self._submit_design(content, current, source_stage="plan")
+
+        return approve_deep_research_card(
+            self.session,
+            self.scope,
+            turn,
+            request,
+            frozen=self._frozen(turn.turn_id),
+            submit_design=submit,
+            settings=deep_research,
+            confirm_cost_usd=confirm_cost_usd,
+            wallet_enabled=wallet_enabled,
+        )
 
     # -- helpers ----------------------------------------------------------------
 
@@ -1335,6 +1492,7 @@ class ResearchLead:
             else []
         )
         digest, digest_classes = self._decision_digest(history, focus)
+        targets = self._targets()
         return freeze_context(
             prompt=prompt,
             lead={
@@ -1358,6 +1516,12 @@ class ResearchLead:
                 "design_revision_id": design_revision_id,
                 "content": design_material(content),
                 "analysis": analysis,
+                # The ids a focus names, shown beside the content that may not store them.
+                **(
+                    {"research_questions": listed}
+                    if (listed := design_research_questions(content))
+                    else {}
+                ),
                 # The valid n as readiness reads it (RQC9): what a set_n is grounded against.
                 "readiness": readiness_layer(limits.sample_size, limits.methodology_version),
             },
@@ -1380,7 +1544,42 @@ class ResearchLead:
             external=self._external(),
             memory=digest,
             memory_classes=digest_classes,
+            deep_research=self._deep_research((targets or {}).get("candidates") or ()),
+            targets=targets,
         )
+
+    def _deep_research(self, candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
+        """The ``deep_research`` layer: this Study's newest Deep Research runs, read through
+        the Study (``DeepResearchRuns``), with their steps; ``None`` when it has none."""
+        runs = DeepResearchRuns(self.session, self.scope)
+        listed = runs.runs(limit=DEEP_RESEARCH_RUNS)
+        if not listed:
+            return None
+        return deep_research_layer([runs.get(r["run_id"]) for r in listed], candidates)
+
+    def _targets(self) -> dict[str, Any] | None:
+        """The ``targets`` layer: the Interpretation Research candidates over this Study's newest
+        completed research runs, each read from its own pinned specification (verified by its
+        SHA-256 as it is read); ``None`` without a store or a completed run."""
+        if self.store is None:
+            return None
+        research = ResearchRuns(self.session, self.scope)
+        artifacts = research_artifacts(self.session, self.scope, self.store)
+        finished: list[FinishedRun] = []
+        unreadable: list[str] = []
+        # Completed runs are selected in the query, before the limit: newer runs that failed or
+        # still run never hide an older completed one (review of #925).
+        completed = research.runs(limit=RUNS_FOR_TARGETS, statuses=(WorkflowRunStatus.COMPLETED,))
+        for listed in completed:
+            try:
+                finished.append(_finished_run(research.get(listed["run_id"]), artifacts))
+            except (ArtifactNotFound, IntegrityError, ObjectNotFound):
+                # A specification that does not read offers no target and is said so, never a
+                # stop (as the external layer's bundle); its CORRUPT mark commits with the turn.
+                unreadable.append(str(listed["run_id"]))
+        if not finished and not unreadable:
+            return None
+        return targets_layer(finished, unreadable=unreadable)
 
     def _decision_digest(
         self, history: Sequence[Mapping[str, Any]], focus: Mapping[str, str] | None
@@ -1419,11 +1618,11 @@ class ResearchLead:
                 if str(i) not in decided_edits
             )
             request = output.get("request")
-            # Only a prepared agent job is decided through the ledger; a run or Deep Research
-            # card is started from its own screen and never waits here.
+            # A prepared agent job or Deep Research card (LO5a.2) is decided through the ledger
+            # and waits until it is; a run card is started from its own screen and never waits.
             if (
                 isinstance(request, dict)
-                and request.get("kind") == "agent_job"
+                and request.get("kind") in _LEDGER_CARDS
                 and turn.get("request_decision") is None
             ):
                 waiting.append(DigestEntry("job", None, None, turn["turn_id"], index=0))
@@ -1453,6 +1652,35 @@ class ResearchLead:
         except SourcesRefused as refused:
             return {"pin": pin, "lines": [], "unavailable": refused.reason}
         return {"pin": pin, "lines": list(lines)}
+
+
+def _finished_run(run: Mapping[str, Any], artifacts: Any) -> FinishedRun:
+    """A completed research run as the candidates read it: the specification its compile step
+    pinned, and the artifacts its aggregate, Sociomap and analysis steps produced."""
+    produced: dict[str, Mapping[str, Any]] = {
+        s["node_key"]: s.get("output") or {}
+        for s in run["steps"]
+        if s["status"] is StepRunStatus.SUCCEEDED and (s.get("output") or {}).get("artifact_id")
+    }
+    compiled = produced.get("compile")
+    specification = (
+        artifacts.read_json(str(compiled["artifact_id"])).get("specification") or {}
+        if compiled is not None
+        else {}
+    )
+    modules = [
+        ModuleOutcome(module, str(out["artifact_id"]), str(out.get("outcome") or ""))
+        for key, out in produced.items()
+        if (module := module_of_node(key)) is not None
+    ]
+    aggregate, sociomap = produced.get("aggregate"), produced.get("sociomap")
+    return FinishedRun(
+        run_id=str(run["run_id"]),
+        specification=specification,
+        aggregate_artifact_id=str(aggregate["artifact_id"]) if aggregate else None,
+        sociomap_artifact_id=str(sociomap["artifact_id"]) if sociomap else None,
+        modules=modules,
+    )
 
 
 def _model_prepared(turn: LeadTurn) -> bool:
@@ -1493,7 +1721,7 @@ class LeadProfile:
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.get()
         if lead is None:
-            return {"hatched": False, "lead": None}
+            return {"hatched": False, "lead": None, "pending_hatch": _hatch(repo.pending_hatch())}
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
     def hatch(self) -> dict[str, Any]:
@@ -1501,12 +1729,61 @@ class LeadProfile:
         lead = repo.hatch()
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
 
+    # -- hatching (lead-identity LI1) ----------------------------------------
+
+    def request_hatch(self, hatch_input: Mapping[str, Any]) -> dict[str, Any]:
+        """Ask the model to write the caller's Lead files. Refused by name until the AIA
+        organization exists to pay for it; the input is validated first, so a person learns of
+        a wrong input before the payer's absence."""
+        HatchInput.model_validate(hatch_input)
+        if ResearcherLeadRepository(self.session, self.scope).get() is not None:
+            raise LeadAlreadyHatched("the Lead is already hatched")
+        raise LeadHatchUnavailable("hatching has no payer outside a client yet")
+
+    def accept_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Přijmout": the caller's pending hatch becomes their Lead (ADR 0030 decision 2).
+        The model's answer is checked again here, as it is kept: its bounds and ADR 0030
+        decision 3's personal-file check against the organization's clients as they are now,
+        the chosen name included (review of #919)."""
+        repo = ResearcherLeadRepository(self.session, self.scope)
+        pending = repo.pending_hatch()
+        if pending is None or pending.hatch_id != hatch_id or pending.output is None:
+            raise LeadHatchNotPending(hatch_id)
+        hatch = HatchInput.model_validate(pending.input)
+        output = HatchOutput.model_validate(pending.output)
+        refused = hatch_refusals(output, repo.organization_client_names(), name=hatch.name)
+        if refused:
+            raise LeadHatchRefused(refused)
+        lead = repo.accept_hatch(hatch_id, name=hatch.name, soul=output.soul, user=output.user)
+        return {
+            "hatched": True,
+            "lead": _profile(lead, repo.active_notes()),
+            "greeting": output.greeting,
+        }
+
+    def discard_hatch(self, hatch_id: str) -> dict[str, Any]:
+        """ "Zadat znovu": the pending hatch is set aside; the person writes again, and a new
+        request is a new paid request with its own cost shown."""
+        ResearcherLeadRepository(self.session, self.scope).discard_hatch(hatch_id)
+        return self.read()
+
     def set_preferences(self, *, auto_accept_text_edits: bool) -> dict[str, Any]:
         """The caller sets their own Lead's preferences (plan inline-decisions chunk 2): the
         standing choice to have its text edits accepted without a click. Audited."""
         repo = ResearcherLeadRepository(self.session, self.scope)
         lead = repo.set_preferences(auto_accept_text_edits=auto_accept_text_edits)
         return {"hatched": True, "lead": _profile(lead, repo.active_notes())}
+
+
+def _hatch(pending: PendingHatch | None) -> dict[str, Any] | None:
+    if pending is None:
+        return None
+    return {
+        "hatch_id": pending.hatch_id,
+        "input": pending.input,
+        "output": pending.output,
+        "created_at": pending.created_at,
+    }
 
 
 def _profile(lead: ResearcherLead, notes: Sequence[LeadNote]) -> dict[str, Any]:

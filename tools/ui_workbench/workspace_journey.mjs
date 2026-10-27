@@ -17,7 +17,7 @@
  *     imported questionnaire is still there; puts its first question on the 1–10 preset
  *     with a label on every point, reloads -- the range and the ten labels are still there,
  *     and the editor fits at 390 px (input-interactions 3b2);
- *   * Cílová skupina: own audiences and Speciální skupiny say they are not in AIA;
+ *   * Cílová skupina: one choice of three, Najít ve výsledcích disabled with its reason (R4);
  *   * Dimenze: the panel's factors say they are not in AIA; a dimension request
  *     becomes a proposal to the client's knowledge.
  *
@@ -221,7 +221,12 @@ const POINTS = ["vůbec", "téměř vůbec", "velmi málo", "málo", "spíše m�
 const card = () => page.locator('[id^="qedit_"]').first();
 const scaleGroup = (what) => card().getByRole("radiogroup", { name: new RegExp(`^${what} Q1$`) });
 const pointButton = (n) => card().getByRole("button", { name: new RegExp(`^Upravit: Popisek bodu ${n}(\\s|$)`) });
-await card().getByRole("radiogroup", { name: "Typ" }).getByRole("radio", { name: "Škála" }).click({ timeout: 60000 });
+// The type is a tag that opens its choices; the current type is not offered again.
+const typeTag = card().getByRole("button", { name: /, typ otázky$/ });
+if ((await typeTag.getAttribute("aria-label", { timeout: 60000 })) !== "Škála, typ otázky") {
+  await typeTag.click();
+  await card().getByRole("menuitem", { name: "Škála" }).click();
+}
 await scaleGroup("Rozsah škály").getByRole("radio", { name: "1–10" }).click();
 await scaleGroup("Popisky škály").getByRole("radio", { name: "Každý bod" }).click();
 for (const [i, label] of POINTS.entries()) {
@@ -249,11 +254,11 @@ if (wide) fail("the scale editor overflows its card at 390 px");
 ok("Dotazník: the scale editor fits at 390 px");
 await page.setViewportSize({ width: 1440, height: 1100 });
 
-// 3. Cílová skupina: what 18.6.6 computed from its panel says so.
+// 3. Cílová skupina: what AIA cannot run is disabled, with its reason.
 await page.goto(stage("audience"), { waitUntil: "load", timeout: 120000 });
-await page.getByRole("radio", { name: /Vlastní audience/ }).click({ timeout: 60000 });
-await text("Nahrání a kontrolu vlastního datasetu dělala 18.6.6", "own audiences not in AIA");
-ok("Cílová skupina: own audiences say they are not in AIA");
+if (!(await page.getByRole("radio", { name: /Najít ve výsledcích/ }).isDisabled({ timeout: 60000 }))) fail("Najít ve výsledcích is offered though AIA cannot run it");
+await text("dnes AIA tuto cestu neumí", "the disabled strategy's reason");
+ok("Cílová skupina: Najít ve výsledcích is disabled and says why");
 await shot("3-audience");
 
 // 4. Dimenze: no panel factors; a request is a proposal to the client's knowledge.

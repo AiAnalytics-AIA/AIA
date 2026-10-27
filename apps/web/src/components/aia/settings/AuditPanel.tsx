@@ -2,9 +2,10 @@
 
 // Audit as the redesign draws it (settings-redesign chunk 8, Audit board): categories with their
 // counts in the period chosen, a period, a search and the person and event filters, then the
-// records newest first as a table -- when, who, category, event, what it concerns, reason. Every
-// action code reads in Czech (lib/audit.ts); a code it does not know is spelled out under Ostatní,
-// never dropped. Read only.
+// records newest first as prototype v99's table (F10): Kdy, Kdo, Událost (its category's dot, its
+// name, what it concerns) and Důvod / změna -- the change in words (lib/audit-change.ts) with the
+// person's reason under it. Every action code reads in Czech (lib/audit.ts); a code it does not
+// know is spelled out under Ostatní, never dropped. Read only.
 
 import { useState } from "react";
 
@@ -13,6 +14,7 @@ import type { AdminClient, AuditEntry, Member } from "@/lib/api";
 import {
   type AuditCategory, type AuditPeriod, CATEGORIES, CATEGORY_NAMES, PERIODS, PERIOD_NAMES, actionName, categoryOf, inPeriod,
 } from "@/lib/audit";
+import { changeOf, concernsOf } from "@/lib/audit-change";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { FOCUS } from "../../ui/parts";
 import { Select, TextInput } from "../../rehome/ui";
@@ -51,11 +53,14 @@ export function AuditPanel({ audit, members, clients, studies }: {
   const person = (id: string | null) => (id ? (who.get(id) ?? id) : t(`${P}.audit.system`));
   const clientName = new Map(clients.ok ? clients.data.map((c) => [c.client_id, c.name]) : []);
   const studyName = new Map(studies.ok ? studies.data.map(({ study }) => [study.study_id, study.name]) : []);
+  // What a record concerns: the person, study and client it names, or, for an organization's
+  // methodology, prompt or Deep Research rule, that thing by its page's name; "" for none.
   const subject = (e: AuditEntry) => [
+    concernsOf(e),
     e.subject_user_id ? person(e.subject_user_id) : null,
     e.study_id ? (studyName.get(e.study_id) ?? e.study_id) : null,
     e.client_id ? (clientName.get(e.client_id) ?? e.client_id) : null,
-  ].filter(Boolean).join(" · ") || "—";
+  ].filter(Boolean).join(" · ");
   const now = new Date();
   const inTime = audit.data.filter((e) => inPeriod(e.created_at, period, now));
   // A full page holds the newest records only: a period reaching past the oldest one read may hold
@@ -69,8 +74,10 @@ export function AuditPanel({ audit, members, clients, studies }: {
   const actors = [...new Set(audit.data.map((e) => e.actor_id).filter((id): id is string => !!id))].sort((a, b) => person(a).localeCompare(person(b), "cs"));
   const events = [...new Set(audit.data.map((e) => e.action))].sort((a, b) => actionName(a).localeCompare(actionName(b), "cs"));
   const q = query.trim().toLocaleLowerCase("cs");
+  // The search reads the change as the row shows it, in words, beside the reason as stored.
+  const changeText = (e: AuditEntry) => { const c = changeOf(e); return `${c.change ?? ""} ${c.why ?? ""}`; };
   const visible = inTime.filter((e) => (category === "all" || categoryOf(e.action) === category) && (!actor || e.actor_id === actor) && (!event || e.action === event)
-    && `${actionName(e.action)} ${CATEGORY_NAMES[categoryOf(e.action)]} ${person(e.actor_id)} ${subject(e)} ${e.reason ?? ""} ${emailOf.get(e.actor_id ?? "") ?? ""} ${emailOf.get(e.subject_user_id ?? "") ?? ""}`.toLocaleLowerCase("cs").includes(q));
+    && `${actionName(e.action)} ${CATEGORY_NAMES[categoryOf(e.action)]} ${person(e.actor_id)} ${subject(e)} ${e.reason ?? ""} ${changeText(e)} ${emailOf.get(e.actor_id ?? "") ?? ""} ${emailOf.get(e.subject_user_id ?? "") ?? ""}`.toLocaleLowerCase("cs").includes(q));
   const shownCategories = CATEGORIES.filter((c) => c !== "other" || counts.get("other"));
   return (
     <div className="flex min-w-0 flex-col gap-3">
@@ -105,24 +112,36 @@ export function AuditPanel({ audit, members, clients, studies }: {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[44rem] border-collapse">
             <thead><tr>
-              <th scope="col" className={HEAD}>{t(`${P}.audit.when`)}</th><th scope="col" className={HEAD}>{t(`${P}.audit.actor`)}</th>
-              <th scope="col" className={HEAD}>{t(`${P}.audit.category`)}</th><th scope="col" className={HEAD}>{t(`${P}.audit.event`)}</th>
-              <th scope="col" className={HEAD}>{t(`${P}.audit.concerns`)}</th><th scope="col" className={HEAD}>{t(`${P}.audit.reason`)}</th>
+              <th scope="col" className={`${HEAD} w-[9rem]`}>{t(`${P}.audit.when`)}</th><th scope="col" className={`${HEAD} w-[10rem]`}>{t(`${P}.audit.actor`)}</th>
+              <th scope="col" className={HEAD}>{t(`${P}.audit.event`)}</th><th scope="col" className={HEAD}>{t(`${P}.audit.reason`)}</th>
             </tr></thead>
             <tbody>
               {visible.map((e) => {
                 const c = categoryOf(e.action);
+                const moved = changeOf(e);
                 return (
                   <tr key={e.event_id} data-audit-entry={e.event_id} data-category={c}>
                     <td className={`${CELL} whitespace-nowrap text-ink-muted`}><time dateTime={e.created_at ?? undefined}>{e.created_at ? WHEN.format(new Date(e.created_at)) : "—"}</time></td>
                     <td className={`${CELL} break-words`}>{person(e.actor_id)}</td>
-                    <td className={`${CELL} whitespace-nowrap`}><span className="inline-flex items-center gap-1.5"><i aria-hidden="true" className={`size-2 rounded-full ${DOT[c]}`} />{CATEGORY_NAMES[c]}</span></td>
                     <td className={CELL}>
-                      <strong className="font-medium">{actionName(e.action)}</strong>
-                      <Technical><span data-technical className="block break-all font-mono text-[11px] text-ink-faint">{e.action}{e.role ? ` · ${e.role}` : ""}</span></Technical>
+                      {/* The category's dot and its name for a reader; the event, then what it concerns. */}
+                      <span className="flex items-start gap-2">
+                        <i aria-hidden="true" title={CATEGORY_NAMES[c]} className={`mt-1.5 size-2 shrink-0 rounded-full ${DOT[c]}`} />
+                        {/* relative: the sr-only label's absolute box is held here, inside the table's
+                            overflow wrapper, so it never widens the page (AGENTS.md, the overflow gotcha). */}
+                        <span className="relative min-w-0 break-words">
+                          <span className="sr-only">{CATEGORY_NAMES[c]}: </span>
+                          <strong className="font-medium">{actionName(e.action)}</strong>
+                          {subject(e) ? <span data-audit-concerns className="text-ink-muted"> · {subject(e)}</span> : null}
+                          <Technical><span data-technical className="block break-all font-mono text-[11px] text-ink-faint">{e.action}{e.role ? ` · ${e.role}` : ""}</span></Technical>
+                        </span>
+                      </span>
                     </td>
-                    <td className={`${CELL} break-words text-ink-muted`}>{subject(e)}</td>
-                    <td className={`${CELL} break-words`}>{e.reason || "—"}</td>
+                    <td className={`${CELL} break-words`}>
+                      {moved.change ? <span data-audit-change className="block">{moved.change}</span> : null}
+                      {moved.why ? <span data-audit-why className={`block ${moved.change ? "text-xs text-ink-muted" : ""}`}>{moved.why}</span> : null}
+                      {!moved.change && !moved.why ? <span className="text-ink-faint">—</span> : null}
+                    </td>
                   </tr>
                 );
               })}

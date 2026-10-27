@@ -10,12 +10,12 @@ chunks:
   - "[ ] DSN6. Tracked assumptions in Návrh, from the one assumption item contract"
   - "[ ] DSN7. The Lead on Návrh: analyze_brief, critique_design and design_copilot as cards, their proposals inline, PlanStep's AI starts removed"
   - "[ ] DSN8. Journey: Návrh at 1440, 1100, 768 and 390 px, zero paid jobs"
-  - "[ ] DSN2b. Research-question rows with their coverage inline; the DesignCoverage block retired (reopens DSN2 and DSN3; spec navrh D3; W1)"
+  - "[x] DSN2b. Research-question rows with their coverage inline; the DesignCoverage block retired (reopens DSN2 and DSN3; spec navrh D3; W1)"
   - "[ ] DSN3c. Návrh's header: counts and 'Dotazník ›'; the tinted intro, JumpChips and dock removed (reopens DSN3; spec navrh D1; W1)"
   - "[ ] DSN9. An objective's '→ VO n' link: objective_ids on research questions, an edit op, analyze_brief proposing it (spec navrh B4; W2)"
   - "[ ] DSN10. Rozsah as a segmented choice: a variant recommends N for Vzorek and never applies it; applyVariant stops writing n (spec navrh D2; W1, with artifact-sample SMP7)"
   - "[ ] DSN11. 'k cíli' on each research question; objectives leave Návrh for Zadání (spec navrh D4; W2, after DSN9)"
-  - "[ ] DSN12. Hypotheses as their own section on Návrh (spec navrh D5; W1)"
+  - "[x] DSN12. Hypotheses as their own section on Návrh (spec navrh D5; W1)"
   - "[ ] DSN12b. A hypothesis's 'ověří S1' verdict: the hypothesis-to-measure link and research_trace's verdict (spec navrh D5; W2)"
   - "[ ] DSN13. Follow-up answers saved per question in the working copy (spec navrh D7; W1)"
   - "[ ] DSN14. Comments with undo, no false 'upraveno', their target and author (spec navrh D8; W1)"
@@ -263,6 +263,19 @@ untested. Depends on `assumptions-and-open-answer-coding#AOC1`.
   one block. Keeping the saved answers in their fields was tried and dropped: positional answers
   under changed questions and a refused save read as saved (code review).
 
+- **F-DSN-4.** Návrh's research-question list hides research questions the server reads. The list
+  reads the analysis alone (`narrativeOf`, `apps/web/src/research/plan-narrative.ts:25 @ 25ce6493`,
+  through `proposalAnalysis`, which prefers `state.analysis`), while readiness traces
+  `research_plan.research_questions` (`researchQuestionsOf`). Reproduction: the workbench's
+  `deep_research` fixture (`tools/ui_workbench/fixture_project.py:316 @ 25ce6493`; two questions in
+  research_plan, none in its analysis) shows "Zatím žádné" in the list. Consequence: a person sees
+  no questions and adds them again, while the run answers the ones they cannot see. DSN2b shows the
+  traced ones under the list, with their coverage ("Co AIA čte jako výzkumné otázky mimo tento
+  seznam"; `PlanStep.test.tsx` "lists what the server reads as a research question that the list does
+  not show…", `workbench_journey.mjs`), so nothing is hidden. Smallest fix, not made here: the list
+  falls back to research_plan's questions when the analysis states none. That changes what an edit
+  writes, so it is DSN3's to decide.
+
 ## 8. Owner questions
 
 None: D-44 settled the chain's reduction; MVPQ-02 the assumptions.
@@ -296,7 +309,7 @@ follow-up chunk below.
 
 **DSN13. Follow-up answers** (spec `navrh/D7`, no backend; W1, lane E). After `working-copy-edit-ops#WCE3a`; analyze_brief harness bump.
 
-**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field).
+**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field). The UI part is built on `feature/design-comments-undo`: a removed comment comes back with Vrátit through the stage's one undo offer, saving comments for the Lead marks nothing "upraveno", and the section says a comment changes nothing (`ResearchScreen.workbench.test.tsx` "a removed comment comes back with Vrátit; saving comments marks nothing changed"). Open: "k sadě … · Jana Malá" needs `{target, author}` on a stored comment, the author from the session (a backend field; the store is `{quote, comment}` in `ui_state`). *Lost work, not built (PM coordinator, 26 Oct 2026).* That open part was started on `feature/design-comment-author` in the Návrh session, left uncommitted with its tests failing when its permission was withdrawn at 13:10 UTC, and lost with the session's container at its archive (23:19 UTC). Nothing of it is on any branch; the UI part above is on develop (`feature/design-comments-undo` @ 5439fbe2, merged). The open part starts again from this entry.
 
 **Notes.**
 - DSN5 keeps the Design Research card on Návrh (decided by default by planning, 26 Oct 2026, open to Nigel's override; OQ22); its "+" items in the Lead's menu are disabled with a reason until `lead-orchestration#LO5a.3`.

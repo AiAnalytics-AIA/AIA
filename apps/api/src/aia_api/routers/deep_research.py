@@ -41,6 +41,7 @@ from aia_core.application.deep_research import (
     DeepResearchRunNotFound,
     DeepResearchRunNotRetryable,
     DeepResearchRuns,
+    FocusUnknown,
     InterpretationMissionMismatch,
     LineageChanged,
     LiveNotApproved,
@@ -104,6 +105,8 @@ from .research import (
     _code,
     _cost_refused,
     _revision,
+    page_costs,
+    run_cost,
     stale_proposal,
     workspace_stale,
 )
@@ -122,6 +125,10 @@ RunId = Annotated[str, Path(max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")]
 SnapshotId = Annotated[str, Path(max_length=64, pattern=r"^SNP-[0-9a-f]{1,32}$")]
 
 
+#: A research question's id as the design gives it (``item_ids``), the Lead's focus grammar.
+FocusId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_.\-]{1,80}$")]
+
+
 class DeepResearchStart(BaseModel):
     model_config = ConfigDict(extra="forbid")
     design_revision_id: str = Field(max_length=64, pattern=r"^REV-[0-9a-f]{1,32}$")
@@ -132,6 +139,8 @@ class DeepResearchStart(BaseModel):
     purpose: Literal["DESIGN_RESEARCH"] | None = None
     #: A person's name for the run: shown, never part of its identity.
     title: str | None = Field(default=None, max_length=200)
+    #: The research questions the run is limited to, by their ids (Q45); empty: the design.
+    focus: list[FocusId] = Field(default_factory=list, max_length=12)
     #: What the person confirms the run can cost at most. Read only when the study has a
     #: limit the run's ceiling reaches; the server works the ceiling out and holds this to it.
     confirm_cost_usd: float | None = Field(default=None, ge=0, le=1_000_000)
@@ -184,6 +193,8 @@ class DeepResearchQuoteRequest(BaseModel):
     )
     #: Interpretation Research: the exact result it would interpret.
     target: ResearchTargetRef | None = None
+    #: Design Research: the research questions it would be limited to, by id (Q45).
+    focus: list[FocusId] = Field(default_factory=list, max_length=12)
     preset_name: Literal["QUICK", "STANDARD", "DEEP", "EXHAUSTIVE"]
     channels: tuple[Channel, ...] = Field(default=(Channel.WEB,), min_length=1, max_length=2)
 
@@ -199,7 +210,7 @@ class DeepResearchQuoteRequest(BaseModel):
         if self.purpose == "DESIGN_RESEARCH":
             if self.design_revision_id is None or self.target is not None:
                 raise ValueError("Design Research is quoted over a design_revision_id alone")
-        elif self.target is None or self.design_revision_id is not None:
+        elif self.target is None or self.design_revision_id is not None or self.focus:
             raise ValueError("Interpretation Research is quoted over a target alone")
         return self
 
@@ -365,7 +376,7 @@ def deep_research_prices(
     return settings.deep_research_pricing().prices(limits)
 
 
-def _study_prices(
+def study_prices(
     settings: Settings, session: SessionDep, scope: StudyContext
 ) -> DeepResearchPrices:
     """The prices under the request limits the study's run would pin (chunk 43c)."""
@@ -379,13 +390,11 @@ def deep_research_mode(settings: Settings) -> ResearchMode:
 
 
 @contextmanager
-def _errors(session: SessionDep) -> Iterator[None]:
+def deep_research_start_errors(session: SessionDep) -> Iterator[None]:
+    """What starting, quoting or retrying a Deep Research run answers, by name: the stage's
+    routes and a Lead card's approval (``routers/lead.py``, LO5a.2) map them alike."""
     try:
         yield
-    except ScopeDenied as exc:
-        raise _refused(exc) from exc
-    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
-        raise _cost_refused(exc) from exc
     except LiveNotApproved as exc:
         raise HTTPException(
             status_code=409,
@@ -397,17 +406,18 @@ def _errors(session: SessionDep) -> Iterator[None]:
         ) from exc
     except (DeepResearchRunNotFound, DesignRevisionNotFound, ResearchTargetNotFound) as exc:
         raise _not_found() from exc
+    except FocusUnknown as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": exc.reason,
+                "message": str(exc),
+                "details": {"unknown": list(exc.unknown)},
+            },
+        ) from exc
     except (NothingToResearch, UnknownPreset, ResearchTargetInvalid) as exc:
         raise HTTPException(
             status_code=422, detail={"code": "research_input", "message": str(exc)}
-        ) from exc
-    except StaleProposal as exc:
-        raise stale_proposal(exc) from exc
-    except WorkspaceConflict as exc:
-        raise workspace_stale(exc) from exc
-    except DesignRejected as exc:
-        raise HTTPException(
-            status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
     except InterpretationMissionMismatch as exc:
         raise HTTPException(
@@ -429,6 +439,27 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": "run_not_retryable", "message": str(exc)}
         ) from exc
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
+
+
+@contextmanager
+def _errors(session: SessionDep) -> Iterator[None]:
+    try:
+        with deep_research_start_errors(session):
+            yield
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except (CostConfirmationRequired, CostCeilingUnknown) as exc:
+        raise _cost_refused(exc) from exc
+    except StaleProposal as exc:
+        raise stale_proposal(exc) from exc
+    except WorkspaceConflict as exc:
+        raise workspace_stale(exc) from exc
+    except DesignRejected as exc:
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
     except RuntimeParkNotResumable as exc:
         raise HTTPException(
             status_code=409, detail={"code": "runtime_park_not_resumable", "message": str(exc)}
@@ -449,12 +480,15 @@ def _errors(session: SessionDep) -> Iterator[None]:
         raise HTTPException(
             status_code=409, detail={"code": "bundle_not_ready", "message": str(exc)}
         ) from exc
-    except (IntegrityError, ObjectNotFound) as exc:
-        raise artifact_corrupt(session) from exc
 
 
 def _response(
-    run: dict[str, Any], scope: StudyContext, *, created: bool | None = None
+    session: SessionDep,
+    run: dict[str, Any],
+    scope: StudyContext,
+    *,
+    created: bool | None = None,
+    page: Mapping[str, float | None] | None = None,
 ) -> DeepResearchRun:
     steps = run.get("steps") or []
     meta = run["metadata"]
@@ -499,13 +533,7 @@ def _response(
             )
             for step in steps
         ],
-        actual_cost_usd=sum(
-            float(attempt.get("actual_cost_usd") or 0)
-            for step in steps
-            for attempt in step.get("attempts", [])
-        )
-        if scope.has(Permission.VIEW_COSTS)
-        else None,
+        actual_cost_usd=run_cost(session, scope, run["run_id"], page),
     )
 
 
@@ -577,6 +605,7 @@ def quote(
                     design_revision_id=body.design_revision_id,
                     preset_name=body.preset_name,
                     channels=body.channels,
+                    focus=body.focus,
                 )
             else:
                 assert body.target is not None
@@ -601,7 +630,7 @@ def quote(
             ) from exc
         quoted = runs.quote(
             spec,
-            prices=_study_prices(settings, session, scope),
+            prices=study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
         )
         return _quote_response(quoted, scope, settings)
@@ -623,13 +652,14 @@ def start(
             design_revision_id=body.design_revision_id,
             preset_name=body.preset_name,
             channels=body.channels,
-            prices=_study_prices(settings, session, scope),
+            prices=study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd,
             purpose_source=(
                 PurposeSource.EXPLICIT if body.purpose is not None else PurposeSource.LEGACY_DEFAULT
             ),
             title=body.title,
+            focus=body.focus,
         )
         if not started.created:
             response.status_code = 200
@@ -637,7 +667,7 @@ def start(
             response.headers["Location"] = (
                 f"/api/v1/studies/{scope.study_id}/deep-research/runs/{started.run_id}"
             )
-        return _response(runs.get(started.run_id), scope, created=started.created)
+        return _response(session, runs.get(started.run_id), scope, created=started.created)
     raise AssertionError("unreachable")
 
 
@@ -664,7 +694,7 @@ def start_interpretation(
             preset_name=body.preset_name,
             store=store,
             channels=body.channels,
-            prices=_study_prices(settings, session, scope),
+            prices=study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd,
             title=body.title,
@@ -675,7 +705,7 @@ def start_interpretation(
             response.headers["Location"] = (
                 f"/api/v1/studies/{scope.study_id}/deep-research/runs/{started.run_id}"
             )
-        return _response(runs.get(started.run_id), scope, created=started.created)
+        return _response(session, runs.get(started.run_id), scope, created=started.created)
     raise AssertionError("unreachable")
 
 
@@ -687,14 +717,16 @@ def list_runs(
 ) -> list[DeepResearchRun]:
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
-        return [_response(runs.get(r["run_id"]), scope) for r in runs.runs(limit=limit)]
+        listed = [runs.get(r["run_id"]) for r in runs.runs(limit=limit)]
+        page = page_costs(session, scope, [r["run_id"] for r in listed])
+        return [_response(session, r, scope, page=page) for r in listed]
     raise AssertionError("unreachable")
 
 
 @router.get("/runs/{run_id}", response_model=DeepResearchRun)
 def get(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepResearchRun:
     with _errors(session):
-        return _response(DeepResearchRuns(session, scope).get(run_id), scope)
+        return _response(session, DeepResearchRuns(session, scope).get(run_id), scope)
     raise AssertionError("unreachable")
 
 
@@ -703,7 +735,7 @@ def cancel(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepRese
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
         runs.cancel(run_id)
-        return _response(runs.get(run_id), scope)
+        return _response(session, runs.get(run_id), scope)
     raise AssertionError("unreachable")
 
 
@@ -714,7 +746,7 @@ def resume(run_id: RunId, scope: StudyScopeDep, session: SessionDep) -> DeepRese
     again once it is, the same run with its frozen spec, pin and ceiling. 409
     ``runtime_park_not_resumable`` when nothing in it waits for the runtime."""
     with _errors(session):
-        return _response(DeepResearchRuns(session, scope).resume(run_id), scope)
+        return _response(session, DeepResearchRuns(session, scope).resume(run_id), scope)
     raise AssertionError("unreachable")
 
 
@@ -738,7 +770,9 @@ def lift_budget(
     with _errors(session):
         runs = DeepResearchRuns(session, scope)
         return _response(
-            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note), scope
+            session,
+            runs.lift_budget_wait(run_id, budget_usd=body.budget_usd, note=body.note),
+            scope,
         )
     raise AssertionError("unreachable")
 
@@ -758,14 +792,14 @@ def retry(
         runs = DeepResearchRuns(session, scope)
         started = runs.retry(
             run_id,
-            prices=_study_prices(settings, session, scope),
+            prices=study_prices(settings, session, scope),
             modes=(deep_research_mode(settings),),
             confirm_cost_usd=body.confirm_cost_usd if body else None,
             store=store,
         )
         if not started.created:
             response.status_code = 200
-        return _response(runs.get(started.run_id), scope, created=started.created)
+        return _response(session, runs.get(started.run_id), scope, created=started.created)
     raise AssertionError("unreachable")
 
 

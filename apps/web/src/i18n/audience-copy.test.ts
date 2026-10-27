@@ -23,9 +23,8 @@ describe("Cílová skupina's copy", () => {
     }
   });
 
-  it("promises no capability AIA lacks: an own dataset run like the population, a segment found for you", () => {
-    expect(cs.research.audience.discoverAdvice).toMatch(/zatím sama nevyhledá/);
-    expect(cs.research.audience.ownText).not.toMatch(/poběží/);
-    expect(cs.research.audience.ownText).toMatch(/zatím nemá/);
+  it("promises no capability AIA lacks: a segment found in the results, a stored own dataset used", () => {
+    expect(cs.research.audience.strategyDiscoverText).toMatch(/neumí/);
+    expect(cs.research.audience.storedNotUsed).toMatch(/nepoužije/);
   });
 });

@@ -13,9 +13,11 @@ import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } 
 
 import { t, tv } from "@/i18n/t";
 import { blockedModules } from "@/lib/analysis-blocked";
-import { findingAnchor } from "@/lib/analysis-coverage";
-import { stageOf } from "@/lib/workbench-stages";
-import { analysisTarget, chipKey, claimMarks, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { analysisHeader, findingAnchor } from "@/lib/analysis-coverage";
+import { stageHref, stageOf } from "@/lib/workbench-stages";
+import { analysisTarget, chipKey, claimMarks, readAnalysisTarget, type AnalysisModuleKind, type ChipPlace } from "@/lib/artifacts/analysis";
+import { LEAD_REVEAL } from "@/lib/lead";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import {
   ApiError,
   api,
@@ -35,7 +37,6 @@ import {
   deepResearch,
   type ResearchRun,
   type ResearchRunSummary,
-  type ResearchStep,
   type PopulationVersion,
   type Study,
   population,
@@ -66,6 +67,7 @@ import {
   traceMeasures,
   reportHolds,
   resultOriginKind,
+  runOriginKinds,
   stepOriginKind,
   type OriginKind,
   waitingDetail,
@@ -106,7 +108,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, Switch } from "../step";
+import { ActionDock, FrameNavigation, Switch } from "../step";
 import { AiButton, Button, Chip } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
@@ -400,7 +402,7 @@ function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | nu
       </div>
       <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden="true" className={`block size-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} />
+          <i aria-hidden="true" className={`block size-2.5 rounded-mark ${asks ? "bg-status-you" : "bg-signal"}`} />
           {t("research.exec.cost.legendCeiling")}
         </span>
         {limit !== null ? (
@@ -427,6 +429,14 @@ const FIX_STEP: Readonly<Record<string, StepKey>> = {
 
 export function fixStep(checkId: string): StepKey {
   return Object.hasOwn(FIX_STEP, checkId) ? FIX_STEP[checkId] : "questionnaire";
+}
+
+// The checks n fixes: in the workbench n is set on Vzorek (#945); the classic layout keeps it on persona.
+const FIXED_BY_N: ReadonlySet<string> = new Set(["sample_size", "support_forecast", "sociomap_support"]);
+
+/** Where a readiness check is fixed, as a link: Vzorek for the checks n fixes inside the workbench. */
+export function checkHref(checkId: string, stepHref: (step: StepKey) => string, workbench: boolean): string {
+  return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
 }
 
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
@@ -642,6 +652,7 @@ const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
   const { store, stepHref, confirm } = useResearch();
+  const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
   const [prepared, setPrepared] = useState<
@@ -840,7 +851,7 @@ export function RunStep() {
                   <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
-                    <Link href={stepHref(fixStep(c.id))} className={STAGE_LINK}>
+                    <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
                       {t("research.exec.fix")}
                     </Link>
                   ) : null}
@@ -896,6 +907,7 @@ export function RunStep() {
       ) : null}
       <RunList runs={runs} />
       <ActionDock
+        inHeader={false}
         back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
         // Not while a new choice of respondents is being checked: Start would send the old one.
         ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
@@ -1058,6 +1070,18 @@ function useRun(): [ResearchRun | null | undefined, () => void, (r: ResearchRun)
     }
     setVersion((v) => v + 1);
   }, []);
+  // An Interpretation run a Lead card started is shown under the research run it interprets
+  // (LO5a.2, review of #1006): the page already open turns to that run, `?run=` naming it.
+  useEffect(() => onDeepResearchStarted(({ purpose, researchRunId }) => {
+    if (purpose !== "INTERPRETATION_RESEARCH" || !researchRunId) return;
+    followed.current = researchRunId;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("run") !== researchRunId) {
+      params.set("run", researchRunId);
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}?${params}${window.location.hash}`);
+    }
+    setVersion((v) => v + 1);
+  }), []);
   useEffect(() => {
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -1330,7 +1354,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   );
 }
 
-/** Náklady (artifact-fieldwork FLD4b): what the run has spent and holds, the calls it could not price
+/** Náklady (artifact-fieldwork FLD4b; as tiles, FLD4e): what the run has spent and holds, the calls it could not price
  *  and what remains in the study; totals only (Q76 (c)). The remainder is read again whenever the spend
  *  shown changes, so the two never disagree for long; with no spend to show, nothing is read. */
 function SpendCard({ run }: { run: ResearchRun }) {
@@ -1350,11 +1374,15 @@ function SpendCard({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
-        <dl data-run-spend className="@container divide-y divide-border rounded-control border border-border">
+        // The prototype's KPI tiles (FLD4e): four, the unpriced calls a fifth only when there are any.
+        <dl data-run-spend className="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-2">
           {rows.map((r) => (
-            <div key={r.key} data-spend={r.key} className="grid gap-1 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr] @sm:items-baseline @sm:gap-3">
-              <dt className="text-ink-muted">{r.label}</dt>
-              <dd className="min-w-0"><span className="font-mono">{r.value}</span>{r.note ? <span className="text-ink-muted"> · {r.note}</span> : null}</dd>
+            <div key={r.key} data-spend={r.key} className="flex min-w-0 flex-col gap-1 rounded-control border border-border px-3 py-2">
+              <dt className="text-xs text-ink-muted">{r.label}</dt>
+              <dd className="min-w-0">
+                <span data-spend-value className="block font-mono text-lg tabular-nums text-ink">{r.value}</span>
+                {r.note ? <span data-spend-note className="mt-0.5 block text-xs text-ink-muted">{r.note}</span> : null}
+              </dd>
             </div>
           ))}
         </dl>
@@ -1362,6 +1390,9 @@ function SpendCard({ run }: { run: ResearchRun }) {
     </Card>
   );
 }
+
+/** The steps this client places on Průběh, in the pipeline's order (FLD2c). */
+const PIPELINE_ORDER: readonly string[] = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"];
 
 export function ProgressStep() {
   const frame = useFrame();
@@ -1398,7 +1429,14 @@ export function ProgressStep() {
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");
   // Opened by a start that found this run instead of starting one (PC13).
   const foundByStart = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("found") === "1" && runFromQuery() === run.run_id;
-  const listed = [...STEP_ORDER, ...ANALYSIS_ORDER.map((id) => `analysis_${id}`), "report"].map((key) => stepOf(run, key)).filter((s): s is ResearchStep => !!s);
+  // The run's own steps (FLD2c): the pipeline's order for the keys this client places, the rest after
+  // in the run's order, none the run does not have. Parallel steps (the analysis modules) keep the
+  // pipeline's order.
+  const rank = (key: string) => {
+    const at = PIPELINE_ORDER.indexOf(key);
+    return at < 0 ? PIPELINE_ORDER.length : at;
+  };
+  const listed = [...run.steps].sort((a, b) => rank(a.node_key) - rank(b.node_key));
   // A module stored BLOCKED succeeded as a step and is not finished as a result.
   const finished = listed.filter((s) => (s.status === "SUCCEEDED" && !needsRepair(s)) || s.status === "SKIPPED").length;
   const state = runState(run);
@@ -1419,14 +1457,6 @@ export function ProgressStep() {
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
           {run.retry_of ? <span className="text-xs text-ink-muted">{tv("research.exec.retryOf", { run: run.retry_of })}</span> : null}
         </div>
-        {listed.length ? (
-          <div className="mt-3 flex items-center gap-3">
-            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
-              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
-            </span>
-            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
-          </div>
-        ) : null}
         {parked ? (
           <div role="status" className="mt-3 flex flex-col gap-2 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">
             <p>{parked.node_key === "run" ? t("research.exec.parked") : tv("research.exec.parkedAt", { step: stepLabel(parked.node_key) })}</p>
@@ -1458,15 +1488,24 @@ export function ProgressStep() {
         {error ? <p role="alert" className="mt-3 text-sm text-status-fault">{error}</p> : null}
       </Card>
       {repairable ? <AnalysisRepair run={run} modules={repairable} act={act} busy={busy} /> : null}
-      <Card title={t("aia.stages.progress")}>
-        <ol className="flex flex-col gap-3" aria-label={t("aia.stages.progress")}>
-          {listed.map((s) => {
+      <Card title={t("research.exec.stepsTitle")}>
+        {listed.length ? (
+          <div className="mb-3 flex items-center gap-3">
+            <span aria-hidden="true" className="h-1.5 max-w-md flex-1 overflow-hidden rounded-sm bg-surface-sunken">
+              <i className="block h-1.5 bg-status-running" style={{ width: `${Math.round((finished / listed.length) * 100)}%` }} />
+            </span>
+            <span className="font-mono text-xs text-ink-muted">{tv("research.exec.stepsFinished", { done: finished, total: listed.length })}</span>
+          </div>
+        ) : null}
+        <ol className="flex flex-col gap-3" aria-label={t("research.exec.stepsTitle")}>
+          {listed.map((s, index) => {
             const stepActivity = activityOf(activity, s.step_id);
             const last = lastReported(stepActivity, s.status, run.is_terminal);
             return (
             // Pointable by the Lead (the coordinator's registry: fieldwork targets step:<node_key>).
-            <li key={s.node_key} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
+            <li key={s.step_id} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
+                <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
                 <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {researchStepWork(run, s.node_key) ? (
@@ -1678,7 +1717,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
     <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><h4 className="text-sm font-semibold">Schválené znalosti klienta</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Podklady dostupné této studii. Otázka neposílá hodnoty výsledků nebo map automaticky a nemění zmrazený běh.</p>{assistance && frame.canEdit ? <Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => assistance("answer_memory", "Jaké schválené znalosti klienta poskytují kontext k tématu této studie?")}>Zeptat se na klientské znalosti</Button> : null}</div>
     <div><h4 className="text-sm font-semibold">Literární rešerše</h4><p className="mt-1 text-xs leading-5 text-ink-muted">Externí kontext a citované zdroje patří do samostatné rešerše. Vyberte ji v oddílu Rešerše a zpráva; odpověď AI z klientských znalostí ji nenahrazuje.</p></div></div>
   </section>;
-  return <ResultsWorkspace run={run} progressHref={progressHref}
+  return <ResultsWorkspace run={run} progressHref={progressHref} tabs={!leadOwns}
     notice={<><RevisionMoved note={revisionNote(run.design_revision, revisions.state === "ready" ? revisions.data.map((r) => r.revision) : null)} /><OriginBanners run={run} /><RespondentsReceipt run={run} /></>}
     lead={session ? <CompleteReport run={run} review={review} onReview={setReview} /> : null}
     panels={[
@@ -1711,7 +1750,7 @@ export function RunResults({ run, progressHref }: { run: ResearchRun | null; pro
       </> }] : []),
       ...(showAnalysis ? [{ id: "analysis", label: "AI analýza", description: "Souhrn, odpovědi na výzkumné otázky a omezení. Interpretace vychází z podkladů tohoto běhu a čeká na posouzení výzkumníkem.", content: <div id="res-analysis"><AnalysisResults key={run.run_id} run={run} progressHref={progressHref} spec={pinnedSpecification(specification?.state === "ready" ? specification.value : null)} /></div> }] : []),
       { id: "report", label: "Rešerše a zpráva", description: "Zkontrolujte připravenost interní zprávy, přijaté externí podklady a omezení rešerše. Dostupnost stažení závisí na úplnosti analýzy.", content: <>
-        <ReportDocumentView run={run} />
+        <ReportDocumentView run={run} review={review} onReview={setReview} />
         <div id="res-report">{report}</div>
         {showAnalysis && canReview(frame) ? <InterpretationResearch key={run.run_id} run={run} review={review} onReview={setReview} /> : null}
         <details><summary className="cursor-pointer text-sm font-medium">Klientské znalosti a kontextová AI pomoc</summary><div className="mt-3">{knowledgeContext}</div></details>
@@ -1777,7 +1816,7 @@ function InternalReport({ run, progressHref }: { run: ResearchRun; progressHref:
           <p className="mt-2 text-xs text-ink-muted">{tv("research.exec.results.reportProvenance", {
             id: status.artifact_id ?? "—", sha: status.sha256?.slice(0, 12) ?? "—", run: run.run_id,
           })}</p>
-          {/* Downloads happen on the report card above (CompleteReport); approval on the document read, in Zpráva's doc bar (RPT3a). */}
+          {/* Read, downloaded and approved in Zpráva's doc bar (RPT3a, RPT3c); the card above says what the report holds. */}
           {canReview(frame) ? <p className="mt-2 text-xs text-ink-muted">{t("research.exec.results.reportActionsAbove")}</p> : null}
         </>
       ) : null}
@@ -1846,10 +1885,31 @@ function ReportHolds({ run, progressHref }: { run: ResearchRun; progressHref: st
   );
 }
 
+/** A chip of the findings list's module filter. */
+const filterChip = (on: boolean): string =>
+  `min-h-11 rounded-control border px-2.5 py-1 text-left text-xs sm:min-h-8 focus-visible:outline-2 focus-visible:outline-focus-ring ${on ? "border-signal bg-signal-wash font-semibold text-signal" : "border-border hover:bg-surface-sunken"}`;
+
 function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: CompiledSpecification | null; progressHref: string | null }) {
   const frame = useFrame();
   const [loaded, setLoaded] = useState<Loaded<ResearchAnalysis>>({ state: "loading" });
-  const [selectedModule, setSelectedModule] = useState<(typeof ANALYSIS_ORDER)[number]>("executive");
+  const [filter, setFilter] = useState<(typeof ANALYSIS_ORDER)[number] | "all">("all");
+  // A finding or a claim the filter leaves off the page, pointed at by the Lead, the inspector or a
+  // coverage chip (LEAD_REVEAL): the list goes back to "Vše", and the next look finds it. A claim no
+  // key finding cites is drawn only among its module's answers, so its module is chosen instead.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const detail = (e as CustomEvent<unknown>).detail;
+      const target = typeof detail === "string" ? readAnalysisTarget(detail) : null;
+      if (!target || target.kind === "module") return;
+      const own = loaded.state === "ready" ? loaded.value.modules[target.module] : undefined;
+      const answerOnly = target.kind === "claim" && own?.outcome === "COMPLETED"
+        && !own.key_findings.some((f) => f.claim_ids.includes(target.claimId));
+      if (answerOnly) setFilter(target.module);
+      else if (filter !== "all" && target.module !== filter) setFilter("all");
+    };
+    window.addEventListener(LEAD_REVEAL, on);
+    return () => window.removeEventListener(LEAD_REVEAL, on);
+  }, [filter, loaded]);
   const states = run.steps.filter((step) => step.kind === "research_analysis")
     .map((step) => `${step.node_key}:${step.status}:${step.artifact_id ?? ""}`).join("|");
   useEffect(() => {
@@ -1886,33 +1946,39 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
   // The inspector reads the analysis this page shows, never a run it fetched itself (ANL3).
   useEffect(() => {
     if (!shownValue) return;
-    const next = { runId: run.run_id, analysis: shownValue, spec };
-    setShownAnalysis(next);
+    setShownAnalysis({ analysis: shownValue, spec });
     return () => setShownAnalysis(null);
-  }, [run.run_id, shownValue, spec]);
+  }, [shownValue, spec]);
   const retryable = useRetryableRead(run);
   const openItem = useOpenAnalysisItem();
   if (loaded.state === "hidden") return null;
   const analysis = shownValue;
   const complete = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "COMPLETED").length;
   const blocked = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").length;
-  const selected = analysis?.modules[selectedModule];
-  const marks = analysis ? claimMarks(analysis.modules, selectedModule) : new Set<string>();
-  const selectedStep = run.steps.find((step) => step.node_key === `analysis_${selectedModule}`);
-  const selectedPending = analysis?.pending[selectedModule];
+  // The pane under the filter: the chosen module, or on "Vše" the executive summary when it is stored completed.
+  const paneModule = filter !== "all" ? filter : analysis?.modules.executive?.outcome === "COMPLETED" ? "executive" : null;
+  const pane = paneModule ? analysis?.modules[paneModule] ?? (filter !== "all" ? { outcome: "PENDING" as const } : undefined) : undefined;
+  const marks = analysis ? claimMarks(analysis.modules, filter === "all" ? null : filter) : new Set<string>();
+  const selectedStep = paneModule ? run.steps.find((step) => step.node_key === `analysis_${paneModule}`) : undefined;
+  const selectedPending = paneModule ? analysis?.pending[paneModule] : undefined;
   const findings = ANALYSIS_ORDER.flatMap((id) => {
     const outcome = analysis?.modules[id];
     return outcome?.outcome === "COMPLETED" && outcome.key_findings.length ? [{ id, outcome }] : [];
   });
+  // The analysis's own origin once read; until then the run's, when it has exactly one (ANL10).
+  const analysisOrigin = loaded.state === "ready" ? resultOriginKind(loaded.value) : null;
+  const runKinds = runOriginKinds(run);
+  const runOrigin = runKinds.size === 1 ? [...runKinds][0] : null;
   // Completed, yet holding the report: no supported finding (evidence-integrity 9b).
   const withoutSupport = ANALYSIS_ORDER.filter((id) => analysis?.holding?.includes(id) && analysis.modules[id]?.outcome === "COMPLETED");
   const withoutFindings = ANALYSIS_ORDER.filter((id) => analysis?.modules[id]?.outcome === "BLOCKED").map((id) => stepLabel(`analysis_${id}`));
   return (
     <div ref={cardRef} data-analysis-card className="scroll-mt-2">
     <Card title={t("research.exec.results.analysis")} tone="notice">
-      <p role="note" className="mb-3 text-sm font-semibold">
-        {loaded.state === "ready" && resultOriginKind(loaded.value)
-          ? t(ANALYSIS_ORIGIN[resultOriginKind(loaded.value)!])
+      <p data-analysis-header className="mb-1 text-sm font-semibold">{analysisHeader(run.created_at, analysisOrigin ?? runOrigin)}</p>
+      <p role="note" className="mb-3 text-sm text-ink-muted">
+        {analysisOrigin
+          ? t(ANALYSIS_ORIGIN[analysisOrigin])
           : t("research.exec.results.analysisInternal")}
       </p>
       {loaded.state === "failed" && loaded.code === STALE_ANALYSIS ? (
@@ -1927,69 +1993,68 @@ function AnalysisResults({ run, spec, progressHref }: { run: ResearchRun; spec: 
       ) : null}
       {analysis ? (
         <div className="flex flex-col gap-4">
+          {/* What waits on the person comes first: blocked modules and modules without a finding, with the way out (ANL4). */}
+          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <AnalysisMilestones run={run} analysis={analysis} />
           <AnalysisCoverage run={run} analysis={analysis} />
           <section data-analysis-overview className={`rounded-md border p-4 ${blocked ? "border-status-fault/40 bg-status-fault-wash" : "border-border bg-surface-sunken"}`}>
             <p className="text-sm font-semibold">{complete} z {ANALYSIS_ORDER.length} částí analýzy dokončeno{blocked ? ` · k opravě: ${blocked}` : ""}</p>
             <p className="mt-1 text-sm leading-6 text-ink-muted">{blocked
-              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky níže. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
+              ? "Některé části neprošly kontrolou; které a proč, uvádí oddíl Blokované nároky výše. Dokončení pracovního kroku samo o sobě neznamená platný analytický výstup."
               : analysis.complete
                 ? "Všechny části jsou uložené. Interpretaci a vhodnost pro zprávu musí posoudit výzkumník."
                 : withoutSupport.length && !Object.keys(analysis.pending).length
                   ? holdingWords(withoutSupport)
                   : "Zbývající části ještě čekají na dokončení. Zpráva může vzniknout až z úplné analýzy."}</p>
           </section>
-          <AnalysisBlocked analysis={analysis} run={run} retryable={retryable?.modules ?? null} progressHref={progressHref} />
           <section aria-labelledby="key-findings-title" data-key-findings className="rounded-md border border-border bg-surface-raised p-4">
-            <h3 id="key-findings-title" className="text-base font-semibold">Hlavní zjištění</h3>
+            <h3 id="key-findings-title" className="text-base font-semibold">Zjištění</h3>
             <p className="mt-1 text-sm leading-6 text-ink-muted">Ze všech dokončených částí analýzy, jak je analýza napsala. U každého zjištění jsou čísla, o která se opírá; kliknutím je otevřete v datech.</p>
-            {findings.length ? findings.map(({ id, outcome }) => (
-              <div key={id} className="mt-4 border-t border-border pt-3">
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</h4>
-                <ul className="mt-2 flex flex-col gap-3">
-                  {outcome.key_findings.map((finding, index) => (
-                    <li key={index} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} className="scroll-mt-4 border-l-2 border-signal pl-3">
-                      <div className="flex items-start gap-2">
-                        <FormattedText text={finding.text} className="min-w-0 grow" />
-                        <FindingInspectButton open={openItem} module={id} index={index} />
-                      </div>
-                      <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí hlavní zjištění.</p>}
-            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
-          </section>
-          <AnalysisExternal context={analysis.external_context} />
-          <h3 className="text-base font-semibold">Analýza po částech</h3>
-          <div className="grid gap-4 lg:grid-cols-[15rem_minmax(0,1fr)]">
-            <nav aria-label="Části AI analýzy" className="flex flex-col gap-1">
+            {/* One list, filtered by module (ANL3b). A finding the filter leaves off is brought back by LEAD_REVEAL. */}
+            <nav aria-label="Části AI analýzy" className="mt-3 flex flex-wrap gap-1.5">
+              <button type="button" data-filter="all" aria-pressed={filter === "all"} onClick={() => setFilter("all")} className={filterChip(filter === "all")}>Vše</button>
               {ANALYSIS_ORDER.map((id) => {
                 const outcome = analysis.modules[id];
                 const label = outcome?.outcome === "COMPLETED" ? "Dokončeno" : outcome?.outcome === "BLOCKED" ? t("research.exec.stepStatus.ANALYSIS_BLOCKED") : "Čeká";
-                return <button key={id} type="button" data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} onClick={() => setSelectedModule(id)} aria-current={selectedModule === id ? "true" : undefined}
-                  className={`flex items-center justify-between gap-2 rounded-control px-3 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-focus-ring ${selectedModule === id ? "bg-signal-wash font-semibold text-signal" : "hover:bg-surface-sunken"}`}>
-                  <span>{stepLabel(`analysis_${id}`)}</span><span className="shrink-0 text-xs font-normal text-ink-muted">{label}</span>
+                return <button key={id} type="button" data-filter={id} data-aia={id === "research_questions" ? undefined : analysisTarget({ kind: "module", module: id }) ?? undefined} data-outcome={outcome?.outcome ?? "PENDING"} aria-pressed={filter === id} onClick={() => setFilter(id)} className={filterChip(filter === id)}>
+                  {stepLabel(`analysis_${id}`)} <span className="font-normal text-ink-muted">· {label}</span>
                 </button>;
               })}
             </nav>
-            <section aria-label={stepLabel(`analysis_${selectedModule}`)} className="min-w-0 rounded-md border border-border bg-surface-raised p-4">
-              <h3 className="text-base font-semibold">{stepLabel(`analysis_${selectedModule}`)}</h3>
-              {selected?.outcome === "BLOCKED" ? <>
-                <p className="mt-3 text-sm leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
-                <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === selectedModule)?.reasons ?? []} /></div>
-              </> : selected?.outcome === "COMPLETED" ? <>
-                {selected.summary ? <FormattedText text={selected.summary} className="mt-3" /> : null}
-                {selected.research_question_answers.length ? <div className="mt-5 space-y-4"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
-                  {selected.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-sunken p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></div>)}
-                </div> : null}
-                {selected.key_findings.length ? <div className="mt-5"><h4 className="text-sm font-semibold">Hlavní zjištění</h4><ul className="mt-2 flex flex-col gap-3">{selected.key_findings.map((finding, index) => <li key={index} className="border-l-2 border-signal pl-3"><div className="flex items-start gap-2"><FormattedText text={finding.text} className="min-w-0 grow" /><FindingInspectButton open={openItem} module={selectedModule} index={index} /></div><CitedNumbers ids={finding.claim_ids} place={{ list: "finding", module: selectedModule, index }} marks={marks} outcome={selected} spec={spec} open={openItem} /></li>)}</ul></div> : null}
-                {!selected.summary && !selected.research_question_answers.length && !selected.key_findings.length ? <p className="mt-3 text-sm text-ink-muted">Tato část nemá textový souhrn.</p> : null}
-                {selected.claims.length ? <details className="mt-5 border-t border-border pt-3 text-xs text-ink-muted"><summary className="cursor-pointer">{t("research.exec.results.analysisEvidence")} a technický původ tvrzení</summary><p className="mt-2 break-words">{selected.claims.map((claim) => `${claim.claim_id} → ${claim.evidence_ref}`).join(", ")}</p></details> : null}
-              </> : <div className="mt-3 text-sm text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
-            </section>
-          </div>
+            {/* The module's own words: on "Vše" the analysis's summary, else the chosen module's summary, and the
+                research questions' answers with what the run recorded about each (PC2); findings are listed once, below. */}
+            {pane && paneModule ? (
+              <section aria-label={filter === "all" ? "Shrnutí analýzy" : stepLabel(`analysis_${paneModule}`)} data-module-pane={paneModule} className="mt-3 rounded-md bg-surface-sunken p-3 text-sm">
+                {pane.outcome === "BLOCKED" ? <>
+                  <p className="leading-6">Výstup této části neprošel kontrolou, proto se nesmí interpretovat ani použít ve zprávě.</p>
+                  <div className="mt-3"><ViolationList reasons={blockedModules(analysis).find((b) => b.module === paneModule)?.reasons ?? []} /></div>
+                </> : pane.outcome === "COMPLETED" ? <>
+                  {pane.summary ? <FormattedText text={pane.summary} /> : <p className="text-ink-muted">Tato část nemá textový souhrn.</p>}
+                  {filter !== "all" && pane.research_question_answers.length ? <div className="mt-4 space-y-3"><h4 className="text-sm font-semibold">Odpovědi na výzkumné otázky</h4>
+                    {pane.research_question_answers.map((answer, index) => <div key={index} className="rounded-md bg-surface-raised p-3"><h5 className="text-sm font-medium">{answer.question}</h5>{answer.gap ? <p role="note" data-answer-gap className="mt-1 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-2 text-sm">{tv("research.exec.results.answerGap", { words: answer.gap })}</p> : null}<FormattedText text={answer.answer} className="mt-1" /><CitedNumbers ids={answer.claim_ids} place={{ list: "answer", module: paneModule, index }} marks={marks} outcome={pane} spec={spec} open={openItem} /></div>)}
+                  </div> : null}
+                </> : <div className="text-ink-muted"><p>{selectedStep ? `Stav kroku: ${stepStatusLabel(selectedStep, run.is_terminal)}` : "Tato část zatím nemá uložený výstup."}</p>{selectedPending && !selectedStep ? <p className="mt-1">{t("research.exec.results.analysisPending")}: <CodedWords inline coded={codeWords("research.exec.stepStatus", selectedPending)} /></p> : null}{selectedStep && waitingDetail(selectedStep) ? <p className="mt-1">{waitingDetail(selectedStep)}</p> : null}</div>}
+              </section>
+            ) : null}
+            {findings.length ? (
+              <ul className="mt-4 flex flex-col gap-3">
+                {findings.filter(({ id }) => filter === "all" || filter === id).flatMap(({ id, outcome }) => outcome.key_findings.map((finding, index) => (
+                  <li key={`${id}:${index}`} id={findingAnchor({ module: id, index })} data-aia={analysisTarget({ kind: "finding", module: id, index }) ?? undefined} data-finding-module={id}
+                    className="scroll-mt-4 border-l-2 border-signal pl-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{stepLabel(`analysis_${id}`)}</p>
+                    <div className="flex items-start gap-2">
+                      <FormattedText text={finding.text} className="min-w-0 grow" />
+                      <FindingInspectButton open={openItem} module={id} index={index} />
+                    </div>
+                    <CitedNumbers ids={finding.claim_ids} place={{ list: "key", module: id, index }} marks={marks} outcome={outcome} spec={spec} open={openItem} />
+                  </li>
+                )))}
+              </ul>
+            ) : <p className="mt-3 text-sm text-ink-muted">Žádná dokončená část zatím neuvádí zjištění.</p>}
+            {filter !== "all" && findings.length && !findings.some((f) => f.id === filter) ? <p className="mt-3 text-sm text-ink-muted">Tato část neuvádí žádné zjištění.</p> : null}
+            {withoutFindings.length ? <p className="mt-3 text-xs text-ink-muted">Bez zjištění, protože neprošly kontrolou: {withoutFindings.join(", ")}.</p> : null}
+          </section>
+          <AnalysisExternal context={analysis.external_context} />
         </div>
       ) : null}
     </Card>

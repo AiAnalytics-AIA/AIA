@@ -8,19 +8,19 @@ import { join } from "node:path";
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { StrictMode } from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import signedOff from "@/lib/fixtures/object-map-signed-off.json";
 import legacy from "@/lib/fixtures/object-map.json";
 import golden from "@/lib/fixtures/object-map-draw-golden.json";
 import { type BatteryWithMaps, mapLinks } from "@/lib/object-map-view";
 import { readTarget } from "@/lib/artifacts/sociomap";
-import { LEAD_REVEAL, focusSelector } from "@/lib/lead";
+import { LEAD_REVEAL, type LeadMapView, focusSelector } from "@/lib/lead";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { INITIAL_CAMERA, densityGrid, panelDots, panelNodes, projection, relationGeometry, storedGrid, terrainAt } from "@/lib/object-map-panel";
 import { type SignedOffRespondents, storedFrame } from "@/lib/object-map-signed-off";
 import { num } from "@/lib/sociomapping-view";
-import { sharePercent } from "./ObjectMapPanel";
+import { routeToMap, sharePercent } from "./ObjectMapPanel";
 import { ObjectMapView } from "./ObjectMapView";
 
 const [hudba, sum] = signedOff.batteries as unknown as BatteryWithMaps[];
@@ -95,7 +95,7 @@ describe("which drawing a stored map gets", () => {
     render(<ObjectMapView battery={legacyBattery} dataOrigin={null} />);
     expect(screen.getByTestId("object-map-svg")).toBeTruthy();
     expect(screen.queryByTestId("object-map-panel")).toBeNull();
-    expect(screen.getByTestId("object-map-support").textContent).toContain("Šířku kopců");
+    expect(screen.getByTestId("object-map-support").textContent).toContain("Šířka kopců");
   });
 });
 
@@ -116,6 +116,26 @@ describe("the panel's controls", () => {
     const strongest = mapLinks(map).sort((a, b) => Math.abs(b.r) - Math.abs(a.r)).slice(0, 5).map((l) => `${l.a}|${l.b}`);
     expect(drawn().sort()).toEqual(strongest.sort());
     expect(canvas().getAttribute("data-selected")).toBe("");
+  });
+
+  it("opens the terrain Hladký, switches it to Blokový from Nastavení mapy, redraws, and remembers the choice", async () => {
+    window.localStorage.removeItem("aia.objectMap.terrain");
+    onTestFinished(() => window.localStorage.removeItem("aia.objectMap.terrain"));
+    const { unmount } = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    // jsdom has no WebGL: the smooth terrain's frame still draws, as the blocky terrain.
+    await nextFrame(0);
+    expect(canvas().getAttribute("data-terrain")).toBe("smooth");
+    const before = frames;
+    openSettings();
+    expect(screen.getByRole("button", { name: "Hladký" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Blokový" }));
+    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
+    expect(screen.getByRole("button", { name: "Blokový" }).getAttribute("aria-pressed")).toBe("true");
+    await nextFrame(before);
+    expect(window.localStorage.getItem("aia.objectMap.terrain")).toBe("blocky");
+    unmount();
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
   });
 
   it("switches Absolutni / Relativni and the relation display, redrawing each time", async () => {
@@ -282,7 +302,7 @@ describe("the display state, where the web leaves the panel", () => {
     expect(canvas().getAttribute("data-person")).toBe("");
   });
 
-  it("draws Top vztahy in full screen as on the page: the selection's five, the map's five without one", () => {
+  it("draws the strongest relations in full screen as on the page: the selection's five, the map's five without one", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     const first = () => openList().getAllByRole("button")[0];
     fireEvent.click(first());
@@ -588,6 +608,29 @@ describe("what a click shows in the detail window", () => {
   // The canvas takes no keyboard: the object's listed relations open a pair as a click on its line does
   // (artifact-sociomap audit, 2026-10-22).
   // Enter and Space on a button are the browser's: the workbench check presses them (jsdom has no activation).
+  it("lists all of the object's relations under the strongest, each with its status and N, each opening its pair", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
+    const i = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
+    const all = screen.getByTestId("object-map-detail-all-relations");
+    expect(all.tagName).toBe("DETAILS");
+    expect(all.querySelector("summary")!.textContent).toBe(`Všechny vztahy (${map.object_ids.length - 1})`);
+    const rows = within(all).getAllByRole("button");
+    expect(rows).toHaveLength(map.object_ids.length - 1);
+    for (const row of rows) {
+      const j = map.object_ids.findIndex((id, k) => k !== i && row.textContent!.endsWith(`– ${label(id)}`));
+      const status = map.relations.status[i][j], n = map.relations.n[i][j] ?? 0;
+      const verdict = map.relations.r[i][j] === null ? (n < map.relations.n_min ? "fewRatings" : "noSpread") : status === "reliable" ? "reliable" : "weak";
+      expect(row.getAttribute("data-verdict")).toBe(verdict);
+      expect(row.textContent).toContain(`N ${map.relations.n[i][j]}`);
+    }
+    const last = rows[rows.length - 1];
+    fireEvent.click(last);
+    const j = map.object_ids.findIndex((id, k) => k !== i && last.textContent!.endsWith(`– ${label(id)}`));
+    expect(canvas().getAttribute("data-relation")).toBe(`${map.object_ids[i]}|${map.object_ids[j]}`);
+    expect(last.getAttribute("aria-pressed")).toBe("true");
+  });
+
   it("opens a relation from the object's card, a focusable button named by what it shows, and closes it again", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
     fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
@@ -1164,6 +1207,102 @@ describe("the Lead's names on the map", () => {
   });
 });
 
+// The Lead's views on the map (artifact-sociomap SOC2; research-lead-workbench 14, "For Sociomapa (2)"):
+// a view the Sociomapa stage routed to this map (routeToMap), applied once, as it arrives, to the picture
+// only; what the map cannot do said in words. Routing itself is the stage's (ExecutionSteps.test.tsx).
+describe("the Lead's map views", () => {
+  const said = () => screen.getByTestId("object-map-lead-note").textContent;
+  const [a, b] = [map.object_ids[1], map.object_ids[3]].sort();
+  const send = (view: LeadMapView, to = "hudba") => act(() => { routeToMap(to, view); });
+
+  it("selects an object or a relation the Lead names, and opens its detail", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "select", target: `object:hudba/${map.object_ids[2]}` });
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[2]);
+    expect(screen.getByTestId("object-map-detail-label").textContent).toBeTruthy();
+    send({ op: "select", target: `pair:hudba/${a}~${b}` });
+    expect(canvas().getAttribute("data-relation")!.split("|").sort()).toEqual([a, b]);
+    expect(screen.getByTestId("object-map-detail-relation").closest("[data-aia]")!.getAttribute("data-aia")).toBe(`pair:hudba/${a}~${b}`);
+  });
+
+  it("takes only what is routed to its own battery", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "select", target: `object:hudba/${map.object_ids[2]}` }, sum.battery_id);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+  });
+
+  it("sets the view and the map the Lead names, and leaves the map's numbers as they were", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "filter", name: "view", value: "top" });
+    expect(camera().pitch).toBe(0);
+    send({ op: "filter", name: "view", value: "relief" });
+    expect(camera().pitch).toBeGreaterThan(0);
+    send({ op: "select", target: `object:hudba/${map.object_ids[2]}` });
+    send({ op: "filter", name: "mode", value: "respondents" });
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
+    expect(canvas().getAttribute("data-selected")).toBe("");
+    // A select on the respondent map goes back to the object map, where selection is.
+    send({ op: "select", target: `object:hudba/${map.object_ids[0]}` });
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[0]);
+  });
+
+  it("says in words what this map cannot do, and changes nothing", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const before = canvas().getAttribute("data-camera");
+    send({ op: "select", target: "object:hudba/neni-na-mape" });
+    expect(said()).toContain("neni-na-mape");
+    send({ op: "filter", name: "hide_weak", value: "on" });
+    expect(said()).toContain("Mapa: skrýt slabé vztahy");
+    expect(said()).not.toContain("hide_weak");
+    expect(canvas().getAttribute("data-camera")).toBe(before);
+    expect(canvas().getAttribute("data-selected")).toBe("");
+  });
+
+  it("says the respondent map is not stored rather than show the object map silently", () => {
+    const flat = { ...hudba, maps: { "aia-sociomap-5": { ...hudba.maps!["aia-sociomap-5"], artifact: { ...map, respondents: undefined } } } } as unknown as BatteryWithMaps;
+    render(<ObjectMapView battery={flat} dataOrigin={null} />);
+    send({ op: "filter", name: "mode", value: "respondents" });
+    expect(canvas().getAttribute("data-map")).toBe("objects");
+    expect(said()).toContain("mapu respondentů tato mapa neukládá");
+  });
+
+  it("draws a view from above once the canvas is measured, whatever size it measures, and the rest at once", () => {
+    let measure: (() => void) | null = null;
+    vi.stubGlobal("ResizeObserver", class {
+      constructor(private readonly callback: ResizeObserverCallback) {}
+      observe(node: Element) {
+        if (node.getAttribute("data-testid") !== "object-map-canvas") return;
+        measure = () => this.callback([{ contentRect: { width: 900, height: 700 } } as ResizeObserverEntry], this as unknown as ResizeObserver);
+      }
+      disconnect() {}
+    });
+    onTestFinished(() => { vi.unstubAllGlobals(); });
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    send({ op: "select", target: `object:hudba/${map.object_ids[4]}` });
+    send({ op: "filter", name: "view", value: "top" });
+    expect(canvas().getAttribute("data-selected")).toBe(map.object_ids[4]);
+    expect(camera().pitch).toBeGreaterThan(0);
+    act(() => { measure!(); });
+    expect(camera().pitch).toBe(0);
+  });
+
+  it("opens a relation's detail when the Lead points at it, so its id is there to be shown", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    const target = `pair:hudba/${a}~${b}`;
+    expect(document.querySelector(focusSelector(target))).toBeNull();
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: target })); });
+    expect(document.querySelector(focusSelector(target))).toBeTruthy();
+  });
+
+  it("leaves the respondent map as the person has it when the Lead points at a relation", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
+    act(() => { window.dispatchEvent(new CustomEvent(LEAD_REVEAL, { detail: `pair:hudba/${a}~${b}` })); });
+    expect(canvas().getAttribute("data-map")).toBe("respondents");
+  });
+});
+
 // On the map (artifact-sociomap SOC3): the filter chip in the bar names what the popovers changed and that
 // the computation did not; the ⓘ box names the four kinds of content.
 describe("the filter bar and the four registers", () => {
@@ -1175,8 +1314,20 @@ describe("the filter bar and the four registers", () => {
     openInfo();
     const registers = screen.getByTestId("object-map-registers");
     expect([...registers.querySelectorAll("[data-register]")].map((r) => r.getAttribute("data-register"))).toEqual(["computed", "display", "interpretation", "external"]);
-    expect(registers.textContent).toContain("Deterministický výsledek");
+    expect(registers.textContent).toContain("Spočtený výsledek");
+    expect(registers.textContent).not.toContain("Deterministický");
     expect(registers.textContent).toContain("do výpočtu nevstupují");
+  });
+
+  it("speaks to a researcher, not in the workshop's jargon (spec copy pass, SOC11b)", () => {
+    render(<ObjectMapView battery={hudba} dataOrigin={null} />);
+    openSettings();
+    expect(screen.getByRole("button", { name: "Absolutní" }).getAttribute("title")).toBe("Na škále, kterou sada uvádí v Dotazníku (např. 1–5 nebo 0–100)");
+    openTools();
+    expect(screen.getByRole("button", { name: "Nejsilnější vztahy na mapě" })).toBeTruthy();
+    openInfo();
+    expect(screen.getByTestId("object-map-registers")).toBeTruthy();
+    for (const word of ["Top vztahy", "kroku 3", "Stress-1", "PROGRESS", "Deterministický"]) expect(document.body.innerHTML).not.toContain(word);
   });
 
   it("names a display change and says what did not change, leaving the map's numbers as they were", () => {
@@ -1205,7 +1356,7 @@ describe("the filter bar and the four registers", () => {
     expect(canvas().getAttribute("data-map")).toBe("objects");
     expect(canvas().getAttribute("data-norm")).toBe("range");
     openTools();
-    expect(screen.getByRole("button", { name: "Top vztahy na mapě" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Nejsilnější vztahy na mapě" }).getAttribute("aria-pressed")).toBe("true");
   });
 
   it("keeps the keyboard in the bar when Zrušit filtr removes its own chip, and announces the bar from a live region already there", async () => {

@@ -11,6 +11,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
 
 import { deepResearch, research, type ResearchRun } from "@/lib/api";
 import type { ReportDocumentModel, StoredReportDocument } from "@/lib/artifacts/report";
+import { saveBlob } from "@/lib/download";
 import type { EditorOpened, EditorVersionRead } from "@/lib/report-editor";
 import type { EditorShown } from "./ReportEditor";
 import { StudyFrameProvider } from "./frame";
@@ -19,9 +20,11 @@ import { TEST_FRAME } from "./test-frame";
 
 vi.mock("@/lib/api", async () => ({
   ApiError: (await vi.importActual<typeof import("@/lib/api")>("@/lib/api")).ApiError,
-  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), reportEditorVersion: vi.fn() },
+  research: { reportDocument: vi.fn(), clientReportDocument: vi.fn(), prepareClientReport: vi.fn(), approveReport: vi.fn(), report: vi.fn(), openReportEditor: vi.fn(), reportEditorVersion: vi.fn(), downloadReportEditorVersion: vi.fn(), downloadReport: vi.fn() },
   deepResearch: { runs: vi.fn(), contextReport: vi.fn(), contextReportDocument: vi.fn(), prepareContextReport: vi.fn() },
 }));
+
+vi.mock("@/lib/download", () => ({ saveBlob: vi.fn() }));
 
 type Handed = { variant: string; review: string | null; line?: string | null };
 const editor = vi.hoisted(() => ({
@@ -75,6 +78,9 @@ beforeEach(() => {
   editor.shows = null;
   vi.mocked(deepResearch.runs).mockResolvedValue([]);
   vi.mocked(research.reportDocument).mockResolvedValue(STORED);
+  // The doc bar's read of its PDF (RPT3c).
+  vi.mocked(research.report).mockResolvedValue({ artifact_id: STORED.report_artifact_id, pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
+  vi.mocked(deepResearch.contextReport).mockResolvedValue({ state: "READY", artifact_id: "ART-context", pdf: { state: "NOT_REQUESTED" }, approval_renders_pdf: false } as never);
 });
 
 afterEach(() => {
@@ -90,7 +96,7 @@ describe("which document the editor is handed", () => {
     await screen.findByRole("article", { name: "Koncept zprávy" });
     await waitFor(() => expect(editor.handed).toEqual<Handed[]>([{ variant: "internal", review: null }]));
     fireEvent.click(screen.getByRole("button", { name: "Klientská zpráva" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-client"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-client"));
     expect(container.querySelector("[data-stub-editor]")).toBeNull();
     expect(screen.getByRole("article", { name: "Koncept zprávy" })).toBeTruthy();
     expect(editor.handed.every((h) => h.variant === "internal")).toBe(true);
@@ -103,7 +109,7 @@ describe("which document the editor is handed", () => {
     const { container } = show();
     await screen.findByRole("article", { name: "Koncept zprávy" });
     fireEvent.click(await screen.findByRole("button", { name: "Zpráva s rešerší" }));
-    await waitFor(() => expect(bar(container).textContent).toContain("ART-context"));
+    await waitFor(() => expect(bar(container).getAttribute("data-report-version")).toBe("ART-context"));
     // The editor is handed the document by an effect after the bar names it: waited for, never
     // read in the same tick (it raced on a loaded CI runner).
     await waitFor(() => expect(editor.handed).toContainEqual({ variant: "context", review: "RUN-deep" }));
@@ -141,13 +147,61 @@ const shownBar = (c: HTMLElement) => waitFor(() => {
 });
 
 describe("the doc bar while the editor shows the document", () => {
+  // Codex on #985: the editor's doc bar downloads the version on screen, never the card's.
+  it("downloads the edited koncept on screen, read again first and checked to be that version (RPT3c)", async () => {
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
+    versions(version());
+    const file = new Blob(["docx"]);
+    vi.mocked(research.downloadReportEditorVersion).mockResolvedValue({ blob: file, filename: "zprava-koncept-2.docx", artifactId: "ART-edit", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(file, "zprava-koncept-2.docx"));
+    expect(research.downloadReportEditorVersion).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit");
+    expect(research.downloadReport).not.toHaveBeenCalled(); // never the composed draft for an edited koncept
+  });
+
+  it("hands over no file that is not the koncept on screen, and none once a later save exists", async () => {
+    editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
+    versions(version());
+    vi.mocked(research.downloadReportEditorVersion).mockResolvedValue({ blob: new Blob(["x"]), filename: null, artifactId: "ART-other", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    expect((await within(await shownBar(container)).findByRole("alert")).textContent).toContain("není verze");
+    versions(version({ newest_in_line: { version_artifact_id: "ART-edit-3", koncept: 3 } }), version({ version_artifact_id: "ART-edit-3", koncept: 3, newest_in_line: { version_artifact_id: "ART-edit-3", koncept: 3 } }));
+    vi.mocked(research.downloadReportEditorVersion).mockClear();
+    fireEvent.click(within(editorBar(container)).getByRole("button", { name: "Stáhnout koncept 2 (DOCX)" }));
+    expect(await within(editorBar(container)).findByText("Editor mezitím uložil koncept 3; zkontrolujte jeho změny a schvalte znovu.")).toBeTruthy();
+    expect(research.downloadReportEditorVersion).not.toHaveBeenCalled();
+    expect(saveBlob).not.toHaveBeenCalled();
+  });
+
+  it("offers the pane's own exports while the editor shows koncept 1, the composed draft", async () => {
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: false, seen: () => null };
+    versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
+    const file = new Blob(["docx"]);
+    vi.mocked(research.downloadReport).mockResolvedValue({ blob: file, filename: "zprava.docx", artifactId: "ART-docx", reviewState: "DRAFT_UNAPPROVED" } as never);
+    const { container } = show();
+    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: /Stáhnout DOCX/ }));
+    await waitFor(() => expect(saveBlob).toHaveBeenCalledWith(file, "zprava.docx"));
+    expect(research.downloadReportEditorVersion).not.toHaveBeenCalled();
+  });
+
+  it("offers koncept 1's exports nothing while an edit waits to be stored (delta review of #985)", async () => {
+    editor.shows = { opened: { ...OPENED, koncept: 1, version_artifact_id: "ART-docx", lines: [] }, startedAt: null, dirty: true, seen: () => null };
+    versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
+    const { container } = show();
+    expect(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" })).toBeTruthy();
+    expect(container.querySelector("[data-editor-unsaved]")).not.toBeNull();
+    expect(within(editorBar(container)).queryByRole("button", { name: /Stáhnout/ })).toBeNull();
+  });
+
   it("names the version on screen and who saved it, never the composed draft's approval", async () => {
     editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     const { container } = show();
     await waitFor(() => expect(editorBar(container)?.textContent).toContain("Koncept 2, uložen 23. 10. 2026 22:10 · Jana Výzkumná"));
     expect(within(bar(container)).queryByRole("button", { name: "Schválit pro interní použití" })).toBeNull();
-    expect(bar(container).textContent).not.toContain("ART-docx");
+    expect(bar(container).getAttribute("data-report-version")).toBeNull();
   });
 
   it("lists what the version changed under Upraveno ručně", async () => {
@@ -164,18 +218,14 @@ describe("the doc bar while the editor shows the document", () => {
     editor.shows = { opened: OPENED, startedAt: null, dirty: false, seen: () => null };
     versions(version());
     vi.mocked(research.approveReport).mockResolvedValue({ run_id: "RUN-1", artifact_id: "ART-edit", review_state: "APPROVED_INTERNAL", approved_on: "2026-10-23", stamped: true, approval: null, internal_only: true } as never);
-    const heard: unknown[] = [];
-    const on = (e: Event) => heard.push((e as CustomEvent).detail);
-    window.addEventListener("aia:report-approved", on);
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 2" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("Schválit interní zprávu, koncept 2 (ART-edit)?");
+    expect(dialog.textContent).toMatch(/^Schvalujete tuto verzi: Interní zpráva, koncept 2, uloženou \d+\. \d+\. \d{4} \d{2}:\d{2}\. Schválení se zapíše pod vaším jménem a stáhnete přesně tuto verzi\./);
+    expect(dialog.textContent).not.toContain("ART-");
     expect(dialog.textContent).toContain("Číslo trust_total: 42,5 % → 50 %");
     fireEvent.click(within(dialog).getByRole("button", { name: "Schválit koncept 2" }));
     await waitFor(() => expect(research.approveReport).toHaveBeenCalledWith(TEST_FRAME.studyId, "RUN-1", "ART-edit", "", true, null));
-    await waitFor(() => expect(heard).toContainEqual(expect.objectContaining({ artifactId: "ART-edit", kind: "internal" })));
-    window.removeEventListener("aia:report-approved", on);
   });
 
   it("asks again when a later save exists, approving nothing", async () => {
@@ -197,7 +247,7 @@ describe("the doc bar while the editor shows the document", () => {
     const { container } = show();
     fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
     const dialog = await screen.findByRole("dialog");
-    expect(dialog.textContent).toContain("ART-docx");
+    expect(dialog.textContent).toContain("Schvalujete tuto verzi: Interní zpráva (DOCX).");
     expect(container.querySelector("[data-editor-edited]")).toBeNull();
     // Approved as its line's newest: the server refuses once a save moved the line on.
     fireEvent.click(within(dialog).getAllByRole("button").find((b) => !/Zrušit/.test(b.textContent ?? ""))!);
@@ -210,9 +260,11 @@ describe("the doc bar while the editor shows the document", () => {
     versions(version({ version_artifact_id: "ART-docx", koncept: 1, changes: null, edited_from: null, newest_in_line: { version_artifact_id: "ART-docx", koncept: 1 } }));
     const READY = { artifact_id: "ART-docx", review_state: "DRAFT_UNAPPROVED", approved_on: null, stamped: false, pdf: null, approval_renders_pdf: false };
     let answer: (value: unknown) => void = () => undefined;
-    vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
     const { container } = show();
-    fireEvent.click(await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" }));
+    const approve = await within(await shownBar(container)).findByRole("button", { name: "Schválit koncept 1" });
+    // The approval's own read of the status, held open (the doc bar read its PDF before the editor showed).
+    vi.mocked(research.report).mockImplementationOnce(() => new Promise((resolve) => { answer = resolve; }) as never);
+    fireEvent.click(approve);
     act(() => editor.emit({ opened: K1, startedAt: Date.now(), dirty: true, seen: () => null })); // typed while the status is read
     await act(async () => { answer(READY); });
     expect(await screen.findByText(/V editoru jsou úpravy, které AIA ještě neuložila/)).toBeTruthy();

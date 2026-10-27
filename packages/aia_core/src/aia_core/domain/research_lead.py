@@ -36,6 +36,7 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Annotated, Any, Final, Literal, get_args
@@ -138,6 +139,8 @@ __all__ = [
     "context_data_class",
     "context_identifiers",
     "context_sha256",
+    "design_research_questions",
+    "filter_refusal",
     "freeze_context",
     "frozen_sample_size",
     "ground_edits",
@@ -153,6 +156,7 @@ __all__ = [
     "number_tokens",
     "question_add_problem",
     "readiness_layer",
+    "select_refusal",
     "self_update_base",
     "show_diff_refusal",
     "split_self_update",
@@ -165,7 +169,10 @@ __all__ = [
 
 LEAD_PROMPT_ID: Final = "aia.research.lead"
 LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
-LEAD_PROMPT_VERSION: Final = "1"
+#: 2: the task describes Deep Research's two purposes, its presets and targets (LO5a.1).
+#: 3: the task says the Lead may select what the person pointed at on Sociomapa and set its
+#: display filters (#992; the product owner, 2026-10-26).
+LEAD_PROMPT_VERSION: Final = "3"
 #: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
 #: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
 LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
@@ -177,7 +184,11 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: 4: ``inspect`` joins the view: the Lead opens an element's detail in the item drawer, on a stage
 #: whose contract allows it (``lead_artifacts.allows_view``; research-lead-workbench 14).
 #: 5: ``show_diff`` joins the view: a stage's waiting changes shown (research-lead-workbench 14).
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-5"
+#: 6: the ``deep_research`` and ``targets`` layers, and a request's preset, focus, target and
+#: retry, each grounded against them (lead-orchestration LO5a.1).
+#: 7: ``select`` (the element the person pointed at, on Sociomapa) and ``filter`` (a display
+#: filter of Sociomapa's, by its contract's names and values) join the view.
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-7"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -296,7 +307,31 @@ class ShowDiff(Closed):
     stage: Stage
 
 
-ViewOp = Annotated[OpenStage | FocusItem | InspectItem | ShowDiff, Field(discriminator="op")]
+class SelectItem(Closed):
+    """Select an element on Sociomapa (an object or a pair); the map is never changed. Only the
+    element the person pointed at this turn: the context holds no map to name another by
+    (:func:`ground_view`)."""
+
+    op: Literal["select"]
+    target: str = Field(min_length=3, max_length=200, pattern=_TARGET)
+
+
+class MapFilter(Closed):
+    """A display filter on Sociomapa, by the name and value its contract lists
+    (``lead_artifacts.FILTER_VALUES``): the picture changes, the computation never. Only the
+    filters the map's panel applies (Sociomapa (2), 2026-10-26): ``labels`` and ``hide_weak``
+    have no control on it, and ``battery`` takes the run's own ids, which the context does not
+    hold, so the Lead is not offered them."""
+
+    op: Literal["filter"]
+    name: Literal["view", "mode"]
+    value: str = Field(min_length=1, max_length=80, pattern=rf"^{ID_PATTERN}$")
+
+
+ViewOp = Annotated[
+    OpenStage | FocusItem | InspectItem | ShowDiff | SelectItem | MapFilter,
+    Field(discriminator="op"),
+]
 
 
 # --------------------------------------------------------------------------- requests
@@ -315,18 +350,48 @@ class ResearchRunRequest(Closed):
     why: Why
 
 
+#: A Deep Research preset the Lead may prepare (Q46): QUICK or STANDARD. DEEP is not offered.
+LeadResearchPreset = Literal["QUICK", "STANDARD"]
+#: A research question's stable id, as the design names it (``item_ids``).
+ResearchQuestionId = Annotated[str, Field(pattern=r"^[A-Za-z0-9_.\-]{1,80}$")]
+#: A candidate's id in the turn's ``targets`` layer: ``t1`` … ``tn``, stable within the turn.
+TargetId = Annotated[str, Field(pattern=r"^t[1-9][0-9]{0,2}$")]
+
+
 class DesignResearchRequest(Closed):
+    """Design Research, prepared (lead-orchestration LO5a.1): over the whole design, or over the
+    named research questions alone (Q45)."""
+
     kind: Literal["design_research"]
     why: Why
+    preset: LeadResearchPreset = "STANDARD"
+    focus: list[ResearchQuestionId] = Field(default_factory=list, max_length=12)
 
 
 class InterpretationResearchRequest(Closed):
+    """Interpretation Research over one result of the study, a candidate of the turn's
+    ``targets`` layer (Q44); none named, the default candidate."""
+
     kind: Literal["interpretation_research"]
     why: Why
+    target: TargetId | None = None
+    preset: LeadResearchPreset = "STANDARD"
+
+
+class DeepResearchRetryRequest(Closed):
+    """A retry of one of the study's Deep Research runs, named in the ``deep_research`` layer."""
+
+    kind: Literal["deep_research_retry"]
+    why: Why
+    run_id: str = Field(pattern=r"^RUN-[0-9a-f]{1,32}$")
 
 
 JobRequest = Annotated[
-    AgentJobRequest | ResearchRunRequest | DesignResearchRequest | InterpretationResearchRequest,
+    AgentJobRequest
+    | ResearchRunRequest
+    | DesignResearchRequest
+    | InterpretationResearchRequest
+    | DeepResearchRetryRequest,
     Field(discriminator="kind"),
 ]
 
@@ -518,7 +583,85 @@ def _without_identifiers(text: str, identifiers: frozenset[str]) -> str:
     return re.sub(rf"{_ID_BEFORE}(?:{alternatives}){_ID_AFTER}", " ", text)
 
 
-def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) -> type[LeadOutput]:
+@dataclass(frozen=True, slots=True)
+class RequestIds:
+    """The ids a turn's prepared Deep Research request may name, read from its frozen context
+    (lead-orchestration LO5a.1): the design's research questions, the ``targets`` layer's
+    candidates and the ``deep_research`` layer's runs. A request naming another is refused."""
+
+    research_questions: frozenset[str] = frozenset()
+    targets: frozenset[str] = frozenset()
+    #: The candidate a request naming no target takes: the newest research-questions module.
+    default_target: str | None = None
+    deep_research_runs: frozenset[str] = frozenset()
+
+
+def design_research_questions(content: Mapping[str, Any]) -> list[dict[str, str]]:
+    """The design's research questions with the ids a focus names them by (``item_ids``), as
+    the design layer shows them: a stored copy need not carry its ids, so they are derived and
+    shown, never left for the model to guess (stand-in review of #925). Empty when the plan
+    states none, or its ids do not line up with its list."""
+    plan = with_item_ids(content)[0].get("research_plan")
+    if not isinstance(plan, Mapping):
+        return []
+    ids = list_ids(plan, "research_questions", "research_question_ids") or []
+    texts = plan.get("research_questions") or []
+    return [{"id": i, "text": str(t)} for i, t in zip(ids, texts, strict=False)]
+
+
+def request_ids(context: Mapping[str, Any]) -> RequestIds:
+    """What :class:`RequestIds` a frozen context offers, read from what the model is shown: the
+    design layer's ``research_questions`` list, the candidates and their default, and the Deep
+    Research runs that can be retried. A layer it does not hold offers none."""
+    by_name = {entry.get("layer"): entry for entry in context.get("layers") or []}
+    listed = (by_name.get("design") or {}).get("research_questions") or []
+    questions = frozenset(
+        str(q["id"]) for q in listed if isinstance(q, Mapping) and isinstance(q.get("id"), str)
+    )
+    targets_layer = by_name.get("targets") or {}
+    targets = targets_layer.get("candidates") or []
+    default = targets_layer.get("default")
+    runs = (by_name.get("deep_research") or {}).get("runs") or []
+    return RequestIds(
+        research_questions=questions,
+        targets=frozenset(str(t["id"]) for t in targets if isinstance(t, Mapping) and "id" in t),
+        default_target=default if isinstance(default, str) else None,
+        deep_research_runs=frozenset(
+            str(r["run_id"])
+            for r in runs
+            if isinstance(r, Mapping) and "run_id" in r and r.get("retryable") is True
+        ),
+    )
+
+
+def request_refusal(request: Any, ids: RequestIds) -> str | None:
+    """Why ``request`` names something the turn was not shown, or ``None``."""
+    if isinstance(request, DesignResearchRequest):
+        unknown = sorted(set(request.focus) - ids.research_questions)
+        if unknown:
+            return "request.focus names research questions the design does not hold: " + ", ".join(
+                unknown[:5]
+            )
+    elif isinstance(request, InterpretationResearchRequest):
+        if not ids.targets:
+            return "request is interpretation_research, but the context offers no target"
+        if request.target is None and ids.default_target is None:
+            return "request.target is needed: the targets layer has no default"
+        if request.target is not None and request.target not in ids.targets:
+            return f"request.target {request.target} is not a candidate of the targets layer"
+    elif isinstance(request, DeepResearchRetryRequest):
+        if request.run_id not in ids.deep_research_runs:
+            return (
+                f"request.run_id {request.run_id} is not a retryable run of the deep_research layer"
+            )
+    return None
+
+
+def lead_contract(
+    allowed_text: str,
+    identifiers: frozenset[str] = frozenset(),
+    ids: RequestIds | None = None,
+) -> type[LeadOutput]:
     """The output contract a turn is validated against: :class:`LeadOutput`, refusing a
     reply that writes a number ``allowed_text`` (the frozen context and the prompt) does not.
 
@@ -553,6 +696,10 @@ def lead_contract(allowed_text: str, identifiers: frozenset[str] = frozenset()) 
                         f"lead_file_too_large: self_update.{name} is "
                         f"{len(text.encode('utf-8'))} bytes; write it in at most {limit}"
                     )
+            if ids is not None and self.request is not None:
+                refused = request_refusal(self.request, ids)
+                if refused is not None:
+                    raise ValueError(refused + "; name only what the context holds")
             unknown = sorted(number_tokens(_without_identifiers(self.reply, identifiers)) - allowed)
             if unknown:
                 raise ValueError(
@@ -639,7 +786,9 @@ def target_refusal(target: str, content: Mapping[str, Any]) -> str | None:
 
 
 #: Návrh's section anchors (``plan:<part>``, the web's ``PLAN_PARTS``).
-_PLAN_PARTS: Final = frozenset({"narrative", "variants", "sets", "questions", "comments"})
+_PLAN_PARTS: Final = frozenset(
+    {"narrative", "hypotheses", "variants", "sets", "questions", "comments"}
+)
 #: The design items an ``inspect`` may name, by the plan list that holds their stable ids.
 _INSPECT_LISTS: Final = {
     "rq": ("research_questions", "research_question_ids"),
@@ -690,9 +839,10 @@ def inspect_refusal(
     return "not_in_context"
 
 
-#: The stages whose screens show their waiting changes. Zpráva declares ``show_diff`` too, for a
-#: draft's tracked changes, which wait for report-delivery RD5.
-SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions"})
+#: The stages whose screens show their waiting changes (Vzorek: a ``set_n``, artifact-sample
+#: SMP7). Zpráva declares ``show_diff`` too, for a draft's tracked changes, which wait for
+#: report-delivery RD5.
+SHOW_DIFF_STAGES: Final = frozenset({"design", "questionnaire", "dimensions", "sample"})
 
 
 def show_diff_refusal(stage: str) -> str | None:
@@ -705,12 +855,44 @@ def show_diff_refusal(stage: str) -> str | None:
     )
 
 
+def select_refusal(target: str, content: Mapping[str, Any], focus: str | None) -> str | None:
+    """Why the Lead may not select ``target``, or None when it may: what :func:`target_refusal`
+    refuses; ``not_selectable`` for an element of a stage whose contract has no ``select``; then
+    ``not_in_context`` for anything but the element the person pointed at this turn, since the
+    context holds no map to name another by (an id made up would select nothing)."""
+    from .lead_artifacts import allows_view, stage_of  # lead_artifacts imports this module
+
+    reason = target_refusal(target, content)
+    if reason is not None:
+        return reason
+    stage = stage_of(target.partition(":")[0])
+    if stage is None or not allows_view(stage, "select"):
+        return "not_selectable"
+    return None if target == focus else "not_in_context"
+
+
+def filter_refusal(op: MapFilter) -> str | None:
+    """Why the Lead may not set this display filter, or None when it may: a value its contract
+    does not list is ``unknown_value``; a filter whose values only the run's map knows is
+    ``not_in_context``, since the context holds no map."""
+    from .lead_artifacts import FILTER_VALUES  # lead_artifacts imports this module
+
+    values = FILTER_VALUES["sociomap"][op.name]
+    if values is None:
+        return "not_in_context"
+    return None if op.value in values else "unknown_value"
+
+
 def ground_view(
-    output: LeadOutput, content: Mapping[str, Any], analysis: Mapping[str, Any] | None = None
+    output: LeadOutput,
+    content: Mapping[str, Any],
+    analysis: Mapping[str, Any] | None = None,
+    focus: str | None = None,
 ) -> tuple[LeadOutput, list[Dropped]]:
     """``output`` with only the targets the working content can show, and the rest named
     (:func:`target_refusal`; an ``inspect`` also :func:`inspect_refusal`, a ``show_diff``
-    :func:`show_diff_refusal`). Opening a stage is always kept."""
+    :func:`show_diff_refusal`, a ``select`` :func:`select_refusal` against the person's
+    ``focus`` this turn, a ``filter`` :func:`filter_refusal`). Opening a stage is always kept."""
     kept: list[Any] = []
     dropped: list[Dropped] = []
     for i, op in enumerate(output.view):
@@ -721,6 +903,10 @@ def ground_view(
             if isinstance(op, InspectItem)
             else show_diff_refusal(op.stage)
             if isinstance(op, ShowDiff)
+            else select_refusal(op.target, content, focus)
+            if isinstance(op, SelectItem)
+            else filter_refusal(op)
+            if isinstance(op, MapFilter)
             else None
         )
         if reason is None:
@@ -862,12 +1048,23 @@ Co děláš:
   odmítne člověk; nikdy netvrď, že jsi návrh výzkumu změnil.
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli
   request. Spustí ji až člověk; netvrď, že běží.
+- Rešerše (Deep Research) má dva účely. design_research hledá kontext k návrhu před během:
+  focus jsou id z design.research_questions, prázdný focus je celý návrh.
+  interpretation_research hledá kontext k jednomu výsledku: target je id kandidáta z vrstvy
+  targets (t1, t2 …); bez target platí targets.default. deep_research_retry zopakuje běh
+  z vrstvy deep_research podle run_id, jen je-li retryable. preset je QUICK (rychlá) nebo
+  STANDARD (výchozí). Pojmenuj jen id, které v kontextu je.
+- Rešerše je vnější kontext, nikdy důkaz od respondentů: její zjištění nevydávej za výsledek
+  studie a výsledky jí neměň.
 - Pohled řídíš polem view: open_stage otevře fázi, focus zaměří položku jejím
   identifikátorem (například question:q3, brief:goal, plan:research_questions), inspect
   otevře detail výzkumné otázky, hypotézy nebo části návrhu (například rq:<id>, plan:sets)
   v panelu nad artefaktem; jen s identifikátorem, který máš v kontextu. show_diff ukáže
   čekající změny fáze design, questionnaire nebo dimensions: tvé návrhy změn, o kterých
   výzkumník ještě nerozhodl, jinak nejnovější návrh specialisty, který čeká na kontrolu.
+  Na Sociomapě filter změní jen obraz mapy (name view: top nebo relief, mode: objects nebo
+  respondents) a select vybere objekt nebo dvojici, na kterou výzkumník ukázal (view.focus);
+  mapu ani výpočet nikdy nezměníš.
 - Do reply nepiš žádné číslo, které v kontextu není. Čísla neodhaduj, nepočítej ani
   nezaokrouhluj; aplikace odpověď s cizím číslem odmítne.
 - Odpovídej česky, stručně a prakticky: hlavní věc, její důsledek, další krok. V follow
@@ -984,8 +1181,14 @@ def freeze_context(
     external: Mapping[str, Any] | None = None,
     memory: Mapping[str, Any] | None = None,
     memory_classes: Sequence[str | None] = (),
+    deep_research: Mapping[str, Any] | None = None,
+    targets: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
+
+    ``deep_research`` and ``targets`` (lead-orchestration LO5a.1): the study's Deep Research
+    runs and the Interpretation Research candidates (``lead_research_targets``), each bounded in
+    its own bytes there, after the runs; absent, the context is what it was without them.
 
     ``external``: the bundle's pin and lines (``analysis_results._external_context``), as the
     :data:`EXTERNAL_LAYER` after the runs; absent, the context is what it was without it.
@@ -1015,6 +1218,12 @@ def freeze_context(
                 {"layer": "study", **dict(study)},
                 {"layer": "design", **dict(design)},
                 {"layer": "runs", "runs": [dict(r) for r in runs]},
+                *(
+                    [{"layer": "deep_research", **dict(deep_research)}]
+                    if deep_research is not None
+                    else []
+                ),
+                *([{"layer": "targets", **dict(targets)}] if targets is not None else []),
                 *(
                     [{"layer": EXTERNAL_LAYER, "note": EXTERNAL_NOTE, **dict(external)}]
                     if external is not None
@@ -1129,6 +1338,16 @@ def context_classification(
     ]
     if design.get("analysis"):
         parts.append(_part("design_analysis", design["analysis"], MaterialRule.DESIGN, approvals))
+    if design.get("research_questions"):
+        # The plan's research questions with their ids: the design's own words.
+        parts.append(
+            _part(
+                "design_research_questions",
+                design["research_questions"],
+                MaterialRule.DESIGN,
+                approvals,
+            )
+        )
     if view.get("message"):
         parts.append(_part("message", view["message"], MaterialRule.LEAD_MESSAGE, approvals))
     # Several queued messages answered together: each the researcher's, each its own part.
@@ -1191,6 +1410,13 @@ def context_classification(
                 "source": f"{part['source']}+turn",
             }
         parts.append(part)
+    # The study's Deep Research runs and its result candidates name the design's own words (a
+    # question's text, a set's title, a research question): Class B by rule, as the design is.
+    for name in ("deep_research", "targets"):
+        entry = next((e for e in context["layers"] if e["layer"] == name), None)
+        if entry is not None:
+            body = {k: v for k, v in entry.items() if k != "layer"}
+            parts.append(_part(name, body, MaterialRule.DESIGN, approvals))
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
@@ -1247,6 +1473,7 @@ def lead_request(
             output_contract=lead_contract(
                 system + "\n" + canonical_json(citable_context(context)),
                 context_identifiers(context),
+                request_ids(context),
             ),
             max_output_tokens=max_output_tokens,
             schema_repair_attempts=1,
@@ -1297,6 +1524,10 @@ def new_turn_id() -> str:
 
 def new_lead_id() -> str:
     return _new_id("LEAD-")
+
+
+def new_hatch_id() -> str:
+    return _new_id("LHT-")
 
 
 def new_memory_id() -> str:

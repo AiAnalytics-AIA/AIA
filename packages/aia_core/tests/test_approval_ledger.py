@@ -1,7 +1,8 @@
 """The approval ledger's closed set of subjects, and migration M3 (lead-orchestration LO16).
 
 The domain names every subject once (``domain/approval_ledger.py``); the table's CHECK is built
-from it; migration 5054d4d610c2 admits the MVP lane's seven subjects literally; a study reads its
+from it; migration 5054d4d610c2 admits the MVP lane's seven subjects literally and b7d1f3a5c9e2 the
+finding reviews (artifact-analysis ANL11); a study reads its
 own decisions through ``WorkflowRepository.ledger`` and nobody else's.
 """
 
@@ -33,10 +34,17 @@ REPO = Path(__file__).resolve().parents[3]
 MIGRATION = (
     REPO / "migrations/versions/20261020_5054d4d610c2_the_approval_ledger_admits_the_mvp_lane_.py"
 )
+FINDINGS_MIGRATION = (
+    REPO / "migrations/versions/20261026_b7d1f3a5c9e2_the_approval_ledger_admits_finding_reviews.py"
+)
 
 
-def _migration() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("ledger_admits_the_mvp_lane", MIGRATION)
+#: Migration M3b (lead-orchestration LO5a.2): ``lead_card``, after M3 on the same constraint.
+M3B = REPO / "migrations/versions/20261026_124dedc8f7b1_the_approval_ledger_admits_lead_cards.py"
+
+
+def _migration(path: Path = MIGRATION) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(path.stem, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -78,13 +86,24 @@ def test_the_table_checks_exactly_the_domain_subjects() -> None:
     )
 
 
-def test_the_migration_names_the_same_subjects_in_the_same_order() -> None:
-    """Written out in the migration, never imported: it must still be the domain's set."""
-    migration = _migration()
-    written = migration._BEFORE + migration._ADDED
-    assert written == tuple(s.subject.value for s in SUBJECTS)
-    assert set(migration._ADDED) == {s.value for s in LANE_M3_SUBJECTS}
-    assert migration.down_revision == "57eaa96a5538"
+def test_the_migrations_name_the_same_subjects_in_the_same_order() -> None:
+    """Written out in each migration, never imported: the newest must still be the domain's
+    set, and each must start from the set the one before it left."""
+    lane, m3b, findings = _migration(), _migration(M3B), _migration(FINDINGS_MIGRATION)
+    assert set(lane._ADDED) == {s.value for s in LANE_M3_SUBJECTS}
+    assert lane.down_revision == "57eaa96a5538"
+    assert m3b._BEFORE == lane._BEFORE + lane._ADDED
+    assert findings._BEFORE == m3b._BEFORE + m3b._ADDED
+    assert (ApprovalSubject.ANALYSIS_FINDING.value,) == findings._ADDED
+    assert findings.down_revision == "124dedc8f7b1"
+    assert tuple(s.subject.value for s in SUBJECTS) == findings._BEFORE + findings._ADDED
+
+
+def test_m3b_adds_lead_card_alone() -> None:
+    """Migration M3b (LO5a.2): the wallet's authority for a Lead card's charge, after M3."""
+    migration = _migration(M3B)
+    assert (ApprovalSubject.LEAD_CARD.value,) == migration._ADDED
+    assert migration.down_revision == "46d0bf6b5121"
 
 
 # --------------------------------------------------------------------------- rows and reads
@@ -182,9 +201,43 @@ def test_the_upgrade_admits_the_lane_and_the_downgrade_takes_it_back(
                 assert "'lead_self_update'" in _subjects_admitted(connection)
                 migration.upgrade()
             admitted = _subjects_admitted(connection)
-            assert all(f"'{s.value}'" in admitted for s in ApprovalSubject)
+            assert all(f"'{s}'" in admitted for s in migration._BEFORE + migration._ADDED)
         finally:
             transaction.rollback()  # PostgreSQL DDL is transactional: the schema is as it was
+
+
+def test_m3b_admits_lead_cards_and_its_downgrade_takes_them_back(postgres: Any) -> None:
+    migration = _migration(M3B)
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with Operations.context(MigrationContext.configure(connection)):
+                migration.downgrade()
+                assert "'lead_card'" not in _subjects_admitted(connection)
+                assert "'sociomap_unlock'" in _subjects_admitted(connection)
+                migration.upgrade()
+            admitted = _subjects_admitted(connection)
+            assert all(f"'{s}'" in admitted for s in migration._BEFORE + migration._ADDED)
+        finally:
+            transaction.rollback()
+
+
+def test_m3b_downgrade_refuses_while_the_ledger_holds_a_lead_card(
+    postgres: Any, session: Session, scoped: Any
+) -> None:
+    session.add(_row(scoped.scope(), "lead_card"))
+    session.commit()
+    migration = _migration(M3B)
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with (
+                Operations.context(MigrationContext.configure(connection)),
+                pytest.raises(RuntimeError, match="append-only"),
+            ):
+                migration.downgrade()
+        finally:
+            transaction.rollback()
 
 
 def test_the_downgrade_refuses_while_the_ledger_holds_a_lane_decision(
@@ -193,6 +246,42 @@ def test_the_downgrade_refuses_while_the_ledger_holds_a_lane_decision(
     session.add(_row(scoped.scope(), "sociomap_unlock"))
     session.commit()
     migration = _migration()
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with (
+                Operations.context(MigrationContext.configure(connection)),
+                pytest.raises(RuntimeError, match="append-only"),
+            ):
+                migration.downgrade()
+        finally:
+            transaction.rollback()
+
+
+def test_the_findings_migration_admits_finding_reviews_and_takes_them_back(
+    postgres: Any,
+) -> None:
+    migration = _migration(FINDINGS_MIGRATION)
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with Operations.context(MigrationContext.configure(connection)):
+                migration.downgrade()
+                assert "'analysis_finding'" not in _subjects_admitted(connection)
+                assert "'sociomap_unlock'" in _subjects_admitted(connection)
+                migration.upgrade()
+            admitted = _subjects_admitted(connection)
+            assert all(f"'{s.value}'" in admitted for s in ApprovalSubject)
+        finally:
+            transaction.rollback()
+
+
+def test_the_findings_downgrade_refuses_while_the_ledger_holds_a_finding_review(
+    postgres: Any, session: Session, scoped: Any
+) -> None:
+    session.add(_row(scoped.scope(), "analysis_finding", "RUN-1:executive:0"))
+    session.commit()
+    migration = _migration(FINDINGS_MIGRATION)
     with postgres.connect() as connection:
         transaction = connection.begin()
         try:

@@ -16,6 +16,7 @@
 // relief, the projection, label placement and the screen size of the stored uncertainty radius.
 
 import { panelObjects, panelRespondents } from "./object-map-signed-off";
+import { PEDESTAL, drawSmoothTerrain } from "./object-map-smooth";
 import { type BatteryWithMaps, type Frame, type ObjectMapArtifact, mapLinks } from "./object-map-view";
 
 /** The panel's frame: the stored grid spans +-62 frame units (`terrain66`, `FRAME_SPAN66`). */
@@ -273,7 +274,7 @@ const lineClearance = (selected: boolean) => nodeRadius(selected) + 4.5;
 
 // ---------------------------------------------------------------- relations
 
-/** Which relations the map draws: the panel's default "Top vztahy" (5 strongest), the selected object's, or all. */
+/** Which relations the map draws: the panel's default "Nejsilnější vztahy" (its Top: 5 strongest), the selected object's, or all. */
 export type RelationMode = "top" | "selected" | "all";
 export type PanelPair = { i: number; j: number; r: number; v: number };
 
@@ -395,6 +396,8 @@ export type MapScene = {
   // Present on the respondent map: its dots, and the clicked one (-1: none). The objects then draw
   // as the panel's markers and no relation is drawn.
   respondents?: { dots: PanelDot[]; selected: number };
+  // The smooth terrain (object-map-smooth.ts), drawn in WebGL at this device-pixel ratio; absent: blocky.
+  smooth?: { ratio: number };
 };
 
 /** What a click can land on: an object (on either map), a respondent's dot, or a drawn relation
@@ -427,8 +430,18 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
   ctx.fillRect(0, 0, W, H);
   // The panel never resets the line width between frames; from its second frame on the slab is
   // stroked at the triangles' hairline, which is what a reader sees.
+  if (!(scene.smooth && drawSmoothTerrain(ctx, grid, camera, W, H, scene.smooth.ratio))) drawBlockyTerrain(ctx, P, camera, grid);
+  drawContours(ctx, P, grid);
+  const result = scene.respondents ? drawRespondents(ctx, P, scene, scene.respondents) : drawObjects(ctx, P, scene);
+  if (scene.statements) drawStatements(ctx, P, scene, result.labels);
+  return result;
+}
+
+function drawBlockyTerrain(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, grid: PanelGrid): void {
+  // The panel never resets the line width between frames; from its second frame on the slab is
+  // stroked at the triangles' hairline, which is what a reader sees.
   ctx.lineWidth = 0.28;
-  drawSlab(ctx, P, camera, grid.span);
+  drawSlab(ctx, P, camera, grid);
   ctx.lineWidth = 0.28;
   for (const tr of terrainTriangles(grid, P)) {
     ctx.beginPath();
@@ -443,28 +456,46 @@ export function drawObjectMap(ctx: CanvasRenderingContext2D, scene: MapScene): D
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-  drawContours(ctx, P, grid);
-  const result = scene.respondents ? drawRespondents(ctx, P, scene, scene.respondents) : drawObjects(ctx, P, scene);
-  if (scene.statements) drawStatements(ctx, P, scene, result.labels);
-  return result;
 }
 
-function drawSlab(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, s: number): void {
+/**
+ * The terrain's sides (the owner, 2026-10-23, as the Sociomapy app's Pedestal, without its layer
+ * bands): one wall per edge segment of the grid, from the terrain's edge height down to a flat base
+ * just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base. From
+ * above there are none; the canvas has no depth buffer, so only the walls facing the camera are drawn.
+ */
+function drawSlab(ctx: CanvasRenderingContext2D, P: Projection, camera: PanelCamera, grid: PanelGrid): void {
   if (camera.pitch < TOP_PITCH) return;
-  const top = [P.project(-s, -s, 0), P.project(s, -s, 0), P.project(s, s, 0), P.project(-s, s, 0)];
-  const bot = [P.project(-s, -s, -3), P.project(s, -s, -3), P.project(s, s, -3), P.project(-s, s, -3)];
-  for (let i = 0; i < 4; i++) {
-    const j = (i + 1) % 4;
+  const { N, xs, ht, span: s } = grid, bottom = -PEDESTAL.depth;
+  ctx.beginPath();
+  [P.project(-s, -s, bottom), P.project(s, -s, bottom), P.project(s, s, bottom), P.project(-s, s, bottom)].forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)));
+  ctx.closePath();
+  ctx.fillStyle = PEDESTAL.base;
+  ctx.fill();
+  const rim: [number, number][] = [];
+  for (let x = 0; x < N; x++) rim.push([0, x]);
+  for (let y = 0; y < N; y++) rim.push([y, N]);
+  for (let x = N; x > 0; x--) rim.push([N, x]);
+  for (let y = N; y > 0; y--) rim.push([y, 0]);
+  const rgb = (c: string) => (c.match(/\d+/g) ?? []).slice(0, 3).map(Number);
+  const shade = (c: number[], f: number) => `rgb(${c.map((v) => Math.round(Math.min(255, v * f))).join(",")})`;
+  for (let i = 0; i < rim.length; i++) {
+    const [ay, ax] = rim[i], [by, bx] = rim[(i + 1) % rim.length], ha = ht[ay][ax], hb = ht[by][bx];
+    const ta = P.project(xs[ax], xs[ay], ha * RELIEF), tb = P.project(xs[bx], xs[by], hb * RELIEF);
+    const ba = P.project(xs[ax], xs[ay], bottom), bb = P.project(xs[bx], xs[by], bottom);
+    if ((tb.x - ta.x) * (ba.y - ta.y) - (tb.y - ta.y) * (ba.x - ta.x) >= 0) continue;
+    const ca = rgb(blend66(color66(ha), 0.78 + 0.28 * ha)), cb = rgb(blend66(color66(hb), 0.78 + 0.28 * hb)), c = ca.map((v, k) => (v + cb[k]) / 2);
+    const gradient = ctx.createLinearGradient((ta.x + tb.x) / 2, (ta.y + tb.y) / 2, (ba.x + bb.x) / 2, (ba.y + bb.y) / 2);
+    gradient.addColorStop(0, shade(c, 1));
+    gradient.addColorStop(1, shade(c, 1 - PEDESTAL.bottomDarken));
     ctx.beginPath();
-    ctx.moveTo(top[i].x, top[i].y);
-    ctx.lineTo(top[j].x, top[j].y);
-    ctx.lineTo(bot[j].x, bot[j].y);
-    ctx.lineTo(bot[i].x, bot[i].y);
+    ctx.moveTo(ta.x, ta.y);
+    ctx.lineTo(tb.x, tb.y);
+    ctx.lineTo(bb.x, bb.y);
+    ctx.lineTo(ba.x, ba.y);
     ctx.closePath();
-    ctx.fillStyle = i % 2 ? "#06151a" : "#071c22";
+    ctx.fillStyle = gradient;
     ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.05)";
-    ctx.stroke();
   }
 }
 

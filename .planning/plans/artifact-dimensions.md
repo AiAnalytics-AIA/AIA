@@ -7,7 +7,7 @@ chunks:
   - "[ ] DIM4. Vlastní dimenze klienta: a requested dimension materialized as the client's owned child, its outcome, and the run it feeds"
   - "[ ] DIM5. The Lead on Dimenze: suggest_dimensions as a card, its proposal inline, the stage's AI start removed"
   - "[ ] DIM6. Journey: Dimenze at 1440, 1100, 768 and 390 px, zero paid jobs"
-  - "[ ] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
+  - "[x] DIM3b. N leaves Dimenze for Vzorek: DIM3's stepper removed, the header counts 'N dimenzí'; reverses DIM3, one PR with artifact-sample SMP7 (spec vzorek D1; Nigel P1, 26 Oct 2026; W1)"
   - "[ ] DIM7. 'podpoří …' per dimension and §01 'Co dimenze podpoří', from the persona-topic feeds (spec vzorek D3; W2, blocked on master I5)"
   - "[ ] DIM8. The dead 'Faktory společnosti' card and the AI suggestion card removed (spec vzorek D6; W2)"
 ---
@@ -217,6 +217,36 @@ V2: `DimensionsArt` (`SampleStages.tsx:206-230`).
   puts it back on Vrátit…", `research/persona-undo.test.ts`, `dimensions_journey.mjs` (removed by keyboard,
   put back by Vrátit, focus on it).
 
+- **DIM-F11 (fixed in its own PR).** The dock's note said "{d} dimenzí" for every count ("0 dimenzí",
+  "1 dimenzí", "3 dimenzí"; `cs.ts:3028 @ bd0d1ad6`), where the stage track beside it already says
+  "Bez dimenzí" and "2 dimenze" (`lane.ts:83 @ bd0d1ad6`). Both now read `dimensionsChosen` (lane.ts), one
+  wording. Test: "the dock counts the chosen dimensions in Czech, as the stage track does" (0, 1, 2, 5). The
+  Run stage's receipt has the same wording (`receiptDims`, `cs.ts:3374 @ bd0d1ad6`, `ExecutionSteps.tsx:446
+  @ bd0d1ad6`); that screen is another owner's, told through the PM, and can read `dimensionsChosen` too.
+
+- **DIM-F12 (fixed in the same PR).** The way to "Populace běhu" under Vlastní dimenze klienta stands on
+  its own but was a bare underlined link, 15 px tall at 390 px (`OwnDimensions.tsx:49 @ bd0d1ad6`). It
+  takes the shared stand-alone link class (`TOUCH_LINK`: 44 px on a phone, the focus ring). Tests: "the
+  way to the run's population is a stand-alone link with the touch target", `dimensions_journey.mjs` (44 px
+  at 390).
+
+- **DIM-F13 (fixed in its own PR).** The catalogue's search compared the query as typed, lower-cased only
+  (`research/persona.ts:75-78 @ 40b16d58`, filterDimPicker1789's port): "duvera" and "znacky" found nothing,
+  though Důvěra and Vztah ke značkám were in the list, and " duvera " found nothing for its spaces. Case and
+  diacritics now fold on both sides and the query's spaces drop (`searchFold`), a deliberate widening of the
+  classic's match, recorded in the module's header; its parity cases still hold. Test: "finds a dimension
+  typed without diacritics…".
+
+- **DIM-F14 (fixed in the same PR).** "Přidat jako požadavek" filed a knowledge proposal for any name
+  (`PersonaStep.tsx:183-191 @ 40b16d58`): "Důvěra", already in the catalogue, became a proposal. A name the
+  catalogue has, by label or id, case and spaces aside (diacritics kept: Řada is not Rada), is now the
+  field's own error naming the catalogue's dimension, and nothing is sent (`requestProblem`). A request the
+  project records already is not refused: the screen does not read whether its proposal still waits, and a
+  rejected one must stay askable; that the waiting list never learns of a decision is left for the
+  knowledge plan. If the client's dimensions have not loaded, the check sees the system's alone, as before.
+  The AI suggestion's request (classic, DIM5) is left as it is. Test: "refuses at the field a request the
+  catalogue already names…".
+
 ## 8. Owner questions
 
 None new. MVPQ-03 (what a segment or descriptor is) stays open in `mvp-owner-decisions.md`.
@@ -234,7 +264,12 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**DIM3b. N leaves Dimenze** (spec `vzorek/D1`; reverses DIM3, which stays ticked; W1, lane F). Nigel, 26 Oct 2026 (P1). One PR with `artifact-sample#SMP7`.
+**DIM3b. N leaves Dimenze** (spec `vzorek/D1`; reverses DIM3, which stays ticked; W1, lane F). Nigel, 26 Oct 2026 (P1). One PR with `artifact-sample#SMP7`. Done in the PR with SMP7: inside the workbench Dimenze has no sample size,
+its intro line opens Vzorek and the dock counts "N dimenzí včetně sociodemografie"
+(`PersonaStep.tsx`, `nOnVzorek`); the stepper is `SampleSize.tsx`, shared with Vzorek. The classic layout
+(the workbench switch off) has no Vzorek, so there the stepper stays on Dimenze: n is never on neither
+stage. Tests: "inside the workbench has no sample size control; it links to Vzorek…" (PersonaStep), "sets n
+on Vzorek, within the server's limits, and not on Dimenze" (ResearchScreen.workbench), `dimensions_journey.mjs`.
 
 **DIM7. What a dimension supports** (spec `vzorek/D3`, no backend; W2, lane F). Blocked on the methodology interface (master I5) and `research_trace`.
 

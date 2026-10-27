@@ -397,6 +397,40 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
+def test_finding_reviews_are_read_and_refused_through_the_study_the_path_names(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """artifact-analysis ANL11: a run's finding reviews are found only through its study, a
+    finding the analysis does not hold is 404, and only an edit carries a wording."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision).json()
+    base = f"{_runs(world)}/{run['run_id']}/analysis/findings"
+
+    listed = researcher.get(base)
+    assert listed.status_code == 200, listed.text
+    assert listed.json() == {"run_id": run["run_id"], "reviews": []}
+
+    # No module has an outcome yet: there is no finding to decide on.
+    refused = researcher.put(f"{base}/executive/0", json={"decision": "accepted"})
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "finding_not_found"
+    mismatch = researcher.put(
+        f"{base}/executive/0", json={"decision": "accepted", "wording": "Čaj vede."}
+    )
+    assert (mismatch.status_code, mismatch.json()["code"]) == (422, "wording_mismatch")
+    assert researcher.put(f"{base}/nonsense/0", json={"decision": "accepted"}).status_code == 422
+    assert researcher.put(f"{base}/executive/0", json={"decision": "kept"}).status_code == 422
+
+    # Another client's study does not hold this run.
+    wrong = f"{_runs(world, 'other_client')}/{run['run_id']}/analysis/findings"
+    assert other_client_lead.get(wrong).status_code == 404
+    assert (
+        other_client_lead.put(f"{wrong}/executive/0", json={"decision": "accepted"}).status_code
+        == 404
+    )
+
+
 def _store_internal_report(
     app: FastAPI,
     world: Any,
@@ -1849,6 +1883,8 @@ def test_the_client_report_is_prepared_to_be_read_without_a_download(
     body = prepared.json()
     assert body["review_state"] == "DRAFT_UNAPPROVED" and body["approval"] is None
     assert body["document"]["meta"]["kind"] == "client"
+    # When the version was stored, with its offset: the approval question names it by it (RPT3d).
+    assert datetime.fromisoformat(body["stored_at"]).utcoffset() is not None
     assert researcher.get(f"{url}/client/document").json() == body
     again = researcher.post(f"{url}/client/prepare").json()
     assert again["report_artifact_id"] == body["report_artifact_id"]  # stored once
@@ -2506,7 +2542,8 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert missing.status_code == 404
     retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
     assert retryable.status_code == 200, retryable.text
-    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": []}
+    # No analysis reservation is configured here, so the ceiling (LO23) is unknown: null, not 0.
+    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": [], "ceiling_usd": None}
     assert (
         researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
     )
@@ -2948,6 +2985,86 @@ def test_research_artifacts_are_read_only_through_the_run_that_produced_them(
         assert generic.status_code == 404
 
 
+def _finished_fictional_run(app: FastAPI, c: TestClient, world: Any, n: int) -> str:
+    """A run of DESIGN at ``n`` respondents, on fictional fieldwork, to its end."""
+    app.state.settings = app.state.settings.model_copy(
+        update={"research_fieldwork_source": FieldworkSource.SYNTHETIC_FIXTURE}
+    )
+    run_id = str(
+        start(c, world, submit(c, world, {**DESIGN, "n": n}).json()["revision_id"]).json()["run_id"]
+    )
+    worker = _real_worker(app, workbench=True)
+    while worker.run_once() is not None:
+        pass
+    assert c.get(f"{_runs(world)}/{run_id}").json()["status"] == "COMPLETED"
+    return run_id
+
+
+def test_results_serve_admitted_rows_and_a_suppressed_number_never_leaves_the_api(
+    app: FastAPI, researcher: TestClient, viewer: TestClient, world: Any
+) -> None:
+    """evidence-integrity 6: Results decided suppression in the browser, over the raw aggregate,
+    so a suppressed number reached the page. Here it is absent from the response."""
+    small = _finished_fictional_run(app, researcher, world, n=60)
+    answer = viewer.get(f"{_runs(world)}/{small}/results")
+    assert answer.status_code == 200, answer.text
+    body = answer.json()
+    assert body["run_id"] == small and body["internal_only"] is True
+    assert body["data_origin"] == "SYNTHETIC_FIXTURE"
+    # Every question the specification asked, in its order: the two questions, then each object.
+    ids = [q["question_id"] for q in body["questions"]]
+    assert ids[:2] == ["q1", "q2"] and len(ids) == 2 + 5
+    q2 = next(q for q in body["questions"] if q["question_id"] == "q2")
+    assert [r["answer"] for r in q2["rows"] if r["metric"] == "pct"] == ["Kávu", "Čaj", "Nic"]
+    q1 = body["questions"][0]
+    assert [r["metric"] for r in q1["rows"]] == ["mean", "top2box_pct", "n", "effective_n"]
+    # 60 fictional respondents fall below the effective-n guard: every row says why, none a number,
+    # though the aggregate stored each.
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{small}").json()["steps"]}
+    aggregate = researcher.get(
+        f"{_runs(world)}/{small}/artifacts/{steps['aggregate']['artifact_id']}"
+    ).json()["payload"]["aggregate"]
+    assert aggregate["questions"]["q2"]["celkem_pct"]["Kávu"] is not None
+    for row in (r for q in body["questions"] for r in q["rows"]):
+        assert row["support"] == "SUPPRESS" and row["value"] is None
+        assert row["interval"] is None and row["effective_n"] is None
+        # Why, as codes: the reasons' words name the effective n withheld.
+        assert "below_effective_n" in row["reasons"]
+        assert not any(ch.isdigit() for code in row["reasons"] for ch in code)
+
+    large = _finished_fictional_run(app, researcher, world, n=450)
+    rows = [
+        r
+        for q in viewer.get(f"{_runs(world)}/{large}/results").json()["questions"]
+        for r in q["rows"]
+    ]
+    admitted = [r for r in rows if r["support"] in ("REPORTABLE", "INDICATIVE")]
+    assert admitted
+    for row in admitted:
+        assert row["value"] is not None and not row["reasons"]
+        if row["metric"] not in ("n", "effective_n"):
+            low, high = row["interval"]
+            assert low <= row["value"] <= high
+    for row in rows:
+        assert (row["value"] is None) == (row["support"] == "SUPPRESS")
+
+
+def test_results_wait_for_the_aggregate_and_stay_in_their_study(
+    researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    waiting = researcher.get(f"{_runs(world)}/{run_id}/results")
+    assert waiting.status_code == 409
+    assert waiting.json()["code"] == "results_unavailable"
+    assert waiting.json()["details"]["reason"] == "missing_upstream"
+    # Another study's path never finds this study's run.
+    elsewhere = other_client_lead.get(f"{_runs(world, 'other_client')}/{run_id}/results")
+    assert elsewhere.status_code == 404
+    assert researcher.get(f"{_runs(world)}/RUN-0123abcd/results").status_code == 404
+
+
 @pytest.mark.parametrize("damage", ["tampered", "missing"])
 def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
     app: FastAPI,
@@ -2975,12 +3092,32 @@ def test_a_corrupt_research_artifact_stays_marked_corrupt_after_the_409(
     assert researcher.get(url).status_code == 409
 
 
+def test_results_over_a_corrupt_aggregate_keep_it_marked_corrupt(
+    app: FastAPI,
+    researcher: TestClient,
+    world: Any,
+    damage_artifact: Any,
+    artifact_status: Any,
+) -> None:
+    """The results' read of a damaged source answers 409 and keeps its CORRUPT mark."""
+    run_id = _finished_fictional_run(app, researcher, world, n=60)
+    steps = {s["node_key"]: s for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]}
+    aggregate_id = steps["aggregate"]["artifact_id"]
+    damage_artifact(aggregate_id, "tampered")
+    refused = researcher.get(f"{_runs(world)}/{run_id}/results")
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "artifact_corrupt"
+    assert artifact_status(aggregate_id) == "CORRUPT"
+
+
 # --------------------------------------------------------------------------- #
 # Lifting a budget wait (plan 5b.1)
 # --------------------------------------------------------------------------- #
 
 
-def _park_first_step_on_budget(app: FastAPI, world: Any, who: str = "researcher") -> str:
+def _park_first_step_on_budget(
+    app: FastAPI, world: Any, who: str = "researcher", error: dict[str, Any] | None = None
+) -> str:
     """Claim the run's first step as a worker would, and stop it at the budget cap."""
     factory = create_session_factory(app.state.engine)
     with factory() as session:
@@ -2992,7 +3129,10 @@ def _park_first_step_on_budget(app: FastAPI, world: Any, who: str = "researcher"
         claimed = workflow.claim_next(worker_id="budget-fixture")
         assert claimed is not None
         workflow.fail_attempt(
-            claimed.attempt_id, worker_id="budget-fixture", failure=FailureClass.BUDGET_EXCEEDED
+            claimed.attempt_id,
+            worker_id="budget-fixture",
+            failure=FailureClass.BUDGET_EXCEEDED,
+            error=error,
         )
         session.commit()
         return str(claimed.node_key)
@@ -3057,6 +3197,64 @@ def test_the_runs_budget_lift_releases_the_run_and_is_refused_when_nothing_waits
         ).status_code
         == 404
     )
+
+
+def test_a_step_waiting_for_budget_says_what_it_needs_and_unknown_is_never_zero(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """FLD10: the worker records the refused hold (worker.py's BudgetExceeded); the run's read
+    serves it, so the park note can say what the step needs. A stop with no price is unknown."""
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(
+        app, world, error={"requested_usd": 1.25, "remaining_usd": 0.4, "budget_usd": 5.0}
+    )
+    read = researcher.get(f"{_runs(world)}/{run_id}").json()
+    step = next(s for s in read["steps"] if s["node_key"] == node)
+    assert step["status"] == "AWAITING_BUDGET"
+    assert step["budget_need"] == {"requested_usd": 1.25, "remaining_usd": 0.4}
+    # A listing reads no attempts: unknown there, never a guess.
+    listed = researcher.get(_runs(world)).json()
+    listed_run = next(r for r in listed["items"] if r["run_id"] == run_id)
+    assert all(s["budget_need"] is None for s in listed_run["steps"])
+    # Every other step needs nothing.
+    assert all(s["budget_need"] is None for s in read["steps"] if s["node_key"] != node)
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        {},  # a park that recorded only that it stopped (the gateway's reservation_exhausted)
+        {"requested_usd": 0.0, "remaining_usd": 0.0},
+        {"requested_usd": 1.0},
+        {"requested_usd": 1.0, "remaining_usd": -0.5},
+        {"requested_usd": "1.0", "remaining_usd": 0.0},
+        {"requested_usd": True, "remaining_usd": 0.0},
+    ],
+)
+def test_a_budget_stop_that_names_no_price_reads_unknown(
+    app: FastAPI, researcher: TestClient, world: Any, error: dict[str, Any]
+) -> None:
+    run_id = start(researcher, world, submit(researcher, world).json()["revision_id"]).json()[
+        "run_id"
+    ]
+    node = _park_first_step_on_budget(app, world, error=error)
+    step = next(
+        s
+        for s in researcher.get(f"{_runs(world)}/{run_id}").json()["steps"]
+        if s["node_key"] == node
+    )
+    assert step["status"] == "AWAITING_BUDGET"
+    assert step["budget_need"] is None
+
+
+def test_a_recorded_amount_that_is_not_a_finite_number_reads_unknown() -> None:
+    """What JSONB cannot hold (inf, NaN) never reaches the read from PostgreSQL; the rule still
+    holds for any store that keeps them."""
+    for value in (float("inf"), float("-inf"), float("nan"), True, "1.0", None, -0.01):
+        assert research_router._usd(value) is None, value
+    assert research_router._usd(0) == 0.0 and research_router._usd(1.5) == 1.5
 
 
 def test_a_budget_lift_that_is_refused_changes_nothing(

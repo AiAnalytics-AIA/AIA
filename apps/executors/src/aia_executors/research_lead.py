@@ -288,7 +288,9 @@ class ResearchLeadExecutor:
             if existing is not None:
                 stored = artifacts.read_json(existing.artifact_id)
                 if isinstance(stored, dict) and isinstance(stored.get("result"), dict):
-                    result = _regrounded(stored["result"], layer(frozen, "design"))
+                    result = _regrounded(
+                        stored["result"], layer(frozen, "design"), _focus_id(frozen)
+                    )
                     return Succeeded(output={**result, "artifact_id": existing.artifact_id})
 
         answer = self._answer(step, context, frozen, pin)
@@ -304,7 +306,10 @@ class ResearchLeadExecutor:
         # A focus naming nothing the frozen copy shows (an audience filter it does not store)
         # is left out and named, as an edit it cannot take is (artifact-audience AUD1).
         grounded, dropped_view = ground_view(
-            grounded, design.get("content") or {}, design.get("analysis") or None
+            grounded,
+            design.get("content") or {},
+            design.get("analysis") or None,
+            focus=_focus_id(frozen),
         )
         dropped = [*dropped, *dropped_view]
         notes = list(layer(frozen, "lead").get("notes") or ())
@@ -374,7 +379,15 @@ class ResearchLeadExecutor:
         return Succeeded(output={**step_output, "artifact_id": artifact.artifact_id})
 
 
-def _regrounded(result: dict[str, Any], design: Mapping[str, Any]) -> dict[str, Any]:
+def _focus_id(frozen: Mapping[str, Any]) -> str | None:
+    """The element the person pointed at this turn (the view layer's focus), or None."""
+    focus = layer(frozen, "view").get("focus")
+    return str(focus.get("id") or "") or None if isinstance(focus, Mapping) else None
+
+
+def _regrounded(
+    result: dict[str, Any], design: Mapping[str, Any], focus: str | None = None
+) -> dict[str, Any]:
     """A stored turn's result with today's focus grounding applied (:func:`ground_view`): an
     answer stored by a worker from before it, reused on a retry, never carries a focus the
     frozen copy does not show (Codex on #624). Grounding is idempotent: a result stored after
@@ -384,7 +397,7 @@ def _regrounded(result: dict[str, Any], design: Mapping[str, Any]) -> dict[str, 
     except ValidationError:
         return result
     grounded, dropped = ground_view(
-        output, design.get("content") or {}, design.get("analysis") or None
+        output, design.get("content") or {}, design.get("analysis") or None, focus=focus
     )
     if not dropped:
         return result

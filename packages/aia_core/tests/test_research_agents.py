@@ -7,21 +7,28 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from aia_core.application.research import ResearchAgentJobs, ResearchRunNotFound
-from aia_core.domain.ai_contracts import schema_node_is_open, schema_object_nodes
+from aia_core.application.research import ResearchAgentJobs, ResearchRunNotFound, _Probed
+from aia_core.domain.ai_contracts import canonical_json, schema_node_is_open, schema_object_nodes
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
+from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
+    CONTEXT_MAX_BYTES,
     CONTRACTS,
+    EXTERNAL_ACTIONS,
+    EXTERNAL_KEY,
+    EXTERNAL_RAIL,
     Advice,
     BriefAnalysis,
     ResearchAction,
     agent_request,
     context_snapshot,
+    external_record,
     proposal_result,
     snapshot_hash,
+    with_external_context,
 )
 from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ScopeRole
@@ -556,3 +563,117 @@ def test_a_proposals_state_is_derived_never_stored(
         action=action, completed=completed, decision=decision, superseded=superseded
     )
     assert (found.value if found else None) == state
+
+
+PIN = {"deep_research_run_id": "RUN-dr1", "artifact_id": "ART-b1", "sha256": "ab" * 32}
+NEWER = {"deep_research_run_id": "RUN-dr2", "artifact_id": "ART-b2", "sha256": "cd" * 32}
+LINES = ["[EV-1] Fictional finding (https://example.test/a)", "[EV-2] Another (https://x.test)"]
+
+
+def test_external_context_frames_the_findings_and_trims_them_to_the_bound() -> None:
+    snapshot = context_snapshot(DESIGN, [])
+    assert with_external_context(snapshot, PIN, []) is snapshot
+    assert external_record(snapshot) is None
+    framed = with_external_context(snapshot, PIN, LINES)
+    assert framed[EXTERNAL_KEY] == {"pin": PIN, "findings": LINES}
+    assert snapshot_hash(framed) != snapshot_hash(snapshot)
+    assert snapshot_hash(with_external_context(snapshot, NEWER, LINES)) != snapshot_hash(framed)
+    assert external_record(framed) == {"pin": PIN, "findings": 2, "omitted": 0, "unavailable": None}
+    # Optional context never refuses a job the design fits: the findings past the bound go, counted.
+    room = CONTEXT_MAX_BYTES - len(canonical_json(framed).encode())
+    trimmed = with_external_context(snapshot, PIN, [*LINES, "x" * (room + 1)])
+    assert trimmed[EXTERNAL_KEY] == {"pin": PIN, "findings": LINES, "omitted": 1}
+    assert with_external_context(snapshot, PIN, ["x" * CONTEXT_MAX_BYTES])[EXTERNAL_KEY] == {
+        "pin": PIN,
+        "findings": [],
+        "omitted": 1,
+    }
+    # A bundle that did not read is said, never read as no research.
+    refused = with_external_context(snapshot, PIN, [], unavailable="context_moved")
+    assert refused[EXTERNAL_KEY] == {"pin": PIN, "findings": [], "unavailable": "context_moved"}
+    assert {ResearchAction.BUILD, ResearchAction.OPTIMIZE} == EXTERNAL_ACTIONS
+
+
+def test_the_external_rail_rides_the_system_prompt_whenever_the_layer_does() -> None:
+    snapshot = context_snapshot(DESIGN, [])
+    edited = PromptPin.of(
+        prompt_id="aia.research.build_questionnaire",
+        version="4",
+        origin="stored",
+        text="Sestav dotazník.",
+        declared_class="CLASS_C_INTERNAL",
+        declared_by="USR-author",
+    )
+
+    def system(context: dict[str, Any], prompt: PromptPin | None) -> str:
+        return agent_request(
+            ResearchAction.BUILD,
+            context,
+            instruction="",
+            policy_version="test",
+            material_approvals=APPROVALS,
+            max_output_tokens=8192,
+            prompt=prompt,
+        ).system
+
+    assert EXTERNAL_RAIL not in system(snapshot, None)
+    framed = with_external_context(snapshot, PIN, LINES)
+    # A stored edit replaces the task wording, never the rail.
+    assert system(framed, None).endswith(EXTERNAL_RAIL)
+    assert system(framed, edited).endswith(EXTERNAL_RAIL)
+
+
+def test_questionnaire_jobs_freeze_the_pinned_findings_only_when_given_a_store(
+    session: Any, scoped: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from aia_core.application import analysis_results
+    from aia_core.application.research import ResearchRuns
+    from aia_core.infrastructure.storage import InMemoryArtifactStore
+    from aia_core.infrastructure.workflow_repository import WorkflowRepository
+
+    scope = scoped.scope(user="lead")
+    revision, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+        content=DESIGN, source_stage="brief"
+    )
+    state: dict[str, Any] = {"pin": PIN, "refused": False, "reads": 0}
+
+    def read(_session: Any, _scope: Any, _store: Any, pin: Any) -> list[str]:
+        assert pin == state["pin"]
+        state["reads"] += 1
+        if state["refused"]:
+            raise analysis_results.SourcesRefused("context_moved", "the bundle moved")
+        return LINES
+
+    monkeypatch.setattr(ResearchRuns, "design_research_pin", lambda self: state["pin"])
+    monkeypatch.setattr(analysis_results, "_external_context", read)
+    workflows = WorkflowRepository(session, scope)
+    store = InMemoryArtifactStore()
+
+    def started(action: ResearchAction, *, store: Any = store) -> tuple[str, dict[str, Any]]:
+        jobs = ResearchAgentJobs(session, scope, external_store=store)
+        run = jobs.start(design_revision_id=revision.revision_id, action=action)
+        step = workflows.step_input(run.run_id, "agent")
+        assert step is not None
+        return run.run_id, dict(step["snapshot"])
+
+    _, plain = started(ResearchAction.BUILD, store=None)
+    assert EXTERNAL_KEY not in plain and state["reads"] == 0  # the switch off: nothing read
+    first, framed = started(ResearchAction.BUILD)
+    assert framed[EXTERNAL_KEY] == {"pin": PIN, "findings": LINES}
+    assert EXTERNAL_KEY not in started(ResearchAction.ANALYZE)[1]
+    # A newer sealed run is a new job, never the old one's answer.
+    state["pin"] = NEWER
+    newer, _ = started(ResearchAction.BUILD)
+    assert newer != first
+    state["refused"] = True
+    _, refused = started(ResearchAction.OPTIMIZE)
+    assert refused[EXTERNAL_KEY] == {"pin": NEWER, "findings": [], "unavailable": "context_moved"}
+    # A probe and the start it precedes read one bundle.
+    reads = state["reads"]
+    jobs = ResearchAgentJobs(session, scope, external_store=store)
+    with pytest.raises(_Probed):
+        jobs.start(
+            design_revision_id=revision.revision_id, action=ResearchAction.BUILD, _probe=True
+        )
+    jobs.start(design_revision_id=revision.revision_id, action=ResearchAction.BUILD)
+    assert state["reads"] == reads + 1

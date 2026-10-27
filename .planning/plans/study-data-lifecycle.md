@@ -25,7 +25,7 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 ## Chunks
 
 **SDL0. Decide the deletion horizons, tombstones and backup-resurrection semantics**  
-**Decided by the owner, 2026-10-20 (MVPQ-07).** After a person deletes a client or study, its content may remain in backups and object versions for **at most 30 days** (RDS's 14-day recovery window lies inside it; the S3 version lifecycle is set to 30 days, not left at a default). A durable deletion journal, kept apart from the snapshots, is replayed after any restore before the environment serves traffic. **Content-free usage and audit rows** (date, model, tokens, USD and identifiers; no text, no client name) are kept so spend still reconciles, readable by an organisation OWNER or ADMIN only. This chunk writes that down as the contract SDL1-SDL5 build to.
+**Decided by the owner, 2026-10-20 (MVPQ-07).** After a person deletes a client or study, its content may remain in backups and object versions for **at most 30 days** (RDS's 14-day recovery window lies inside it; the S3 version lifecycle is set to 30 days, not left at a default; **amended 2026-10-26:** 23 days, because `study-deletion` Q1 (b) holds a deleted study for 7 days before its purge and the 30 days count from the click). A durable deletion journal, kept apart from the snapshots, is replayed after any restore before the environment serves traffic. **Content-free usage and audit rows** (date, model, tokens, USD and identifiers; no text, no client name) are kept so spend still reconciles, readable by an organisation OWNER or ADMIN only. This chunk writes that down as the contract SDL1-SDL5 build to.
 
 **SDL1. Foreign keys and the ledger: `ai_usage_events.study_id` and `population_dataset_versions.owner_client_id` get an `ondelete` rule**  
 Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still reconcile to spend (AC-15) after a deletion: SDL0 keeps the content-free usage rows, so a usage row is never cascaded with its study; it keeps the study's identifier without a foreign key to a deleted row.
@@ -35,6 +35,8 @@ Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still recon
 
 **SDL3. The delete service for a study and a client: rows, S3 prefixes, audit policy, logs and the error tracker**  
 Test on PostgreSQL: delete a study; nothing of it remains in the database or the artifact bucket; the usage ledger still reconciles.
+*2026-10-26:* the client part is built as `settings-backends` SB5 (#850 @ 46fc909f); the study part is `study-deletion#SD5`.
+SDL1's study foreign key is not on the deletion path once studies are tombstoned (ADR 0043).
 
 **SDL4. The lifecycle of an attachment's bytes: orphans and removal**  
 No code deletes an attachment's bytes today.
@@ -65,6 +67,8 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **New chunk.** SDL4b (W4), D-29.
 
 **Existing chunks, changed.** SDL3 (D-29) gains its entry points: an OWNER or ADMIN deletes a client
-from Settings with a typed confirmation; knowledge is retired, never deleted. Export of a client's
+from Settings with a typed confirmation; knowledge is retired, never deleted (*stale since the owner's rule of 2026-10-22: a client's deletion deletes its
+content, knowledge among it, `client_knowledge_repository.py:1699-1702 @ f7762d72`; ledgers kept under a tombstone,
+ADR 0043*). Export of a client's
 data and erasing one person are an operator procedure in the runbook for about ten users. SDL5
 (D-25): RPO 24 h, RTO 4 h.
