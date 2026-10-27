@@ -1,7 +1,7 @@
 ---
 status: planned
 chunks:
-  - "[ ] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
+  - "[x] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
   - "[ ] PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM"
   - "[ ] PE2. `deploy-production.yml`: a manual release, an RDS snapshot first, the rollback"
   - "[ ] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
@@ -25,6 +25,10 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 
 ## Decisions this plan carries (settled by the owner; not re-asked)
 
+- **PE0 is done by ADR 0031** (`docs/architecture/adr/0031-production-environment.md`), accepted by the owner
+  on 2026-10-20 ("accept 0028-0033, 0035, 0038-0040"). It supersedes ADR 0009's "production compute remains
+  undecided"; ADR 0009, the ADR index, CLAUDE.md §2 and ARCHITECTURE.md §9 still say "undecided" (a docs
+  PR's follow-up). Ticked 2026-10-27.
 - A separate production on the one-host pattern with RDS PostgreSQL 16, in the **same AWS account** as develop with separate resources, tags and the mitigations of the target architecture §6.2 (Q24).
 - About ten users; no permanent staging; develop is staging and tier B runs there (target architecture).
 - Production release is a **blocker for the MVP release even when tier B passes on develop** (the owner's I-5 reads "production released").

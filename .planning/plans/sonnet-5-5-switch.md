@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. The code: the route model's id and request profile, the respondent's temperature, Deep Research's thinking budget, a capability's effort (feature/sonnet-5-5-readiness)"
-  - "[ ] 2. Nigel accepts the Bedrock Marketplace agreement for Claude Sonnet 5.5 on develop's account"
+  - "[x] 2. Nigel accepts the Bedrock Marketplace agreement for Claude Sonnet 5.5 on develop's account"
   - "[ ] 3. Terraform: bedrock_model_id swapped to eu.anthropic.claude-sonnet-5-5 (infra session)"
   - "[ ] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
   - "[ ] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
@@ -102,6 +102,17 @@ needs its own reading: with the budget dropped, each agent kind's answer limit
 (`request_limits.REQUEST_LIMITS`) no longer carries the 2,048 tokens of thinking headroom it had, while
 adaptive thinking still counts inside it, so its truncation is measured before Deep Research is
 switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the frozen engine).
+
+## Chunk 2: done (2026-10-27)
+
+- **The agreement.** Accepted by Nigel on 27 Oct from the Bedrock console. `get-foundation-model-availability`
+  for `anthropic.claude-sonnet-5-5` answered agreement `AVAILABLE`, authorization `AUTHORIZED` at 13:22 UTC,
+  read-only, by the second account's PM coordinator.
+- **The first Lead turns on develop.** Nigel sent the Lead "Shrň mi zadání" on a fictional study at 14:35 UTC,
+  and it answered. CloudTrail then showed eight `Converse` calls from the role `aia-develop-instance` to
+  `eu.anthropic.claude-sonnet-5-5`, 14:32-14:38 UTC, none with an error.
+- **What stays open.** That is the Lead's own model (`AIA_AI_RESEARCH_LEAD_MODEL_ID`). Chunks 3-6 move the
+  *route* model, which is still `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` in SSM.
 
 ## Findings
 
