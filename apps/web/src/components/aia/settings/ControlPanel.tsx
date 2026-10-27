@@ -634,12 +634,12 @@ function RoleMatrix({ vocab }: { vocab: Vocabularies }) {
 const TABS = SECTIONS;
 type TabId = SectionId;
 /** A chip in a tab's head: who reads it and who may change it, as the prototype draws them. */
-type HeadChip = { label: string; tone?: "you" | "deployment"; glyph?: string };
+type HeadChip = { label: string; tone?: "you" | "deployment"; glyph?: IconName };
 
 /** The tab head's chips. They say only what the API told this page (may_administer, the Metodik
  *  mark): a mark that could not be read claims nothing about editing. */
 function headChips(tab: TabId, mayAdminister: boolean, methodologist: boolean | null): HeadChip[] {
-  const c = (key: string, tone?: HeadChip["tone"], glyph?: string): HeadChip => ({ label: t(`${P}.chips.${key}`), tone, glyph });
+  const c = (key: string, tone?: HeadChip["tone"], glyph?: IconName): HeadChip => ({ label: t(`${P}.chips.${key}`), tone, glyph });
   switch (tab) {
     case "methodology": return [c("everyone"), methodologist ? c("methodologist", "you") : c("methodologistOnly")];
     case "prompts": return [mayAdminister ? c("promptsYou", "you") : c("promptsAdmin")];
@@ -647,7 +647,7 @@ function headChips(tab: TabId, mayAdminister: boolean, methodologist: boolean | 
     case "ai": return [c("deployedReadOnly", "deployment")];
     case "access": return [mayAdminister ? c("accessYou", "you") : c("accessAdmin")];
     // ADR 0019: every member holds the study permissions, a budget's among them.
-    case "studies": return [c("studiesYou", "you", "✎")];
+    case "studies": return [c("studiesYou", "you", "pencil")];
     case "system": return [c("deployed", "deployment")];
     case "data": return [c("adminOnly")];
     default: return [];
@@ -872,7 +872,7 @@ function PanelView({ panel, reload, footer }: { panel: Panel; reload: () => void
               lede={<span data-tab-lede>{t(`${P}.lede.${tab}`)}</span>} figures={figuresOf(tab)} aside={
             <span className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
               {chips.length ? <div data-tab-chips className="flex flex-wrap items-center gap-1.5">{chips.map((chip) => (
-                <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true">{chip.glyph}</span> : null}{chip.label}</span>
+                <span key={chip.label} data-chip-tone={chip.tone ?? "plain"} className={`inline-flex min-h-[22px] items-center gap-[5px] whitespace-nowrap rounded-[11px] border px-2 text-xs ${CHIP_TONE[chip.tone ?? "plain"]}`}>{chip.glyph ? <span aria-hidden="true" className="inline-flex"><Icon name={chip.glyph} size={12} /></span> : null}{chip.label}</span>
               ))}</div> : null}
               {/* One switch for the whole page's technical detail (the product owner, 2026-10-13): the
                   prototype has no place for it, so it sits at the end of the head, beside the chips. */}
