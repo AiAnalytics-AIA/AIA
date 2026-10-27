@@ -67,10 +67,10 @@ export function ProposalReview({ result, action, state, onDecision, canApply = t
   const audience = action === "propose_audience" ? audienceProposalDiff(state.project, result.result.proposal) : null;
   const changes = diff.changes + (audience?.changes ?? 0);
   return (
-    <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border border-ai-edge bg-surface-raised">
+    <section aria-labelledby="proposal-review-title" data-proposal-review className="scroll-mt-40 overflow-hidden rounded-card border ai-spark">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
         <Sparkle size={14} />
-        <h2 ref={heading} tabIndex={-1} id="proposal-review-title" className="flex-1 text-sm font-semibold text-ai-ink focus:outline-none">
+        <h2 ref={heading} tabIndex={-1} id="proposal-review-title" className="flex-1 text-sm font-semibold text-ink focus:outline-none">
           {changes ? `Zkontrolujte návrh AI · ${changes} ${changes === 1 ? "změna" : changes < 5 ? "změny" : "změn"}` : "Zkontrolujte návrh AI"}
         </h2>
         <span className="text-xs text-ink-muted">Nic se nezmění, dokud návrh nepoužijete.</span>

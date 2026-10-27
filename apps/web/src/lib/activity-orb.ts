@@ -12,7 +12,7 @@ import type { ResearchAgentAction, ResearchAgentJob, ResearchRun, ResearchStep }
 
 export type { OrbState };
 
-/** `ai`: a model is thinking (--ai-ink). `running`: code is working (--status-running). */
+/** `ai`: a model is thinking (--spark-1). `running`: code is working (--status-running). */
 export type OrbInk = "ai" | "running";
 export type Orb = { state: OrbState; ink: OrbInk };
 

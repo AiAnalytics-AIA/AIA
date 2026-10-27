@@ -70,5 +70,5 @@ export function Icon({ name, size = 16, className = "" }: { name: IconName; size
  * an AI worker job, and nothing else.
  */
 export function Sparkle({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return <PhosphorIcon name="sparkle" size={size} className={`shrink-0 ${className}`} />;
+  return <PhosphorIcon name="sparkle" size={size} className={`ai-sparkle shrink-0 ${className}`} />;
 }

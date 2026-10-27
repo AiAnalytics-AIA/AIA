@@ -123,8 +123,8 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
   };
   const suggestion = SUGGESTIONS[step];
   const suggestionAction: AdviceAction = actions.some((item) => item.action === "design_copilot") ? "design_copilot" : "answer_memory";
-  const card = !starts ? null : <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border border-ai-edge bg-ai-wash p-3.5 text-ink">
-    <h2 className="flex items-center gap-2 text-sm font-semibold text-ai-ink"><Sparkle size={15} />{t("research.aiHelp")} · {t(`aia.stages.${step}`)}</h2>
+  const card = !starts ? null : <section ref={fallback} tabIndex={-1} aria-label={t("research.aiHelpLabel")} data-contextual-assistance className="w-full rounded-card border ai-spark ai-spark--wash p-3.5 text-ink">
+    <h2 className="flex items-center gap-2 text-sm font-semibold text-ink"><Sparkle size={15} />{t("research.aiHelp")} · {t(`aia.stages.${step}`)}</h2>
     {visible ? <><p className="mt-1 text-xs leading-5 text-ink-muted">Pomoc je otevřená vedle pracovní plochy. Otázka se zachová při přepínání kroků.</p><Button className="mt-2 !min-h-11 !whitespace-normal" onClick={() => (review || selected === "critique_design" ? heading.current : question.current)?.focus()}>Přejít k AI pomoci</Button></> : <>
     <p className="mt-1 text-xs leading-5 text-ink-muted">Uložený návrh a schválené znalosti klienta. AI odpověď nemění návrh ani schválení evidence.</p>
     {canEdit ? <p className="mt-1 text-xs text-ink-muted">AI kroky čerpají rozpočet této studie.</p> : null}
@@ -136,7 +136,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
     </>}
   </section>;
   const content = <>
-    <div className="flex items-start justify-between gap-3"><div><h2 ref={heading} tabIndex={-1} id="research-assistance-title" className="text-base font-semibold text-ai-ink">{review ? "Odpověď AI" : ACTION_LABELS[selected]}</h2><p className="mt-1 text-xs text-ink-muted">{studyName} · {t(`aia.stages.${step}`)}</p></div><Button className="!min-h-11 min-w-11 justify-center" aria-label="Zavřít AI pomoc" onClick={close}><Icon name="close" size={14} /></Button></div>
+    <div className="flex items-start justify-between gap-3"><div><h2 ref={heading} tabIndex={-1} id="research-assistance-title" className="text-base font-semibold text-ink">{review ? "Odpověď AI" : ACTION_LABELS[selected]}</h2><p className="mt-1 text-xs text-ink-muted">{studyName} · {t(`aia.stages.${step}`)}</p></div><Button className="!min-h-11 min-w-11 justify-center" aria-label="Zavřít AI pomoc" onClick={close}><Icon name="close" size={14} /></Button></div>
     <section className="rounded-md border border-border bg-surface-sunken p-3 text-xs leading-5"><h3 className="font-semibold">Co AI uvidí</h3><p>Uloženou revizi návrhu, schválené znalosti dostupné této studii a vaši otázku.</p><p className="mt-2 text-ink-muted">Hodnoty výsledků a sociomap se neposílají automaticky. Odpověď z klientských znalostí nenahrazuje literární rešerši ani numerickou interpretaci.</p></section>
     {review ? <section aria-label="Uložená odpověď AI"><p className="mb-3 text-xs leading-5 text-ink-muted">Odpověď vychází z uloženého kontextu. Nenahrazuje schválení evidence.</p><AgentProposalContent result={review.result} /><details className="mt-3 text-xs text-ink-muted"><summary className="!min-h-11 cursor-pointer py-3">Původ odpovědi</summary><p className="break-all">Revize {review.result.provenance.design_revision_id} · kontext {review.result.provenance.context_sha256}</p></details><Button className="!min-h-11" onClick={close}>Zavřít</Button></section> : <>
       {canEdit ? <form onSubmit={(event) => { event.preventDefault(); send(selected); }} className="flex flex-col gap-3">
@@ -145,7 +145,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
         <AiButton type="submit" className="!min-h-11 justify-center !whitespace-normal" disabled={agents.busy || (selected !== "critique_design" && !questions[selected]?.trim())}>{agents.busy ? "Čekám na odezvu…" : selected === "critique_design" ? "AI zkontroluje návrh" : "Odeslat otázku"}</AiButton>
         <p className="text-xs leading-5 text-ink-muted">Spustí AI úlohu na pozadí · platí se z rozpočtu studie. Nový krok se spustí jen po vašem odeslání.</p>
       </form> : null}
-      {agents.busy && !adviceJob ? <p role="status" className="rounded-md border border-ai-edge bg-ai-wash p-3 text-sm">{isAdviceAction(agents.activeAction) ? "Ukládám kontext nebo načítám uloženou odpověď…" : "Jiný AI krok ještě běží. Otázka zůstává rozpracovaná."}</p> : null}
+      {agents.busy && !adviceJob ? <p role="status" className="rounded-md border ai-spark ai-spark--wash ai-spark--working p-3 text-sm">{isAdviceAction(agents.activeAction) ? "Ukládám kontext nebo načítám uloženou odpověď…" : "Jiný AI krok ještě běží. Otázka zůstává rozpracovaná."}</p> : null}
       {adviceJob ? <JobPanel embedded job={adviceJob} onCancel={onCancel} studyId={studyId} /> : null}
       {error ? <p role="alert" className="rounded-md border border-status-fault bg-status-fault-wash p-3 text-sm">{error} Uloženou úlohu lze zkontrolovat níže; nový krok nespouštějte automaticky.</p> : null}
       {agents.notice ? <p role="status" className="text-sm leading-6 text-ink-muted">{agents.notice}</p> : null}
@@ -160,7 +160,7 @@ export function ResearchAssistance({ step, studyName, canEdit, memory, actions, 
     </>}
   </>;
   const panel = !visible ? null : narrow ? <dialog ref={dialog} aria-labelledby="research-assistance-title" onCancel={(event) => { event.preventDefault(); close(); }} className="fixed inset-y-0 right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-md overflow-auto border-l border-ai-edge bg-surface-overlay p-4 text-ink shadow-[var(--shadow-overlay)] backdrop:bg-surface-inverse/40"><div className="flex min-w-0 flex-col gap-4">{content}</div></dialog>
-    : <aside aria-labelledby="research-assistance-title" data-assistance-panel className="flex max-h-[calc(100vh-10rem)] min-w-0 flex-col gap-4 overflow-auto rounded-card border border-ai-edge bg-surface-raised p-4">{content}</aside>;
+    : <aside aria-labelledby="research-assistance-title" data-assistance-panel className="flex max-h-[calc(100vh-10rem)] min-w-0 flex-col gap-4 overflow-auto rounded-card border ai-spark p-4">{content}</aside>;
   // eslint-disable-next-line react-hooks/refs -- passes rendered elements and event callbacks; no ref value is read during render
   return children({ card, panel, expanded: visible && !narrow, ask });
 }

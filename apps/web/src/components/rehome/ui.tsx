@@ -45,14 +45,14 @@ export function Button({ variant = "secondary", small = false, icon, children, t
 }
 
 const AI_VARIANT = {
-  primary: "border-ai-strong bg-ai text-on-ai shadow-[0_0_0_3px_var(--ai-wash)] hover:bg-ai-strong",
-  secondary: "border-ai-edge bg-ai-wash text-ai-ink hover:border-ai",
+  primary: "ai-spark ai-spark--solid text-on-ai",
+  secondary: "ai-spark text-ink",
 } as const;
 
 /**
- * A control that starts an AI worker job (Studio v3): the sparkle, the AI colour
- * and the same title everywhere, so a person always knows a click is paid from the
- * study's budget. The AI colours mean this and nothing else.
+ * A control that starts an AI worker job: the sparkle, the spark edge (globals.css; it turns on
+ * hover and focus, and while `aria-busy`) and the same title everywhere, so a person always knows
+ * a click is paid from the study's budget. The spark edge means this and nothing else.
  */
 export function AiButton({ variant = "secondary", small = false, children, type = "button", className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: keyof typeof AI_VARIANT;
@@ -64,7 +64,7 @@ export function AiButton({ variant = "secondary", small = false, children, type 
       type={type}
       title={t("research.aiActionTitle")}
       data-ai-action="true"
-      className={`inline-flex items-center gap-1.5 rounded-control border font-semibold whitespace-nowrap transition-colors duration-[var(--duration-confirm)] disabled:opacity-50 ${small ? "min-h-8 px-3 text-[13px] leading-5" : "min-h-9 px-3.5 text-sm"} ${AI_VARIANT[variant]} ${FOCUS} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-control border font-semibold whitespace-nowrap transition-[box-shadow] duration-[var(--duration-confirm)] disabled:opacity-50 ${small ? "min-h-8 px-3 text-[13px] leading-5" : "min-h-9 px-3.5 text-sm"} ${AI_VARIANT[variant]} ${FOCUS} ${className}`}
       {...rest}
     >
       <Sparkle size={15} />

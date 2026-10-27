@@ -87,28 +87,36 @@ export const colors = {
     "dark": "#4fb2c3"
   },
   "ai": {
-    "light": "#6650d8",
-    "dark": "#a397f7"
+    "light": "#1c2329",
+    "dark": "#26313a"
   },
   "ai-strong": {
-    "light": "#5641c4",
-    "dark": "#b8aefa"
+    "light": "#2d363e",
+    "dark": "#30404b"
   },
   "ai-wash": {
-    "light": "#f1effc",
-    "dark": "#221f39"
+    "light": "#f2f6f7",
+    "dark": "#182024"
   },
   "ai-edge": {
-    "light": "#d3ccf6",
-    "dark": "#3d3769"
-  },
-  "ai-ink": {
-    "light": "#5a43c4",
-    "dark": "#b9affa"
+    "light": "#cbd7da",
+    "dark": "#34434a"
   },
   "on-ai": {
     "light": "#ffffff",
-    "dark": "#120e26"
+    "dark": "#f2f6f7"
+  },
+  "spark-1": {
+    "light": "#1c9fc4",
+    "dark": "#6ac5e8"
+  },
+  "spark-2": {
+    "light": "#3a6fd8",
+    "dark": "#86aef5"
+  },
+  "spark-3": {
+    "light": "#9ad8ec",
+    "dark": "#dff5ff"
   },
   "status-running": {
     "light": "#0f6577",
@@ -565,6 +573,7 @@ export const scalars = {
   "duration-instant": "0ms",
   "duration-confirm": "120ms",
   "duration-panel": "180ms",
+  "duration-spark": "2400ms",
   "z-scope": "30",
   "z-overlay": "40",
   "z-toast": "50"

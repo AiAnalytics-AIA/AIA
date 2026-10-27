@@ -99,7 +99,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       {p.from_source ? (
                         // What an AI proposal rests on: the words, found by code where it says.
                         <figure className="mt-2 flex flex-col gap-1.5">
-                          <blockquote className="border-l-2 border-ai-edge pl-2 text-sm">„{p.from_source.quote}“</blockquote>
+                          <blockquote className="border-l-2 border-spark-1 pl-2 text-sm">„{p.from_source.quote}“</blockquote>
                           <figcaption className="text-xs text-ink-faint">
                             {t("aia.sources.ai.quote")} · {locatorWords(p.from_source.locator)}
                           </figcaption>

@@ -457,7 +457,7 @@ function Choose({ onPick, children }: { onPick: (x: QuestionnairePath) => void; 
               onClick={() => onPick(x.key)}
               className={`flex flex-col items-start gap-2 rounded-card border border-border bg-surface p-4 text-left hover:border-signal hover:bg-signal-tint ${FOCUS}`}
             >
-              <span aria-hidden="true" className={`inline-flex size-9 items-center justify-center rounded-control ${x.key === "ai" ? "bg-ai-wash text-ai-ink" : "bg-signal-wash text-signal"}`}>
+              <span aria-hidden="true" className={`inline-flex size-9 items-center justify-center rounded-control ${x.key === "ai" ? "bg-ai-wash ai-sparkle" : "bg-signal-wash text-signal"}`}>
                 <Icon name={x.icon} size={18} />
               </span>
               <span className="text-[15px] font-semibold">{t(x.title)}</span>
