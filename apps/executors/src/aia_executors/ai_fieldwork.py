@@ -62,6 +62,7 @@ from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.fieldwork import Answer, PersonaSource, persona_source_of
 from aia_core.domain.fieldwork_events import (
     HEARTBEAT_SECONDS,
+    PROGRESS_EVERY,
     FieldworkEvent,
     progress,
     progress_due,
@@ -156,7 +157,7 @@ class AIFieldworkConfig:
     max_output_tokens: int
     #: Legacy configuration retained for compatibility; it grants no classification.
     fictional_client_ids: frozenset[str]
-    progress_every: int = 10
+    progress_every: int = PROGRESS_EVERY
     material_approvals: tuple[MaterialApproval, ...] = ()
     #: ``AIA_AI_SCALE_LABELS_IN_PROMPT`` (off by default): a scale question's verbal labels in
     #: its item, in the provisional wording the methodology owner signs before it is switched
