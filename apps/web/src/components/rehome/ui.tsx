@@ -146,6 +146,24 @@ export function Value({ of, usd = false, suppressed }: { of?: ReactNode; usd?: b
   return <span data-value="known" className="tabular-nums">{typeof of === "number" && usd ? usdWords(of) : of}</span>;
 }
 
+/**
+ * What is older than the copy in front of you: a proposal made over an earlier revision, results of
+ * a run whose design has since moved. The one stale mark: coral, because the next step is a person's
+ * (propose again, run again), never red, because nothing failed; Glyph's reopened shape beside it.
+ * The stage navigator's marks say the same in words (working-impact.ts impactWords).
+ */
+export function StaleMark({ title, children, alert = false, ...rest }: { title?: string; children: ReactNode; alert?: boolean } & Omit<ComponentProps<"div">, "title" | "children">) {
+  return (
+    <div role={alert ? "alert" : "note"} data-stale className="flex items-start gap-2.5 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-[13px] leading-5 text-ink" {...rest}>
+      <span className="mt-1 shrink-0"><Glyph tone="reopened" size={12} /></span>
+      <div className="min-w-0">
+        {title ? <p className="font-semibold">{title}</p> : null}
+        <div className={title ? "mt-0.5" : ""}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /** A plain label chip: a tag, a stage, a provider. No status meaning. */
 export function Tag({ children, icon }: { children: ReactNode; icon?: IconName }) {
   return (

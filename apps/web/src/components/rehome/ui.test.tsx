@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 // The interface primitives that carry a rule of their own.
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { AiButton, FaultNote, StatusPill, type StatusTone, Value } from "./ui";
+import { AiButton, FaultNote, StaleMark, StatusPill, type StatusTone, Value } from "./ui";
 import { usdWords } from "@/lib/spend";
+
+afterEach(cleanup);
 
 describe("FaultNote", () => {
   it("is the one alert box: announced, in the fault wash, its spacing the caller's", () => {
@@ -59,5 +61,19 @@ describe("Value", () => {
     // Known zero is a real figure; a sub-cent amount is never rounded to it.
     expect(usdWords(0.003).replace(/\s/g, " ")).toBe("< 0,01 USD");
     expect(usdWords(0.0042, 3).replace(/\s/g, " ")).toBe("0,004 USD");
+  });
+});
+
+describe("StaleMark", () => {
+  it("marks what is older than the copy as waiting on a person, never as a failure", () => {
+    render(<><StaleMark alert data-proposal-stale>Návrh nejde použít.</StaleMark><StaleMark title="Výsledky běhu z revize 3">Čísla platí pro revizi 3.</StaleMark></>);
+    const [alert, note] = [screen.getByRole("alert"), screen.getByRole("note")];
+    for (const box of [alert, note]) {
+      expect(box.className).toContain("bg-status-you-wash");
+      expect(box.className).not.toContain("status-fault");
+      expect(box.querySelector('svg.glyph[data-tone="reopened"]')).toBeTruthy();
+    }
+    expect(alert.hasAttribute("data-proposal-stale")).toBe(true);
+    expect(note.textContent).toBe("Výsledky běhu z revize 3Čísla platí pro revizi 3.");
   });
 });

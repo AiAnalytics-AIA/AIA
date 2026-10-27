@@ -17,7 +17,7 @@ import {
 import { staleDetails } from "@/research/proposal-items";
 import type { ResearchStore } from "@/research/store";
 import { Sparkle } from "../icons";
-import { Button } from "../ui";
+import { Button, StaleMark } from "../ui";
 import { errorText } from "@/lib/error-words";
 
 const message = (e: unknown) => errorText(e);
@@ -121,7 +121,7 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
       {open ? (
         <>
           <div className="flex flex-col gap-3 px-4 py-3">
-            {stale ? <p role="alert" data-proposal-stale className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-[13px] leading-5 text-ink">{stale}</p> : null}
+            {stale ? <StaleMark alert data-proposal-stale>{stale}</StaleMark> : null}
             {!reading.admissible ? <p role="note" className="rounded-sm border border-border p-3 text-[13px] leading-5">{INADMISSIBLE}</p> : null}
             {reading.spent ? <p role="note" className="text-[13px] leading-5 text-ink-muted">{SPENT}</p> : null}
             <ul className="flex flex-col gap-3">

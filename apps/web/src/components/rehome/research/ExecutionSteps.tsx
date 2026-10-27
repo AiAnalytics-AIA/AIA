@@ -109,7 +109,7 @@ import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, FrameNavigation, Switch } from "../step";
-import { AiButton, Button, StatusPill, Value } from "../ui";
+import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
@@ -1771,10 +1771,7 @@ function noResultsWords(run: ResearchRun): string {
 function RevisionMoved({ note }: { note: RevisionNote | null }) {
   if (!note) return null;
   return (
-    <section role="note" data-revision-moved className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-4">
-      <p className="text-sm font-semibold">{note.title}</p>
-      <p className="mt-1 text-sm">{note.body}</p>
-    </section>
+    <StaleMark data-revision-moved title={note.title}>{note.body}</StaleMark>
   );
 }
 
