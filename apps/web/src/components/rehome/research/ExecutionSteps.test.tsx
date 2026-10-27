@@ -647,13 +647,19 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
+    // SpendDialog (design system v3, I-Penize): the ceiling, the study's budget and threshold, what is left.
+    expect(within(dialog).getByRole("heading", { name: t("input.spend.kinds.spend_confirm") })).toBeTruthy();
+    const said = (dialog.textContent ?? "").replace(/\s/g, " ");
+    expect(said).toContain("Horní mez225,00 USD · horní mez, ne odhad");
+    expect(said).toContain("Rozpočet studie500,00 USD · zbývá 400,00 USD");
+    expect(said).toContain("Práh potvrzení100,00 USD");
+    expect(said).toContain("I při nejvyšší ceně zbude 175,00 USD.");
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
 
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
-    fireEvent.click(await screen.findByRole("button", { name: "OK" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Spustit běh · do 225,00\sUSD$/ }));
     await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
     expect(called("POST", RUNS)[0].body).toEqual({ design_revision_id: "REV-a1", confirm_cost_usd: 225 });
   });
@@ -1041,8 +1047,14 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.retry") }));
     const dialog = await screen.findByRole("dialog");
     // Beside the question, what remains of the study's budget, read as it asks (6d).
-    expect(within(dialog).getByText("Tento běh může stát až 225.00 USD (práh potvrzení studie je 100.00 USD). Spustit? Z rozpočtu studie zbývá 400.00 USD. I při nejvyšší ceně by zbylo 175.00 USD, bez částek, které právě drží běžící kroky.")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    // SpendDialog (design system v3, I-Penize): the ceiling, the study's budget and threshold, what is left.
+    expect(within(dialog).getByRole("heading", { name: t("input.spend.kinds.spend_confirm") })).toBeTruthy();
+    const said = (dialog.textContent ?? "").replace(/\s/g, " ");
+    expect(said).toContain("Horní mez225,00 USD · horní mez, ne odhad");
+    expect(said).toContain("Rozpočet studie500,00 USD · zbývá 400,00 USD");
+    expect(said).toContain("Práh potvrzení100,00 USD");
+    expect(said).toContain("I při nejvyšší ceně zbude 175,00 USD.");
+    fireEvent.click(within(dialog).getByRole("button", { name: /· do 225,00\sUSD$/ }));
     expect(await screen.findByText("Opakování běhu RUN-1")).toBeTruthy();
     expect(asked).toBe(1);
     expect(called("POST", "/api/v1/studies/STU-1/research/runs/RUN-1/retry").map((c) => c.body)).toEqual([null, { confirm_cost_usd: 225 }]);
@@ -3445,8 +3457,9 @@ describe("Interpretation research", () => {
     fireEvent.click(await screen.findByRole("tab", { name: "Rešerše a zpráva" }));
     fireEvent.click(await screen.findByRole("button", { name: "Zkusit znovu" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Opakování rešerše může stát nejvýše 5.00 USD/)).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    expect(within(dialog).getByText(t("input.spend.research.retryInterpret"))).toBeTruthy();
+    expect((dialog.textContent ?? "").replace(/\s/g, " ")).toContain("5,00 USD · horní mez, ne odhad");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^Opakovat rešerši · do 5,00\sUSD$/ }));
     await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/retry")).toHaveLength(2));
     expect(called("POST", "/api/v1/studies/STU-1/deep-research/runs/RUN-deep/retry").map(c => c.body)).toEqual([null, { confirm_cost_usd: 5 }]);
     expect(called("PATCH", "/api/v1/studies/STU-1")).toHaveLength(0);

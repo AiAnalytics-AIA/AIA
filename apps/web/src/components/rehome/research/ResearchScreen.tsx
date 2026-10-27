@@ -27,7 +27,7 @@ import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
 import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
-import { ResearchContext, type RunJob } from "./context";
+import { ResearchContext, type RunJob, type SpendAsk } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
@@ -41,6 +41,9 @@ import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
 import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
+import { SpendDialog } from "../../ui/SpendDialog";
+import { readBudget } from "@/lib/budget-line";
+import { type MoneyLine, spendAct } from "@/lib/spend";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
@@ -309,6 +312,18 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
   }, [toast]);
 
   const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
+  // Money asks in SpendDialog, with the study's budget read as it asks (design system v3, I-Penize).
+  const [spend, setSpend] = useState<(SpendAsk & { lines: MoneyLine[]; key: number; resolve: (yes: boolean) => void }) | null>(null);
+  const confirmSpend = useCallback(async (q: SpendAsk) => {
+    const budget = await readBudget(frame.studyId);
+    const lines: MoneyLine[] = [{ name: "study_budget", usd: budget?.budget_usd ?? null, remainingUsd: budget?.remaining_usd ?? null }];
+    if (q.thresholdUsd !== undefined) lines.push({ name: "threshold", usd: q.thresholdUsd });
+    return new Promise<boolean>((resolve) => setSpend({ ...q, lines, key: Date.now(), resolve }));
+  }, [frame.studyId]);
+  const answerSpend = (yes: boolean) => {
+    spend?.resolve(yes);
+    setSpend(null);
+  };
   // A job reaching the study's confirmation threshold asks here first (LO15).
   const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
   const nativeRun = agents.run;
@@ -367,8 +382,8 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, continueJob, claimWait, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, confirmSpend, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, claimWait, job, confirm, confirmSpend, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
@@ -494,6 +509,18 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
       {job && starts && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
+      <SpendDialog
+        open={spend !== null}
+        question={String(spend?.key ?? "")}
+        kind="spend_confirm"
+        summary={spend?.summary ?? ""}
+        ceilingUsd={spend?.ceilingUsd ?? null}
+        lines={spend?.lines ?? []}
+        pays="study_budget"
+        confirmLabel={spend ? spendAct(spend.act, spend.ceilingUsd) : ""}
+        onConfirm={() => answerSpend(true)}
+        onCancel={() => answerSpend(false)}
+      />
       <Toast message={toast} />
     </ResearchContext.Provider>}
     </ResearchAssistance>

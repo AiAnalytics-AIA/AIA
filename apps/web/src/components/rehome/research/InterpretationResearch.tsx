@@ -10,7 +10,6 @@ import { useStepActivity } from "./useStepActivity";
 import { needsRepair, phaseLabel } from "@/lib/research-execution";
 import { codedText, codeWords, coverageWords, deepStepLabel, stepProblem } from "@/lib/reason-words";
 import { CodedWords } from "./CodedWords";
-import { withBudget } from "@/lib/budget-line";
 import { olderRulesWords } from "@/lib/review-rules";
 import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { holdingWords } from "@/lib/report-status";
@@ -31,7 +30,7 @@ const message = (e: unknown) => e instanceof Error ? e.message : String(e);
  * (research-integrity-report 3).
  */
 export function InterpretationResearch({ run, review = null, onReview }: { run: ResearchRun; review?: string | null; onReview?: (id: string | null) => void }) {
-  const { frame, confirm } = useResearch();
+  const { frame, confirm, confirmSpend } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
   const [jobs, setJobs] = useState<DeepResearchRun[]>([]);
@@ -122,7 +121,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       } catch (e) {
         if (!(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(await withBudget(frame.studyId, `Rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.interpret"), ceilingUsd: ceiling, act: t("input.spend.research.startInterpret") })) return;
         job = await deepResearch.interpret(frame.studyId, run.run_id, artifact, preset, ceiling);
       }
       setJobs(old => [job, ...old.filter(j => j.run_id !== job.run_id)]);
@@ -140,7 +139,7 @@ export function InterpretationResearch({ run, review = null, onReview }: { run: 
       catch (e) {
         if (action !== "retry" || !(e instanceof ApiError) || e.code !== "cost_confirmation_required" || typeof e.details.ceiling_usd !== "number") throw e;
         const ceiling = e.details.ceiling_usd;
-        if (!await confirm(await withBudget(frame.studyId, `Opakování rešerše může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.retryInterpret"), ceilingUsd: ceiling, act: t("input.spend.research.retryInterpretAct") })) return;
         await deepResearch.retry(frame.studyId, current.run_id, ceiling);
       }
       setRefresh(n => n + 1);

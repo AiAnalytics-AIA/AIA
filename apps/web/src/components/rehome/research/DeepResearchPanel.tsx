@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ApiError, deepResearch, type DeepResearchBundle, type DeepResearchRun } from "@/lib/api";
 import { submitWorkingDesign } from "@/research/store";
-import { withBudget } from "@/lib/budget-line";
+import { t } from "@/i18n/t";
 import { deepResearchRunningStep } from "@/lib/activity-orb";
 import { activityOf } from "@/lib/step-activity";
 import { StepActivityPanel } from "./StepActivityPanel";
@@ -34,7 +34,7 @@ function askedCeiling(e: unknown): number | null {
 }
 
 export function DeepResearchPanel() {
-  const { frame, store, confirm, state } = useResearch();
+  const { frame, store, confirmSpend, state } = useResearch();
   // Reading a finished review, choosing it for the report and stopping one: a closed study allows them.
   const mayReview = canReview(frame);
   const [runs, setRuns] = useState<DeepResearchRun[]>([]);
@@ -103,7 +103,7 @@ export function DeepResearchPanel() {
         // The study's limit asks first (6d): the ceiling the API worked out, beside what remains.
         const ceiling = askedCeiling(e);
         if (ceiling === null) throw e;
-        if (!await confirm(await withBudget(frame.studyId, `Výzkum může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Spustit?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.deep"), ceilingUsd: ceiling, act: t("input.spend.research.startDeep") })) return;
         job = await deepResearch.start(frame.studyId, revision.revision_id, ceiling);
       }
       await refresh();
@@ -119,7 +119,7 @@ export function DeepResearchPanel() {
       } catch (e) {
         const ceiling = askedCeiling(e);
         if (ceiling === null) throw e;
-        if (!await confirm(await withBudget(frame.studyId, `Opakování výzkumu může stát nejvýše ${ceiling.toFixed(2)} USD. Čerpá rozpočet této studie. Pokračovat?`, ceiling))) return;
+        if (!await confirmSpend({ summary: t("input.spend.research.retryDeep"), ceilingUsd: ceiling, act: t("input.spend.research.retryDeepAct") })) return;
         await deepResearch.retry(frame.studyId, runId, ceiling);
       }
       await refresh();
