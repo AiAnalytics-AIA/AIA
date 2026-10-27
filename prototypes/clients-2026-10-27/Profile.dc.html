@@ -197,7 +197,7 @@ class Component extends DCLogic {
       theme: this.props.theme ?? 'light',
       saved: s.saved,
       heroBudget: s.hasBudget ? money(s.budget - 18.6) + ' USD' : 'nenastaven',
-      fields: F.map(([k, l, ph]) => ({ l, id: 'p-' + k, shown: s.vals[k] || ph, cls: s.vals[k] ? 'inplace' : 'inplace ph', reading: s.edit !== k, editing: s.edit === k,
+      fields: F.map(([k, l, ph]) => ({ l, id: 'p-' + k, shown: s.vals[k] || ph, cls: s.vals[k] ? 'inplace' : 'inplace isempty', reading: s.edit !== k, editing: s.edit === k,
         edit: () => this.setState({ edit: k, draft: s.vals[k] }),
         save: () => { const v = s.draft.trim(); const changed = v !== s.vals[k]; this.setState({ edit: null, vals: { ...s.vals, [k]: v }, saved: changed ? 'Uloženo teď' : s.saved, hist: changed ? [['Změněno: ' + l, 'teď'], ...s.hist] : s.hist }); } })),
       draft: s.draft, setDraft: (e) => this.setState({ draft: e.target.value }),

@@ -288,3 +288,5 @@ body{margin:0}
 .cl .ctx a.ctxa{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--ink);text-decoration:none}
 .cl .ctx a.ctxa:hover{background:var(--well);text-decoration:none}
 .cl .ctx a.ctxa .ph{width:16px;height:16px;color:var(--faint)}
+/* an empty in-place value shows its prompt in faint ink; never the class .ph, which is core's icon box */
+.cl .inplace.isempty{color:var(--faint)}

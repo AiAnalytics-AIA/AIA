@@ -8,7 +8,7 @@ number in it is fictional.
 | | |
 |---|---|
 | Live canvas (private to the owner's account) | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> |
-| Exported version | v19, artifact version `1793098739-e444`, 27 Oct 2026 |
+| Exported version | v20, artifact version `1793100519-580b`, 27 Oct 2026 |
 | Code the analysis is anchored to | `develop` @ `a1a9a45c` (anchors re-checked @ `dbaa7720`) |
 | Core stylesheet | `assets/aia-core-v4.3.css`: core v4.3 (Petrol), owned by the design-system session; SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`. It is not `../shared/aia-core.css` (core v3) |
 | Client stylesheet | `assets/aia-client.css`: scoped under `.cl`, built only on core variables, redefines no core class |
