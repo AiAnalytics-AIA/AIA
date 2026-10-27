@@ -1,4 +1,4 @@
-# AIA Design System v3.2: export of 27 Oct 2026
+# AIA Design System v3.3: export of 27 Oct 2026
 
 The AIA Design System artifact as it stands, exported so another account can use it without access to the live
 artifact. It is a design reference, not product code: nothing in `apps/web` imports it, and every client, study,
@@ -7,7 +7,7 @@ person and number in it is fictional.
 | | |
 |---|---|
 | Live artifact (private to the owner's account) | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> |
-| Exported version | v11, artifact version id `1793098287-902c`, 27 Oct 2026 |
+| Exported version | v12, artifact version id `1793100361-1081`, 27 Oct 2026 |
 | Before / after | [`../ux-upgrade-2026-10-27/`](../ux-upgrade-2026-10-27/): the UX upgrade's audits and 12 screens before and after |
 | Product code it matches | draft PRs #1022 (`feature/ux-upgrade`: Petrol, the AI spark edge, the command palette, one way to save, undo, pay and fail) and #1030 (`feature/ux-shared-components`: StatusPill, Value, StaleMark, AiJobCard, ItemReview) |
 
@@ -62,7 +62,7 @@ artifact, with a light/dark switch. It loads only files in this folder:
 - **Each thing is said once on a screen**, and every interaction above is one shared component, not one per page (the owner: "everything has its place").
 - **Phosphor icons only**, Regular weight.
 - **Desktop first:** the smallest laptop in use is a 1280 px Dell XPS 13.
-- **InlineEdit** works as `ui/InlineText.tsx` does: a click, Enter or F2 opens; Enter or blur saves, then "Uloženo" for 3 s; Esc restores; a refusal stays at the field. Fixed in v10; the earlier preview was static.
+- **InlineEdit** works as `ui/InlineText.tsx` does: a click, Enter or F2 opens; Enter or blur saves, then "Uloženo" for 3 s; Esc restores; a refusal stays at the field. Fixed in v10; the earlier preview was static. Since v12 the empty value is marked `data-empty`, not the class `ph`: `.ph` is the Phosphor icon class, and it drew the empty value as a 15 px filled box.
 
 ## Still open
 
@@ -73,4 +73,4 @@ artifact, with a light/dark switch. It loads only files in this folder:
   - D6: the budget wait in coral or slate by who can lift it.
 - **Timing of the product PRs.** Whether #1022 and #1030 land now or after the client pages redesign (`client-pages-redesign#CPR21`) is on the owner's list.
 - **Designed but not built in `apps/web`:** the activity tray, the study bar, Přehled studie, filter tokens, peek, and per-item accept of an agent job's proposal (the accept route takes no items; WCE8b).
-- **The cover still says "v2".** The artifact's Cover card was not retitled; this folder is v3.2.
+- **The cover still says "v2".** The artifact's Cover card was not retitled; this folder is v3.3.

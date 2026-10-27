@@ -167,10 +167,11 @@ body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--font-
 .ie .ipt{min-width:320px;border:0;border-bottom:2px solid var(--signal);background:var(--stint);border-radius:0}
 .ie .ie-note{font-size:12px;line-height:16px;color:var(--muted)}
 .ie .ie-note.bad{color:var(--fault)}
+.ie .inplace[data-empty]{color:var(--faint)}
 </style>
 <div class="ds-col">
  <div class="ds-row"><span class="ds-lbl">Klikněte</span><span class="ie" data-ie><button class="inplace" data-ie-value>Ověřit, zda zvednout cenu o 3 Kč</button><span class="ie-note" aria-live="polite"></span></span></div>
- <div class="ds-row"><span class="ds-lbl">Prázdné</span><span class="ie" data-ie data-ie-ph="Doplňte rozhodnutí, které výzkum podpoří"><button class="inplace ph" data-ie-value data-empty>Doplňte rozhodnutí, které výzkum podpoří</button><span class="ie-note" aria-live="polite"></span></span></div>
+ <div class="ds-row"><span class="ds-lbl">Prázdné</span><span class="ie" data-ie data-ie-ph="Doplňte rozhodnutí, které výzkum podpoří"><button class="inplace" data-ie-value data-empty>Doplňte rozhodnutí, které výzkum podpoří</button><span class="ie-note" aria-live="polite"></span></span></div>
  <div class="ds-row"><span class="ds-lbl">Odmítne</span><span class="ie" data-ie data-ie-refuse="Název musí mít aspoň 3 znaky."><button class="inplace" data-ie-value>Značka A</button><span class="ie-note" aria-live="polite"></span></span></div>
  <div class="ds-row"><span class="ds-lbl">Jen ke čtení</span><button class="inplace" disabled>Rozpočet studie</button></div>
  <p class="cap" style="margin:0">Klik, Enter nebo F2 otevře · Enter nebo odchod uloží · Esc vrátí · „Uloženo" 3 s · odmítnutí zůstane u pole i s textem</p>
@@ -197,8 +198,8 @@ body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--font-
       }
       done = true;
       if (save && next !== was) {
-        if (next) { btn.textContent = next; btn.removeAttribute("data-empty"); btn.classList.remove("ph"); }
-        else { btn.textContent = host.getAttribute("data-ie-ph") || ""; btn.setAttribute("data-empty", ""); btn.classList.add("ph"); }
+        if (next) { btn.textContent = next; btn.removeAttribute("data-empty"); }
+        else { btn.textContent = host.getAttribute("data-ie-ph") || ""; btn.setAttribute("data-empty", ""); }
         note.textContent = "Uloženo"; setTimeout(function () { note.textContent = ""; }, 3000);
       }
       input.remove(); btn.hidden = false; btn.focus();

@@ -10,7 +10,7 @@ A value edited where it is read (`ui/InlineText.tsx` in the product). At rest it
 - **Refusing:** a refused value stays open at the field with the reason in fault colour, the text kept. It is never clamped and never silently dropped.
 - **Read only:** no mark and no hover.
 
-**Use** for names, wordings and short values in tables and lists (a member's name, a research objective, a folder). A placeholder (`.inplace.ph`) says what is missing, in `ink-faint`.
+**Use** for names, wordings and short values in tables and lists (a member's name, a research objective, a folder). A placeholder says what is missing, in `ink-faint`: mark the empty value `.inplace[data-empty]`. Never mark it with the class `ph`: `.ph` is the Phosphor icon class, and it would draw the value as a filled icon-sized box.
 
 **The consumer provides** the value, a save handler that can refuse, and an undo where the change is consequential (Vrátit, 8 s).
 
