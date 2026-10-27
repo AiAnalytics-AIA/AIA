@@ -1,9 +1,9 @@
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');const http=require('http');
 // node render.js <folder holding the canvas folders> <out dir> [one canvas folder]
 // Each canvas folder needs the Design type's runtime saved as support.js (not committed: it is the type's file).
-const root=process.argv[2], out=process.argv[3], only=process.argv[4];
+const root=path.resolve(process.argv[2]), out=path.resolve(process.argv[3]), only=process.argv[4];
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.woff2':'font/woff2'};
-const srv=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent(q.url.split('?')[0]));if(!f.startsWith(root)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.writeHead(404);return r.end()}r.writeHead(200,{'content-type':types[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(r)}).listen(0,async()=>{
+const srv=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent(q.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.writeHead(404);return r.end()}r.writeHead(200,{'content-type':types[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(r)}).listen(0,async()=>{
  const port=srv.address().port;const b=await chromium.launch();const report=[];
  for(const d of fs.readdirSync(root).filter(x=>!only||x===only)){const cj=JSON.parse(fs.readFileSync(path.join(root,d,'canvas.json')));const boards=Object.entries(cj.boards||{});
   fs.mkdirSync(path.join(out,d),{recursive:true});let i=0;
