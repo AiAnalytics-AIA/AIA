@@ -1,0 +1,1 @@
+AIA's identity, copied from `apps/web/public/skin/brand/`: `aia-mark.svg` (the 5 × 5 lattice mark in ink), `aia-mark-on-graphite.svg` (the mark on the graphite `brand-stage`, its apex `brand-apex` `#6ac5e8`: the rail, the favicon, the launch film), `lattice-field.svg` (the front door's field). The apex cyan is the identity, never the UI `signal`.
