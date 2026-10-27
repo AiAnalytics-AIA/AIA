@@ -1,11 +1,15 @@
 const {chromium}=require('playwright');const fs=require('fs');const path=require('path');const http=require('http');
 // node render.js <folder holding the canvas folders> <out dir> [one canvas folder]
 // Each canvas folder needs the Design type's runtime saved as support.js (not committed: it is the type's file).
+if(process.argv.length<4){console.error('usage: node render.js <folder holding the canvas folders> <out dir> [one canvas folder]');process.exit(2)}
 const root=path.resolve(process.argv[2]), out=path.resolve(process.argv[3]), only=process.argv[4];
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.json':'application/json','.webp':'image/webp','.woff2':'font/woff2'};
 const srv=http.createServer((q,r)=>{const f=path.join(root,decodeURIComponent(q.url.split('?')[0]));if(!f.startsWith(root+path.sep)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){r.writeHead(404);return r.end()}r.writeHead(200,{'content-type':types[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(r)}).listen(0,async()=>{
  const port=srv.address().port;const b=await chromium.launch();const report=[];
- for(const d of fs.readdirSync(root).filter(x=>!only||x===only)){const cj=JSON.parse(fs.readFileSync(path.join(root,d,'canvas.json')));const boards=Object.entries(cj.boards||{});
+ // Only folders holding a canvas.json are canvases; anything else in the root is skipped.
+ const canvases=fs.readdirSync(root).filter(x=>(!only||x===only)&&fs.existsSync(path.join(root,x,'canvas.json')));
+ if(only&&!canvases.length){console.error('no canvas.json in '+path.join(root,only));process.exit(2)}
+ for(const d of canvases){const cj=JSON.parse(fs.readFileSync(path.join(root,d,'canvas.json')));const boards=Object.entries(cj.boards||{});
   fs.mkdirSync(path.join(out,d),{recursive:true});let i=0;
   for(const [file,meta] of boards){i++;const w=meta.w||1440,h=meta.h||1200;const p=await b.newPage({viewport:{width:w,height:Math.min(h,4000)}});const errs=[];
    p.on('pageerror',e=>errs.push(String(e).slice(0,200)));p.on('console',m=>{if(m.type()==='error')errs.push(m.text().slice(0,200))});
