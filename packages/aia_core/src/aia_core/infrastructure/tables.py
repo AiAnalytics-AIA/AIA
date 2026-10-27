@@ -3126,7 +3126,9 @@ class ReportEditorVersionRow(Base):
         UniqueConstraint("line_id", "koncept", name="uq_report_editor_versions_koncept"),
         UniqueConstraint("line_id", "sha256", name="uq_report_editor_versions_sha256"),
         CheckConstraint("koncept >= 1", name="report_editor_version_koncept_positive"),
-        CheckConstraint("variant IN ('internal', 'context')", name="report_editor_version_variant"),
+        CheckConstraint(
+            "variant IN ('internal', 'context', 'client')", name="report_editor_version_variant"
+        ),
         Index("ix_report_editor_versions_run", "study_id", "run_id"),
     )
 

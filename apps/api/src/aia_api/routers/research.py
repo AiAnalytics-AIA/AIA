@@ -71,6 +71,7 @@ from aia_core.application.report import (
 from aia_core.application.report_approval import (
     APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
+    ClientEditApproved,
     ReportEditsUnsaved,
     ReportNotApprovable,
     ReportVersionStale,
@@ -2710,15 +2711,19 @@ def _approved_edits(
     scope: StudyContext,
     session: SessionDep,
     store: ArtifactStoreDep,
+    *,
+    client: bool = False,
 ) -> list[dict[str, Any]]:
-    """The edited versions of the run's internal report, or of its report with
-    ``deep_research_run_id``'s review, that a person approved, each with its review."""
+    """The edited versions of the run's internal report, of its report with
+    ``deep_research_run_id``'s review, or (``client``) of its client report (RPT13), that a
+    person approved, each with its review."""
+    variant = "client" if client else ("internal" if deep_research_run_id is None else "context")
     found = approved_versions(
         session,
         scope,
         store,
         run_id=run_id,
-        variant="internal" if deep_research_run_id is None else "context",
+        variant=variant,
         deep_research_run_id=deep_research_run_id,
     )
     return [
@@ -3855,6 +3860,11 @@ def _client_document_body(
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
         **_client_pdf_fields(run_id, report, mark, scope, session, store),
+        # The edited versions of the client report a person approved, and the newest saved over
+        # this one (RPT13), as the internal report's status names them: an approved edited
+        # version is the client's, and this composed draft is no longer approved beside it.
+        "approved_edits": _approved_edits(run_id, None, scope, session, store, client=True),
+        "edited_line": _edited_line(report, scope, session, store),
         # The client deliverable's checks (RD0) and the sentence check (RD7) on this version:
         # warnings the approval dialog shows and the approval records, never a refusal.
         "warnings": [
@@ -3900,6 +3910,19 @@ def approve_run_report(
                 "code": "report_edits_unsaved",
                 "message": "An edit made in the editor is not in a saved version yet.",
                 "details": {"reason": exc.reason.value},
+            },
+        ) from exc
+    except ClientEditApproved as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_edit_approved",
+                "message": "A version of this client report edited in the editor is approved;"
+                " it is the client's.",
+                "details": {
+                    "approved_artifact_id": exc.approved_artifact_id,
+                    "koncept": exc.koncept,
+                },
             },
         ) from exc
     except ReportVersionStale as exc:

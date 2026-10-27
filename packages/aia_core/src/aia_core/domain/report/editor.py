@@ -22,12 +22,14 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Final
 
-#: The report variants the editor opens; the client report is never one (refused by name).
-EDITABLE_VARIANTS: Final = frozenset({"internal", "context"})
+#: The report variants the editor opens. The client report is one since RPT13 (B2 (a), the product
+#: owner, 2026-10-26): its saved versions are judged by the client deliverable's checks at approval.
+EDITABLE_VARIANTS: Final = frozenset({"internal", "context", "client"})
 #: A saved version's artifact type, by the variant it was saved from.
 EDIT_ARTIFACT_TYPES: Final = {
     "internal": "research_internal_docx_edit",
     "context": "research_internal_docx_with_research_edit",
+    "client": "research_client_docx_edit",
 }
 #: What a version changed in what code wrote (``saved_changes.changes_payload``), beside it.
 CHANGES_ARTIFACT_TYPE: Final = "research_report_changes"

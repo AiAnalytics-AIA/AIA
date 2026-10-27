@@ -9,20 +9,38 @@ import json
 import os
 import time
 import zipfile
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 from unittest.mock import ANY
 from urllib.parse import parse_qs, urlparse
 
 import jwt
 import pytest
+from aia_core.application.client_report import (
+    CLIENT_REPORT_ARTIFACT_TYPE,
+    CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+    CLIENT_REPORT_STAGE,
+)
 from aia_core.application.report import (
     INTERNAL_REPORT_ARTIFACT_TYPE,
     INTERNAL_REPORT_MEDIA_TYPE,
     INTERNAL_REPORT_PDF_ARTIFACT_TYPE,
 )
+from aia_core.application.report_document import store_document_beside
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.evidence import ClaimSurface
+from aia_core.domain.evidence.validation import METHOD_STATUS_PENDING
+from aia_core.domain.report.evidence import EvidenceLedger
+from aia_core.domain.report.model import (
+    Classification,
+    Paragraph,
+    ReportDocument,
+    ReportKind,
+    ReportMeta,
+    Section,
+    text,
+)
 from aia_core.domain.report.saved_changes import read_changes_payload
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.report_editor_repository import ReportEditorRepository
@@ -81,12 +99,19 @@ def settings() -> Settings:
 W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 
-def _docx(value: str = "42,5 %", prose: str = "Bance důvěřuje") -> bytes:
-    """A report body with one locked number, ``value`` under ``trust_total``."""
+def _docx(
+    value: str = "42,5 %", prose: str = "Bance důvěřuje", *, copy: str | None = None
+) -> bytes:
+    """A report body with one locked number, ``value`` under ``trust_total``; ``copy``: a second
+    control under the same tag holding that text, as a control copied in the editor."""
+    control = '<w:sdt><w:sdtPr><w:tag w:val="trust_total"/></w:sdtPr><w:sdtContent>'
+    twin = (
+        f"{control}<w:r><w:t>{copy}</w:t></w:r></w:sdtContent></w:sdt>" if copy is not None else ""
+    )
     body = (
         f'<w:document xmlns:w="{W}"><w:body><w:p><w:r><w:t>{prose} </w:t></w:r>'
-        '<w:sdt><w:sdtPr><w:tag w:val="trust_total"/></w:sdtPr><w:sdtContent>'
-        f"<w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt></w:p></w:body></w:document>"
+        f"{control}<w:r><w:t>{value}</w:t></w:r></w:sdtContent></w:sdt>{twin}"
+        "</w:p></w:body></w:document>"
     )
     out = io.BytesIO()
     with zipfile.ZipFile(out, "w") as z:
@@ -288,13 +313,72 @@ def test_an_expired_a_callbacks_or_another_lines_token_does_not_fetch(
     assert client.get(path, params=query, headers=_signed_for(path, query)).status_code == 404
 
 
-def test_the_client_report_is_refused_by_name(
+def _client_document() -> ReportDocument:
+    meta = ReportMeta(
+        ReportKind.CLIENT,
+        "Výzkumná zpráva",
+        "Fiktivní data",
+        "Fiktivní klient",
+        "Fiktivní studie",
+        "STU-1",
+        date(2026, 10, 18),
+        1,
+        METHOD_STATUS_PENDING,
+        classification=Classification.CLIENT_CONFIDENTIAL,
+    )
+    ledger = EvidenceLedger.from_claims([], surface=ClaimSurface.CLIENT_FACING)
+    return ReportDocument(
+        meta, (Section("Shrnutí", (Paragraph(text("Fiktivní zpráva.")),)),), ledger
+    )
+
+
+def _stored_client(app: FastAPI, world: Any, run_id: str, draft: str) -> str:
+    """The run's client report stored as its download stores one, with one locked number
+    (``trust_total``) and its document model beside it: the client draft's id."""
+    factory = create_session_factory(app.state.engine)
+    with factory() as session:
+        principal = AuthenticatedPrincipal(
+            user_id=world.users["researcher"], organization_id=world.organization_id
+        )
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        repo = research_artifacts(session, scope, app.state.artifact_store)
+        internal = repo.get(draft)
+        docx, _ = repo.put(
+            project_id=internal.project_id,
+            revision=internal.revision,
+            stage_type=CLIENT_REPORT_STAGE,
+            artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
+            data=_docx(),
+            content_type=INTERNAL_REPORT_MEDIA_TYPE,
+            metadata={"run_id": run_id, "report_kind": "client"},
+            reuse=False,
+        )
+        store_document_beside(
+            repo,
+            docx,
+            _client_document(),
+            artifact_type=CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
+            metadata={"run_id": run_id, "report_kind": "client"},
+        )
+        session.commit()
+    return docx.artifact_id
+
+
+def test_the_client_report_opens_once_it_is_stored(
     app: FastAPI, researcher: TestClient, world: Any
 ) -> None:
-    run_id, _ = _reported_run(app, researcher, world)
-    refused = researcher.post(_editor(world, run_id), json={"variant": "client"})
-    assert refused.status_code == 409
-    assert refused.json()["code"] == "client_report_not_editable"
+    """RPT13 (B2 (a), the product owner, 2026-10-26): the client report is edited in the editor
+    too. It opens on the stored version, composing nothing: before one is stored, by name."""
+    run_id, draft = _reported_run(app, researcher, world)
+    before = researcher.post(_editor(world, run_id), json={"variant": "client"})
+    assert before.status_code == 409 and before.json()["code"] == "client_report_not_prepared"
+    client_draft = _stored_client(app, world, run_id, draft)
+    opened = researcher.post(_editor(world, run_id), json={"variant": "client"})
+    assert opened.status_code == 200, opened.text
+    assert opened.json()["line_id"] == client_draft and opened.json()["koncept"] == 1
+    # Its own line, beside the internal report's, never one of them.
+    internal = researcher.post(_editor(world, run_id), json={}).json()
+    assert internal["line_id"] == draft
 
 
 def test_with_the_editor_off_every_route_is_404(
@@ -900,6 +984,149 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
     assert researcher.get(f"{versions}/{edited}").status_code == 200
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
+
+
+def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT13: a saved version of the client report is judged at its approval as its composed
+    draft was (RD0, RD7), plus what the save changed in what code wrote; every finding a warning
+    the version read shows and the approval records. It stays the client's deliverable."""
+    from aia_core.infrastructure.tables import ApprovalDecisionRow
+    from sqlalchemy import select
+
+    run_id, draft = _reported_run(app, researcher, world)
+    client_draft = _stored_client(app, world, run_id, draft)
+    config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()["config"]
+    me = world.users["researcher"]
+    url = saves.put(_docx("50 %", prose="Bance důvěřuje 73 % lidí, z nich"))
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+    assert edited["koncept"] == 2 and edited["line_id"] == client_draft
+    version = edited["version_artifact_id"]
+    versions = f"{_editor(world, run_id)}/versions"
+    warnings = [
+        {
+            "code": "unadmitted_number",
+            "where": "trust_total",
+            "message": "číslo přepsané ručně: 42,5 % → 50 %",
+        },
+        {
+            "code": "unadmitted_number",
+            "where": "text",
+            "message": "číslo 73 napsané ručně mimo připuštěná čísla"
+            " („Bance důvěřuje 73 % lidí, z nich 50 %“)",
+        },
+        {
+            "code": "gate_unrecorded",
+            "where": "text",
+            "message": "text upravený v editoru AIA neověří; zkontrolujte, že necituje jednoho"
+            " respondenta",
+        },
+    ]
+    said = researcher.get(f"{versions}/{version}").json()
+    assert said["artifact_type"] == "research_client_docx_edit"
+    assert said["warnings"] == warnings
+    # Stored as the client's report it was saved from, the kind its PDF carries (review P3).
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        stored = research_artifacts(session, scope, app.state.artifact_store).get(version)
+        assert stored.metadata["report_kind"] == "client"
+    # The composed draft's own read names nothing here: its checks are its document route's.
+    assert researcher.get(f"{versions}/{client_draft}").json()["warnings"] is None
+
+    runs = f"{API}/studies/{world.study_id()}/research/runs"
+    approved = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": version})
+    assert approved.status_code == 200, approved.text
+    body = approved.json()
+    assert body["report_kind"] == "client" and body["internal_only"] is False
+    assert body["approval"]["warnings"] == warnings
+    with create_session_factory(app.state.engine)() as session:
+        row = session.scalars(
+            select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == version)
+        ).one()
+        assert row.warnings == warnings
+    got = researcher.get(f"{versions}/{version}/download")
+    assert got.status_code == 200 and got.headers["X-AIA-Artifact-Id"] == version
+    assert "-klient-" in got.headers["Content-Disposition"]
+
+    # The client report's document route names the approved edited version beside the composed
+    # draft it still reads, as the internal report's status does (review P2) ...
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["report_artifact_id"] == client_draft
+    assert document["review_state"] == "DRAFT_UNAPPROVED"
+    assert [(e["artifact_id"], e["line_id"], e["koncept"]) for e in document["approved_edits"]] == [
+        (version, client_draft, 2)
+    ]
+    assert document["approved_edits"][0]["review_state"] == "APPROVED_INTERNAL"
+    assert document["edited_line"]["artifact_id"] == version
+    assert document["edited_line"]["koncept"] == 2
+    # ... and the composed draft is no second approved client deliverable: refused by name.
+    refused = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": client_draft})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "client_report_edit_approved"
+    assert refused.json()["details"] == {"approved_artifact_id": version, "koncept": 2}
+    with create_session_factory(app.state.engine)() as session:
+        assert (
+            session.scalars(
+                select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == client_draft)
+            ).first()
+            is None
+        )
+
+
+def test_a_client_draft_with_no_approved_edit_is_approved_and_its_document_names_none(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT13: a saved but unapproved edit refuses nothing; the document route names it as the
+    line's newest and no approved edit."""
+    run_id, draft = _reported_run(app, researcher, world)
+    client_draft = _stored_client(app, world, run_id, draft)
+    runs = f"{API}/studies/{world.study_id()}/research/runs"
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["approved_edits"] == [] and document["edited_line"] is None
+    config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["approved_edits"] == [] and document["edited_line"]["koncept"] == 2
+    approve = f"{runs}/{run_id}/report/approve"
+    approved = researcher.post(approve, json={"artifact_id": client_draft})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "client"
+
+
+def test_a_client_control_copied_and_retyped_is_an_unadmitted_number(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """Review of #1017 (P1), through the save's own census and comparison: a second
+    ``trust_total`` control retyped to a number code never wrote is flagged, a plain copy of the
+    number it wrote is not."""
+    run_id, draft = _reported_run(app, researcher, world)
+    _stored_client(app, world, run_id, draft)
+    me = world.users["researcher"]
+    versions = f"{_editor(world, run_id)}/versions"
+
+    def warnings_of(saved: bytes) -> list[dict[str, Any]]:
+        config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+        url = saves.put(saved)
+        sent = _callback(client, config["config"], status=6, url=url, users=[me])
+        assert sent.json() == {"error": 0}
+        newest = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+        said = researcher.get(f"{versions}/{newest['version_artifact_id']}").json()
+        assert said["changes"]["changes"][0]["kind"] == "added"
+        return [w for w in said["warnings"] if w["code"] == "unadmitted_number"]
+
+    assert warnings_of(_docx(copy="99 %")) == [
+        {
+            "code": "unadmitted_number",
+            "where": "trust_total",
+            "message": "číslo přidané ručně: 99 %",
+        }
+    ]
+    assert warnings_of(_docx(copy="42,5 %")) == []
 
 
 def _editor_saved_docx() -> bytes:

@@ -174,13 +174,16 @@ def _store(
     koncept = previous.koncept + 1
     meta = {
         "run_id": previous.run_id,
-        "report_kind": "internal",
         "line_id": editor_session.line_id,
         "koncept": koncept,
         "edited_from": previous.artifact_id,
         "authors": list(authors),
         "review_state": "DRAFT_UNAPPROVED",
     }
+    # The kind its composition stored (a client report's ``client``), carried onto its PDF; a
+    # composition that stored none gets none, never a guess.
+    if composed.metadata.get("report_kind"):
+        meta["report_kind"] = composed.metadata["report_kind"]
     if previous.deep_research_run_id is not None:
         meta["deep_research_run_id"] = previous.deep_research_run_id
     if content_at is not None:
