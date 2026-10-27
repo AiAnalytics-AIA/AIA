@@ -535,7 +535,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-pages-redesign#CPR11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
-| `client-pages-redesign#CPR14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR14` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): remove Projektová paměť; its search and reuse fold into Výzkumy (CPR9); wave proposed here |
 | `client-pages-redesign#CPR15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
