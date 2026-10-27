@@ -1,0 +1,103 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-27T01:30:00Z"
+  },
+  "title": "AIA Klienti – prototyp",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 2577,
+      "title": "0 · Přehled prototypu"
+    },
+    "Clients.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 2488,
+      "title": "1 · Klienti",
+      "is_interactive": true
+    },
+    "Overview.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 3550,
+      "title": "2 · Přehled klienta"
+    },
+    "Studies.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 2812,
+      "title": "3 · Výzkumy (paměť sloučena)",
+      "is_interactive": true
+    },
+    "Knowledge.dc.html": {
+      "x": 0,
+      "y": 4120,
+      "w": 1440,
+      "h": 3827,
+      "title": "4 · Znalosti jako Disk (Data sloučena)",
+      "is_interactive": true
+    },
+    "KnowledgeItem.dc.html": {
+      "x": 1520,
+      "y": 4120,
+      "w": 1440,
+      "h": 2931,
+      "title": "5 · Znalosti: schvalování a položka",
+      "is_interactive": true
+    },
+    "Intake.dc.html": {
+      "x": 3040,
+      "y": 4120,
+      "w": 1440,
+      "h": 3421,
+      "title": "6 · Přidat podklady",
+      "is_interactive": true
+    },
+    "Profile.dc.html": {
+      "x": 4560,
+      "y": 4120,
+      "w": 1440,
+      "h": 3586,
+      "title": "7 · Profil",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Clients.dc.html",
+    "Overview.dc.html",
+    "Studies.dc.html",
+    "Knowledge.dc.html",
+    "KnowledgeItem.dc.html",
+    "Intake.dc.html",
+    "Profile.dc.html"
+  ],
+  "notes": {
+    "rowA": {
+      "x": 0,
+      "y": -320,
+      "text": "Klienti, přehled, výzkumy",
+      "kind": "title1",
+      "maxW": 6000
+    },
+    "rowB": {
+      "x": 0,
+      "y": 3800,
+      "text": "Znalosti, příjem, profil",
+      "kind": "title1",
+      "maxW": 6000
+    }
+  },
+  "designSystems": []
+}

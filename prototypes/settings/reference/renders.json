@@ -1,0 +1,112 @@
+[
+ {
+  "board": "Main.dc.html",
+  "title": "Metodika",
+  "w": 1440,
+  "h": 1060,
+  "text_chars": 1809,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Main.webp"
+ },
+ {
+  "board": "Prompts.dc.html",
+  "title": "Systémové prompty",
+  "w": 1440,
+  "h": 1090,
+  "text_chars": 1383,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Prompts.webp"
+ },
+ {
+  "board": "DeepResearch.dc.html",
+  "title": "Deep Research",
+  "w": 1440,
+  "h": 1450,
+  "text_chars": 2155,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-DeepResearch.webp"
+ },
+ {
+  "board": "AI.dc.html",
+  "title": "AI běh",
+  "w": 1440,
+  "h": 1310,
+  "text_chars": 1970,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-AI.webp"
+ },
+ {
+  "board": "Access.dc.html",
+  "title": "Přístup a schvalování",
+  "w": 1440,
+  "h": 1200,
+  "text_chars": 1851,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-Access.webp"
+ },
+ {
+  "board": "Studies.dc.html",
+  "title": "Studie a rozpočty",
+  "w": 1440,
+  "h": 1110,
+  "text_chars": 1671,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-Studies.webp"
+ },
+ {
+  "board": "Audit.dc.html",
+  "title": "Audit",
+  "w": 1440,
+  "h": 930,
+  "text_chars": 1636,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-Audit.webp"
+ },
+ {
+  "board": "System.dc.html",
+  "title": "Stav systému",
+  "w": 1440,
+  "h": 1560,
+  "text_chars": 2299,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-System.webp"
+ },
+ {
+  "board": "Data.dc.html",
+  "title": "Správa dat",
+  "w": 1440,
+  "h": 930,
+  "text_chars": 917,
+  "errors": [],
+  "failed_requests": [],
+  "image": "09-Data.webp"
+ },
+ {
+  "board": "Hatch.dc.html",
+  "title": "Vypěstovat Vedoucího",
+  "w": 1440,
+  "h": 1050,
+  "text_chars": 644,
+  "errors": [],
+  "failed_requests": [],
+  "image": "10-Hatch.webp"
+ },
+ {
+  "board": "LeadSettings.dc.html",
+  "title": "Můj Vedoucí",
+  "w": 1440,
+  "h": 2110,
+  "text_chars": 2373,
+  "errors": [],
+  "failed_requests": [],
+  "image": "11-LeadSettings.webp"
+ }
+]

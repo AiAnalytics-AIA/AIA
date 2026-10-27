@@ -118,24 +118,41 @@ describe("the panel's controls", () => {
     expect(canvas().getAttribute("data-selected")).toBe("");
   });
 
-  it("opens the terrain Hladký, switches it to Blokový from Nastavení mapy, redraws, and remembers the choice", async () => {
-    window.localStorage.removeItem("aia.objectMap.terrain");
-    onTestFinished(() => window.localStorage.removeItem("aia.objectMap.terrain"));
-    const { unmount } = render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    // jsdom has no WebGL: the smooth terrain's frame still draws, as the blocky terrain.
+  it("opens on plain IDW, switches to IDW s poklesem from Nastavení mapy and redraws; a map that stored one offers that one only", async () => {
+    // The stored fixture predates the inverse-distance terrains: the same map, as a run stores it now.
+    const stored = map.terrain as Extract<typeof map.terrain, { status: "computed" }>;
+    const lowered = stored.height.map((row) => row.map((h) => (h ?? 0) / 2));
+    const idw = (extra: object) => ({
+      ...hudba,
+      maps: { ...hudba.maps, "aia-sociomap-5": { ...hudba.maps!["aia-sociomap-5"], artifact: { ...map, terrain: { ...stored, method: "framed_relative_idw", ...extra } } } },
+    }) as unknown as BatteryWithMaps;
+    const both = idw({ alternate_method: "framed_relative_idw_falloff", alternate_height: lowered, alternate_absolute_height: lowered });
+    const { unmount } = render(<ObjectMapView battery={both} dataOrigin={null} />);
     await nextFrame(0);
-    expect(canvas().getAttribute("data-terrain")).toBe("smooth");
+    expect(canvas().getAttribute("data-terrain")).toBe("framed_relative_idw");
     const before = frames;
     openSettings();
-    expect(screen.getByRole("button", { name: "Hladký" }).getAttribute("aria-pressed")).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: "Blokový" }));
-    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
-    expect(screen.getByRole("button", { name: "Blokový" }).getAttribute("aria-pressed")).toBe("true");
+    const plain = () => screen.getByRole("button", { name: "IDW" });
+    const falloff = () => screen.getByRole("button", { name: "IDW s poklesem" });
+    expect(plain().getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(falloff());
+    expect(canvas().getAttribute("data-terrain")).toBe("framed_relative_idw_falloff");
+    expect(falloff().getAttribute("aria-pressed")).toBe("true");
     await nextFrame(before);
-    expect(window.localStorage.getItem("aia.objectMap.terrain")).toBe("blocky");
     unmount();
+    // Stored alone: the switch shows it and cannot reach the other one.
+    render(<ObjectMapView battery={idw({})} dataOrigin={null} />);
+    openSettings();
+    expect(canvas().getAttribute("data-terrain")).toBe("framed_relative_idw");
+    expect(plain().getAttribute("aria-pressed")).toBe("true");
+    expect((falloff() as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("offers no terrain switch on a map stored under the envelope", () => {
     render(<ObjectMapView battery={hudba} dataOrigin={null} />);
-    expect(canvas().getAttribute("data-terrain")).toBe("blocky");
+    openSettings();
+    expect(canvas().getAttribute("data-terrain")).toBe("");
+    expect(screen.queryByRole("button", { name: "IDW s poklesem" })).toBeNull();
   });
 
   it("switches Absolutni / Relativni and the relation display, redrawing each time", async () => {

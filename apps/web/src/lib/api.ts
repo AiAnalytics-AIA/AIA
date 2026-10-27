@@ -1033,6 +1033,14 @@ export type Readiness = {
   answerability?: Answerability | null;
   /** The sample a panel run would draw (run-qc-and-checkpoint RQC6b); `null` when none was drawn. */
   sample_composition?: SampleComposition | null;
+  /** What the support forecast found beyond its check's words (SMP9); `null` when this source forecasts none, absent from an older API. */
+  support_forecast?: SupportForecastFound | null;
+};
+
+/** The smallest n the analysis gate admits, and what its `null` stands for: never good unless `met`. */
+type SupportForecastFound = {
+  reportable_n: number | null;
+  reportable_n_state: "met" | "indicative" | "needs_more" | "not_found" | "unknown";
 };
 
 /** One quota cell: its id, its value in each quota field, its respondents. */

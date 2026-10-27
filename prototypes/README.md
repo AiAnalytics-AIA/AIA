@@ -4,26 +4,40 @@ Design references for AIA's interface. None of this is product code: nothing her
 `apps/web`, calls an AIA endpoint, a model or a paid service, and every client, study, person and
 number in it is fictional.
 
-## The canonical design reference (from 26 Oct 2026)
+**These are shared artifacts** (CLAUDE.md §1, "Shared artifacts live in the repo"). The owner works from two
+claude.ai accounts, and neither can open the other's artifacts, so the repo is where they meet: each artifact has
+one folder here, named without a date, updated in place by the `artifact-sync` skill. A folder's README names the
+version it holds; git history keeps every earlier one. This index lists the folders and each artifact's link in each
+account, and changes only when a folder is added or retired.
 
-From 26 Oct 2026 the canonical design reference is these two Design-canvas prototypes, by the product
-owner's decision: *"i am super happy with the design of the research steps, we need to aim to build
-out this exact UX design."*
+## The shared artifacts
 
-| Folder | What | Live canvas (private to the owner's account) | Exported version |
-|---|---|---|---|
-| [`settings-v99/`](settings-v99/) | "AIA Nastavení – prototyp": 11 pages: Metodika, Systémové prompty, Deep Research, AI běh, Přístup a schvalování, Studie a rozpočty, Audit, Stav systému, Správa dat, Vypěstovat Vedoucího, Můj Vedoucí | <https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7> | v99 (artifact version `1792978087-0038`) |
-| [`research-stages-v73/`](research-stages-v73/) | "AIA Výzkumné kroky – prototyp": 22 boards: the eleven stages (Zadání … Zpráva), the respondent disc, the overview, the Lead's cards, six chat variants, the Lead's mark | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | v73 (artifact version `1792979634-5793`) |
-| [`research-stages-v73/spec/`](research-stages-v73/spec/) | The research build spec: the prototype mapped onto `develop` at `bd0d1ad6`, stage by stage, with build chunks, backend gaps and owner questions | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> | spec v4 (artifact version `1792979639-7523`; written against prototype v73, with the owner's decisions of 26 Oct) |
-| [`LOOK.md`](LOOK.md) | The look contract both prototypes follow: colour, status, type, radii, icons, frame, components, copy; the three questions it raised and their answers | <https://claude.ai/artifact/1iuneZ5EAYJTfr854VRHPM> | artifact version `1792976899-803a` |
-| [`shared/aia-core.css`](shared/aia-core.css) | Core v3, the one shared stylesheet: tokens from `tokens.json` @ `bd0d1ad6`, the shell, the shared components and the Phosphor icons. Owned by the Settings canvas | Settings asset `c4e14f481d7c21ea1bf1a75f25894eea`; research's copy `32eed12bf6d8fbe65a8c1b56d49b11e9` | SHA-256 `bedd953f6e8d77433f0bd69be873eb9da6c2afede59b6922a29a31333f2e6b70`; the two canvases' copies are byte-identical |
+| Folder | What | Kind | First account (nigelblount@art-chain.io) | Second account |
+|---|---|---|---|---|
+| [`clients/`](clients/) | "AIA Klienti – prototyp": the client pages (Klienti, Přehled, Výzkumy, Znalosti and item, Přidat podklady, Profil) | Design canvas, 8 boards | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> | not rebuilt yet |
+| [`research-stages/`](research-stages/) | "AIA Výzkumné kroky – prototyp": the eleven stages, the respondent disc, the Lead's cards and chat | Design canvas, 24 boards | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | not rebuilt yet |
+| [`research-stages/spec/`](research-stages/spec/) | The research stages build spec: the prototype mapped onto develop, stage by stage | page + Markdown | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> | not rebuilt yet |
+| [`settings/`](settings/) | "AIA Nastavení – prototyp": the eleven Settings pages | Design canvas, 11 boards | <https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7> | not rebuilt yet |
+| [`design-system/`](design-system/) | The AIA Design System: every component's preview and rules, tokens, the shared core stylesheet | page and components | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> | not rebuilt yet |
+| [`ux-upgrade/`](ux-upgrade/) | The UX upgrade's before/after page and audits | page | <https://claude.ai/artifact/6duL5pNSVfiqqBz6V16Tfo> | not rebuilt yet |
+| [`palettes/`](palettes/) | The palette study behind Petrol | page | <https://claude.ai/artifact/CcT6HoxR4EHpao5rXYrda7> | not rebuilt yet |
+| [`../tools/build_map/`](../tools/build_map/) | The AIA Build Map, built from the repo by `build.py` | generated page | <https://claude.ai/artifact/XdjCNHdYnvcjYiijJpwrL3> | not rebuilt yet |
 
-The older references stay as history: [`research-lead-v2/`](research-lead-v2/) (the workbench
-prototype, canonical from 2026-10-20 until now) and [`research-lead-v3/`](research-lead-v3/) (its
-artifact boards as text). Where they disagree with the two above, the two above win.
+Each canvas and page folder has a `reference/` folder of images of every board as it stood at that version; the
+scripts that draw them are in [`../tools/prototype_renders/`](../tools/prototype_renders/). Rebuilding a canvas in
+the second account: the `artifact-sync` skill, "Publishing an artifact from the repo". Put the new link in the last
+column when it exists.
 
-The canvases are the source of truth and keep moving; these folders are snapshots. Re-export into a
-new `-v<N>` folder rather than editing a snapshot by hand.
+## History, kept as it was
+
+- [`research-lead-v2/`](research-lead-v2/): the workbench prototype, the canonical design reference from 2026-10-20 to
+  2026-10-26, and [`research-lead-v3/`](research-lead-v3/): its artifact boards as text. Where they disagree with the
+  folders above, the folders above win.
+- [`LOOK.md`](LOOK.md): the look contract of 26 Oct that the canvases followed before the Petrol design system.
+- [`shared/aia-core.css`](shared/aia-core.css): core v3, the stylesheet of 26 Oct; each canvas now carries its own copy
+  of the current core under `assets/`.
+- The dated snapshots `settings-v99/` and `research-stages-v73/` (26 Oct) and the `*-2026-10-27/` export folders were
+  replaced by the folders above on 27 Oct; they are in git history.
 
 ## How to read a `.dc.html` file
 
@@ -43,42 +57,3 @@ Icons are Phosphor Regular (`@phosphor-icons/core` 2.1.1, MIT licence, Copyright
 Icons; the licence text is in [`shared/PHOSPHOR-LICENSE`](shared/PHOSPHOR-LICENSE), copied from the 2.1.1 package), written as `<i class="ph ph-<name>">`. Their 93 glyphs are inline SVG masks inside
 `shared/aia-core.css`, so no icon font or CDN is involved. Fonts load from Google Fonts in the boards
 themselves (IBM Plex Sans, IBM Plex Mono, Source Serif 4).
-
-## What was exported, and what was not
-
-Every `/_blob/<id>` URL whose file was exported has been rewritten to a relative path.
-
-**Settings (`settings-v99/`)**
-
-| File | From | Used by |
-|---|---|---|
-| `canvas.json`, 11 `*.dc.html` | `project/` | |
-| `../shared/aia-core.css` | asset `c4e14f481d7c21ea1bf1a75f25894eea` | every page |
-| `assets/aia-settings.css` | asset `299c2616168d3335f9bc59cbb708478c` | every page but Hatch and LeadSettings |
-| `assets/889c3d28bc209704c3ef7887107cb48d.webp` | asset of that id | Main (Metodika): the Sociomap sample image |
-
-**Research stages (`research-stages-v73/`)**
-
-| File | From | Used by |
-|---|---|---|
-| `canvas.json`, 22 `*.dc.html` | `project/` | |
-| `../shared/aia-core.css` | asset `32eed12bf6d8fbe65a8c1b56d49b11e9` (byte-identical to Settings') | every board |
-| `assets/aia-study.css` | asset `49420235f65095ba317683657e5dddbb` (SHA-256 `d1a2d23b…`) | every board: the study layer on top of core (stage navigator, study header, split, Lead pane and cards, stage sections) |
-| `assets/<id>.jpg` (12) | assets of those ids | "Dnes v AIA" screenshots of today's workbench at 1440 px, one per stage board (Fieldwork has two) |
-| `assets/<id>.png` (12) | assets of those ids | Sociomap: the approved 3D map (`03a69632…`, 0.9 MB); Report: the report editor's toolbar in ONLYOFFICE's default and AIA's theme, the 232-icon grid and the editor states |
-
-The research canvas still publishes its own `Hatch.dc.html` and `LeadSettings.dc.html`, but they are
-not on its canvas and no board links them: the look contract retired them in favour of Settings'
-copies. They and the old stylesheet only they used were not exported.
-
-**Not exported** (left as they are in the HTML):
-
-| Asset | What | Where | Why |
-|---|---|---|---|
-| `/_blob/1aa4f92cccca03849efce6807a4b7c3c` (28,761 bytes) | thinking-orbs 0.3.2 engine (MIT, Jakub Antalik), JavaScript | all 22 research boards | a script, not a font, icon or image; the product already ships the package (`ActivityOrb`) |
-| `/_blob/6659cc2592302e4ff9bbdaaa4c953b68` (29,791 bytes) | the same engine wrapped as a `<thinking-orb>` element, JavaScript | Settings: LeadSettings, System | as above |
-| `./support.js` | the canvas runtime | every board | part of the Design canvas, not of the prototype |
-| `https://fonts.googleapis.com/css2?…` | IBM Plex Sans, IBM Plex Mono, Source Serif 4 | every board | loaded from Google Fonts, kept as a link |
-
-The canvases' asset stores also hold earlier versions of these stylesheets, scripts and screenshots
-that no current board references; they were not exported.

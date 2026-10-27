@@ -18,7 +18,7 @@ chunks:
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
-  - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
+  - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
@@ -219,6 +219,13 @@ A wording change to the criterion, made with the acceptance harness, not a behav
 
 **LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line**  
 The prototype's own documentation lists the unmeasured cost per turn as a gap to production.
+*ADR 0041 Amendment 1 (the owner, 2026-10-26, REV-0041-BENCH-CAP (a)).* The cost per turn is
+measured by `lead-conversation#LC13`'s benchmark: each configuration's mean and 95th-percentile USD
+per turn and per search-and-read round (`lead-client-knowledge#LK3`), from the usage ledger. A paid
+benchmark run is started by hand, its request count and ceiling stated before it starts, at most
+USD 50, on Nigel's word each time; it repeats when the model, the prompt or the share table
+changes. The hold is the counted tokens of the turn's requests (A1, `lead-conversation#LC4`), never
+its bytes as tokens. The budget line shows the measured cost per turn beside the wallet.
 
 ## Open: owner clarifications
 

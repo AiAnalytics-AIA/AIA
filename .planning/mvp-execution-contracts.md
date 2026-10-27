@@ -535,7 +535,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-pages-redesign#CPR11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
-| `client-pages-redesign#CPR14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR14` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): remove Projektová paměť; its search and reuse fold into Výzkumy (CPR9); wave proposed here |
 | `client-pages-redesign#CPR15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
@@ -543,6 +543,8 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `client-pages-redesign#CPR19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
 | `client-pages-redesign#CPR20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client canvas v7's defect (a contact removed with no undo); wave proposed here |
 | `client-pages-redesign#CPR21` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the visual base Petrol core v4 (the design-system session's canvas v10) into tokens.json, a separate later chunk; wave proposed here |
+| `client-pages-redesign#CPR22` | W2 | Nigel, 27 Oct 2026, Q3 (the Klienti canvas session, relayed by the PM coordinator): deleting a knowledge item, the screens; after K19 |
+| `client-knowledge-lifecycle#K19` | W2 | Nigel, 27 Oct 2026, Q3: deleting a knowledge item for good, the route; before `study-files#SF2` uses it |
 | `research-lead-workbench#53` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Q44); wave proposed here |
 | `research-lead-workbench#54` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (run card cancel); wave proposed here |
 | `research-lead-workbench#55` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (folded card rows); wave proposed here |
@@ -613,6 +615,9 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `sociomap-5-web#9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; the methodology owner's sign-off before a client sees a scenario; wave proposed here |
 | `sociomap-5-web#10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; wave proposed here |
 | `sociomap-5-web#11` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Zajímavé skupiny |
+| `sociomap-5-web#12` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): the map's switch between the two stored IDW terrains; built in #1015 with `signed-off-sociomap-method#12` |
+| `signed-off-sociomap-method#12` | W1 | the methodology owner, 26 Oct 2026, and Nigel, 27 Oct 2026: the `-5` terrain by inverse-distance weighting, both terrains stored; built in #1015 |
+| `signed-off-sociomap-method#13` | W2 | Nigel, 27 Oct 2026: the report's map terrain chosen by the study's lead researcher; after `signed-off-sociomap-method#9` and #1015 |
 | `study-data-lifecycle#SDL7` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: client data export |
 | `settings-redesign#F23` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the -5 render, once -5 is live); wave proposed here |
 | `settings-redesign#F24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Metodik's coral count); wave proposed here |

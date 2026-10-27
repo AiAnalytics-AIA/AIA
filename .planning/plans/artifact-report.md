@@ -939,7 +939,42 @@ or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Var
 is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
 card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with the card in RPT3c / RPT11.
 
-**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked. *Server half built
+(`feature/client-report-editor`):* the editor opens the run's stored client report (`variant: "client"`; 409
+`client_report_not_prepared` before one is stored, composing nothing; `report_editor_versions.variant` takes `client`,
+migration `184381bbcfef`); a save is `research_client_docx_edit`, approved as the client's (kind `client`, never
+`internal_only`), its authors with the run's starter as the composed client report's (RD8). Its checks
+(`report_approval.edited_client_warnings`): the line's composed draft's (RD0, RD7, from its stored document), then what
+the save changed in what code wrote (`client_gate.edited_client_gate`): a retyped or typed number `unadmitted_number`, a
+removed number or a copy under its own tag nothing, a save not comparable and the hand-written text `gate_unrecorded`
+(nothing reads prose for one respondent's words, so it is never passed). The version read answers them as `warnings`, the
+approval records them. Tests: `test_client_gate.py` (three edited cases), `test_the_client_report_opens_once_it_is_stored`,
+`test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients`. Open: the web half (the pane
+hands the client report to the editor, its doc bar and approval question show these warnings, an approved edited version
+downloaded as the client's); "only accepted findings reach it" is `artifact-chain-to-draft-report#CHN13`.
+
+*Fixed on the stand-in review of #1017 (review 5660893091, on `a2a6f199`):*
+- P1. `saved_changes` reports any surplus text under a tag as `added`, not only a copy, so a control copied and then
+  retyped (a second `trust_total` reading "99 %") passed as a copy. `edited_client_gate` now takes the texts code wrote
+  under each tag in the line's composed draft (`saved_changes.written_texts`, read by
+  `report_approval.edited_client_warnings` from koncept 1's census): an `added` text that is not one of them is
+  `unadmitted_number` ("číslo přidané ručně: …"), and where they are unknown (koncept 1 does not read as a DOCX) every
+  `added` is. Wrong / right: `elif change.kind is ChangeKind.TYPED` alone let every `ADDED` through; now `ADDED and not
+  _copy(tag, now, written)` is flagged. Tests: `test_a_control_copied_and_retyped_is_unadmitted`,
+  `test_a_copied_control_retyped_is_unadmitted_through_the_census` (the real `census` and `compare`),
+  `test_a_client_control_copied_and_retyped_is_an_unadmitted_number` (through the save and the version read).
+- P2. Once an edited client version is approved, the composed client draft's approval is refused, 409
+  `client_report_edit_approved` naming the approved version and its koncept (`report_approval.ClientEditApproved`), so
+  a line has one approved client deliverable; the client document and prepare body carry `approved_edits` and
+  `edited_line` as the internal status does. Tests: the end of
+  `test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients`,
+  `test_a_client_draft_with_no_approved_edit_is_approved_and_its_document_names_none`. Not done here: the reverse order
+  (an edited version approved after its composed draft was) is still allowed, and the client download still serves the
+  composed draft; the web half sends a person to the approved edited version's own download.
+- P3. A saved version carries its composition's `report_kind` (a client report's `client`), never a hard-coded
+  `internal`; none when the composition stored none.
+- P3. The typed number's excerpt ends in "…" only where the paragraph was cut.
+- Migration `184381bbcfef` now revises #1018's `b7d1f3a5c9e2` (both had revised `124dedc8f7b1`): one head.
 
 **RPT14. uiTheme** (spec `szz/T5`; W3, lane G). *Built with RPT8c.1:* the config asks for `theme-aia`; the theme itself
 is served by `report-editor-hosting` 6, and until it is the Document Server shows its default theme.

@@ -1,0 +1,284 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Analysis.dc.html": {
+      "h": 2700,
+      "is_interactive": true,
+      "title": "10 · Analýza",
+      "w": 1440,
+      "x": 0,
+      "y": 13400
+    },
+    "Audience.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "4 · Cílová skupina",
+      "w": 1440,
+      "x": 0,
+      "y": 5900
+    },
+    "Brief.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "1 · Zadání",
+      "w": 1440,
+      "x": 0,
+      "y": 3000
+    },
+    "Cards.dc.html": {
+      "h": 2600,
+      "is_interactive": true,
+      "title": "Karty Vedoucího",
+      "w": 1440,
+      "x": 1520,
+      "y": 0
+    },
+    "CardsF.dc.html": {
+      "h": 5200,
+      "is_interactive": true,
+      "title": "Karty Vedoucího v chatu (nové)",
+      "w": 1440,
+      "x": 3120,
+      "y": -3925
+    },
+    "ChatA.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat A · Přepis",
+      "w": 440,
+      "x": 0,
+      "y": 17500
+    },
+    "ChatB.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat B · Bubliny",
+      "w": 440,
+      "x": 520,
+      "y": 17500
+    },
+    "ChatC.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat C · Časová osa",
+      "w": 440,
+      "x": 1040,
+      "y": 17500
+    },
+    "ChatD.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat D · Kompaktní záznam",
+      "w": 440,
+      "x": 1560,
+      "y": 17500
+    },
+    "ChatE.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat E · Rozhodnutí nahoře",
+      "w": 440,
+      "x": 2080,
+      "y": 17500
+    },
+    "ChatF.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "Chat F · Bubliny na časové ose (nový)",
+      "w": 440,
+      "x": 2600,
+      "y": 17500
+    },
+    "Design.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "2 · Návrh",
+      "w": 1440,
+      "x": 1520,
+      "y": 3000
+    },
+    "Dimensions.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "5 · Dimenze",
+      "w": 1440,
+      "x": 1520,
+      "y": 5900
+    },
+    "Fieldwork.dc.html": {
+      "h": 2800,
+      "is_interactive": true,
+      "title": "7 · Sběr dat",
+      "w": 1440,
+      "x": 0,
+      "y": 8700
+    },
+    "FieldworkDisc.dc.html": {
+      "h": 900,
+      "is_interactive": true,
+      "title": "7b · Respondenti při sběru dat",
+      "w": 1100,
+      "x": 4560,
+      "y": 8700
+    },
+    "Main.dc.html": {
+      "h": 2600,
+      "is_interactive": true,
+      "title": "Přehled, kritika a předání",
+      "w": 1440,
+      "x": 0,
+      "y": 0
+    },
+    "Marks.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "Značka Vedoucího · 5 variant",
+      "w": 1440,
+      "x": 0,
+      "y": 18760
+    },
+    "Questionnaire.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "3 · Dotazník",
+      "w": 1440,
+      "x": 3040,
+      "y": 3000
+    },
+    "Report.dc.html": {
+      "h": 2800,
+      "is_interactive": true,
+      "title": "11 · Zpráva",
+      "w": 1440,
+      "x": 1520,
+      "y": 13400
+    },
+    "Results.dc.html": {
+      "h": 2500,
+      "is_interactive": true,
+      "title": "8 · Výsledky",
+      "w": 1440,
+      "x": 1520,
+      "y": 8700
+    },
+    "Sample.dc.html": {
+      "h": 2400,
+      "is_interactive": true,
+      "title": "6 · Vzorek",
+      "w": 1440,
+      "x": 3040,
+      "y": 5900
+    },
+    "Sociomap.dc.html": {
+      "h": 4300,
+      "is_interactive": true,
+      "title": "9 · Sociomapa (schválená dílna)",
+      "w": 1440,
+      "x": 3040,
+      "y": 8700
+    },
+    "ReportEditor.dc.html": {
+      "h": 2900,
+      "is_interactive": true,
+      "title": "11b · Editor zprávy: vzhled a ověření",
+      "w": 1440,
+      "x": 3040,
+      "y": 13400
+    },
+    "Overview.dc.html": {
+      "h": 2200,
+      "is_interactive": true,
+      "title": "Přehled studie (nový, UX v4)",
+      "w": 1440,
+      "x": 4640,
+      "y": 0
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-23T00:12:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t0": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Přehled a karty Vedoucího",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "t1": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Návrh výzkumu",
+      "w": 240,
+      "x": 0,
+      "y": 2700
+    },
+    "t2": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Vymezení vzorku",
+      "w": 240,
+      "x": 0,
+      "y": 5600
+    },
+    "t3": {
+      "kind": "title1",
+      "maxW": 4480,
+      "text": "Sběr a evidence",
+      "w": 240,
+      "x": 0,
+      "y": 8400
+    },
+    "t4": {
+      "kind": "title1",
+      "maxW": 2960,
+      "text": "Interpretace a předání",
+      "w": 240,
+      "x": 0,
+      "y": 13100
+    },
+    "t5": {
+      "kind": "title1",
+      "maxW": 3040,
+      "text": "Chat Vedoucího – varianty",
+      "w": 240,
+      "x": 0,
+      "y": 17200
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Overview.dc.html",
+    "Cards.dc.html",
+    "CardsF.dc.html",
+    "Brief.dc.html",
+    "Design.dc.html",
+    "Questionnaire.dc.html",
+    "Audience.dc.html",
+    "Dimensions.dc.html",
+    "Sample.dc.html",
+    "Fieldwork.dc.html",
+    "FieldworkDisc.dc.html",
+    "Results.dc.html",
+    "Sociomap.dc.html",
+    "Analysis.dc.html",
+    "Report.dc.html",
+    "ReportEditor.dc.html",
+    "ChatA.dc.html",
+    "ChatB.dc.html",
+    "ChatC.dc.html",
+    "ChatD.dc.html",
+    "ChatE.dc.html",
+    "ChatF.dc.html",
+    "Marks.dc.html"
+  ],
+  "pages": [],
+  "title": "AIA Výzkumné kroky – prototyp"
+}
