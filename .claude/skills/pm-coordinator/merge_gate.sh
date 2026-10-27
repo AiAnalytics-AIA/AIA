@@ -24,12 +24,13 @@ t=$(gh api repos/aianalytics-aia/aia/pulls/$pr/ccr/review_threads --jq '[.[]?|se
 cj=$(gh api --paginate "repos/aianalytics-aia/aia/issues/$pr/comments?per_page=100") || { echo "#$pr comments unreadable"; exit 1; }
 cx=$(jq -rs 'add // [] | [.[]|select(.user.login=="chatgpt-codex-connector[bot]")|.body|select(test("codex-review-state"))][-1] // ""' <<<"$cj" | grep -o '"commit_sha":"[0-9a-f]*","has_any_findings":[a-z]*,"has_unresolved_findings":[a-z]*,"status":"[a-z]*"' | head -1)
 case "$cx" in *"\"commit_sha\":\"$sha\""*'"status":"running"'*) grep -qx "$pr" codex-stuck.txt 2>/dev/null || { echo "#$pr Codex still running on head"; exit 1; };; esac
-case "$cx" in *"\"commit_sha\":\"$sha\""*'"status":"completed"'*) ;; *)
-  # the stand-in counts only as the newest one on the head, a comment or approval saying "Verdict: clean"
+case "$cx" in *"\"commit_sha\":\"$sha\""*'"has_unresolved_findings":false,"status":"completed"'*) ;; *)
+  # Codex not clean on the head: the newest stand-in on the head decides, a comment or approval saying
+  # "Verdict: clean" (also the way through once Codex's findings are answered and Nigel decided)
   rj=$(gh api --paginate "repos/aianalytics-aia/aia/pulls/$pr/reviews?per_page=100") || { echo "#$pr reviews unreadable"; exit 1; }
   sv=$(jq -rs --arg sha "$sha" 'add // [] | [.[]|select(.commit_id==$sha and (.body|startswith("[Claude review, Codex stand-in]")))] | sort_by(.submitted_at) | last
     | if . == null then "none" elif (.state=="COMMENTED" or .state=="APPROVED") and (.body|test("(?m)^Verdict: clean\\s*$")) then "clean" else "not clean (\(.state))" end' <<<"$rj")
-  [ "$sv" = clean ] || { echo "#$pr Codex not completed on head and stand-in review ${sv:-unreadable}: ${cx:-none}"; exit 1; };;
+  [ "$sv" = clean ] || { echo "#$pr Codex not clean on head and stand-in review ${sv:-unreadable}: ${cx:-none}"; exit 1; };;
 esac
 out=$(gh api -X PUT repos/aianalytics-aia/aia/pulls/$pr/merge -f merge_method=merge -f sha=$sha --jq '.sha+" "+(.merged|tostring)') || { echo "#$pr merge failed: $out"; exit 1; }
 echo "#$pr MERGED $out"; sed -i "/^$pr:/d" pins.txt; echo "$(date -u +%FT%H:%MZ) #$pr $out" >> merged.log

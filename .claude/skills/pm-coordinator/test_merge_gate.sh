@@ -6,7 +6,8 @@ export SHA=0123456789abcdef0123456789abcdef01234567 MOCK_DIR="$tmp" PM_STATE="$t
 mkdir -p "$tmp/bin" "$PM_STATE"
 # The mock answers what each --jq call would print, and the paginated comments and reviews as raw pages.
 # MOCK_CHECKS=fail: check-runs fails with no output. Comments: page one has no Codex state, page two Codex's
-# completed state on the head (MOCK_CODEX=none: no page two); MOCK_COMMENTS=partial: a later page fails.
+# completed state on the head (MOCK_CODEX=none: no page two; MOCK_UNRESOLVED=true: with unresolved findings);
+# MOCK_COMMENTS=partial: a later page fails.
 # MOCK_REVIEW: the stand-in reviews on the head (clean, changes, findings, stale); MOCK_REVIEWS=partial: a
 # later page fails after a clean one.
 cat > "$tmp/bin/gh" <<'EOF'
@@ -20,7 +21,7 @@ case "$*" in
   *ccr/review_threads*) echo 0;;
   *issues/*/comments*) echo '[{"user":{"login":"someone"},"body":"page one"}]'
     [ "$MOCK_CODEX" = none ] && exit 0
-    [[ "$*" == *--paginate* ]] && jq -nc --arg b "<!-- codex-review-state:v1 {\"code_review\":{\"commit_sha\":\"$SHA\",\"has_any_findings\":false,\"has_unresolved_findings\":false,\"status\":\"completed\"}} -->" '[{user:{login:"chatgpt-codex-connector[bot]"},body:$b}]'
+    [[ "$*" == *--paginate* ]] && jq -nc --arg b "<!-- codex-review-state:v1 {\"code_review\":{\"commit_sha\":\"$SHA\",\"has_any_findings\":${MOCK_UNRESOLVED:-false},\"has_unresolved_findings\":${MOCK_UNRESOLVED:-false},\"status\":\"completed\"}} -->" '[{user:{login:"chatgpt-codex-connector[bot]"},body:$b}]'
     [ "$MOCK_COMMENTS" = partial ] && exit 1; exit 0;;
   */reviews*) case "$MOCK_REVIEW" in
       clean) echo "[$(review COMMENTED 2026-10-27T10:00:00Z 'Verdict: clean')]";;
@@ -53,4 +54,6 @@ check refuse "a stand-in review with findings refuses" MOCK_CODEX=none MOCK_REVI
 check refuse "a newer stand-in review with findings outranks an older clean one" MOCK_CODEX=none MOCK_REVIEW=stale
 check refuse "a reviews read failing on a later page refuses" MOCK_CODEX=none MOCK_REVIEW=clean MOCK_REVIEWS=partial
 check refuse "no Codex state and no stand-in review refuses" MOCK_CODEX=none
+check refuse "Codex completed with unresolved findings refuses" MOCK_UNRESOLVED=true
+check merge "Codex's findings answered, a clean stand-in review on the head merges" MOCK_UNRESOLVED=true MOCK_REVIEW=clean
 exit $fail

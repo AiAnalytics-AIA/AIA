@@ -45,13 +45,15 @@ exports" and the relay rule); `.claude/skills/pmstatus/` (the session sweep); `.
 - it is not a draft, its base is `develop`, and its `mergeable_state` is `clean`;
 - every check run succeeded or was skipped, with at least 12 runs (1 for a docs-only PR);
 - no unresolved review threads;
-- Codex completed on the exact head, or a clean stand-in review on that exact head.
+- Codex completed on the exact head with no unresolved findings, or a clean stand-in review on that exact head.
 
 **A stand-in review** is a PR review whose body starts with `[Claude review, Codex stand-in]`, posted on the
 head it reviewed, with a line `Verdict: clean` when no P1 or P2 is open, else `Verdict: findings`. Only the
 newest stand-in on the head counts, and only as a comment or approval: one requesting changes, dismissed, or
 without `Verdict: clean` refuses. (Every session posts as Nigel, and GitHub refuses an approval of one's own
 PR, so a stand-in is normally a comment; the verdict line is what the gate reads.)
+When Codex completed on the head with findings you answered rather than fixed, and Nigel decided they stay, a
+clean stand-in on that head is the way through.
 
 It merges with a merge commit, pinned to the head sha (`PUT …/merge` with `sha`), removes the pin and appends
 the merge to `merged.log`. A PR listed in `after.txt` waits until the PR it names has merged.
