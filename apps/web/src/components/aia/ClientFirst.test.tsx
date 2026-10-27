@@ -309,7 +309,9 @@ describe("a client's workspace", () => {
     profileApi();
     render(inClient("CLI-a", <ProfileArea />));
     const record = (await screen.findByRole("heading", { name: "Klient" })).closest("section")!;
-    expect(within(record).getByText("Klient A")).toBeTruthy();
+    // The name is the page's title; the record does not repeat it.
+    expect(within(record).queryByText("Klient A")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Klient A" })).toBeTruthy();
     expect(within(record).getByText("Aktivní")).toBeTruthy();
     const tab = within(screen.getByRole("navigation", { name: "Oblasti klienta" })).getByRole("link", { name: "Profil" });
     expect(tab.getAttribute("aria-current")).toBe("page");

@@ -117,7 +117,6 @@ export const cs = {
     profile: {
       sub: "Základní údaje o klientovi, jeho značky a konkurenti, kontakty a pravidla.",
       recordTitle: "Klient",
-      name: "Název",
       status: "Stav",
       yourRole: "Vaše role",
       statusOwner: "Stav klienta mění správce organizace v Nastavení. Archivace klienta skryje, nic nesmaže.",

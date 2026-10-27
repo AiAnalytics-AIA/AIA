@@ -459,8 +459,6 @@ export function ProfileArea() {
               <section className={CARD} aria-labelledby="profile-record">
                 <h2 id="profile-record" className="text-base font-semibold">{t("aia.profile.recordTitle")}</h2>
                 <dl className="mt-3 grid grid-cols-[7rem_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-                  <dt className="text-ink-muted">{t("aia.profile.name")}</dt>
-                  <dd>{client.name}</dd>
                   <dt className="text-ink-muted">{t("aia.profile.status")}</dt>
                   <dd>
                     <Chip tone="neutral">{t(`aia.client.status.${client.status}`)}</Chip>
