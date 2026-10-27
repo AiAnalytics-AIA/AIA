@@ -417,7 +417,7 @@ describe("Run", () => {
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Změna, kterou AIA neuložila" } });
     rerender(at("run")); // before the 1.8 s autosave
     expect(await screen.findByText(t("research.exec.readinessFailed"))).toBeTruthy();
-    expect(screen.getAllByText("Obsah se teď nepodařilo uložit.").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Obsah se teď nepodařilo uložit\./).length).toBeGreaterThan(0);
     expect(screen.getByText(t("research.saveFailed"))).toBeTruthy();
     expect(screen.getByRole("button", { name: t("research.saveRetry") })).toBeTruthy();
     expect(screen.queryByRole("button", { name: t("research.exec.start") })).toBeNull();
@@ -1829,7 +1829,7 @@ describe("Results", () => {
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
     expect(await screen.findByRole("alert")).toBeTruthy();
-    expect(screen.getByText("Výsledky se nepodařilo načíst.")).toBeTruthy();
+    expect(screen.getByText(/Výsledky se nepodařilo načíst\./)).toBeTruthy();
     failed = false;
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByRole("tab", { name: "Přehled" })).toBeTruthy();
@@ -1843,7 +1843,7 @@ describe("Results", () => {
         : new Response(JSON.stringify({ code: "not_found", message: "Nenalezeno." }), { status: 404 }),
     });
     render(<ResearchScreen step="results" frame={TEST_FRAME} />);
-    expect(await screen.findByText("Výsledky se nepodařilo načíst.")).toBeTruthy();
+    expect(await screen.findByText(/Výsledky se nepodařilo načíst\./)).toBeTruthy();
     failed = false;
     fireEvent.click(screen.getByRole("button", { name: t("research.retry") }));
     expect(await screen.findByText(t("research.exec.noResults"))).toBeTruthy();

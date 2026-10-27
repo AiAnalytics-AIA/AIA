@@ -17,6 +17,7 @@ import { BudgetLift } from "./BudgetLift";
 import { Icon } from "../icons";
 import { Button } from "../ui";
 import { useResearch } from "./context";
+import { errorText } from "@/lib/error-words";
 
 export type AiFailure =
   | { kind: "job"; message: string; jobId: string | null }
@@ -29,7 +30,7 @@ export type AiFailure =
    */
   | { kind: "follow"; message: string; jobId: string };
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 /** The failure a thrown job error is, as the stage shows it: a budget wait keeps its job. */
 export function failureOf(e: unknown, wording: (m: string) => string = (m) => m): AiFailure {

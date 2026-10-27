@@ -182,7 +182,7 @@ function InternalMark({
       const saved = await workspace.markSourceInternal(clientId, sourceId, !marked);
       onMarked(saved.internal ?? null);
     } catch (e) {
-      setFailed(tv("aia.sources.internal.failed", { reason: e instanceof Error ? e.message : String(e) }));
+      setFailed(tv("aia.sources.internal.failed", { reason: errorText(e) }));
     } finally {
       setBusy(false);
     }

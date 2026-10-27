@@ -20,8 +20,9 @@ import { FormattedText } from "./FormattedText";
 import { DeepResearchWaits } from "./DeepResearchWaits";
 import { SearchedNothingNote, useSearchedNothing } from "./SearchedNothing";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
+import { errorText } from "@/lib/error-words";
 
-const message = (e: unknown) => e instanceof Error ? e.message : String(e);
+const message = (e: unknown) => errorText(e);
 
 /**
  * Research over the pinned result. Which completed review the report adds is one choice

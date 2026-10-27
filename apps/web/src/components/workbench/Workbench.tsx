@@ -57,6 +57,7 @@ import { useWorkingImpact } from "./useWorkingImpact";
 import "./workbench.css";
 import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
 import { t, tv } from "@/i18n/t";
+import { errorText } from "@/lib/error-words";
 
 const storage = () => {
   try {
@@ -682,7 +683,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         setNotice("Vedoucí přijal textové úpravy, zatímco jste psali. Vaše změna zůstala na obrazovce, ale neuložila se: zkopírujte si ji a pracovní kopii načtěte znovu.");
       }
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e));
+      setNotice(errorText(e));
     }
   }, [store, frame.studyId, autoStore]);
   useEffect(() => {

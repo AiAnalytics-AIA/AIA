@@ -57,6 +57,6 @@ describe("approvalRefusal (PC17)", () => {
     const stale = new ApiError(409, "context_report_refused", "the harness no longer matches", null, { reason: "fingerprint_mismatch" });
     expect(approvalRefusal(stale)).toBe(t("research.exec.results.analysisStale"));
     const other = new ApiError(409, "context_report_refused", "bundle not ready", null, {});
-    expect(approvalRefusal(other)).toBe("bundle not ready");
+    expect(approvalRefusal(other)).toMatch(/^Mezitím se tu něco změnilo\..*bundle not ready/);
   });
 });

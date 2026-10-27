@@ -70,9 +70,10 @@ import { OwnDimensions } from "./OwnDimensions";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { SampleSize } from "./SampleSize";
+import { errorText } from "@/lib/error-words";
 
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 /** The client's approved dimensions, read once per visit through the study; none until they arrive. */
 function useClientDimensions(studyId: string): ActiveDimensions {

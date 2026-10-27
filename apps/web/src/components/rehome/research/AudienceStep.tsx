@@ -86,6 +86,7 @@ import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { useAudiencePreview } from "./useAudiencePreview";
+import { errorText } from "@/lib/error-words";
 
 /** A filter refused whole, in words (filterProblems' reasons other than `values`). */
 const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
@@ -122,7 +123,7 @@ function useLiveAudience(): Live {
         if (!on) return;
         if (e instanceof ApiError && e.code === "population_not_established") return setLive({ state: "missing", text: t("research.audience.catalogueNoPopulation") });
         if (e instanceof ApiError && e.status === 404) return setLive({ state: "missing", text: t("research.audience.catalogueMissing") });
-        setLive({ state: "missing", text: tv("research.audience.catalogueFailed", { message: e instanceof Error ? e.message : String(e) }) });
+        setLive({ state: "missing", text: tv("research.audience.catalogueFailed", { message: errorText(e) }) });
       },
     );
     return () => {
@@ -511,7 +512,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
   const failed = error
     ? error instanceof ApiError && error.code === "audience_preview_unavailable"
       ? t("research.audience.previewUnavailable")
-      : tv("research.audience.previewFailed", { message: error instanceof Error ? error.message : String(error) })
+      : tv("research.audience.previewFailed", { message: errorText(error) })
     : null;
   return (
     <section data-aia={audiencePartAia("preview")} aria-labelledby="aud-feasibility" className="mt-4 border-t border-border pt-3">

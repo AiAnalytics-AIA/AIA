@@ -131,6 +131,7 @@ import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
 import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { errorText } from "@/lib/error-words";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -156,7 +157,7 @@ function retiredMethodRefusal(e: unknown): NewRunStart | null {
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
 /** A link back to the stage where something is set: the input standard's touch target (I11) and

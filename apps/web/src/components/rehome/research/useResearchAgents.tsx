@@ -6,6 +6,7 @@ import { JobError, type JobUpdate } from "@/research/jobs";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 import { submitWorkingDesign, type ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
+import { errorText } from "@/lib/error-words";
 
 /**
  * What a person decides on a proposal: `true` is "apply", `false` is "keep" (the dialog's two
@@ -21,7 +22,7 @@ const adviceActions = new Set<ResearchAgentAction>(["critique_design", "design_c
 /** The stage a job's design is submitted from. */
 const sourceOf = (action: ResearchAgentAction) =>
   action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
-const message = (e: unknown) => e instanceof Error ? e.message : String(e);
+const message = (e: unknown) => errorText(e);
 function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
 }

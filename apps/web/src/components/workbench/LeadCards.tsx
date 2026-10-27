@@ -23,6 +23,7 @@ import { StepActivityPanel } from "../rehome/research/StepActivityPanel";
 import { useStepActivity } from "../rehome/research/useStepActivity";
 import { Glyph } from "./Glyph";
 import { Icon } from "./Icons";
+import { errorText } from "@/lib/error-words";
 
 /** One fact of a card: its label, its value, and a smaller muted line under it. */
 export type Fact = { label: string; value: ReactNode; key?: boolean; sub?: ReactNode };
@@ -160,7 +161,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
     try {
       setPrepared(await check());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     }
     setState("open");
   };
@@ -181,7 +182,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
       setState("started");
       onStarted(run);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
       setState("open");
     }
   };

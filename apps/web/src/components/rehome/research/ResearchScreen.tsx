@@ -44,6 +44,7 @@ import { loadConfig } from "@/lib/auth";
 import { SpendDialog } from "../../ui/SpendDialog";
 import { readBudget } from "@/lib/budget-line";
 import { type MoneyLine, spendAct } from "@/lib/spend";
+import { errorText } from "@/lib/error-words";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
@@ -69,7 +70,7 @@ type Loaded =
 type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 

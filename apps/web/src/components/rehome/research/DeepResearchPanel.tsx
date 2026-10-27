@@ -21,9 +21,10 @@ import { isDesignRun } from "@/lib/design-evidence";
 import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { useResearch } from "./context";
 import { canReview } from "./frame";
+import { errorText } from "@/lib/error-words";
 
 const POLL_MS = 2500;
-const message = (error: unknown) => error instanceof Error ? error.message : String(error);
+const message = (error: unknown) => errorText(error);
 
 /** A persistent, review-only evidence surface. A bundle is never copied into the working design. */
 /** The ceiling the API worked out when the study's limit asks first, or null for any other refusal. */

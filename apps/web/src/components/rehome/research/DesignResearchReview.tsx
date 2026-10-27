@@ -18,8 +18,9 @@ import { staleDetails } from "@/research/proposal-items";
 import type { ResearchStore } from "@/research/store";
 import { Sparkle } from "../icons";
 import { Button } from "../ui";
+import { errorText } from "@/lib/error-words";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 /** How many saves an accept waits for: each one takes what was typed during the one before. */
 const SAVE_ATTEMPTS = 3;
 const isUrl =(s: string) => /^https?:\/\//i.test(s);

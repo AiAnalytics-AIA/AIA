@@ -34,6 +34,7 @@ import { ClientPage, IntakeButton, useClient } from "./ClientContext";
 import { FolderRow, LabelRow, NavButton, NewLabelRow, type OrganizerEdit } from "./KnowledgeOrganizers";
 import { KnowledgeLibrary, said } from "./KnowledgeLibrary";
 import { SourceCard } from "./SourceFile";
+import { errorText } from "@/lib/error-words";
 
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
 const KINDS: (KnowledgeSection | "all")[] = ["all", "sources", "knowledge", "dimensions", "audiences", "data"];
@@ -67,7 +68,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
           setStale({ proposalId: p.proposal_id, edit });
         } else {
           setStale(null);
-          setError(e instanceof Error ? e.message : String(e));
+          setError(errorText(e));
         }
       },
     );
@@ -154,7 +155,7 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   const [error, setError] = useState<string | null>(null);
   const submit = () => {
     if (!title.trim()) return;
-    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(errorText(e)));
   };
   return (
     <section className={`${CARD} mb-5`} aria-labelledby="kn-propose">

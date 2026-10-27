@@ -481,7 +481,7 @@ describe("Zadání", () => {
     fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "7" } });
     fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
     const again = await screen.findByRole("button", { name: "Sledovat znovu" }, NATIVE_JOB_WAIT);
-    expect(screen.getByText("Spojení se přerušilo.")).toBeTruthy();
+    expect(screen.getByText(/Spojení se přerušilo\./)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
     fireEvent.click(again);
     await approveProposal();
