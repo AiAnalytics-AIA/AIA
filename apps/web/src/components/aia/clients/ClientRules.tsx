@@ -72,7 +72,7 @@ export function ClientRulesEditor({ clientId, clientName, mayAdminister }: { cli
       <div>
         <p id="client-posture-label" className="text-sm font-medium">{t(`${R}.posture`)}</p>
         <p className="text-xs leading-5 text-ink-muted">{t(`${R}.postureHelp`)}</p>
-        <ChoiceChips className="mt-2" label={t(`${R}.posture`)} value={rules.effective_posture} disabled={!mayAdminister || busy}
+        <ChoiceChips saves className="mt-2" label={t(`${R}.posture`)} value={rules.effective_posture} disabled={!mayAdminister || busy}
           options={POSTURES.map((p) => ({ key: p, label: p }))} onChange={choose} />
         {rules.data_posture === null ? <p data-posture-unset className="mt-1 text-xs text-ink-muted">{t(`${R}.unset`)}</p> : null}
       </div>

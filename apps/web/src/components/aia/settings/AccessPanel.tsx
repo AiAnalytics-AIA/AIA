@@ -180,7 +180,7 @@ function MemberRow({ m, roles, locked, lockedWhy, canAdminister, owner, self, kn
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {canAdminister && !locked ? (
-          <ChoiceChips look="segmented" small label={tv(`${A}.roleOf`, { who: m.email })} value={m.organization_role} options={roles.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={(role) => void setRole(role)} />
+          <ChoiceChips saves look="segmented" small label={tv(`${A}.roleOf`, { who: m.email })} value={m.organization_role} options={roles.map((r) => ({ key: r, label: t(`aia.orgRoles.${r}`) }))} onChange={(role) => void setRole(role)} />
         ) : (
           <span className="text-sm">{t(`aia.orgRoles.${m.organization_role}`)}{lockedWhy ? <span className="block text-xs text-ink-faint">{lockedWhy}</span> : null}</span>
         )}
@@ -356,7 +356,7 @@ function OrgSelfApproval({ value, canAdminister, reload }: { value: boolean | nu
     <div data-level="organization" className="flex flex-wrap items-center gap-3">
       <span className="text-xs text-ink-faint">{t(`${P}.approvals.organization`)}</span>
       {/* Výchozí clears the organization's rule (allowed: null): the code's default, allowed, applies again. */}
-      <ChoiceChips look="segmented" label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
+      <ChoiceChips saves look="segmented" label={t(`${A}.orgSelf`)} disabled={!canAdminister} value={tri(value)}
         options={[{ key: "inherit" as const, label: t(`${A}.orgDefaultChip`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k) }))} />
       <SaveNote state={state} />
@@ -373,7 +373,7 @@ function StudyRule({ studyId, name, value, canAdminister, reload }: { studyId: s
   return (
     <li data-study-rule={studyId} className="flex flex-wrap items-center gap-3">
       <span className="min-w-[10rem] text-sm">{name}</span>
-      <ChoiceChips look="segmented" small label={tv(`${A}.selfOfStudy`, { study: name })} disabled={!canAdminister} value={value}
+      <ChoiceChips saves look="segmented" small label={tv(`${A}.selfOfStudy`, { study: name })} disabled={!canAdminister} value={value}
         options={[{ key: "inherit" as const, label: t(`${A}.inherit`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId }))} />
       <SaveNote state={state} />
@@ -396,7 +396,7 @@ function AddStudyRule({ studies, reload }: { studies: { study_id: string; name: 
         <option value="">{t(`${A}.chooseStudy`)}</option>
         {studies.map((s) => <option key={s.study_id} value={s.study_id}>{s.name}</option>)}
       </select>
-      <ChoiceChips look="segmented" small label={t(`${A}.newStudyRule`)} disabled={!studyId} value={null}
+      <ChoiceChips saves look="segmented" small label={t(`${A}.newStudyRule`)} disabled={!studyId} value={null}
         options={[{ key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
         onChange={(k) => void run(() => admin.setSelfApproval({ allowed: allowed(k), study_id: studyId })).then((ok) => { if (ok) { setStudyId(""); setOpen(false); } })} />
       <Button small variant="quiet" onClick={() => { setOpen(false); setStudyId(""); }}>{t(`${A}.cancel`)}</Button>
@@ -488,7 +488,7 @@ function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {canAdminister ? (
-          <ChoiceChips look="segmented" small label={tv(`${A}.statusOf`, { client: c.name })} value={c.status} options={statuses.map((s) => ({ key: s, label: t(`${P}.clientStatus.${s}`) }))}
+          <ChoiceChips saves look="segmented" small label={tv(`${A}.statusOf`, { client: c.name })} value={c.status} options={statuses.map((s) => ({ key: s, label: t(`${P}.clientStatus.${s}`) }))}
             onChange={(s) => void status.run(() => admin.setClientStatus(c.client_id, s))} />
         ) : <span className="text-sm">{t(`${P}.clientStatus.${c.status}`)}</span>}
         <SaveNote state={status.state} />
@@ -496,7 +496,7 @@ function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
       </div>
       <div role="cell" className="border-t border-border px-2 py-2">
         {self === null ? <span className="text-xs text-ink-faint">{t(`${A}.adminOnlyShort`)}</span> : (
-          <ChoiceChips look="segmented" small label={tv(`${A}.selfOf`, { client: c.name })} disabled={!canAdminister} value={self}
+          <ChoiceChips saves look="segmented" small label={tv(`${A}.selfOf`, { client: c.name })} disabled={!canAdminister} value={self}
             options={[{ key: "inherit" as const, label: t(`${A}.inherit`) }, { key: "allow" as const, label: t(`${P}.approvals.allow`) }, { key: "forbid" as const, label: t(`${P}.approvals.forbid`) }]}
             onChange={(k) => void approval.run(() => admin.setSelfApproval({ allowed: allowed(k), client_id: c.client_id }))} />
         )}
