@@ -635,6 +635,10 @@ file is written up ([`editor-spike-2026-10-21.md`](evidence/editor-spike-2026-10
 conditional go for ONLYOFFICE Docs Community, Collabora Online the fallback; the go/no-go is the owner's
 and pending (`research-lead-workbench#33`, page Q19).
 
+**The Lead's identity (2026-10-25).** [`lead-identity`](plans/lead-identity.md) (#901, merged as `d10d6091`) plans
+hatching by the model, the Lead's mark and Můj Vedoucí; the owner made it core MVP in W3, after LC5b and LC10
+(#908). ADR 0028's amendment for the fifth money amount (the allowance for personal Lead work) lands with LI0.
+
 **W0 and the first of W1, delivered (2026-10-21).** E02 (#534): `lead-orchestration` LO0 (the money
 vocabulary as types, `domain/money.py`, on ADR 0028) and LO16 (the ledger's closed subjects,
 `domain/approval_ledger.py`, migration M3 `5054d4d610c2`) and `working-copy-edit-ops` WCE0 (the edit
@@ -705,7 +709,8 @@ still Proposed; 0042 (a), accepted when `lead-client-knowledge` LK1 writes it (t
 searches relevant documents, "like claude projects / chatgpt folders"); 0027, 0034, 0036 and 0037 (a),
 each accepted once its methodology answer is written in. *Product* (in each plan): AUD-1 (a), the Lead
 reads and acts on result stages and never edits results (`lead-orchestration` LO8); AUD-2 (a), the Lead
-edits the report as proposed versions a person approves (`artifact-report` RPT9); AUD-6 (a), Simulace
+edits the report as proposed versions a person approves (`artifact-report` RPT9, `report-delivery` RD5 and
+RD6; ADR 0035 holds every number, #911); AUD-6 (a), Simulace
 hidden for the MVP (`client-knowledge-lifecycle` K12); AUD-10 (b), a backend chunk first, then real
 bounds on Metodika → Upravit (no chunk yet); TWO-ROLES-5b (b), 5b reviewed against what was built first;
 RIR-5 (a), go (`research-integrity-report` 5); RD-EDITOR-ACTIVATION (a), go once OI-200's cookie fix is

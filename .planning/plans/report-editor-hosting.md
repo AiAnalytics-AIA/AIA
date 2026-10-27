@@ -7,7 +7,7 @@ chunks:
   - "[x] 3b. A timed force-save every 5 minutes while a document is open (RPT8: every autosave a stored version), through one read-only configuration file"
   - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[x] 4b. Before activation, in a PR: api.js under a fixed cache tag, so the integrity Zpráva loads it under (RPT8e) holds after every restart; the smoke compares the running file with it"
-  - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
+  - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments, RPT8e's integrity set, and the page loaded once against the real Document Server): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
   - "[ ] 5. The AIA editor theme, its icons and their generator in the repository, with a token drift check; the icons wait on legal (OQ13) and the editor goes live with ONLYOFFICE's own icons until then (spec szz T1; W3)"
   - "[ ] 6. The theme and icons mounted read-only; api.js's SRI unchanged (spec szz T2; W3, the icons after OQ13)"
   - "[ ] 7. The brand fonts installed on the editor server, required, no longer optional (spec szz T3; W3)"
@@ -293,7 +293,8 @@ Each step needs the owner's word and the coordinator's approval:
     only, never the web service.
   - `aia_onlyoffice_enabled`: whether the host runs the project at all.
 - **CSP on AIA's pages.** `frame-src` and `script-src` include `https://docs.<hostname>`, and only it.
-- **The script load is the way in.** The pane asks the API for a ticket, then loads
+- **The script load is the way in** (*since #895: the ticket is spent first, then the script*, loaded at its canonical
+  path under `AIA_ONLYOFFICE_API_INTEGRITY` with `crossorigin=use-credentials`). The pane asks the API for a ticket, then loads
   `https://docs.<hostname>/__aia/session?ticket=…&next=/web-apps/apps/api/documents/api.js` as its
   script. The API spends the ticket, sets `aia_docs` and redirects to `next`, which must be a path on
   `docs.<hostname>` (refused otherwise). `api.js` and everything the editor loads after it then carry

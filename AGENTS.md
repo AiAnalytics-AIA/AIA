@@ -551,6 +551,19 @@ table.** After a migration that adds columns, the workbench's API fails with
 `python tools/ui_workbench/workbench.py up --fresh`, then `make ui-fixtures` again
 (client-workspace C5, #380).
 
+**The UI workbench started from a git worktree serves the main checkout's server code.** The venv's
+editable installs point at the checkout `make setup` ran in, so a workbench started from another
+worktree runs that checkout's API and worker, not the branch's (#913). Put the worktree's sources
+first:
+
+```bash
+# WRONG -- from a worktree: the venv's editable installs serve the main checkout's server code
+python tools/ui_workbench/workbench.py up
+# RIGHT -- the worktree's own four source trees first
+PYTHONPATH=packages/aia_core/src:apps/api/src:apps/worker/src:apps/executors/src \
+  python tools/ui_workbench/workbench.py up
+```
+
 **A `select` of more than ten columns types its rows as a variadic tuple.** SQLAlchemy's stubs
 type `Row` positionally only up to ten columns; past that, unpacking a row in the `for` fails
 `mypy --strict` with "Variadic tuple unpacking requires a star target". Read such rows by column
@@ -829,6 +842,20 @@ Bedrock lists it; a rule that demands a version suffix, as the route's own model
 refuses the model, while an alias ending `latest` must still be refused
 (`apps/executors/src/aia_executors/ai_runtime.py:251-270 @ 1648e6d5`, `_pinned_eu_profile` beside `_lead_eu_profile`;
 `test_an_id_without_a_version_suffix_is_accepted_as_bedrock_lists_it`).
+
+**Adaptive thinking is counted inside `maxTokens`** (Claude Sonnet 5.5 on the route, #907). A cap
+sized for the answer alone truncates (`stopReason: max_tokens`) at the model's default effort, since
+the thinking it chose spends the same budget first. Set a lower effort per capability
+(`ModelPolicy.efforts`: `AIA_AI_FIELDWORK_EFFORT`, `AIA_AI_RESEARCH_EFFORT`) or raise the cap on a
+measurement (`.planning/plans/sonnet-5-5-switch.md` chunk 5).
+
+```python
+# WRONG -- an adaptive model's maxTokens is the answer's limit
+{"inferenceConfig": {"maxTokens": answer_tokens}}
+# RIGHT -- the thinking is inside it: a configured effort, or a cap measured with the thinking in
+{"inferenceConfig": {"maxTokens": measured_tokens},
+ "additionalModelRequestFields": {"output_config": {"effort": "low"}}}
+```
 
 **Invocation logging off is not a retention of 0** (review of #487). The route's
 `aia_ai_route_retention_days` is what Bedrock and the model provider keep, and logging off says
@@ -2674,6 +2701,21 @@ handle { forward_auth api:8000 { uri /api/v1/session/docs-gate } reverse_proxy o
 	query md5=* expires=*
 }
 handle @cache_file { reverse_proxy onlyoffice:80 { header_up -Cookie } }
+```
+
+**api.js's hash moves with every start unless its cache tag is pinned.** The image ships
+`api.js.tpl`, and its start script writes `api.js` from it under a tag made from the start's minute
+(md5 of `%Y.%m.%d-%H%M`). Zpráva loads that script only under its Subresource Integrity
+(`AIA_ONLYOFFICE_API_INTEGRITY`), so a hash taken once refuses the editor after the next restart.
+Run upstream's own `documentserver-flush-cache.sh -h <tag>` after the start script's last step, so
+api.js and nginx's `$cache_tag` are written by the same script under a fixed tag (#918;
+`deploy/develop/docs/start-fixed-cache-tag.sh @ 7f587b84`).
+
+```bash
+# WRONG -- the SRI of a running Document Server's api.js, taken once
+curl -s "$DOCS_ORIGIN/web-apps/apps/api/documents/api.js" | openssl dgst -sha384 -binary | base64
+# RIGHT -- the cache tag pinned after the start script, then the hash of that file
+documentserver-flush-cache.sh -h "$AIA_DS_CACHE_TAG"
 ```
 
 ## Two clocks compared without a bound fail open when one runs ahead
