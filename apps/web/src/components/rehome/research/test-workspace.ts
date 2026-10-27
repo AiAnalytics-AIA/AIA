@@ -6,13 +6,18 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import type { ContentState } from "@/lib/api";
+import { applyEdit, type WorkingEdit } from "@/lib/lead";
+import type { ResearchProject } from "@/research/model";
+import type { Analysis } from "@/research/store";
 
 export const CONTENT_PATH = "/api/v1/studies/STU-1/workspace/content";
+const OPS_PATH = "/api/v1/studies/STU-1/workspace/ops";
 export const EMPTY_PROJECT: Record<string, unknown> = JSON.parse(
   readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"),
 );
 
 export type SavedBody = { content: Record<string, unknown>; analysis: unknown; base_revision: number | null; reason: string };
+export type OpsBody = { ops: WorkingEdit[]; base_revision: number | null; reason: string };
 
 /**
  * The workspace, holding `project` at `revision` (null: a new study). Returns the
@@ -29,18 +34,37 @@ export function workspaceFixture(
   // What a GET answers: the stored project until the server itself writes the working copy.
   let held = { content: project, analysis, revision: project ? revision : null };
   const saves: SavedBody[] = [];
+  // A batch of edits (WCE3a), applied as the server applies them to the copy as last saved.
+  const batches: OpsBody[] = [];
+  let latest = { content: project ?? {}, analysis };
   const writes: { content: Record<string, unknown>; analysis: unknown }[] = [];
   const write = (content: Record<string, unknown>, next: unknown = held.analysis): number => {
     current = (current ?? 0) + 1;
     held = { content, analysis: next, revision: current };
+    latest = { content, analysis: next };
     writes.push({ content, analysis: next });
     return current;
   };
   const answer = (path: string, method: string, body: unknown): unknown => {
+    if (path === OPS_PATH && method === "POST") {
+      const b = body as OpsBody;
+      batches.push(b);
+      if (b.base_revision !== current) return new Response(JSON.stringify({ code: "stale_revision", message: "stale", details: { current_revision: current } }), { status: 409 });
+      let copy = { project: latest.content as unknown as ResearchProject, analysis: latest.analysis as Analysis | null };
+      for (const [i, e] of b.ops.entries()) {
+        const r = applyEdit(copy, e);
+        if ("refused" in r) return new Response(JSON.stringify({ code: "edit_refused", message: "refused", details: { refused: { [i]: r.reason }, current_revision: current } }), { status: 409 });
+        copy = r.content;
+      }
+      latest = { content: copy.project as unknown as Record<string, unknown>, analysis: copy.analysis };
+      current = (current ?? 0) + 1;
+      return { study_id: "STU-1", state: "NATIVE", revision: current, revision_id: `REV-${current}`, deduplicated: false, content: latest.content, analysis: latest.analysis };
+    }
     if (path !== CONTENT_PATH) return undefined;
     if (method === "PUT") {
       const b = body as SavedBody;
       saves.push(b);
+      latest = { content: b.content, analysis: b.analysis };
       current = (current ?? 0) + 1;
       return { study_id: "STU-1", state: "NATIVE", revision: current, revision_id: `REV-${current}`, deduplicated: false };
     }
@@ -59,7 +83,7 @@ export function workspaceFixture(
       lineage: {},
     };
   };
-  return { answer, saves, write, writes, revision: () => current };
+  return { answer, saves, batches, write, writes, revision: () => current };
 }
 
 /** The config and the tab's session every API call needs (lib/api.ts). */

@@ -57,6 +57,9 @@ class ApprovalSubject(StrEnum):
     DATA_CONTRACT = "data_contract"
     MAP_SNAPSHOT = "map_snapshot"
     SOCIOMAP_UNLOCK = "sociomap_unlock"
+    # -- migration M3b (lead-orchestration LO5a.2): a person's approval of a Lead card that
+    #    started paid work naming that work's run, the wallet's charge authority for it
+    LEAD_CARD = "lead_card"
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +99,9 @@ SUBJECTS: Final[tuple[SubjectSpec, ...]] = (
         ApprovalSubject.SOCIOMAP_UNLOCK,
         "the working revision unlocked",
         "working-copy-edit-ops WCE8 (ADR 0029 decision 8)",
+    ),
+    SubjectSpec(
+        ApprovalSubject.LEAD_CARD, "the run", "lead-orchestration LO5a.2 (ADR 0028 decision 3)"
     ),
 )
 

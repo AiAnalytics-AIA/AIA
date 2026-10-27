@@ -28,7 +28,7 @@ from aia_core.domain.evidence import (
     FieldPolicyBook,
     JointStatus,
 )
-from aia_core.domain.evidence.admission import NumericClaim, admit_numeric_claims
+from aia_core.domain.evidence.admission import Admission, NumericClaim, admit_numeric_claims
 from aia_core.domain.evidence.instrument import InstrumentItem
 from aia_core.domain.report.model import (
     Align,
@@ -138,6 +138,41 @@ def compose_question_tables(
     )
 
 
+def admit_question(
+    table: EvidenceTable,
+    question_id: str,
+    *,
+    book: FieldPolicyBook,
+    joint_status: JointStatus,
+    surface: ClaimSurface,
+) -> tuple[list[str], Admission]:
+    """A question's refs in ``table``, kept and suppressed, in the order a table prints them,
+    and the admission of every kept row for ``surface``: all or nothing, so a refused question
+    shows no number. A question with no ref in the table has none."""
+    refs = sorted(
+        (r for r in (*table.rows, *table.suppressed) if r.startswith(f"{question_id}.")),
+        key=lambda r: _order(r, question_id),
+    )
+    admission = admit_numeric_claims(
+        [
+            NumericClaim(
+                claim_id=f"tab:{ref}",
+                evidence_ref=ref,
+                metric=str(table.rows[ref].metric),
+                value=table.rows[ref].value,
+                unit=table.rows[ref].unit.value,
+            )
+            for ref in refs
+            if ref in table.rows
+        ],
+        table,
+        book=book,
+        joint_status=joint_status,
+        surface=surface,
+    )
+    return refs, admission
+
+
 def question_tables(
     table: EvidenceTable,
     items: Sequence[InstrumentItem],
@@ -155,8 +190,6 @@ def question_tables(
     Internal, a question the gate refuses is named with the gate's reasons. Client-facing, it
     is left out and the chapter says only how many were: the reasons are internal terms.
     """
-    known = set(table.rows) | set(table.suppressed)
-
     blocks: list[Block] = [
         Paragraph(
             text(
@@ -171,26 +204,12 @@ def question_tables(
     refused: list[tuple[str, tuple[str, ...]]] = []
     for index, item in enumerate(items, start=1):
         qid = item.question_id
-        refs = sorted((r for r in known if r.startswith(f"{qid}.")), key=lambda r: _order(r, qid))
+        refs, admission = admit_question(
+            table, qid, book=book, joint_status=joint_status, surface=surface
+        )
         if not refs:
             continue
         kept = [r for r in refs if r in table.rows]
-        admission = admit_numeric_claims(
-            [
-                NumericClaim(
-                    claim_id=f"tab:{ref}",
-                    evidence_ref=ref,
-                    metric=str(table.rows[ref].metric),
-                    value=table.rows[ref].value,
-                    unit=table.rows[ref].unit.value,
-                )
-                for ref in kept
-            ],
-            table,
-            book=book,
-            joint_status=joint_status,
-            surface=surface,
-        )
         if kept and not admission.decision.allowed:
             reasons = tuple(f"{v.code}: {v.detail}" for v in admission.decision.violations)
             refused.append((qid, reasons))

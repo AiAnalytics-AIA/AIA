@@ -78,6 +78,13 @@ display filter bar is a glass chip in the dock's row and the ⓘ the dock's last
 the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object while Správa objektů is closed opens it
 (`LEAD_REVEAL`); `tools/ui_workbench/sociomap_journey.mjs` walks the windows.
 
+## The object detail's „Všechny vztahy“ (the owner, 2026-10-22)
+
+The experimental Sociomapping's panel listed every relation of an object; the signed-off map showed only the five
+strongest reliable ones (as the AIA panel does). Under them the detail now lists every other mapped object, collapsed:
+its stored relation, its status (spolehlivý, slabý, or why unknown) and how many rated both, each line opening the pair.
+Display only, from the stored relations. The experimental map itself stays in the code, off by default.
+
 ## Open questions
 
 - Making `-5` the study default is outside this plan (register approval; until then an OWNER/ADMIN activates a version
@@ -181,4 +188,20 @@ the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object 
   maps and synthetic variants of them (no reliable pair, sparse design, 36 objects), for
   `object-map-panel.test.ts`; regenerate it from the panel whenever the panel's drawing changes.
 - Decided (methodology owner, 2026-10-20): the respondent card counts respondents without a position as „Bez polohy“, so „Neumístěno“ names only the objects nobody rated; the facts line „Nezařazení respondenti“ (all ratings equal) stays.
-- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied.
+- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied. (Gone with the terrain's sides below: the slab is no longer stroked.)
+
+## The terrain's sides and the smooth terrain (the owner, 2026-10-23)
+
+- The flat slab under the square goes: the terrain stands on its own sides, as the Sociomapy app's Pedestal draws
+  them but without its layer bands. One wall per edge segment of the grid, from the terrain's edge height down to a
+  base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
+  darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
+  `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
+- Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
+  2026-10-26). Both draw the same stored terrain, the method's envelope of hills (the respondent map's density):
+  Blokový as flat triangles, as before; Hladký refined bicubically (x4, clamped, as the Sociomapy app's
+  `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
+  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový.
+  Drawing only: the heights are the method's. Sociomapy's own inverse-distance-weighted terrain was tried and left
+  out (the owner, 2026-10-26): a weighted mean fills empty ground with the nearest objects' values, the plateaus
+  the envelope replaced (`sociomap_math/terrain.py`).

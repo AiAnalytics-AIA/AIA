@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { LEAD_REVEAL } from "@/lib/lead";
+import { announceDeepResearchStarted } from "@/lib/deep-research-started";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -1754,6 +1755,24 @@ describe("Progress", () => {
     expect(reads).toBeGreaterThanOrEqual(2);
     expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").filter((c) => !c.url.includes("/runs/RUN-1/"))).toHaveLength(1);
   }, 10000);
+
+  it("turns to the research run an Interpretation card's review interprets (review of #1006)", async () => {
+    // The page reads its run once: a Lead card's review of an older run would sit under the
+    // run the page already showed, out of sight, unless the page follows the announcement.
+    window.history.replaceState(null, "", "/progress?run=RUN-1");
+    api({
+      ...listed(run({ status: "COMPLETED", phase: "COMPLETED", is_terminal: true })),
+      "GET /api/v1/studies/STU-1/research/runs/RUN-0": () => run({ run_id: "RUN-0", status: "COMPLETED", phase: "COMPLETED", is_terminal: true }),
+    });
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-1").length).toBeGreaterThan(0));
+    // A design checkpoint's run is not the page's business.
+    act(() => announceDeepResearchStarted({ runId: "RUN-d", purpose: "DESIGN_RESEARCH", researchRunId: null }));
+    expect(window.location.search).toBe("?run=RUN-1");
+    act(() => announceDeepResearchStarted({ runId: "RUN-i", purpose: "INTERPRETATION_RESEARCH", researchRunId: "RUN-0" }));
+    expect(window.location.search).toBe("?run=RUN-0");
+    await waitFor(() => expect(called("GET", "/api/v1/studies/STU-1/research/runs/RUN-0")).toHaveLength(1));
+  });
 
   it("cancels only after the person confirms, and retries a failed run as a new run", async () => {
     let cancelled = false;

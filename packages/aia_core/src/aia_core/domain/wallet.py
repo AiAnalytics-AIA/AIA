@@ -66,15 +66,17 @@ class ChargeKind(StrEnum):
     INTERPRETATION_RESEARCH = "interpretation_research"
 
 
-#: The approval-ledger subjects that may authorise a charge: the two starts that consult the
-#: wallet (ADR 0028 decision 3). A person's own start on the Run stage does not consult it
-#: (``money.start_verdict``, ``StartPath.PERSON``), so it neither needs nor writes a charge.
+#: The approval-ledger subjects that may authorise a charge: the starts that consult the
+#: wallet (ADR 0028 decision 3), a Lead card's among them (``lead_card``, LO5a.2: a Deep
+#: Research card the person approved, judged as their own typed start). A person's own start on
+#: the Run stage does not consult it (``money.start_verdict``, ``StartPath.PERSON``), so it
+#: neither needs nor writes a charge.
 CHARGE_AUTHORITIES: Final[frozenset[ApprovalSubject]] = frozenset(
-    {ApprovalSubject.CHAT_START, ApprovalSubject.PLAN_STEP}
+    {ApprovalSubject.CHAT_START, ApprovalSubject.PLAN_STEP, ApprovalSubject.LEAD_CARD}
 )
 
 #: The decision a start's ledger row records when a person started it (the approving value a
-#: ``chat_start`` or ``plan_step`` row carries); any other decision authorises no charge.
+#: ``chat_start``, ``plan_step`` or ``lead_card`` row carries); any other authorises no charge.
 CHARGE_DECISION: Final = "start"
 
 #: Who may set ``clients.wallet_ceiling_usd`` (ADR 0028 decision 1), named in a refusal of a

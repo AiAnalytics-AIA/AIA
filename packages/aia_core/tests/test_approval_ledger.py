@@ -35,8 +35,12 @@ MIGRATION = (
 )
 
 
-def _migration() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("ledger_admits_the_mvp_lane", MIGRATION)
+#: Migration M3b (lead-orchestration LO5a.2): ``lead_card``, after M3 on the same constraint.
+M3B = REPO / "migrations/versions/20261026_124dedc8f7b1_the_approval_ledger_admits_lead_cards.py"
+
+
+def _migration(path: Path = MIGRATION) -> ModuleType:
+    spec = importlib.util.spec_from_file_location(path.stem, path)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -82,9 +86,20 @@ def test_the_migration_names_the_same_subjects_in_the_same_order() -> None:
     """Written out in the migration, never imported: it must still be the domain's set."""
     migration = _migration()
     written = migration._BEFORE + migration._ADDED
-    assert written == tuple(s.subject.value for s in SUBJECTS)
+    # M3 admitted every subject but the one M3b added after it (lead-orchestration LO5a.2).
+    assert written == tuple(
+        s.subject.value for s in SUBJECTS if s.subject is not ApprovalSubject.LEAD_CARD
+    )
     assert set(migration._ADDED) == {s.value for s in LANE_M3_SUBJECTS}
     assert migration.down_revision == "57eaa96a5538"
+
+
+def test_m3b_names_every_subject_and_adds_lead_card_alone() -> None:
+    """Migration M3b (LO5a.2): the wallet's authority for a Lead card's charge, after M3."""
+    migration = _migration(M3B)
+    assert tuple(s.subject.value for s in SUBJECTS) == migration._BEFORE + migration._ADDED
+    assert (ApprovalSubject.LEAD_CARD.value,) == migration._ADDED
+    assert migration.down_revision == "46d0bf6b5121"
 
 
 # --------------------------------------------------------------------------- rows and reads
@@ -182,9 +197,48 @@ def test_the_upgrade_admits_the_lane_and_the_downgrade_takes_it_back(
                 assert "'lead_self_update'" in _subjects_admitted(connection)
                 migration.upgrade()
             admitted = _subjects_admitted(connection)
-            assert all(f"'{s.value}'" in admitted for s in ApprovalSubject)
+            # Every subject M3 admits; lead_card is M3b's.
+            assert all(
+                f"'{s.value}'" in admitted
+                for s in ApprovalSubject
+                if s is not ApprovalSubject.LEAD_CARD
+            )
         finally:
             transaction.rollback()  # PostgreSQL DDL is transactional: the schema is as it was
+
+
+def test_m3b_admits_lead_cards_and_its_downgrade_takes_them_back(postgres: Any) -> None:
+    migration = _migration(M3B)
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with Operations.context(MigrationContext.configure(connection)):
+                migration.downgrade()
+                assert "'lead_card'" not in _subjects_admitted(connection)
+                assert "'sociomap_unlock'" in _subjects_admitted(connection)
+                migration.upgrade()
+            admitted = _subjects_admitted(connection)
+            assert all(f"'{s.value}'" in admitted for s in ApprovalSubject)
+        finally:
+            transaction.rollback()
+
+
+def test_m3b_downgrade_refuses_while_the_ledger_holds_a_lead_card(
+    postgres: Any, session: Session, scoped: Any
+) -> None:
+    session.add(_row(scoped.scope(), "lead_card"))
+    session.commit()
+    migration = _migration(M3B)
+    with postgres.connect() as connection:
+        transaction = connection.begin()
+        try:
+            with (
+                Operations.context(MigrationContext.configure(connection)),
+                pytest.raises(RuntimeError, match="append-only"),
+            ):
+                migration.downgrade()
+        finally:
+            transaction.rollback()
 
 
 def test_the_downgrade_refuses_while_the_ledger_holds_a_lane_decision(

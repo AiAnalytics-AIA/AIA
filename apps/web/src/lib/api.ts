@@ -9,7 +9,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
 import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision } from "@/lib/lead";
+import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision, WorkingEdit } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
@@ -506,6 +506,8 @@ export type WorkingContent = {
 };
 
 export type WorkingSave = { study_id: string; state: ContentState; revision: number; revision_id: string; deduplicated: boolean };
+/** A batch of edits saved (POST …/workspace/ops, WCE3a): the save, and the copy as AIA now holds it. */
+export type WorkingOpsSave = WorkingSave & { content: Record<string, unknown>; analysis: Record<string, unknown> | null };
 
 /** A filled-in questionnaire template, read by AIA (QuestionnaireImportResponse). */
 export type QuestionnaireImport = {
@@ -911,6 +913,9 @@ export const workspace = {
     studyId: string,
     body: { content: unknown; analysis: unknown; base_revision: number | null; reason: string },
   ) => request<WorkingSave>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/content`, body),
+  /** A person's edits in the working copy's vocabulary, applied in order as one batch, all or none (WCE3a). */
+  applyOps: (studyId: string, body: { ops: WorkingEdit[]; base_revision: number | null; reason: string }) =>
+    request<WorkingOpsSave>("POST", `/api/v1/studies/${enc(studyId)}/workspace/ops`, body),
   recordStage: (studyId: string, stage: string) =>
     request<void>("PUT", `/api/v1/studies/${enc(studyId)}/workspace/stage`, { stage }),
   attach: (studyId: string, body: { filename: string; data_b64: string }) =>
@@ -1410,7 +1415,7 @@ export const research = {
   /** The modules a person may ask again over the run's data; `stale`: those among them a model completed under an
    *  earlier harness, which today's refuses to re-admit (absent from an API older than PC3: none). */
   retryableModules: (studyId: string, runId: string) =>
-    request<{ run_id: string; modules: string[]; stale?: string[] }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
+    request<{ run_id: string; modules: string[]; stale?: string[]; ceiling_usd?: number | null }>("GET", `${studyPath(studyId)}/research/runs/${enc(runId)}/analysis/retryable`)
       .then((r) => ({ modules: Array.isArray(r.modules) ? r.modules : [], stale: Array.isArray(r.stale) ? r.stale : [] })),
   /** Ask a finished run's failed analysis modules again: a new run over the same dataset, no new fieldwork. */
   retryAnalysis: (studyId: string, runId: string, confirmCostUsd?: number) =>

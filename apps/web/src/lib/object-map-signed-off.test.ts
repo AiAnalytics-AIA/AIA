@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./fixtures/object-map-signed-off.json";
 import legacy from "./fixtures/object-map.json";
 import {
+  allRelations,
   isSignedOffMap,
   objectDetail,
   objectsNotPlaced,
@@ -213,6 +214,25 @@ describe("what a click shows", () => {
     };
     expect(relationDetail(clear, unknown(CLEAR.relations.n_min - 1), 0, 2)).toMatchObject({ r: null, verdict: "fewRatings" });
     expect(relationDetail(clear, unknown(CLEAR.relations.n_min), 0, 2)).toMatchObject({ r: null, verdict: "noSpread" });
+  });
+
+  it("lists every other object's stored relation, whatever its status: by |r|, the unknown ones last", () => {
+    const k = 0, lines = allRelations(clear, CLEAR, k);
+    expect(lines.map((x) => x.j).sort((a, b) => a - b)).toEqual(CLEAR.object_ids.map((_, j) => j).filter((j) => j !== k));
+    for (const x of lines) {
+      expect(x.r).toBe(CLEAR.relations.r[k][x.j]);
+      expect(x.n).toBe(CLEAR.relations.n[k][x.j]);
+      expect(x.verdict).toBe(relationDetail(clear, CLEAR, k, x.j).verdict);
+    }
+    const known = lines.filter((x) => x.r !== null).map((x) => Math.abs(x.r!));
+    expect(known).toEqual([...known].sort((a, b) => b - a));
+    // A weak pair is listed too, and an unknown one goes last.
+    const weak = CLEAR.object_ids.findIndex((_, j) => j !== k && CLEAR.relations.status[k][j] === "weak");
+    if (weak >= 0) expect(lines.some((x) => x.j === weak && x.verdict === "weak")).toBe(true);
+    const cell = <T,>(m: T[][], v: T) => m.map((row, a) => row.map((x, b) => (a === k && b === 2 ? v : x)));
+    const rel = CLEAR.relations;
+    const unknown = { ...CLEAR, relations: { ...rel, r: cell(rel.r, null), status: cell(rel.status, null), n: cell(rel.n, 3) } };
+    expect(allRelations(clear, unknown, k).at(-1)).toMatchObject({ j: 2, r: null, n: 3, verdict: "fewRatings" });
   });
 
   it("reads a respondent's fit and segment: coloured in one, grey, or faded", () => {

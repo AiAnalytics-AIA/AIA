@@ -72,6 +72,7 @@ __all__ = [
     "approve_chat_start",
     "chat_start_decisions",
     "newest_analysed_run",
+    "wallet_admits",
 ]
 
 
@@ -184,27 +185,11 @@ def approve_chat_start(
     if command is None or matched is None or matched.command is not command:
         raise ChatStartRefused("unknown_command")
     wallets = StudyWallets(session, scope, enabled=wallet_enabled)
-    threshold = ScopeRepository(session).get_study(scope).spend_confirm_usd
 
     def quote(ceiling: float | None) -> None:
         """Step 1: inside the wallet, else refused; the threshold asks in the same exchange."""
-        if not wallet_enabled:
-            return
-        _verdict, remaining = wallets.quote(ceiling)
-        verdict = start_verdict(
-            StartPath.CHAT_START,
-            ceiling_usd=ceiling,
-            threshold_usd=threshold,
-            confirmed_usd=confirm_cost_usd,
-            wallet_remaining_usd=remaining,
-        )
-        if verdict.kind is StartVerdictKind.REFUSED:
-            raise ChatStartRefused(
-                verdict.reason or "refused", ceiling_usd=ceiling, remaining_usd=remaining
-            )
-        if verdict.kind is StartVerdictKind.ASK:
-            assert ceiling is not None and threshold is not None
-            raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=threshold)
+        if wallet_enabled:
+            wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirm_cost_usd)
 
     # A start that would find its run already there (the same job or run on the same design,
     # started by an earlier approval or on its stage) is not held to the wallet or the threshold
@@ -279,7 +264,12 @@ def approve_chat_start(
         assert command.action is not None
         action = command.action
         revision = submit_design(_SOURCE_STAGE.get(action.value, "questionnaire"))
-        jobs = ResearchAgentJobs(session, scope, reservation_usd=reservation_usd)
+        # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: a questionnaire job reads the study's pinned Design
+        # Research findings, as the stage's start does (artifact-questionnaire QST13).
+        external = run_start.store if run_start is not None and run_start.external_context else None
+        jobs = ResearchAgentJobs(
+            session, scope, reservation_usd=reservation_usd, external_store=external
+        )
         found = existing_start(
             session,
             scope,
@@ -333,6 +323,38 @@ def approve_chat_start(
         "design_revision_id": revision_id,
         "status": started.run["status"].value,
     }
+
+
+def wallet_admits(
+    session: Session,
+    scope: StudyContext,
+    wallets: StudyWallets,
+    ceiling: float | None,
+    *,
+    confirm_cost_usd: float | None,
+) -> None:
+    """LO1's step 1 for a start a person approved in the conversation, a typed start's or a Lead
+    card's (LO5a.2): the ceiling against the wallet under the study row's lock, by
+    ``money.start_verdict(CHAT_START)`` -- inside the wallet only (:class:`ChatStartRefused`
+    ``outside_wallet`` / ``ceiling_unknown``), and the confirmation threshold asks in the same
+    exchange (:class:`~aia_core.application.research.CostConfirmationRequired`). Call it only
+    with the wallet on."""
+    threshold = ScopeRepository(session).get_study(scope).spend_confirm_usd
+    _verdict, remaining = wallets.quote(ceiling)
+    verdict = start_verdict(
+        StartPath.CHAT_START,
+        ceiling_usd=ceiling,
+        threshold_usd=threshold,
+        confirmed_usd=confirm_cost_usd,
+        wallet_remaining_usd=remaining,
+    )
+    if verdict.kind is StartVerdictKind.REFUSED:
+        raise ChatStartRefused(
+            verdict.reason or "refused", ceiling_usd=ceiling, remaining_usd=remaining
+        )
+    if verdict.kind is StartVerdictKind.ASK:
+        assert ceiling is not None and threshold is not None
+        raise CostConfirmationRequired(ceiling_usd=ceiling, limit_usd=threshold)
 
 
 def newest_analysed_run(runs: ResearchRuns) -> dict[str, Any] | None:
