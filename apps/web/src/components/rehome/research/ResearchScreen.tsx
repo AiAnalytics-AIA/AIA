@@ -324,8 +324,13 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
     spend?.resolve(yes);
     setSpend(null);
   };
-  // A job reaching the study's confirmation threshold asks here first (LO15).
-  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
+  // A job reaching the study's confirmation threshold asks here first (LO15), in SpendDialog.
+  const confirmJobCost = useCallback(
+    (message: string, asked?: { ceiling: number; limit: number }) =>
+      asked ? confirmSpend({ summary: t("input.spend.research.job"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.startJob") }) : confirm(message),
+    [confirm, confirmSpend],
+  );
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirmJobCost);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.

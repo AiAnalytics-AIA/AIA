@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
-import { followAgentJob, withJobCostConfirmation } from "@/lib/research-agent-jobs";
+import { type JobCostConfirm, followAgentJob, withJobCostConfirmation } from "@/lib/research-agent-jobs";
 import { JobError, type JobUpdate } from "@/research/jobs";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 import { submitWorkingDesign, type ResearchStore } from "@/research/store";
@@ -37,7 +37,7 @@ const refuse = async () => false;
  * confirmation threshold is started only after that yes (LO15). Without it, nothing is confirmed
  * and such a start or rebuild ends with the server's refusal.
  */
-export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false, confirm: (message: string) => Promise<boolean> = refuse) {
+export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false, confirm: JobCostConfirm = refuse) {
   const [recent, setRecent] = useState<ResearchAgentJob[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

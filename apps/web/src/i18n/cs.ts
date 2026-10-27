@@ -4525,6 +4525,8 @@ export const cs = {
         retryDeep: "Opakování Deep Research doplní, co minule chybělo; platí se z rozpočtu této studie.",
         interpret: "Rešerše k výsledku hledá a ověřuje veřejné zdroje; platí se z rozpočtu této studie.",
         retryInterpret: "Opakování rešerše doplní, co minule chybělo; platí se z rozpočtu této studie.",
+        job: "AI úloha navrhne změny návrhu z rozpočtu studie. Nic nezmění, dokud návrh nepřijmete. Její horní mez dosahuje prahu potvrzení studie.",
+        startJob: "Spustit úlohu",
         startRun: "Spustit běh",
         retryRunAct: "Opakovat běh",
         retryAnalysisAct: "Opakovat analýzu",
