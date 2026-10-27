@@ -23,6 +23,17 @@ chunks:
   - "[x] FLD12. Fictional fieldwork reports fieldwork_progress every 10 respondents and at the last, nothing sent or replayed, so the disc shows without a paid run (spec sber G7)"
   - "[ ] FLD13. Replayed respondents counted beside replayed blocks: a respondent none of whose blocks were sent this attempt, a fieldwork_progress key under the next event version (spec sber G1)"
   - "[ ] FLD14. The attempt's cadence facts in the feed: progress_every and whether the heartbeat and the checkpoint were on, so the disc's batch and 'nic se neztratilo' are read, never assumed (spec sber G3)"
+  - "[ ] FLD15. A run stopped at the budget, finished with the answered respondents, the server: 'Ukončit s N respondenty' ends fieldwork on the answers paid for (never thrown away); the dataset, aggregate, analysis and internal report are marked incomplete ('neúplný vzorek, kvóty nesplněny') and the client report is refused by name for such a run (Nigel, 27 Oct 2026; W2)"
+  - "[ ] FLD16. 'Ukončit s N respondenty' beside 'Navýšit rozpočet' in the park note, saying what it does before the click (W2, after FLD15)"
+  - "[ ] FLD17. 'Neúplný vzorek, kvóty nesplněny' wherever an incomplete run is read: Průběh, Výsledky, Sociomapa, Analýza and the internal report (W2, after FLD15)"
+  - "[ ] FLD18. Průběh's steps grouped Sběr, Výpočet, Analýza and Zpráva, only the running group open (W1)"
+  - "[ ] FLD19. A 'Celkem / Podle věku' switch on the respondent disc (W2, with run-qc-and-checkpoint#RQC7d's sectors)"
+  - "[ ] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
+  - "[ ] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
+  - "[ ] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
+  - "[ ] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
+  - "[ ] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
+  - "[ ] FLD25. SpendDialog on Start: Strop běhu, Rozpočet studie (zbývá), Práh potvrzení and Peněženka, the primary 'Spustit · nejvýše {ceiling}' (spec sber F5; carved out of FLD6; W1, with input-interactions#6)"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
 
@@ -293,5 +304,58 @@ It unblocks FLD8b.
 **FLD14. Cadence facts** (spec `sber/G3`). Not started.
 
 **Notes.**
-- FLD6 carries `sber/F2` to `sber/F5` and `sber/P3`'s note (contradiction 12: WCE7b's text gives Kontrola's no-submit to FLD6). Its spend dialog is `input-interactions#6` (W2; contradiction 5): FLD6 ships with today's confirmation in W1 and moves onto SpendDialog when #6 lands.
+- FLD6 carries `sber/F2` to `sber/F5` and `sber/P3`'s note (contradiction 12: WCE7b's text gives Kontrola's no-submit to FLD6). *Made explicit 2026-10-27:* F2 to F5 are FLD22 to FLD25; FLD6 keeps the gates, the Lead card and the retries. Its spend dialog is `input-interactions#6` (W2; contradiction 5): FLD6 ships with today's confirmation in W1 and moves onto SpendDialog when #6 lands.
 - `sber/P4` and `sber/D1`-`D4` (the fieldwork disc) are `run-qc-and-checkpoint#RQC7c`, re-scoped to counts.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**FLD15. Finish with the answered respondents** (W2, lane E). Nigel, 27 Oct 2026: a run stopped at the budget offers
+"Ukončit s N respondenty" beside "Navýšit rozpočet". Results, analysis and an internal report run on the answered
+respondents, marked "neúplný vzorek, kvóty nesplněny" everywhere; **no client report** from an incomplete run; paid
+answers are never thrown away. The fieldwork step parked `AWAITING_BUDGET` is closed by a person's decision (ledger row)
+with the respondents its journal holds (the per-respondent checkpoint, `run-qc-and-checkpoint#RQC0`); the dataset
+records `incomplete: {answered, planned, quotas_met: false}`; aggregate and analysis run on it; the internal report
+says so in its method chapter; `application/client_report.py` refuses it (`ClientReportRefused`, a new reason). Test:
+a parked run finished at 300 of 500 yields a dataset of 300 marked incomplete, a report that says so, and a 409 client
+report.
+
+**FLD16. The button** (W2). In FLD10's park note, beside the lift, with what it does in words ("Výsledky, analýza a
+interní zpráva z 300 odpovědí; klientská zpráva nebude"). Test: the button posts the decision and Průběh moves on.
+
+**FLD17. The mark everywhere** (W2). One sentence, one component, on every reader of an incomplete run. Test: each
+screen shows it for an incomplete run and not for a complete one.
+
+**FLD18. Grouped steps** (W1). Průběh's one ordered list (FLD2c) grouped into Sběr, Výpočet, Analýza and Zpráva, the
+group holding the running step open, the others folded with their state. Test: with fieldwork running, only Sběr is
+open.
+
+**FLD19. Celkem / Podle věku** (W2). A segment on the disc switching the plain disc and the sector disc by age band
+(RQC7d). Test: the switch draws sectors when `quota` is present and is absent otherwise.
+
+**FLD20. Compact costs** (W1). FLD4e's four tiles in one compact row, "Bez známé ceny" kept. Test: unknown spend reads
+unknown, never 0.
+
+**FLD21. Průběh for any run** (W1). FLD9 opens Průběh after a start and while a run moves; a finished, failed or parked
+run is reachable too, from the view switch and from the run list. Test: a finished run's Průběh opens from Kontrola's
+switch.
+
+**FLD22-FLD25. Kontrola, explicit** (W1, lane E). Spec `sber/F2`-`F5`, until now a note under FLD6:
+- FLD22 (`sber/F2`): readiness read from the working copy (`GET …/research/readiness/working`); `submitWorkingDesign`
+  becomes the first step of Start. Test: a visit to Kontrola submits no revision.
+- FLD23 (`sber/F3`): "Co spustíte": Návrh (revision, counts, link), Kdo odpovídá (`persona_sources`), Populace, n,
+  Cena nejvýše (`cost_ceiling`). Test: each fact reads from its route; an unknown ceiling reads unknown.
+- FLD24 (`sber/F4`): `<details>` "Všechny kontroly (n)", "x v pořádku · y upozornění · z brání", open on a FAIL;
+  ResearchTraceCard and QuestionOutlookCard inside it. Test: a FAIL opens it.
+- FLD25 (`sber/F5`): `SpendDialog` replaces `ask()`; no dialog below the threshold or for fictional respondents.
+  Test: the dialog's four lines and the primary's amount.
+
+**FLD13 and FLD14** had no wave in the execution contracts (`tools/master_check.py` failed on develop `dbaa7720`); both
+are W1 now, with the disc (FLD8b, RQC7c), proposed here.

@@ -14,6 +14,13 @@ chunks:
   - "[x] QST11. The respondent preview at the real scale range, saying what was left out (spec navrh Q5; W1)"
   - "[ ] QST12. One questionnaire editor: the Způsob radiogroup (Nahrát Excel / Sestavit ručně / Sestavit s AI) removed, the one editor working on an empty questionnaire too (Nigel, 26 Oct; W1, ships with lead-orchestration#LO18b)"
   - "[x] QST13. build_questionnaire and optimize_questionnaire read every verified finding of the newest Design Research run, as a frozen external layer labelled not respondent evidence; a prompt and harness bump (Nigel, 26 Oct: \"All verified findings\"; W1)"
+  - "[ ] QST14. All verified findings, as decided: the questionnaire jobs read every verified finding of every finished Design Research run of the study, not the newest run's first 24; the snapshot's 64 KB bound the only limit, and what it leaves out said on the job's card before the start (reworks QST13; Nigel, 26 Oct: "All verified findings", restated 27 Oct 2026; W1, for lead-orchestration#LO27)"
+  - "[ ] QST15. Each proposed change says why and what it rests on, the server: a questionnaire proposal's item names the research question, brief objective, knowledge item or Design Research finding it rests on, by id, with a one-line reason; a prompt and harness bump (spec navrh Q11, Dotazník gap 2; W2)"
+  - "[ ] QST16. The why and the sources on screen: each change block of the inline review shows its reason and links what it rests on (spec navrh Q11; W2, after QST15, on QST5)"
+  - "[ ] QST17. The job card's change count, and 'Posoudit' scrolling to the proposal in the artifact (W1, with QST5)"
+  - "[ ] QST18. An imported set offered as a merge: a set in an imported file with the same objects as Návrh's tracked set is offered as a merge into it, never a second set (spec navrh Q10, R7; W2, after lead-orchestration#LO18b)"
+  - "[ ] QST19. A questionnaire Excel that is not the template, read by build_questionnaire: the job's frozen context carries the client source's read segments with their locators, labelled the client's document and not evidence (spec navrh Q10, Dotazník gap 8; W2, after lead-orchestration#LO18a)"
+  - "[ ] QST20. A file through the Lead on screen: LO18b's proposal reviewed per block with ticks, only the ticked blocks written; a refused file names its row and reason and saves nothing (spec navrh Q10; W1, with lead-orchestration#LO18b and QST12)"
 ---
 # Artifact: Dotazník (Questionnaire)
 
@@ -475,7 +482,7 @@ follow-up chunk below.
 - Switch: only with `AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`, which stays off. The stage's start and rebuild
   routes pass the store. The typed "Navrhni dotazník" (`approve_chat_start`) takes it from its
   `RunStartSettings` (`external_context`, `store`).
-- Departure from "All verified findings": the shared reader shows at most `MAX_EXTERNAL_ITEMS` (24)
+- Departure from "All verified findings" (superseded 2026-10-27 by QST14): the shared reader shows at most `MAX_EXTERNAL_ITEMS` (24)
   findings, each claim cut at 400 characters (`domain/analysis/external.py:33-35`). One reader means
   the same cap Analýza's modules and the Lead see.
 - The Lead's card approval of a model-prepared job (`application/research_lead.py`
@@ -491,3 +498,50 @@ follow-up chunk below.
   - `test_lead_chat_start_api.py::test_a_typed_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on`
   - `test_research_lead_application.py::test_an_approved_questionnaire_job_reads_external_context_only_with_the_leads_store`
   - `test_research_lead_api.py::test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on`
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**QST14. All verified findings** (W1, lane E; for `lead-orchestration#LO27`). Nigel decided "All verified findings"
+(26 Oct 2026 ~01:47 UTC) and confirmed it when the inventory found QST13 built otherwise: QST13 reads the newest
+finished Design Research run only (`ResearchRuns.design_research_pin`) and the shared reader caps it at
+`MAX_EXTERNAL_ITEMS` = 24 findings (`packages/aia_core/src/aia_core/domain/analysis/external.py:33 @ dbaa7720`). QST14
+lifts both for the two questionnaire jobs: every verified finding (accepted, from a sealed bundle) of every finished
+Design Research run of the study, each with its run, frozen at enqueue in the job's fingerprint, labelled external
+context and never respondent evidence. The 64 KB snapshot bound (`AgentContextTooLarge`) stays the only limit: what it
+leaves out is counted and named on the job's card before the person approves, never trimmed silently. Analýza's and the
+Lead's readers keep their own bounds (not changed here). Test: two sealed runs' 30 findings all reach a build job's
+frozen context; a set over 64 KB is named on the card before the start.
+
+**QST15. Why and what it rests on, the server** (W2). The questionnaire contract (`domain/research_agents.py`
+`QuestionnaireProposal`, `:158-162 @ bd0d1ad6`) gains, per proposed item, `rests_on` (ids of a research question, a
+brief objective, a knowledge item or a Design Research finding) and a one-line `why`; a reference to anything not in
+the frozen context is dropped and named, as `dropped_links` already does. Prompt and harness bump. Test: a recorded
+proposal's items carry their sources; an unknown id is dropped and named.
+
+**QST16. On screen** (W2). Each change block in ProposalReview shows "Proč" and "Opírá se o" with links. Test: a block
+links its research question and its finding.
+
+**QST17. The job card's count** (W1). "Navrhuje 6 změn" on the folded and open card; "Posoudit" scrolls the artifact
+to the proposal and focuses it. Test: the count equals the proposal's changes.
+
+**QST18. Merge into Návrh's set** (W2; spec `navrh/Q10`, decision R7: one tracked set for Návrh and Dotazník). An
+imported set whose objects equal Návrh's set's is offered as a merge into it in the proposal review, never as a second
+set. Test: an import with Návrh's objects offers the merge and writes one set.
+
+**QST19. A free-form Excel** (W2). With `lead-orchestration#LO18a` the Lead reads any document; the
+`build_questionnaire` job's `context_snapshot` (`domain/research_agents.py:611-624 @ bd0d1ad6`) gains the file's read
+segments, so a questionnaire in a non-template sheet becomes a proposal. Test: a non-template XLSX given to the Lead
+yields a build job whose frozen context names the file's segments.
+
+**QST20. LO18b on screen** (W1, with QST12 and `lead-orchestration#LO18b`). The no-model proposal from an AIA-template
+file reviewed per block, with ticks; only ticked blocks written. A file that breaks a template rule is refused whole
+with its row and reason (`domain/questionnaire_import.py:194`, `:227 @ bd0d1ad6`). Test: a refused file names its row
+and saves nothing.

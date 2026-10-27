@@ -16,6 +16,7 @@ chunks:
   - "[x] SMP7. N set on Vzorek: one stepper bounded by /research/limits, sample.edits true, set_n shown here; one PR with artifact-dimensions DIM3b (spec vzorek V1; Nigel P1, 26 Oct 2026; W1)"
   - "[x] SMP8. The run's ceiling and the study's remainder beside N (spec vzorek V2; W1)"
   - "[ ] SMP9. The server's reportable_n and 'Zvýšit na N x · strop +Δ USD'; the browser's own recommendation removed (spec vzorek V3; W1)"
+  - "[ ] SMP11. The start refuses as its own check: a start whose run ceiling exceeds what is left of Rozpočet studie refuses by name at the start itself, not only through readiness (B1 (a), Nigel 2026-10-26; spec vzorek V5; W1, with SMP10)"
 ---
 # Artifact: Vzorek (Sample)
 
@@ -244,3 +245,19 @@ and `dimensions_journey.mjs` (n stepped on Vzorek, 44 px at 390).
 
 **Notes.**
 - The plan was `done`; it is `in-progress` again because the spec adds open chunks (26 Oct 2026).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**SMP11. The start's own refusal** (W1, lane E). Settled Q-V2 (B1, Nigel, 26 Oct): the study budget stops a run before
+it starts, "a FAIL readiness check … and the start refuses the same way". SMP10 is the readiness check; this is the
+start's: `domain/money.py:339 @ dbaa7720` says "The study's budget is not consulted here". A start (any path: the
+stage's, a typed start, a Lead card) whose ceiling exceeds the remainder refuses by name, so a client that skips
+readiness cannot start it. Test: a direct start over the remainder is 409 by name; readiness was not called.

@@ -16,7 +16,8 @@ chunks:
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
   - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
-  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
+  - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"
+  - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
   - "[ ] 14. The Lead's view vocabulary: a closed, per-artifact set of display operations the Lead may run on the artifact pane"
   - "[ ] 15. The artifact frame: title, state pill, one version line and at most one state bar; inputs, feeds, workers and provenance in the inspector (the canonical V2 prototype's D5, owner confirmed in MVPQ-01 on 2026-10-20), Pracovní kopie / Historie / Původ, the revision stepper"
   - "[ ] 16. Pointing at the artifact: the Vidí chip, the target button and @ over every artifact's elements"
@@ -48,11 +49,8 @@ chunks:
   - "[ ] 32. The Lead pane's web results: inline citations with links and quotes, the result list as it arrives, each search's cost, and Kontext studie (the study's context file) readable with its version (Q5, Q6)"
   - "[ ] 33. Editor spike (Q19): Wordcraft, ONLYOFFICE Docs and Collabora Online compared against Tiptap for the study context file and reports, on Word-like UX, tracked changes and comments, Lead-driven edits, ledger refs through a round trip, DOCX fidelity, licence and EU self-hosting; a go/no-go to the owner"
   - "[x] 34. A stage change swaps only the stage's body: the study's layout draws the workbench (ResearchStages, the stage read from the address below it), so the Lead's pane, its draft, scroll and cards, the split, the header and the navigator stay mounted and nothing study-wide is read again; a review left open is kept as leaving the page kept it; the journey times each switch and asserts the same composer"
-  - "[ ] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
-  - "[x] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
-
   - "[x] 35. The stage navigator as a steady, full-width bar: the six phases as labelled groups, fixed-width stage slots (the current stage marked, never grown), done, needs-you, fault, running and not-started each by glyph and tone; no shift at 1440, 1280 and 1100 px"
-  - "[ ] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
+  - "[x] 36. The stage header's action slot and its next-stage primary: a StageHeader context, StepSection number, cap and need state, a WellItem primitive, and the header's 'next stage ›' from FrameNavigation, the dock's button dropped in the workbench (spec navrh X1 + vzorek H1, built once; W1)"
   - "[ ] 37. The Lead's run card agrees with Průběh: done steps, spend and ceiling from the single-run read (spec sber F7; W1)"
   - "[ ] 38. Sociomapa's own state in the stage navigator (spec szz S5; W2)"
   - "[ ] 39. The Lead pane's header status line (Připravena / Přemýšlí… / Pracuje na …) with the orb in the avatar (spec lead LP-1; W2)"
@@ -68,7 +66,20 @@ chunks:
   - "[ ] 49. The composer's Akce built from GET /lead commands (spec lead LP-15; W2)"
   - "[ ] 50. The edits card: its targets listed, 'Zahodit vše', 'Otevřít lištu' (spec lead LP-16; W2)"
   - "[ ] 51. Akce = the artifact contract's starts ∩ the commands; no extra text after a run or a retry (spec lead LP-17; W2)"
-  - "[ ] 52. Přidat podklad in the '+' menu opens the client's intake sheet (spec lead LP-18; W2)"
+  - "[ ] 52. Přiložit soubor in the '+' menu files to the Lead, without opening the intake sheet: the file goes with the message as lead-orchestration#LO18a keeps it (spec lead LP-20 since spec v5, was LP-18; W2)"
+  - "[ ] 53. The Interpretation card shows its target run's date (Q44), from the turn's frozen candidates; if a candidate does not carry it, the server adds it first (W2)"
+  - "[ ] 54. Zastavit on a running research run card, through the run's cancel route, folded 'zastaveno · zaplaceno x' afterwards (#42 covers job cards only; W1)"
+  - "[ ] 55. Folded card rows: Hotovo, Ponecháno and Zastaveno each folded to one row ('hotovo · x USD', 'ponecháno · nic nespuštěno', 'zastaveno · zaplaceno x'), re-expandable (spec lead §2.0; W2, with #23 and lead-orchestration#LO21c)"
+  - "[ ] 56. The '+' menu's Přidat tab: 'Hledat na webu' shown disabled with 'připravujeme' until lead-orchestration#LO20 and #32, and 'Ukázat na prvek' in the menu with '@' kept as its shortcut (spec lead §3.2; W2, after #41, with #16)"
+  - "[ ] 57. The 'Zapamatovat si' card's 'Kam' fact: the file the note goes to (USER.md · Můj Vedoucí, or the client's notes) as a card fact (spec lead §2.7; W2)"
+  - "[ ] 58. Step events on for develop: deploy/develop/docker-compose.yml's AIA_AI_STEP_EVENTS default false -> true, so the cards and Průběh read model requests as they happen (spec lead B10, settled B3; an operator and infrastructure chunk; W1)"
+  - "[ ] 59. A price before approval on every paid card: Deep Research (design, interpretation, retry) and the agent jobs show 'Cena nejvýše', 'horní mez, ne odhad', before the approve button, and ask again when the ceiling grows, never as an error (Nigel, 27 Oct 2026; W1, after lead-orchestration#LO28 and #LO29; extends #23b's quote)"
+  - "[ ] 60. Vrátit on an accepted agent proposal and on a dismissed Lead edit, until the next change to the same item, offered where the server offers it (Nigel, 27 Oct 2026; W2, after working-copy-edit-ops#WCE15 and #WCE16)"
+  - "[ ] 61. A reused run on the agent-job card: 'využit předchozí běh', its spend named as that run's (W2, after lead-orchestration#LO30)"
+  - "[ ] 62. Přehled fází: a popover from the study header listing the six phases and their stages' states; checked first against the research stages prototype v73's header (a V2 element; W1)"
+  - "[ ] 63. The 'Fiktivní data' chip on the study header while the study's runs answer with fictional respondents; checked first against the research stages prototype v73's header (a V2 element; W1)"
+  - "[ ] 64. The difference between any two Design Revisions: two revisions chosen, their items' changes listed by item (#15's stepper shows one at a time; W2, after working-copy-edit-ops#WCE18)"
+  - "[ ] 65. The cost of re-running, shown before an edit commits: the stages an edit reopens and the ceiling of re-running them, before it is saved or accepted (W2, after working-copy-edit-ops#WCE17)"
 ---
 # Research Lead workbench
 
@@ -2056,7 +2067,10 @@ follow-up chunk below.
 
 **51. Akce as starts ∩ commands** (spec `lead/LP-17`; W2, lane C). After #41 and #49; Deep Research items after `lead-orchestration#LO5a.3`, disabled with a reason until then.
 
-**52. Přidat podklad** (spec `lead/LP-18`; W2, lane C). Opens `IntakeSheet` as the client workspace does. After #41.
+**52. Přiložit soubor** (spec `lead/LP-20`; W2, lane C; after #41). *Updated 2026-10-27:* spec `lead/LP-18` is gone;
+since spec v5 the "+" menu's file item is LP-20, "Přiložit soubor", and it files to the Lead: the file goes with
+the message (`lead-orchestration#LO18a` keeps it as the client's source, `study-files#SF7` files it in the study's
+Vstupy), without opening `IntakeSheet`. Test: a file chosen from the menu shows as a chip and is sent with the message.
 
 **Notes.**
 - `navrh/D9` (edits bar keeps decided rows) is #7 with `working-copy-edit-ops#WCE9`.
@@ -2188,3 +2202,77 @@ away: #840's helper, taken in #936's merge, matches a stage's label exactly.
 "yes lets upgrade the Leads prompt". It is "3". `test_prompt_slots.py` "the Lead's baseline wording changes only
 with its version" pins the baseline's SHA-256 to its version, so the next wording change without a bump fails.
 An organization with an activated stored Lead prompt keeps it until it rebases on the new baseline.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**Front matter repaired (2026-10-27).** Chunks 35 and 36 each appeared twice with opposite ticks, with a blank line
+inside the front matter, and 12a and 13 were fused on one line. Both 35 and 36 are ticked once now. How it was decided:
+the code is on develop (`apps/web/src/components/workbench/workbench.css:88-95 @ dbaa7720`, "stage navigator
+(research-lead-workbench 35)"; `StageHeaderSlot` in `Workbench.tsx`), and both PRs are merged: #840
+(`fix/workbench-stage-bar`, "Make the stage navigator a steady, full-width bar", merged 2026-10-26 05:57 UTC; § "The stage
+navigator, a steady full-width bar", F24 fixed) and #936 (`feature/stage-header-slot`, merged 2026-10-26 07:19 UTC; §
+"The stage header's slots and its next stage": "Chunk 36 is ticked"). The duplicate pair came in with a merge.
+
+**52** is updated in place above (LP-18 to LP-20).
+
+**53. The Interpretation card's date** (W2, lane C). Q44: the Lead offers Interpretation Research over a result of the
+study's own run; the card names which run by its date ("Běh z 12. 10. · revize 4"). The candidates come from the turn's
+frozen targets layer (`application/lead_deep_research.py:100 @ dbaa7720`, `card_target`); whether a candidate carries its
+run's `created_at` is unchecked (a **hypothesis**): if not, the server adds it in its own PR first. Test: the card prints
+the run's date; a candidate without one reads "datum neznámé".
+
+**54. Zastavit on a run card** (W1, lane C). The run cancel route exists (`POST …/research/runs/{run_id}/cancel`,
+`apps/api/src/aia_api/routers/research.py:1857 @ dbaa7720`); the run card has no Zastavit (#42 is the job card's). Test:
+the run card posts cancel and folds to "zastaveno · zaplaceno x"; an unknown spend reads unknown.
+
+**55. Folded rows** (W2, lane C). The card life of spec `lead/§2.0`: done, kept and stopped each fold to one row and
+reopen. With #23's job half and `lead-orchestration#LO21c`. Test: each lifecycle state renders its folded row from a
+fixture job.
+
+**56. Přidat** (W2, lane C). "Hledat na webu" disabled, `aria-disabled`, subtitle "připravujeme", until
+`lead-orchestration#LO20` (ADR 0040) and #32 enable it; "Ukázat na prvek" in the menu (#16's picking), "@" kept. Test:
+the menu renders the web item disabled; "@ on an objective" passes from the menu.
+
+**57. Kam** (W2, lane C). The self-update card's file is shown per item (`LeadPane.tsx:565 @ bd0d1ad6`) but not as a
+fact. Make it the card's "Kam" fact. Test: the card's facts row names the file.
+
+**58. Step events on for develop** (W1; the infrastructure session). `deploy/develop/docker-compose.yml:306 @ dbaa7720`
+reads `AIA_AI_STEP_EVENTS: ${AIA_AI_STEP_EVENTS:-false}`; settled B3 (spec `lead.md` B10) is on for develop. Change the
+default for develop only (two event writes per request, ~1.3 ms measured, CLAUDE.md § 2 `ai_runtime.py`); test and the
+other deployments keep it off. Test: `tools/caddy_routes.py`-style CI check of the Compose file, or the deploy's smoke,
+reads it on.
+
+**59. Price on every paid card** (W1, lane C). The rule (Nigel, 27 Oct 2026): every paid card shows "Cena nejvýše" with
+"horní mez, ne odhad" (D-01's money words, `src/i18n/cs.ts` `money`) before the approve button; when the server answers
+LO29's 409 the card asks again with the new ceiling. #23b quotes the Design Research request card; this adds the
+interpretation and retry cards and the agent-job cards. Test: each paid card shows its ceiling before approval; a 409
+re-asks without an error state.
+
+**60. Vrátit** (W2, lane C). Nigel, 27 Oct 2026: undo after accepting an agent proposal or dismissing a Lead edit is
+available until the next change to the same item, by a person or the Lead; it writes a new revision and a ledger row,
+nothing is erased. The card and the edits bar offer it while the server does. Test: Vrátit restores the before-values;
+after a later change to the item it is gone.
+
+**61. Reused run on the card** (W2, lane C). Test: a job answering `reused_run_id` says so and shows no new spend.
+
+**62. Přehled fází and 63. Fiktivní data** (W1, lane C). Two V2 elements on the study header the inventory found in no
+plan. Each is checked first against the research stages prototype v73's header (the canonical V2 frame, MVPQ-01): a
+part v73 dropped is recorded here as dropped rather than built. 62: a popover listing the six phases and each stage's
+state from `lib/lane.ts`. 63: the chip while the study's runs answer with fictional respondents (`originKind` SIMULATED,
+`lib/research-execution.ts`), unknown never fictional. Tests: the popover lists eleven stages in six phases; the chip
+shows for a fictional run and not for a modelled one.
+
+**64. Revision diff** (W2, lane C). Two Design Revisions chosen; their changes item by item, from WCE18. Test: two
+revisions of a fixture study list the changed questions.
+
+**65. Cost before an edit** (W2, lane C). WCE7c and WCE7d1 show the impact after an edit is in the working copy; this
+shows it before the edit commits, from WCE17: the stages reopened and the ceiling of re-running them. Test: an edit
+that reopens Sběr dat shows its ceiling before it is saved.

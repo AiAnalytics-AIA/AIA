@@ -67,6 +67,7 @@ chunks:
   - "[ ] 59. The Deep Research tool event carries the fetched host and a refusal's reason (spec lead LP-14, lead B9; W1, only as a defect or evaluation finding under the engine freeze)"
   - "[ ] 60. Remove the study-scoped test policies: the table, the repository's propose/approve, the start's test_policy_approval pin and their tests; a run that pinned one still reads (ADR 0022 amendment 2026-10-26, Q1 (b); W1)"
   - "[ ] 61. Remove the per-run limit setting budgets.run_limit.<preset> from the catalogue, the live-readiness list and the page; a stored or pinned value still reads (ADR 0022 amendment 2026-10-26, Q2 (b); OI-158; W1)"
+  - "[ ] 62. A study's Deep Research permission panel: on the study, what its Deep Research may do, read from what is pinned and composed (the client's posture from #53, the composed and priced routes from #52's record, the live settings approved under ADR 0022, the study's budget left), each unknown said; read only, each value linking where it is set (Nigel, 27 Oct 2026; W1, after #53)"
 ---
 # Deep Research — wide, precise, and defensible
 
@@ -2019,3 +2020,21 @@ Research Lens) keeps its wave, W3 (row E28 of `mvp-execution-contracts.md`, with
 held "until all seven target kinds are reachable; chunk 31 builds it" (Q1 (b) and the verdict), so
 the Lens's acceptance includes an Interpretation start from the map on each Sociomap target kind it
 reaches (battery, object, pair), beside OI-179's fix for the result kinds.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**62. The study's permission panel** (W1). The prototypes inventory: a study-level Deep Research permission panel is
+drawn in V2; #53 built the client's posture on the server (`clients.data_posture`, pinned at enqueue) and nothing shows it
+on the study. One read-only panel on the study's Deep Research surfaces (Návrh's Design Research, Výsledky' Interpretation
+Research): the posture (OPEN / CLASSIFIED) the next run would pin, the routes composed and priced (#52's composition
+record), whether each live setting is approved (ADR 0022), the study's budget left; an unknown value said, never green.
+Each value links to where it is set (Profil → Pravidla, Settings → Deep Research). Test: a study of an OPEN client shows
+OPEN and the composed routes; an unread record reads unknown.

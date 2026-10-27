@@ -19,6 +19,7 @@ chunks:
   - "[ ] DSN12b. A hypothesis's 'ověří S1' verdict: the hypothesis-to-measure link and research_trace's verdict (spec navrh D5; W2)"
   - "[ ] DSN13. Follow-up answers saved per question in the working copy (spec navrh D7; W1)"
   - "[ ] DSN14. Comments with undo, no false 'upraveno', their target and author (spec navrh D8; W1)"
+  - "[ ] DSN15. The edits bar keeps the turn's decided rows: Přijato and Zahozeno as pills, Vrátit on an accepted text edit through AutoBar's revert, Vrátit on a dismissed one only once working-copy-edit-ops#WCE16 serves it (spec navrh D9; W1, with research-lead-workbench#7)"
 ---
 # Artifact: Návrh (Research design)
 
@@ -314,3 +315,18 @@ follow-up chunk below.
 **Notes.**
 - DSN5 keeps the Design Research card on Návrh (decided by default by planning, 26 Oct 2026, open to Nigel's override; OQ22); its "+" items in the Lead's menu are disabled with a reason until `lead-orchestration#LO5a.3`.
 - `navrh/D10` (the plan card 'Od návrhu ke sběru dat') is `lead-orchestration#LO3`, `#LO4`, `#LO21e`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**DSN15. Decided rows in the edits bar** (W1, lane E). Spec `navrh/D9`: `EditsBar` keeps the turn's decided edits with
+a pill; Vrátit on an accepted text edit reuses `AutoBar`'s revert (`Workbench.tsx:915 @ bd0d1ad6`); on a dismissed edit
+no Vrátit until `working-copy-edit-ops#WCE16`. The note above that `navrh/D9` is #7 with WCE9 stands for the server
+side; this is the bar itself. Test: an accepted edit stays as Přijato with Vrátit, and Vrátit restores the before text.
