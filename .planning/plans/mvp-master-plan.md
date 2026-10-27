@@ -7,7 +7,7 @@ chunks:
   - "[ ] MP3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
   - "[ ] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
   - "[ ] MP5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits, respondent replacement, assumption evidence and open-answer coding; ADRs awaiting an owner decision stay Proposed"
-  - "[ ] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
+  - "[x] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
   - "[ ] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
   - "[x] MP8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
   - "[ ] MP9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
