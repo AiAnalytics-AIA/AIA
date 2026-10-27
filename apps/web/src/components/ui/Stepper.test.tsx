@@ -309,3 +309,19 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(money.getAttribute("aria-valuetext")).toBe("85,00\u00a0USD");
   });
 });
+
+describe("Stepper save note (design system v3, I-Ukladani)", () => {
+  it("says Uloženo once the caller confirms the save, then goes quiet after 3 s", async () => {
+    vi.useFakeTimers();
+    try {
+      n(400, vi.fn(() => Promise.resolve()));
+      fireEvent.click(plus());
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByText("Uloženo")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(screen.queryByText("Uloženo")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

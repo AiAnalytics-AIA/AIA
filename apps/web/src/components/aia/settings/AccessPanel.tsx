@@ -17,7 +17,7 @@ import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from 
 import { t, tv } from "@/i18n/t";
 import { type AdminClient, type ClientRules, type Member, type SelfApprovalLevels, type Vocabularies, ApiError, Unauthenticated, admin, clientRules } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
-import type { SaveState } from "@/lib/inline-edit";
+import { SAVED_MS, type SaveState } from "@/lib/inline-edit";
 import { relative } from "@/lib/format";
 import { usd } from "@/lib/researcher-spend";
 import { ChoiceChips } from "../../ui/ChoiceChips";
@@ -39,12 +39,17 @@ function useSave(reload: () => void) {
   const router = useRouter();
   const [state, setState] = useState<SaveState>("idle");
   const [error, setError] = useState<string | null>(null);
+  // "Uloženo" for SAVED_MS, then quiet: it never stays to say a later value was saved too.
+  const quiet = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (quiet.current) clearTimeout(quiet.current); }, []);
   const run = async (call: () => Promise<unknown>): Promise<boolean> => {
+    if (quiet.current) clearTimeout(quiet.current);
     setState("saving");
     setError(null);
     try {
       await call();
       setState("saved");
+      quiet.current = setTimeout(() => setState("idle"), SAVED_MS);
       reload();
       return true;
     } catch (e) {

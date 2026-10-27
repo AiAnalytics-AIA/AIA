@@ -6,10 +6,10 @@
 // why, in words, and nothing is saved -- never clamped, never replaced (audit IA-1, IA-2). Esc
 // restores the saved value. Money passes `unit="USD"` and whole-dollar steps.
 
-import { type KeyboardEvent, type ReactNode, useId, useRef, useState } from "react";
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 import { tv, t } from "@/i18n/t";
-import { type SaveState, isThenable } from "@/lib/inline-edit";
+import { SAVED_MS, type SaveState, isThenable } from "@/lib/inline-edit";
 import { type NumberBounds, canStep, formatNumber, numberProblemWords, rangeWords, readNumber, stepNumber } from "@/lib/number-input";
 import { Icon } from "../rehome/icons";
 import { FIELD_ERROR, FOCUS, SaveNote } from "./parts";
@@ -74,6 +74,9 @@ export function Stepper({
   const [save, setSave] = useState<SaveState>("idle");
   const [failed, setFailed] = useState<number | null>(null);
   const latest = useRef(0);
+  // "Uloženo" for SAVED_MS after a save the caller confirmed, then quiet, as InlineText does.
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (savedTimer.current) clearTimeout(savedTimer.current); }, []);
   const saved = sent ?? value;
   const commit = (next: number) => {
     if (next === saved) {
@@ -112,7 +115,9 @@ export function Stepper({
       () => {
         if (op !== latest.current) return;
         setSent(null);
-        setSave("idle");
+        setSave("saved");
+        if (savedTimer.current) clearTimeout(savedTimer.current);
+        savedTimer.current = setTimeout(() => { if (op === latest.current) setSave("idle"); }, SAVED_MS);
       },
       () => {
         if (op === latest.current) fail();
