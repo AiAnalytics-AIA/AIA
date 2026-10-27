@@ -42,6 +42,17 @@ _EFFECTIVE_N_BASIS = "kish_effective_n"
 _ANSWERS = ("společná odpověď", "společné odpovědi", "společných odpovědí")
 
 
+#: Which stored terrain a report's spatial view shows, in words: the method's own terrain.
+_TERRAIN_SHOWN: Final = {
+    "object_envelope": "Prostorový pohled zobrazuje uloženou obálku objektových výšek. ",
+    "framed_relative_envelope": "Prostorový pohled zobrazuje uloženou obálku objektových výšek. ",
+    "framed_relative_idw": "Prostorový pohled zobrazuje uložený terén vážený převrácenou "
+    "vzdáleností od objektů (IDW). ",
+    "framed_relative_idw_falloff": "Prostorový pohled zobrazuje uložený terén vážený "
+    "převrácenou vzdáleností od objektů (IDW) s poklesem k zemi daleko od nich. ",
+}
+
+
 def _height_sentence(maps: list[tuple[str, SociomapArtifactV3]]) -> str:
     """What height and colour show on the printed ``maps``: the 0-1 means under the earlier
     methods; under the signed-off one the means on the set's declared scale, relative to the
@@ -405,11 +416,14 @@ def compose_map_sections(
                 blocks.append(
                     Paragraph(
                         text(
-                            "Prostorový pohled zobrazuje uloženou obálku objektových výšek. "
-                            "Povrch mezi body je vizualizační konstrukce, nikoli další naměřená "
+                            _TERRAIN_SHOWN[artifact.terrain.method]
+                            + "Povrch mezi body je vizualizační konstrukce, nikoli další naměřená "
                             "odpověď. "
                             + (
-                                "Daleko od objektů klesá povrch k nule, což neznamená "
+                                "Mezi objekty a daleko od nich přebírá povrch výšku nejbližších "
+                                "objektů, což není naměřené hodnocení. "
+                                if artifact.terrain.method == "framed_relative_idw"
+                                else "Daleko od objektů klesá povrch k nule, což neznamená "
                                 "nulové hodnocení. "
                                 if relative
                                 else "Prázdné oblasti nemají povrch a neznamenají "

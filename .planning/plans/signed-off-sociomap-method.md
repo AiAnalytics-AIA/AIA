@@ -335,6 +335,15 @@ place in the chapter, drawn from #517's renderer.
   exp(−d_j² / 2σ²), σ = 0.25: far from every object, ground; a replaced kernel shapes the falloff)
   and the envelope (`framed_relative_envelope`, no power). The hill width and the kernel do not
   enter the plain weighted mean.
+- **Both inverse-distance terrains are stored** (Nigel, 2026-10-27): a run under either stores the
+  other beside it, and the map switches between them, opened on plain IDW. Plain IDW fills empty
+  space with the nearest objects' height (the 8-object `complete` study's bottom-left corner reads
+  about 0.9); the falloff keeps each object at its own height and lets empty space fall to ground.
+- **`terrain.idw_power` lies in (0, 10]**: above that, 1 / d^p underflows or overflows on a map's
+  grid (200 fails with a division by zero, 1e6 with an overflow), in the spec and Metodika alike.
+- **Report figures** print the version's own terrain (under `-5`, plain IDW) and say which terrain
+  they show. Letting the study's lead researcher choose the terrain of a report's map figures
+  (internal and client) is a later chunk.
 - **Why** (evidence in the methodology folder's project, `NPC_Panel/analysis/idw_terrain/`, five
   maps): the envelope lifted 0–4 objects per real map by up to 0.33 of the scale next to a taller
   neighbour; none is lifted under inverse-distance weighting. Chosen knowingly over the falloff
@@ -344,7 +353,7 @@ place in the chapter, drawn from #517's renderer.
 - **The register approves the new `-5` fingerprint** (`b2992c12…`) client-facing beside the
   `959a5877…` entry, which runs stored before the change keep. `-2`, `-3` and `-4` are unchanged.
 - **Metodika** shows the weighted mean and its falloff variant as steps after the envelope's, with
-  `terrain.idw_power` (bounded above 0) among the terrain's parameters; the terrain parity fixture
+  `terrain.idw_power` (in (0, 10]) among the terrain's parameters; the terrain parity fixture
   (`signed_off_terrain.json`) was produced again by the methodology's own code. The web's `-5`
   fixture stays a stored map of the envelope: a run stored before the change.
 

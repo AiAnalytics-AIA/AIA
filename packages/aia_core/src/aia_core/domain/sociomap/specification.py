@@ -1241,6 +1241,8 @@ def _segments_problems(segments: TasteSegmentsSpec | None) -> dict[str, str]:
 
 #: The largest grid a terrain may declare: (N + 1)^2 cells are stored in the artifact.
 _MAX_TERRAIN_GRID: Final = 256
+#: Above this power ``1 / d^p`` underflows or overflows on a map's grid, and the terrain fails.
+_MAX_IDW_POWER: Final = 10.0
 
 
 def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
@@ -1257,9 +1259,9 @@ def _terrain_problems(terrain: ObjectTerrainSpec) -> dict[str, str]:
         )
     power = terrain.idw_power
     if terrain.method in IDW_TERRAIN_METHODS:
-        if power is None or not (math.isfinite(power) and power > 0.0):
+        if power is None or not (math.isfinite(power) and 0.0 < power <= _MAX_IDW_POWER):
             problems["terrain.idw_power"] = (
-                f"the inverse-distance power is positive and finite; got {power!r}"
+                f"the inverse-distance power lies in (0, {_MAX_IDW_POWER:g}]; got {power!r}"
             )
     elif power is not None:
         problems["terrain.idw_power"] = (

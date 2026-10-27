@@ -1650,7 +1650,8 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z "
             "předchozího kroku, násobený poklesem kopců o šířce \u03c3. U objektu jeho vlastní "
             "výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. "
-            "Stejný rámec a mřížka jako obálka; i vrstva Absolutní."
+            "Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou "
+            "terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze."
         ),
     ),
 )
@@ -2147,7 +2148,7 @@ _BOUNDS: Final = (
     Bound("terrain.grid_resolution", (at_least(1), at_most(256)), _TERRAIN),
     Bound("terrain.frame_fill", (above(0), at_most(1)), _TERRAIN),
     Bound("terrain.relative_height_floor", (at_least(0), below(1)), _TERRAIN),
-    Bound("terrain.idw_power", (above(0),), _TERRAIN),
+    Bound("terrain.idw_power", (above(0), at_most(10)), _TERRAIN),
     Bound("terrain.half_extent", (at_least(FIXED_RULER_EXTENT),), _TERRAIN),
     Bound("terrain.kernel_cutoff", _OPEN_SHARE, _TERRAIN),
 )

@@ -197,20 +197,17 @@ Display only, from the stored relations. The experimental map itself stays in th
   base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
   darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
   `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
-- Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
-  2026-10-26). Hladký draws the method's stored terrain, since the same day the objects' heights weighted by
-  inverse distance as the Sociomapy app (`signed-off-sociomap-method.md`), refined bicubically (x4, clamped, as its
-  `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
-  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws the same
-  heights as flat triangles. Blokový is the earlier map: the envelope of hills, which a `-5` map now stores beside
-  its own terrain (`terrain.envelope_height`, `envelope_absolute_height`), as flat triangles; a map stored before
-  has only its envelope, which both then draw. The respondent map keeps its density in both. The browser
-  computes no terrain of its own.
-- Contour lines on both (the owner, 2026-10-26), as the Sociomapy app draws them and the AIA panel follows
-  (`contourRuns66`, `drawContours66`; `lib/object-map-contours.ts`): nine levels 0.1–0.9 traced by marching
-  squares and stitched into runs, Chaikin x2 and Taubin x12, each in the terrain's colour at its level x 0.72,
-  shaded by one in-map light (the shadow side toward black), thinner where lines crowd, a two-pass glow widening
-  toward the corners, fading toward them and dissolving on steep shadowed ground; each pass stroked opaque on a
-  layer and laid over the map at its alpha. The golden frames' contours were recorded again from the panel's own
-  code, kept as a digest per pass (counts, an exact fingerprint of every stroke's style and width, end-point sums,
-  every 40th stroke in full).
+- The terrain is drawn smooth (the owner, 2026-10-26): the method's stored terrain refined bicubically (x4,
+  clamped, as the Sociomapy app's `refineGrid`) and shaded smoothly in WebGL in the panel's colours
+  (`lib/object-map-smooth.ts`), painted into the 2D canvas so objects, lines, labels, clicks and the PNG export
+  stay as they are; without WebGL it draws the same heights as flat triangles. The browser computes no terrain of
+  its own.
+- Nastavení mapy offers „Terén: IDW / IDW s poklesem“ (Nigel, 2026-10-27): a `-5` run stores both
+  inverse-distance terrains (`signed-off-sociomap-method.md`), its own and the other one beside it
+  (`terrain.alternate_method`, `alternate_height`, `alternate_absolute_height`). The map opens on plain IDW. The
+  switch offers only what the run stored; a map stored under the envelope has no switch. The earlier Blokový view
+  (the envelope drawn beside the method's terrain) is gone: a map draws only terrain computed under the method
+  in force.
+- Contour lines stay the panel's earlier ones: seven thin dark levels, one stroke per level (the owner,
+  2026-10-27). The Sociomapy app's contours were ported the day before and taken out again: in the browser they
+  did not look as smooth as in the app.

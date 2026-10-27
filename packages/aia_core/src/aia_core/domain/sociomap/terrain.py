@@ -486,16 +486,22 @@ class EnvelopeTerrain(BaseModel):
     height: tuple[tuple[float | None, ...], ...]
     governing: tuple[tuple[int | None, ...], ...]
     absolute_height: tuple[tuple[float | None, ...], ...] | None = None
-    #: Under the inverse-distance terrains, the envelope of the same hills on the same grid
-    #: (relative and absolute), stored so that the map's Blokový view draws the earlier terrain
-    #: without evaluating a kernel. ``None`` (every other terrain) is left out of the stored form.
-    envelope_height: tuple[tuple[float | None, ...], ...] | None = None
-    envelope_absolute_height: tuple[tuple[float | None, ...], ...] | None = None
+    #: Under either inverse-distance terrain, the other one of the same hills on the same grid
+    #: (relative and absolute), stored so that the map switches between the two without
+    #: evaluating a kernel. ``None`` (every other terrain) is left out of the stored form.
+    alternate_method: Literal["framed_relative_idw", "framed_relative_idw_falloff"] | None = None
+    alternate_height: tuple[tuple[float | None, ...], ...] | None = None
+    alternate_absolute_height: tuple[tuple[float | None, ...], ...] | None = None
 
     @model_serializer(mode="wrap")
     def _without_absent(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        for key in ("absolute_height", "envelope_height", "envelope_absolute_height"):
+        for key in (
+            "absolute_height",
+            "alternate_method",
+            "alternate_height",
+            "alternate_absolute_height",
+        ):
             if body.get(key) is None:
                 body.pop(key, None)
         return body
@@ -507,14 +513,16 @@ class EnvelopeTerrain(BaseModel):
             "height",
             "governing",
             "absolute_height",
-            "envelope_height",
-            "envelope_absolute_height",
+            "alternate_height",
+            "alternate_absolute_height",
         ):
             grid = getattr(self, name)
             if grid is None:
                 continue
             if len(grid) != size or any(len(row) != size for row in grid):
                 raise ValueError(f"{name} must be a {size} x {size} grid")
+        if (self.alternate_method is None) != (self.alternate_height is None):
+            raise ValueError("an alternate terrain names its method exactly when it is stored")
         for hrow, grow in zip(self.height, self.governing, strict=True):
             for h, g in zip(hrow, grow, strict=True):
                 if (h is None) != (g is None):

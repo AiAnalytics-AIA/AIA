@@ -6,8 +6,6 @@
 
 import { blend66, color66, type PanelCamera, type PanelGrid } from "./object-map-panel";
 
-export type TerrainMode = "blocky" | "smooth";
-
 /** How far under the terrain the base lies, and how dark the sides get at it (Sociomapy's
  *  `THEME.pedestal`: depth 0.01 of its 2.2-high terrain, bottomDarken 0.7, base #0e181d). */
 export const PEDESTAL = { depth: (0.01 * 26) / 2.2, bottomDarken: 0.7, base: "#0e181d" } as const;

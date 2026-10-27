@@ -7060,6 +7060,12 @@
            "side": "low",
            "strict": true,
            "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
           }
          ],
          "whole": false
@@ -7136,7 +7142,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
       "reading_cs": "",
       "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
       "source_cs": "",
@@ -11849,6 +11855,12 @@
            "side": "low",
            "strict": true,
            "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
           }
          ],
          "whole": false
@@ -11925,7 +11937,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
       "reading_cs": "",
       "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
       "source_cs": "",
@@ -16645,6 +16657,12 @@
            "side": "low",
            "strict": true,
            "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
           }
          ],
          "whole": false
@@ -16721,7 +16739,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
       "reading_cs": "",
       "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
       "source_cs": "",
@@ -21437,6 +21455,12 @@
            "side": "low",
            "strict": true,
            "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
           }
          ],
          "whole": false
@@ -21513,7 +21537,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
       "reading_cs": "",
       "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
       "source_cs": "",
