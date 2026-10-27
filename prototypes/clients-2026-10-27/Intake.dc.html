@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Klient – Přidat podklady</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="assets/aia-core-v4.3.css">
+<link rel="stylesheet" href="assets/aia-client.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+</style>
+</helmet>
+<div class="aia cl" data-theme="{{theme}}" data-area="data" style="position: relative">
+  <nav class="asb" aria-label="Hlavní navigace">
+    <a class="as-brand" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><rect width="40" height="40" rx="7.2" fill="#0f1215"></rect><circle cx="8" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="8" r="2.3" fill="#6ac5e8"></circle><circle cx="26" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="26" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="8" cy="32" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="32" r="2.3" fill="#ece9e4"></circle></svg><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+    <div class="as-sec" aria-hidden="true">Pracovní prostor</div>
+    <ul class="as-nav">
+      <li><a href="Clients.dc.html" class="on" aria-current="page"><span class="as-tile blue"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1"/></svg></span><span class="as-l">Klienti</span></a></li>
+      <li><a href="#"><span class="as-tile green"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6"/></svg></span><span class="as-l">Společenská inteligence</span></a></li>
+      <li><a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile slate"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span><span class="as-l">Nastavení</span></a></li>
+    </ul>
+    <div class="as-gap"></div>
+    <a class="as-lead" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile"><span style="width: 18px; height: 18px; display: inline-grid"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle cx="27" cy="16" r="2.40" fill="var(--ai)" fill-opacity="1.00"></circle></svg></span></span><span class="as-l">Můj Vedoucí</span></a>
+    <div class="as-foot"><span class="as-av" aria-hidden="true">JM</span><span class="as-l" style="min-width: 0; flex: 1"><b title="Jana Malá">Jana Malá</b><a href="#">Účet a nastavení</a></span><button class="as-out" type="button" aria-label="Odhlásit se" title="Odhlásit se"><svg width="15" height="15" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg></button></div>
+  </nav>
+  <div class="main">
+    <header class="as-top"><div class="as-bar"><nav aria-label="Kde jste" style="flex: 1"><ol class="as-crumbs"><li><a href="Clients.dc.html">Klienti</a></li><li><span class="sep" aria-hidden="true">/</span><a href="Overview.dc.html">Pivovar Zlatá Hora (fiktivní)</a></li><li><span class="sep" aria-hidden="true">/</span><a href="Knowledge.dc.html">Znalosti</a></li><li><span class="sep" aria-hidden="true">/</span><b aria-current="page">Přidat podklady</b></li></ol></nav><details class="v4-cmd"><summary class="v4-cmd-b" aria-label="Hledat nebo spustit (Ctrl K)"><i class="ph ph-magnifying-glass s" aria-hidden="true"></i>Hledat nebo spustit…<span class="kbd">⌘K</span></summary><div class="cmdk" role="dialog" aria-label="Příkazová paleta"><div class="cmdk-in"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input type="text" aria-label="Hledat klienty, výzkumy, znalosti, nastavení a akce" placeholder="Klient, výzkum, znalost, nastavení nebo akce…"><span class="cmdk-scope">Vše</span></div><div class="cmdk-list"><div class="cmdk-grp">Čeká na vás</div><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Posoudit návrh dotazníku <span class="sub">Vnímání značek ležáků 2026 · Dotazník</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Doplnit rozhodnutí do Zadání <span class="sub">Vnímání značek ležáků 2026 · Zadání</span></span></a><a class="cmdk-it you" href="KnowledgeItem.dc.html"><i class="ph ph-pause-circle"></i><span class="grow">Znalosti ke schválení <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Pravidla Deep Research ke schválení <span class="sub">Nastavení · Deep Research</span></span></a><div class="cmdk-grp">Přejít</div><a class="cmdk-it " href="Clients.dc.html"><i class="ph ph-buildings"></i><span class="grow">Klienti </span><span class="kbd">G</span><span class="kbd">K</span></a><a class="cmdk-it " href="Overview.dc.html"><i class="ph ph-buildings"></i><span class="grow">Pivovar Zlatá Hora <span class="sub">klient</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-squares-four"></i><span class="grow">Vnímání značek ležáků 2026 <span class="sub">přehled studie · 2 čekají na vás</span></span></a><a class="cmdk-it " href="Knowledge.dc.html"><i class="ph ph-book-open"></i><span class="grow">Znalosti klienta <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-gear-six"></i><span class="grow">Nastavení </span><span class="kbd">G</span><span class="kbd">N</span></a><div class="cmdk-grp">Akce</div><a class="cmdk-it " href="Studies.dc.html"><i class="ph ph-plus"></i><span class="grow">Nový výzkum <span class="sub">u klienta Pivovar Zlatá Hora</span></span><span class="kbd">N</span></a><a class="cmdk-it " href="Intake.dc.html"><i class="ph ph-upload-simple"></i><span class="grow">Přidat podklady <span class="sub">soubory, tabulky, text</span></span><span class="kbd">U</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-sparkle"></i><span class="grow">Analyzuj zadání <span class="sub">úloha Vedoucího</span></span><span class="amt">≤ 0,40 USD</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-rocket-launch"></i><span class="grow">Spustit výzkum <span class="sub">Sběr dat · Kontrola a spuštění</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-file-arrow-down"></i><span class="grow">Stáhnout zprávu <span class="sub">DOCX nebo PDF</span></span></a></div><div class="cmdk-ft"><span><span class="kbd">↑</span><span class="kbd">↓</span> vybrat</span><span><span class="kbd">Enter</span> otevřít</span><span><span class="kbd">Esc</span> zavřít</span><span style="margin-left:auto"><span class="kbd">?</span> všechny zkratky</span></div></div></details><details class="v4-tray"><summary class="v4-tray-b" aria-label="Nic neběží, 2 věci čekají na vás"><span class="n">0</span> běží<span class="v4-dot you" aria-hidden="true" style="margin-left:6px"></span><span class="n">2</span> čekají</summary><div class="tray" role="dialog" aria-label="Probíhá a čeká"><div class="tray-h"><span class="grow">Probíhá a čeká</span><span class="cap">Vnímání značek ležáků 2026</span></div><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Analýza zadání čeká na vás</b><span>úloha Vedoucího · nejvýše 0,40 USD · spustíte na Zadání</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Návrh dotazníku čeká na vás</b><span>přijměte nebo zahoďte změny na Dotazníku</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><span class="tx"><b>Běh 1 · hotovo</b><span>400 AI respondentů · 22 měření · návrh se od běhu změnil</span></span></a></div></details></div></header>
+    <div style="position: relative; min-height: 1320px">
+      <div class="clhero-ground">
+        <div class="content" style="padding-bottom: 0">
+          <header class="clhead">
+          <span class="mono-tile" aria-hidden="true">ZH</span>
+          <div class="ch-id"><div class="ch-title"><h1>Pivovar Zlatá Hora (fiktivní)</h1><span class="chip">Aktivní</span></div><p class="ch-sub"><span class="tx">Rodinný pivovar z Vysočiny: tři ležáky a nealko. Výzkum potřebuje k rozhodování o ceně a komunikaci.</span><a href="Profile.dc.html">O klientovi</a></p></div>
+          <div class="hero-acts"><button class="btn" type="button" onClick="{{open}}"><i class="ph ph-upload-simple" aria-hidden="true"></i>Přidat podklady</button><button class="btn primary" type="button"><i class="ph ph-plus" aria-hidden="true"></i>Nový výzkum</button></div>
+        </header>
+        <div class="ch-tabrow"><nav class="ctabs" aria-label="Oblasti klienta"><a href="Overview.dc.html">Přehled</a><a href="Studies.dc.html">Výzkumy</a><a class="on" href="Knowledge.dc.html" aria-current="page">Znalosti</a><a href="Profile.dc.html">Profil</a></nav></div><p class="ch-area">Znalosti klienta ve složkách, jak je znáte z Disku.</p>
+        </div>
+      </div>
+      <div class="content"><p class="cap">Znalosti klienta / Trh a konkurence / <b style="color: var(--ink)">Ceny 2026</b> · otevřená složka; sem sešit uloží, pokud nevyberete jinou.</p></div>
+
+      <sc-if value="{{isOpen}}" hint-placeholder-val="{{ true }}">
+        <div class="sheetwrap" role="presentation">
+          <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="in-h">
+            <div class="shd">
+              <div class="grow"><h2 id="in-h" style="font-size: 18px; line-height: 24px; font-weight: 600">Přidat podklady</h2><p class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted); margin-top: 2px">Každý soubor se uloží ke klientovi a AIA ho hned přečte. Z každého vznikne položka ve Znalostech, kterou uvidí jeho studie.</p></div>
+              <button class="btn quiet sm" type="button" aria-label="Zavřít" onClick="{{close}}"><i class="ph ph-x" aria-hidden="true"></i></button>
+            </div>
+            <div class="sbd">
+              <div class="drop">
+                <i class="ph ph-upload-simple" aria-hidden="true" style="width: 24px; height: 24px; color: var(--faint)"></i>
+                <b style="font-weight: 500">Přetáhněte soubory sem nebo kamkoli na stránku klienta</b>
+                <span class="cap">PDF, DOCX, DOC, ODT, PPTX, TXT, MD · tabulky CSV, XLSX, XLS, ODS · obrázky a video bez textu · do 25 MB</span>
+                <div class="row" style="justify-content: center"><button class="btn sm" type="button" onClick="{{addFiles}}"><i class="ph ph-file-text" aria-hidden="true"></i>Vybrat soubory</button><button class="btn sm" type="button" onClick="{{togglePaste}}"><i class="ph ph-pencil-simple" aria-hidden="true"></i>Vložit text</button><button class="btn sm" type="button" disabled="disabled"><i class="ph ph-globe" aria-hidden="true"></i>Vložit odkaz</button><span class="nobe">no backend</span></div>
+              </div>
+              <sc-if value="{{paste}}" hint-placeholder-val="{{ false }}">
+                <div class="frow"><div class="row" style="flex-wrap: nowrap"><div class="field" style="flex: 1"><label class="lbl" for="pn">Název</label><input id="pn" type="text" value="Poznámky z hovoru s klientem"></div></div><div class="field"><label class="lbl" for="pt">Text</label><textarea id="pt" value="Klient zvažuje zdražení 12° o 3 Kč od března 2027."></textarea></div><div class="row"><span class="cap grow">Uloží se jako textový soubor a přečte se jako ostatní.</span><button class="btn sm" type="button" onClick="{{addPaste}}">Přidat do seznamu</button></div></div>
+              </sc-if>
+              <div class="row" style="align-items: flex-start; gap: 16px; flex-wrap: nowrap">
+                <div class="field" style="flex: 1"><span class="lbl">Uložit do složky</span><button class="btn" type="button" onClick="{{toggleTree}}" style="justify-content: flex-start; width: 100%"><i class="ph ph-folder-simple" aria-hidden="true"></i>{{dest}}<i class="ph ph-caret-down" aria-hidden="true" style="margin-left: auto"></i></button>
+                  <sc-if value="{{treeOpen}}" hint-placeholder-val="{{ false }}"><div class="ctx" role="listbox" aria-label="Složka" style="position: static; width: auto; margin-top: 4px"><sc-for list="{{tree}}" as="t" hint-placeholder-count="5"><button type="button" role="option" aria-selected="{{t.on}}" onClick="{{t.pick}}" style="{{t.pad}}"><i class="{{t.ic}}" aria-hidden="true"></i>{{t.name}}</button></sc-for></div></sc-if>
+                </div>
+                <div class="field" style="flex: 1"><span class="lbl">Štítky pro všechny</span><div class="row" style="gap: 4px; min-height: 32px"><sc-for list="{{labs}}" as="l" hint-placeholder-count="1"><span class="lbl-chip"><span class="{{l.dot}}"></span>{{l.n}}<button type="button" aria-label="Odebrat štítek {{l.n}}" onClick="{{l.remove}}"><i class="ph ph-x" aria-hidden="true"></i></button></span></sc-for><button class="btn quiet sm" type="button" onClick="{{addLabel}}"><i class="ph ph-plus" aria-hidden="true"></i>Štítek</button></div></div>
+              </div>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+                <div class="frow">
+                  <div class="fh"><span class="ext">{{r.ext}}</span><div class="grow" style="min-width: 0"><b style="font-weight: 500">{{r.name}}</b><span class="cap" style="display: block">{{r.size}} · {{r.kindWord}}</span></div><button class="btn quiet sm" type="button" onClick="{{r.remove}}">{{r.removeWord}}</button></div>
+                  <span class="readline"><span class="st"><i class="{{r.g}}"></i></span>{{r.read}}</span>
+                  <sc-if value="{{r.dup}}" hint-placeholder-val="{{ false }}"><p class="note" style="margin: 0">Tento soubor už klient má: nahrán před 2 h jako brand_tracking_2025.xlsx v Brand tracking. Použije se uložený; nevznikne druhý.</p></sc-if>
+                  <sc-if value="{{r.table}}" hint-placeholder-val="{{ false }}">
+                    <div class="row"><span class="lbl" style="margin: 0">Uložit jako</span><span class="seg sm" role="radiogroup" aria-label="Uložit jako"><button class="{{r.dsCls}}" type="button" role="radio" aria-checked="{{r.isDs}}" onClick="{{r.asDs}}">Datová sada</button><button class="{{r.docCls}}" type="button" role="radio" aria-checked="{{r.isDoc}}" onClick="{{r.asDoc}}">Dokument</button></span></div>
+                    <p class="cap" style="font-size: 12px; line-height: 17px">{{r.tableNote}}</p>
+                    <sc-if value="{{r.personal}}" hint-placeholder-val="{{ false }}"><p class="note" style="margin: 0; display: flex; gap: 8px; align-items: flex-start"><i class="ph ph-eye-slash" aria-hidden="true" style="width: 16px; height: 16px; flex: none; margin-top: 1px"></i><span>Sloupce <b style="font-weight: 500">jmeno</b> a <b style="font-weight: 500">email</b> vypadají jako osobní údaje: jejich ukázky AIA skryje.</span></p></sc-if>
+                  </sc-if>
+                  <div class="fgrid"><div class="field"><label class="lbl" for="{{r.tid}}">Název znalosti</label><input id="{{r.tid}}" type="text" value="{{r.title}}"></div><div class="field"><span class="lbl">Složka</span><span class="cap" style="min-height: 32px; display: flex; align-items: center">jako ostatní · {{destShort}}</span></div></div>
+                </div>
+              </sc-for>
+              <sc-if value="{{hasRows}}" hint-placeholder-val="{{ true }}">
+                <div class="frow" style="background: var(--aiwash); border-color: var(--aiedge)">
+                  <div class="switchrow"><button class="{{aiSw}}" type="button" role="switch" aria-checked="{{ai}}" aria-labelledby="ai-l" onClick="{{toggleAi}}"></button><div class="tx"><b id="ai-l" style="color: var(--aiink)"><i class="ph ph-sparkle" aria-hidden="true" style="width: 14px; height: 14px"></i> Navrhnout znalosti z textu</b><span class="cap" style="font-size: 12px; line-height: 17px; color: var(--muted)">AI z přečtených dokumentů ({{nDocs}}) navrhne fakta, zjištění, pojmy a subjekty, každý s citací stránky nebo řádku. Návrhy přijdou do Ke schválení. Tabulky ne.</span></div></div>
+                  <dl class="ckv" style="grid-template-columns: 120px minmax(0, 1fr); margin: 0"><dt>Cena nejvýše</dt><dd><span class="nobe">no backend</span> <span class="cap">horní mez, ne odhad</span></dd><dt>Platí</dt><dd class="cap">Rozpočet klienta · zbývá 31,40 USD</dd></dl>
+                </div>
+              </sc-if>
+              <sc-if value="{{done}}" hint-placeholder-val="{{ false }}"><div class="well"><span class="st"><i class="g done sm"></i></span><div class="tx"><b>{{doneLine}}</b><span class="cap">{{doneSub}}</span></div><a class="btn sm" href="Knowledge.dc.html">Otevřít složku</a></div></sc-if>
+            </div>
+            <div class="sft"><span class="cap grow" role="status" style="font-size: 13px; color: var(--muted)">{{summary}}</span><button class="btn quiet" type="button" onClick="{{close}}">Zrušit</button><button class="btn primary" type="button" disabled="{{cantAdd}}" onClick="{{add}}">{{addWord}}</button></div>
+          </section>
+        </div>
+      </sc-if>
+    </div>
+
+    <section class="crit" aria-labelledby="crit-h">
+      <h2 id="crit-h">UX kritika · Přidat podklady (příjem souborů)</h2>
+      <p class="lede">Jediná cesta souborů ke klientovi, z každé oblasti nebo puštěním na stránku. Dnes funkčně silný, ale barví typy souborů stavovými barvami, poznámku k tabulce korálem, štítek přidá výběrem ze seznamu a cílová složka je plochý seznam. Kód <span class="mono">develop @ a1a9a45c</span>; C/ = …/components/aia/clients/, L/ = apps/web/src/lib/.</p>
+      <div class="crit-top">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <figure class="shot"><h3><i class="ph ph-eye" aria-hidden="true"></i>Dnes: prázdný sešit (1440 px)</h3><img src="assets/e97ffcbaefbdd94bd89c55110cca909a.jpg" alt="Dnešní sešit Přidat podklady se dvěma soubory: MD dokument přečten, CSV jako Datová sada s varováním o osobních sloupcích v červené"><figcaption class="cap">Poznámka k datové sadě a osobním sloupcům celá v korálovém inkoustu.</figcaption></figure>
+        </div>
+        <div class="cgrid">
+          <sc-for list="{{crit}}" as="c" hint-placeholder-count="5">
+            <div class="{{c.cls}}"><h3><span class="lt">{{c.l}}</span>{{c.t}}</h3><ul><sc-for list="{{c.items}}" as="x" hint-placeholder-count="3"><li>{{x.t}}<span class="anc">{{x.a}}</span></li></sc-for></ul></div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="cb" style="margin-top: 18px">
+        <h3><span class="lt">f</span>Funkce dnes → kde jsou v prototypu</h3>
+        <div class="fnlist"><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div>
+          <sc-for list="{{fns}}" as="f" hint-placeholder-count="24"><li><span class="i">{{f.i}}</span><span>{{f.t}}<span class="anc">{{f.a}}</span></span><span class="w">{{f.w}}</span></li></sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status" style="position: absolute; top: 1240px; bottom: auto">{{toast}}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3413}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { open: true, rows: [], paste: false, dest: 'f3', treeOpen: false, labs: ['l1'], ai: false, done: null, toast: null }; }
+  componentWillUnmount() { (this._ts || []).forEach(clearTimeout); }
+  renderVals() {
+    const s = this.state;
+    const T = [{ id: null, name: 'Bez složky', d: 0, ic: 'ph ph-empty' }, { id: 'f1', name: 'Zadání a brief', d: 0 }, { id: 'f2', name: 'Trh a konkurence', d: 0 }, { id: 'f3', name: 'Ceny 2026', d: 1 }, { id: 'f4', name: 'Konkurenti', d: 1 }, { id: 'f5', name: 'Brand tracking', d: 0 }];
+    const full = { null: 'Bez složky', f1: 'Zadání a brief', f2: 'Trh a konkurence', f3: 'Trh a konkurence / Ceny 2026', f4: 'Trh a konkurence / Konkurenti', f5: 'Brand tracking' };
+    const L = { l1: ['Cena', 'orange'], l2: ['Konkurence', 'violet'] };
+    const later = (fn, ms) => { this._ts = this._ts || []; this._ts.push(setTimeout(fn, ms)); };
+    const setRow = (id, p) => this.setState((st) => ({ rows: st.rows.map((r) => r.id === id ? { ...r, ...p } : r) }));
+    const FILES = [
+      { id: 'n1', ext: 'PDF', name: 'cenova_strategie_2027.pdf', size: '1,4 MB', kind: 'doc', done: 'Přečteno: 14 stran, 31 200 znaků', title: 'Cenová strategie 2027' },
+      { id: 'n2', ext: 'XLSX', name: 'prodeje_retezce_Q3.xlsx', size: '640 kB', kind: 'table', done: 'Přečteno: 1 list, 9 sloupců, 2 140 řádků', title: 'Prodeje v řetězcích Q3', personal: true },
+      { id: 'n3', ext: 'XLSX', name: 'brand_tracking_2025.xlsx', size: '1,2 MB', kind: 'table', done: 'Přečteno: 2 listy, 18 sloupců, 4 800 řádků', title: 'Brand tracking 2025', dup: true }
+    ];
+    const reading = s.rows.filter((r) => r.phase === 'reading').length;
+    const addable = s.rows.filter((r) => r.phase === 'read' && !r.dup);
+    const nDocs = addable.filter((r) => r.kind === 'doc' || r.as === 'doc').length;
+    const ds = addable.filter((r) => r.kind === 'table' && r.as !== 'doc').length;
+    const docs = addable.length - ds;
+    const what = [docs ? docs + (docs === 1 ? ' dokument' : ' dokumenty') : '', ds ? ds + (ds === 1 ? ' datová sada' : ' datové sady') : ''].filter(Boolean).join(', ');
+    return {
+      theme: this.props.theme ?? 'light',
+      isOpen: s.open, open: () => this.setState({ open: true }), close: () => this.setState({ open: false }),
+      addFiles: () => { const add = FILES.filter((f) => !s.rows.some((r) => r.id === f.id)).map((f) => ({ ...f, phase: 'reading', as: f.kind === 'table' ? 'ds' : 'doc' })); this.setState({ rows: [...s.rows, ...add], done: null }); add.forEach((f, i) => later(() => setRow(f.id, { phase: 'read' }), 900 + i * 700)); },
+      paste: s.paste, togglePaste: () => this.setState({ paste: !s.paste }),
+      addPaste: () => { const f = { id: 'p' + Date.now(), ext: 'TXT', name: 'Poznámky z hovoru s klientem.txt', size: '58 B', kind: 'doc', done: 'Přečteno: 1 část, 51 znaků', title: 'Poznámky z hovoru s klientem', phase: 'reading', as: 'doc' }; this.setState({ rows: [...s.rows, f], paste: false }); later(() => setRow(f.id, { phase: 'read' }), 700); },
+      dest: full[s.dest], destShort: full[s.dest], treeOpen: s.treeOpen, toggleTree: () => this.setState({ treeOpen: !s.treeOpen }),
+      tree: T.map((t) => ({ name: t.name, ic: t.ic || 'ph ph-folder-simple', on: s.dest === t.id, pad: 'padding-left: ' + (10 + t.d * 18) + 'px' + (s.dest === t.id ? '; background: var(--swash)' : ''), pick: () => this.setState({ dest: t.id, treeOpen: false }) })),
+      labs: s.labs.map((x) => ({ n: L[x][0], dot: 'lsw h-' + L[x][1], remove: () => this.setState({ labs: s.labs.filter((y) => y !== x) }) })),
+      addLabel: () => this.setState({ labs: s.labs.includes('l2') ? s.labs : [...s.labs, 'l2'] }),
+      rows: s.rows.map((r) => { const isDs = r.as !== 'doc'; return { ...r, tid: 't' + r.id, g: r.phase === 'reading' ? 'g run sm' : r.dup ? 'g inert sm' : 'g done sm', read: r.phase === 'reading' ? 'Ukládám a čtu…' : r.dup ? 'Už uloženo u klienta' : r.done,
+        kindWord: r.kind === 'table' ? (isDs ? 'Datová sada' : 'Dokument') : 'Dokument', removeWord: r.phase === 'reading' ? 'Zrušit' : 'Odebrat', remove: () => this.setState({ rows: s.rows.filter((x) => x.id !== r.id) }),
+        table: r.kind === 'table' && r.phase === 'read' && !r.dup, dup: !!r.dup && r.phase === 'read', personal: !!r.personal, isDs, isDoc: !isDs, dsCls: isDs ? 'on' : '', docCls: isDs ? '' : 'on',
+        asDs: () => setRow(r.id, { as: 'ds' }), asDoc: () => setRow(r.id, { as: 'doc' }),
+        tableNote: isDs ? 'Uloží se jako datová sada: sloupce uvidíte v Datech. AI ji po sloupcích jen čte, znalosti z ní nenavrhuje.' : 'Uloží se jako dokument: AI z něj může navrhnout znalosti po řádcích.' }; }),
+      hasRows: s.rows.length > 0, nDocs,
+      ai: s.ai, aiSw: s.ai ? 'switch on' : 'switch', toggleAi: () => this.setState({ ai: !s.ai }),
+      summary: !s.rows.length ? 'Zatím není co přidat.' : 'Přidá se ' + (what || 'nic') + ' do ' + full[s.dest] + (reading ? '. Ještě se čte ' + reading + '; tlačítko počká.' : '.'),
+      cantAdd: !addable.length || reading > 0, addWord: reading ? 'Čeká se na čtení…' : 'Přidat ' + addable.length + ' ' + (addable.length === 1 ? 'podklad' : addable.length >= 2 && addable.length <= 4 ? 'podklady' : 'podkladů'),
+      add: () => { const n = addable.length; this.setState({ rows: s.rows.filter((r) => !addable.includes(r)), done: { n, ai: s.ai } }); },
+      done: !!s.done, doneLine: s.done ? 'Přidáno ' + s.done.n + ' do ' + full[s.dest] : '', doneSub: s.done ? (s.done.ai ? 'AI navrhuje znalosti z ' + nDocs + ' dokumentů; návrhy přijdou do Ke schválení.' : 'Štítky a složka nastaveny; nic nečeká na schválení.') : '',
+      toast: s.toast,
+      crit: [
+        { l: 'a', t: 'Co sešit ukazuje', cls: 'cb', items: [
+          { t: 'Pravý panel (do 48 rem): nadpis s klientem, plocha pro přetažení, Vybrat soubory, Vložit text, vypnuté Vložit odkaz s „Odkaz: v AIA zatím není“.', a: 'C/IntakeSheet.tsx:262-310' },
+          { t: 'Složka a štítky pro všechny, řádky souborů s odznakem typu, stavem čtení, volbou Datová sada / Dokument, názvem a složkou; zaškrtávátko AI; patička se shrnutím.', a: 'C/IntakeSheet.tsx:327-402, 407-506' } ] },
+        { l: 'b', t: 'Co sbírá', cls: 'cb', items: [
+          { t: 'Soubory, vložený text s názvem, druh u tabulky, název a složku každého souboru, složku a štítky pro všechny, souhlas s návrhy AI.', a: 'C/IntakeSheet.tsx:75-101 · L/intake.ts:15-30' } ] },
+        { l: 'c', t: 'Interakce', cls: 'cb', items: [
+          { t: 'Soubory se nahrávají po jednom a hned čtou; tabulka čte, dokud nemá sloupce, aby varování o osobních údajích nechybělo; shodné soubory pozná.', a: 'C/IntakeSheet.tsx:108-137 · L/intake.ts:73-85, 146-166' },
+          { t: 'Uložení: položka za soubor, zařazení, pak AI; při chybě zařazení „Dokončit zařazení“ bez zdvojení.', a: 'C/IntakeSheet.tsx:193-258' } ] },
+        { l: 'd', t: 'Co chybí nebo mate', cls: 'cb d', items: [
+          { t: 'Odznaky typů souboru stavovými barvami: PDF chybovou červenou, Word modrou běžícího procesu, prezentace korálem.', a: 'C/IntakeSheet.tsx:52-58' },
+          { t: 'Poznámka „Uloží se jako datová sada…“ a varování o osobních sloupcích celé korálovým inkoustem, i když nic nečeká na člověka.', a: 'C/IntakeSheet.tsx:461-466' },
+          { t: 'Štítek se přidá výběrem v rozbalovacím seznamu (akce na změnu), ne menu (I3).', a: 'C/IntakeSheet.tsx:344-352' },
+          { t: 'Návrhy AI jsou placené, ale bez ceny; jen zaškrtávátko.', a: 'C/IntakeSheet.tsx:378-391 · prototypes/LOOK.md:142' },
+          { t: 'Segment Datová sada / Dokument má radius 4 px.', a: 'C/IntakeSheet.tsx:455' },
+          { t: 'Dvě tlačítka na zavření (Zavřít nahoře, Zrušit dole) dělají totéž.', a: 'C/IntakeSheet.tsx:276, 398' },
+          { t: 'Odebraný řádek po nahrání nechá soubor u klienta; nic to neřekne a seznam souborů není.', a: 'C/IntakeSheet.tsx:177-180' } ] },
+        { l: 'e', t: 'Co prototyp mění', cls: 'cb', items: [
+          { t: 'Cílová složka jako strom (i podsložky, jako ve Znalostech); výchozí je otevřená složka.', a: 'Uložit do složky · vnoření NO BACKEND' },
+          { t: 'Typ souboru jen neutrálním odznakem; stav čtení glyfem (Běží kroužkem signálu, Hotovo inkoustem).', a: 'řádky souborů' },
+          { t: 'Poznámka k tabulce neutrálně; osobní sloupce neutrální poznámkou s ikonou skrytí.', a: 'řádek XLSX' },
+          { t: 'Štítky jako čipy a „+ Štítek“; návrhy AI přepínačem v AI tónu s „Cena nejvýše“ (NO BACKEND) a rozpočtem klienta.', a: 'sekce AI' },
+          { t: 'Jedno zavírání v hlavičce (×) a Zrušit v patičce; po přidání zůstane shrnutí s odkazem do složky.', a: 'zkuste Vybrat soubory → Přidat' },
+          { t: 'Vložit odkaz zůstává vypnuté: NO BACKEND.', a: 'C/IntakeSheet.tsx:307-308' } ] }
+      ],
+      fns: [
+        ['Otevřít z každé oblasti / puštěním na stránku', 'C/ClientContext.tsx:151-169, 200-207', 'Beze změny'],
+        ['Vybrat více souborů', 'C/IntakeSheet.tsx:291-305', 'Vybrat soubory'],
+        ['Přetáhnout do sešitu', ':280-288', 'Plocha nahoře'],
+        ['Vložit text jako soubor', ':312-325', 'Vložit text'],
+        ['Každý soubor uložen a přečten, stav naživo', ':118-137', 'Glyf a věta na řádku'],
+        ['Odmítnutí velikosti před nahráním', ':148-151', 'Beze změny (chybový řádek)'],
+        ['Soubor už klient má, a odkud', 'L/intake.ts:159-166', 'Neutrální poznámka na řádku'],
+        ['Shodné soubory v dávce', 'L/intake.ts:146-149', 'Beze změny'],
+        ['Datová sada / Dokument u tabulky', 'C/IntakeSheet.tsx:443-461', 'Segment'],
+        ['Osobní sloupce označené', ':462-467', 'Poznámka se skrytím'],
+        ['Název každé položky', ':472-475', 'Pole Název znalosti'],
+        ['Složka každého souboru', ':476-490', 'Jako ostatní (lze změnit)'],
+        ['Složka pro všechny', ':328-335', 'Strom Uložit do složky'],
+        ['Štítky pro všechny', ':336-358', 'Čipy + Štítek'],
+        ['Odebrat / zrušit soubor', ':500-502', 'Odebrat / Zrušit'],
+        ['Znovu číst sloupce tabulky', ':495-499', 'Beze změny'],
+        ['Navrhnout znalosti z textu', ':378-391', 'Přepínač AI s cenou'],
+        ['Shrnutí v patičce', 'L/intake.ts:168-183', 'Patička'],
+        ['Přidat vše, položka za soubor', 'C/IntakeSheet.tsx:193-221', 'Přidat N podkladů'],
+        ['Dokončit zařazení po chybě', ':209-221', 'Beze změny'],
+        ['Spustit AI po přidání', ':226-237', 'Po přidání, podle přepínače'],
+        ['Co čeká na schválení, co AI', ':242-252', 'Shrnutí po přidání'],
+        ['Přejít na Znalosti po přidání', ':256-257', 'Otevřít složku (Znalosti)'],
+        ['Vložit odkaz (zástupce)', ':307-308', 'Vypnuté, NO BACKEND']
+      ].map(([t, a, w], i) => ({ i: i + 1, t, a, w }))
+    };
+  }
+}
+</script>
+</body>
+</html>
