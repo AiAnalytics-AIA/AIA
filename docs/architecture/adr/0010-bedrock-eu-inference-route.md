@@ -187,3 +187,13 @@ Approval stays per class: a deployment that sets C and B alone still refuses Cla
 such as approved Client Knowledge or a client's document. The § Status line above describes the
 2026-09-26 activation; this amendment widens what the route may be approved for, not what it is
 approved for today.
+
+## Amendment note, 2026-10-26: the route model's id without a version suffix (#907)
+
+"Written in full with its version suffix" (§ Decision) no longer holds for the current Claude family.
+Its Bedrock ids carry no `:N` and still name one fixed snapshot, so the route model's id is accepted
+as Bedrock lists it, a suffix-free `eu.` profile included, while an alias ending `latest` is still
+refused (`apps/executors/src/aia_executors/ai_runtime.py` `_eu_profile @ 7e3b4136`;
+`.planning/plans/sonnet-5-5-switch.md`). The route model is still Claude Sonnet 4.5 here. Claude
+Sonnet 5.5 is recorded as the route model, with its 2026-10-25 prices and limits, once that plan's
+chunk 4 lands.
