@@ -34,6 +34,11 @@ export const cs = {
       unknown: "neznámé",
       unknownTitle: "Tuto hodnotu se nepodařilo zjistit.",
     },
+    // A figure that is suppressed says so and why, never the number (components/rehome/ui.tsx Value).
+    value: {
+      suppressed: "Potlačeno",
+    },
+
     navClients: "Klienti",
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",

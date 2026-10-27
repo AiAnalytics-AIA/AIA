@@ -15,7 +15,7 @@ import { type ReactNode, useState } from "react";
 import { researchAgents, research, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { activityOf } from "@/lib/step-activity";
 import { readBudget } from "@/lib/budget-line";
-import { budgetFacts, ceilingWords, runCard, runRequestPill, runRequestPlan, workerCard, type CardTone, type RunRequestPlan } from "@/lib/lead-cards";
+import { budgetFacts, ceilingWords, runCard, runRequestPill, runRequestPlan, workerCard, type RunRequestPlan } from "@/lib/lead-cards";
 import { STAGES, type WorkbenchStage } from "@/lib/workbench-stages";
 import { t } from "@/i18n/t";
 import type { StepKey } from "@/research/steps";

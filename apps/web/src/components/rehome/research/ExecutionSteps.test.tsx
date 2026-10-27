@@ -1485,11 +1485,11 @@ describe("Progress", () => {
     expect(items.filter((l) => !l.hasAttribute("data-day")).map((l) => l.textContent?.replace(/^[\d:]+/, ""))).toEqual([
       "Krok začal",
       "AI respondenti odpověděli · 40 z 300 respondentů",
-      "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
+      "Model odpověděl · 1200 → 380 tokenů · 0,004 USD · 3,2 s",
     ]);
     // Its counts as the step reported them, and how long it has run: never a percentage.
     expect(panel.textContent).toContain("40 z 300 respondentů");
-    expect(panel.textContent).toContain("1 odpovědí modelu · 1580 tokenů · $0.004");
+    expect(panel.textContent).toContain("1 odpovědí modelu · 1580 tokenů · 0,004 USD");
     expect(panel.textContent).toMatch(/Běží 1 min 0[56] s/);
     expect(panel.textContent).not.toMatch(/%/);
   });
@@ -3539,11 +3539,11 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     await waitFor(async () =>
       expect(await rowsOf()).toEqual([
-        ["spent", "0,40 USD"],
-        ["held", "0,00 USD"],
-        ["ceiling", `2,50 USD · ${t("research.exec.spend.ceilingNote")}`],
+        ["spent", "0,40 USD"],
+        ["held", "0,00 USD"],
+        ["ceiling", `2,50 USD · ${t("research.exec.spend.ceilingNote")}`],
         ["unpriced", `${tv("research.exec.spend.unpricedCalls", { count: 1 })} · ${t("research.exec.spend.unpricedEnded")}`],
-        ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
+        ["remaining", `40,00 USD · ${t("research.exec.spend.remainingNote")}`],
       ]),
     );
   });
@@ -3576,7 +3576,7 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     await waitFor(() => expect(document.querySelector('[data-spend="held"] [data-spend-note]')?.textContent).toBe(t("research.exec.spend.heldNote")));
   });
 
-  it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {
+  it("says the spend is unknown when the API gave none, never 0,00 USD", async () => {
     api({ ...listed(COMPLETED), "GET /api/v1/studies/STU-1": () => STUDY });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
     expect(await screen.findByText(t("research.exec.spend.unknown"))).toBeTruthy();
@@ -3599,14 +3599,14 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
       "GET /api/v1/studies/STU-1": () => STUDY,
     });
     render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
-    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]));
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]));
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.resume") }));
     await waitFor(() => expect(called("POST", RESUME)).toHaveLength(1));
     await waitFor(() => expect(screen.queryByText(t("research.exec.parkedResume"))).toBeNull());
-    expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]);
+    expect((await rowsOf())[0]).toEqual(["spent", "1,50 USD"]);
     expect(screen.queryByText(t("research.exec.spend.unknown"))).toBeNull();
     await waitFor(() => expect(held).not.toBeNull());
     act(() => held!());
-    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,75 USD"]));
+    await waitFor(async () => expect((await rowsOf())[0]).toEqual(["spent", "1,75 USD"]));
   });
 });

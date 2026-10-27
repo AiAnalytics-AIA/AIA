@@ -3,7 +3,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { AiButton, FaultNote, StatusPill, type StatusTone } from "./ui";
+import { AiButton, FaultNote, StatusPill, type StatusTone, Value } from "./ui";
+import { usdWords } from "@/lib/spend";
 
 describe("FaultNote", () => {
   it("is the one alert box: announced, in the fault wash, its spacing the caller's", () => {
@@ -40,5 +41,23 @@ describe("StatusPill", () => {
     }
     // Neutral states no status: a word, no shape that could be read as one.
     expect((screen.getByText("bez stavu").closest("[data-status-pill]") as HTMLElement).querySelector("svg")).toBeNull();
+  });
+});
+
+describe("Value", () => {
+  it("never shows an unknown figure as zero or a dash, and never a suppressed number", () => {
+    const { container } = render(<>
+      <Value of={null} /><Value of={Number.NaN} usd /><Value of={0} usd /><Value of={0.003} usd /><Value of={12} />
+      <Value suppressed="podpora dat nestačí" />
+    </>);
+    const states = [...container.querySelectorAll("[data-value]")].map((n) => [n.getAttribute("data-value"), n.textContent]);
+    expect(states).toEqual([
+      ["unknown", "neznámé"], ["unknown", "neznámé"],
+      ["known", usdWords(0)], ["known", usdWords(0.003)], ["known", "12"],
+      ["suppressed", "Potlačeno · podpora dat nestačí"],
+    ]);
+    // Known zero is a real figure; a sub-cent amount is never rounded to it.
+    expect(usdWords(0.003).replace(/\s/g, " ")).toBe("< 0,01 USD");
+    expect(usdWords(0.0042, 3).replace(/\s/g, " ")).toBe("0,004 USD");
   });
 });

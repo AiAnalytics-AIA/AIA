@@ -143,7 +143,7 @@ function YourTurn({ clientId, o }: { clientId: string; o: Overview }) {
   );
 }
 
-function Changes({ clientId, o }: { clientId: string; o: Overview }) {
+function Changes({ o }: { o: Overview }) {
   const changes = o.recent_changes ?? [];
   if (!changes.length) return <Empty>{t("aia.overview.changesEmpty")}</Empty>;
   return (
@@ -182,7 +182,7 @@ export function ClientOverview() {
               {o.knowledge ? (
                 <section aria-labelledby="ov-changes">
                   <h2 id="ov-changes" className="mb-3 text-base font-semibold">{t("aia.overview.changesTitle")}</h2>
-                  <Changes clientId={client.client_id} o={o} />
+                  <Changes o={o} />
                 </section>
               ) : null}
               <section aria-labelledby="ov-outputs">

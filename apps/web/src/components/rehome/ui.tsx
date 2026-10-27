@@ -14,6 +14,7 @@ import {
 
 import type { Tone } from "@/lib/tone";
 import { t } from "@/i18n/t";
+import { usdWords } from "@/lib/spend";
 import { Glyph, type GlyphTone } from "../workbench/Glyph";
 import { Icon, type IconName, Sparkle } from "./icons";
 
@@ -128,6 +129,21 @@ export function StatusPill({ tone, children, title }: { tone: StatusTone; childr
       {children}
     </span>
   );
+}
+
+/**
+ * A figure, or why there is none. The one place "unknown is never good" is drawn: a value AIA did
+ * not read says "neznámé" (muted, with why on hover), never 0 or a dash that reads as nothing; a
+ * suppressed one says "Potlačeno" and its reason, never the number. `usd`: a number is money,
+ * printed as usdWords prints it.
+ */
+export function Value({ of, usd = false, suppressed }: { of?: ReactNode; usd?: boolean; suppressed?: string }) {
+  if (suppressed !== undefined) {
+    return <span data-value="suppressed" className="text-ink-muted">{t("aia.value.suppressed")}{suppressed ? ` · ${suppressed}` : ""}</span>;
+  }
+  const unknown = of === null || of === undefined || of === "" || (typeof of === "number" && !Number.isFinite(of));
+  if (unknown) return <span data-value="unknown" title={t("aia.hero.unknownTitle")} className="text-ink-faint">{t("aia.hero.unknown")}</span>;
+  return <span data-value="known" className="tabular-nums">{typeof of === "number" && usd ? usdWords(of) : of}</span>;
 }
 
 /** A plain label chip: a tag, a stage, a provider. No status meaning. */

@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 
 import { t } from "@/i18n/t";
+import { Value } from "../rehome/ui";
 
 /** One figure of the hero's row. `value` null or undefined: not known, said in words. */
 export type HeroFigure = {
@@ -74,7 +75,7 @@ export function Hero({ eyebrow, title, lede, edit, figures, action, aside }: {
                   title={known ? undefined : t("aia.hero.unknownTitle")}
                   className={`m-0 flex items-center gap-1.5 tabular-nums ${known ? (f.mono ? "font-mono text-base font-medium leading-[26px]" : "text-xl font-semibold leading-[26px]") : "text-base font-medium leading-[26px] text-ink-faint"} ${known && f.you ? "text-status-you-ink" : ""}`}
                 >
-                  {known ? f.value : t("aia.hero.unknown")}
+                  <Value of={f.value} />
                 </dd>
               </div>
             );

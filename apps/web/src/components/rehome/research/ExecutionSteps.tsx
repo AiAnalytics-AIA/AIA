@@ -109,7 +109,7 @@ import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, FrameNavigation, Switch } from "../step";
-import { AiButton, Button, StatusPill } from "../ui";
+import { AiButton, Button, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
@@ -2171,7 +2171,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
               <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
                 <td colSpan={2} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
-                  ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
+                  ? <Value suppressed={o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`} />
                   : "Bez průměru"}</td>
                 <td aria-hidden="true" className="hidden @lg:table-cell" />
                 <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
