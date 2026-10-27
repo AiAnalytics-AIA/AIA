@@ -9,7 +9,7 @@
 // the API says so. Folders and labels are organization, never knowledge (D4).
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -158,12 +158,20 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const submit = () => {
-    if (!title.trim()) return;
-    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(errorText(e)));
+  const [busy, setBusy] = useState(false);
+  // A form: Enter in the title saves, Esc leaves; one request at a time (design system v3, Interakce).
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!title.trim() || busy) return;
+    setBusy(true);
+    workspace.propose(clientId, { kind, title: title.trim(), summary }).then(
+      (added) => onDone(added),
+      (err: unknown) => { setError(errorText(err)); setBusy(false); },
+    );
   };
   return (
-    <section className={`${CARD} mb-5`} aria-labelledby="kn-propose">
+    <form className={`${CARD} mb-5`} aria-labelledby="kn-propose" onSubmit={submit}
+      onKeyDown={(e) => { if (e.key === "Escape" && !e.defaultPrevented && !busy) { e.preventDefault(); onDone(); } }}>
       <h2 id="kn-propose" className="text-base font-semibold">{t("aia.knowledge.proposeTitle")}</h2>
       <div className="mt-3 grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
         <Field label={t("aia.knowledge.proposeKind")}>
@@ -188,10 +196,10 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
       </Field>
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
       <div className="mt-3 flex gap-2">
-        <Button variant="primary" disabled={!title.trim()} onClick={submit}>{t("aia.knowledge.proposeSubmit")}</Button>
-        <Button variant="quiet" onClick={() => onDone()}>{t("aia.cancel")}</Button>
+        <Button variant="primary" type="submit" disabled={!title.trim() || busy} aria-busy={busy || undefined}>{t("aia.knowledge.proposeSubmit")}</Button>
+        <Button variant="quiet" disabled={busy} onClick={() => onDone()}>{t("aia.cancel")}</Button>
       </div>
-    </section>
+    </form>
   );
 }
 

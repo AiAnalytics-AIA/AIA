@@ -582,7 +582,7 @@ describe("a document's file", () => {
     api();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
-    const form = within(screen.getByRole("region", { name: "Napsat znalost klienta" }));
+    const form = within(screen.getByRole("form", { name: "Napsat znalost klienta" }));
     // A fact takes no file; a document is told where its file goes.
     expect(form.queryByText(/Soubor přidáte přes Přidat podklady/)).toBeNull();
     fireEvent.change(form.getByRole("combobox", { name: "Druh" }), { target: { value: "DOCUMENT" } });

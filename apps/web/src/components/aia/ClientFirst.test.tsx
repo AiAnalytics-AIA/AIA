@@ -264,13 +264,16 @@ describe("a client's workspace", () => {
     window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?add=1");
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("section")!;
+    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("form")!;
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
     window.history.pushState({}, "", "/");
     // What is added re-reads the client, so the tabs' counts follow.
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Výroční zpráva 2026" } });
+    // A form: Enter (submit) saves it, as the button does; a second submit while it saves sends nothing.
+    fireEvent.submit(form);
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a").filter((c) => c.url.endsWith("/CLI-a"))).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")).toHaveLength(1);
   });
 
   it("does not offer to add knowledge to a person who may not", async () => {
@@ -581,7 +584,7 @@ describe("a client's workspace", () => {
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
     fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
-    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("section")!;
+    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("form")!;
     fireEvent.change(within(form).getByRole("combobox"), { target: { value: "SOURCE" } });
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
