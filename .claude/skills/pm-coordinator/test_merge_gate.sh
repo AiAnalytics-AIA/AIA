@@ -4,8 +4,9 @@
 here=$(cd "$(dirname "$0")" && pwd); tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 export SHA=0123456789abcdef0123456789abcdef01234567 MOCK_DIR="$tmp" PM_STATE="$tmp/state"
 mkdir -p "$tmp/bin" "$PM_STATE"
-# The mock answers what each --jq call would print, and the paginated comments and reviews as raw pages.
-# MOCK_CHECKS=fail: check-runs fails with no output. Comments: page one has no Codex state, page two Codex's
+# The mock answers what each --jq call would print, and the paginated check runs, comments and reviews as raw
+# pages. MOCK_CHECKS=fail: check-runs fails with no output; page2: 50 successes, then a failure on page two;
+# partial: page two fails to load. Comments: page one has no Codex state, page two Codex's
 # completed state on the head (MOCK_CODEX=none: no page two; MOCK_UNRESOLVED=true: with unresolved findings);
 # MOCK_COMMENTS=partial: a later page fails.
 # MOCK_REVIEW: the stand-in reviews on the head (clean, changes, findings, stale); MOCK_REVIEWS=partial: a
@@ -17,7 +18,16 @@ review() { jq -nc --arg s "$SHA" --arg st "$1" --arg at "$2" --arg b "$3" \
 case "$*" in
   *"-X PUT"*/merge*) touch "$MOCK_DIR/merged"; echo "mergesha true";;
   *check-runs*) [ "$MOCK_CHECKS" = fail ] && exit 1
-    echo '["success","success","success","success","success","success","success","success","success","success","success","skipped"]';;
+    # like gh, a --jq filter applies to each page
+    f=""; prev=""; for a in "$@"; do [ "$prev" = --jq ] && f=$a; prev=$a; done
+    page() { if [ -n "$f" ]; then jq -rc "$f"; else cat; fi; }
+    runs() { jq -nc --argjson n "$1" --arg c "$2" '{check_runs:[range($n)|{conclusion:$c,status:"completed"}]}'; }
+    case "$MOCK_CHECKS" in
+      page2|partial) runs 50 success | page   # a failing run, or a failed read, on page two
+        [ "$MOCK_CHECKS" = partial ] && exit 1
+        if [[ "$*" == *--paginate* ]]; then runs 1 failure | page; fi;;
+      *) jq -nc --argjson a "$(runs 11 success)" --argjson b "$(runs 1 skipped)" '{check_runs:($a.check_runs+$b.check_runs)}' | page;;
+    esac;;
   *ccr/review_threads*) echo 0;;
   *issues/*/comments*) echo '[{"user":{"login":"someone"},"body":"page one"}]'
     [ "$MOCK_CODEX" = none ] && exit 0
@@ -46,6 +56,8 @@ check() {  # check merge|refuse <name> [VAR=value ...]
   if [ $? -eq 0 ]; then echo "ok    $name: $out"; else echo "FAIL  $name (exit $code): $out"; fail=1; fi
 }
 check refuse "a failed check-runs read refuses" MOCK_CHECKS=fail
+check refuse "a failing check run on page two refuses" MOCK_CHECKS=page2
+check refuse "a check-runs read failing on a later page refuses" MOCK_CHECKS=partial
 check merge "Codex completed on the head, its state read from page two"
 check refuse "a comments read failing on a later page refuses" MOCK_COMMENTS=partial
 check merge "no Codex state, a clean stand-in review merges" MOCK_CODEX=none MOCK_REVIEW=clean
