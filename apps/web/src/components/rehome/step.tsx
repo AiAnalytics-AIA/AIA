@@ -337,11 +337,14 @@ export function ChipInput({ values, onAdd, onRemove, rename, label, placeholder,
 
 /**
  * A destructive action confirmed on the card itself, instead of a browser
- * confirm(): the question, the action in the fault colour, and a way to keep it.
+ * confirm(): the question, the action in the fault colour, and a way to keep it
+ * (Ponechat, or Esc).
  */
 export function InlineConfirm({ message, action, onConfirm, onCancel }: { message: ReactNode; action: string; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div role="alertdialog" aria-label={typeof message === "string" ? message : undefined} className="flex flex-wrap items-center gap-2">
+    // Esc keeps (design system v3, I-VratitNeboPotvrdit): the safe answer, as Ponechat is.
+    <div role="alertdialog" aria-label={typeof message === "string" ? message : undefined} className="flex flex-wrap items-center gap-2"
+      onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onCancel(); } }}>
       <span className="text-[13px] text-status-fault">{message}</span>
       <button
         type="button"

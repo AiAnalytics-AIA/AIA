@@ -5,7 +5,7 @@
 // the list -- its text edited into a new revision, its folder and labels, its history.
 // Folders and labels are organization: filing writes no revision and no model sees it (D4).
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -116,6 +116,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
   }, [typed]);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [openId, setOpenId] = useState<string | null>(initialOpen);
+  const [focusPanel, setFocusPanel] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // "A year ago" is fixed when the library opens, so a re-render never reshuffles the old view.
   const [now] = useState(() => Date.now());
@@ -203,7 +204,8 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                               <button
                                 type="button"
                                 aria-pressed={i.item_id === openId}
-                                onClick={() => setOpenId(i.item_id === openId ? null : i.item_id)}
+                                data-item-button={i.item_id}
+                                onClick={() => { setFocusPanel(i.item_id !== openId); setOpenId(i.item_id === openId ? null : i.item_id); }}
                                 className={`block w-full rounded-sm text-left ${FOCUS}`}
                               >
                                 <span className="block font-medium text-ink underline-offset-2 hover:underline">{i.title}</span>
@@ -244,7 +246,14 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
                     labels={labels}
                     mayPropose={mayPropose}
                     ai={ai}
-                    onClose={() => setOpenId(null)}
+                    onClose={() => {
+                      const id = open.item_id;
+                      setOpenId(null);
+                      // Back on the row that opened it, so a keyboard user keeps their place.
+                      requestAnimationFrame(() => [...document.querySelectorAll<HTMLElement>("[data-item-button]")].find((b) => b.dataset.itemButton === id)?.focus());
+                    }}
+                    focusOnOpen={focusPanel}
+                    onFocused={() => setFocusPanel(false)}
                     onPlace={(p) => place({ ...p, item_ids: [open.item_id] })}
                     onChanged={onChanged}
                   />
@@ -298,6 +307,8 @@ function ItemPanel({
   onClose,
   onPlace,
   onChanged,
+  focusOnOpen = false,
+  onFocused,
 }: {
   clientId: string;
   item: KnowledgeItem;
@@ -308,7 +319,16 @@ function ItemPanel({
   onClose: () => void;
   onPlace: (p: Omit<Placement, "item_ids">) => Promise<void>;
   onChanged: () => void;
+  /** Opened by a person's click: the panel takes focus once (not on every revision's remount). */
+  focusOnOpen?: boolean;
+  onFocused?: () => void;
 }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (!focusOnOpen) return;
+    heading.current?.focus();
+    onFocused?.();
+  }, [focusOnOpen, onFocused]);
   const [title, setTitle] = useState(item.title);
   const [summary, setSummary] = useState(item.summary);
   // The item's file (C7a): the one it names, or one just picked to be named by the next revision.
@@ -342,11 +362,13 @@ function ItemPanel({
         (e: unknown) => setError(said(e)),
       );
   return (
-    <section aria-labelledby="kn-open" className={`${CARD} flex flex-col gap-4`}>
+    // Esc closes the open item (design system v3, I-Klavesnice), unless a menu or field inside took it.
+    <section aria-labelledby="kn-open" className={`${CARD} flex flex-col gap-4`}
+      onKeyDown={(e) => { if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); onClose(); } }}>
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <Tag>{t(`aia.knowledge.kinds.${item.kind}`)}</Tag>
-          <h2 id="kn-open" className="mt-1.5 text-base font-semibold">{item.title}</h2>
+          <h2 id="kn-open" ref={heading} tabIndex={-1} className="mt-1.5 text-base font-semibold outline-none">{item.title}</h2>
           <p className="text-xs text-ink-faint">{tv("aia.knowledge.revision", { n: item.revision })} · {relative(item.modified_at)}</p>
         </div>
         <Button small variant="quiet" onClick={onClose}>{t("aia.library.close")}</Button>

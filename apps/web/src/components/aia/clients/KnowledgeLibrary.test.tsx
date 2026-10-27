@@ -310,6 +310,20 @@ describe("the knowledge library", () => {
     expect(nav().getByRole("button", { name: "Nová složka" })).toBeTruthy();
   });
 
+  it("moves focus into the opened item, and Esc closes it and returns to its row (design system v3)", async () => {
+    api();
+    open({ ...CLIENT, permissions: ["VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"] });
+    await screen.findByText("Hlavní konkurenti");
+    const row = screen.getByRole("button", { name: /Hlavní konkurenti/ });
+    fireEvent.click(row);
+    const aside = await screen.findByRole("complementary", { name: "Otevřená znalost" });
+    await waitFor(() => expect(document.activeElement?.id).toBe("kn-open"));
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("complementary", { name: "Otevřená znalost" })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hlavní konkurenti/ })));
+    expect(aside.isConnected).toBe(false);
+  });
+
   it("offers a reader without the right to propose nothing that would write", async () => {
     api();
     open({ ...CLIENT, permissions: ["VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"] });
