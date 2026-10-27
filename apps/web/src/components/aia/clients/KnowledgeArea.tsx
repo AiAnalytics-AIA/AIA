@@ -25,7 +25,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { locatorWords, takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, nextLabelColour, staleEdit, undoable } from "@/lib/knowledge-library";
-import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Chip, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -79,7 +79,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
   };
   return (
     <>
-      {error ? <p role="alert" className="mb-3 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote className="mb-3">{error}</FaultNote> : null}
       <Loaded res={res} retry={retry}>
         {(list) =>
           list.length ? (
@@ -416,7 +416,7 @@ export function KnowledgeArea() {
               }}
             />
           ) : null}
-          {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+          {error ? <FaultNote className="mb-4">{error}</FaultNote> : null}
           <div className="flex flex-wrap items-start gap-5">
             <nav aria-label={t("aia.library.navLabel")} className="min-w-[13rem] flex-[1_1_13rem] rounded-md border border-border bg-surface-raised p-2 lg:max-w-[16rem]">
               <p className={`${SECTION_HEAD} mt-1`}>{t("aia.library.viewsTitle")}</p>

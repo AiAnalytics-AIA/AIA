@@ -13,7 +13,7 @@ import { type ClientCard, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { plural, relative } from "@/lib/format";
 import { Icon } from "../../rehome/icons";
-import { type Ask, AskDialog, Button, Field, TextInput } from "../../rehome/ui";
+import { type Ask, AskDialog, Button, FaultNote, Field, TextInput } from "../../rehome/ui";
 import { AppShell } from "../AppShell";
 import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -93,7 +93,7 @@ export function ClientDirectory() {
       ]}
       action={<Button variant="primary" icon="plus" onClick={newClient}>{t("aia.clients.new")}</Button>}
     >
-      {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote className="mb-4">{error}</FaultNote> : null}
       <Field label="Hledat klienta nebo studii" className="mb-5 max-w-lg">
         <TextInput type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Název klienta nebo jeho studie…" />
       </Field>

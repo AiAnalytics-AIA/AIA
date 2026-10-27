@@ -13,7 +13,7 @@ import { type DragEvent, type ReactNode, createContext, useCallback, useContext,
 import { t, tv } from "@/i18n/t";
 import { type ClientWorkspace, type StudyKind, workspace } from "@/lib/api";
 import { type ClientArea, appRoutes } from "@/lib/app-routes";
-import { type Ask, AskDialog, Button, Chip } from "../../rehome/ui";
+import { type Ask, AskDialog, Button, Chip, FaultNote } from "../../rehome/ui";
 import { AppShell, type Crumb, type Tab } from "../AppShell";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -180,7 +180,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
       action={actions ?? defaultActions}
       tabs={clientTabs(client, area)}
     >
-      {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote className="mb-4">{error}</FaultNote> : null}
       {children}
       {dialog}
     </AppShell>

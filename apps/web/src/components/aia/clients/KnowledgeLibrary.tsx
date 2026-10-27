@@ -20,7 +20,7 @@ import {
 import { sourceIdOf, takesFile, withSource } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, actedOn, atCap, filingFor, shown, staleEdit, toggled, toggledAll } from "@/lib/knowledge-library";
-import { Button, Field, Tag, TextArea, TextInput } from "../../rehome/ui";
+import { Button, FaultNote, Field, Tag, TextArea, TextInput } from "../../rehome/ui";
 import { type MenuItem, MenuButton } from "../../ui/MenuButton";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -142,7 +142,7 @@ export function KnowledgeLibrary({ clientId, view, label, section, folders, labe
       <Field label={t("aia.knowledge.search")} className="max-w-md">
         <TextInput type="search" value={typed} onChange={(e) => setTyped(e.target.value)} />
       </Field>
-      {error ? <p role="alert" className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote>{error}</FaultNote> : null}
       <Loaded res={res} retry={retry}>
         {(all) => {
           const items = shown(all, view, now);

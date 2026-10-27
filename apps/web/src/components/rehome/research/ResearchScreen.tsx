@@ -20,7 +20,7 @@ import { RAIL_STEPS, type StepKey } from "@/research/steps";
 import { type ResearchState, ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AskDialog, Button, Toast } from "../ui";
+import { type Ask, AskDialog, Button, FaultNote, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { StageTrack, TRACK_STEPS } from "./StageTrack";
 import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
@@ -149,7 +149,7 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
 /** A change the replaced store could not save when the study's status changed under it. */
 function LostEdit() {
   const lost = useContext(SessionContext)?.lost;
-  return lost ? <p role="alert" data-lost-edit className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{tv("aia.study.status.lost", { reason: lost })}</p> : null;
+  return lost ? <FaultNote data-lost-edit className="mb-4">{tv("aia.study.status.lost", { reason: lost })}</FaultNote> : null;
 }
 
 /** The stages a person edits the design on: read-only, as one, when the study may not change. */
@@ -204,7 +204,7 @@ function StageChrome({ frame, step, state, status, help, flush, children }: {
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
-        <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
+        <FaultNote className="mb-4">{frame.notice}</FaultNote>
       ) : null}
       <LostEdit />
       {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
@@ -465,7 +465,7 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
                 </div>
               </section> : null}
             </>)}>
-            {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
+            {frame.notice ? <FaultNote className="mb-4">{frame.notice}</FaultNote> : null}
             <LostEdit />
             {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />

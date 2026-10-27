@@ -23,7 +23,7 @@ import {
 import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import Link from "next/link";
-import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Chip, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -33,7 +33,6 @@ import { ClientRulesEditor } from "./ClientRules";
 import { roleLabel } from "./ClientDirectory";
 
 const FIELDS: (keyof ClientProfileFields)[] = ["short_code", "industry", "market", "description"];
-const ERROR = "rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault";
 type EntityRole = "own_brand" | "competitor";
 
 function Details({ clientId, profile, mayEdit, onSaved }: { clientId: string; profile: ClientProfile; mayEdit: boolean; onSaved: () => void }) {
@@ -82,7 +81,7 @@ function Details({ clientId, profile, mayEdit, onSaved }: { clientId: string; pr
       <Field label={t("aia.profile.fields.description")} className="mt-3">
         <TextArea value={draft.description} maxLength={4000} readOnly={!mayEdit} placeholder={t("aia.profile.descriptionPlaceholder")} onChange={(e) => set("description")(e.target.value)} />
       </Field>
-      {error ? <p role="alert" className={`mt-3 ${ERROR}`}>{error}</p> : null}
+      {error ? <FaultNote className="mt-3">{error}</FaultNote> : null}
       {mayEdit ? (
         <div className="mt-3">
           <Button type="submit" variant="primary" disabled={!dirty}>{t("aia.profile.save")}</Button>
@@ -159,7 +158,7 @@ function Entities({ clientId, mayEdit }: { clientId: string; mayEdit: boolean })
         </form>
       ) : null}
       {note ? <p role="status" className="mt-2 text-xs text-status-you-ink">{note}</p> : null}
-      {error ? <p role="alert" className={`mt-2 ${ERROR}`}>{error}</p> : null}
+      {error ? <FaultNote className="mt-2">{error}</FaultNote> : null}
       <Link href={appRoutes.area(clientId, "knowledge")} className="mt-3 inline-block text-xs font-medium text-signal underline">{t("aia.profile.entitiesEdit")}</Link>
     </section>
   );
@@ -236,7 +235,7 @@ function Contacts({ clientId, contacts, mayEdit, onChanged }: { clientId: string
         ) : null}
       </div>
       <p className="mt-1 text-xs text-ink-faint">{t("aia.profile.contactsHint")}</p>
-      {error ? <p role="alert" className={`mt-3 ${ERROR}`}>{error}</p> : null}
+      {error ? <FaultNote className="mt-3">{error}</FaultNote> : null}
       {editing === "new" ? (
         <div className="mt-3">
           <ContactForm initial={EMPTY_CONTACT} onCancel={() => setEditing(null)} onSubmit={(c) => void done(workspace.addContact(clientId, c))} />
@@ -333,7 +332,7 @@ function Rules({ mayAdminister }: { mayAdminister: boolean }) {
         ) : null}
       </div>
       {!mayAdminister ? <p className="mt-2 text-xs text-ink-faint">{t("aia.profile.selfApprovalAdmin")}</p> : null}
-      {error ? <p role="alert" className={`mt-2 ${ERROR}`}>{error}</p> : null}
+      {error ? <FaultNote className="mt-2">{error}</FaultNote> : null}
       {/* The data posture and the wallet ceiling (D-17): set here, read on Nastavení → Přístup. */}
       <ClientRulesEditor clientId={client.client_id} clientName={client.name} mayAdminister={mayAdminister} />
     </section>
@@ -425,7 +424,7 @@ function Budget({ clientId, mayManage }: { clientId: string; mayManage: boolean 
                 <Button small variant="quiet" onClick={() => { setEditing(null); setError(null); }}>{t("aia.profile.budget.cancel")}</Button>
               </form>
             ) : null}
-            {error ? <p role="alert" className={`mt-3 ${ERROR}`}>{error}</p> : null}
+            {error ? <FaultNote className="mt-3">{error}</FaultNote> : null}
           </>
         )}
       </Loaded>

@@ -101,6 +101,12 @@ export function WellItem({ id, actions, children }: { id?: string; actions?: Rea
   );
 }
 
+/** A failure said where it happened: the one alert box (fault wash, its words in Czech, errorText's
+ *  technical detail after them). Spacing around it is the caller's. */
+export function FaultNote({ children, className = "", ...rest }: ComponentProps<"p">) {
+  return <p role="alert" className={`rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault ${className}`} {...rest}>{children}</p>;
+}
+
 export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span data-tone={tone} className={`inline-flex min-h-6 items-center gap-1 rounded-control border px-2 text-xs font-medium leading-4 ${TONE[tone]}`}>
