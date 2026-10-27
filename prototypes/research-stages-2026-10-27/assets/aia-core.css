@@ -675,3 +675,19 @@ kbd,.k{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px soli
 .aia .stg.ai,.aia .cfz .lc.run::before,.aia .fwd .sw.live{background:var(--spark1)}
 .aia .cmds button{border-color:var(--spark1)}
 @media (prefers-reduced-motion:reduce){.aia .cfz .lc.run{animation:none!important}}
+/* AIA core v4.3 (27 Oct 2026): the rail follows the theme in every state. v3's dark rail hard-coded
+   white for hover, the active item, the brand and the footer links; on the light rail that was white
+   on #f1f3f4, unreadable (the owner, 27 Oct: "hovering on the text makes it white"). Every rail state
+   now takes the rail's own ink (--shellstrong: 17.4:1 on --shell light, 19.5:1 dark; 15.3:1 and 17.1:1 on the hover tint) on a tint of it,
+   as apps/web's DockRail does (dock-rail.css .dock__item:hover). And the ⋯ icon core lacked. */
+.aia .as-nav a:hover,.aia .as-nav button:hover,.aia .as-lead:hover,
+.aia .asb .as-nav a:hover,.aia .asb a.as-lead:hover{color:var(--shellstrong);background:color-mix(in srgb,var(--shellstrong) 6%,transparent)}
+.aia .as-nav .on,.aia .asb .as-nav .on,.aia .asb a.as-lead.on{color:var(--shellstrong)}
+.aia .asb:hover .as-nav .on,.aia .asb:focus-within .as-nav .on,.aia .asb:has(.as-set.open) .as-nav .on,
+.aia .asb:hover a.as-lead.on,.aia .asb:focus-within a.as-lead.on,.aia .asb:has(.as-set.open) a.as-lead.on{background:color-mix(in srgb,var(--shellstrong) 8%,transparent)}
+.aia .asb:hover .as-set.open,.aia .asb:has(.as-set.open) .as-set.open{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--shellstrong) 18%,transparent)}
+.aia .as-brand b,.aia .asb .as-brand{color:var(--shellstrong)}
+.aia .as-set.open .chev,.aia .as-foot a:hover,.aia .as-out:hover{color:var(--shellstrong)}
+.aia .as-foot{border-top-color:color-mix(in srgb,var(--shellstrong) 10%,transparent)}
+.aia .as-tile{background:color-mix(in srgb,var(--shellstrong) 6%,transparent)}
+.ph-dots-three{--m:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 256 256%22 fill=%22black%22%3E%3Cpath d=%22M140,128a12,12,0,1,1-12-12A12,12,0,0,1,140,128Zm56-12a12,12,0,1,0,12,12A12,12,0,0,0,196,116ZM60,116a12,12,0,1,0,12,12A12,12,0,0,0,60,116Z%22/%3E%3C/svg%3E")}

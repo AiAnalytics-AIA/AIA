@@ -8,7 +8,7 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> (private to the owner's account) |
-| Version | v93, artifact version `1793095498-cbb2` |
+| Version | v95, artifact version `1793099019-3a7d` |
 | Exported | 27 Oct 2026 |
 | Previous snapshot | [`../research-stages-v73/`](../research-stages-v73/) (v73, 26 Oct) |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
@@ -17,7 +17,7 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 
 - **24 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
   holds each board's size and position on the canvas.
-- **`assets/aia-core.css`**: core v4.2, the "Petrol" shared stylesheet (SHA-256 `b6bb5edf…6e103d`). It is
+- **`assets/aia-core.css`**: core v4.3, the "Petrol" shared stylesheet (SHA-256 `bd0c156e…4a2b0e`). It is
   owned by the design-system session and is newer than `../shared/aia-core.css` (core v3), which this
   export does not touch.
 - **`assets/aia-study.css`**: the research stages' own stylesheet (SHA-256 `d1a2d23b…00f689`).
@@ -73,6 +73,7 @@ Two files on the canvas are not exported:
 - **Sběr dat · Průběh:**
   - The respondent disc (7b) is the page's centre: each dot is one AI respondent, and "Podle věku" splits the disc into the sample's age groups, whose sum is always the answered total.
   - The 16 run steps are gone. The page shows collection only, then three linked rows, "Po sběru dat", one each for Výsledky a Sociomapa, Analýza and Zpráva.
+  - Sběr dat and 7b say what happened in plain words, with no model blocks or journal.
   - A budget lift sits where the waiting step is: on Sběr dat during collection, on Analýza during analysis.
 - **No stage shows what another stage owns:**
 
@@ -94,7 +95,7 @@ Two files on the canvas are not exported:
   - a new named study, or the client's empty study;
   - the design only, with no respondent data, results, reports or costs;
   - the citation "Design převzat z …, revize N" on every stage of the new study.
-- **The look is core v4.2:** the Petrol palette, AI shown in graphite with a spark edge, the ⌘K palette,
+- **The look is core v4.3:** the Petrol palette, AI shown in graphite with a spark edge, the ⌘K palette,
   the activity tray and the study bar. All of it is from the design-system session.
 
 ## What is still open
@@ -102,14 +103,11 @@ Two files on the canvas are not exported:
 - **Reuse in the study bar.** The coordinator asked for "Použít jako základ…" in the study bar as well
   as the header. It is not there, because the bar sits directly below the header and the action would
   show twice. This waits on the product owner.
-- **The left rail's hover.** Item text turns white on hover and cannot be read. Core v4.2 owns this, and
-  the design-system session will fix it; nothing in this canvas overrides it.
-- **`ph-dots-three` in core.** Core v4.2 has no ⋯ icon. The boards define it locally (Phosphor's path),
-  and it should move into core.
 - **The build spec.** Spec v6 describes the prototype at v78. It does not yet carry:
   - Sběr dat from v82;
   - the de-duplication of v92;
-  - reuse and the removal of Projektová paměť from v93.
+  - reuse and the removal of Projektová paměť from v93;
+  - 7b in plain words from v95.
 - **Backend gaps that the folder decision needs.** Both are recorded in spec v6 `lead.md` § 3.4 as B17
   and B18:
   - client-knowledge folders are flat today;
