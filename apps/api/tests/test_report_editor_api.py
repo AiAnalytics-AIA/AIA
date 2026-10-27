@@ -1027,6 +1027,12 @@ def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved
     said = researcher.get(f"{versions}/{version}").json()
     assert said["artifact_type"] == "research_client_docx_edit"
     assert said["warnings"] == warnings
+    # Stored as the client's report it was saved from, the kind its PDF carries (review P3).
+    with create_session_factory(app.state.engine)() as session:
+        principal = AuthenticatedPrincipal(user_id=me, organization_id=world.organization_id)
+        scope = ScopeResolver(session).study_context(principal, study_id=world.study_id())
+        stored = research_artifacts(session, scope, app.state.artifact_store).get(version)
+        assert stored.metadata["report_kind"] == "client"
     # The composed draft's own read names nothing here: its checks are its document route's.
     assert researcher.get(f"{versions}/{client_draft}").json()["warnings"] is None
 
@@ -1044,6 +1050,53 @@ def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved
     got = researcher.get(f"{versions}/{version}/download")
     assert got.status_code == 200 and got.headers["X-AIA-Artifact-Id"] == version
     assert "-klient-" in got.headers["Content-Disposition"]
+
+    # The client report's document route names the approved edited version beside the composed
+    # draft it still reads, as the internal report's status does (review P2) ...
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["report_artifact_id"] == client_draft
+    assert document["review_state"] == "DRAFT_UNAPPROVED"
+    assert [(e["artifact_id"], e["line_id"], e["koncept"]) for e in document["approved_edits"]] == [
+        (version, client_draft, 2)
+    ]
+    assert document["approved_edits"][0]["review_state"] == "APPROVED_INTERNAL"
+    assert document["edited_line"]["artifact_id"] == version
+    assert document["edited_line"]["koncept"] == 2
+    # ... and the composed draft is no second approved client deliverable: refused by name.
+    refused = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": client_draft})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "client_report_edit_approved"
+    assert refused.json()["details"] == {"approved_artifact_id": version, "koncept": 2}
+    with create_session_factory(app.state.engine)() as session:
+        assert (
+            session.scalars(
+                select(ApprovalDecisionRow).where(ApprovalDecisionRow.subject_id == client_draft)
+            ).first()
+            is None
+        )
+
+
+def test_a_client_draft_with_no_approved_edit_is_approved_and_its_document_names_none(
+    app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves
+) -> None:
+    """RPT13: a saved but unapproved edit refuses nothing; the document route names it as the
+    line's newest and no approved edit."""
+    run_id, draft = _reported_run(app, researcher, world)
+    client_draft = _stored_client(app, world, run_id, draft)
+    runs = f"{API}/studies/{world.study_id()}/research/runs"
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["approved_edits"] == [] and document["edited_line"] is None
+    config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    document = researcher.get(f"{runs}/{run_id}/report/client/document").json()
+    assert document["approved_edits"] == [] and document["edited_line"]["koncept"] == 2
+    approve = f"{runs}/{run_id}/report/approve"
+    approved = researcher.post(approve, json={"artifact_id": client_draft})
+    assert approved.status_code == 200, approved.text
+    assert approved.json()["report_kind"] == "client"
+
 
 def test_a_client_control_copied_and_retyped_is_an_unadmitted_number(
     app: FastAPI, researcher: TestClient, client: TestClient, world: Any, saves: Saves

@@ -121,6 +121,17 @@ class ReportEditsUnsaved(Exception):
         self.reason = reason
 
 
+class ClientEditApproved(Exception):
+    """The run's composed client report asked to be approved while a version a person saved over
+    it in the editor is approved (RPT13): the client receives that version, and approving the
+    draft beside it would leave two approved client deliverables of one line."""
+
+    def __init__(self, artifact_id: str, approved_artifact_id: str, koncept: int) -> None:
+        super().__init__(f"{artifact_id}: its edited version {approved_artifact_id} is approved")
+        self.approved_artifact_id = approved_artifact_id
+        self.koncept = koncept
+
+
 def approve_report(
     session: Session,
     scope: StudyContext,
@@ -135,7 +146,9 @@ def approve_report(
     """Approve ``artifact_id`` as ``run_id``'s report, freeze it and, where its draft's own PDF
     is ready, ask for its approved PDF. A report already approved records no second decision
     and asks for nothing again (a person asks for a PDF on the report itself); one approved
-    before approving froze is frozen now, so no approved version stays deletable.
+    before approving froze is frozen now, so no approved version stays deletable. A composed
+    client report whose line holds an approved edited version is :class:`ClientEditApproved`:
+    that version is the client's.
 
     ``newest_of_line``: approve a version of a report-editor line only while it is that line's
     newest (the editor shows the newest), under the line's lock a save also takes, so a save
@@ -165,6 +178,8 @@ def approve_report(
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
         return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
+    if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
+        _refuse_beside_approved_edit(session, scope, run_id, artifact_id)
     # The client deliverable's checks (RD0, MVPQ-09): warnings since 2026-10-22, never a refusal
     # (the product owner, "Warnings for all of it"); what they find is recorded with the approval,
     # so who approved past which warning is on record.
@@ -200,6 +215,19 @@ def approve_report(
             deep_research_run_id=approved.metadata.get("deep_research_run_id"),
         )
     return approved
+
+
+def _refuse_beside_approved_edit(
+    session: Session, scope: StudyContext, run_id: str, artifact_id: str
+) -> None:
+    """:class:`ClientEditApproved` when a version saved over the composed client report
+    ``artifact_id`` (its line) is approved; read under the run's lock an approval takes."""
+    edits = ReportEditorRepository(session, scope).approved_edits(
+        run_id=run_id, variant="client", deep_research_run_id=None
+    )
+    approved = [v for v in edits if v.line_id == artifact_id]
+    if approved:
+        raise ClientEditApproved(artifact_id, approved[-1].artifact_id, approved[-1].koncept)
 
 
 def _check_line(
