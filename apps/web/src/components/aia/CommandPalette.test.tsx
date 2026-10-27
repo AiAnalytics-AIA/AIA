@@ -45,6 +45,30 @@ describe("CommandPalette", () => {
     expect(push).toHaveBeenCalledWith("/app/settings#audit");
   });
 
+  it("goes through a stage's leave guard: a refused draft on Návrh holds the palette's navigation", async () => {
+    // PlanStep's guard as it stands: a capture-phase click on a link, stopped while a draft is held.
+    const asked: string[] = [];
+    const guard = (e: MouseEvent) => {
+      const link = (e.target as Element).closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link) return;
+      e.preventDefault();
+      asked.push(link.pathname + link.search + link.hash);
+    };
+    document.addEventListener("click", guard, true);
+    try {
+      render(<CommandPalette />);
+      ctrlK();
+      const box = await screen.findByRole("combobox");
+      fireEvent.change(box, { target: { value: "audit" } });
+      await screen.findByRole("option", { name: /Audit/ });
+      fireEvent.keyDown(box, { key: "Enter" });
+      expect(asked).toEqual(["/app/settings#audit"]);
+      expect(push).not.toHaveBeenCalled();
+    } finally {
+      document.removeEventListener("click", guard, true);
+    }
+  });
+
   it("leaves the key to a handler that took it first, as Settings' section menu does", () => {
     const first = (e: KeyboardEvent) => e.preventDefault();
     window.addEventListener("keydown", first);

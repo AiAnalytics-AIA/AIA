@@ -13,6 +13,7 @@ import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState, 
 import { t, tv } from "@/i18n/t";
 import { type ClientCard, workspace } from "@/lib/api";
 import { type PaletteEntry, type PaletteGroup, clientEntries, matchEntries, moveSelection, staticEntries } from "@/lib/command-palette";
+import { guardedNavigate } from "@/lib/guarded-navigation";
 import { Icon, type IconName } from "../rehome/icons";
 import { appleKeys } from "./settings/sections";
 
@@ -102,10 +103,10 @@ export function CommandPalette() {
   );
   const active = entries.length ? Math.min(sel, entries.length - 1) : -1;
 
+  // Through a link's click, so a stage's leave guard (Návrh's refused draft) can stop it.
   const go = (entry: PaletteEntry) => {
     setOpen(false);
-    if (router) router.push(entry.href);
-    else window.location.assign(entry.href);
+    guardedNavigate(entry.href, (url) => (router ? router.push(url) : window.location.assign(url)));
   };
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
