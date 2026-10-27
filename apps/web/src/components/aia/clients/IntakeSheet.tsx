@@ -49,6 +49,7 @@ import { useResource } from "../useResource";
 import { useClient } from "./ClientContext";
 import { LabelChip } from "./KnowledgeLibrary";
 import { errorText } from "@/lib/error-words";
+import { MenuButton } from "../../ui/MenuButton";
 
 const BADGE: Record<ReturnType<typeof badge>["tone"], string> = {
   pdf: "bg-status-fault-wash text-status-fault",
@@ -343,17 +344,14 @@ export function IntakeSheet() {
                   <LabelChip key={l.label_id} label={l} onRemove={saving ? undefined : () => setLabels(labels.filter((x) => x !== l.label_id))} />
                 ))}
               {allLabels.some((l) => !labels.includes(l.label_id)) ? (
-                <label>
-                  <span className="sr-only">{t("aia.intake.addLabel")}</span>
-                  <Select disabled={saving} value="" className="min-h-8" onChange={(e) => e.target.value && setLabels([...labels, e.target.value])}>
-                    <option value="">{t("aia.intake.addLabel")}</option>
-                    {allLabels
-                      .filter((l) => !labels.includes(l.label_id))
-                      .map((l) => (
-                        <option key={l.label_id} value={l.label_id}>{l.name}</option>
-                      ))}
-                  </Select>
-                </label>
+                // A menu, not a select that acts on change (input-interactions I3): moving through it adds nothing.
+                <MenuButton
+                  label={t("aia.intake.addLabel")}
+                  icon="plus"
+                  disabled={saving}
+                  items={allLabels.filter((l) => !labels.includes(l.label_id)).map((l) => ({ key: l.label_id, label: l.name }))}
+                  onSelect={(id) => setLabels([...labels, id])}
+                />
               ) : null}
             </span>
           </div>
