@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Editor zprávy – vzhled a ověření</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@400;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+</style>
+</helmet>
+<div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px">
+  <div style="max-width: 1344px; display: flex; flex-direction: column; gap: 16px">
+    <div><div class="cap">11b · k zprávě</div><h1 style="margin-top: 4px">Editor zprávy: vzhled a ověření</h1>
+      <p class="lede">Zpráva se upravuje ve skutečném editoru ONLYOFFICE Docs 9.4.0.1, který AIA hostuje na docs.&lt;hostname&gt;. Tady je, jak vypadá v motivu AIA proti výchozímu, co jsme na něm ověřili a co mu AIA posílá. Snímky jsou ze skutečného serveru s interní zprávou fiktivní studie.</p></div>
+
+    <section class="sec" aria-labelledby="e-cmp"><div class="sh"><span class="num">01</span><h2 id="e-cmp">Motiv AIA proti výchozímu</h2><span class="grow"></span><span class="seg sm" role="radiogroup" aria-label="Co ukázat"><sc-for list="{{views}}" as="v" hint-placeholder-count="4"><button class="{{v.cls}}" type="button" role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}">{{v.l}}</button></sc-for></span></div>
+      <div class="sb" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">
+        <figure><div class="cap" style="margin-bottom: 6px">Výchozí ONLYOFFICE</div><img src="{{shotDef}}" alt="{{alt}}, výchozí vzhled" style="width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px"></figure>
+        <figure><div class="cap" style="margin-bottom: 6px">Motiv AIA</div><img src="{{shotAia}}" alt="{{alt}}, motiv AIA" style="width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px"></figure>
+        <p class="cap" style="grid-column: 1 / -1">{{cap}} Výchozí vzhled: modrá hlavička, písma nahrazená Arialem. Motiv AIA: bílá hlavička, podtržení karty v barvě signal 2 px, rádiusy AIA, ikony AIA, písma značky na serveru editoru.</p>
+      </div>
+    </section>
+
+    <section class="sec" aria-labelledby="e-bar"><div class="sh"><span class="num">02</span><h2 id="e-bar">Lišta a ikony</h2><span class="grow"></span><span class="cap">375 ikon, nic neubráno</span></div>
+      <div class="sb" style="display: flex; flex-direction: column; gap: 12px">
+        <p class="cap">Plná lišta editoru, karty Domů a Spolupráce. Ikony v kresbě AIA (tah 1,5, hranaté konce, jedna barva), každé tlačítko má svou ikonu na stejném místě.</p>
+        <figure><div class="cap" style="margin-bottom: 4px">Výchozí ONLYOFFICE (bílý motiv)</div><img src="assets/0bdd71831a898cfd9c9544c3910180b1.png" alt="Lišta editoru ve výchozím bílém motivu ONLYOFFICE, karty Domů a Spolupráce" style="width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px"></figure>
+        <figure><div class="cap" style="margin-bottom: 4px">Motiv AIA</div><img src="assets/68661ffb42af481e11aedd76272ccca1.png" alt="Lišta editoru v motivu AIA s ikonami AIA, karty Domů a Spolupráce" style="width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px"></figure>
+        <figure><div class="cap" style="margin-bottom: 4px">Všech 232 malých ikon sady AIA (dalších 122 velkých a 21 obřích stejně)</div><img src="assets/491461666b304afc3e6d8b4b3ff1d273.png" alt="Mřížka 232 ikon editoru v kresbě AIA" style="width: 100%; max-width: 900px; display: block; border: 1px solid var(--border); border-radius: 6px"></figure>
+        <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div>Ikony jsou překreslené ze sprite ONLYOFFICE (AGPL). Před nasazením je to otázka licence pro vlastníka: upravené dílo musí NOTICE uvést a nabídka zdroje AGPL se ho nejspíš týká.</div></div>
+      </div>
+    </section>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start">
+      <section class="sec" aria-labelledby="e-ver"><div class="sh"><span class="num">03</span><h2 id="e-ver">Co jsme na skutečném editoru ověřili</h2><span class="grow"></span><span class="cap">8 zjištění</span></div>
+        <div class="sb"><sc-for list="{{finds}}" as="f" hint-placeholder-count="4"><div class="li"><span class="{{f.gl}}" aria-hidden="true" style="margin-top: 1px"><i class="{{f.ic}}"></i></span><div class="tx">{{f.t}}<span class="cap" style="display: block">{{f.a}}</span></div></div></sc-for></div>
+      </section>
+      <section class="sec" aria-labelledby="e-cfg"><div class="sh"><span class="num">04</span><h2 id="e-cfg">Co AIA editoru posílá</h2><span class="grow"></span><span class="cap">konfigurace</span></div>
+        <dl class="facts" style="border-top: 0"><sc-for list="{{cfg}}" as="c" hint-placeholder-count="6"><dt>{{c.k}}</dt><dd style="font-family: var(--mono); font-size: 12px">{{c.v}}</dd></sc-for></dl>
+      </section>
+    </div>
+    <p class="cap">Stav ke 26. 10.: písma se vkládají až při stažení (rozhodnutí B6); motiv a ikony čekají na hostování editoru (report-editor-hosting 4) a na rozhodnutí o licenci ikon. Krok Zpráva: <a href="Report.dc.html">11 · Zpráva</a>.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { view: 0 }; }
+  renderVals() {
+    const s = this.state;
+    const V = [
+      ['Otevřený dokument', 'assets/f769d24998c48e41d55adc3dbfcd9a0b.png', 'assets/9e3f4cc732f8cde8a8e680960a64fa57.png', 'Skutečný editor ONLYOFFICE se stranou 11 interní zprávy: tabulky 5 a 6 a začátek části 8', 'Strana 11 z 24: tabulky s čísly z běhu, každé zamčené.'],
+      ['Titulní strana', 'assets/597a20148970f9f75cdf8ceb73cdef67.png', 'assets/e69d6041607b17eed2f578cae2b00855.png', 'Skutečný editor ONLYOFFICE s titulní stranou interní zprávy', 'Titulní strana, jak ji vykreslí AIA a otevře editor.'],
+      ['Zamčené číslo', 'assets/d54a0c819d9f6b33448868e37aeca629.png', 'assets/84655e56300b8d22ec68465ffbf49c1d.png', 'Editor po pokusu napsat do čísla 150: číslo se nezměnilo, u něj úchyt prvku', 'Napsali jsme „7“ do buňky 150. Nic se nezměnilo.'],
+      ['Číslo v textu', 'assets/4a109895e4f74446feffbe37e2103309.png', 'assets/6d16cd52e11f2cf59be6eaecf20e30f4.png', 'Editor po přepsání čísla 56 na 596 ve větě části 8', 'Napsali jsme „9“ do „56“ ve větě. Editor to pustí a AIA změnu po uložení ukáže.']
+    ];
+    return {
+      theme: this.props.theme ?? 'light',
+      views: V.map(([l], i) => ({ l, on: s.view === i, cls: s.view === i ? 'on' : '', pick: () => this.setState({ view: i }) })),
+      shotDef: V[s.view][1], shotAia: V[s.view][2], alt: V[s.view][3], cap: V[s.view][4],
+      finds: [
+        { gl: 'stg sm done', ic: 'ph ph-check', t: 'Zamčená čísla drží. Psaní do „150“ editor ignoruje a ukáže úchyt prvku.', a: '159 zamčených prvků v interní zprávě (RPT8a, části 1 a 2)' },
+        { gl: 'stg sm done', ic: 'ph ph-check', t: 'Uložení je zachová. Po skutečném uložení (callback, stav 6) je všech 159 prvků na místě, zamčených, se stejným textem i dlouhým štítkem (59 znaků).', a: 'Odpovídá na otevřenou otázku plánu: dlouhý w:tag ONLYOFFICE drží' },
+        { gl: 'stg sm done', ic: 'ph ph-check', t: 'Číslo v textu napsaném modelem zamčené není: „odhad 56“ jde přepsat na 596 a uloží se. AIA ho po uložení najde (číslo mimo zamčený prvek) a označí „Upraveno ručně“ u odstavce i v dialogu schválení. Nic neodmítá: rozhoduje výzkumník, kód ukazuje.', a: 'ADR 0035, změna 22. 10. · domain/report/saved_changes.py (RPT8b, na develop postaveno)' },
+        { gl: 'stg sm youq', ic: 'ph ph-pause', t: 'Uložení zahodí vložená písma (3,97 → 2,55 MB). Návrh: písma nainstalovat na server editoru, aby koncept vypadal jako výsledek (bez nich editor potichu kreslil Arialem), a vložit je až při stažení DOCX, jednou funkcí (embed.py), ne po každém uložení. PDF vkládá písma samo, worker je má.', a: 'uložený koncept písma nepotřebuje; potřebuje je jen stažený DOCX' },
+        { gl: 'stg sm done', ic: 'ph ph-check', t: 'Motiv AIA: editor čte vlastní motivy ze souboru na serveru. Barvy z tokens.json, rádiusy AIA, podtržení karty 2 px; logo ONLYOFFICE zůstává, dodatečné podmínky AGPL ho vyžadují.', a: 'resources/themes/aia.json, 105 proměnných · uiTheme theme-aia' },
+        { gl: 'stg sm done', ic: 'ph ph-check', t: 'Ikony AIA bez ztráty funkce: každá z 375 ikon editoru má svou verzi v kresbě AIA pod stejným id, 13 překreslených přímo z ikon AIA (hledat, kopírovat, zámek, komentáře…). Na běžných obrazovkách editor kreslí ikony z PNG, takže sada je vykreslená i do PNG v pěti měřítkách.', a: 'kontrola: všech 9 karet a kontextová nabídka, 371 viditelných ikon jako ve výchozím vzhledu, žádná chybějící, žádná chyba' },
+        { gl: 'stg sm youq', ic: 'ph ph-pause', t: 'Motiv musí do prohlížeče uložit brána docs (GET /session/docs běží na původu editoru), než editor naběhne. Bez toho se poprvé ukáže výchozí vzhled a po obnovení editor zahodí posuny a průhlednost ikon (ikony v hlavičce zmizí).', a: 'ověřeno: s uloženým motivem je AIA vzhled hned napoprvé' },
+        { gl: 'stg sm youq', ic: 'ph ph-pause', t: 'Co motiv nezmění: logo a rozvržení hlavičky, písmo rozhraní (Plex by musel nahrát kód editoru) a ikony formátů souborů, grafů a rovnic (297 symbolů z jiných sad).', a: 'to by už byla úprava programu, ne nastavení' } ],
+      cfg: [
+        { k: 'Editor', v: 'ONLYOFFICE Docs Community 9.4.0.1 · sha256:3ab6ebc7…88212' },
+        { k: 'Oprávnění', v: 'edit, comment, review: ano · download, print: ne · modifyContentControl: ano (zámek je pojistka; odemknout smí výzkumník, ADR 0035)' },
+        { k: 'Režim', v: 'mode edit · lang cs · region cs-CZ · unit cm · zoom 90' },
+        { k: 'Rozhraní', v: 'uiTheme theme-aia · compactHeader, compactToolbar, toolbarHideFileName · bez pluginů, chatu, nápovědy' },
+        { k: 'Server editoru', v: 'resources/themes/aia.json · resources/img/aia-icons/ (3 SVG + 15 PNG) · IBM Plex Sans, Plex Mono, Source Serif 4 v /usr/share/fonts' },
+        { k: 'Brána docs', v: 'localStorage ui-theme-id, ui-theme = celý motiv AIA, před startem editoru' },
+        { k: 'Ukládání', v: 'autosave, forcesave · callbackUrl → AIA (RPT8c, zatím nepostaveno)' },
+        { k: 'Uživatel', v: 'id, jméno z relace AIA (Jana Malá)' } ],
+    };
+  }
+}
+</script>
+</body>
+</html>

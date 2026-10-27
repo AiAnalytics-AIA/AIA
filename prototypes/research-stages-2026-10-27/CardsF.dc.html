@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Karty Vedoucího v chatu</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.kf{width:1440px;box-sizing:border-box;padding:40px 48px 64px;background:var(--surface);color:var(--ink);display:flex;flex-direction:column;gap:40px}
+.kf h1{font-size:28px;font-weight:600;line-height:34px}
+.kf h2{font-size:13px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+.kf .lede{font-size:15px;line-height:23px;color:var(--muted);max-width:860px;margin-top:6px}
+.kf .rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:18px}
+.kf .rule{background:var(--raised);border-radius:16px;box-shadow:0 0 0 1px var(--border);padding:14px 16px;font-size:13.5px;line-height:20px}
+.kf .rule b{display:block;font-size:14px;margin-bottom:2px}
+/* chat ground with timeline */
+.gr{background:#f5f6f9;border-radius:20px;padding:18px 18px 18px 52px;position:relative;box-shadow:0 0 0 1px var(--border)}
+.gr::before{content:"";position:absolute;left:27px;top:0;bottom:0;width:1.5px;background:var(--border)}
+.gr .cap2{position:relative;display:table;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin:0 0 12px -34px;background:#f5f6f9;padding:2px 8px 2px 0}
+/* the card */
+.lc{position:relative;background:var(--raised);border-radius:16px;box-shadow:0 0 0 1px var(--border);max-width:400px}
+.lc.you{box-shadow:0 0 0 1.5px var(--you),0 6px 18px rgba(255,130,112,.12)}
+.lc.run{box-shadow:0 0 0 1px var(--aiedge)}
+.lc.park{box-shadow:0 0 0 1.5px var(--pfill)}
+.lc.fail{box-shadow:0 0 0 1.5px var(--fault)}
+.lc .nd{position:absolute;left:-33px;top:15px;width:14px;height:14px;border-radius:50%;background:var(--strong);box-shadow:0 0 0 4px #f5f6f9;display:grid;place-items:center;color:#fff}
+.lc .nd .ph{width:9px;height:9px}
+.lc.you .nd{background:var(--you);border-radius:4px;color:var(--onyou)}
+.lc.done .nd{background:var(--done)}
+.lc.park .nd{background:var(--pfill);border-radius:4px;color:#1c1300}
+.lc.fail .nd{background:var(--fault)}
+.lc.run .nd{background:#f5f6f9;box-shadow:0 0 0 4px #f5f6f9;width:22px;height:22px;left:-37px;top:11px}
+.lc .hd{display:flex;gap:10px;align-items:flex-start;padding:12px 14px 0}
+.lc .ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--sunken);color:var(--ink)}
+.lc .ic.ai{background:var(--aiwash);color:var(--aiink)}
+.lc .ic.sig{background:var(--swash);color:var(--signal)}
+.lc .ic .ph{width:16px;height:16px}
+.lc .kind{font-size:11.5px;color:var(--faint);line-height:15px}
+.lc .ttl{font-size:14.5px;font-weight:600;line-height:20px}
+.lc .chip{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--sunken);color:var(--muted)}
+.lc .chip.you{background:var(--youwash);color:var(--youink)}
+.lc .chip.run{background:var(--aiwash);color:var(--aiink)}
+.lc .chip.done{background:var(--dwash);color:var(--done)}
+.lc .chip.park{background:var(--pwash);color:var(--park)}
+.lc .chip.fail{background:var(--fwash);color:var(--fault)}
+.lc .chip .orb{width:14px;height:14px}
+.lc .chip .orb .s::before{width:2px;height:4px;margin-left:-1px}
+.lc .chip .orb .c{width:3px;height:3px;margin:-1.5px}
+.lc .lsum{font-size:13.5px;line-height:20px;padding:8px 14px 0;color:var(--ink)}
+.lc .fx{margin:10px 12px 0;background:#f5f6f9;border-radius:12px;padding:4px 12px}
+.lc .fx div{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;padding:5px 0;font-size:13px;line-height:18px}
+.lc .fx dt{color:var(--muted)}.lc .fx dd b{font-weight:600}.lc .fx dd .sub{display:block;font-size:12px;color:var(--faint)}
+.lc .lst{margin:10px 12px 0;display:flex;flex-direction:column;gap:2px}
+.lc .lst div{display:flex;align-items:center;gap:10px;font-size:13px;padding:5px 2px}
+.lc .lst .g{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--strong);box-sizing:border-box;flex:none;display:grid;place-items:center}
+.lc .lst .g.done{background:var(--done);border:0;color:#fff}.lc .lst .g.done .ph{width:10px;height:10px}
+.lc .lst .g.gate{border-radius:4px;border-color:var(--you)}
+.lc .lst .c{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+.lc .bar{margin:10px 14px 0;height:5px;border-radius:999px;background:var(--sunken);overflow:hidden}.lc .bar i{display:block;height:100%;background:var(--spark1);border-radius:999px;transition:width .3s}
+.lc .ac{display:flex;align-items:center;gap:8px;padding:12px 14px 12px}
+.lc .ac .q{border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;padding:6px 4px;cursor:pointer}
+.lc .ac .q:hover{color:var(--ink)}
+.lc .ac .p{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 14px;border-radius:10px;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--signal);color:#fff}
+.lc .ac .p.ai{background:var(--ai);color:var(--onai)}
+.lc .ac .p.o{background:var(--raised);color:var(--ink);box-shadow:0 0 0 1px var(--strong)}
+.lc .ac .p .ph{width:14px;height:14px}
+.lc .why{margin:10px 12px 0;font-size:12.5px;line-height:18px;color:var(--muted)}
+/* collapsed row */
+.lc.row{display:flex;align-items:center;gap:10px;padding:9px 12px;max-width:400px}
+.lc.row .ttl{font-size:13.5px;font-weight:500}
+.lc.row .meta{font-size:12.5px;color:var(--muted)}
+.lc.row .nd{top:12px}
+.lc.row .lk{margin-left:auto;font-size:12.5px;color:var(--signal);background:transparent;border:0;cursor:pointer;font-weight:500}
+.lc.row.kept{box-shadow:0 0 0 1px var(--border);background:transparent}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:start}
+.anat{display:grid;grid-template-columns:460px minmax(0,1fr);gap:40px;align-items:center}
+.callout{display:flex;flex-direction:column;gap:12px}
+.callout div{display:flex;gap:12px;font-size:14px;line-height:21px}
+.callout .n{width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--raised);display:grid;place-items:center;font-size:12px;font-weight:600;flex:none}
+.pin{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--raised);font-size:11px;font-weight:600;display:grid;place-items:center;z-index:2}
+.lbl2{font-size:12px;color:var(--muted);margin:10px 0 6px -34px}
+.me2{align-self:flex-end;background:var(--signal);color:#fff;border-radius:18px 18px 6px 18px;padding:8px 14px;font-size:13.5px;max-width:300px;margin-left:auto}
+.say{font-size:13.5px;line-height:21px;max-width:380px;position:relative}
+.say::before{content:"";position:absolute;left:-37px;top:0;width:22px;height:22px;border-radius:50%;background:#f5f6f9 url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Cpath d=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22 fill=%22none%22 stroke=%22%23151a20%22 stroke-opacity=%22.32%22 stroke-width=%221.3%22/%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.11%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.450s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.24%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.300s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%221.49%22 fill=%22%239b8bfb%22 fill-opacity=%220.37%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.150s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3Ccircle r=%222.40%22 fill=%22%239b8bfb%22 fill-opacity=%221.00%22%3E%3CanimateMotion dur=%226.00s%22 repeatCount=%22indefinite%22 begin=%22-0.000s%22 path=%22M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0%22/%3E%3C/circle%3E%3C/svg%3E") center/18px no-repeat}
+.stack{display:flex;flex-direction:column;gap:14px}
+.lc .log{list-style:none;margin:10px 12px 0;padding:8px 12px;background:#f5f6f9;border-radius:12px;display:flex;flex-direction:column;gap:4px;font-size:12.5px;line-height:17px;color:var(--muted)}
+.lc .log li{display:flex;gap:8px}.lc .log li .t{font-family:var(--mono);font-size:11px;color:var(--faint);min-width:34px}.lc .log li.now{color:var(--ink)}.lc .log li.warn{color:var(--park)}
+.lc .prl{display:flex;gap:4px;margin:12px 14px 0}.lc .prl span{flex:1;height:5px;border-radius:999px;background:var(--sunken)}.lc .prl span.d{background:var(--done)}.lc .prl span.r{background:var(--spark1)}.lc .prl span.f{background:var(--fault)}.lc .prl span.kk{background:var(--sedge)}
+.lc .rl{display:flex;justify-content:space-between;margin:4px 14px 0;font-size:11px;color:var(--faint)}
+.lc .now2{margin:10px 14px 0;font-size:13px;display:flex;gap:8px;align-items:center}.lc .now2 .tag{border-radius:6px}
+.lc .mods{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:10px 12px 0}.lc .mods span{font-size:11.5px;padding:5px 8px;border-radius:9px;background:#f5f6f9;color:var(--muted);display:flex;gap:6px;align-items:center}
+.lc .mods i.dot{width:7px;height:7px;border-radius:50%;background:var(--strong);flex:none}.lc .mods .d i.dot{background:var(--done)}.lc .mods .r i.dot{background:var(--spark1)}.lc .mods .kk i.dot{background:var(--sedge)}.lc .mods .b i.dot{background:var(--fault)}
+.crit{background:var(--raised);border-radius:20px;box-shadow:0 0 0 1.5px var(--ink);padding:22px 26px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+.crit h3{font-size:18px;font-weight:600;line-height:24px}.crit p{font-size:14px;line-height:21px;margin-top:8px}.crit ol{margin:8px 0 0 18px;font-size:13.5px;line-height:20px;display:flex;flex-direction:column;gap:6px}.crit .anc{font-family:var(--mono);font-size:11px;color:var(--faint);display:block}
+.mx{width:100%;border-collapse:collapse;font-size:12.5px;line-height:17px;background:var(--raised);border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px var(--border)}
+.mx th{text-align:left;font-weight:600;color:var(--muted);background:#f5f6f9;padding:9px 10px;font-size:11.5px;letter-spacing:.03em}.mx td{padding:9px 10px;border-top:1px solid var(--border);vertical-align:top}.mx td b{font-weight:600}.mx .gap{color:var(--youink)}.mx .anc{font-family:var(--mono);font-size:10.5px;color:var(--faint);display:block;margin-top:3px}
+.lc .ac .p .vb{font-weight:500}
+.lc .ac .p .amt{font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.lc .ac .p .vb+.amt{padding-left:9px;margin-left:3px;border-left:1px solid currentColor;border-left-color:rgba(255,255,255,.4)}
+.lc .ac .p.o .vb+.amt{border-left-color:var(--border)}
+.lc .ac .p .amt.big{font-size:16px}
+.lc .fx div:first-of-type dd b{font-size:17px;line-height:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.lc .fx div:first-of-type dt{padding-top:2px;color:var(--ink);font-weight:500}
+.lc .fx div+div dd b{font-weight:500}
+</style>
+</helmet>
+<div class="aia wb" data-theme="{{theme}}" style="width: 1440px; min-width: 1440px; display: block">
+<div class="kf">
+  <div>
+    <a href="Cards.dc.html" class="cap">‹ Původní karty (registr akcí zůstává tam)</a>
+    <h1 style="margin-top: 8px">Karty Vedoucího v chatu</h1>
+    <p class="lede">Jedna karta je jedna akce z registru (LO21). Karta žije v chatu F na časové ose: dokud čeká na vás, je rozbalená s korálovým obrysem; jakmile rozhodnete, složí se do jednoho řádku a stav nese uzel na ose. Nic se nespustí bez vašeho kliknutí a každá karta říká, kolik může nejvýš stát.</p>
+    <div class="rules">
+      <div class="rule"><b>Rozbalená je jen ta, která čeká na vás</b>Korálový obrys a štítek „Čeká na vás“. Vše ostatní je v klidu, aby rozhodnutí nezapadlo.</div>
+      <div class="rule"><b>Stav nese uzel na ose</b>Korálová pauza = čeká na vás · oběžnice = běží · fajfka v inkoustu = hotovo · korálová = čeká na rozpočet · červený křížek = selhalo.</div>
+      <div class="rule"><b>Hotové se složí do řádku</b>Název, co to stálo a jeden odkaz („Posoudit“, „Otevřít“). Rozkliknutím se karta znovu rozbalí.</div>
+      <div class="rule" style="grid-column: 1 / -1; box-shadow: 0 0 0 1.5px var(--signal)"><b>Pozornost dostane to, o co jde</b>Pořadí: 1. co je v sázce (částka, kterou kliknutím schválíte, nebo co se změní), 2. sloveso, 3. kontext. Částka je v tlačítku tučně a v prvním řádku faktů největší; slova jako „a pokračovat“ jsou lehčí. Stav nese štítek a uzel, ne barva textu.</div>
+    </div>
+  </div>
+
+  <div class="crit" role="note">
+    <div><h3>Největší výtka: karty vyprávěly postup, který backend nehlásí</h3>
+      <p>Běžící karta psala „Píše blok 2 ze 3: Image značek“ a měla procentní pruh. Návrhová úloha je ale jeden krok: jeden dotaz modelu a nejvýše jedna oprava podle smlouvy. Hlásí jen „Worker krok převzal“, „Dotaz odeslán modelu“, „Model odpověděl (tokeny, cena, sekundy)“ a „Krok dokončen“, a to ještě jen se zapnutým AIA_AI_STEP_EVENTS, který je ve výchozím stavu vypnutý. Bez něj mezi „převzato“ a „hotovo“ nepřijde nic. Pruh v procentech by si vymýšlel; pravidlo AIA je „počty, jak je krok nahlásí, nikdy procento“.</p>
+      <p>Druhá polovina výtky: dva nejdelší procesy, výzkumný běh a hloubkový výzkum, které opravdu streamují (kroky, respondenti, stopy, volání webu), v chatu kartu s postupem buď mají jen zčásti (běh), nebo vůbec (hloubkový výzkum má jen kartu „Otevřít“, jeho běh se v konverzaci neukáže).</p></div>
+    <div><h3 style="font-size: 15px">Co to v prototypu mění</h3>
+      <ol>
+        <li>Běžící karty ukazují živý záznam událostí přesně slovy AIA, s časem; žádné procento u úlohy.<span class="anc">apps/web/src/lib/step-activity.ts:92-102 · i18n/cs.ts:2773-2778 @ d5d36b25</span></li>
+        <li>Když se události nehlásí (vypnuté AIA_AI_STEP_EVENTS), karta to řekne a ukáže jen uplynulý čas.<span class="anc">apps/executors/src/aia_executors/ai_runtime.py:498, 679 @ d5d36b25</span></li>
+        <li>Nové karty, které streamují: výzkumný běh (16 kroků, respondenti, 8 modulů analýzy), hloubkový výzkum (6 kroků, stopy, volání webu) a opakování analýzy.<span class="anc">lib/lead-cards.ts:82, 126, 161 jen úlohy a běhy · LeadPane.tsx:527-533 @ d5d36b25</span></li>
+        <li>Akce v menu „+“ na každém kroku teď přesně odpovídají smlouvě kroku (starts); dřív osm z jedenácti kroků nabízelo aspoň jednu akci, kterou tam backend nedovolí (např. „Zkontroluj návrh“ na Zadání, „Zopakuj analýzu“ na Výsledcích), a Návrh neměl „Analyzuj zadání“ ani rešerši.<span class="anc">domain/lead_artifacts.py:236-404 @ d5d36b25</span></li>
+        <li>Karta Plán je jen návrh: subjekty lead_plan a plan_step jsou v ledgeru rezervované, ale proces plánu (LO4) zatím neexistuje.<span class="anc">domain/approval_ledger.py:12, 30 @ d5d36b25</span></li>
+      </ol></div>
+  </div>
+
+  <section>
+    <h2>1 · Anatomie karty</h2>
+    <div class="anat">
+      <div class="gr" style="position: relative; padding-right: 40px">
+        <span class="pin" style="left: 58px; top: 6px">1</span><span class="pin" style="left: 250px; top: 6px">2</span><span class="pin" style="left: 440px; top: 20px">3</span><span class="pin" style="left: 440px; top: 74px">4</span><span class="pin" style="left: 440px; top: 128px">5</span><span class="pin" style="left: 440px; top: 222px">6</span><span class="pin" style="left: 2px; top: 46px">7</span>
+        <div class="lc you"><span class="nd" aria-hidden="true"><i class="ph ph-pause"></i></span>
+          <div class="hd"><span class="ic ai" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div><div class="kind">Návrhová úloha · AI</div><div class="ttl">Analýza zadání</div></div><span class="chip you">Čeká na vás</span></div>
+          <p class="lsum">Z cílů a rozhodnutí navrhne výzkumné otázky a hypotézy. Návrh nic nepřepíše; přijímáte ho po položkách na Návrhu.</p>
+          <dl class="fx"><div><dt>Cena nejvýše</dt><dd><b>0,40 USD</b><span class="sub">z rozpočtu studie · zbývá 38,80 USD</span></dd></div><div><dt>Výsledek</dt><dd>návrh na kroku Návrh</dd></div></dl>
+          <div class="ac"><button class="q" type="button">Teď ne</button><button class="p ai" type="button"><i class="ph ph-sparkle"></i><span class="vb">Spustit úlohu</span><b class="amt">0,40 USD</b></button></div>
+        </div>
+      </div>
+      <div class="callout">
+        <div><span class="n">1</span><span><b>Druh a ikona.</b> Fialová = práce modelu (úloha, rešerše), indigo = běh a plán, šedá = paměť a rada.</span></div>
+        <div><span class="n">2</span><span><b>Název akce</b> přesně jako v registru; u napsaného příkazu „Váš příkaz“.</span></div>
+        <div><span class="n">3</span><span><b>Jeden stavový štítek.</b> Slovo i barva podle stavu; nikdy dva štítky.</span></div>
+        <div><span class="n">4</span><span><b>Jedna věta, co se stane</b> a co se nestane („nic nepřepíše“).</span></div>
+        <div><span class="n">5</span><span><b>Fakta:</b> první řádek je to, o co jde, a je největší (u placené akce Cena nejvýše, horní mez, ne odhad); ostatní tiše pod ním.</span></div>
+        <div><span class="n">6</span><span><b>Akce:</b> vlevo tiché „Teď ne“, vpravo jedno hlavní tlačítko: sloveso a <b>tučně částka</b>, kterou kliknutím schválíte. U navýšení rozpočtu jde částka první: „<b>+10 USD</b> a pokračovat“.</span></div>
+        <div><span class="n">7</span><span><b>Uzel na časové ose</b> opakuje stav, takže je vidět i u složené karty.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2 · Život jedné karty</h2>
+    <div class="grid3">
+      <sc-for list="{{life}}" as="c" hint-placeholder-count="6">
+        <div class="gr"><div class="cap2">{{c.step}}</div>
+          <sc-if value="{{c.full}}" hint-placeholder-val="{{ true }}">
+            <div class="{{c.cls}}"><span class="nd" aria-hidden="true"><sc-if value="{{c.orbNode}}" hint-placeholder-val="{{ false }}"><thinking-orb size="18" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{c.glyph}}" hint-placeholder-val="{{ true }}"><i class="{{c.ndIc}}"></i></sc-if></span>
+              <div class="hd"><span class="{{c.icCls}}" aria-hidden="true"><i class="{{c.ic}}"></i></span><div><div class="kind">{{c.kind}}</div><div class="ttl">{{c.title}}</div></div><span class="{{c.chipCls}}"><sc-if value="{{c.orbNode}}" hint-placeholder-val="{{ false }}"><thinking-orb size="28" state="working" aria-hidden="true"></thinking-orb></sc-if>{{c.chip}}</span></div>
+              <sc-if value="{{c.lead}}" hint-placeholder-val="{{ true }}"><p class="lsum">{{c.lead}}</p></sc-if>
+              <sc-if value="{{c.bar}}" hint-placeholder-val="{{ false }}"><div class="bar" aria-hidden="true"><i style="{{c.bar}}"></i></div></sc-if>
+              <sc-if value="{{c.hasLog}}" hint-placeholder-val="{{ false }}"><ul class="log" aria-live="polite"><sc-for list="{{c.logL}}" as="x" hint-placeholder-count="2"><li class="{{x.cls}}"><span class="t">{{x.t}}</span>{{x.l}}</li></sc-for></ul></sc-if>
+              <dl class="fx"><sc-for list="{{c.fx}}" as="f" hint-placeholder-count="2"><div><dt>{{f.k}}</dt><dd><b>{{f.v}}</b><span class="sub">{{f.s}}</span></dd></div></sc-for></dl>
+              <div class="ac"><sc-if value="{{c.q}}" hint-placeholder-val="{{ true }}"><button class="q" type="button">{{c.q}}</button></sc-if><sc-if value="{{c.p}}" hint-placeholder-val="{{ true }}"><button class="{{c.pCls}}" type="button"><sc-if value="{{c.amtFirst}}" hint-placeholder-val="{{ false }}"><b class="amt big">{{c.pAmt}}</b></sc-if><sc-if value="{{c.iconOn}}" hint-placeholder-val="{{ true }}"><i class="{{c.pIc}}"></i></sc-if><span class="vb">{{c.p}}</span><sc-if value="{{c.amtAfter}}" hint-placeholder-val="{{ false }}"><b class="amt">{{c.pAmt}}</b></sc-if></button></sc-if></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{c.row}}" hint-placeholder-val="{{ false }}">
+            <div class="{{c.cls}}"><span class="nd" aria-hidden="true"><i class="{{c.ndIc}}"></i></span><span class="ttl">{{c.title}}</span><span class="meta">{{c.meta}}</span><button class="lk" type="button">{{c.p}}</button></div>
+          </sc-if>
+          <p class="cap" style="margin-top: 10px">{{c.note}}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Druhy karet (každá ve stavu „čeká na vás“)</h2>
+    <div class="grid3">
+      <sc-for list="{{kinds}}" as="c" hint-placeholder-count="9">
+        <div class="gr"><div class="cap2">{{c.where}}</div>
+          <div class="lc you"><span class="nd" aria-hidden="true"><i class="ph ph-pause"></i></span>
+            <div class="hd"><span class="{{c.icCls}}" aria-hidden="true"><i class="{{c.ic}}"></i></span><div><div class="kind">{{c.kind}}</div><div class="ttl">{{c.title}}</div></div><span class="chip you">Čeká na vás</span></div>
+            <p class="lsum">{{c.lead}}</p>
+            <sc-if value="{{c.hasSteps}}" hint-placeholder-val="{{ false }}"><div class="lst"><sc-for list="{{c.steps}}" as="s" hint-placeholder-count="4"><div><span class="{{s.g}}" aria-hidden="true"></span><span>{{s.l}}</span><span class="c">{{s.c}}</span></div></sc-for></div></sc-if>
+            <dl class="fx"><sc-for list="{{c.fx}}" as="f" hint-placeholder-count="2"><div><dt>{{f.k}}</dt><dd><b>{{f.v}}</b><span class="sub">{{f.s}}</span></dd></div></sc-for></dl>
+            <div class="ac"><button class="q" type="button">{{c.q}}</button><button class="{{c.pCls}}" type="button"><sc-if value="{{c.amtFirst}}" hint-placeholder-val="{{ false }}"><b class="amt big">{{c.pAmt}}</b></sc-if><sc-if value="{{c.iconOn}}" hint-placeholder-val="{{ true }}"><i class="{{c.pIc}}"></i></sc-if><span class="vb">{{c.p}}</span><sc-if value="{{c.amtAfter}}" hint-placeholder-val="{{ false }}"><b class="amt">{{c.pAmt}}</b></sc-if></button></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · Naživo: proklikejte si kartu v chatu</h2>
+    <div class="anat" style="grid-template-columns: 480px minmax(0, 1fr); align-items: start">
+      <div class="gr stack" style="min-height: 520px">
+        <div class="cap2">Dnes</div>
+        <div class="say">Zadání je skoro úplné. Chybí jen rozhodnutí, které má výzkum podpořit.</div>
+        <div class="me2">Analyzuj zadání</div>
+        <sc-if value="{{dAsk}}" hint-placeholder-val="{{ true }}">
+          <div class="lc you"><span class="nd" aria-hidden="true"><i class="ph ph-pause"></i></span>
+            <div class="hd"><span class="ic ai" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div><div class="kind">Váš příkaz · návrhová úloha</div><div class="ttl">Analýza zadání</div></div><span class="chip you">Čeká na vás</span></div>
+            <p class="lsum">Navrhne výzkumné otázky a hypotézy. Nic nepřepíše.</p>
+            <dl class="fx"><div><dt>Cena nejvýše</dt><dd><b>0,40 USD</b><span class="sub">zbývá 38,80 USD</span></dd></div><div><dt>Výsledek</dt><dd>návrh na kroku Návrh</dd></div></dl>
+            <div class="ac"><button class="q" type="button" onClick="{{dLater}}">Teď ne</button><button class="p ai" type="button" onClick="{{dGo}}"><i class="ph ph-sparkle"></i><span class="vb">Spustit úlohu</span><b class="amt">0,40 USD</b></button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{dRun}}" hint-placeholder-val="{{ false }}">
+          <div class="lc run"><span class="nd" aria-hidden="true"><thinking-orb size="18" state="working" aria-hidden="true"></thinking-orb></span>
+            <div class="hd"><span class="ic ai" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div><div class="kind">Návrhová úloha</div><div class="ttl">Analýza zadání</div></div><span class="chip run"><thinking-orb size="28" state="working" aria-hidden="true"></thinking-orb>Běží</span></div>
+            <p class="lsum">Jeden krok: dotaz modelu a nejvýše jedna oprava podle smlouvy.</p>
+            <ul class="log" aria-live="polite"><sc-for list="{{dLog}}" as="x" hint-placeholder-count="2"><li class="{{x.cls}}"><span class="t">{{x.t}}</span>{{x.l}}</li></sc-for></ul>
+            <div class="ac"><button class="q" type="button" onClick="{{dStop}}">Zastavit</button></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{dDone}}" hint-placeholder-val="{{ false }}">
+          <div class="lc row done"><span class="nd" aria-hidden="true"><i class="ph ph-check"></i></span><span class="ttl">Analýza zadání</span><span class="meta">hotovo · 0,31 USD</span><a class="lk" href="Design.dc.html">Posoudit</a></div>
+          <div class="say">Navrhla jsem 3 výzkumné otázky a 2 hypotézy. Jsou na Návrhu v liště nahoře; přijímáte je po jedné.</div>
+        </sc-if>
+        <sc-if value="{{dKept}}" hint-placeholder-val="{{ false }}">
+          <div class="lc row kept"><span class="nd" aria-hidden="true"></span><span class="ttl">Analýza zadání</span><span class="meta">ponecháno · nic nespuštěno</span><button class="lk" type="button" onClick="{{dReset}}">Rozbalit</button></div>
+        </sc-if>
+        <sc-if value="{{dStopped}}" hint-placeholder-val="{{ false }}">
+          <div class="lc row"><span class="nd" aria-hidden="true"></span><span class="ttl">Analýza zadání</span><span class="meta">zastaveno · zaplaceno 0,12 USD</span><button class="lk" type="button" onClick="{{dReset}}">Znovu</button></div>
+        </sc-if>
+      </div>
+      <div class="callout">
+        <div><span class="n">1</span><span>Klikněte na <b>Spustit úlohu</b>: karta ztratí korálový obrys, uzel na ose se změní v oběžnici a záznam ukazuje události kroku slovy AIA, jak je krok hlásí (se zapnutým AIA_AI_STEP_EVENTS). Bez nich zůstane „Worker krok převzal“ a uplynulý čas.</span></div>
+        <div><span class="n">2</span><span>Po dokončení se karta <b>složí do řádku</b> s cenou, kterou úloha skutečně stála, a jedním odkazem <b>Posoudit</b>. Ada pod ní řekne, kde návrh najdete.</span></div>
+        <div><span class="n">3</span><span><b>Teď ne</b> kartu složí jako ponechanou; nic se nespustí ani nezaplatí. <b>Zastavit</b> během běhu řekne, kolik se už utratilo.</span></div>
+        <div style="margin-top: 8px"><button class="btn sm" type="button" onClick="{{dReset}}">Začít znovu</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>5 · Karty, které streamují dlouhé procesy</h2>
+    <div class="grid3">
+      <div class="gr"><div class="cap2">Sběr dat · výzkumný běh</div>
+        <div class="lc run"><span class="nd" aria-hidden="true"><thinking-orb size="18" state="working" aria-hidden="true"></thinking-orb></span>
+          <div class="hd"><span class="ic sig" aria-hidden="true"><i class="ph ph-users"></i></span><div><div class="kind">Výzkumný běh · revize 8</div><div class="ttl">Běh AI respondentů</div></div><span class="chip run"><thinking-orb size="28" state="working" aria-hidden="true"></thinking-orb>{{rChip}}</span></div>
+          <div class="prl" aria-hidden="true"><sc-for list="{{rRail}}" as="x" hint-placeholder-count="16"><span class="{{x.c}}"></span></sc-for></div>
+          <div class="rl"><span>sestavení</span><span>sběr</span><span>agregace · mapa</span><span>analýza</span><span>zpráva</span></div>
+          <div class="now2"><span class="tag">{{rTag}}</span><b>{{rStep}}</b></div>
+          <ul class="log" aria-live="polite"><li class="now"><span class="t">{{rT}}</span>{{rLine}}</li></ul>
+          <sc-if value="{{rMods}}" hint-placeholder-val="{{ false }}"><div class="mods"><sc-for list="{{rModL}}" as="m" hint-placeholder-count="8"><span class="{{m.c}}"><i class="dot"></i>{{m.l}}</span></sc-for></div></sc-if>
+          <dl class="fx"><div><dt>Utraceno</dt><dd><b>{{rSpent}}</b><span class="sub">strop běhu 14,60 USD · horní mez, ne odhad</span></dd></div></dl>
+          <div class="ac"><a class="q" href="Fieldwork.dc.html">Průběh</a><a class="p o" href="FieldworkDisc.dc.html"><i class="ph ph-users"></i>Respondenti</a></div>
+        </div>
+        <p class="cap" style="margin-top: 10px">16 kroků běhu jako proužek; u sběru počty respondentů (hlášení po 10), u analýzy stav každého modulu a kolo. Čte stejný záznam jako Průběh.</p>
+      </div>
+      <div class="gr"><div class="cap2">Návrh · hloubkový výzkum</div>
+        <div class="lc run"><span class="nd" aria-hidden="true"><thinking-orb size="18" state="working" aria-hidden="true"></thinking-orb></span>
+          <div class="hd"><span class="ic ai" aria-hidden="true"><i class="ph ph-book-open"></i></span><div><div class="kind">Hloubkový výzkum k návrhu</div><div class="ttl">Trh ležáků 2024–2026</div></div><span class="chip run"><thinking-orb size="28" state="working" aria-hidden="true"></thinking-orb>{{dChip}}</span></div>
+          <div class="prl" aria-hidden="true"><sc-for list="{{dRail}}" as="x" hint-placeholder-count="6"><span class="{{x.c}}"></span></sc-for></div>
+          <div class="rl"><span>plán</span><span>stopy</span><span>sloučení</span><span>ověření</span><span>shrnutí</span><span>zveřejnění</span></div>
+          <div class="now2"><b>{{dStep}}</b></div>
+          <ul class="log" aria-live="polite"><sc-for list="{{dTick}}" as="x" hint-placeholder-count="4"><li class="{{x.cls}}"><span class="t">{{x.t}}</span>{{x.l}}</li></sc-for></ul>
+          <dl class="fx"><div><dt>Zatím</dt><dd><b>{{dCounts}}</b><span class="sub">každé volání je v deníku dřív, než odejde</span></dd></div><div><dt>Cena nejvýše</dt><dd><b>1,20 USD</b><span class="sub">utraceno {{dSpent}}</span></dd></div></dl>
+          <div class="ac"><button class="q" type="button">Zastavit</button></div>
+        </div>
+        <p class="cap" style="margin-top: 10px">Šest kroků s počty z jejich hlášení a poslední volání webu přesně slovy AIA. Událost dnes nese jen druh nástroje a výsledek: kterou adresu a proč AIA odmítla, neukáže (mezera pro vývoj). V chatu se tento běh dnes neukazuje vůbec.</p>
+      </div>
+      <div class="gr"><div class="cap2">Analýza · opakování</div>
+        <div class="lc run"><span class="nd" aria-hidden="true"><thinking-orb size="18" state="working" aria-hidden="true"></thinking-orb></span>
+          <div class="hd"><span class="ic ai" aria-hidden="true"><i class="ph ph-arrow-clockwise"></i></span><div><div class="kind">Opakování analýzy · nad stejnými daty</div><div class="ttl">Zopakovat Hypotézy</div></div><span class="chip run"><thinking-orb size="28" state="working" aria-hidden="true"></thinking-orb>Běží</span></div>
+          <div class="mods"><span class="kk"><i class="dot"></i>Shrnutí</span><span class="kk"><i class="dot"></i>Otázky</span><span class="kk"><i class="dot"></i>Objekty</span><span class="kk"><i class="dot"></i>Skupina</span><span class="r"><i class="dot"></i>Hypotézy</span><span class="kk"><i class="dot"></i>Mapa</span><span class="kk"><i class="dot"></i>Dopady</span><span class="kk"><i class="dot"></i>Omezení</span></div>
+          <ul class="log"><li><span class="t">0:00</span>7 modulů převzato z původního běhu, bez platby</li><li class="now"><span class="t">0:03</span>AI analyzuje modul Hypotézy, kolo 2</li></ul>
+          <dl class="fx"><div><dt>Data</dt><dd><b>původní sběr, ověřený SHA-256</b><span class="sub">sběr se neopakuje</span></dd></div><div><dt>Cena nejvýše</dt><dd><b>0,90 USD</b></dd></div></dl>
+          <div class="ac"><a class="q" href="Analysis.dc.html">Analýza</a></div>
+        </div>
+        <p class="cap" style="margin-top: 10px">Převzaté moduly světle, opakovaný fialově; „kolo“ je kolo analýzy, jak ho krok hlásí.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>6 · Co každá karta potřebuje (podle backendu, d5d36b25)</h2>
+    <table class="mx">
+      <thead><tr><th style="width: 15%">Karta</th><th style="width: 14%">Na krocích</th><th style="width: 20%">Před startem</th><th style="width: 23%">Během (stream)</th><th style="width: 13%">Po konci</th><th>Zvláštní stavy</th></tr></thead>
+      <tbody>
+        <tr><td><b>Návrhová úloha</b><span class="anc">analyze_brief, build/optimize_questionnaire, propose_audience, suggest_dimensions</span></td><td>Zadání, Návrh · Dotazník · Cílová skupina · Dimenze</td><td>cena nejvýše (rezervace: dotaz + 1 oprava), zbývá v rozpočtu, kam návrh přijde</td><td>ve frontě · převzato · dotaz odeslán (1 z nejvýše 2) · model odpověděl: tokeny, cena, sekundy · <span class="gap">jen s AIA_AI_STEP_EVENTS, výchozí vypnuto</span></td><td>skutečná cena; návrh čeká, přijat, zahozen, nahrazen</td><td>čeká na rozpočet · práh potvrzení (409) · zastaralá karta (stale_card) · kontext příliš velký (422)</td></tr>
+        <tr><td><b>Rada</b><span class="anc">critique_design, design_copilot, answer_memory</span></td><td>Návrh · klientské znalosti na Zadání až Vzorku a Výsledcích</td><td>cena nejvýše; „nic nemění“</td><td>jako úloha</td><td>odpověď ke čtení, ne návrh</td><td>znalosti jen schválené, se zdroji</td></tr>
+        <tr><td><b>Výzkumný běh</b><span class="anc">research_run · lead-cards.ts runCard, runRequestPlan</span></td><td>Sběr dat</td><td>připravenost (FAIL brání), mezery potvrzené vlastními slovy, strop běhu, práh potvrzení, zdroj respondentů</td><td>krok x z 16, jméno, AI/kód · sběr: respondenti po 10, z deníku · analýza: modul a kolo</td><td>výsledky ano/ne, skutečná cena</td><td>čeká na rozpočet (jeden lift za běh) · Potřebuje opravu (modul BLOCKED) · zrušeno</td></tr>
+        <tr><td><b>Opakování analýzy</b><span class="anc">analysis_retry</span></td><td>Analýza</td><td>které moduly, cena nejvýše</td><td>převzaté moduly · modul a kolo</td><td>nové výsledky modulů</td><td>analysis_retry_target_moved · bez analyzovaného běhu nelze</td></tr>
+        <tr><td><b>Hloubkový výzkum</b><span class="anc">design_research, interpretation_research</span></td><td>Návrh, Dotazník · Sociomapa, Analýza, Zpráva</td><td>z quote: cena podle druhu, cesty (Wikipedie zdarma, Brave placeně), start_verdict, zda zaparkuje; u výkladu cíl zmrazený podle SHA-256</td><td>6 kroků s počty a volání webu: odesláno, dokončeno, selhalo, bez odpovědi, odmítnuto AIA, z mezipaměti</td><td>zapečetěný balík · „Ověřeno, přidat zdroj“ · „Použít ve zprávě“</td><td class="gap">dnes jen karta „Otevřít“, běh v chatu chybí · live_settings_unapproved · zaparkováno do klasifikace návrhu</td></tr>
+        <tr><td><b>Váš příkaz</b><span class="anc">lead_commands.py: 10 příkazů</span></td><td>composer</td><td>rozpoznáno přesně podle textu; stejné kontroly jako cílová akce</td><td>jako cílová karta</td><td>jako cílová karta</td><td>Peněženka, když je zapnutá · chat_start v ledgeru</td></tr>
+        <tr><td><b>Zapamatovat si</b><span class="anc">self_update</span></td><td>kdekoli</td><td>který soubor, pro všechny klienty, nebo jen tohoto</td><td>—</td><td>zapamatováno / zahozeno</td><td>zastaralé, když se soubor mezitím změnil</td></tr>
+        <tr><td><b>Návrhy změn</b><span class="anc">edits</span></td><td>Zadání, Návrh, Dotazník, Dimenze</td><td>změny po položkách v liště kroku</td><td>—</td><td>přijato / zahozeno; automaticky přijaté s „Vrátit“</td><td>stale_turn · zamčený vstup Sociomapy</td></tr>
+        <tr><td><b>Plán</b><span class="anc">LO4</span></td><td>Návrh</td><td colspan="4" class="gap">Backend zatím nemá: v ledgeru jsou jen rezervované subjekty lead_plan a plan_step. Karta je návrh, ne stav dnešního AIA.</td></tr>
+      </tbody>
+    </table>
+  </section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":5200}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { d: 'ask', p: 0, t: 0 }; }
+  componentDidMount() { this._s = setInterval(() => this.setState({ t: (this.state.t + 1) % 120 }), 700); }
+  componentWillUnmount() { clearInterval(this._i); clearInterval(this._s); }
+  renderVals() {
+    const s = this.state;
+    const F = (k, v, sub) => ({ k, v, s: sub || '' });
+    const LIFE = [
+      { step: 'Čeká na vás', full: true, cls: 'lc you', glyph: true, ndIc: 'ph ph-pause', icCls: 'ic ai', ic: 'ph ph-sparkle', kind: 'Návrhová úloha · AI', title: 'Návrh dotazníku', chip: 'Čeká na vás', chipCls: 'chip you', lead: 'Sestaví bloky a otázky z Návrhu; vaše bloky nepřepíše.', fx: [F('Cena nejvýše', '0,60 USD', 'zbývá 38,80 USD'), F('Výsledek', 'návrh na Dotazníku')], q: 'Teď ne', p: 'Spustit úlohu', pCls: 'p ai', pIc: 'ph ph-sparkle', note: 'Jediný stav s korálovým obrysem.' },
+      { step: 'Běží', full: true, cls: 'lc run', orbNode: true, icCls: 'ic ai', ic: 'ph ph-sparkle', kind: 'Návrhová úloha · AI', title: 'Návrh dotazníku', chip: 'Běží 0:14', chipCls: 'chip run', lead: 'Jeden krok: dotaz modelu a nejvýše jedna oprava podle smlouvy.', log: [['0:00', 'Worker krok převzal', ''], ['0:01', 'Dotaz odeslán modelu', 'now']], fx: [F('Drženo', '0,60 USD', 'zaplatí se jen skutečná cena')], q: 'Zastavit', p: '', note: 'Žádné procento: jen události, jak je krok nahlásí, a uplynulý čas.' },
+      { step: 'Hotovo · složená', row: true, cls: 'lc row done', ndIc: 'ph ph-check', title: 'Návrh dotazníku', meta: 'hotovo · 0,52 USD', p: 'Posoudit', note: 'Jeden řádek: co, kolik to stálo, kam dál.' },
+      { step: 'Čeká na rozpočet', full: true, cls: 'lc park', glyph: true, ndIc: 'ph ph-pause', icCls: 'ic sig', ic: 'ph ph-play', kind: 'Běh výzkumu', title: 'Analýza · Hypotézy', chip: 'Čeká na rozpočet', chipCls: 'chip park', lead: 'Rozpočet studie došel před posledním voláním. Krok drží výsledek, nic se neztratilo.', fx: [F('Potřebuje', '0,90 USD'), F('Zbývá ve studii', '0,32 USD z 50,00')], q: 'Teď ne', p: 'a pokračovat', pCls: 'p', pIc: 'ph ph-wallet', note: 'Korálová: čeká na vaše navýšení.' },
+      { step: 'Selhalo', full: true, cls: 'lc fail', glyph: true, ndIc: 'ph ph-x', icCls: 'ic ai', ic: 'ph ph-sparkle', kind: 'Návrhová úloha · AI', title: 'Návrh audience', chip: 'Selhalo', chipCls: 'chip fail', lead: 'Model dvakrát vrátil odpověď mimo smlouvu; nic se nezapsalo.', fx: [F('Znovu nejvýše', '0,30 USD'), F('Dosud stálo', '0,18 USD', 'zaplaceno za oba pokusy')], q: 'Zahodit', p: 'Zkusit znovu', pCls: 'p o', pIc: 'ph ph-arrow-clockwise', note: 'Proč selhalo slovy, a kolik stojí další pokus.' },
+      { step: 'Ponecháno · složená', row: true, cls: 'lc row kept', ndIc: '', title: 'Rešerše k návrhu', meta: 'ponecháno · nic nespuštěno', p: 'Rozbalit', note: '„Teď ne“ nic nemaže; karta jde kdykoli rozbalit.' }
+    ].map((c) => ({ full: false, row: false, glyph: false, orbNode: false, bar: '', lead: '', log: [], q: '', p: '', pCls: 'p', pIc: '', fx: [], chip: '', chipCls: 'chip', icCls: 'ic', ic: '', kind: '', meta: '', ndIc: '', ...c }));
+    const AMT = { 'Návrh dotazníku': ['0,60 USD'], 'Analýza · Hypotézy': ['+10 USD', true], 'Návrh audience': ['0,30 USD'], 'Analýza zadání': ['0,40 USD'], 'Od návrhu ke sběru dat': ['15,60 USD'], 'Běh výzkumu · revize 8': ['14,60 USD'], 'Rešerše k návrhu': ['1,20 USD'], 'Zopakovat Hypotézy': ['0,90 USD'], 'Zlatá Hora × Budvar': ['1,20 USD'], 'Spusť výzkum': ['14,60 USD'] };
+    const amt = (c) => { const a = c.p ? AMT[c.title] : null; c.pAmt = a ? a[0] : ''; c.amtFirst = !!(a && a[1]); c.amtAfter = !!(a && !a[1]); c.iconOn = !c.amtFirst; return c; };
+    LIFE.forEach((c) => { c.hasLog = c.log.length > 0; c.logL = c.log.map(([t, l, cls]) => ({ t, l, cls })); amt(c); });
+    const st = (l, c, g) => ({ l, c, g: g === 'gate' ? 'g gate' : 'g' });
+    const KINDS = [
+      { where: 'Zadání · Návrh', icCls: 'ic ai', ic: 'ph ph-sparkle', kind: 'Návrhová úloha · AI', title: 'Analýza zadání', lead: 'Navrhne výzkumné otázky a hypotézy; přijímáte je po položkách.', fx: [F('Cena nejvýše', '0,40 USD'), F('Výsledek', 'návrh na Návrhu')], q: 'Teď ne', p: 'Spustit úlohu', pCls: 'p ai', pIc: 'ph ph-sparkle' },
+      { where: 'Návrh · návrh, backend zatím nemá (LO4)', icCls: 'ic sig', ic: 'ph ph-list-checks', kind: 'Plán · 4 kroky, jedno schválení', title: 'Od návrhu ke sběru dat', lead: 'Zastaví se u každé brány, kterou plán nekryje.', hasSteps: true, steps: [st('Návrh dotazníku', '0,60 USD'), st('Přijetí dotazníku · rozhodujete vy', 'zdarma', 'gate'), st('Rešerše k návrhu', '1,20 USD'), st('Sběr dat: 400 AI respondentů', '13,80 USD')], fx: [F('Plán nejvýše', '15,60 USD', 'nad prahem potvrzení 10,00 USD')], q: 'Teď ne', p: 'Schválit plán', pCls: 'p', pIc: 'ph ph-check' },
+      { where: 'Vzorek · Sběr dat', icCls: 'ic sig', ic: 'ph ph-users', kind: 'Spuštění výzkumu', title: 'Běh výzkumu · revize 8', lead: '22 otázek, 1 sada o 7 značkách. Odpovídá 400 AI respondentů z populace.', fx: [F('Cena nejvýše', '14,60 USD', 'horní mez, ne odhad'), F('Rozpočet studie', 'zbývá 38,80 USD z 50,00')], q: 'Teď ne', p: 'Spustit výzkum', pCls: 'p', pIc: 'ph ph-play' },
+      { where: 'Dotazník', icCls: 'ic ai', ic: 'ph ph-book-open', kind: 'Rešerše · veřejný web', title: 'Rešerše k návrhu', lead: 'Veřejné zdroje k trhu ležáků; navrhne výroky do sady, nic nezapíše.', fx: [F('Cena nejvýše', '1,20 USD', 'z nabídky AIA (quote), podle schválených nastavení'), F('Zdroje', 'Wikipedie CZ/EN zdarma · Brave placeně'), F('Data', 'jen třída C: důvěrné podklady neodcházejí')], q: 'Teď ne', p: 'Spustit rešerši', pCls: 'p ai', pIc: 'ph ph-sparkle' },
+      { where: 'Analýza', icCls: 'ic ai', ic: 'ph ph-arrow-clockwise', kind: 'Opakování analýzy', title: 'Zopakovat Hypotézy', lead: 'Nové kolo jen pro část, která selhala, nad stejnými daty; sběr se neopakuje.', fx: [F('Cena nejvýše', '0,90 USD'), F('Hotové části', 'zůstanou, neplatí se znovu')], q: 'Teď ne', p: 'Zopakovat', pCls: 'p ai', pIc: 'ph ph-arrow-clockwise' },
+      { where: 'Sociomapa · Analýza', icCls: 'ic ai', ic: 'ph ph-book-open', kind: 'Rešerše k výkladu', title: 'Zlatá Hora × Budvar', lead: 'Hledá veřejné vysvětlení, proč jsou na mapě blízko. Mapu ani data nezmění.', fx: [F('Cena nejvýše', '1,20 USD'), F('Cíl', 'dvojice na mapě běhu 21. 10.', 'zmrazená: artefakty podle SHA-256'), F('Výsledek', 'zjištění ke zprávě, s citacemi')], q: 'Teď ne', p: 'Spustit rešerši', pCls: 'p ai', pIc: 'ph ph-sparkle' },
+      { where: 'kterýkoli krok', icCls: 'ic', ic: 'ph ph-bookmark-simple', kind: 'Zapamatovat si', title: 'Pro všechnu vaši práci', lead: '„Výzkumné otázky píšu jako otázky, ne jako cíle.“ Platí pro všechny klienty.', fx: [F('Kam', 'USER.md · Můj Vedoucí'), F('Cena', 'zdarma')], q: 'Zahodit', p: 'Pamatovat si', pCls: 'p', pIc: 'ph ph-bookmark-simple' },
+      { where: 'composer · napsaný start', icCls: 'ic sig', ic: 'ph ph-play', kind: 'Váš příkaz', title: 'Spusť výzkum', lead: 'Rozpoznáno přesně podle textu, model se na nic neptal. Stejné kontroly jako na Sběru dat.', fx: [F('Cena nejvýše', '14,60 USD')], q: 'Teď ne', p: 'Spustit výzkum', pCls: 'p', pIc: 'ph ph-play' },
+      { where: 'Návrh · Dotazník', icCls: 'ic ai', ic: 'ph ph-pencil-simple', kind: 'Návrhy změn', title: '3 změny v Návrhu', lead: 'Hypotéza H2, otázka VO3, znění Q7. Rozhodujete po jedné v liště nad krokem.', fx: [F('Kde', 'lišta na kroku Návrh'), F('Cena', 'zdarma, už zaplaceno')], q: 'Zahodit vše', p: 'Otevřít lištu', pCls: 'p o', pIc: 'ph ph-arrow-square-out' }
+    ].map((c) => amt({ hasSteps: false, steps: [], ...c, steps: (c.steps || []).map((x) => x) }));
+    const go = () => {
+      this.setState({ d: 'run', p: 0 }); clearInterval(this._i);
+      this._i = setInterval(() => { const p = this.state.p + 1; if (p >= 5) { clearInterval(this._i); this.setState({ d: 'done', p: 5 }); } else this.setState({ p }); }, 600);
+    };
+    const EV = [['0:00', 'Ve frontě'], ['0:01', 'Worker krok převzal'], ['0:01', 'Dotaz odeslán modelu'], ['0:09', 'Model odpověděl · 6 240 → 1 380 tokenů · 0,31 USD · 8,4 s'], ['0:10', 'Krok dokončen']];
+    const T = s.t, mm = (x) => Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0');
+    const at = T < 6 ? Math.floor(T / 3) : T < 46 ? 2 : T < 52 ? 3 + Math.floor((T - 46) / 3) : T < 100 ? 5 + Math.floor((T - 52) / 6) : Math.min(15, 13 + Math.floor((T - 100) / 7));
+    const resp = at === 2 ? Math.min(400, Math.floor((T - 6) / 4) * 40) : at > 2 ? 400 : 0;
+    const MOD = ['Shrnutí', 'Otázky', 'Objekty', 'Skupina', 'Hypotézy', 'Mapa', 'Dopady', 'Omezení'];
+    const SN = ['Sestavení dotazníku', 'Kontrola připravenosti', 'Sběr dat: 400 AI respondentů', 'Agregace', 'Sociomapa', ...MOD.map((m) => 'Analýza · ' + m), 'Interní zpráva', 'PDF zprávy', 'Sociomapping (experimentální)'];
+    const ai = at === 2 || (at >= 5 && at <= 12);
+    const rLine = at === 2 ? 'Odpovědělo ' + resp + ' z 400 respondentů' : at >= 5 && at <= 12 ? 'AI analyzuje modul ' + MOD[at - 5] + ', kolo 1' : 'Krok běží; zatím nic nehlásil.';
+    const dAt = Math.min(5, Math.floor(T / 20));
+    const TOOLS = [['Vyhledávání dokončeno', ''], ['Stažení stránky dokončeno', ''], ['Stažení stránky odmítnuto AIA', 'warn'], ['Vyhledávání dokončeno', ''], ['Stažení stránky z mezipaměti', ''], ['Stopa 3, kolo 2: 4 akcí', '']];
+    const DS = ['Plán: 5 stop k prozkoumání, 1 převzato z dřívějška, 0 blokováno', 'Prozkoumávání stop: ' + Math.min(5, 1 + Math.floor((T % 20) / 4)) + ' z 5', 'Sloučeno: 23 kandidátů, 2 v karanténě', 'Ověřeno: 14 přijato, 7 odmítnuto', 'Shrnutí: 6 zjištění, 1 vyřazeno', 'Zveřejněno: 14 přijatých podkladů'];
+    const calls = Math.min(31, Math.floor(T / 3));
+    const tick = TOOLS.slice(0, 1 + (T % 6)).slice(-4);
+    return {
+      theme: this.props.theme ?? 'light',
+      rRail: Array.from({ length: 16 }, (_, i) => ({ c: i < at ? 'd' : i === at ? 'r' : '' })), rStep: 'Krok ' + (at + 1) + ' z 16 · ' + SN[at], rTag: ai ? 'AI model' : 'kód', rChip: 'Běží ' + mm(T * 7), rT: mm(T * 7), rLine,
+      rMods: at >= 5, rModL: MOD.map((l, i) => ({ l, c: at > 5 + i ? 'd' : at === 5 + i ? 'r' : '' })), rSpent: (Math.min(14.2, 0.1 + resp * 0.0275 + Math.max(0, at - 4) * 0.12)).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD',
+      dRail: Array.from({ length: 6 }, (_, i) => ({ c: i < dAt ? 'd' : i === dAt ? 'r' : '' })), dStep: DS[dAt], dChip: 'Běží ' + mm(T * 5),
+      dTick: tick.map(([l, c], i) => ({ l, cls: (i === tick.length - 1 ? 'now ' : '') + c, t: mm(Math.max(0, T * 5 - (tick.length - 1 - i) * 4)) })),
+      dCounts: calls + ' volání webu · ' + Math.floor(calls / 3) + ' dotazů modelu', dSpent: (calls * 0.012 + Math.floor(calls / 3) * 0.02).toLocaleString('cs-CZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' USD',
+      life: LIFE, kinds: KINDS,
+      dAsk: s.d === 'ask', dRun: s.d === 'run', dDone: s.d === 'done', dKept: s.d === 'kept', dStopped: s.d === 'stopped',
+      dLog: EV.slice(0, Math.max(1, s.p + 1)).map(([t, l], i, a) => ({ t, l, cls: i === a.length - 1 ? 'now' : '' })),
+      dGo: go, dLater: () => this.setState({ d: 'kept' }), dStop: () => { clearInterval(this._i); this.setState({ d: 'stopped' }); }, dReset: () => { clearInterval(this._i); this.setState({ d: 'ask', p: 0 }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
