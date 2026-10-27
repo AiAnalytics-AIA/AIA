@@ -117,6 +117,10 @@ class SupportForecast:
         if self.analysis is SupportStatus.INDICATIVE:
             return ReportableState.INDICATIVE
         if self.reportable_n is None:
+            # A panel forecast never searches for a sufficient n (each candidate would draw the
+            # population again), so its missing n is unknown, never a search that found nothing.
+            if self.persona_source is PersonaSource.PANEL:
+                return ReportableState.UNKNOWN
             return ReportableState.NOT_FOUND
         return ReportableState.NEEDS_MORE
 
