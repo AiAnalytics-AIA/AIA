@@ -123,7 +123,8 @@
       "prompt-caching",
       "run-recovery-and-truth",
       "connected-research-assurance",
-      "desktop-ux-overhaul-handoff"
+      "desktop-ux-overhaul-handoff",
+      "design-system-v2"
     ]
   },
   "done_keywords": [
@@ -258,11 +259,6 @@
         "t": "UX upgrade of every prototype (done, core v4.3), exported to the repo, and draft PR #1022 (tokens, components)",
         "who": "design-system session",
         "note": "Prototypes on core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
-      },
-      {
-        "t": "#1036 prototypes into undated folders",
-        "who": "merge gate",
-        "note": "Approved by Nigel; one re-run of a flaky web test queued; merges when green"
       },
       {
         "t": "Read-only AWS access for the audit",
