@@ -43,13 +43,16 @@ README names its current version.
    quality 88 into the folder's `reference/`, with `renders.json`. A page:
    `tools/prototype_renders/pages.js`. Check every render: no script error, and each failed request
    explained.
-6. **Check.** `make exposure_check`: no client-identifying name, even by chance inside a base64 run (move
-   such an image out to a file). Nothing secret, no real client data.
-7. **Commit and merge.** Author `nigelblount <nigelblount@art-chain.io>` with the session's trailers. The
+6. **Index.** Only when a folder is new or retired: add or remove its row in `prototypes/README.md`, in this
+   same change, so the export and its entry land together.
+7. **Stage, then check.** `git add -A` the folder (and the index, if it changed) first: `make
+   exposure_check` reads the files git tracks, so an unstaged new file goes unchecked. It must pass before
+   anything is committed: no client-identifying name, even by chance inside a base64 run (move such an
+   image out to a file). Nothing secret, no real client data.
+8. **Commit and merge.** Author `nigelblount <nigelblount@art-chain.io>` with the session's trailers. The
    subject says what changed in the artifact, not "export". Open the PR into `develop`, ready (not a
    draft), titled the same; then merge it with a merge commit once CI is green and Codex is clean on the
    head. A failure in code the export doesn't touch is not the export's; say so on the PR and re-run once.
-8. **Index.** Only when a folder is new or retired: add or remove its row in `prototypes/README.md`.
 
 ## Publishing an artifact from the repo
 
