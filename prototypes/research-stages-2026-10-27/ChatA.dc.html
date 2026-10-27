@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Chat A – Přepis</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+.ca .turn{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:20px}
+.ca .turn.me{background:var(--stint)}
+.ca .who{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--faint)}
+.ca .who b{color:var(--ink);font-weight:600}
+.ca .av{width:20px;height:20px;border-radius:3px;display:grid;place-items:center;flex:none}
+.ca .av.l{background:var(--shell);color:var(--ai)}
+.ca .av.p{background:var(--sedge);color:var(--signal);font-size:10px;font-weight:600}
+</style>
+</helmet>
+<div class="aia wb ca" data-theme="{{theme}}" style="width: 440px; min-width: 440px; height: 900px; min-height: 900px; flex-direction: column; border-right: 1px solid var(--border)">
+  <div class="row" style="padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--raised); flex: none">
+    <span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span>
+    <div class="grow"><b style="font-size: 14px">Vedoucí výzkumu</b><div><span class="sees"><i class="ph ph-eye s"></i>Vidí: Zadání · revize 7</span></div></div>
+    <button class="btn quiet ic" type="button" aria-label="Můj Vedoucí"><i class="ph ph-user"></i></button>
+  </div>
+  <div style="flex: 1; overflow-y: auto; background: var(--raised)" aria-live="polite">
+    <div class="day" style="padding: 10px 16px 0">Dnes</div>
+    <div class="turn">
+      <div class="who"><span class="av l" aria-hidden="true"><i class="ph ph-sparkle s"></i></span><b>Vedoucí</b>9:12 · četl revizi 7</div>
+      <p>Zadání je skoro úplné. Chybí rozhodnutí, které má výzkum podpořit: bez něj nevím, mezi čím budete volit, a návrh by byl obecný.</p>
+      <div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Rozhodnutí</button></div>
+    </div>
+    <div class="turn me">
+      <div class="who"><span class="av p" aria-hidden="true">JM</span><b>Vy</b>9:14</div>
+      <p>Analyzuj zadání</p>
+    </div>
+    <div class="turn">
+      <div class="who"><span class="av l" aria-hidden="true"><i class="ph ph-sparkle s"></i></span><b>Vedoucí</b>9:14 · připravil úlohu</div>
+      <div class="{{card.cls}}">
+        <div class="ch"><span class="ico"><i class="ph ph-sparkle"></i></span><div class="grow"><div class="ttl">Analýza zadání</div></div><span class="{{card.pill}}"><span class="{{card.gl}}" aria-hidden="true"><i class="{{card.ic}}"></i></span>{{card.word}}</span></div>
+        <sc-if value="{{card.running}}" hint-placeholder-val="{{ false }}"><div class="prog"><i style="width: 55%"></i></div></sc-if>
+        <dl class="facts"><dt>Cena nejvýše</dt><dd class="key">0,40 USD</dd><dt>{{card.k}}</dt><dd>{{card.v}}</dd></dl>
+        <div class="acts"><sc-if value="{{card.ask}}" hint-placeholder-val="{{ true }}"><button class="btn quiet sm" type="button" onClick="{{card.later}}">Teď ne</button><span class="grow"></span><button class="btn ai sm" type="button" onClick="{{card.go}}"><i class="ph ph-sparkle s"></i>Spustit úlohu</button></sc-if><sc-if value="{{card.done}}" hint-placeholder-val="{{ false }}"><span class="grow"></span><a class="btn primary sm" href="Design.dc.html">Posoudit na Návrhu</a></sc-if></div>
+      </div>
+    </div>
+    <sc-for list="{{extra}}" as="t" hint-placeholder-count="0">
+      <div class="{{t.cls}}"><div class="who"><span class="{{t.av}}" aria-hidden="true">{{t.ini}}</span><b>{{t.who}}</b>{{t.time}}</div><p>{{t.text}}</p></div>
+    </sc-for>
+  </div>
+  <div class="composer" style="flex: none">
+    <div class="cmds" aria-label="Příkazy"><button type="button">Analyzuj zadání</button><button type="button">Zkontroluj návrh</button></div>
+    <div class="box"><label class="sr" for="cmp">Zpráva Vedoucímu</label><textarea id="cmp" rows="1" placeholder="Napište Vedoucímu…" value="{{draft}}" onChange="{{setDraft}}"></textarea><button class="btn quiet ic" type="button" aria-label="Ukázat na prvek (@)"><i class="ph ph-at"></i></button><button class="send" type="button" aria-label="Odeslat" onClick="{{send}}"><i class="ph ph-paper-plane-right"></i></button></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { card: 'ask', draft: '', extra: [] }; }
+  componentWillUnmount() { clearTimeout(this._c); }
+  renderVals() {
+    const s = this.state;
+    const C = { ask: ['lc ai you', 'pill you', 'Čeká na vás', 'stg sm youq', 'ph ph-pause', 'Výsledek', 'návrh na kroku Návrh'], run: ['lc ai', 'pill run', 'Běží', 'stg sm run', '', 'Právě', 'čte zadání a 2 podklady'], done: ['lc ai', 'pill done', 'Hotovo', 'stg sm done', 'ph ph-check', 'Stálo', '0,31 USD · 3 otázky, 2 hypotézy'], kept: ['lc dec', 'pill', 'Ponecháno', 'stg sm dash', '', 'Výsledek', 'nic nespuštěno'] }[s.card];
+    return {
+      theme: this.props.theme ?? 'light',
+      card: { cls: C[0], pill: C[1], word: C[2], gl: C[3], ic: C[4], k: C[5], v: C[6], ask: s.card === 'ask', running: s.card === 'run', done: s.card === 'done',
+        later: () => this.setState({ card: 'kept' }), go: () => { this.setState({ card: 'run' }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ card: 'done' }), 2000); } },
+      draft: s.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
+      send: () => { const t = s.draft.trim(); if (!t) return; this.setState({ draft: '', extra: [...s.extra, { me: true, text: t }, { me: false, text: 'Rozumím. Než to změním, ukážu návrh v liště nad krokem.' }] }); },
+      extra: s.extra.map((m) => ({ cls: m.me ? 'turn me' : 'turn', av: m.me ? 'av p' : 'av l', ini: m.me ? 'JM' : 'V', who: m.me ? 'Vy' : 'Vedoucí', time: 'teď', text: m.text }))
+    };
+  }
+}
+</script>
+</body>
+</html>
