@@ -8,9 +8,9 @@ number in it is fictional.
 | | |
 |---|---|
 | Live canvas (private to the owner's account) | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> |
-| Exported version | v18, artifact version `1793095242-1377`, 27 Oct 2026 |
+| Exported version | v19, artifact version `1793098739-e444`, 27 Oct 2026 |
 | Code the analysis is anchored to | `develop` @ `a1a9a45c` (anchors re-checked @ `dbaa7720`) |
-| Core stylesheet | `assets/aia-core-v4.2.css`: core v4.2 (Petrol), owned by the design-system session; SHA-256 `b6bb5edfe2bae6f28d95e313831eb8fb1772695b50cf54dd5f4e11f6a16e103d`. It is not `../shared/aia-core.css` (core v3) |
+| Core stylesheet | `assets/aia-core-v4.3.css`: core v4.3 (Petrol), owned by the design-system session; SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`. It is not `../shared/aia-core.css` (core v3) |
 | Client stylesheet | `assets/aia-client.css`: scoped under `.cl`, built only on core variables, redefines no core class |
 
 Read the `.dc.html` files as source, as `../README.md` § "How to read a `.dc.html` file" describes:
@@ -48,6 +48,5 @@ with `file:line`, mapped to where it is in the prototype.
 ## Still open
 
 - **NO BACKEND (11 items),** listed on board 0 with anchors. Among them: nested folders, deleting a knowledge item, dropping GREEN from the label enum with a migration, people's names instead of ids, a link as a client source, the study folders filled on their own, and the "nejvýše" price of AI proposals from a document.
-- **The left rail's hover text is white on the light rail** in core v4.2, so it cannot be read. The design-system session owns the fix; this snapshot still has the bug.
 - **"Použít jako základ nového výzkumu" in the study header** belongs to the research-stages canvas and is not drawn here.
 - **Drag-and-drop filing and keeping Výzkumy's filter and order in the URL** are drawn here and not yet built in the product.
