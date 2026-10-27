@@ -326,6 +326,39 @@ place in the chapter, drawn from #517's renderer.
 - **Client reports show the `-5` respondent map** beside its two object-map views.
 - **"Klienti"** is the team's own client handling.
 
+### The terrain under inverse-distance weighting (the methodology owner, 2026-10-26)
+
+- **The `-5` object terrain is the objects' relative heights weighted by inverse distance, as the
+  Sociomapy app interpolates them** (`framed_relative_idw`): z(q) = Σ_j w_j t_j / Σ_j w_j,
+  w_j = d_j^(−p), p = `terrain.idw_power` = 3, on the same framed grid, Relativní and Absolutní
+  alike. The terrain at an object is its own height, beside a taller one too; every other point is
+  a weighted mean of the objects, far from them as well.
+- **Selectable:** the same under the hills' falloff (`framed_relative_idw_falloff`, × max_j
+  exp(−d_j² / 2σ²), σ = 0.25: far from every object, ground; a replaced kernel shapes the falloff)
+  and the envelope (`framed_relative_envelope`, no power). The hill width and the kernel do not
+  enter the plain weighted mean.
+- **Both inverse-distance terrains are stored** (Nigel, 2026-10-27): a run under either stores the
+  other beside it, and the map switches between them, opened on plain IDW. Plain IDW fills empty
+  space with the nearest objects' height (the 8-object `complete` study's bottom-left corner reads
+  about 0.9); the falloff keeps each object at its own height and lets empty space fall to ground.
+- **`terrain.idw_power` lies in (0, 10]**: above that, 1 / d^p underflows or overflows on a map's
+  grid (200 fails with a division by zero, 1e6 with an overflow), in the spec and Metodika alike.
+- **Report figures** print the version's own terrain (under `-5`, plain IDW) and say which terrain
+  they show. Letting the study's lead researcher choose the terrain of a report's map figures
+  (internal and client) is a later chunk.
+- **Why** (evidence in the methodology folder's project, `NPC_Panel/analysis/idw_terrain/`, five
+  maps): the envelope lifted 0–4 objects per real map by up to 0.33 of the scale next to a taller
+  neighbour; none is lifted under inverse-distance weighting. Chosen knowingly over the falloff
+  variant (first signed off the same day): plain weighting brings back plateaus (56–80 % of cells
+  within 0.10 of the nearest object; the envelope 18–28 %) and raises ground far from every object
+  to 0.51–0.72, on 0.1–3.7 % of the cells.
+- **The register approves the new `-5` fingerprint** (`b2992c12…`) client-facing beside the
+  `959a5877…` entry, which runs stored before the change keep. `-2`, `-3` and `-4` are unchanged.
+- **Metodika** shows the weighted mean and its falloff variant as steps after the envelope's, with
+  `terrain.idw_power` (in (0, 10]) among the terrain's parameters; the terrain parity fixture
+  (`signed_off_terrain.json`) was produced again by the methodology's own code. The web's `-5`
+  fixture stays a stored map of the envelope: a run stored before the change.
+
 ## Chunk 10 ticked (2026-10-26, docs PR)
 
 Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backends' SB1: the Metodik mark (`PUT /members/{user_id}/methodologist`, `apps/api/src/aia_api/routers/scope.py:806-821 @ 40b16d58`), and `MethodologyRepository` requiring it before any methodology change (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:233-237 @ 40b16d58`, `require_methodologist`). The Settings gap map recorded the drift (SOSM#10 open although SB1 shipped).
