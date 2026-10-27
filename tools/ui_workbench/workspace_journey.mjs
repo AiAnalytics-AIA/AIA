@@ -197,21 +197,22 @@ await text("https://example.test/fiktivni", "the added link");
 ok("Zadání: a link's problem said at its field, cleared as it is typed, the link added (A26)");
 await shot("1-brief");
 
-// 2. Dotazník: AIA's template, imported back.
+// 2. Dotazník: one editor, one way in (the product owner, 2026-10-26). A new study opens on the
+// editor, with none of 18.6.6's three paths, and a question typed in its row is read back after a reload.
 await page.goto(stage("questionnaire"), { waitUntil: "load", timeout: 120000 });
-await page.getByRole("button", { name: /Nahrát Excel/ }).click({ timeout: 60000 });
-const [templateDownload] = await Promise.all([page.waitForEvent("download", { timeout: 60000 }), page.getByRole("button", { name: "Stáhnout XLSX šablonu" }).click()]);
-const templatePath = join(OUT, "sablona.xlsx");
-writeFileSync(templatePath, readFileSync(await templateDownload.path()));
-if (!readFileSync(templatePath).subarray(0, 2).equals(Buffer.from("PK"))) fail("the template is not a workbook");
-ok("Dotazník: AIA's template downloads");
-const imported = saved();
-await page.locator('input[type="file"][aria-label="Vyplněný XLSX / CSV"]').setInputFiles(templatePath);
-await text("Načteno: 2 otázky · 1 sledovaná sada", "the import's summary");
-await imported;
+await text("Dotazník je prázdný", "the empty editor a new study opens on");
+for (const gone of ["Nahrát Excel", "Sestavit ručně", "Sestavit s AI"]) {
+  if (await page.getByText(gone, { exact: true }).count()) fail(`Dotazník still offers "${gone}"`);
+}
+const added = saved();
+await page.getByRole("button", { name: "Nová otázka" }).first().click();
+const row = page.getByRole("textbox", { name: "Nová otázka" }).first();
+await row.fill("Jak často pijete limonády?");
+await row.press("Enter");
+await added;
 await page.reload({ waitUntil: "load" });
-await text("2 otázky · 1 sledovaná sada", "the imported questionnaire after a reload");
-ok("Dotazník: the template imports in AIA and the questionnaire is read back after a reload");
+await text("1 otázka · 0 sledovaných sad", "the added question after a reload");
+ok("Dotazník: opens on the one editor, no path to choose, a question added and read back after a reload");
 await shot("2-questionnaire");
 
 // 2b. Dotazník: a scale on the 1–10 preset with a label on every point (input-interactions 3b2),

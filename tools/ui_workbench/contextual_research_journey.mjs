@@ -83,7 +83,7 @@ try {
   assert.equal(await question.inputValue(), "Unfinished contextual question");
   await layout("desktop light panel"); await page.screenshot({ path: join(out, "desktop-panel.png"), animations: "disabled" });
   await page.keyboard.press("Escape");
-  await interaction("First navigation to usable questionnaire controls", page.locator(`a[href="${new URL(stage("questionnaire")).pathname}"]`).first(), '[aria-labelledby="q-choose"] button, [aria-labelledby="q-upload"] button, [aria-labelledby="q-ai"] button');
+  await interaction("First navigation to usable questionnaire controls", page.locator(`a[href="${new URL(stage("questionnaire")).pathname}"]`).first(), '[aria-labelledby="q-final"] summary');
   await interaction("Open draft on another stage", page.getByRole("button", { name: "Zeptat se na návrh", exact: true }), "[data-assistance-panel]");
   assert.equal(await question.inputValue(), "Unfinished contextual question");
   checks.push("Contextual prefill never submits; closing and stage navigation preserve drafts and return focus");

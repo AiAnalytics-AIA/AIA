@@ -361,6 +361,28 @@ first), and every way out (Uložit, Zrušit, Escape, Odebrat podmínku) puts foc
 left in the condition's box, else to the question's wording (never a type chip). Test: `QuestionnaireStep.test.tsx` "moves focus
 into the condition form and back to its button when it closes" (all four ways out).
 
+*Finding QF-19 (browser audit, 2026-10-25):* below 1100 px a Lead card's "Zkontrolovat návrh" opened the
+proposal review under the Lead's drawer or sheet, so "Použít návrh" and "Zahodit" were hidden and focus
+stayed in the drawer (768 and 390 px). Coordinator-owned (the Lead's cards); fixed by the integration
+coordinator in #913 (`81b5bf7c`: the drawer steps aside with "Zpět k Vedoucímu", the review takes focus;
+`lead_stale_journey.mjs` checks it at 390 px too).
+
+*QST12, one questionnaire editor (the product owner, 2026-10-26, through the PM; the chunk is in #923):* "in the questionnaire
+there is no nahrat excel, sestavit rucne, sestavit with ai, because we only need one interface to create
+the question … the user can also upload an excel to the lead researcher and the lead researcher will create
+the questionnaire". Dotazník drew 18.6.6's chooser for a new study (`questionnaire_path` "choose",
+`research_template.py:82`) and a "Způsob" switch after it (`QuestionnaireStep.tsx` `Choose`, `Upload`,
+`AiOnExisting` @ ce25a1b8). Change (feature/questionnaire-one-editor): the stage always draws the editor,
+in the classic layout too; the upload card, the template download, the AI build card and the switch are
+gone, with `questionnaireView`, `applyImport`, `buildPayload`, `applyBuilt` and their copy. A deliberate
+deviation from 18.6.6, pinned in `questionnaire.parity.test.ts` ("the classic draws three paths; AIA draws
+none of them"). `questionnaire_path` is still written (Návrh's way on, `plan.ts` toQuestionnaire, kept to
+parity) and no longer read. The API's questionnaire-import and template routes stay: LO18b's file in the
+Lead's composer is their next reader, and #826/#833's refusal words move to the Lead's failed-import
+message there. Ships with lead-orchestration#LO18b (draft until then); QST12 is ticked when it lands. Tests: `QuestionnaireStep.test.tsx` (a new study at
+"choose" opens on the editor), `QuestionnaireOneEditor.workbench.test.tsx`, `workspace_journey.mjs`
+step 2.
+
 *QST11, the respondent preview at the real range (spec navrh/Q5; the chunk is in #923):* the preview drew every
 scale 1-10 (`ScaleBoxes` defaulted to 1..10 and was called without a range, `QuestionnaireStep.tsx:366` @ 6ac58d51)
 and cut at fourteen items, eight options and two set rows without a word (`questionnaire.ts:113-160` @ 6ac58d51).
@@ -423,6 +445,8 @@ menu inside the page at 1440/1100/768/390) and `workspace_journey.mjs`.
 - open-items.md: number QF-18 (the condition editor drops keyboard focus), closed by fix/questionnaire-condition-focus.
 - Register this plan and its chunks. `research-lead-workbench#7`'s questionnaire half is QST5.
 - open-items.md: number QF-15 (an import replaced the questionnaire with no way back), closed by fix/questionnaire-import-undo.
+- open-items.md: number QF-19 (a card's review hidden under the Lead's drawer below 1100 px), closed by #913.
+- CLAUDE.md § 2 map, QuestionnaireStep / questionnaire.ts: Dotazník draws one editor; no chooser, upload or AI build on the stage (QST12, the product owner 2026-10-26); a file reaches the questionnaire through the Lead (LO18b).
 - CLAUDE.md § 2 map, QuestionCondition.tsx: with routing known off, a question that could take a condition shows it disabled with the reason (QST4, R9). Tracked sets: no familiarity switch; a stored one says the run refuses it, with Vypnout.
 - CLAUDE.md § map, domain/research_agents.py: "build and optimize read external_context_not_evidence (with_external_context, EXTERNAL_ACTIONS; trimmed to the 64 KB bound, a bundle that does not read named), the newest Design Research findings, never evidence, with EXTERNAL_RAIL on the system prompt whenever the layer is there (QST13)"; application/research.py: "ResearchAgentJobs(external_store=): with the API's AIA_AI_ANALYSIS_EXTERNAL_CONTEXT a questionnaire job freezes the study's pinned Design Research findings, read by analysis_results._external_context".
 

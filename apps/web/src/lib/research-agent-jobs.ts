@@ -11,7 +11,7 @@ import { withFixer } from "./route-refusal";
  * runs. Deep research has no action yet (ADR 0017): asking for it says so.
  */
 export const ACTIONS = {
-  researchAnalyze: "analyze_brief", researchBuildQuestionnaire: "build_questionnaire",
+  researchAnalyze: "analyze_brief",
   questionnaireOptimize: "optimize_questionnaire", audiencePropose: "propose_audience",
   personaSuggest: "suggest_dimensions",
 } as const satisfies Record<string, ResearchAgentAction>;

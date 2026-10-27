@@ -509,13 +509,6 @@ export type WorkingSave = { study_id: string; state: ContentState; revision: num
 /** A batch of edits saved (POST …/workspace/ops, WCE3a): the save, and the copy as AIA now holds it. */
 export type WorkingOpsSave = WorkingSave & { content: Record<string, unknown>; analysis: Record<string, unknown> | null };
 
-/** A filled-in questionnaire template, read by AIA (QuestionnaireImportResponse). */
-export type QuestionnaireImport = {
-  sections: Record<string, unknown>[];
-  summary: { question_count: number; tracked_sets: number; sections: number };
-  filename: string;
-};
-
 /** What the brief keeps of an attached file (AttachmentResponse): never where it is stored. */
 export type AttachmentRecord = {
   kind: "file";
@@ -924,9 +917,6 @@ export const workspace = {
     requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/attachments/${enc(attachmentId)}`),
   /** Each of the brief's files and links, as saved, with the data class its rule gives it (artifact-brief BRF3). */
   materials: (studyId: string) => request<BriefMaterials>("GET", `/api/v1/studies/${enc(studyId)}/workspace/materials`),
-  importQuestionnaire: (studyId: string, body: { filename: string; data_b64: string }) =>
-    request<QuestionnaireImport>("POST", `/api/v1/studies/${enc(studyId)}/workspace/questionnaire-import`, body),
-  questionnaireTemplate: (studyId: string) => requestBlob(`/api/v1/studies/${enc(studyId)}/workspace/questionnaire-template`),
   /** What the study inherits: its own client's approved knowledge (ADR 0015 decision 7). */
   studyContext: (studyId: string) =>
     request<{ client_id: string; shared: Record<string, unknown>; client: KnowledgeItem[] }>("GET", `/api/v1/studies/${enc(studyId)}/context`),

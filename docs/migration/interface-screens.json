@@ -79,7 +79,7 @@
    "react_path": "/app/clients/<client>/research/<id>/questionnaire",
    "unit_routes": [],
    "fixture": "questionnaire",
-   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The choose, upload and AI views are covered by QuestionnaireStep.test.tsx. Differences are listed in .planning/plans/research-flow-rehome.md. The file import and the template are AIA's (POST .../workspace/questionnaire-import, GET .../workspace/questionnaire-template, ADR 0018); the classic 'Metodika pro externí AI' link pointed at a file the unit never served and is gone, the template's NAVOD sheet being the guide."
+   "notes": "Captured on the `questionnaire` fixture beside the classic step opened on the same project: 1 classic text missing at 1440 and 1024, \"AI: zlepšit blok\", left out on purpose because it does nothing in the classic interface (OI-49). The classic's choose, upload and AI views are retired: AIA draws one editor and a file or a draft comes from the Lead (the product owner, 2026-10-26; QuestionnaireStep.test.tsx, questionnaire.parity.test.ts). Differences are listed in .planning/plans/research-flow-rehome.md. The file import and the template stay AIA's routes for the Lead (POST .../workspace/questionnaire-import, GET .../workspace/questionnaire-template, ADR 0018); the classic 'Metodika pro externí AI' link pointed at a file the unit never served and is gone, the template's NAVOD sheet being the guide."
   },
   {
    "id": "route-audience",

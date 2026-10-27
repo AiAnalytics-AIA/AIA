@@ -1,11 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from "vitest";
 
-import { AGENTS_PATH, NATIVE_JOB_WAIT, NATIVE_TEST_TIMEOUT_MS, PARK_MESSAGE, approveProposal, nativeAgentFixture } from "./test-native-agents";
-import { briefFingerprint, defaultsMerge } from "@/research/model";
+import { AGENTS_PATH, NATIVE_TEST_TIMEOUT_MS, approveProposal, nativeAgentFixture } from "./test-native-agents";
 import { FrameNavigation } from "../step";
 import { ResearchScreen } from "./ResearchScreen";
 import { type SavedBody, workspaceFixture } from "./test-workspace";
@@ -18,8 +15,6 @@ const push = vi.fn();
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({ usePathname: () => "/app/clients/CLI-1/research/STU-1/questionnaire", useRouter: () => ({ push, replace }) }));
 
-const EMPTY = JSON.parse(readFileSync(join(process.cwd(), "src/research/fixtures/empty-project.json"), "utf8"));
-const TEMPLATE = { empty_project: EMPTY };
 const SECTIONS = [
   { id: "sec_a", type: "questions", title: "Hlavní otázky", purpose: "", questions: [
     { id: "Q1", text: "Jak často?", typ: "vyber", kategorie: ["Denně", "Týdně"] },
@@ -86,35 +81,28 @@ afterEach(() => {
 });
 
 describe("Dotazník", () => {
-  it("offers the three paths with the design availability, and waits for questions before going on", async () => {
-    unitStub(BRIEF);
+  it("opens a new study on the one editor, with no way in but it, and says a question is missing before going on", async () => {
+    // One editor, one way in (the product owner, 2026-10-26): a new study's stored path is
+    // "choose", and 18.6.6 drew its three paths there; AIA draws the editor.
+    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "choose" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
-    expect(screen.getByText("Návrh AI se uloží jako návrh ke kontrole. Změny použijete až po potvrzení.")).toBeTruthy();
-    expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(true);
-    expect(screen.getByText("Nejdřív vytvořte nebo nahrajte dotazník.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /Sestavit ručně/ }));
     expect(await screen.findByText("Dotazník je prázdný")).toBeTruthy();
-    // Studio v3: a method switcher replaces "změnit způsob vytvoření".
-    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Způsob" })).getByRole("radio", { name: "Nahrát Excel" }));
-    expect(await screen.findByRole("heading", { name: "Nahrát dotazník" })).toBeTruthy();
+    for (const gone of ["Jak chcete dotazník vytvořit?", "Nahrát Excel", "Sestavit ručně", "Sestavit s AI", "Nahrát dotazník", "Dotazník s AI"]) expect(screen.queryByText(gone)).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "Způsob" })).toBeNull();
+    expect(screen.queryByLabelText("Vyplněný XLSX / CSV")).toBeNull();
+    expect((screen.getByRole("button", { name: /Další · cílová skupina/ }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.getByText("Nejdřív přidejte do dotazníku otázku.")).toBeTruthy();
   });
 
-  it("shows a design run's Deep Research before any questionnaire exists, and nothing when there is none (review of #1006)", async () => {
-    // A Lead card can start Design Research on the goal alone; its progress, cancel and review
-    // were drawn only inside the editor, which the path choice does not open.
+  it("shows a design run's Deep Research before any questionnaire exists (review of #1006)", async () => {
+    // A Lead card can start Design Research on the goal alone; its progress, cancel and review are
+    // drawn in the editor's final section, and the editor is open on an empty questionnaire too.
     const run = { run_id: "RUN-dr1", purpose: "DESIGN_RESEARCH", phase: "RUNNING", status: "RUNNING", is_terminal: false, retryable: false, steps: [], created_at: null };
     unitStub(BRIEF, null, { "/api/v1/studies/STU-1/deep-research/runs": () => [run] });
-    const { unmount } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
-    expect(await screen.findByRole("heading", { name: "Veřejný hloubkový výzkum" })).toBeTruthy();
-    unmount();
-    cleanup();
-    unitStub(BRIEF, null, { "/api/v1/studies/STU-1/deep-research/runs": () => [] });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" });
+    expect(await screen.findByRole("heading", { name: "Veřejný hloubkový výzkum" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeNull();
     await waitFor(() => expect(calls.some((c) => c.url.startsWith("/api/v1/studies/STU-1/deep-research/runs"))).toBe(true));
-    expect(screen.queryByRole("heading", { name: "Veřejný hloubkový výzkum" })).toBeNull();
   });
 
   it("says tracked sets alone are no questionnaire yet, and the dock is not ready (OI-52 (b))", async () => {
@@ -676,189 +664,6 @@ describe("Dotazník", () => {
     await waitFor(() => expect(posted(path).map((c) => (c.body as { confirm_cost_usd?: number }).confirm_cost_usd)).toEqual([undefined, 4]));
   });
 
-  const IMPORT_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-import";
-  const TEMPLATE_PATH = "/api/v1/studies/STU-1/workspace/questionnaire-template";
-
-  it("imports a file in AIA, puts its sections on the questionnaire and saves", async () => {
-    unitStub(
-      { ...BRIEF, title: "Moje studie", ui_state: { questionnaire_path: "upload" } },
-      null,
-      { [IMPORT_PATH]: () => ({ sections: SECTIONS, summary: { question_count: 2, tracked_sets: 1, sections: 2 }, filename: "dotaznik.xlsx" }) },
-    );
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
-    expect(await screen.findByText("Načteno: 2 otázky · 1 sledovaná sada")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
-    // AIA is sent the file alone, never the project, and nothing reaches the unit.
-    expect(posted(IMPORT_PATH).map((c) => c.body)).toEqual([{ filename: "dotaznik.xlsx", data_b64: btoa("x") }]);
-    expect(calls.filter((c) => c.url.startsWith("/api/questionnaire"))).toEqual([]);
-    await saved();
-    const body = saves.at(-1) as unknown as { reason: string; content: Record<string, unknown> & { research_plan: { status: string }; ui_state: Record<string, unknown> } };
-    expect(body.reason).toBe("questionnaire_import");
-    expect(body.content.sections).toEqual(SECTIONS);
-    expect(body.content.research_plan.status).toBe("questionnaire_ready");
-    expect(body.content.ui_state.questionnaire_path).toBe("manual");
-    // The rest of the project is the person's own.
-    expect(body.content.title).toBe("Moje studie");
-  });
-
-  it("says a file replaces the questionnaire there is, and takes the import back with Vrátit (QF-15)", async () => {
-    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [{ id: "Q9", text: "Moje otázka?", typ: "otevrena" }] }];
-    const loaded = [{ id: "sec_l", type: "questions", title: "Ze souboru", purpose: "", questions: [{ id: "Q1", text: "Ze souboru?", typ: "otevrena" }, { id: "Q2", text: "Také?", typ: "otevrena" }] }];
-    unitStub(
-      { ...BRIEF, sections: mine, research_plan: { status: "draft", objectives: ["Cíl"] }, ui_state: { questionnaire_path: "upload" } },
-      null,
-      { [IMPORT_PATH]: () => ({ sections: loaded, summary: { question_count: 2, tracked_sets: 0, sections: 1 }, filename: "dotaznik.xlsx" }) },
-    );
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
-    const toast = (await screen.findByText("Načteno: 2 otázky · 0 sledovaných sad")).closest("[role=status]") as HTMLElement;
-    expect(screen.getByRole("heading", { name: "2 otázky · 0 sledovaných sad" })).toBeTruthy();
-    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
-    expect(await screen.findByRole("heading", { name: "1 otázka · 0 sledovaných sad" })).toBeTruthy();
-    await waitFor(() => expect((saves.at(-1) as unknown as { reason: string }).reason).toBe("questionnaire_import_undone"));
-    const body = saves.at(-1) as unknown as { content: { sections: unknown; research_plan: Record<string, unknown>; ui_state: Record<string, unknown> } };
-    expect(body.content.sections).toEqual(mine);
-    // Only the status the import set goes back: the rest of the plan is as it now is.
-    expect(body.content.research_plan.status).toBe("draft");
-    expect(body.content.research_plan.objectives).toEqual(["Cíl"]);
-    expect(body.content.ui_state.questionnaire_path).toBe("upload");
-  });
-
-  it("never takes an import back over a change made since, and says so", async () => {
-    const mine = [{ id: "sec_m", type: "questions", title: "Moje", purpose: "", questions: [] }];
-    unitStub(
-      { ...BRIEF, sections: mine, ui_state: { questionnaire_path: "upload" } },
-      null,
-      { [IMPORT_PATH]: () => ({ sections: SECTIONS, summary: {}, filename: "dotaznik.xlsx" }) },
-    );
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    // A block with no questions yet is a questionnaire a file would replace.
-    expect(await screen.findByText("Načtený soubor nahradí současný dotazník. Hned potom ho půjde vrátit.")).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.xlsx")] } });
-    const toast = (await screen.findByText("Načteno: 2 otázky · 1 sledovaná sada")).closest("[role=status]") as HTMLElement;
-    // A question's wording changed after the import, then Vrátit.
-    fireEvent.change(screen.getAllByRole("textbox", { name: "Znění otázky" })[0]!, { target: { value: "Upraveno po načtení?" } });
-    fireEvent.click(within(toast).getByRole("button", { name: "Vrátit" }));
-    expect(await screen.findByText("Dotazník se od načtení změnil, import už se nevrátí.")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
-  });
-
-  it("shows why a file did not import, in the words AIA gave", async () => {
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
-      [IMPORT_PATH]: () => new Response(JSON.stringify({ code: "missing_columns", message: "Chybí povinné sloupce: typ" }), { status: 422 }),
-    });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [new File(["x"], "dotaznik.csv")] } });
-    expect((await screen.findByRole("alert")).textContent).toBe("Chybí povinné sloupce: typ");
-    expect(saves).toEqual([]);
-  });
-
-  it("says an empty file, a refusal without words of its own and a lost connection in Czech, never the API's English", async () => {
-    let answer: () => Response = () => new Response(JSON.stringify({ code: "validation_error", message: "The request body or parameters are invalid." }), { status: 422 });
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, { [IMPORT_PATH]: () => answer() });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    const pick = async (f: File) => fireEvent.change(await screen.findByLabelText("Vyplněný XLSX / CSV"), { target: { files: [f] } });
-    // An empty file is refused before it is sent (the API's 422 for it is English).
-    await pick(new File([], "prazdny.csv"));
-    expect((await screen.findByRole("alert")).textContent).toBe("prazdny.csv: soubor je prázdný");
-    expect(posted(IMPORT_PATH)).toEqual([]);
-    await pick(new File(["x"], "dotaznik.csv"));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: AIA soubor nepřijala (kód validation_error)"));
-    answer = () => {
-      throw new TypeError("Failed to fetch");
-    };
-    await pick(new File(["x"], "dotaznik.csv"));
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("dotaznik.csv: Spojení s AIA se nepodařilo; zkuste to znovu"));
-    // A file the browser cannot read was never sent, so no connection is blamed.
-    const sent = posted(IMPORT_PATH).length;
-    const gone = new File(["x"], "smazany.csv");
-    gone.arrayBuffer = () => Promise.reject(new DOMException("gone", "NotReadableError"));
-    await pick(gone);
-    await waitFor(() => expect(screen.getByRole("alert").textContent).toBe("smazany.csv: soubor se nepodařilo přečíst; vyberte ho znovu"));
-    expect(posted(IMPORT_PATH)).toHaveLength(sent);
-    expect(saves).toEqual([]);
-  });
-
-  it("says a template the API would not give in Czech, by its code", async () => {
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
-      [TEMPLATE_PATH]: () => new Response(JSON.stringify({ code: "study_not_open", message: "Your role on this study does not permit that." }), { status: 403 }),
-    });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
-    expect((await screen.findByRole("alert")).textContent).toBe("Šablonu se nepodařilo stáhnout (kód study_not_open)");
-  });
-
-  it("downloads AIA's template through the study, and links to nothing of the unit's", async () => {
-    const created: Blob[] = [];
-    const clicked = vi.fn();
-    const real = { create: URL.createObjectURL, revoke: URL.revokeObjectURL, click: HTMLAnchorElement.prototype.click };
-    URL.createObjectURL = (b: Blob) => (created.push(b), "blob:t");
-    URL.revokeObjectURL = () => {};
-    HTMLAnchorElement.prototype.click = clicked;
-    onTestFinished(() => {
-      URL.createObjectURL = real.create;
-      URL.revokeObjectURL = real.revoke;
-      HTMLAnchorElement.prototype.click = real.click;
-    });
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "upload" } }, null, {
-      [TEMPLATE_PATH]: () => new Response("PK-template", { status: 200 }),
-    });
-    const { container } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Stáhnout XLSX šablonu" }));
-    await waitFor(() => expect(clicked).toHaveBeenCalledTimes(1));
-    expect(new TextDecoder().decode(await created[0].arrayBuffer())).toBe("PK-template");
-    // No link into the unit's paths: the template and the guide are AIA's.
-    const hrefs = [...container.querySelectorAll("a")].map((a) => a.getAttribute("href") || "");
-    expect(hrefs.filter((h) => h.startsWith("/api/questionnaire") || h.startsWith("/files/"))).toEqual([]);
-    expect(screen.queryByText("Metodika pro externí AI")).toBeNull();
-  });
-
-  it("reviews the native brief analysis and questionnaire before opening the editor", async () => {
-    const sig = briefFingerprint(defaultsMerge(BRIEF, TEMPLATE));
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, { objectives: ["O"], _brief_signature: sig });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
-    await approveProposal();
-    expect(await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" })).toBeTruthy();
-    expect(posted("/api/research/analyze")).toEqual([]);
-    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["build_questionnaire"]);
-    expect(posted("/api/research/build_questionnaire")).toEqual([]);
-  });
-
-  it("builds the questionnaire once its analysis, waiting for budget, is lifted and accepted: the analysis is not asked again (CR-2)", async () => {
-    let lifted = false;
-    const waiting = { run_id: "RUN-A", design_revision_id: "REV-A", action: "analyze_brief", status: "AWAITING_BUDGET", is_terminal: false, needs_attention: true,
-      steps: [{ step_id: "STEP-A", node_key: "agent", status: "AWAITING_BUDGET", waiting_reason: "budget_exceeded", error_message: null }],
-      created_at: null, context_sha256: "sha", harness_version: "v1", actual_cost_usd: null };
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, {
-      "native/job": () => (lifted ? undefined : waiting),
-      [`${AGENTS_PATH}/RUN-A/budget`]: () => { lifted = true; return { ...waiting, status: "RUNNING", steps: [{ ...waiting.steps[0], status: "RUNNABLE" }] }; },
-      "/api/v1/studies/STU-1": () => ({ study_id: "STU-1", name: "Alfa", budget_usd: 5, spent_usd: 5, remaining_usd: 0 }),
-    });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }, NATIVE_JOB_WAIT));
-    const form = await screen.findByRole("form", { name: "Zvýšit rozpočet studie" }, NATIVE_JOB_WAIT);
-    expect(screen.queryByRole("button", { name: "Zkusit znovu" })).toBeNull();
-    await within(form).findByText(/5\.00/);
-    fireEvent.change(within(form).getByLabelText("Nový rozpočet studie (USD)"), { target: { value: "9" } });
-    fireEvent.click(within(form).getByRole("button", { name: "Zvýšit rozpočet a pokračovat" }));
-    await approveProposal(); // the analysis
-    await waitFor(() => expect(posted(AGENTS_PATH)).toHaveLength(2), NATIVE_JOB_WAIT);
-    await approveProposal(); // the build that waited behind it
-    expect(await screen.findByRole("heading", { name: "2 otázky · 1 sledovaná sada" }, NATIVE_JOB_WAIT)).toBeTruthy();
-    expect(posted(AGENTS_PATH).map((c) => (c.body as { action: string }).action)).toEqual(["analyze_brief", "build_questionnaire"]);
-  });
-
-  it("parks the build at the native runtime boundary", async () => {
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } }, null, { "native/job": () => ({ status: "WAITING_PROVIDER", is_terminal: false, needs_attention: true, steps: [{ error_message: PARK_MESSAGE }], run_id: "RUN-A" }) });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("button", { name: "Sestavit první verzi dotazníku" }));
-    expect(await screen.findByText(PARK_MESSAGE, {}, NATIVE_JOB_WAIT)).toBeTruthy();
-    expect(posted("/api/research/build_questionnaire")).toEqual([]);
-  });
-
   it("reviews native optimization without asking for a legacy provider connection", async () => {
     unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } }, null);
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
@@ -903,19 +708,13 @@ describe("Dotazník", () => {
     expect((screen.getByRole("radio", { name: "Upravit" }) as HTMLElement).getAttribute("aria-checked")).toBe("true");
   });
 
-  it("says what Sestavit s AI does once the questionnaire has items, and claims no provider choice (QF-4, QF-5)", async () => {
-    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "manual" } });
+  it("offers the optimiser in the toolbar and says the preview in plain words, claiming no provider choice (QF-5)", async () => {
+    unitStub({ ...BRIEF, sections: SECTIONS, ui_state: { questionnaire_path: "ai" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    fireEvent.click(await screen.findByRole("radio", { name: "Sestavit s AI" }));
-    expect(await screen.findByText("Dotazník už má otázky, takže ho AI znovu nesestaví: úpravy navrhne „Optimalizovat dotazník s AI“.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Optimalizovat dotazník s AI" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Optimalizovat dotazník s AI" })).toBeTruthy();
     fireEvent.click(screen.getByRole("radio", { name: "Náhled respondenta" }));
     expect(screen.queryByText(/technický editor je pod ní/)).toBeNull();
     expect(screen.getByText(/Upravíte je v režimu Upravit/)).toBeTruthy();
-    cleanup();
-    unitStub({ ...BRIEF, ui_state: { questionnaire_path: "ai" } });
-    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
-    expect(await screen.findByRole("heading", { name: "Dotazník s AI" })).toBeTruthy();
     expect(screen.queryByText(/Provider\/model/)).toBeNull();
   });
 });

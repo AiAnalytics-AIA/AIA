@@ -5,9 +5,6 @@ import { describe, expect, it } from "vitest";
 import { declaration, effective, legacyContext, statement } from "@/testing/legacy";
 import { type Template, type ResearchProject, defaultsMerge } from "./model";
 import {
-  BUILD_FAILED_SUFFIX,
-  BUILD_TITLE,
-  BUILD_WARN_MS,
   CONFIRM_REMOVE_SECTION,
   DEEP_TITLE,
   GUIDED_PROMPT,
@@ -20,22 +17,17 @@ import {
   SET_SIZE,
   SET_TOO_SMALL,
   type Section,
-  UPLOAD_NO_FILE,
   addGuidedQuestion,
   addQuestion,
   addQuestionSection,
   addTrackedSet,
-  applyBuilt,
   applyDeep,
-  applyImport,
   applyOptimized,
-  buildPayload,
   changeQType,
   deepPayload,
   optimizePayload,
   questionnaireCounts,
   questionnaireHasQuestions,
-  questionnaireView,
   removeQuestion,
   removeSection,
   respondentPreview,
@@ -170,20 +162,13 @@ describe("what the questionnaire counts, and which screen it draws", () => {
     expect(questionnaireCounts(withSections([BATTERY])).sets).toBe(1);
   });
 
-  const markers: Record<string, string> = { choose: "Jak chcete dotazník vytvořit?", upload: "<h2>Nahrát dotazník</h2>", ai: "<h2>Dotazník s AI</h2>", editor: "GUIDED EDITOR" };
-  for (const path of [undefined, "choose", "upload", "manual", "ai", "unknown"]) {
-    for (const [name, xs] of [["no sections", []], ["sections", [QUESTIONS]]] as const) {
-      it(`path ${path ?? "(none)"} with ${name}`, () => {
-        const p = withSections([...xs], { questionnaire_path: path });
-        const ran = classic("renderQuestionnaireBase()", { p });
-        const view = questionnaireView(p);
-        expect(ran.view).toContain(markers[view]);
-        for (const [k, m] of Object.entries(markers)) if (k !== view && !(k === "editor" && view === "upload")) expect(ran.view).not.toContain(m);
-      });
-    }
-  }
-  it("the AI tile names the provider and the model as the classic does", () => {
+  // A deliberate deviation (the product owner, 2026-10-26): AIA draws one editor whatever the
+  // stored path. The classic's chooser, its XLSX/CSV upload and its AI build are retired; a file or
+  // a draft reaches the questionnaire through the Lead (lead-orchestration LO18b). Pinned here so a
+  // change to the classic's three paths is still seen.
+  it("the classic draws three paths; AIA draws none of them (deviation, 2026-10-26)", () => {
     const ran = classic("renderQuestionnaireBase()", { p: withSections([], { questionnaire_path: "choose" }) });
+    expect(ran.view).toContain("Jak chcete dotazník vytvořit?");
     expect(ran.view).toContain('<span class="chip">AI partner · sonnet</span>');
   });
 });
@@ -357,53 +342,9 @@ describe("the editor's inline fields write what the classic handlers write", () 
   });
 });
 
-describe("import and the AI steps take what the classic ones take", () => {
-  const SUMMARY = { question_count: 5, tracked_sets: 0, sections: 1 };
-  // The unit answered with the whole project: the one it was sent (FULL), the file's
-  // sections on it, the plan questionnaire_ready -- and every other field re-normalized.
-  // AIA answers with the sections alone (ADR 0018), so the two agree whenever that
-  // re-normalization left the rest as it was, which is what this project is.
-  const UNIT_ANSWER = {
-    project: { ...FULL, sections: [QUESTIONS], research_plan: { ...FULL.research_plan, status: "questionnaire_ready" } },
-    summary: SUMMARY,
-  };
-
-  it("uploadQuestionnaireFile: the file's sections, on the editor", async () => {
-    const ran = await classicAsync("uploadQuestionnaireFile()", { result: UNIT_ANSWER, file: { name: "d.xlsx" } });
-    const got = applyImport(FULL, { sections: [QUESTIONS], summary: SUMMARY, filename: "d.xlsx" }, BOOT);
-    expect(got.project).toEqual(ran.p);
-    expect(ran.toasts).toEqual([got.toast]);
-    expect(ran.saves).toEqual([["questionnaire_import", true]]);
-    // What the classic interface sent the unit; AIA is sent the file alone.
-    expect(ran.posts).toEqual([{ ep: "/api/questionnaire/upload", b: { filename: "d.xlsx", data_b64: "QUJD", project: FULL }, t: 180000 }]);
-  });
-  it("uploadQuestionnaireFile without a file", async () => {
-    expect((await classicAsync("uploadQuestionnaireFile()")).alerts).toEqual([UPLOAD_NO_FILE]);
-  });
-
-  const BUILT = { project: { ...EMPTY, sections: [QUESTIONS, BATTERY], run_policy: { provider: "anthropic" }, ui_state: { questionnaire_path: "ai", x: 1 } } };
-  it("buildQuestionnaire: analysis first, then the job, then the AI's project on the editor", async () => {
-    const analysis = { objectives: ["O"] };
-    const ran = await classicAsync("buildQuestionnaire()", { result: BUILT, a: analysis });
-    expect(ran.analysed).toBe(1);
-    expect(ran.jobs).toEqual([{ ep: "/api/research/build_questionnaire", payload: buildPayload(FULL, analysis), title: BUILD_TITLE, opts: { warnMs: BUILD_WARN_MS } }]);
-    expect(applyBuilt(BUILT, BOOT)).toEqual(ran.p);
-    expect(ran.saves).toEqual([["questionnaire_ai_1776", true]]);
-    expect(ran.gone).toEqual(["questionnaire"]);
-  });
-  it("buildQuestionnaire stops before the job when the provider is not ready", async () => {
-    const ran = await classicAsync("buildQuestionnaire()", { result: BUILT, ready: false });
-    expect(ran.jobs).toEqual([]);
-    expect(ran.p).toEqual(FULL);
-  });
-  it("buildQuestionnaire's failure message", async () => {
-    const ran = await legacy.run<Promise<Ran>>(
-      `(async()=>{${RESET}PROJECT=__p;READY=true;const real=job;job=async()=>{throw Error('MODEL_TIMEOUT')};try{await buildQuestionnaire()}finally{job=real}return ${OUT}})()`,
-      { __p: FULL, BOOT },
-    );
-    expect(ran.alerts).toEqual([`MODEL_TIMEOUT${BUILD_FAILED_SUFFIX}`]);
-  });
-
+describe("the AI steps take what the classic ones take", () => {
+  // uploadQuestionnaireFile and buildQuestionnaire are not ported any more: the stage takes no file
+  // and starts no build (the product owner, 2026-10-26; the deviation is pinned above).
   const OPTIMIZED = { project: { ...EMPTY, sections: [BATTERY] }, research: { accepted: [1, 2] }, analysis: { objectives: ["nové"] } };
   for (const [name, r] of [["with research and analysis", OPTIMIZED], ["without either", { project: OPTIMIZED.project }]] as const) {
     it(`optimizeQuestionnaireAI, ${name}: no provider check, as the classic (OI-55)`, async () => {
