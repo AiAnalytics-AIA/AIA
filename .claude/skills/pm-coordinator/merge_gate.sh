@@ -21,10 +21,10 @@ min=12; grep -qx "$pr" docsonly.txt 2>/dev/null && min=1
 [ "$bad" != 0 -o "$n" -lt $min ] && { echo "#$pr checks $r"; exit 1; }
 t=$(gh api repos/aianalytics-aia/aia/pulls/$pr/ccr/review_threads --jq '[.[]?|select(.resolved==false)]|length')
 [ "$t" != 0 ] && { echo "#$pr $t open threads"; exit 1; }
-cx=$(gh api repos/aianalytics-aia/aia/issues/$pr/comments --jq '[.[]|select(.user.login=="chatgpt-codex-connector[bot]")|.body|select(test("codex-review-state"))][-1] // ""' | grep -o '"commit_sha":"[0-9a-f]*","has_any_findings":[a-z]*,"has_unresolved_findings":[a-z]*,"status":"[a-z]*"' | head -1)
+cx=$(gh api --paginate "repos/aianalytics-aia/aia/issues/$pr/comments?per_page=100" | jq -rs 'add // [] | [.[]|select(.user.login=="chatgpt-codex-connector[bot]")|.body|select(test("codex-review-state"))][-1] // ""' | grep -o '"commit_sha":"[0-9a-f]*","has_any_findings":[a-z]*,"has_unresolved_findings":[a-z]*,"status":"[a-z]*"' | head -1)
 case "$cx" in *"\"commit_sha\":\"$sha\""*'"status":"running"'*) grep -qx "$pr" codex-stuck.txt 2>/dev/null || { echo "#$pr Codex still running on head"; exit 1; };; esac
 case "$cx" in *"\"commit_sha\":\"$sha\""*'"status":"completed"'*) ;; *)
-  sr=$(gh api "repos/aianalytics-aia/aia/pulls/$pr/reviews?per_page=100" --jq "[.[]|select(.commit_id==\"$sha\")|select(.body|startswith(\"[Claude review, Codex stand-in]\"))]|length")
+  sr=$(gh api --paginate "repos/aianalytics-aia/aia/pulls/$pr/reviews?per_page=100" | jq -s "add // [] | [.[]|select(.commit_id==\"$sha\")|select(.body|startswith(\"[Claude review, Codex stand-in]\"))]|length")
   [ "${sr:-0}" -ge 1 ] || { echo "#$pr Codex not completed on head and no stand-in review on it: ${cx:-none}"; exit 1; };;
 esac
 out=$(gh api -X PUT repos/aianalytics-aia/aia/pulls/$pr/merge -f merge_method=merge -f sha=$sha --jq '.sha+" "+(.merged|tostring)') || { echo "#$pr merge failed: $out"; exit 1; }
