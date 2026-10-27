@@ -261,7 +261,10 @@ describe("the knowledge library", () => {
     });
     window.history.replaceState(null, "", "/app/clients/CLI-a/knowledge?view=review");
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Schválit" }));
+    // A second click while the decision is on its way sends nothing (the buttons wait).
+    const approve = await screen.findByRole("button", { name: "Schválit" });
+    fireEvent.click(approve);
+    fireEvent.click(approve);
     expect(await screen.findByText(/návrh vychází z revize 1, nyní platí revize 2/)).toBeTruthy();
     const decisions = () => sent("POST", "/proposals/KNP-5/decision").map((c) => c.body);
     expect(decisions()).toEqual([{ approve: true, note: "" }]);

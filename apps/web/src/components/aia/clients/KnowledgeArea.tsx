@@ -53,8 +53,12 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
   const [error, setError] = useState<string | null>(null);
   // An approval refused because the item moved on (F-K1): which proposal, and the revision now current.
   const [stale, setStale] = useState<{ proposalId: string; edit: StaleEdit } | null>(null);
-  const decide = (p: Proposal, approve: boolean, reviewedRevision?: number) =>
-    workspace.decide(clientId, p.proposal_id, approve, "", reviewedRevision).then(
+  // The proposal a decision is being sent for: its buttons wait, so a second click sends nothing.
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const decide = (p: Proposal, approve: boolean, reviewedRevision?: number) => {
+    if (deciding) return Promise.resolve();
+    setDeciding(p.proposal_id);
+    return workspace.decide(clientId, p.proposal_id, approve, "", reviewedRevision).then(
       () => {
         setError(null);
         setStale(null);
@@ -71,7 +75,8 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
           setError(errorText(e));
         }
       },
-    );
+    ).finally(() => setDeciding(null));
+  };
   return (
     <>
       {error ? <p role="alert" className="mb-3 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
@@ -115,8 +120,8 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       {p.yours && !p.from_source ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
                       {mayApprove ? (
                         <>
-                          <Button small variant="primary" onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
-                          <Button small onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
+                          <Button small variant="primary" disabled={deciding !== null} aria-busy={deciding === p.proposal_id || undefined} onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
+                          <Button small disabled={deciding !== null} aria-busy={deciding === p.proposal_id || undefined} onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
                         </>
                       ) : null}
                     </div>
