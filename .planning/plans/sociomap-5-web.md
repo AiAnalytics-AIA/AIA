@@ -13,6 +13,7 @@ chunks:
   - "[ ] 9. The what-if layer, the server: three scenarios over a -5 map's frozen inputs (objects left out, one respondent segment only, an object's ratings shifted), computed as a provisional view and never stored over the run's map; no node drag (D-40) (Nigel, 27 Oct 2026; W2; each scenario's maths signed off by the methodology owner before a scenario reaches a client)"
   - "[ ] 10. The what-if layer on screen: 'Co kdyby', the three scenarios, the map always marked provisional, one way back to the real map, nothing saved (W2, after 9)"
   - "[ ] 11. After the MVP: Zajímavé skupiny on the map (Nigel, 27 Oct 2026)"
+  - "[ ] 12. The map's terrain switch: Nastavení mapy offers Terén: IDW / IDW s poklesem, opening on plain IDW and offering only the terrains the run stored; Blokový and the envelope view gone; the panel's earlier contour lines (Nigel 2026-10-27; #1015)"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -235,3 +236,8 @@ on every scenario view; leaving restores the stored map.
 
 **11. Zajímavé skupiny** (after the MVP). Excluded from this plan's first round (the table above) and not in the MVP;
 the clustering it needs is `segment-maps-and-drilldown#3`.
+
+## Chunk 12 added (2026-10-27)
+
+The map side of #1015 (§ the terrain bullets above, as that PR rewrites them). It is ticked when #1015
+merges, with `signed-off-sociomap-method#12`.

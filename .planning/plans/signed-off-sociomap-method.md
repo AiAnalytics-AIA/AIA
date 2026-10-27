@@ -13,6 +13,8 @@ chunks:
   - "[ ] 9. The report draws -5: object-map figure from heights.relative and the terrain method, objects_not_placed listed, credibility in place of Stress-1, the respondent-map and taste-segment figures (D-13)"
   - "[x] 10. Methodology is edited only by the methodologist: a Metodik member mark an OWNER grants (held by A. Bahbouh) gates storing and activating methodology versions (D-14, Q4) (#823, merged 2026-10-23)"
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
+  - "[ ] 12. The -5 terrain by inverse-distance weighting: framed_relative_idw (terrain.idw_power in (0, 10]) the method's terrain, the falloff variant stored beside it in every -5 run, the envelope no longer drawn; the register approves the new -5 fingerprint b2992c12… beside 959a5877… (the methodology owner 2026-10-26, Nigel 2026-10-27; #1015)"
+  - "[ ] 13. The report's map terrain chosen by the study's lead researcher: each map figure of the internal and the client report drawn in the terrain chosen from those the run stored (plain IDW by default), the figure saying which; the choice recorded with the study (Nigel 2026-10-27: 'editable and configurable by the lead researcher'; whether that is the person running the study or the AI Lead is open)"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -327,3 +329,12 @@ place in the chapter, drawn from #517's renderer.
 ## Chunk 10 ticked (2026-10-26, docs PR)
 
 Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backends' SB1: the Metodik mark (`PUT /members/{user_id}/methodologist`, `apps/api/src/aia_api/routers/scope.py:806-821 @ 40b16d58`), and `MethodologyRepository` requiring it before any methodology change (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:233-237 @ 40b16d58`, `require_methodologist`). The Settings gap map recorded the drift (SOSM#10 open although SB1 shipped).
+
+## Chunks 12 and 13 added (2026-10-27)
+
+- **Chunk 12** is the inverse-distance terrain as Aram built it in #1015 (§ The terrain under
+  inverse-distance weighting, added by that PR). It is ticked when #1015 merges.
+- **Chunk 13** is the follow-up #1015 names: until it lands, a report prints the method's own terrain
+  (plain IDW under `-5`) and says which. **Open question:** "the lead researcher" means the person
+  running the study, or the study's AI Lead (Build Map question; Nigel's answer of 2026-10-27 named
+  the role, not which).
