@@ -59,6 +59,7 @@ import "./workbench.css";
 import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
 import { t, tv } from "@/i18n/t";
 import { errorText } from "@/lib/error-words";
+import type { SpendAsk } from "../rehome/research/context";
 
 const storage = () => {
   try {
@@ -180,7 +181,7 @@ const openingStack = (studyId: string, stage: WorkbenchStage): InspectorStack =>
   return want?.stage === stage && want.studyId === studyId ? openEntry(emptyStack(stage), want.entry) : emptyStack(stage);
 };
 
-export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
+export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, confirmSpend, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
   store: ResearchStore;
@@ -194,6 +195,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   reload: () => void;
   /** Ask the person a yes/no question (the study's AskDialog). */
   confirm: (message: string) => Promise<boolean>;
+  /** Ask about money in SpendDialog (design system v3, I-Penize); without it, `confirm` asks in words. */
+  confirmSpend?: (question: SpendAsk) => Promise<boolean>;
   /** A design job the person approved on a Lead decision card has started. */
   onAgentStarted: (runId: string) => void;
   /** The study's design jobs, newest first, as the AI help lists them; shown in the conversation. */
@@ -822,7 +825,9 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   }, [store, frame.studyId]);
   const startRun = useCallback(async (readiness: Readiness, asked: { ceiling: number; limit: number } | null): Promise<ResearchRun | null> => {
     const ask = async (a: { ceiling: number; limit: number }) =>
-      confirm(await withBudget(frame.studyId, `Běh může stát až ${usd(a.ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(a.limit)} USD. Spustit?`, a.ceiling));
+      confirmSpend
+        ? confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: a.ceiling, thresholdUsd: a.limit, act: t("input.spend.research.startRun") })
+        : confirm(await withBudget(frame.studyId, `Běh může stát až ${usd(a.ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(a.limit)} USD. Spustit?`, a.ceiling));
     let yes: number | undefined;
     if (asked) {
       if (!(await ask(asked))) return null;
@@ -838,7 +843,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       if (!again || yes !== undefined || !(await ask(again))) throw e;
       return research.start(frame.studyId, readiness.design_revision_id, again.ceiling, undefined, source);
     }
-  }, [frame.studyId, confirm]);
+  }, [frame.studyId, confirm, confirmSpend]);
   const cards: LeadCardsContext = useMemo(() => ({
     runs: runs ?? [],
     stepHref: frame.stepHref,

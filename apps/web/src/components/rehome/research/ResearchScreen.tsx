@@ -451,7 +451,7 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
       {inWorkbench ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
-          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
+          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} confirmSpend={confirmSpend} onAgentStarted={() => void agents.refresh()}
             jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
