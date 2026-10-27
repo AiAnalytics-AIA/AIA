@@ -72,10 +72,14 @@ def on(tmp_path: Path) -> dict[str, str]:
 
 
 @pytest.fixture
-def soffice(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "aia_core.infrastructure.report_pdf.shutil.which", lambda _: "/usr/bin/soffice"
-    )
+def soffice(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A LibreOffice that answers ``--version``, as the converter asks at start, whether or not
+    the host has one (CI does not)."""
+    stand_in = tmp_path / "bin" / "soffice"
+    stand_in.parent.mkdir()
+    stand_in.write_text("#!/bin/sh\necho 'LibreOffice 0.0 (test stand-in)'\n")
+    stand_in.chmod(0o755)
+    monkeypatch.setattr("aia_core.infrastructure.report_pdf.shutil.which", lambda _: str(stand_in))
 
 
 def _rows(env: dict[str, str]) -> dict[str, Readiness]:
