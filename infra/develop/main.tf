@@ -407,6 +407,59 @@ resource "aws_iam_instance_profile" "instance" {
 }
 
 # ----------------------------------------------------------------------------- #
+# Application inference profiles (develop-spend-attribution 1). A call through a system
+# profile carries no resource tag, so Bedrock spend never reached the develop-tagged cost
+# record. Each profile copies its model's EU system profile, so it routes to the same
+# destination regions, and carries the provider's Environment=develop tag. Creating one
+# changes nothing a call does: the worker sends to it only once its ARN is set as
+# AIA_BEDROCK_INVOCATION_TARGET / AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET, after the instance
+# role is granted it (chunk 2).
+#
+# Bedrock never returns a profile's model_source, so an imported profile reads without one
+# (both were imported, 2026-10-27) and the provider would replace it on every plan. It is
+# ignored, and the postcondition holds the profile to its model instead: a new model id fails
+# the plan, by name, until the profile is replaced with -replace (its ARN then changes, and
+# the invocation target with it).
+# ----------------------------------------------------------------------------- #
+
+resource "aws_bedrock_inference_profile" "route" {
+  # A description takes letters, digits, ":" and "." with single separators, nothing else
+  # (a 400 at apply, not at plan).
+  name        = "${local.name}-route"
+  description = "AIA develop route model tagged Environment develop for cost attribution"
+
+  model_source {
+    copy_from = "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${local.account_id}:inference-profile/${var.bedrock_model_id}"
+  }
+
+  lifecycle {
+    ignore_changes = [model_source]
+    postcondition {
+      condition     = length(self.models) > 0 && alltrue([for m in self.models : endswith(m.model_arn, "/${local.bedrock_foundation_model}")])
+      error_message = "The route profile routes to another model than bedrock_model_id: terraform apply -replace='aws_bedrock_inference_profile.route'."
+    }
+  }
+}
+
+resource "aws_bedrock_inference_profile" "lead" {
+  count       = var.bedrock_lead_model_id == "" ? 0 : 1
+  name        = "${local.name}-lead"
+  description = "AIA develop Research Lead model tagged Environment develop for cost attribution"
+
+  model_source {
+    copy_from = "arn:${data.aws_partition.current.partition}:bedrock:${var.aws_region}:${local.account_id}:inference-profile/${var.bedrock_lead_model_id}"
+  }
+
+  lifecycle {
+    ignore_changes = [model_source]
+    postcondition {
+      condition     = length(self.models) > 0 && alltrue([for m in self.models : endswith(m.model_arn, "/${local.bedrock_lead_foundation_model}")])
+      error_message = "The lead profile routes to another model than bedrock_lead_model_id: terraform apply -replace='aws_bedrock_inference_profile.lead[0]'."
+    }
+  }
+}
+
+# ----------------------------------------------------------------------------- #
 # The host.
 # ----------------------------------------------------------------------------- #
 

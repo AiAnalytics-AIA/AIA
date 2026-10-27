@@ -69,3 +69,11 @@ output "bedrock_model_arns_granted" {
   description = "Exactly what the instance role may invoke (ADR 0010)."
   value       = local.bedrock_model_arns
 }
+
+output "bedrock_application_profile_arns" {
+  description = "The tagged application inference profiles: each model id and the ARN its calls may be sent through (AIA_BEDROCK_INVOCATION_TARGET, AIA_AI_RESEARCH_LEAD_INVOCATION_TARGET)."
+  value = merge(
+    { (var.bedrock_model_id) = aws_bedrock_inference_profile.route.arn },
+    { for p in aws_bedrock_inference_profile.lead : (var.bedrock_lead_model_id) => p.arn },
+  )
+}
