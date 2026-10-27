@@ -247,7 +247,7 @@
   "title": "7b · Respondenti při sběru dat",
   "w": 1100,
   "h": 900,
-  "text_chars": 978,
+  "text_chars": 787,
   "errors": [],
   "failed_requests": [],
   "image": "15-FieldworkDisc.webp"
@@ -296,7 +296,7 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7Bshot%7D%7D"
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7Bshot%7D%7D"
   ],
   "image": "19-Report.webp"
  },
@@ -345,8 +345,8 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7BshotDef%7D%7D",
-   "404 http://127.0.0.1:38647/research-stages-2026-10-27/%7B%7BshotAia%7D%7D"
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotDef%7D%7D",
+   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotAia%7D%7D"
   ],
   "image": "23-ReportEditor.webp"
  },
@@ -367,7 +367,7 @@
   "title": "Metodika",
   "w": 1440,
   "h": 1060,
-  "text_chars": 1826,
+  "text_chars": 1809,
   "errors": [],
   "failed_requests": [],
   "image": "01-Main.webp"
@@ -378,7 +378,7 @@
   "title": "Systémové prompty",
   "w": 1440,
   "h": 1090,
-  "text_chars": 1400,
+  "text_chars": 1383,
   "errors": [],
   "failed_requests": [],
   "image": "02-Prompts.webp"
@@ -389,7 +389,7 @@
   "title": "Deep Research",
   "w": 1440,
   "h": 1450,
-  "text_chars": 2172,
+  "text_chars": 2155,
   "errors": [],
   "failed_requests": [],
   "image": "03-DeepResearch.webp"
@@ -400,7 +400,7 @@
   "title": "AI běh",
   "w": 1440,
   "h": 1310,
-  "text_chars": 1987,
+  "text_chars": 1970,
   "errors": [],
   "failed_requests": [],
   "image": "04-AI.webp"
@@ -411,7 +411,7 @@
   "title": "Přístup a schvalování",
   "w": 1440,
   "h": 1200,
-  "text_chars": 1868,
+  "text_chars": 1851,
   "errors": [],
   "failed_requests": [],
   "image": "05-Access.webp"
@@ -422,7 +422,7 @@
   "title": "Studie a rozpočty",
   "w": 1440,
   "h": 1110,
-  "text_chars": 1688,
+  "text_chars": 1671,
   "errors": [],
   "failed_requests": [],
   "image": "06-Studies.webp"
@@ -433,7 +433,7 @@
   "title": "Audit",
   "w": 1440,
   "h": 930,
-  "text_chars": 1653,
+  "text_chars": 1636,
   "errors": [],
   "failed_requests": [],
   "image": "07-Audit.webp"
@@ -444,7 +444,7 @@
   "title": "Stav systému",
   "w": 1440,
   "h": 1560,
-  "text_chars": 2316,
+  "text_chars": 2299,
   "errors": [],
   "failed_requests": [],
   "image": "08-System.webp"
@@ -455,7 +455,7 @@
   "title": "Správa dat",
   "w": 1440,
   "h": 930,
-  "text_chars": 934,
+  "text_chars": 917,
   "errors": [],
   "failed_requests": [],
   "image": "09-Data.webp"
@@ -466,7 +466,7 @@
   "title": "Vypěstovat Vedoucího",
   "w": 1440,
   "h": 1050,
-  "text_chars": 661,
+  "text_chars": 644,
   "errors": [],
   "failed_requests": [],
   "image": "10-Hatch.webp"
@@ -477,9 +477,42 @@
   "title": "Můj Vedoucí",
   "w": 1440,
   "h": 2110,
-  "text_chars": 2390,
+  "text_chars": 2373,
   "errors": [],
   "failed_requests": [],
   "image": "11-LeadSettings.webp"
+ },
+ {
+  "canvas": "design-system-2026-10-27",
+  "board": "index.html",
+  "title": "design-system-light",
+  "w": 1440,
+  "h": 12553,
+  "text_chars": 7863,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-design-system-light.webp"
+ },
+ {
+  "canvas": "design-system-2026-10-27",
+  "board": "index.html",
+  "title": "design-system-dark",
+  "w": 1440,
+  "h": 12553,
+  "text_chars": 7864,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-design-system-dark.webp"
+ },
+ {
+  "canvas": "ux-upgrade-2026-10-27",
+  "board": "index.html",
+  "title": "before-after",
+  "w": 1440,
+  "h": 6255,
+  "text_chars": 3133,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-before-after.webp"
  }
 ]

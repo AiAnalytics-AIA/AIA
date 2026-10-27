@@ -1,37 +1,46 @@
-# Reference renders of the three prototype canvases, 27 Oct 2026
+# Reference renders of the prototypes, 27 Oct 2026
 
-What every board looked like when the canvases were frozen and design moved to Nigel's other account. After
-rebuilding a canvas there, compare each board with its image here, side by side, to catch anything lost in the move.
+Every prototype board and page as it looked when design moved to Nigel's other account, after the design system's
+v4.3 upgrade pass. After rebuilding a canvas there, compare each board with its image here, side by side, to catch
+anything lost in the move.
 
-| Folder | Canvas | Exported in | Boards |
+| Folder | What | Exported in | Images |
 |---|---|---|---|
-| `clients-2026-10-27/` | AIA Klienti – prototyp, v18 (artifact version `1793095242-1377`) | #1026 | 8 |
-| `research-stages-2026-10-27/` | AIA Výzkumné kroky – prototyp, v93 (`1793095498-cbb2`) | #1027 | 24 |
-| `settings-2026-10-27/` | AIA Nastavení – prototyp, after v112 (`1793094882-5e7e`) | #1028 | 11 |
+| `clients-2026-10-27/` | AIA Klienti – prototyp, v19, core v4.3 | #1026 | 8 boards |
+| `research-stages-2026-10-27/` | AIA Výzkumné kroky – prototyp, v95, core v4.3 | #1027 | 24 boards |
+| `settings-2026-10-27/` | AIA Nastavení – prototyp, v117 (`1793098752-b063`), core v4.3 | #1028 | 11 boards |
+| `design-system-2026-10-27/` | AIA Design System v3.2 (artifact `1793098287-902c`), its `index.html` in light and dark | #1031 | 2 pages |
+| `ux-upgrade-2026-10-27/` | The before/after page of the UX upgrade (`1793072278-450e`) | #1031 | 1 page |
 
-Each image is named `NN-<board>.webp`, in the order of the board list in the canvas's `canvas.json`.
+Each board image is named `NN-<board>.webp`, in the order of the board list in the canvas's `canvas.json`.
 
 ## How they were made
 
-- Each exported folder was rendered with the Design type's own runtime, the file the canvas loads as `support.js`.
-  It was read from the live Klienti canvas on 27 Oct, `artifact-type/dc-runtime.js`, SHA-256 `b795ee21…191844`, and is
-  not committed here. Rendering used Chromium (Playwright), served over local HTTP.
-- **Board size:** each board at its own width and height from `canvas.json` (1440 px wide), full page.
-- **Settings:** the light theme (each board's default); the pointer off the board, so no hover state shows.
-- **Format:** WebP at quality 88, converted from PNG to keep the folder small (8 MB).
-- **`renders.json`:** per board, its title, size, the number of text characters rendered, and any console errors or
+- **Canvases:** rendered by `render.js` with the Design type's own runtime, the file a canvas loads as `support.js`:
+  `artifact-type/dc-runtime.js`, SHA-256 `b795ee21…191844`, read from the live Klienti canvas on 27 Oct. It is the
+  type's file, so it is not committed here. Each board at its own width and height from `canvas.json` (1440 px wide),
+  full page.
+- **Pages:** rendered by `pages.js` at 1440 px wide, full page. The Design System page is shot in light, then in dark
+  through its own theme button.
+- **Settings:** Chromium (Playwright) over local HTTP; boards in their default light theme; the pointer moved off the
+  page, so no hover state shows.
+- **Format:** WebP at quality 88, converted from PNG to keep the folder small (9 MB).
+- **`renders.json`:** per image, its title, size, the number of text characters rendered, and any console errors or
   failed requests.
-  - All 43 boards rendered with no script error.
-  - Two boards (`Report`, `ReportEditor`) log one or two 404s for `{{shot}}`-style image placeholders. The browser
-    requests these before the runtime fills them in; the real images load after.
+  - All 46 images rendered with no script error.
+  - Two research boards (`Report`, `ReportEditor`) log one or two 404s for `{{shot}}`-style image placeholders. The
+    browser requests these before the runtime fills them in; the real images load after.
 
-## Known in these images, to be fixed in the design system's final export
+## What v4.3 changed, and what these images show
 
-- The left rail's hover makes its text white on a light rail; only a hover shows it, so these images don't.
-- The rail may still show Projektová paměť on boards drawn before its removal.
-- The ⋯ icon is drawn locally on some boards.
+- The left rail's hover no longer turns its text white on the light rail. Hover is not shown in these images.
+- `.ph-dots-three` (the ⋯ icon) is in core.
+- Projektová paměť is gone from Nastavení's rail and ⌘K palette. Its one remaining mention is content: the "where" of
+  the `answer_memory` prompt on Prompts.
+- The before/after page predates the AI spark edge and the redundancy pass; its own README says so.
 
 ## Re-rendering
 
-Run `node render.js <folder holding the canvas folders> <out dir> [one canvas folder]` after saving the Design
-type's runtime into each canvas folder as `support.js`. The runtime is the type's own file, so it is never committed.
+- Canvases: save the Design type's runtime into each canvas folder as `support.js`, then run
+  `node render.js <folder holding the canvas folders> <out dir> [one canvas folder]`.
+- Pages: `node pages.js <folder holding design-system-2026-10-27 and ux-upgrade-2026-10-27> <out dir>`.
