@@ -165,7 +165,7 @@ export function AppShell({
                 </Link>
               ) : null}
               {client ? (
-                <span aria-hidden="true" className={`inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[11px] font-semibold text-shell-strong ${clientAccent(client.id)}`}>
+                <span aria-hidden="true" className={`inline-flex size-7 shrink-0 items-center justify-center rounded-control text-[11px] font-semibold text-on-client ${clientAccent(client.id)}`}>
                   {initials(client.name)}
                 </span>
               ) : null}
