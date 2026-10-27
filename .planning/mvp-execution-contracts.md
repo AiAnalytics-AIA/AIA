@@ -384,7 +384,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `research-lead-workbench#49` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-15 |
 | `research-lead-workbench#50` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-16 |
 | `research-lead-workbench#51` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-17 |
-| `research-lead-workbench#52` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-18 |
+| `research-lead-workbench#52` | W2 | the research build spec (2026-10-26, research chunk register): spec lead LP-20 (was LP-18; corrected 2026-10-27) |
 | `deep-research-web-search#59` | W1 | the research build spec (2026-10-26, research chunk register): spec lead LP-14, lead B9 |
 | `system-prompts-settings#15` | W1 | Nigel, 2026-10-26 (`prototype-build.md`) |
 | `system-prompts-settings#16` | W1 | Nigel, 2026-10-26 (`prototype-build.md`) |
@@ -403,7 +403,7 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `lead-identity#LI9` | W3 | Nigel, 2026-10-26 (`prototype-build.md`) |
 | `artifact-questionnaire#QST10` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh D6 + Q8 |
 | `artifact-questionnaire#QST11` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh Q5 |
-| `artifact-brief#BRF7` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh B6, OQ18 |
+| `artifact-brief#BRF7` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh B9, OQ18 (was cited B6; corrected 2026-10-27) |
 | `artifact-design#DSN2b` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D3 |
 | `artifact-design#DSN3c` | W1 | the research build spec (2026-10-26, research chunk register): spec navrh D1 |
 | `artifact-design#DSN9` | W2 | the research build spec (2026-10-26, research chunk register): spec navrh B4 |
@@ -490,6 +490,142 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `prototype-build#PBA6` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
 | `prototype-build#PBA7` | W1 | `prototype-build` (Nigel's order, 2026-10-26): lane A, "the second account" |
 | `research-lead-workbench#23` | W1 | re-waved 2026-10-26 from W4 (E22): the research build spec's job and run cards (`research-lead-workbench#37`, `#45`) stand on it (research chunk register §6.4; `prototype-build.md`) |
+| `system-prompts-settings#17` | W1 | ADR 0020 Q2 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "fix the stale reason word at once"; chunks 7 and 13 stay the named follow-ups (E19) |
+| `deep-research-web-search#60` | W1 | ADR 0022 Q1 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the test policies" |
+| `deep-research-web-search#61` | W1 | ADR 0022 Q2 (b), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Remove the setting" (OI-158); takes `budgets.run_limit.*` off the live-readiness list before chunk 1's sign-off approves it |
+| `client-knowledge-lifecycle#K13` | W1 | REV-5B-KNOWLEDGE (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): one `ai_proposal` ledger row per accept of an AI knowledge proposal, as `two-roles-human-ai-gates#5b.3` does for design proposals |
+| `report-delivery#RD13` | W2 | ADR 0024 Q6 (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): the print grade follows the row's origin (OI-103); before RD3's first client-report approval (E15) |
+| `study-deletion#SD1` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD2` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD3` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD4` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD5` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; `study-data-lifecycle#SDL3`'s study half (SDL3's client half is SB5, #850) |
+| `study-deletion#SD6` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD7` | W1 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; REV-SD-F1-NOW (a), the product owner, Decision Review 2026-10-26 (relayed by the PM coordinator): "Yes, a small fix PR now": the client half (OI-232) as its own PR ahead of the plan; the study half with SD5 |
+| `study-deletion#SD8` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD9` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD10` | W3 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core |
+| `study-deletion#SD11` | W4 | proposed (planning, 26 Oct): all SD questions answered; `study-deletion` proposed core; beside `study-data-lifecycle#SDL6` (E23, W4) |
+| `study-files#SF1` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF2` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF3` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF4` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF5` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF6` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF7` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF8` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA1` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA2` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA3` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#RA4` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `study-files#SF12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): folders and filing; wave proposed here |
+| `client-pages-redesign#CPR1` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR2` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR3` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR4` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR5` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR6` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR7` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR8` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR9` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR10` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client pages redesign (canvas v5); wave proposed here |
+| `client-pages-redesign#CPR20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the client canvas v7's defect (a contact removed with no undo); wave proposed here |
+| `client-pages-redesign#CPR21` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the visual base Petrol core v4 (the design-system session's canvas v10) into tokens.json, a separate later chunk; wave proposed here |
+| `research-lead-workbench#53` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Q44); wave proposed here |
+| `research-lead-workbench#54` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (run card cancel); wave proposed here |
+| `research-lead-workbench#55` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (folded card rows); wave proposed here |
+| `research-lead-workbench#56` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (the Přidat tab); wave proposed here |
+| `research-lead-workbench#57` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (Kam); wave proposed here |
+| `research-lead-workbench#58` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the Lead's smaller gaps (B3, an operator and infrastructure chunk); wave proposed here |
+| `research-lead-workbench#59` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a price before approval on every paid card); wave proposed here |
+| `research-lead-workbench#60` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Vrátit until the next change); wave proposed here |
+| `research-lead-workbench#61` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (reused-run spend); wave proposed here |
+| `research-lead-workbench#62` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: Přehled fází, a V2 element checked against v73 first; wave proposed here |
+| `research-lead-workbench#63` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the fictional-data chip, a V2 element checked against v73 first; wave proposed here |
+| `research-lead-workbench#64` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (revision diff); wave proposed here |
+| `research-lead-workbench#65` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (the cost of re-running before an edit); wave proposed here |
+| `lead-orchestration#LO28` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Deep Research cards priced); wave proposed here |
+| `lead-orchestration#LO29` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (re-ask when the ceiling grows); wave proposed here |
+| `lead-orchestration#LO30` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (reused-run spend); wave proposed here |
+| `working-copy-edit-ops#WCE15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (undo an accepted proposal); wave proposed here |
+| `working-copy-edit-ops#WCE16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (undo a dismissed Lead edit); wave proposed here |
+| `working-copy-edit-ops#WCE17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (the cost of re-running before an edit); wave proposed here |
+| `working-copy-edit-ops#WCE18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (revision diff); wave proposed here |
+| `client-knowledge-lifecycle#K14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (knowledge review); wave proposed here |
+| `client-knowledge-lifecycle#K15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (names, not ids); wave proposed here |
+| `client-knowledge-lifecycle#K16` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Cena nejvýše from a document); wave proposed here |
+| `client-knowledge-lifecycle#K17` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (Cena nejvýše from a document); wave proposed here |
+| `client-knowledge-lifecycle#K18` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: the Data Library shared-layer flow |
+| `artifact-brief#BRF8` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Zadání's served class sentence (B6); wave proposed here |
+| `artifact-design#DSN15` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Návrh's edits bar (navrh D9); wave proposed here |
+| `artifact-questionnaire#QST14` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: "All verified findings" (QST13 and LO27); wave proposed here |
+| `artifact-questionnaire#QST15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST17` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST18` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-questionnaire#QST20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dotazník's smaller gaps; wave proposed here |
+| `artifact-sample#SMP11` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Vzorek: the start's own refusal (B1); wave proposed here |
+| `artifact-fieldwork#FLD13` | W1 | proposed 2026-10-27 (it had no wave, so `tools/master_check.py` failed on develop `dbaa7720`): with the respondent disc, `artifact-fieldwork#FLD8b` and `run-qc-and-checkpoint#RQC7c` |
+| `artifact-fieldwork#FLD14` | W1 | proposed 2026-10-27 (it had no wave, so `tools/master_check.py` failed on develop `dbaa7720`): with the respondent disc, `artifact-fieldwork#FLD8b` and `run-qc-and-checkpoint#RQC7c` |
+| `artifact-fieldwork#FLD15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD16` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD17` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): money and undo safety (a run stopped at the budget); wave proposed here |
+| `artifact-fieldwork#FLD18` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD19` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD20` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD21` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD22` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD23` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-fieldwork#FLD25` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Sběr dat's smaller gaps; wave proposed here |
+| `artifact-results#RES11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Výsledky' smaller gaps (the familiarity base); wave proposed here |
+| `artifact-results#RES12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Výsledky' smaller gaps (the familiarity base); wave proposed here |
+| `artifact-results#RES13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-results#RES14` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Další krok · Ideální skupina |
+| `artifact-sociomap#SOC15` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-audience#AUD12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Cílová skupina's smaller gap (audience:strategy); wave proposed here |
+| `artifact-dimensions#DIM9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM11` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM12` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-dimensions#DIM13` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Dimenze's smaller gaps; wave proposed here |
+| `artifact-analysis#ANL13` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): review and trust on screen (evidence grades); wave proposed here |
+| `artifact-report#RPT16` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT17` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT18` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT19` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT20` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): plan fix: Zpráva v78; wave proposed here |
+| `artifact-report#RPT21` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: board 11b as a board (design only) |
+| `deep-research-web-search#62` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: a study-level Deep Research permission panel; wave proposed here |
+| `sociomap-5-web#9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; the methodology owner's sign-off before a client sees a scenario; wave proposed here |
+| `sociomap-5-web#10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; wave proposed here |
+| `sociomap-5-web#11` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Zajímavé skupiny |
+| `study-data-lifecycle#SDL7` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: client data export |
+| `settings-redesign#F23` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the -5 render, once -5 is live); wave proposed here |
+| `settings-redesign#F24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Metodik's coral count); wave proposed here |
+| `settings-redesign#F25` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Audit categories as a dropdown); wave proposed here |
+| `settings-redesign#F26` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the sealed Lead kept 365 days (ADR 0030 amendment as Doc follow-up); wave proposed here |
+| `settings-redesign#F27` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): the 365-day erase of AI spend and audit (F22's finding); wave proposed here |
+| `system-prompts-settings#18` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Text / Změny); wave proposed here |
+| `lead-identity#LI10` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (Náhled v chatu); lead-identity is W3; wave proposed here |
+| `lead-identity#LI11` | W3 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Vypěstovat hero); lead-identity is W3; wave proposed here |
+| `prototype-build#PBA8` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the rail's badge dot and ring), lane A; wave proposed here |
+| `prototype-build#PBA9` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the flyout's fourth column), lane A; wave proposed here |
+
+**Added 2026-10-27** (the unplanned-features inventory, Nigel's decisions of 27 Oct, ~01:10-01:40 UTC, in the PM coordinator's chat). Two new core plans, `study-files` and `client-pages-redesign` (master §3.1), and new chunks in the plans that own each page. Each wave is the one its chunk names, proposed here where nothing did; the after-MVP chunks are POST. `artifact-fieldwork#FLD13` and `#FLD14` had no wave at develop `dbaa7720`, so `tools/master_check.py` failed there; both are W1 now.
 
 **Re-waves of 2026-10-26** (`prototype-build.md`, from the research chunk register §6): `working-copy-edit-ops#WCE8b` W2 → W1, because the per-item accept (`artifact-questionnaire#QST5`, W1) needs it; `research-lead-workbench#23` W4 → W1, out of E22; the money APIs in W1 (`lead-orchestration#LO23`, the ceiling before a start; `artifact-fieldwork#FLD10`, a parked step's `budget_need`); the composer's "+" menu as `research-lead-workbench#41`, W1, on today's contract, since `lead-orchestration#LO21b` is the prompt's action section only. `settings-redesign` is proposed core with every open chunk W1 (master §3.1), a proposal Nigel may change.
 

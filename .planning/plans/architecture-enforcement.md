@@ -392,3 +392,9 @@ For the next docs-only PR:
 Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answers-2026-10-20.md`, decision ids from `decision-list.md`), applied by freeze step 4; the proposals they settle are in `proposed-edits.md`.
 
 **New chunk.** 12 (W3), D-24.
+
+## Disposition (MP3, 2026-10-26)
+
+**SUPPORT (S3)**, accepted (the product owner in the Decision Review, 2026-10-26, relayed by the PM
+coordinator: "Accept: SUPPORT (S3)"). The new tables must pass its contracts and chunk 9 (the scope
+and claims digest) is security; scheduled beside migrations M1-M6, gating nothing alone.

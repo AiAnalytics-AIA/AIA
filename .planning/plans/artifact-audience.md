@@ -12,6 +12,7 @@ chunks:
   - "[ ] AUD9. Live Proveditelnost: the debounced preview, three KPI tiles, feasibility in words (spec vzorek A5; W2)"
   - "[ ] AUD10. Built-in subpanels as 'Hotové skupiny' chips inside Zúžit (spec vzorek A6; W2)"
   - "[ ] AUD11. A note where the audience's description and its filters disagree (spec vzorek A7; W2, blocked on OQ5)"
+  - "[ ] AUD12. A Lead target audience:strategy: the strategy choice pointable, in the domain's audience parts and the stage's data-aia marks in one change, since the two must agree (spec vzorek, the audience row; W2)"
 ---
 # Artifact: Cílová skupina (Audience)
 
@@ -135,6 +136,20 @@ arrows move (I3), and an arrow from Zúžit to Celá ČR 18+ would clear the fil
 cards). Tests: `AudienceStep.test.tsx` ("offers three strategies…", "a study stored as own, special or
 discover opens readable…"), `audience.live.test.ts` ("one strategy choice"), the audience and
 workspace journeys. Part 2 is the filter rows (`vzorek/A3`).
+
+**AUD9, as delivered (research stages v73, spec `vzorek/A5`; chunk added by the build plan).**
+Proveditelnost is asked again 400 ms after the last change of the filters or n
+(`useAudiencePreview`), with no button; an answer to an older question is dropped and the last
+answer stays, dimmed, while a newer one is asked. Three figures: "V populaci vybráno" (the selected
+rows of the population's), "Vzorek" (the stored n, linked to Vzorek, where it is set since #945, through next/link so a pending save and the Lead's pane survive; Codex on #1002) and
+"Lze vytáhnout" (`feasibility`): Ano only on the server's `PASS`, Těsně on `PASS_WEIGHTED`
+(representative once its weights are calibrated, `sampling.py`'s meaning, not the prototype's
+"kvóty nemusí vyjít"), Ne with the refusal in words, Neznámé without an answer, an n or a status the
+code knows. A count not answered reads "nezjištěno", never 0. Cost: one POST per settled change; the
+journey prints each preview's time on the machine it runs on. Open before merge: the p95 on develop
+(build plan). Tests: `useAudiencePreview.test.ts`, `audience.live.test.ts` ("Lze vytáhnout…"),
+`AudienceStep.test.tsx` ("Proveditelnost counts the audience in AIA without a click…"), the audience
+journey.
 
 **AUD3. Per-filter counts.**
 - `audience_preview` adds `per_filter: {factor: selected_rows}`: each filter alone over the same
@@ -264,3 +279,19 @@ follow-up chunk below.
 - AUD2 is re-scoped by `vzorek/A1` and `vzorek/A3` to one strategy choice and editable filter rows (contradiction 15).
 - AUD5 carries `vzorek/A8`; AUD6 `vzorek/A9`.
 - Decided by default (planning, 26 Oct 2026, open to Nigel's override): AUD4 (Předpoklady) sits under §01 of Cílová skupina (OQ6).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**AUD12. audience:strategy** (W2, lane F). The spec's audience row names `audience:strategy` (a **hypothesis** id) beside
+`audience:preview`; `_AUDIENCE_PARTS` (`packages/aia_core/src/aia_core/domain/research_lead.py:757 @ dbaa7720`) holds
+`definition`, `filters` and `preview` only. Add `strategy` there and the stage's mark together: the domain refuses a
+target the web marks, so the two land in one PR. Test: the Lead's focus on `audience:strategy` is accepted and the stage
+scrolls to the strategy choice.

@@ -17,6 +17,8 @@ chunks:
   - "[ ] 14. Remove the draft test from Settings (W1; the owner, 2026-10-20): no paid AI start outside the Lead; a draft is compared and activated, never run from Settings"
   - "[ ] 15. A researcher reads the system prompts 'Jen ke čtení': a member read route, an ADR 0020 amendment (Nigel, 26 Oct 2026; W1)"
   - "[ ] 16. System prompts edited and switched on only with the Metodik mark; owners and admins without it read (Nigel, 26 Oct 2026; W1)"
+  - "[ ] 17. The stale reason word: the analysis and Deep Research slots stop saying not_run_by_any_composition (the default registry runs both); they read as run but not yet pinned, in the domain and on Settings (ADR 0020 amendment 2026-10-26, Q2 (a); W1)"
+  - "[ ] 18. The 'Text / Změny' switch on a prompt: it opens on Změny when a version waits, the change counted '+n −m' (the Settings prototype v99; reworks chunk 10; W1)"
 ---
 # System prompts, editable from Settings, and a Settings page that can be used
 
@@ -351,3 +353,30 @@ follow-up chunk below.
 **15. Researchers read the prompts** (W1, lane B). Today every route refuses a member who may not administer the organization and "the prompt text is never returned to an ordinary member" (`apps/api/src/aia_api/routers/system_prompts.py:1-6 @ 40b16d58`). The prototype shows the prompts read-only to researchers; this needs an ADR 0020 amendment in its PR.
 
 **16. Metodik mark gates prompts** (W1, lane B). Nigel, 26 Oct 2026 ~00:35 UTC: "metodik edits the prompts". Storing and activating a prompt version need the mark, as methodology versions already do (`packages/aia_core/src/aia_core/infrastructure/methodology_repository.py:237 @ 40b16d58`, `require_methodologist`); owners and admins without it read only. Test: an admin without the mark is refused a save and an activation, by name.
+
+**17. The stale reason word** (W1; ADR 0020's amendment of 2026-10-26, Q2 (a): "Accept now; fix the
+stale reason word at once and keep chunks 7/13 as named follow-ups", the product owner in the Decision
+Review, relayed by the PM coordinator). The analysis module and the five Deep Research slots carry
+`NOT_RUN_BY_ANY_COMPOSITION` (`packages/aia_core/src/aia_core/domain/prompt_slots.py:50,158,175 @
+5d2ac5ac`), which Settings words as "žádné nasazení ho dnes nespouští, takže úprava by nic nezměnila"
+(`apps/web/src/i18n/cs.ts:901 @ 5d2ac5ac`), but the worker's default registry composes both
+(`apps/executors/src/aia_executors/registry.py:113,117 @ 5d2ac5ac`). A new reason (for example
+`run_without_a_pin`) and its Czech words say the prompt runs, carries no pin yet and is read-only until
+chunks 7 and 13 pin it; the old word leaves the domain and `cs.ts`. Test: the slot registry names no
+slot `not_run_by_any_composition` while the default registry composes its step, and the Settings panel
+shows the new words for `aia.analysis.module`. Chunks 7 and 13 stay the named follow-ups (W3, E19).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**18. Text / Změny** (W1, lane B). The Settings prototype v99 (Systémové prompty): a segment switches the editor between
+the text and its changes against the version in force; a prompt with a waiting version opens on Změny; the change is
+counted "+n −m" (lines added and removed). Chunk 10 built the compare without the switch. Test: a prompt with a waiting
+version opens on Změny and shows its counts.

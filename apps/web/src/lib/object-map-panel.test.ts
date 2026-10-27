@@ -4,7 +4,9 @@
 // in its `source` field), stubs the panel state and page, feeds them the stored hudba map of
 // `object-map-signed-off.json` in frame units, and records what they return and paint on a recording
 // context; `nodeScale` is the methodology's sociomap_3d.node_scale, which the panel reads from its
-// backend. The port must match to 1e-9, colour strings exactly.
+// backend. The slab (the terrain's sides) was recorded again the same way from the panel's `drawSlab66`
+// once it drew them (`source.slabLines`), with each scene's grid and camera. The port must match to
+// 1e-9, colour strings exactly.
 import { describe, expect, it } from "vitest";
 
 import { t, tv } from "@/i18n/t";
@@ -230,7 +232,7 @@ describe("relations, nodes, labels", () => {
 
 /** A context that records the fills, strokes and texts painted; text widths as the golden run's. */
 function recorder() {
-  type Op = { op: string; path: unknown[][]; style?: string; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
+  type Op = { op: string; path: unknown[][]; style?: string | RecordedGradient; alpha?: number; width?: number; dash?: string; text?: string; x?: number; y?: number; font?: string; align?: string; baseline?: string; w?: number; h?: number; fill?: string; tx?: number; ty?: number; rot?: number };
   const ops: Op[] = [];
   let path: unknown[][] = [];
   let state = { fillStyle: "#000", strokeStyle: "#000", lineWidth: 1, globalAlpha: 1, font: "10px sans-serif", dash: [] as number[], textAlign: "start", textBaseline: "alphabetic", tx: 0, ty: 0, rot: 0 };
@@ -267,6 +269,10 @@ function recorder() {
   return { ctx: ctx as unknown as CanvasRenderingContext2D, ops };
 }
 
+type RecordedGradient = { kind: "gradient"; x0: number; y0: number; x1: number; y1: number; stops: [number, string][] };
+const isGradient = (style: unknown): style is RecordedGradient => typeof style === "object" && style !== null && (style as RecordedGradient).kind === "gradient";
+const gradientOf = ({ x0, y0, x1, y1, stops }: RecordedGradient) => ({ x0, y0, x1, y1, stops });
+
 /** The same summary of a frame the golden run took of the panel's `draw66`. */
 function summarise(ops: ReturnType<typeof recorder>["ops"]) {
   const tri = ops.filter((o) => o.op === "fill" && o.alpha === 0.94);
@@ -274,7 +280,7 @@ function summarise(ops: ReturnType<typeof recorder>["ops"]) {
   const { op, x, y, w, h, fill } = ops[0];
   return {
     background: { op, x, y, w, h, fill },
-    slab: ops.filter((o) => o.op === "fill" && (o.style === "#06151a" || o.style === "#071c22")).map((o) => ({ style: o.style, path: o.path })),
+    slab: ops.filter((o) => o.op === "fill" && (o.style === "#0e181d" || isGradient(o.style))).map((o) => ({ style: isGradient(o.style) ? gradientOf(o.style) : o.style, path: o.path })),
     slabStrokes: ops.filter((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.05)").map((o) => o.width),
     triangles: { count: tri.length, samples: pick.map((k) => ({ k, style: tri[k].style, path: tri[k].path })), hairline: ops.find((o) => o.op === "stroke" && o.style === "rgba(255,255,255,.025)")?.width ?? null },
     contours: ops.filter((o) => o.op === "stroke" && o.style === "rgba(5,10,12,.30)").map((o) => ({ segments: o.path.filter((s) => s[0] === "M").length, first: o.path.slice(0, 2), last: o.path.slice(-2), width: o.width })),

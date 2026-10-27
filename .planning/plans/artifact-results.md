@@ -15,6 +15,10 @@ chunks:
   - "[ ] RES4c. Výsledky's header pill 'Běh z … · revize n', the revision-moved link and 'Sociomapa ›' (reopens RES4a; spec sber V2; W2)"
   - "[ ] RES9. Výsledky without inner tabs in the workbench (spec sber V1; W2)"
   - "[ ] RES10. Research-question tiles VO1…VOn (spec sber V4; W2)"
+  - "[ ] RES11. The familiarity base for a hidden object, the server: an object result answers how many respondents who know the object answered ('odpovědělo jen 18 lidí, kteří značku znají') (spec sber G6; W2)"
+  - "[ ] RES12. The familiarity base beside a hidden object on Výsledky (W2, after RES11)"
+  - "[ ] RES13. Evidence grades on screen: the report's glyph (measured, modelled, indicative, suppressed) beside every number, table cell and chart series on Výsledky, greyscale-safe, with a legend always visible; a modelled figure never looks measured (Nigel, 27 Oct 2026; W2)"
+  - "[ ] RES14. After the MVP: Další krok · Ideální skupina, the classic stage route-next, NOT_IN_AIA in docs/migration/interface-screens.json (Nigel, 27 Oct 2026)"
 ---
 # Artifact: Výsledky (Results)
 
@@ -275,3 +279,28 @@ follow-up chunk below.
 **Notes.**
 - RES3 carries `sber/V5`, `V6`, `V7`; RES4b `V3`, `V8`; RES2 `V9`; RES6 `V10`.
 - Awaiting the methodology owner: "Efektivní n" is Kish's, as RES3 says (OQ8), and a set's scale follows the board's presets (OQ9).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**RES11-RES12. Familiarity base** (W2, lane F). Spec `sber/G6`: whether the familiarity base is on the object result is
+not known (a **hypothesis**: only `donors` and `effective_n_kish` are read, `R/ExecutionSteps.tsx:2108-2111 @
+bd0d1ad6`). RES11 checks and serves it from the aggregate; RES12 prints it beside a hidden object. Test: a suppressed
+object answers and shows its familiarity base; an unknown base reads unknown.
+
+**RES13. Evidence grades on screen** (W2, lane F). Nigel, 27 Oct 2026: the same glyph the report prints
+(`infrastructure/report_docx/marks.py`: one glyph per grade, unknown "?") beside every number, table cell, chart series
+and map node; greyscale-safe; the legend always visible; a modelled figure never looks measured. One web component and
+legend from the grades the result API already carries (RES2's admitted rows), shared with
+`artifact-sociomap#SOC15` and `artifact-analysis#ANL13`. Test: a modelled cell carries the modelled glyph, the legend is
+present, and the page passes `make web_design`'s contrast check in greyscale.
+
+**RES14. Další krok · Ideální skupina** (after the MVP). The classic route `next` (`docs/migration/interface-screens.json`,
+`route-next`, NOT_IN_AIA, "The stage says it is not in AIA"). Nothing is built in the MVP.

@@ -19,6 +19,7 @@ chunks:
   - "[ ] DSN12b. A hypothesis's 'ověří S1' verdict: the hypothesis-to-measure link and research_trace's verdict (spec navrh D5; W2)"
   - "[ ] DSN13. Follow-up answers saved per question in the working copy (spec navrh D7; W1)"
   - "[ ] DSN14. Comments with undo, no false 'upraveno', their target and author (spec navrh D8; W1)"
+  - "[ ] DSN15. The edits bar keeps the turn's decided rows: Přijato and Zahozeno as pills, Vrátit on an accepted text edit through AutoBar's revert, Vrátit on a dismissed one only once working-copy-edit-ops#WCE16 serves it (spec navrh D9; W1, with research-lead-workbench#7)"
 ---
 # Artifact: Návrh (Research design)
 
@@ -309,8 +310,23 @@ follow-up chunk below.
 
 **DSN13. Follow-up answers** (spec `navrh/D7`, no backend; W1, lane E). After `working-copy-edit-ops#WCE3a`; analyze_brief harness bump.
 
-**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field). The UI part is built on `feature/design-comments-undo`: a removed comment comes back with Vrátit through the stage's one undo offer, saving comments for the Lead marks nothing "upraveno", and the section says a comment changes nothing (`ResearchScreen.workbench.test.tsx` "a removed comment comes back with Vrátit; saving comments marks nothing changed"). Open: "k sadě … · Jana Malá" needs `{target, author}` on a stored comment, the author from the session (a backend field; the store is `{quote, comment}` in `ui_state`).
+**DSN14. Comments** (spec `navrh/D8`; W1, lane E). `useUndo` (`input-interactions#1`); the author from the session (a new field). The UI part is built on `feature/design-comments-undo`: a removed comment comes back with Vrátit through the stage's one undo offer, saving comments for the Lead marks nothing "upraveno", and the section says a comment changes nothing (`ResearchScreen.workbench.test.tsx` "a removed comment comes back with Vrátit; saving comments marks nothing changed"). Open: "k sadě … · Jana Malá" needs `{target, author}` on a stored comment, the author from the session (a backend field; the store is `{quote, comment}` in `ui_state`). *Lost work, not built (PM coordinator, 26 Oct 2026).* That open part was started on `feature/design-comment-author` in the Návrh session, left uncommitted with its tests failing when its permission was withdrawn at 13:10 UTC, and lost with the session's container at its archive (23:19 UTC). Nothing of it is on any branch; the UI part above is on develop (`feature/design-comments-undo` @ 5439fbe2, merged). The open part starts again from this entry.
 
 **Notes.**
 - DSN5 keeps the Design Research card on Návrh (decided by default by planning, 26 Oct 2026, open to Nigel's override; OQ22); its "+" items in the Lead's menu are disabled with a reason until `lead-orchestration#LO5a.3`.
 - `navrh/D10` (the plan card 'Od návrhu ke sběru dat') is `lead-orchestration#LO3`, `#LO4`, `#LO21e`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**DSN15. Decided rows in the edits bar** (W1, lane E). Spec `navrh/D9`: `EditsBar` keeps the turn's decided edits with
+a pill; Vrátit on an accepted text edit reuses `AutoBar`'s revert (`Workbench.tsx:915 @ bd0d1ad6`); on a dismissed edit
+no Vrátit until `working-copy-edit-ops#WCE16`. The note above that `navrh/D9` is #7 with WCE9 stands for the server
+side; this is the bar itself. Test: an accepted edit stays as Přijato with Vrátit, and Vrátit restores the before text.

@@ -15,7 +15,9 @@ import { type DragEvent, type ReactNode, createContext, useContext, useEffect, u
 
 import { t, tv } from "@/i18n/t";
 import { hashTarget, questionElementId, questionnairePlace, setElementId } from "@/lib/answerability";
-import { ApiError, workspace } from "@/lib/api";
+import { ApiError, deepResearch, workspace } from "@/lib/api";
+import { isDesignRun } from "@/lib/design-evidence";
+import { onDeepResearchStarted } from "@/lib/deep-research-started";
 import { fileProblem, uploadProblem } from "@/research/brief-upload";
 import { saveBlob } from "@/lib/download";
 import { fileToBase64 } from "@/research/brief";
@@ -283,7 +285,7 @@ export function QuestionnaireStep() {
     </ActionDock>
   );
 
-  if (view === "choose") return <Choose onPick={path}>{dock}</Choose>;
+  if (view === "choose") return <Choose onPick={path}><DesignResearchBeforeEditor />{dock}</Choose>;
 
   const current = String(p.ui_state?.questionnaire_path || "manual") as QuestionnairePath;
   // React commits the tab before the frame, so the place is drawn when it opens (as for a hash).
@@ -370,6 +372,7 @@ export function QuestionnaireStep() {
           </section>
         </>
       ) : null}
+      {editor ? null : <DesignResearchBeforeEditor />}
       {dock}
     </div>
     </ScaleUndoProvider>
@@ -417,6 +420,28 @@ const PATHS: { key: QuestionnairePath; icon: IconName; title: string; text: stri
   { key: "manual", icon: "plus", title: "research.questionnaire.pathManual", text: "research.questionnaire.pathManualText", when: "research.questionnaire.whenManual" },
   { key: "ai", icon: "assistant", title: "research.questionnaire.pathAi", text: "research.questionnaire.pathAiText", when: "research.questionnaire.whenAi", chip: "aia.settings.aiDesignPending" },
 ];
+
+/**
+ * The design checkpoint's Deep Research before the questionnaire editor is open (review of
+ * #1006): a run started from the Lead's card on a goal or research questions alone (no
+ * questionnaire yet) is followed, cancelled and reviewed here, as in the editor's final section.
+ * Shown once the study has a design run or one is announced; a study without one sees nothing
+ * new. A failed read shows nothing: the panel says its own errors once it is shown.
+ */
+function DesignResearchBeforeEditor() {
+  const { frame } = useResearch();
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    let live = true;
+    // Read as a list only when it is one; neither a refusal nor an odd answer reaches the page.
+    deepResearch.runs(frame.studyId)
+      .then((all) => { if (live && Array.isArray(all) && all.some(isDesignRun)) setShown(true); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [frame.studyId]);
+  useEffect(() => onDeepResearchStarted(({ purpose }) => { if (purpose === "DESIGN_RESEARCH") setShown(true); }), []);
+  return shown ? <DeepResearchPanel /> : null;
+}
 
 function Choose({ onPick, children }: { onPick: (x: QuestionnairePath) => void; children: ReactNode }) {
   return (

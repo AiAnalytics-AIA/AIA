@@ -10,8 +10,9 @@ every writer names its subject through this enum, never as a string of its own
 
 The set is extended **once** for the MVP's lane (migration M3, ``lead-orchestration`` LO16, the
 lane's first migration): the seven subjects of :data:`LANE_M3_SUBJECTS` are admitted before any
-of their writers exist, so no later migration edits the same constraint (``mvp-development-plan``
-§4). Each names the chunk that writes it; until that chunk lands nothing writes the subject.
+of their writers exist (``mvp-development-plan`` §4). Each names the chunk that writes it; until
+that chunk lands nothing writes the subject. ``analysis_finding`` came later, with its writer
+(``artifact-analysis`` ANL11, research build spec ``szz/A7``), in a migration of its own.
 
 No I/O: stdlib and Pydantic only.
 """
@@ -57,6 +58,11 @@ class ApprovalSubject(StrEnum):
     DATA_CONTRACT = "data_contract"
     MAP_SNAPSHOT = "map_snapshot"
     SOCIOMAP_UNLOCK = "sociomap_unlock"
+    # -- migration M3b (lead-orchestration LO5a.2): a person's approval of a Lead card that
+    #    started paid work naming that work's run, the wallet's charge authority for it
+    LEAD_CARD = "lead_card"
+    # -- admitted after the lane's M3, by migration b7d1f3a5c9e2 (artifact-analysis ANL11)
+    ANALYSIS_FINDING = "analysis_finding"
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +102,14 @@ SUBJECTS: Final[tuple[SubjectSpec, ...]] = (
         ApprovalSubject.SOCIOMAP_UNLOCK,
         "the working revision unlocked",
         "working-copy-edit-ops WCE8 (ADR 0029 decision 8)",
+    ),
+    SubjectSpec(
+        ApprovalSubject.LEAD_CARD, "the run", "lead-orchestration LO5a.2 (ADR 0028 decision 3)"
+    ),
+    SubjectSpec(
+        ApprovalSubject.ANALYSIS_FINDING,
+        "<run>:<module>:<index>",
+        "artifact-analysis ANL11, a key finding reviewed",
     ),
 )
 

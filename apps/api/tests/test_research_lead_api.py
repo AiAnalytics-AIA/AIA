@@ -231,6 +231,8 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "workspace_revision",
         "created_at",
         "created_by",
+        # The prepared job's ceiling before the start (LO23): null on this turn.
+        "ceiling_usd",
         # The typed start a person's message named (LO5); null on a Lead turn.
         "command",
         # What waits and what was answered (ADR 0041 decision 7).
@@ -803,6 +805,42 @@ def test_the_generic_run_routes_never_serve_a_lead_turn(
     assert reviewer.get(lead_url(world)).json()["turns"] == []
 
 
+@pytest.mark.parametrize("switched_on", [False, True])
+def test_a_card_approved_questionnaire_job_reads_external_context_only_with_the_switch_on(
+    researcher: TestClient,
+    world: Any,
+    app: FastAPI,
+    monkeypatch: pytest.MonkeyPatch,
+    switched_on: bool,
+) -> None:
+    """artifact-questionnaire QST13: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives the job a Lead card
+    approves the store, as the stage's start and the typed command have it; off, none."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    turn_id = _turn(researcher, world, app, job)
+    if switched_on:
+        monkeypatch.setattr(
+            app.state,
+            "settings",
+            app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+        )
+    approved = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
+    assert approved.status_code == 200, approved.text
+    assert len(given) == (1 if switched_on else 0)
+    assert all(store is not None for store in given)
+
+
 def test_a_prepared_job_is_approved_under_the_spend_limit_once(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:
@@ -982,6 +1020,40 @@ def test_a_request_that_only_opens_a_stage_is_not_a_paid_request(
     turn_id = _turn(researcher, world, app, run)
     refused = researcher.post(f"{lead_url(world)}/turns/{turn_id}/request", json={})
     assert refused.status_code == 422 and refused.json()["code"] == "not_a_paid_request"
+
+
+def test_a_prepared_job_answers_its_ceiling_before_the_start_and_unknown_is_null(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """LO23 (spec lead/LP-4): a Lead card's agent job answers the most it can cost -- the
+    design job's reservation -- before anything starts; a run card answers none, and an
+    unset reservation answers null, never 0."""
+    job = {
+        "reply": "Připraveno.",
+        "request": {"kind": "agent_job", "action": "build_questionnaire", "why": WHY},
+    }
+    job_turn = _turn(researcher, world, app, job)
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "A běh?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _complete(
+        app, world, {"reply": "Můžeme spustit.", "request": {"kind": "research_run", "why": WHY}}
+    )
+    run_turn = str(posted.json()["turns"][-1]["turn_id"])
+    turns = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert turns[job_turn]["ceiling_usd"] == 2.0
+    assert turns[run_turn]["ceiling_usd"] is None
+    # A person's own message prepares nothing.
+    assert all(t["ceiling_usd"] is None for t in turns.values() if t["actor"] == "person")
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": None})
+    unknown = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert unknown[job_turn]["ceiling_usd"] is None
+    # A reservation of 0 is no price either: unknown, as analysis_ceiling_usd reads it, never
+    # "0,00 USD" on the card (stand-in review of #1014).
+    app.state.settings = app.state.settings.model_copy(update={"ai_research_reservation_usd": 0.0})
+    zero = {t["turn_id"]: t for t in researcher.get(lead_url(world)).json()["turns"]}
+    assert zero[job_turn]["ceiling_usd"] is None
 
 
 def test_without_a_reservation_a_limited_study_does_not_start_the_job(

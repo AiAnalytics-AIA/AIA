@@ -10,6 +10,9 @@ chunks:
   - "[x] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
   - "[x] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
   - "[x] 8. The panel's map window: the dock and tools on the map, the ⓘ info pill, Nastavení mapy / Nástroje / Správa objektů and the detail as movable, resizable glass windows inside the stage"
+  - "[ ] 9. The what-if layer, the server: three scenarios over a -5 map's frozen inputs (objects left out, one respondent segment only, an object's ratings shifted), computed as a provisional view and never stored over the run's map; no node drag (D-40) (Nigel, 27 Oct 2026; W2; each scenario's maths signed off by the methodology owner before a scenario reaches a client)"
+  - "[ ] 10. The what-if layer on screen: 'Co kdyby', the three scenarios, the map always marked provisional, one way back to the real map, nothing saved (W2, after 9)"
+  - "[ ] 11. After the MVP: Zajímavé skupiny on the map (Nigel, 27 Oct 2026)"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -77,6 +80,13 @@ After develop's map work (the owner, 2026-10-22): the stage keeps develop's heig
 display filter bar is a glass chip in the dock's row and the ⓘ the dock's last row, so neither covers the other however
 the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object while Správa objektů is closed opens it
 (`LEAD_REVEAL`); `tools/ui_workbench/sociomap_journey.mjs` walks the windows.
+
+## The object detail's „Všechny vztahy“ (the owner, 2026-10-22)
+
+The experimental Sociomapping's panel listed every relation of an object; the signed-off map showed only the five
+strongest reliable ones (as the AIA panel does). Under them the detail now lists every other mapped object, collapsed:
+its stored relation, its status (spolehlivý, slabý, or why unknown) and how many rated both, each line opening the pair.
+Display only, from the stored relations. The experimental map itself stays in the code, off by default.
 
 ## Open questions
 
@@ -181,4 +191,47 @@ the dock wraps; „Co je co“ goes into the ⓘ box; a Lead focus on an object 
   maps and synthetic variants of them (no reliable pair, sparse design, 36 objects), for
   `object-map-panel.test.ts`; regenerate it from the panel whenever the panel's drawing changes.
 - Decided (methodology owner, 2026-10-20): the respondent card counts respondents without a position as „Bez polohy“, so „Neumístěno“ names only the objects nobody rated; the facts line „Nezařazení respondenti“ (all ratings equal) stays.
-- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied.
+- Known difference (review of chunk 4): with a respondent ringed on a tilted view, the panel strokes the slab's outline at 1.7 px (its `drawPerson66` leaves `lineWidth` set for the next frame); the port keeps 0.28. A panel artefact, not copied. (Gone with the terrain's sides below: the slab is no longer stroked.)
+
+## The terrain's sides and the smooth terrain (the owner, 2026-10-23)
+
+- The flat slab under the square goes: the terrain stands on its own sides, as the Sociomapy app's Pedestal draws
+  them but without its layer bands. One wall per edge segment of the grid, from the terrain's edge height down to a
+  base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
+  darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
+  `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
+- Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
+  2026-10-26). Both draw the same stored terrain, the method's envelope of hills (the respondent map's density):
+  Blokový as flat triangles, as before; Hladký refined bicubically (x4, clamped, as the Sociomapy app's
+  `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
+  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový.
+  Drawing only: the heights are the method's. Sociomapy's own inverse-distance-weighted terrain was tried and left
+  out (the owner, 2026-10-26): a weighted mean fills empty ground with the nearest objects' values, the plateaus
+  the envelope replaced (`sociomap_math/terrain.py`).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**9. What-if, the server** (W2; the methodology owner's lane). Nigel, 27 Oct 2026, answering Q57: the Sociomap what-if
+layer is in the MVP, always marked provisional, never saved over the real map, no node drag (D-40). The scenarios allowed:
+leave objects out; one respondent segment only; shift an object's ratings. A scenario is recomputed by the engine from the
+run's frozen inputs (the dataset and specification the map was computed from) with the scenario applied, and answered as
+a view: never an artifact of the run, never in the register's approved set, its own fingerprint naming the scenario
+(`domain/sociomap/view.py`'s rule: scenarios never write). **Prerequisite:** the maths of each scenario needs the
+methodology owner's sign-off before a scenario reaches a client; until then a scenario is internal only. **Open:** Nigel
+also ticked "Something else" without saying what; a fourth scenario waits for his words. Test: a scenario leaves the
+run's stored map byte for byte unchanged; a segment-only scenario recomputes from that segment's respondents.
+
+**10. What-if on screen** (W2). "Co kdyby" in the map's tools: the three scenarios, the map marked "Prozatímní · co kdyby"
+on every view and snapshot, one way back ("Zpět na skutečnou mapu"), nothing saved; no drag of a node. Test: the mark is
+on every scenario view; leaving restores the stored map.
+
+**11. Zajímavé skupiny** (after the MVP). Excluded from this plan's first round (the table above) and not in the MVP;
+the clustering it needs is `segment-maps-and-drilldown#3`.

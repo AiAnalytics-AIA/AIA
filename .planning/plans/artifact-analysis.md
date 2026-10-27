@@ -4,17 +4,18 @@ chunks:
   - "[x] ANL1. Analýza's contract as data: view operations, pointable ids (module, finding, claim, research question) and V2's interaction contract"
   - "[x] ANL2. Milestones and Pokrytí výzkumných otázek: each research question with its answer state, the findings that answer it and what is missing"
   - "[x] ANL3. Findings with their claim chips, opened in the inspector down to the measure on Výsledky"
-  - "[ ] ANL4. Blokované nároky and a module with no supported finding, each with its reason and the way out"
+  - "[x] ANL4. Blokované nároky and a module with no supported finding, each with its reason and the way out"
   - "[ ] ANL5. The three registers apart: findings, labelled interpretation, external context from the sealed bundle, with its source chips"
   - "[ ] ANL6. Moduly analýzy and the same-data retry through the Lead's card, the stage's retry buttons removed"
   - "[ ] ANL7. Open-answer coding hosted here: the coded themes as a proposal, the counts as admitted claims"
   - "[ ] ANL8. Journey: Analýza at 1440, 1100, 768 and 390 px on recorded analysis, zero paid jobs"
-  - "[ ] ANL2b. The coverage table as Otázka | Odpověď (the answer's text) | Stav in three words (reopens ANL2; spec szz A3; W3)"
-  - "[ ] ANL3b. One findings list with a module filter (reopens ANL3; spec szz A4; W3)"
+  - "[x] ANL2b. The coverage table as Otázka | Odpověď (the answer's text) | Stav in three words (reopens ANL2; spec szz A3; W3)"
+  - "[x] ANL3b. One findings list with a module filter (reopens ANL3; spec szz A4; W3)"
   - "[ ] ANL9. Analýza as a stage of its own, no Výsledky tabs (spec szz A1; W3)"
-  - "[ ] ANL10. The header 'Běh z … · interní · origin'; run and claim ids off the stage (spec szz A2; W3)"
+  - "[x] ANL10. The header 'Běh z … · interní · origin'; run and claim ids off the stage (spec szz A2; W3)"
   - "[ ] ANL11. Finding review on the server: ledger subject analysis_finding, its routes and migration (spec szz A7; W3)"
   - "[ ] ANL12. Finding review on the web: Přijmout / Upravit / Vyřadit / Vrátit, 'Přijato N z M' (spec szz A8; W3)"
+  - "[ ] ANL13. Evidence grades on Analýza: each finding's cited numbers carry the report's glyph, with the legend (Nigel, 27 Oct 2026; W3, with artifact-results#RES13)"
 ---
 # Artifact: Analýza (Analysis)
 
@@ -169,6 +170,13 @@ The part that needs no new API has landed; the chunk stays open for evidence-int
   offered as a way out: it cannot ask a same-data round until ANL6.
 - Still open: N-3 (per-claim refusals as stored, a new API) and 9a's "no supported finding" diagnostic.
 
+*Done (#968, 2026-10-26).* The note opens the analysis, before the milestones. "Bez doloženého zjištění" lists
+each module whose stored `diagnostic` (9a, `domain/analysis/artifact.py` `finding_diagnostic`) says it stated
+nothing, with the reason and its resolutions in words (`lib/analysis-blocked.ts` `unsupportedModules`,
+`research.exec.resolution.*`). In the workbench "Opakovat analýzu" sends the person's typed "Zopakuj analýzu",
+only on the run that command retries (`GET …/lead` `analysis_retry_run`); elsewhere the Průběh link stays. N-3
+(per-claim refusals as stored) is not part of ANL4; it needs a new API and no chunk carries it yet.
+
 **ANL5. Registers.** Test: an external finding is labelled "Externí kontext" and has no claim chip.
 Depends on `evidence-integrity#7`, `lead-orchestration#LO9b`.
 
@@ -250,17 +258,39 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**ANL2b. Coverage table** (spec `szz/A3`; reopens ANL2; W3, lane G).
+**ANL2b. Coverage table** (spec `szz/A3`; reopens ANL2; W3, lane G). *Done (#946).* Otázka | Odpověď | Stav:
+the module's answer text with its findings or what is missing under it, and one word per row
+(`lib/analysis-coverage.ts` `CoverageRow.verdict`): Odpovězeno, Orientačně (only `segments_unavailable` recorded),
+Bez dat, and Čeká / Neznámé, kept so an unknown is never scored answered.
 
-**ANL3b. One findings list** (spec `szz/A4`; reopens ANL3; W3, lane G). With ANL5.
+**ANL3b. One findings list** (spec `szz/A4`; reopens ANL3; W3, lane G). With ANL5. *Done (#962).* "Zjištění":
+each finding once, under its module, with a filter (Vše and the eight modules). A finding the filter leaves off is
+unmounted; a Lead focus, a coverage chip or the inspector brings it back through `LEAD_REVEAL` (a claim only an
+answer cites opens its module). The module's summary stays in the pane above the list, not the inspector.
 
 **ANL9. Its own stage** (spec `szz/A1`; W3, lane G).
 
-**ANL10. Header** (spec `szz/A2`; W3, lane G).
+**ANL10. Header** (spec `szz/A2`; W3, lane G). *Done (#932).* "Běh z 21. 10. · interní · modelováno"
+(`lib/analysis-coverage.ts` `analysisHeader`); no run id or claim id on the stage.
 
 **ANL11. Finding review, server** (spec `szz/A7`, no backend; W3, lane G). A ledger subject migration on LO16's pattern; analysis draft.check.
+- The seam to Zpráva (found 2026-10-26): the report must read the review, so a finding a person discarded never
+  prints and an edited one prints as edited. Without it, ANL12's Vyřadit changes the screen and not the report.
 
 **ANL12. Finding review, web** (spec `szz/A8`; W3, lane G). After ANL11 and ANL3b.
 
 **Notes.**
 - ANL4 and ANL6 carry `szz/A5`; ANL6 `szz/A6` (its ceiling from `lead-orchestration#LO23`); ANL8 `szz/A10`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**ANL13. Grades on Analýza** (W3, lane G). RES13's component beside each number a finding cites. Test: a cited
+modelled number carries the modelled glyph.

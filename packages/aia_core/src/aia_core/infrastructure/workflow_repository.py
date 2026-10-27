@@ -2787,6 +2787,43 @@ class WorkflowRepository:
         self._session.flush()
         return True
 
+    def record_finding_review(
+        self, run_id: str, *, subject_id: str, decision: str, comment: str
+    ) -> LedgerEntry:
+        """Write a person's decision on one key finding of a run (artifact-analysis ANL11):
+        ``accepted``, ``edited``, ``dropped`` or ``undone``; ``comment`` names the module outcome
+        it was made on and an edit's wording (``domain/analysis/review.py`` ``review_comment``).
+        Append-only: a later row replaces an earlier one when read (``reviews_of``). The producer
+        is whoever started the run. Needs ``APPROVE_GATE``, which the worker's scope does not
+        hold. The caller has checked the finding and the wording
+        (``application/analysis_review.py``)."""
+        self.scope.require(Permission.APPROVE_GATE)
+        if decision not in ("accepted", "edited", "dropped", "undone"):
+            raise ValueError("a finding is accepted, edited, dropped or undone")
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.ANALYSIS_FINDING,
+            subject_id=subject_id,
+            run_id=run_id,
+            project_id=run.project_id,
+            project_revision=run.project_revision,
+            decision=decision,
+            comment=comment,
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return _ledger_entry(row)
+
     def record_lead_job_approval(
         self,
         lead_run_id: str,
@@ -2796,11 +2833,19 @@ class WorkflowRepository:
         design_revision_id: str,
         action: str,
         spend: dict[str, float] | None,
+        details: Mapping[str, Any] | None = None,
+        reused: bool = False,
     ) -> bool:
         """Write a person's approval of the paid job a Lead turn prepared, once (ADR 0026
         decision 7): the job started, the Design Revision it was asked on, and -- when the
         study's spend limit asked -- the ceiling, the limit and what the person confirmed.
-        Needs ``APPROVE_GATE``. Returns ``False`` when this turn's request is already approved.
+        ``details``: what else the card started with, in the row's comment (a Deep Research
+        card's purpose, target, preset, focus and ceiling, LO5a.2). Needs ``APPROVE_GATE``.
+        ``reused``: the approval found the run someone else's start had made (a Deep Research
+        card's spec is the stage's, by design): the row names it ``reused_run_id``, never
+        ``agent_run_id``, so it is no start approval of that run and its spend stays with
+        whoever started it (``charged_to_for_run``), as ``record_chat_start(reused=True)``.
+        Returns ``False`` when this turn's request is already approved.
         """
         self.scope.require(Permission.APPROVE_GATE)
         run = self._run(lead_run_id)
@@ -2832,7 +2877,8 @@ class WorkflowRepository:
                 decision="approve",
                 comment=json.dumps(
                     {
-                        "agent_run_id": agent_run_id,
+                        **dict(details or {}),
+                        ("reused_run_id" if reused else "agent_run_id"): agent_run_id,
                         "design_revision_id": design_revision_id,
                         "spend": spend,
                     },
@@ -2894,6 +2940,43 @@ class WorkflowRepository:
                     **({"run_id": run_id} if reused else {}),
                 },
                 sort_keys=True,
+            ),
+            request_id=self.scope.request_id,
+            **independence.audit_fields(),
+        )
+        self._session.add(row)
+        self._session.flush()
+        return int(row.decision_id)
+
+    def record_lead_card(
+        self, run_id: str, *, turn_id: str, kind: str, ceiling_usd: float | None
+    ) -> int:
+        """Write a person's approval of a Lead card that started paid work (lead-orchestration
+        LO5a.2, migration M3b): a ``lead_card`` row naming the run it created, decision
+        ``start``, and return its id -- the authority a wallet charge of that run names
+        (``CHARGE_AUTHORITIES``), as a typed start's ``chat_start`` row is. The card's own
+        decision stays its ``lead_job_request`` row; this one exists only so the wallet can
+        charge the run, and only when the wallet is on. Needs ``APPROVE_GATE``."""
+        self.scope.require(Permission.APPROVE_GATE)
+        run = self._run(run_id)
+        independence = observe_approval_independence(
+            producer_user_id=run.triggered_by,
+            approving_user_id=self.scope.actor_id,
+            policy=self.scope.self_approval,
+        )
+        row = ApprovalDecisionRow(
+            organization_id=self.scope.organization_id,
+            client_id=self.scope.client_id,
+            study_id=self.scope.study_id,
+            subject_type=ApprovalSubject.LEAD_CARD,
+            subject_id=run_id,
+            run_id=run_id,
+            project_id=run.project_id,
+            project_revision=run.project_revision,
+            gate_type=kind,
+            decision=CHARGE_DECISION,
+            comment=json.dumps(
+                {"turn_id": turn_id, "kind": kind, "ceiling_usd": ceiling_usd}, sort_keys=True
             ),
             request_id=self.scope.request_id,
             **independence.audit_fields(),
@@ -2999,8 +3082,10 @@ class WorkflowRepository:
                     comment = json.loads(row.comment or "{}")
                     entry["request"] = {
                         "status": "approved",
-                        "run_id": comment.get("agent_run_id"),
+                        "run_id": comment.get("agent_run_id") or comment.get("reused_run_id"),
                         "design_revision_id": comment.get("design_revision_id"),
+                        # Approved on a run another start had made: nothing started or charged.
+                        "reused": comment.get("reused_run_id") is not None,
                     }
                 continue
             turn_id, _, index = row.subject_id.rpartition(":")

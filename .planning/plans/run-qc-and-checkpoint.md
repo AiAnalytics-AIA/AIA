@@ -15,7 +15,7 @@ chunks:
   - "[ ] RQC7. The fieldwork event contract: heartbeat, quota-cell fill, a respondent grid, the park reason code"
   - "[x] RQC7a. The contract as data (aia-fieldwork-events-1): fieldwork_progress (respondents of n, blocks sent and replayed) every few respondents and, behind a switch, as a 30 s heartbeat; the park reason code as STEP_RECOVERY's error_reason, for every executor; the web words the progress"
   - "[x] RQC7b. Quota-cell fill: each panel respondent's quota cell (the RQC6a keys), fill per cell, under aia-fieldwork-events-2"
-  - "[ ] RQC7c. The respondent grid on Sběr dat, once V2 draws one (the prototype has none)"
+  - "[ ] RQC7c. The respondent disc on Průběh, in counts: the pure model, the disc, its legend and truth note, mounted in Respondenti (spec sber D1-D4, P4; retitled 2026-10-27: V2 draws the disc, never a grid)"
   - "[ ] RQC8. Readiness reads the worker's egress: a run whose route cannot carry Class A is flagged before it parks"
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
@@ -23,7 +23,7 @@ chunks:
   - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
   - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
   - "[ ] RQC13. Fieldwork shows a question's stimulus to each respondent before the question, recorded in the answer's provenance (D-45)"
-  - "[ ] RQC7d. The sector disc by one quota field, over RQC7b's quota-cell fill (spec sber D5; W2)"
+  - "[ ] RQC7d. The sector disc by one quota field, over RQC7b's quota-cell fill; the sectors sum to the answered total, a cell answered past its n drawn full and said, never clipped (spec sber D5; the sum rule added 2026-10-27; W2)"
 ---
 # Run QC and a fieldwork checkpoint
 
@@ -398,3 +398,38 @@ follow-up chunk below.
 
 **Notes.**
 - RQC7c carries `sber/P4` and `sber/D1`-`D4`: the disc is now drawn, so RQC7c is re-scoped to the counts it shows (register contradiction 8).
+
+## ADR 0036's answered items (2026-10-26): what RQC5 is built to
+
+The product owner answered part of ADR 0036 in the Decision Review, 2026-10-26 (relayed by the PM
+coordinator; `docs/architecture/adr/0036-respondent-replacement-admission.md`, decision notes). The ADR
+stays Proposed; MQ-15a, MQ-15b, 0036-Q7, 0036-Q8 and the verdict are left for the methodology owner.
+RQC5 takes these as acceptance conditions:
+
+- **0036-Q4 (a) "By row":** the exclusion pin names population rows, not donors. Test: a substitute
+  may share a donor with a kept respondent, never a row with any original respondent.
+- **0036-Q5 (a) "Refuse when off":** `run.replace` refuses by name while `AIA_AI_FIELDWORK_CHECKPOINT`
+  is off (OI-64). Test: with the switch off the start answers the refusal and queues nothing.
+- **0036-Q6 (a) "Within the original's quota cells, not as an independent representative sample":**
+  substitutes are drawn within the original run's quota cells (`PanelSample.quota_cells`), never as a
+  fresh representative draw (OI-99); the sampler mode itself follows MQ-15a's method.
+- **MQ-15c (a) "Report Kish n of run 2, beside run 1's":** the side-by-side report (ADR 0036 decision 6)
+  prints both runs' Kish effective n.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**RQC7c retitled.** Its old title ("the respondent grid on Sběr dat, once V2 draws one (the prototype has none)") was
+stale: V2 draws a disc in counts (spec `sber/§3`, D1-D4), and the note under "From the research build spec" already
+re-scoped it. The title now says so.
+
+**RQC7d's sum rule.** The sectors are the quota cells grouped by one field; their answered counts sum to the run's
+answered total (the disc's `done`), and a cell answered past its n is drawn full and said. Test: two cells of one age
+band sum into one sector; the sectors' answered counts sum to `progress.done`.

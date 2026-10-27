@@ -196,6 +196,7 @@ def delete_client(
     erase_client_profile(session, client_id=client_id)
     erase_client_notes(session, client_id=client_id)
     erase_client_edit_ops(session, client_id=client_id)
+    # A holdout confirmation is kept, content-free: its system's once per organization (OI-232).
     erase_client_holdouts(session, client_id=client_id)
     erase_client_test_policies(session, client_id=client_id)
     erase_client_work_journal(session, client_id=client_id)

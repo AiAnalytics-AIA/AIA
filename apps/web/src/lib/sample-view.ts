@@ -35,6 +35,30 @@ export function supportForecastOf(readiness: ReadinessBody): SupportForecastLine
 }
 
 /**
+ * The n at which a run's numbers would be shown, in words (SMP9), or null when there is nothing to
+ * add to the check's own words: n already suffices (`met`) or the evidence is indicative. The
+ * server names what its number stands for; a state it does not name, or none (an older API), is
+ * unknown, never good.
+ */
+export function reportableNOf(readiness: ReadinessBody): string | null {
+  const found = readiness.support_forecast;
+  if (found === undefined || found === null) return null;
+  switch (found.reportable_n_state) {
+    case "met":
+    case "indicative":
+      return null;
+    case "needs_more":
+      return found.reportable_n === null ? UNKNOWN_N : `Čísla by se ukázala od n = ${found.reportable_n}.`;
+    case "not_found":
+      return "V prohledaném rozsahu se n, při kterém by se čísla ukázala, nenašlo.";
+    default:
+      return UNKNOWN_N;
+  }
+}
+
+const UNKNOWN_N = "Při jakém n by se čísla ukázala, je předem neznámé.";
+
+/**
  * The verdict each reason gives an item (domain/question_outlook.py `_VERDICT`). An item carries
  * every reason it has, the support reason included, and its verdict is the worst of them: a tile
  * is captioned only by the reasons that give its own verdict.
@@ -112,15 +136,15 @@ export function sourceChosenOnRun(readiness: ReadinessBody): boolean {
 
 /**
  * Where a readiness check is fixed, by the server's check id (domain/research_design.py
- * `readiness`, support_forecast.py, research_trace.py): n and the support it gives on Dimenze, the
- * audience on Cílová skupina, the selected dimensions on Dimenze, everything the questionnaire
+ * `readiness`, support_forecast.py, research_trace.py): n and the support it gives on Vzorek itself,
+ * where n is set (SMP7), the audience on Cílová skupina, the selected dimensions on Dimenze, everything the questionnaire
  * decides on Dotazník. A check this client does not know names no stage: it is shown, never sent
  * to a guessed one.
  */
 const CHECK_STAGE: Readonly<Record<string, WorkbenchStage>> = {
-  sample_size: "dimensions",
-  support_forecast: "dimensions",
-  sociomap_support: "dimensions",
+  sample_size: "sample",
+  support_forecast: "sample",
+  sociomap_support: "sample",
   dimensions: "dimensions",
   audience: "audience",
   panel_sample: "audience",

@@ -149,6 +149,12 @@ def compare(baseline: Census | None, saved: Census) -> SavedChanges:
     return SavedChanges((*_control_changes(baseline, saved), *_typed(baseline, saved)))
 
 
+def written_texts(baseline: Census) -> dict[str, frozenset[str]]:
+    """Per tag, the texts code wrote under it in ``baseline``: what an ``added`` text must be one
+    of to be a copy, which prints an admitted number again (the client gate, RPT13)."""
+    return {tag: frozenset(texts) for tag, texts in _texts(baseline.controls).items()}
+
+
 def changes_payload(changes: SavedChanges) -> dict[str, Any]:
     """The stored form, beside the version it describes."""
     return {

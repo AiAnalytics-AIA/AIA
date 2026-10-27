@@ -31,6 +31,12 @@ chunks:
   - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
   - "[x] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17) (#853 @ 0eda121e)"
   - "[x] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
+  - "[ ] K13. A person's accept of an AI-written knowledge proposal writes one ai_proposal row in the approval ledger, once, in the decision's transaction, as design proposals do (two-roles 5b.3; REV-5B-KNOWLEDGE (a), the product owner 2026-10-26; W1)"
+  - "[ ] K14. Reject with a reason, and Rozhodnuté: the review's reject takes an optional reason (DecisionRequest.note, stored as decision_note) and a Rozhodnuté tab lists decided proposals with who, when and why (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K15. People's names in every trail, the server: approved_by, proposed_by, decided_by, internal.by and set_by answered with the person's name beside the id, null when unknown (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K16. 'Cena nejvýše' of AI proposals from a document, the server: the run's ceiling quoted before the start, confirmed by the person, asked again when it grows (lead-orchestration#LO29's rule) (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K17. The ceiling on 'Navrhnout znalosti' before the start, 'horní mez, ne odhad', unknown never zero, asked again when it grows (W1, after K16)"
+  - "[ ] K18. After the MVP: the Data Library's shared-layer flow, as the prototypes draw it (Nigel, 27 Oct 2026)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -822,6 +828,24 @@ It passed alone twice and in the next full run. There is no reproduction, so it 
 hypothesis. The file is not touched by K2d. Next step: run the full suite repeatedly and, if it
 recurs, capture the assertion and its timing.
 
+## K13: the approval ledger records an AI knowledge proposal's accept (2026-10-26)
+
+The product owner in the Decision Review, 2026-10-26 (relayed by the PM coordinator), REV-5B-KNOWLEDGE
+(a): "Yes, one 'ai_proposal' ledger row per accept, as for design proposals". Today an accept of an
+AI-authored knowledge proposal (K2d's, `authored: "ai"`) goes through `decide`
+(`packages/aia_core/src/aia_core/infrastructure/client_knowledge_repository.py:1278 @ 5d2ac5ac`) and
+writes a knowledge revision, but no approval-ledger row; an agent job's accept writes one
+(`infrastructure/workflow_repository.py:2577 @ 5d2ac5ac`, `record_ai_proposal_acceptance`, subject
+`ApprovalSubject.AI_PROPOSAL`, `domain/approval_ledger.py:46,77 @ 5d2ac5ac`). K13: an approval of a
+proposal whose author is `KnowledgeAuthor.AI` writes one `ai_proposal` row in the same transaction as
+the revision, under `APPROVE_GATE` (the worker's scope cannot), naming the proposal and its run, the
+producer (the run's starter), the accepter and whether they are the same person, and the revision
+written; a rejection writes none (a dismissal, as `record_ai_proposal_dismissal` records for agent
+jobs, if the ledger's subject spec admits it). The ledger subject's description in
+`approval_ledger.py` widens from "the agent job's run" to name a client-work run too, with its writer.
+W1, beside K2e and K2f. Test: an AI proposal's approval writes exactly one `ai_proposal` row and a
+second approval of the same proposal none; a person-written proposal's approval writes none.
+
 ## Doc follow-up
 
 After each slice lands, update CLAUDE's knowledge modules/routes and input/review surfaces;
@@ -879,3 +903,49 @@ and K11 places the ceiling beside it in the same Pravidla card; both are listed 
 at enqueue (G64; a bundle-contract change needing ADR 0021's defect note). The fold of
 `client-workspace` C6-C9 lands here: C6 → K2f/K3, C8 → `client-data-in-analysis#2/2a/3` with its UI
 chunk `client-data-in-analysis#10`, C9 → K6; C7 is closed as superseded by `client-budget`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**K14. Reject with a reason and Rozhodnuté** (W1, screen). Nigel, 27 Oct 2026: reject with a reason (optional), a
+Rozhodnuté tab (who, when, why). The server already takes a note (`DecisionRequest.note`,
+`apps/api/src/aia_api/routers/workspace.py:661-672 @ dbaa7720`), stores it (`decision_note`,
+`infrastructure/tables.py:1577`) and lists decided proposals (`GET …/knowledge/proposals?status=`, `workspace.py:1924-1936`);
+the web sends no reason and shows no decided list. Test: a reject with a reason reads back on Rozhodnuté with who and
+when; a reject without one is allowed.
+
+**K15. Names in trails** (W1, server). Every trail answers ids (`approved_by`, `proposed_by`, `decided_by`,
+`internal.by`, `set_by`; `workspace.py:363`, `:404`; `client_sources.py:102-120 @ a1a9a45c`). Answer each with the
+person's display name from the organization's members beside the id; a departed or unknown person reads null, never a
+guessed name. Used by K14, `client-pages-redesign#CPR3` and `#CPR11`. Test: a proposal by a member answers their name.
+
+**K16. The document proposals' ceiling** (W1, server). The proposals run (`POST …/sources/{id}/proposals`,
+`apps/api/src/aia_api/routers/client_sources.py:507 @ dbaa7720`) states no ceiling; only the client's budget stops it.
+Quote it before the start (the batches K2d counts, at most `MAX_REQUESTS`, times the reservation), take the person's
+confirmation of that ceiling, and ask again when it grows (LO29). Test: the quote equals batches times reservation; a
+start on an older, lower confirmation is 409 with the new ceiling.
+
+**K17. On screen** (W1). `SourceProposals.tsx` and the intake's AI switch (`client-pages-redesign#CPR12`) show it.
+Test: the ceiling shows before the start; an unknown one starts nothing.
+
+**K18. Data Library** (after the MVP). The prototypes' shared-layer flow for the data library (the prototypes inventory:
+partly built). Nothing scheduled.
+
+**K9 on Klienti.** Nigel, 27 Oct 2026: the cross-client "needs me today" is in the MVP, on Klienti. K9 stays this
+plan's (its read); its place on the directory is `client-pages-redesign#CPR8`.
+
+**K6 and `study-files#SF2`.** Nigel, 27 Oct 2026: deleting a folder retires its files (their items set to Vyřazeno).
+`study-files#SF2` is W2 and K6 is W3, so SF2 lands the retired state (an item set Vyřazeno by a new revision, read as
+retired, never offered to a study's context); K6 keeps correction, conflicts, dependent-study visibility and a single
+item's Vyřadit, and builds on it (proposed by planning, 2026-10-27; K6's owner confirms).
+
+**K6: the owner's open Q3** (the client canvas, recorded 2026-10-27, not decided): is a knowledge item retired or
+deleted? K6's single-item Vyřadit waits for the answer. A deleted folder's files are retired by the owner's own
+decision (`study-files#SF2`), which the question does not reopen.

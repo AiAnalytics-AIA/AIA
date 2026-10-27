@@ -16,12 +16,21 @@ from contextlib import contextmanager
 from datetime import UTC, date, datetime
 from typing import Annotated, Any, Final, Literal
 
+from aia_core.application.admitted_results import admitted_results
+from aia_core.application.analysis import MAX_REPAIRS as ANALYSIS_MAX_REPAIRS
 from aia_core.application.analysis_results import (
     AnalysisNotRetryable,
     ReconstructionRefused,
+    SourcesRefused,
+    modules_asked,
     reconstruct_run,
     retry_failed_modules,
     stored_analysis,
+)
+from aia_core.application.analysis_review import (
+    FindingReviewRefused,
+    finding_reviews,
+    review_finding,
 )
 from aia_core.application.audience_preview import PanelDraw, PanelSampler
 from aia_core.application.client_report import (
@@ -62,6 +71,7 @@ from aia_core.application.report import (
 from aia_core.application.report_approval import (
     APPROVABLE_KINDS,
     CLIENT_REPORT_KINDS,
+    ClientEditApproved,
     ReportEditsUnsaved,
     ReportNotApprovable,
     ReportVersionStale,
@@ -113,6 +123,13 @@ from aia_core.application.researcher_spend import run_spend_of, run_spends
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.artifact import finding_diagnostic
+from aia_core.domain.analysis.modules import AnalysisModuleId
+from aia_core.domain.analysis.review import (
+    MAX_WORDING,
+    FindingDecision,
+    FindingKey,
+    FindingReview,
+)
 from aia_core.domain.analysis.steps import ANALYSIS_STEP_KIND
 from aia_core.domain.answerability import (
     ANSWERABILITY_RULES,
@@ -150,6 +167,7 @@ from aia_core.domain.report.validation import ReportInvalid
 from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
+from aia_core.domain.run_cost import analysis_ceiling_usd
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -157,6 +175,7 @@ from aia_core.domain.scope import (
     StudyContext,
 )
 from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER, MethodologyStatus
+from aia_core.domain.support_forecast import SupportForecast
 from aia_core.domain.workflow import FailureClass, StepRunStatus
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
@@ -714,6 +733,28 @@ class SampleCompositionResponse(BaseModel):
     support_counted: bool = False
 
 
+class SupportForecastResponse(BaseModel):
+    """What the support forecast found beyond its check's words (artifact-sample SMP9)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The smallest n, with everything else in the design as it is, at which the analysis gate
+    #: admits the evidence (``domain.support_forecast``); a number only in ``needs_more``.
+    reportable_n: int | None
+    #: What ``reportable_n`` stands for, so its ``None`` is never read as good: ``met`` (n
+    #: already suffices), ``indicative``, ``needs_more`` (the number), ``not_found`` (none within
+    #: the search) or ``unknown`` (nothing was forecast).
+    reportable_n_state: Literal["met", "indicative", "needs_more", "not_found", "unknown"]
+
+
+def support_forecast_response(forecast: SupportForecast) -> SupportForecastResponse:
+    """The forecast's sufficient n as readiness serves it, with what its ``None`` stands for."""
+    return SupportForecastResponse(
+        reportable_n=forecast.reportable_n,
+        reportable_n_state=forecast.reportable_state.value,
+    )
+
+
 class _ReadinessBody(BaseModel):
     """What readiness says of a design, whichever revision it was read on."""
 
@@ -753,6 +794,8 @@ class _ReadinessBody(BaseModel):
     #: The sample a panel run would draw (RQC6b); ``None`` when none was drawn (another persona
     #: source, no population to draw from, a fieldwork source that is not ``ai_runtime``).
     sample_composition: SampleCompositionResponse | None = None
+    #: ``None`` when this fieldwork source forecasts no support.
+    support_forecast: SupportForecastResponse | None = None
 
 
 class ReadinessResponse(_ReadinessBody):
@@ -1558,6 +1601,9 @@ def _readiness_body(
         )
         if outlook.panel is not None
         else None,
+        "support_forecast": support_forecast_response(outlook.forecast)
+        if outlook.forecast is not None
+        else None,
     }
 
 
@@ -2066,12 +2112,20 @@ def retry_run(
     summary="The analysis modules of a run a person may ask again over its collected data",
 )
 def run_analysis_retryable(
-    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+    run_id: RunIdPath,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+    request: Request,
 ) -> dict[str, Any]:
     """Read from the stored outcomes as they are, under whichever harness stored them, so a
     run made before a harness change can still be repaired (``…/analysis`` re-judges and
     refuses those). ``stale``: the modules among them a model completed under an earlier
-    harness, which today's refuses to re-admit -- the reason, not a model's failure."""
+    harness, which today's refuses to re-admit -- the reason, not a model's failure.
+    ``ceiling_usd`` (lead-orchestration LO23, spec szz/A6 and lead/LP-13): the most the
+    retry can cost, priced as its start prices it (``modules_asked``, the modules the start
+    asks, each a primary and its repairs at the analysis reservation, the fieldwork frozen);
+    ``null`` when that reservation is not configured, never 0."""
     try:
         scope.require(Permission.EDIT_STUDY)
         analysis = stored_analysis(session, scope, store, run_id=run_id)
@@ -2083,10 +2137,17 @@ def run_analysis_retryable(
         raise HTTPException(
             status_code=409, detail={"code": exc.reason, "message": str(exc)}
         ) from exc
+    analysis_usd = _reservations(request).analysis_usd
+    # Priced on what the retry's start asks, not on the retryable modules alone: a run with
+    # no record of a module asks it too, so the count here is never below the start's.
+    modules = modules_asked(analysis)
     return {
         "run_id": run_id,
         "modules": [module.value for module in analysis.retryable],
         "stale": [module.value for module in analysis.stale],
+        "ceiling_usd": analysis_ceiling_usd(
+            modules, reservation_usd=analysis_usd, calls_per_module=1 + ANALYSIS_MAX_REPAIRS
+        ),
     }
 
 
@@ -2220,6 +2281,110 @@ def run_artifact(
     return artifact_response(artifact, payload)
 
 
+class ResultRowResponse(BaseModel):
+    """One row of a question: an admitted number, or a suppressed ref with why and no number."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_ref: str
+    #: ``pct``, ``mean``, ``top2box_pct``, ``n`` or ``effective_n``; ``answer`` is a share's.
+    metric: str | None
+    answer: str | None
+    #: ``None`` for a suppressed row and in a refused question: the number never leaves the API.
+    value: float | None
+    decimals: int | None
+    #: The 95 % interval, ``[lower, upper]``, of an admitted estimate; ``None`` otherwise.
+    interval: tuple[float, float] | None
+    #: ``REPORTABLE`` or ``INDICATIVE`` with a number, ``SUPPRESS`` without; ``None`` in a
+    #: refused question.
+    support: str | None
+    effective_n: float | None
+    #: Why a suppressed row has no number, as codes (``below_effective_n``, ``below_min_cell``,
+    #: ``no_interval``, … ``other``): the words name the numbers withheld.
+    reasons: list[str]
+
+
+class QuestionResultResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    question_id: str
+    text: str
+    rows: list[ResultRowResponse]
+    #: The evidence gate's violation codes when it refused every number of the question.
+    refused: list[str]
+
+
+class AdmittedResultsResponse(BaseModel):
+    """A run's results as admitted rows (evidence-integrity 6), internal only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    run_id: str
+    data_origin: str | None
+    internal_only: Literal[True] = True
+    questions: list[QuestionResultResponse]
+
+
+@router.get(
+    "/research/runs/{run_id}/results",
+    response_model=AdmittedResultsResponse,
+    summary="A research run's results, admitted rows only",
+)
+def run_results(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> AdmittedResultsResponse:
+    """Every question's numbers as the evidence gate admits them for the internal surface.
+
+    Needs ``VIEW_RESULTS``. Suppression is decided here: a suppressed row carries its reasons'
+    codes and no number, and a question the gate refuses carries the gate's codes and no number.
+    409 ``results_unavailable`` with the reason while the run has no verified aggregate or its
+    sources make no evidence table; 409 ``artifact_corrupt`` for a source that failed its hash.
+    """
+    try:
+        results = admitted_results(session, scope, store, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    except SourcesRefused as exc:
+        if exc.reason == "source_corrupt":
+            raise artifact_corrupt(session) from exc
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "results_unavailable",
+                "message": str(exc),
+                "details": {"reason": exc.reason},
+            },
+        ) from exc
+    return AdmittedResultsResponse(
+        run_id=results.run_id,
+        data_origin=results.data_origin.value if results.data_origin else None,
+        questions=[
+            QuestionResultResponse(
+                question_id=q.question_id,
+                text=q.text,
+                refused=list(q.refused),
+                rows=[
+                    ResultRowResponse(
+                        evidence_ref=r.evidence_ref,
+                        metric=r.metric,
+                        answer=r.answer,
+                        value=r.value,
+                        decimals=r.decimals,
+                        interval=(r.interval.lower, r.interval.upper) if r.interval else None,
+                        support=r.support,
+                        effective_n=r.effective_n,
+                        reasons=list(r.reasons),
+                    )
+                    for r in q.rows
+                ],
+            )
+            for q in results.questions
+        ],
+    )
+
+
 @router.get(
     "/research/runs/{run_id}/analysis",
     response_model=dict[str, Any],
@@ -2336,6 +2501,107 @@ def run_analysis(
     }
 
 
+class FindingReviewRequest(BaseModel):
+    """A person's decision on one key finding; ``wording`` only with ``edited``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision: FindingDecision
+    # Bounded here for the request's size; the wording's own limit is checked once stripped.
+    wording: str | None = Field(default=None, max_length=2 * MAX_WORDING)
+
+
+def _review(review: FindingReview) -> dict[str, Any]:
+    return {
+        "module": review.key.module.value,
+        "index": review.key.index,
+        "decision": review.decision.value,
+        "wording": review.wording,
+        "decided_by": review.decided_by,
+        "decided_at": review.decided_at.isoformat(),
+        "self_approved": review.self_approved,
+    }
+
+
+@router.get(
+    "/research/runs/{run_id}/analysis/findings",
+    response_model=dict[str, Any],
+    summary="Each key finding's review in force: accepted, edited or dropped",
+)
+def run_finding_reviews(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> dict[str, Any]:
+    """The newest decision on each of the run's key findings (artifact-analysis ANL11), made on the
+    module outcome the run shows (an analysis retry's reused outcome keeps its reviews). A finding
+    no one decided, or whose decision was undone, is absent: unknown, never accepted."""
+    try:
+        reviews = finding_reviews(session, scope, run_id=run_id)
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        raise _not_found("run") from exc
+    return {"run_id": run_id, "reviews": [_review(r) for _, r in sorted(reviews.items())]}
+
+
+@router.put(
+    "/research/runs/{run_id}/analysis/findings/{module}/{index}",
+    response_model=dict[str, Any],
+    summary="Accept, edit, drop or undo one key finding of a run",
+    responses={
+        404: {"model": ErrorResponse, "description": "The run or the finding does not exist"},
+        422: {"model": ErrorResponse, "description": "The edited wording cannot stand"},
+    },
+)
+def review_run_finding(
+    run_id: RunIdPath,
+    module: AnalysisModuleId,
+    index: Annotated[int, Path(ge=0, le=999)],
+    body: FindingReviewRequest,
+    scope: StudyScopeDep,
+    session: SessionDep,
+    store: ArtifactStoreDep,
+) -> dict[str, Any]:
+    """Needs ``APPROVE_GATE``. One row in the approval ledger (subject ``analysis_finding``),
+    never an overwrite: a later decision replaces an earlier one when read, and ``undone`` takes
+    the finding back to undecided. An edit keeps the finding's cited claims; every number in its
+    wording must be one of theirs (422 ``wording_numbers`` names the others)."""
+    if (body.wording is not None) != (body.decision is FindingDecision.EDITED):
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "wording_mismatch", "message": "Only an edit carries a wording."},
+        )
+    try:
+        review = review_finding(
+            session,
+            scope,
+            store,
+            run_id=run_id,
+            key=FindingKey(module, index),
+            decision=body.decision,
+            wording=body.wording,
+        )
+    except ScopeDenied as exc:
+        raise _refused(exc) from exc
+    except ReconstructionRefused as exc:
+        if exc.reason == "run_not_found":
+            raise _not_found("run") from exc
+        raise HTTPException(
+            status_code=409, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except FindingReviewRefused as exc:
+        if exc.reason == "finding_not_found":
+            raise _not_found("finding") from exc
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": exc.reason,
+                "message": "The edited wording cannot stand.",
+                "details": {"numbers": list(exc.numbers)},
+            },
+        ) from exc
+    return {"run_id": run_id, "review": _review(review) if review is not None else None}
+
+
 # The report is read only through the run that produced it.
 
 
@@ -2445,15 +2711,19 @@ def _approved_edits(
     scope: StudyContext,
     session: SessionDep,
     store: ArtifactStoreDep,
+    *,
+    client: bool = False,
 ) -> list[dict[str, Any]]:
-    """The edited versions of the run's internal report, or of its report with
-    ``deep_research_run_id``'s review, that a person approved, each with its review."""
+    """The edited versions of the run's internal report, of its report with
+    ``deep_research_run_id``'s review, or (``client``) of its client report (RPT13), that a
+    person approved, each with its review."""
+    variant = "client" if client else ("internal" if deep_research_run_id is None else "context")
     found = approved_versions(
         session,
         scope,
         store,
         run_id=run_id,
-        variant="internal" if deep_research_run_id is None else "context",
+        variant=variant,
         deep_research_run_id=deep_research_run_id,
     )
     return [
@@ -3590,6 +3860,11 @@ def _client_document_body(
         **_review_fields(report, mark),
         **_approval_fields(report, scope, session, store),
         **_client_pdf_fields(run_id, report, mark, scope, session, store),
+        # The edited versions of the client report a person approved, and the newest saved over
+        # this one (RPT13), as the internal report's status names them: an approved edited
+        # version is the client's, and this composed draft is no longer approved beside it.
+        "approved_edits": _approved_edits(run_id, None, scope, session, store, client=True),
+        "edited_line": _edited_line(report, scope, session, store),
         # The client deliverable's checks (RD0) and the sentence check (RD7) on this version:
         # warnings the approval dialog shows and the approval records, never a refusal.
         "warnings": [
@@ -3635,6 +3910,19 @@ def approve_run_report(
                 "code": "report_edits_unsaved",
                 "message": "An edit made in the editor is not in a saved version yet.",
                 "details": {"reason": exc.reason.value},
+            },
+        ) from exc
+    except ClientEditApproved as exc:
+        raise HTTPException(
+            409,
+            detail={
+                "code": "client_report_edit_approved",
+                "message": "A version of this client report edited in the editor is approved;"
+                " it is the client's.",
+                "details": {
+                    "approved_artifact_id": exc.approved_artifact_id,
+                    "koncept": exc.koncept,
+                },
             },
         ) from exc
     except ReportVersionStale as exc:
@@ -3959,12 +4247,18 @@ def start_agent_job(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
+    """With ``AIA_AI_ANALYSIS_EXTERNAL_CONTEXT`` on, a questionnaire job's context carries the
+    Study's newest Design Research findings as external context, never evidence (QST13)."""
     with _agent_errors(session):
         # What one job can cost at most, for the study's confirmation threshold (LO15).
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.start(
             design_revision_id=body.design_revision_id,
@@ -4113,6 +4407,7 @@ def rebuild_agent_result(
     scope: StudyScopeDep,
     session: SessionDep,
     settings: SettingsDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> AgentJobResponse:
     """Ask the same action and instruction again on the Study's newest Design Revision: a new
@@ -4121,7 +4416,10 @@ def rebuild_agent_result(
     threshold as a start does (LO15)."""
     with _agent_errors(session):
         jobs = ResearchAgentJobs(
-            session, scope, reservation_usd=settings.ai_research_reservation_usd
+            session,
+            scope,
+            reservation_usd=settings.ai_research_reservation_usd,
+            external_store=store if settings.ai_analysis_external_context else None,
         )
         started = jobs.rebuild(
             run_id,

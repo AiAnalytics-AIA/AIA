@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Readiness } from "./api";
-import { ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf } from "./sample-view";
+import { ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, reportableNOf, sourceChosenOnRun, supportForecastOf } from "./sample-view";
 
 const readiness = (over: Partial<Readiness>): Readiness => ({
   design_revision_id: "r1", rules: "aia-readiness-1", ready: true, checks: [], questions: 3, batteries: 0, objects: 0, n: 200,
@@ -44,6 +44,34 @@ describe("supportForecastOf", () => {
 
   it("reads a readiness without the check as unknown", () => {
     expect(supportForecastOf(readiness({ checks: [{ id: "sample_size", status: "PASS", message: "n 200" }] }))).toEqual({ known: false, message: null });
+  });
+});
+
+describe("reportableNOf (SMP9)", () => {
+  const found = (reportable_n: number | null, reportable_n_state: string) =>
+    readiness({ support_forecast: { reportable_n, reportable_n_state } as Readiness["support_forecast"] });
+
+  it("names the n that would show the numbers only when the server found one", () => {
+    expect(reportableNOf(found(320, "needs_more"))).toBe("Čísla by se ukázala od n = 320.");
+  });
+
+  it("adds nothing when n already suffices or the evidence is indicative: the check's words say it", () => {
+    expect(reportableNOf(found(null, "met"))).toBeNull();
+    expect(reportableNOf(found(null, "indicative"))).toBeNull();
+  });
+
+  it("says a search that found nothing apart from a forecast that was never made, neither as good", () => {
+    expect(reportableNOf(found(null, "not_found"))).toBe("V prohledaném rozsahu se n, při kterém by se čísla ukázala, nenašlo.");
+    const unknown = "Při jakém n by se čísla ukázala, je předem neznámé.";
+    expect(reportableNOf(found(null, "unknown"))).toBe(unknown);
+    // A state this client does not know, or a needs_more without its number, is unknown too.
+    expect(reportableNOf(found(null, "later"))).toBe(unknown);
+    expect(reportableNOf(found(null, "needs_more"))).toBe(unknown);
+  });
+
+  it("adds nothing for a source the server does not forecast, or an older API", () => {
+    expect(reportableNOf(readiness({ support_forecast: null }))).toBeNull();
+    expect(reportableNOf(readiness({}))).toBeNull();
   });
 });
 
@@ -112,8 +140,10 @@ describe("sourceChosenOnRun", () => {
 
 describe("checkStage", () => {
   it("sends each known check to the stage that fixes it", () => {
-    expect(checkStage("sample_size")).toBe("dimensions");
-    expect(checkStage("sociomap_support")).toBe("dimensions");
+    // n and its support are set on Vzorek itself since SMP7, never on Dimenze.
+    expect(checkStage("sample_size")).toBe("sample");
+    expect(checkStage("support_forecast")).toBe("sample");
+    expect(checkStage("sociomap_support")).toBe("sample");
     expect(checkStage("dimensions")).toBe("dimensions");
     expect(checkStage("audience")).toBe("audience");
     // A panel sample the sampler refuses: its filters are set on Cílová skupina (RQC6).

@@ -17,6 +17,7 @@ uses a Class C route, as develop has.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import re
 import sys
@@ -31,6 +32,7 @@ import pytest
 from aia_core.application.deep_research import BundleNotReady, DeepResearchRuns
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.application.web_retrieval import RetrievalGate
+from aia_core.domain.ai_models import RequestProfile, StructuredOutput, ThinkingMode
 from aia_core.domain.deep_research.agents import AgentRole
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.contracts import (
@@ -1026,6 +1028,40 @@ def test_the_thinking_budget_needs_deep_research_and_is_off_when_unset(
     # A composition built by hand is held to the same rule.
     with pytest.raises(ValueError, match="below the output limit"):
         recorded(research, RecordedAgents(ANSWERS), thinking=8192)
+
+
+def test_an_adaptive_route_model_is_sent_no_thinking_budget(research: ResearchWorld) -> None:
+    """A route model that thinks adaptively refuses a budget (the adapter refuses it unsent), so
+    the composition drops the configured one: the agents' requests and the run's versions are
+    those of a run without the key (sonnet-5-5-switch)."""
+    budgeted = ai_settings(research.client_id, approved_for=DEVELOP_ROUTE)
+    adaptive = dataclasses.replace(
+        budgeted,
+        request_profile=RequestProfile(
+            structured_output=StructuredOutput.AUTO_TOOL,
+            thinking=ThinkingMode.ADAPTIVE,
+            accepts_sampling=False,
+        ),
+    )
+    env = {"AIA_DEEP_RESEARCH_ENABLED": "true", "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "2048"}
+    runtimes = {
+        name: deep_research_runtime(
+            settings, env=env, transport=RecordedAgents(ANSWERS), signer=Signer()
+        )
+        for name, settings in (("budget", budgeted), ("adaptive", adaptive))
+    }
+    kept, dropped = runtimes["budget"], runtimes["adaptive"]
+    assert kept is not None and kept.config.thinking_budget_tokens == 2048
+    assert dropped is not None and dropped.config.thinking_budget_tokens is None
+    assert "thinking_budget_tokens" not in dropped.versions()
+    # Still read and checked: a budget the route could never take is refused all the same.
+    with pytest.raises(AIRuntimeConfigError, match="must be below"):
+        deep_research_runtime(
+            adaptive,
+            env={**env, "AIA_DEEP_RESEARCH_THINKING_BUDGET_TOKENS": "8192"},
+            transport=RecordedAgents(ANSWERS),
+            signer=Signer(),
+        )
 
 
 # --------------------------------------------------------------------------- #

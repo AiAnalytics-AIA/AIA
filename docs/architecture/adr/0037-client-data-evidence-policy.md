@@ -14,6 +14,20 @@ written in; the owner asked for the same review document as for ADRs 0020 to 002
 how it connects in AIA, its inputs and outputs, an example for each complex topic). The status is
 unchanged until the methodology answer is written in and he accepts it.
 
+**Decision notes, 2026-10-26** (the product owner, Decision Review, relayed by the PM coordinator;
+answered in part, the status unchanged, the rest the methodology owner's):
+
+- **0037-Q4 (a): "A Metodika module ('client data'), versioned, pinned per run".** Decision 4's
+  support rule version lives in the ADR 0023 store as a module of its own, written by the methodology
+  owner, and a run pins it like every other module; it is not a code constant.
+- **0037-Q5 (a): "Close it".** *Open for Nigel* item 2 (sequencing with #508) is closed: #508 has
+  merged and ADR 0027 carries its 2026-10-20 amendment.
+- **MQ-17 (a): "Never"** (shared with ADR 0027 Q2). A client's survey answers never condition the
+  AI respondents' personas; client data stays a separate comparison. Decision 4's "grounding
+  forbidden until answered" is now forbidden, full stop.
+
+Still open: MQ-16, MQ-18 and the verdict, left for the methodology owner.
+
 **Date:** 2026-10-20
 **Plan:** [client-data-in-analysis](../../../.planning/plans/client-data-in-analysis.md) 0-9
 
@@ -109,6 +123,8 @@ and AC-10.
 
 ## Open for Nigel
 
-1. **Q1, Q2, Q4** are the methodology owner's (A. Bahbouh).
-2. **Sequencing with #508.** This ADR reads ADR 0027 as #508 amends it; if #508 changes before it
-   merges, this ADR follows it.
+1. **Q1, Q4** are the methodology owner's (A. Bahbouh); Q2 is answered, "Never" (MQ-17 (a), the
+   product owner, 2026-10-26).
+2. ~~**Sequencing with #508.** This ADR reads ADR 0027 as #508 amends it; if #508 changes before it
+   merges, this ADR follows it.~~ Closed 2026-10-26 (the product owner, Q5 (a): "Close it"): #508
+   has merged.

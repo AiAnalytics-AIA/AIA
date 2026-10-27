@@ -6,7 +6,7 @@
 // server's, read on the design as it stands. Beyond n this view edits nothing and decides nothing: it
 // shows what is set, what the server forecasts, and links to where each is set.
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type MouseEvent, type ReactNode, useEffect, useState } from "react";
 
 import { TOUCH, TOUCH_LINK } from "@/components/ui/parts";
 import { t, tv } from "@/i18n/t";
@@ -15,7 +15,7 @@ import { sampleAia } from "@/lib/artifacts/sample";
 import type { OutlookVerdict, PersonaSourceOption } from "@/lib/api";
 import { budgetLine, readBudget, type StudyBudget } from "@/lib/budget-line";
 import { codeWords } from "@/lib/reason-words";
-import { SUPPORT_FORECAST_CHECK, ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, sourceChosenOnRun, supportForecastOf, type CompositionRow, type ReadinessLine } from "@/lib/sample-view";
+import { SUPPORT_FORECAST_CHECK, ceilingOf, checkStage, compositionOf, outlookTiles, personaSourcesOf, readinessLine, readinessSummary, reportableNOf, sourceChosenOnRun, supportForecastOf, type CompositionRow, type ReadinessLine } from "@/lib/sample-view";
 import { ceilingWords } from "@/lib/spend";
 import { STAGES } from "@/lib/workbench-stages";
 import type { WorkbenchStage } from "@/lib/workbench-stages";
@@ -257,6 +257,18 @@ const STATUS_WORDS: Record<string, string> = { PASS: "V pořádku", WARN: "Upozo
 /** "Opravit v …": where a check's stage is, in the locative; another stage is opened by its name. */
 const FIX_IN: Partial<Record<WorkbenchStage, string>> = { dimensions: "v Dimenzích", audience: "v Cílové skupině", questionnaire: "v Dotazníku" };
 
+/**
+ * A check fixed on Vzorek itself (n and its support, SMP7) leaves nothing to open: the person is taken
+ * to §01's size, its number field focused when there is one to focus.
+ */
+function toSampleSize(e: MouseEvent<HTMLElement>) {
+  const size = e.currentTarget.closest("[data-sample-view]")?.querySelector<HTMLElement>(`[data-aia="${sampleAia.n()}"]`);
+  if (!size) return;
+  size.scrollIntoView({ block: "center", behavior: "smooth" });
+  // The field, never a Stepper's − button that comes before it in the DOM; a button only without one.
+  (size.querySelector<HTMLElement>("input:not([disabled])") ?? size.querySelector<HTMLElement>("button:not([disabled])"))?.focus({ preventScroll: true });
+}
+
 function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open }) {
   const summary = readiness.kind === "ready" ? readinessSummary(readiness.readiness) : null;
   const forecast = readiness.kind === "ready" ? supportForecastOf(readiness.readiness) : null;
@@ -278,7 +290,9 @@ function Ready({ readiness, onOpen }: { readiness: SampleReadiness; onOpen: Open
                   <li key={c.id} className="flex items-start gap-2 border-t border-border py-1.5 text-sm first:border-t-0" data-aia={sampleAia.ready(c.id) ?? undefined}>
                     <span className="mt-1"><Glyph tone={STATUS_TONE[c.status] ?? "inert"} size={12} title={STATUS_WORDS[c.status] ?? "neznámý stav"} /></span>
                     <span className="min-w-0 flex-1">{c.message}</span>
-                    {stage ? (
+                    {stage === "sample" ? (
+                      <button type="button" className={`shrink-0 text-xs ${TOUCH_LINK}`} data-fixes-here onClick={toSampleSize}>Opravit velikost vzorku</button>
+                    ) : stage ? (
                       <button type="button" className={`shrink-0 text-xs ${TOUCH_LINK}`} data-opens={STAGES[stage].label} onClick={() => onOpen(stage)}>
                         {FIX_IN[stage] ? `Opravit ${FIX_IN[stage]}` : `Otevřít ${STAGES[stage].label}`}
                       </button>
@@ -323,6 +337,7 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
   if (readiness.kind === "failed") return <p className="text-sm text-status-fault" role="alert">Odhad se nepodařilo načíst: {readiness.message}</p>;
   if (readiness.kind === "none") return <p className="text-sm text-ink-muted">Obsah studie zatím není uložený, takže odhad není. Odhad je neznámý.</p>;
   const support = supportForecastOf(readiness.readiness);
+  const reportable = reportableNOf(readiness.readiness);
   const tiles = outlookTiles(readiness.readiness);
   return (
     <>
@@ -332,6 +347,7 @@ function Forecast({ readiness }: { readiness: SampleReadiness }) {
         <div className="min-w-0">
           <h3 className="text-sm font-semibold">Opora výsledků{support.known ? "" : ": neznámé"}</h3>
           <p className="text-sm">{support.message ?? "Server oporu pro tento běh předem nespočítal."}</p>
+          {reportable ? <p className="text-sm text-ink-muted">{reportable}</p> : null}
         </div>
       </div>
       <div data-aia={sampleAia.forecast("outlook")}>

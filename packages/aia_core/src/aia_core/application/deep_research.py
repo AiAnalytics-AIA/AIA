@@ -163,6 +163,7 @@ __all__ = [
     "DeepResearchRunNotFound",
     "DeepResearchRunNotRetryable",
     "DeepResearchRuns",
+    "FrozenStart",
     "GovernedRecord",
     "InterpretationMissionMismatch",
     "LineageChanged",
@@ -368,6 +369,18 @@ def ceiling_metadata(ceiling: DeepResearchCeiling | None) -> dict[str, Any]:
         out["cost_ceiling_unknown"] = ceiling.unknown.value
         out["cost_ceiling_unknown_kinds"] = [k.value for k in ceiling.unknown_kinds]
     return out
+
+
+@dataclass(frozen=True, slots=True)
+class FrozenStart:
+    """A Deep Research start frozen and not yet enqueued: the spec, how its purpose was stated,
+    the run it retries and the focus it records. What :meth:`DeepResearchRuns.start_frozen`
+    enqueues, after the caller has quoted the same spec."""
+
+    spec: DeepResearchRunSpec
+    purpose_source: PurposeSource = PurposeSource.EXPLICIT
+    retry_of: str | None = None
+    focus: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -918,6 +931,7 @@ class DeepResearchRuns:
         *,
         prices: DeepResearchPrices | None,
         modes: Collection[ResearchMode] = tuple(ResearchMode),
+        retry_of: str | None = None,
     ) -> DeepResearchQuote:
         """What starting ``spec`` would cost and what its start would answer. Writes nothing.
 
@@ -928,7 +942,8 @@ class DeepResearchRuns:
         """
         self.require_start()
         require_interpretation_mission(spec)
-        admission = self._admit(spec, retry_of=None, prices=prices, modes=modes)
+        # A retry's run is keyed with the run it retries (``_admit``): quoted under the same key.
+        admission = self._admit(spec, retry_of=retry_of, prices=prices, modes=modes)
         budget = (
             self._workflows().budget_position() if self.scope.has(Permission.VIEW_COSTS) else None
         )
@@ -963,22 +978,34 @@ class DeepResearchRuns:
         confirm_cost_usd: float | None = None,
         store: ArtifactStore | None = None,
     ) -> StartedRun:
-        """Start a failed or cancelled run again, as a new run linked to it.
+        """Start a failed or cancelled run again, as a new run linked to it: the spec
+        :meth:`retry_spec` freezes, enqueued as :meth:`start_frozen` enqueues it."""
+        return self.start_frozen(
+            self.retry_spec(run_id, store=store),
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+        )
+
+    def retry_spec(self, run_id: str, *, store: ArtifactStore | None = None) -> FrozenStart:
+        """What a retry of ``run_id`` would start, frozen now. Writes nothing.
 
         Frozen afresh, as before ADR 0021: what changed since -- an approval, a revoked
         item -- is in the new engine request, and what the earlier run stored is found
         by fingerprint, so a track, a snapshot or a verification it completed is not
         bought again. The *target* is never re-chosen: a design run retries over its
-        revision. A run stored before ADR 0021 retries as a new Design Research run through
-        the legacy rule. An ``INTERPRETATION_RESEARCH`` run re-freezes its **stored target**
-        with ``store`` (required for it): the stored lineage is resolved first, pin for pin
-        (:meth:`resolve_lineage`), and the fresh freeze's lineage must equal it, or the retry
-        is :class:`LineageChanged` and starts nothing. A retry can spend again, so it asks
-        again, as :meth:`start` does.
+        revision, on the focus it recorded. A run stored before ADR 0021 retries as a new
+        Design Research run through the legacy rule. An ``INTERPRETATION_RESEARCH`` run
+        re-freezes its **stored target** with ``store`` (required for it): the stored lineage
+        is resolved first, pin for pin (:meth:`resolve_lineage`), and the fresh freeze's
+        lineage must equal it, or the retry is :class:`LineageChanged` and starts nothing. A
+        retry can spend again, so its start asks again, as :meth:`start` does. A Lead card
+        quotes this spec before it is enqueued (lead-orchestration LO5a.2).
         """
         run = self.get(run_id)
         if not retryable(run["status"]):
             raise DeepResearchRunNotRetryable(run["status"])
+        self.require_start()
         metadata = run["metadata"]
         record = governed_record(metadata)
         channels = [Channel(c) for c in metadata["channels"]]
@@ -988,8 +1015,6 @@ class DeepResearchRuns:
                     "an Interpretation Research retry re-reads its pinned results: "
                     "the artifact store is required"
                 )
-            self.scope.require(Permission.RUN_WORKFLOW)
-            self.scope.require_open_study()
             self.resolve_lineage(run_id, store=store)  # every pin read and verified, or refused
             spec = self.freeze_interpretation(
                 target=record.target,
@@ -1000,31 +1025,50 @@ class DeepResearchRuns:
             )
             if spec.lineage != record.lineage:
                 raise LineageChanged(f"{run_id}'s target no longer freezes to its stored lineage")
-            return self._enqueue(
-                spec,
-                purpose_source=record.purpose_source,
-                retry_of=run_id,
-                prices=prices,
-                modes=modes,
-                confirm_cost_usd=confirm_cost_usd,
-            )
-        return self.start(
+            return FrozenStart(spec, purpose_source=record.purpose_source, retry_of=run_id)
+        # A focused run retries on the same research questions, never the whole design
+        # (review of #925): its focus is the one it recorded.
+        focus = tuple(str(f) for f in metadata.get("focus") or ())
+        spec = self.freeze_design(
             design_revision_id=str(metadata["design_revision_id"]),
             preset_name=str(metadata["preset"]),
             channels=channels,
-            retry_of=run_id,
-            prices=prices,
-            modes=modes,
-            confirm_cost_usd=confirm_cost_usd,
+            title=record.title if record is not None else None,
+            focus=focus,
+        )
+        return FrozenStart(
+            spec,
             purpose_source=(
                 PurposeSource.LEGACY_DEFAULT
                 if record is None
                 else PurposeSource(str(metadata.get("purpose_source", "EXPLICIT")))
             ),
-            title=record.title if record is not None else None,
-            # A focused run retries on the same research questions, never the whole design
-            # (review of #925): its focus is the one it recorded.
-            focus=[str(f) for f in metadata.get("focus") or ()],
+            retry_of=run_id,
+            focus=focus,
+        )
+
+    def start_frozen(
+        self,
+        frozen: FrozenStart,
+        *,
+        prices: DeepResearchPrices | None = None,
+        modes: Collection[ResearchMode] = tuple(ResearchMode),
+        confirm_cost_usd: float | None = None,
+    ) -> StartedRun:
+        """Enqueue exactly the spec ``frozen`` holds, as :meth:`start`,
+        :meth:`start_interpretation` and :meth:`retry` do after freezing it: so the spec a
+        caller quoted (:meth:`quote`) is the one that runs, never one frozen again
+        (lead-orchestration LO5a.2). Needs ``RUN_WORKFLOW`` on an open Study."""
+        self.require_start()
+        require_interpretation_mission(frozen.spec)
+        return self._enqueue(
+            frozen.spec,
+            purpose_source=frozen.purpose_source,
+            retry_of=frozen.retry_of,
+            prices=prices,
+            modes=modes,
+            confirm_cost_usd=confirm_cost_usd,
+            focus=frozen.focus,
         )
 
     def cancel(self, run_id: str, *, reason: str = "researcher") -> WorkflowRunStatus:

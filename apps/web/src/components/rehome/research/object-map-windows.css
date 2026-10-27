@@ -80,6 +80,13 @@ button.omw-answer:hover { background: var(--glassBtn66); }
 button.omw-answer[aria-pressed="true"] { font-weight: 600; background: var(--glassCard66); }
 button.omw-answer[aria-pressed="true"] span { color: inherit; }
 
+/* Všechny vztahy: collapsed under the strongest; the status under each name says which the map reads
+   (not faded: the labels keep 4.5:1). */
+.omw-all { margin-top: 10px; }
+.omw-all summary { cursor: pointer; font-size: 12px; font-weight: 600; color: var(--omwMuted); }
+.omw-all .omw-tip { margin: 6px 0 4px; }
+.omw-all .omw-answer small { display: block; font-size: 10.5px; color: var(--omwMuted); }
+
 /* On the respondent map the object list only lists: no hover, no hand. */
 .omw-list button[aria-disabled="true"] { cursor: default; }
 .omw-list button[aria-disabled="true"]:hover { background: transparent; }

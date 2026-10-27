@@ -100,6 +100,23 @@ describe("Dotazník", () => {
     expect(await screen.findByRole("heading", { name: "Nahrát dotazník" })).toBeTruthy();
   });
 
+  it("shows a design run's Deep Research before any questionnaire exists, and nothing when there is none (review of #1006)", async () => {
+    // A Lead card can start Design Research on the goal alone; its progress, cancel and review
+    // were drawn only inside the editor, which the path choice does not open.
+    const run = { run_id: "RUN-dr1", purpose: "DESIGN_RESEARCH", phase: "RUNNING", status: "RUNNING", is_terminal: false, retryable: false, steps: [], created_at: null };
+    unitStub(BRIEF, null, { "/api/v1/studies/STU-1/deep-research/runs": () => [run] });
+    const { unmount } = render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    expect(await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Veřejný hloubkový výzkum" })).toBeTruthy();
+    unmount();
+    cleanup();
+    unitStub(BRIEF, null, { "/api/v1/studies/STU-1/deep-research/runs": () => [] });
+    render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
+    await screen.findByRole("heading", { name: "Jak chcete dotazník vytvořit?" });
+    await waitFor(() => expect(calls.some((c) => c.url.startsWith("/api/v1/studies/STU-1/deep-research/runs"))).toBe(true));
+    expect(screen.queryByRole("heading", { name: "Veřejný hloubkový výzkum" })).toBeNull();
+  });
+
   it("says tracked sets alone are no questionnaire yet, and the dock is not ready (OI-52 (b))", async () => {
     unitStub({ ...BRIEF, sections: [SECTIONS[1]], ui_state: { questionnaire_path: "manual" } });
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);

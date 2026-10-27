@@ -473,3 +473,30 @@ def test_a_pending_proposal_older_than_the_newest_page_is_still_listed_as_pendin
     pending = researcher.get(url, params={"pending": "true"}).json()
     assert [j["run_id"] for j in pending] == [oldest]
     assert pending[0]["proposal_state"] == "pending"
+
+
+def test_a_questionnaire_job_reads_external_context_only_with_the_analysis_switch_on(
+    researcher: TestClient, world: Any, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """QST13: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT gives a job's start the store it reads the newest
+    Design Research bundle from; off, no store and no external layer."""
+    from aia_core.application.research import ResearchAgentJobs
+
+    given: list[object] = []
+
+    def external(self: ResearchAgentJobs, snapshot: Any, store: object) -> Any:
+        given.append(store)
+        return snapshot
+
+    monkeypatch.setattr(ResearchAgentJobs, "_with_external", external)
+    rid = revision(researcher, world)
+    body = {"design_revision_id": rid, "action": "build_questionnaire"}
+    assert researcher.post(base(world), json=body).status_code == 201
+    assert given == []
+    monkeypatch.setattr(
+        app.state,
+        "settings",
+        app.state.settings.model_copy(update={"ai_analysis_external_context": True}),
+    )
+    assert researcher.post(base(world), json={**body, "instruction": "Kratší"}).status_code == 201
+    assert len(given) == 1 and given[0] is not None

@@ -2113,7 +2113,8 @@ class ApprovalDecisionRow(Base):
     __table_args__ = (
         ForeignKeyConstraint(["study_id"], ["studies.study_id"], ondelete="CASCADE"),
         # Exactly the closed set of subjects (domain/approval_ledger.py); migration
-        # 5054d4d610c2 is the last to change it (lead-orchestration LO16, lane M3).
+        # b7d1f3a5c9e2 is the last to change it (artifact-analysis ANL11), after LO5a.2's
+        # 124dedc8f7b1 (lane M3b) and LO16's 5054d4d610c2.
         CheckConstraint(subject_check_sql(), name="approval_subject_type_known"),
         CheckConstraint(
             "self_approval_source in ('default','organization','client','study')",
@@ -3125,7 +3126,9 @@ class ReportEditorVersionRow(Base):
         UniqueConstraint("line_id", "koncept", name="uq_report_editor_versions_koncept"),
         UniqueConstraint("line_id", "sha256", name="uq_report_editor_versions_sha256"),
         CheckConstraint("koncept >= 1", name="report_editor_version_koncept_positive"),
-        CheckConstraint("variant IN ('internal', 'context')", name="report_editor_version_variant"),
+        CheckConstraint(
+            "variant IN ('internal', 'context', 'client')", name="report_editor_version_variant"
+        ),
         Index("ix_report_editor_versions_run", "study_id", "run_id"),
     )
 

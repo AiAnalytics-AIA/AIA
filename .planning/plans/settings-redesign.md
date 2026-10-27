@@ -43,6 +43,11 @@ chunks:
   - "[ ] F20. Studie a rozpočty's 'Čeká na rozpočet' tile beside per-researcher spend by kind: an organization-scoped count of steps waiting for budget (W1, its read needs an architecture decision)"
   - "[x] F21. Stav systému: Připravenost first, then Prostředí a verze (environment, build, API, database, sign-in, LIVE and STATIC population, field rules) and 'Kopírovat diagnostiku' (W1)"
   - "[x] F22. Správa dat: the running-study block ('Klientovi právě běží …', from a running flag in the deletion preview) and the typed-name confirmation before 'Smazat natrvalo' (W1)"
+  - "[ ] F23. Metodika's Sociomapa card shows a real aia-sociomap-5 render once -5 is live, in place of the drawing (W2)"
+  - "[ ] F24. The coral waiting count shown to the Metodik as well as to admins, on the sections a Metodik acts on (Systémové prompty, Metodika) (reworks F12b; W1)"
+  - "[ ] F25. Audit's categories as a dropdown with counts, never a row of tiles or pills (Nigel: "no menu should be a row of pill buttons ever"; reworks F10 and chunk 8; W1)"
+  - "[ ] F26. The sealed Lead kept 365 days, not 30: settings-backends SB2's horizon in code and tests (SEAL_DAYS, the erasure, the reactivation window), the Přístup copy; ADR 0030's amendment as the PR's Doc follow-up (Nigel, 27 Oct 2026; W1)"
+  - "[ ] F27. The kept AI spend and audit rows erased after 365 days: an operator command beside lead_retention.py, then kept_for and Správa dat's lhůta read 365 dní (F22's finding; MVPQ-07; W1)"
 ---
 # Settings redesign (Nastavení)
 
@@ -264,6 +269,12 @@ when the studies span more than one client, a filtered row hidden, never unmount
   days, today, who changed, the newest change; a window a full page does not reach back over unknown).
   Part 2: the pages whose panels read their own routes (Metodika, Systémové prompty, Deep Research, AI
   běh, Studie, Stav systému, Správa dat) hand their figures up; a page draws none until then.
+- F18, part 2a (built; the chunk stays open): the hand-up itself (`components/aia/settings/hero-figures.tsx`:
+  `HeroFiguresProvider` around the page, `useHeroFigures(section, figures)` in a panel, compared by
+  value, cleared on unmount) and its first page, Stav systému (`systemFigures`: the readiness checks
+  passed of those read, the environment, the web build; unknown where unread). Left for the rest of
+  part 2: Metodika, Systémové prompty, Deep Research, AI běh, Studie (the near-limit count would repeat
+  ResearcherSpendCard's tile; a figure of its own is still to be chosen) and Správa dat.
 
 **F19. Naposledy, served** (W1, lane B). `users.last_seen_at` is stored (`packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ 40b16d58`) and `MemberResponse` does not carry it (`apps/api/src/aia_api/routers/scope.py:194-210 @ 40b16d58`). F9 draws the column. Null reads as never, not as a date.
   Built: `last_seen_at` on `MemberResponse`, for an OWNER or ADMIN (null otherwise, as the Lead's seal
@@ -329,3 +340,40 @@ Not done (F22): the kept records' lhůta still reads "bez lhůty". The 365 days 
 no job reads a retention for them), so "365 dní" would say what AIA does not do. **Finding:** the decided
 retention of the kept AI spend and audit rows is not enforced; the smallest fix is an operator command beside
 `lead_retention.py` that erases them past 365 days, after which `kept_for` and the lhůta read 365 days.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**F23. The real -5 render** (W2, lane B). The Settings inventory: the Metodika Sociomapa card's picture becomes a real
+`aia-sociomap-5` render once -5 is live (`signed-off-sociomap-method`, registered for clients). Test: the card renders
+the stored fixture map, not the drawing.
+
+**F24. The coral count for the Metodik** (W1, lane B). F12b shows it to admins only; the prototype shows it to whoever
+can act, and the Metodik acts on Systémové prompty and Metodika (`system-prompts-settings#16`). Test: a Metodik without
+admin sees the count; a member with neither does not.
+
+**F25. Audit categories as a dropdown** (W1, lane B). Nigel: "no menu should be a row of pill buttons ever". The eight
+categories with their counts in one dropdown (`MenuButton`), not tiles. Test: the dropdown lists each category with its
+count.
+
+**F26. The sealed Lead kept 365 days** (W1, lane B). Nigel, 27 Oct 2026: the sealed Lead is kept 365 days, not 30. Today
+`SEAL_DAYS = 30` (`packages/aia_core/src/aia_core/infrastructure/researcher_lead_repository.py:557 @ dbaa7720`), erased
+after it by the sweep (`apps/executors/src/aia_executors/lead_retention.py`), and the reactivation unseals within it
+(settings-backends SB2, #830). Change the horizon to 365 days with its tests, and the Přístup copy that says 30. ADR 0030
+needs an amendment, which goes under the PR's Doc follow-up (ADRs are shared docs). A Lead sealed before the change keeps
+its recorded `erase_after` unless the PR decides otherwise and says so (decided by default, planning: keep the recorded
+date; never stamp a new one on old rows). Test: a member deactivated today has `erase_after` 365 days on; reactivated on
+day 200 their Lead is unsealed.
+
+**F27. The 365-day erase** (W1, lane B). F22's finding: MVPQ-07's 365 days for the kept AI spend and audit rows is
+decided but not enforced (`application/client_deletion.py:252-282 @ dbaa7720`, every `kept_for` "indefinite"). The
+smallest fix: an operator command beside `lead_retention.py` that erases them past 365 days; then `kept_for` and the
+lhůta read "365 dní". With `study-data-lifecycle#SDL0`'s contract. Test: a usage row 366 days old is erased, one 364 days
+old kept, and the preview reads 365 dní.
