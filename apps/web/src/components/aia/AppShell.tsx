@@ -27,17 +27,18 @@ export type Crumb = { label: string; href?: string; prefix?: string };
  * ("3 čekají na schválení"), `attention` marks a count that waits on a person.
  */
 export type Tab = { key: string; label: string; href: string; active: boolean; count?: number | null; countLabel?: string; attention?: boolean };
-/** The client a page belongs to: named on the sidebar, its accent across the header. */
+/** The client a page belongs to: named on the sidebar, its accent on its monogram. */
 export type ShellClient = { id: string; name: string };
 
-// A client area's tab: its icon, its hue filled when active, and a light wash of it otherwise.
-const AREA_LOOK: Record<ClientArea, { icon: IconName; on: string; off: string; edge: string }> = {
-  overview: { icon: "home", on: "bg-hue-blue", off: "bg-signal-wash text-hue-blue", edge: "border-hue-blue" },
-  research: { icon: "research", on: "bg-hue-teal", off: "bg-hue-teal/12 text-hue-teal", edge: "border-hue-teal" },
-  simulations: { icon: "simulation", on: "bg-hue-orange", off: "bg-hue-orange/12 text-hue-orange", edge: "border-hue-orange" },
-  knowledge: { icon: "knowledge", on: "bg-hue-violet", off: "bg-hue-violet/12 text-hue-violet", edge: "border-hue-violet" },
-  data: { icon: "data", on: "bg-hue-green", off: "bg-hue-green/12 text-hue-green", edge: "border-hue-green" },
-  profile: { icon: "client", on: "bg-hue-slate", off: "bg-hue-slate/12 text-hue-slate", edge: "border-hue-slate" },
+// A client area's tab: its icon, the signal mark on its wash when active, quiet grey otherwise
+// (design system v3: no wayfinding hue in the chrome, where colour would read as a status).
+const AREA_LOOK: Record<ClientArea, { icon: IconName }> = {
+  overview: { icon: "home" },
+  research: { icon: "research" },
+  simulations: { icon: "simulation" },
+  knowledge: { icon: "knowledge" },
+  data: { icon: "data" },
+  profile: { icon: "client" },
 };
 
 // The six client accents of the design system; a client keeps the same one wherever it is drawn.
@@ -121,7 +122,7 @@ export function AppShell({
   status?: ReactNode;
   /** The areas of a client, under the header. */
   tabs?: Tab[];
-  /** The client this page belongs to: on the sidebar, and its accent across the header. */
+  /** The client this page belongs to: on the sidebar, and its accent on its monogram. */
   client?: ShellClient;
   /** A way back above the breadcrumbs (a study's stage goes back to its client). */
   back?: { href: string; label: string };
@@ -150,8 +151,6 @@ export function AppShell({
   children: ReactNode;
 }) {
   const path = usePathname() ?? "";
-  // The header's top edge: the client's accent inside a client, quiet on settings, the signal elsewhere.
-  const accent = client ? clientAccent(client.id) : path.startsWith("/app/settings") ? "bg-ink-muted" : "bg-signal";
   if (track) {
     return (
       <div className="flex min-h-screen flex-col bg-surface text-ink lg:flex-row">
@@ -159,7 +158,6 @@ export function AppShell({
         <DockRail path={path} client={client} accent={client ? clientAccent(client.id) : undefined} />
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
-            <div aria-hidden="true" className={`h-[3px] ${accent}`} />
             <div className="flex min-h-[52px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-1.5 lg:px-6">
               {back ? (
                 <Link href={back.href} aria-label={back.label} title={back.label} className={`inline-flex size-8 shrink-0 items-center justify-center rounded-control text-ink-muted no-underline hover:bg-surface-sunken hover:text-ink ${FOCUS}`}>
@@ -200,7 +198,6 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {topbar ? (
           <header className="z-20 border-b border-border bg-surface-raised lg:sticky lg:top-0">
-            <div aria-hidden="true" className={`h-[3px] ${accent}`} />
             {/* relative: a control in the trail anchors its panel to this row (the section menu). */}
             <div className="relative flex min-h-11 flex-wrap items-center gap-3 px-4 py-2.5 md:px-6">
               <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
@@ -211,8 +208,7 @@ export function AppShell({
           </header>
         ) : (
         // A hero scrolls with its page, as the prototype draws it; the plain header stays pinned.
-        <header data-shell-header="" className={`z-20 border-b border-border bg-surface-raised px-4 lg:px-6 xl:px-8 ${hero ? "" : "lg:sticky lg:top-0"}`}>
-          <div aria-hidden="true" className={`-mx-4 mb-3 h-[3px] lg:-mx-6 xl:-mx-8 ${accent}`} />
+        <header data-shell-header="" className={`z-20 border-b border-border bg-surface-raised px-4 pt-[15px] lg:px-6 xl:px-8 ${hero ? "" : "lg:sticky lg:top-0"}`}>
           <div className="mx-auto max-w-[88rem]">
             {back ? (
               <Link
@@ -257,10 +253,10 @@ export function AppShell({
                       key={tab.key}
                       href={tab.href}
                       aria-current={tab.active ? "page" : undefined}
-                      className={`inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 pb-2.5 pt-1 text-sm no-underline ${FOCUS} ${tab.active ? `${look?.edge ?? "border-signal"} font-semibold text-ink` : "border-transparent font-medium text-ink-muted hover:text-ink"}`}
+                      className={`inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-2.5 pb-2.5 pt-1 text-sm no-underline ${FOCUS} ${tab.active ? "border-signal font-semibold text-ink" : "border-transparent font-medium text-ink-muted hover:text-ink"}`}
                     >
                       {look ? (
-                        <span aria-hidden="true" className={`inline-flex size-[22px] items-center justify-center rounded-[5px] ${tab.active ? `${look.on} text-shell-strong` : look.off}`}>
+                        <span aria-hidden="true" className={`inline-flex size-[22px] items-center justify-center rounded-[5px] ${tab.active ? "bg-signal-wash text-signal" : "text-ink-faint"}`}>
                           <Icon name={look.icon} size={13} />
                         </span>
                       ) : null}
