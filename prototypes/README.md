@@ -21,7 +21,7 @@ account, and changes only when a folder is added or retired.
 | [`design-system/`](design-system/) | The AIA Design System: every component's preview and rules, tokens, the shared core stylesheet | page and components | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> | not rebuilt yet |
 | [`ux-upgrade/`](ux-upgrade/) | The UX upgrade's before/after page and audits | page | <https://claude.ai/artifact/6duL5pNSVfiqqBz6V16Tfo> | not rebuilt yet |
 | [`palettes/`](palettes/) | The palette study behind Petrol | page | <https://claude.ai/artifact/CcT6HoxR4EHpao5rXYrda7> | not rebuilt yet |
-| [`../tools/build_map/`](../tools/build_map/) | The AIA Build Map, built from the repo by `build.py` | generated page | <https://claude.ai/artifact/XdjCNHdYnvcjYiijJpwrL3> | not rebuilt yet |
+| [`../tools/build_map/`](../tools/build_map/) | The AIA Build Map, built from the repo by `build.py` | generated page | <https://claude.ai/artifact/XdjCNHdYnvcjYiijJpwrL3> | <https://claude.ai/artifact/SHi9i7hDJMFTEbArivLS95> |
 
 Each canvas and page folder has a `reference/` folder of images of every board as it stood at that version; the
 scripts that draw them are in [`../tools/prototype_renders/`](../tools/prototype_renders/). Rebuilding a canvas in
