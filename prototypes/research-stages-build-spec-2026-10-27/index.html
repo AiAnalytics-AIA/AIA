@@ -1,0 +1,90 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Research Stages Build Spec</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a document reader. A sticky section bar over one readable column; tables scroll inside their own box. */
+:root{
+  --bg:#eef0f4; --sheet:#ffffff; --well:#f5f6f9; --line:#dde1e8; --ink:#151a20; --muted:#4a5058; --accent:#3d47c9; --accent-wash:#eceefc;
+  --sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1015;--sheet:#151a21;--well:#1a2029;--line:#262d38;--ink:#ece9e4;--muted:#b3b0ab;--accent:#9aa3f5;--accent-wash:#1d2240;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1015;--sheet:#151a21;--well:#1a2029;--line:#262d38;--ink:#ece9e4;--muted:#b3b0ab;--accent:#9aa3f5;--accent-wash:#1d2240;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--sheet)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--sheet);border-bottom:1px solid var(--line)}
+.bar-in{max-width:980px;margin:0 auto;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.brand{font-weight:600;font-size:15px;margin-right:auto}
+.brand span{display:block;font:400 12px/1.4 var(--mono);color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:4px}
+nav a{font-size:13px;padding:5px 10px;border-radius:7px;color:var(--muted);text-decoration:none;border:1px solid transparent}
+nav a:hover{color:var(--ink);background:var(--well)}
+nav a[aria-current="page"]{color:var(--accent);background:var(--accent-wash);border-color:color-mix(in srgb,var(--accent) 30%,transparent);font-weight:500}
+nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{max-width:980px;margin:0 auto;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.doc{background:var(--sheet);border:1px solid var(--line);border-radius:10px;padding:28px clamp(16px,4vw,40px);min-width:0}
+.doc h1{font-size:26px;line-height:1.25;font-weight:600;text-wrap:balance;margin:0 0 12px}
+.doc h2{font-size:19px;line-height:1.3;font-weight:600;margin:32px 0 10px;padding-top:14px;border-top:1px solid var(--line);text-wrap:balance}
+.doc h3{font-size:16px;font-weight:600;margin:22px 0 6px}
+.doc h4{font-size:14px;font-weight:600;margin:16px 0 4px}
+.doc p,.doc li{max-width:72ch}
+.doc ul,.doc ol{padding-left:22px}
+.doc li{margin:3px 0}
+.doc code{font:13px/1.5 var(--mono);background:var(--well);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.doc pre{background:var(--well);padding:12px;border-radius:6px;overflow-x:auto}
+.doc pre code{background:none;padding:0}
+.doc a{color:var(--accent)}
+.doc hr{border:0;border-top:1px solid var(--line);margin:24px 0}
+.doc strong{font-weight:600}
+.tw{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:6px}
+.doc table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5}
+.doc th{text-align:left;font-weight:600;background:var(--well);padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.doc td{padding:7px 10px;border-top:1px solid var(--line);vertical-align:top;min-width:140px}
+.doc td:first-child{min-width:70px}
+.note{font-size:13px;color:var(--muted);margin:0 0 14px}
+.state{color:var(--muted);padding:24px 0}
+@media (prefers-reduced-motion:no-preference){nav a{transition:background-color .12s}}
+</style>
+
+<header class="bar">
+  <div class="bar-in">
+    <div class="brand">Research stages build spec<span>develop @ bd0d1ad6 · prototype v78 · decisions 26–27 Oct</span></div>
+    <nav aria-label="Sections">
+      <a href="#overview" data-key="overview">Overview</a>
+      <a href="#navrh" data-key="navrh">Návrh</a>
+      <a href="#vzorek" data-key="vzorek">Vzorek</a>
+      <a href="#sber" data-key="sber">Sběr a Výsledky</a>
+      <a href="#zprava" data-key="zprava">Sociomapa · Analýza · Zpráva</a>
+      <a href="#lead" data-key="lead">Vedoucí</a>
+    </nav>
+  </div>
+</header>
+<main>
+  <p class="note" id="note">The prototype: <a href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ">AIA Výzkumné kroky</a>. Each section is also published as a raw markdown file beside this page (spec/*.md).</p>
+  <article class="doc" id="doc" aria-live="polite"><p class="state">Loading…</p></article>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+const FILES = { overview: 'spec/00-overview.md', navrh: 'spec/navrh.md', vzorek: 'spec/vzorek.md', sber: 'spec/sber-vysledky.md', zprava: 'spec/sociomapa-analyza-zprava.md', lead: 'spec/lead.md' };
+const cache = {};
+const doc = document.getElementById('doc');
+async function show(key) {
+  if (!FILES[key]) key = 'overview';
+  document.querySelectorAll('nav a').forEach(a => a.setAttribute('aria-current', a.dataset.key === key ? 'page' : 'false'));
+  try {
+    if (!cache[key]) { const r = await fetch(FILES[key]); if (!r.ok) throw new Error(r.status); cache[key] = await r.text(); }
+    if (typeof marked === 'undefined') { const pre = document.createElement('pre'); pre.style.whiteSpace = 'pre-wrap'; pre.style.font = '13px/1.55 var(--mono)'; pre.textContent = cache[key]; doc.replaceChildren(pre); return; }
+    doc.innerHTML = marked.parse(cache[key]);
+    doc.querySelectorAll('table').forEach(t => { const w = document.createElement('div'); w.className = 'tw'; t.parentNode.insertBefore(w, t); w.appendChild(t); });
+    doc.querySelectorAll('a[href^="http"]').forEach(a => { a.target = '_blank'; a.rel = 'noopener'; });
+  } catch (e) {
+    doc.innerHTML = '<p class="state">This section did not load (' + String(e.message || e) + '). Its raw file is ' + FILES[key] + '.</p>';
+  }
+}
+document.querySelectorAll('nav a').forEach(a => a.addEventListener('click', ev => { ev.preventDefault(); show(a.dataset.key); try { history.replaceState(null, '', '#' + a.dataset.key); } catch (_) {} window.scrollTo(0, 0); }));
+show((location.hash || '#overview').slice(1));
+</script>
+
+</body></html>

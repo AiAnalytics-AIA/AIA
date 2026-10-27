@@ -1,0 +1,509 @@
+<title>AIA Build Map</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: one reading column with a sticky section bar; the research flow scrolls sideways on its own. */
+:root{
+  --surface:#eef0f4;--raised:#fff;--sunken:#e5e8ee;--border:#dde1e8;--strong:#7d8490;
+  --ink:#151a20;--muted:#43484f;--faint:#5c6167;
+  --signal:#4b48ce;--swash:#ededfa;--sedge:#c0bfee;--onsig:#fff;
+  --you:#c2410c;--youwash:#fbe7e6;
+  --built:#1d7f5a;--builtwash:#e2f3ec;--plan:#576574;--planwash:#e3e8ee;--fault:#b42318;--faultwash:#f7e3e3;
+  --meth:#5c28a0;--methwash:#f1f0fd;--warn:#8a5a00;--warnwash:#fbf0d9;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --surface:#0d1015;--raised:#151a21;--sunken:#0a0c10;--border:#252c36;--strong:#6d7684;
+  --ink:#ece9e4;--muted:#bdbab5;--faint:#9e9b96;
+  --signal:#8f97f0;--swash:#23264a;--sedge:#3c4180;--onsig:#0f1215;
+  --you:#ffaa77;--youwash:#3a2219;
+  --built:#45c493;--builtwash:#12291f;--plan:#97a7b7;--planwash:#1c232c;--fault:#ff7a6b;--faultwash:#3a1a18;
+  --meth:#cbbfff;--methwash:#2a2940;--warn:#f0c46a;--warnwash:#33280f;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --surface:#0d1015;--raised:#151a21;--sunken:#0a0c10;--border:#252c36;--strong:#6d7684;
+  --ink:#ece9e4;--muted:#bdbab5;--faint:#9e9b96;
+  --signal:#8f97f0;--swash:#23264a;--sedge:#3c4180;--onsig:#0f1215;
+  --you:#ffaa77;--youwash:#3a2219;
+  --built:#45c493;--builtwash:#12291f;--plan:#97a7b7;--planwash:#1c232c;--fault:#ff7a6b;--faultwash:#3a1a18;
+  --meth:#cbbfff;--methwash:#2a2940;--warn:#f0c46a;--warnwash:#33280f;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--surface);color:var(--ink);font:14px/21px var(--sans);font-variant-numeric:tabular-nums}
+a{color:var(--signal)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 64px}
+header.top{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid var(--border)}
+h1{font:600 30px/36px var(--serif);margin:0;text-wrap:balance}
+.stamp{font:12px/18px var(--mono);color:var(--faint)}
+.lede{color:var(--muted);max-width:68ch;margin:10px 0 0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+nav.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);display:flex;gap:4px;overflow-x:auto;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px}
+nav.bar a{flex:none;color:var(--muted);text-decoration:none;font-size:13px;padding:5px 10px;border-radius:6px}
+nav.bar a:hover{background:var(--raised);color:var(--ink)}
+section{padding-top:28px;scroll-margin-top:56px}
+h2{font:600 22px/28px var(--serif);margin:0 0 4px;text-wrap:balance}
+h3{font:600 15px/20px var(--sans);margin:0}
+.sub{color:var(--muted);margin:0 0 14px;max-width:72ch}
+.eyebrow{font:500 11px/16px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.mono{font-family:var(--mono);font-size:12px}
+.card{background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.chip{display:inline-flex;align-items:center;gap:4px;font:500 11px/16px var(--sans);letter-spacing:.02em;padding:1px 7px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.r-core{background:var(--swash);color:var(--signal);border-color:var(--sedge)}
+.r-support{background:var(--planwash);color:var(--plan)}
+.r-after{background:var(--warnwash);color:var(--warn)}
+.r-done{background:var(--builtwash);color:var(--built)}
+.s-built{background:var(--builtwash);color:var(--built)}
+.s-planned{background:var(--planwash);color:var(--plan)}
+.s-proposed{background:var(--youwash);color:var(--you)}
+.bar-o{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden;min-width:60px}
+.bar-i{height:100%;background:var(--signal)}
+.bar-i.full{background:var(--built)}
+/* overview */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.kpi .n{font:600 26px/32px var(--serif)}
+.kpi .l{color:var(--muted);font-size:13px}
+.epicrow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,2fr) 92px;gap:14px;align-items:center;padding:10px 0;border-top:1px solid var(--border)}
+.epicrow:first-child{border-top:0}
+.epicrow .meta{color:var(--faint);font-size:12px}
+.epicrow .prog{display:flex;flex-direction:column;gap:4px}
+.epicrow .cnt{font:12px var(--mono);color:var(--muted);text-align:right}
+@media (max-width:640px){.epicrow{grid-template-columns:1fr}.epicrow .cnt{text-align:left}}
+.prlist{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.prlist li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+/* research flow */
+.flowwrap{overflow-x:auto;padding-bottom:6px}
+.flow{display:grid;grid-template-columns:repeat(6,minmax(150px,1fr));gap:10px;min-width:960px}
+.phase{display:flex;flex-direction:column;gap:8px}
+.phase .ph{font:500 11px/16px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);border-bottom:2px solid var(--border);padding-bottom:4px}
+button.stage{all:unset;box-sizing:border-box;cursor:pointer;background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s,background .15s,opacity .15s}
+button.stage:hover{border-color:var(--strong)}
+button.stage:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+button.stage .nm{font-weight:600}
+button.stage .pc{font:11px var(--mono);color:var(--faint)}
+button.stage.sel{border-color:var(--signal);background:var(--swash)}
+button.stage.up{border-color:var(--meth);box-shadow:inset 3px 0 0 var(--meth)}
+button.stage.down{border-color:var(--built);box-shadow:inset 3px 0 0 var(--built)}
+.flow.focus button.stage:not(.sel):not(.up):not(.down){opacity:.45}
+.leadband{margin-top:10px;min-width:960px;border:1px dashed var(--strong);border-radius:10px;padding:8px 12px;color:var(--muted);font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin:8px 0 0}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.detail{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:820px){.detail{grid-template-columns:1fr}}
+.detail h3{margin-bottom:6px}
+.io{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.io li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:start}
+.io .who{font:500 12px var(--sans);color:var(--ink);white-space:nowrap}
+.io .what{color:var(--muted);font-size:13px}
+.io .chip{justify-self:start}
+.plainlist{margin:0;padding-left:18px;color:var(--muted);font-size:13px}
+.plainlist li{margin:3px 0}
+.gap{font-size:13px;color:var(--muted)}
+.gap b{font:500 12px var(--mono);color:var(--ink)}
+/* plans */
+.epic{margin-top:18px}
+.epic>.hd{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;margin-bottom:8px}
+.epic>.hd .where{font-size:12px;color:var(--faint)}
+.plans{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;background:var(--raised);overflow:hidden}
+details.plan{border-top:1px solid var(--border)}
+details.plan:first-child{border-top:0}
+details.plan>summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) 120px 74px;gap:12px;align-items:center;padding:9px 14px}
+details.plan>summary::-webkit-details-marker{display:none}
+details.plan>summary:hover{background:var(--sunken)}
+details.plan .pt{min-width:0}
+details.plan .pt .t{font-weight:500}
+details.plan .pt .n{font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.plan .pc{font:12px var(--mono);color:var(--muted);text-align:right}
+@media (max-width:640px){details.plan>summary{grid-template-columns:minmax(0,1fr) 70px}details.plan .bar-o{display:none}}
+.pbody{padding:4px 14px 14px;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px}
+@media (max-width:820px){.pbody{grid-template-columns:1fr}}
+.chunks{list-style:none;margin:0;padding:0;font-size:13px;max-height:280px;overflow:auto}
+.chunks li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;padding:2px 0;color:var(--muted)}
+.chunks li.d{color:var(--faint)}
+.chunks li .m{color:var(--built)}
+.chunks li.o .m{color:var(--strong)}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links button{all:unset;cursor:pointer;font:12px var(--mono);padding:2px 7px;border-radius:6px;background:var(--sunken);color:var(--ink)}
+.links button:hover{background:var(--swash)}
+.links button:focus-visible{outline:2px solid var(--signal)}
+.links .k{font-size:10px;color:var(--faint);margin-left:4px}
+.donebox summary{cursor:pointer;color:var(--muted);font-size:13px;padding:8px 0}
+.donebox ul{columns:2 280px;font-size:12px;color:var(--faint);margin:0;padding-left:18px}
+/* connections */
+.matrixwrap{overflow-x:auto}
+table.mx{border-collapse:separate;border-spacing:3px;font-size:12px}
+table.mx th{font-weight:500;color:var(--muted);text-align:left;padding:2px 6px;max-width:96px;line-height:15px}
+table.mx td{width:56px;height:34px;text-align:center;border-radius:6px;font-family:var(--mono)}
+table.mx td button{all:unset;cursor:pointer;display:block;width:100%;height:100%;line-height:34px;border-radius:6px}
+table.mx td button:focus-visible{outline:2px solid var(--signal)}
+.pairs{margin-top:10px;font-size:13px;color:var(--muted)}
+.hubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px}
+.hub{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 10px;background:var(--raised);border:1px solid var(--border);border-radius:8px;font-size:13px}
+.hub button{all:unset;cursor:pointer;color:var(--signal);min-width:0;overflow-wrap:anywhere}
+.hub .mono{white-space:nowrap}
+/* board */
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.board{grid-template-columns:1fr}}
+.col h3{margin-bottom:8px}
+.ticket{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:8px}
+.ticket .t{font-weight:500}
+.ticket .n{font-size:12px;color:var(--muted);margin-top:3px}
+.ticket .r{font:11px var(--mono);color:var(--faint);margin-top:3px}
+/* questions */
+.qgroups{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.q{border-top:1px solid var(--border);padding:8px 0}
+.q:first-of-type{border-top:0}
+.q .b{font-size:12px;color:var(--faint);margin-top:2px}
+.q .rec{font-size:13px;color:var(--muted);margin-top:4px}
+.q .rec b{color:var(--signal);font-weight:600}
+table.agile{border-collapse:collapse;width:100%;font-size:13px}
+table.agile td{border-top:1px solid var(--border);padding:8px 10px 8px 0;vertical-align:top}
+table.agile td:first-child{font-weight:600;white-space:nowrap;width:140px}
+.small{font-size:12px;color:var(--faint)}
+.wavetabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.wavetabs button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:4px;min-width:96px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--raised)}
+.wavetabs button[aria-selected="true"]{border-color:var(--signal);background:var(--swash)}
+.wavetabs button:focus-visible{outline:2px solid var(--signal)}
+.wavetabs .wl{font-weight:600}
+.wavetabs .wc{font:11px var(--mono);color:var(--faint)}
+.wavetabs .now{font:500 10px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--you)}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.grp{background:var(--raised);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.grp.blocked{border-style:dashed}
+.grp .gh{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;margin-bottom:6px}
+.grp .gid{font:600 13px var(--mono)}
+.grp .proof{font-size:12px;color:var(--faint);margin-top:6px}
+.clist{list-style:none;margin:0;padding:0;font-size:13px}
+.clist li{display:grid;grid-template-columns:16px minmax(0,1fr);gap:6px;padding:1px 0}
+.clist li .m{color:var(--strong)}
+.clist li.d{color:var(--faint)}
+.clist li.d .m{color:var(--built)}
+.clist a{color:inherit;text-decoration:none;font-family:var(--mono);font-size:12px}
+.clist a:hover{color:var(--signal);text-decoration:underline}
+.clist .tx{display:block;color:var(--muted);font-size:12px;line-height:17px}
+details.loose{margin-top:10px}
+details.loose summary{cursor:pointer;color:var(--muted);font-size:13px;padding:6px 0}
+.byplan{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+table.cfg{border-collapse:collapse;width:100%;font-size:13px;min-width:720px}
+table.cfg th{text-align:left;font:500 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:6px 10px 6px 0;border-bottom:1px solid var(--border)}
+table.cfg td{border-top:1px solid var(--border);padding:8px 10px 8px 0;vertical-align:top;color:var(--muted)}
+table.cfg td:first-child{color:var(--ink);font-family:var(--mono);font-size:12px;max-width:260px;overflow-wrap:anywhere}
+.st-ON{background:var(--builtwash);color:var(--built)}
+.st-OFF{background:var(--faultwash);color:var(--fault)}
+.st-PARTIAL,.st-MISMATCH{background:var(--warnwash);color:var(--warn)}
+.st-MISSING{background:var(--faultwash);color:var(--fault)}
+.st-UNKNOWN{background:var(--planwash);color:var(--plan)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">AIA · product build</div>
+      <h1>AIA Build Map</h1>
+      <p class="lede">Every plan in the repository, grouped by the page it changes, with its progress, what it depends on and what is still open. Built from the plan files on develop, so a rebuild is always the current state.</p>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+  <nav class="bar" aria-label="Sections">
+    <a href="#overview">Overview</a><a href="#flow">Research flow</a><a href="#sequence">Build sequence</a><a href="#config">Configuration</a><a href="#plans">Plans by page</a><a href="#links">Connections</a><a href="#board">Board</a><a href="#questions">Open questions</a><a href="#read">How to read</a>
+  </nav>
+
+  <section id="overview">
+    <h2>Where the MVP stands</h2>
+    <p class="sub">Counts are chunks (one chunk is one reviewable PR). Core plans carry an MVP gate in the master plan's register; support plans help but do not gate the release.</p>
+    <div class="kpis" id="kpis"></div>
+    <div class="card"><div id="epicrows"></div></div>
+    <div class="card" style="margin-top:12px">
+      <h3>Open pull requests</h3>
+      <ul class="prlist" id="prs" style="margin-top:8px"></ul>
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>The research flow</h2>
+    <p class="sub">The eleven stages a study goes through, in six phases. Pick a stage to see what it is for, what flows into it, what it hands on, what is built and what is missing. The Lead works across all of them.</p>
+    <div class="flowwrap">
+      <div class="flow" id="flowgrid"></div>
+      <div class="leadband"><b>Vedoucí (the Lead)</b> sits beside every stage: it edits the working copy through the same writer a person uses, opens stages, starts jobs and runs, and proposes changes a person accepts.</div>
+    </div>
+    <div class="legend"><span><i style="background:var(--meth)"></i>feeds the selected stage</span><span><i style="background:var(--built)"></i>uses its output</span><span><i style="background:var(--signal)"></i>selected</span></div>
+    <div class="detail" id="stagedetail"></div>
+  </section>
+
+  <section id="sequence">
+    <h2>Build sequence</h2>
+    <p class="sub">Every open MVP chunk in the wave it may integrate in, from the execution contracts. A wave is done only when every chunk in it is ticked. Within a wave, groups are in dependency order: a group lists the groups it needs, and a chunk should not merge before them. The current wave is the earliest with open work.</p>
+    <div class="wavetabs" id="wavetabs" role="tablist"></div>
+    <div id="wavebody"></div>
+  </section>
+
+  <section id="config">
+    <h2>Configuration</h2>
+    <p class="sub">A feature that is built but not switched on does not exist for a user. Each row is a switch or resource the MVP needs (master plan §4), who sets it, how to see it is on, and what develop has now. Done means merged, switched on and seen working on develop.</p>
+    <div class="card" style="overflow-x:auto"><table class="cfg" id="cfgtable"></table></div>
+    <p class="small" id="cfgnote" style="margin-top:8px"></p>
+  </section>
+
+  <section id="plans">
+    <h2>Plans by page</h2>
+    <p class="sub">Each open plan sits under the page (epic) it changes. Open a plan for its chunks and the plans it references or is referenced by; select one of those to jump to it.</p>
+    <div id="epics"></div>
+  </section>
+
+  <section id="links">
+    <h2>How the plans connect</h2>
+    <p class="sub">How often the open plans in one area cite plans in another (a citation is a "plan#chunk" or a link in the plan's text). Read across a row: the plans on the left depend on, or hand work to, the plans above. Select a cell to list the pairs.</p>
+    <div class="matrixwrap card"><table class="mx" id="matrix"></table><div class="pairs" id="pairs"></div></div>
+    <h3 style="margin:18px 0 8px">The most connected open plans</h3>
+    <p class="sub">A change to one of these touches the most other plans. The two registers (the master plan and the prototype build) are left out because they cite everything.</p>
+    <div class="hubs" id="hubs"></div>
+  </section>
+
+  <section id="board">
+    <h2>Board</h2>
+    <p class="sub">One ordered queue. Now is in flight. Next is the critical path for one build session, taken in order: each chunk unblocks the stage chunks listed under it. Later is decided but not scheduled.</p>
+    <div class="board" id="boardcols"></div>
+    <h3 style="margin:18px 0 8px">Added on 27 Oct: keeping the AI respondents' answers</h3>
+    <div class="hubs" id="proposed"></div>
+  </section>
+
+  <section id="questions">
+    <h2>Open questions</h2>
+    <p class="sub">Every open build question, by who answers it: what it holds back and what I recommend. Items marked ACTION are things only you can do, not choices.</p>
+    <div class="qgroups" id="qgroups"></div>
+  </section>
+
+  <section id="read">
+    <h2>How to read this</h2>
+    <p class="sub">The agile names this page uses, and where each part of it comes from.</p>
+    <div class="card"><table class="agile" id="agile"></table></div>
+    <p class="small" id="sources" style="margin-top:12px"></p>
+  </section>
+</div>
+
+<script>
+const D=/*__DATA__*/null;
+const $=s=>document.querySelector(s);
+const el=(t,a={},...kids)=>{const e=document.createElement(t);for(const[k,v]of Object.entries(a)){if(k==="class")e.className=v;else if(k==="text")e.textContent=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v)}for(const c of kids)if(c!=null)e.append(c);return e};
+const ROLE={core:"Core MVP",support:"Support",after:"After MVP",done:"Done"};
+const P=Object.fromEntries(D.plans.map(p=>[p.slug,p]));
+const EP=Object.fromEntries(D.epics.map(e=>[e.id,e]));
+const open=D.plans.filter(p=>p.status!=="done");
+const pct=(a,b)=>b?Math.round(100*a/b):0;
+function bar(a,b){const o=el("div",{class:"bar-o",role:"img","aria-label":`${a} of ${b} chunks`});const i=el("div",{class:"bar-i"+(a===b&&b?" full":"")});i.style.width=pct(a,b)+"%";o.append(i);return o}
+function chip(cls,txt){return el("span",{class:"chip "+cls,text:txt})}
+function stateChip(s){const k=/^built/.test(s)?"s-built":/^planned/.test(s)?"s-planned":"s-proposed";return chip(k,s.length>34?s.slice(0,34)+"…":s)}
+
+$("#stamp").innerHTML="";
+$("#stamp").append(el("div",{text:"Built "+D.built_at}),el("div",{text:"develop "+D.develop_sha.slice(0,8)}));
+
+// Overview
+(function(){
+  const core=open.filter(p=>p.role==="core");
+  const cd=core.reduce((s,p)=>s+p.done,0),ct=core.reduce((s,p)=>s+p.total,0);
+  const ad=open.reduce((s,p)=>s+p.done,0),at=open.reduce((s,p)=>s+p.total,0);
+  const k=[[`${pct(cd,ct)} %`,`of core MVP chunks done (${cd} of ${ct})`],[String(core.length),"core plans open"],[String(open.length),`open plans in all (${ad} of ${at} chunks done)`],[String(D.plans.length-open.length),"plans finished"]];
+  for(const[n,l]of k)$("#kpis").append(el("div",{class:"card kpi"},el("div",{class:"n",text:n}),el("div",{class:"l",text:l})));
+  for(const e of D.epics){
+    const ps=open.filter(p=>p.epic===e.id),d=ps.reduce((s,p)=>s+p.done,0),t=ps.reduce((s,p)=>s+p.total,0);
+    const nc=ps.filter(p=>p.role==="core").length;
+    $("#epicrows").append(el("div",{class:"epicrow"},
+      el("div",{},el("a",{href:"#ep-"+e.id,text:e.name,style:"font-weight:600;text-decoration:none"}),el("div",{class:"meta",text:e.where})),
+      el("div",{class:"prog"},bar(d,t),el("div",{class:"meta",text:`${ps.length} open plans, ${nc} core`})),
+      el("div",{class:"cnt",text:`${d} / ${t}`})));
+  }
+  const ul=$("#prs");
+  if(D.prs===null)ul.append(el("li",{class:"small",text:"Could not read the open pull requests when this page was built."}));
+  else if(!D.prs.length)ul.append(el("li",{class:"small",text:"None open."}));
+  else for(const p of D.prs)ul.append(el("li",{},el("a",{href:"https://github.com/AiAnalytics-AIA/AIA/pull/"+p.n,text:"#"+p.n,class:"mono"}),el("span",{text:p.t}),p.draft?chip("r-support","draft"):null,el("span",{class:"small",text:p.by})));
+})();
+
+// Research flow
+(function(){
+  const phases=[];for(const s of D.stages){if(!phases.includes(s.phase))phases.push(s.phase)}
+  const grid=$("#flowgrid");const btn={};
+  for(const ph of phases){
+    const col=el("div",{class:"phase"},el("div",{class:"ph",text:ph.replace(/\s*\(.*\)/,"")}));
+    for(const s of D.stages.filter(x=>x.phase===ph)){
+      const b=el("button",{class:"stage",type:"button","aria-pressed":"false"},el("span",{class:"nm",text:s.name}),bar(s.done||0,s.total||0),el("span",{class:"pc",text:`${s.done} / ${s.total} chunks`}));
+      b.addEventListener("click",()=>select(s.name));btn[s.name]=b;col.append(b);
+    }
+    grid.append(col);
+  }
+  const names=D.stages.map(s=>s.name);
+  const touches=(field,name)=>field.split(/\s*\/\s*|,\s*|\s+\(/).some(x=>x.trim().startsWith(name));
+  function select(name){
+    const s=D.stages.find(x=>x.name===name);
+    const ins=D.chain.filter(c=>touches(c.to,name)&&!touches(c.from,name));
+    const outs=D.chain.filter(c=>touches(c.from,name)&&!touches(c.to,name));
+    grid.classList.add("focus");
+    for(const[n,b]of Object.entries(btn)){
+      b.classList.toggle("sel",n===name);b.setAttribute("aria-pressed",String(n===name));
+      b.classList.toggle("up",n!==name&&ins.some(c=>touches(c.from,n)));
+      b.classList.toggle("down",n!==name&&outs.some(c=>touches(c.to,n)));
+    }
+    const det=$("#stagedetail");det.innerHTML="";
+    const left=el("div",{class:"card"},
+      el("div",{class:"eyebrow",text:s.phase}),el("h3",{text:s.name,style:"font:600 20px/26px var(--serif);margin:2px 0 6px"}),
+      el("p",{text:s.purpose,style:"margin:0 0 10px"}),
+      el("div",{style:"display:flex;gap:10px;align-items:center;margin-bottom:6px"},bar(s.done,s.total),el("span",{class:"mono",text:`${s.done} / ${s.total}`}),el("a",{href:"#plan-"+s.plan,class:"mono",text:s.plan})),
+      s.next?el("p",{class:"small",style:"margin:0 0 12px"},el("b",{text:"Next chunk: "}),document.createTextNode(s.next)):null,
+      el("h3",{text:"Flows in"}),io(ins,"from"),el("h3",{text:"Hands on",style:"margin-top:12px"}),io(outs,"to"));
+    const right=el("div",{class:"card"});
+    right.append(el("h3",{text:"Built"}),list(s.built));
+    const gaps=[...s.backend_gaps.map(g=>["Backend",g]),...s.frontend_gaps.map(g=>["Screen",g])].filter(([k,g])=>!(g.id&&s.done_ids&&s.done_ids.includes(g.id)));
+    right.append(el("h3",{text:"Still missing",style:"margin-top:12px"}));
+    if(!gaps.length)right.append(el("p",{class:"gap",text:"Nothing recorded."}));
+    for(const[k,g]of gaps.slice(0,10))right.append(el("p",{class:"gap",style:"margin:4px 0"},el("b",{text:(g.id||k)+" "}),document.createTextNode(g.what||g)));
+    if(gaps.length>10)right.append(el("p",{class:"small",text:`and ${gaps.length-10} more in the plan file.`}));
+    if(s.proposed.length){right.append(el("h3",{text:"Added on 27 Oct",style:"margin-top:12px"}));for(const c of s.proposed)right.append(el("p",{class:"gap",style:"margin:4px 0"},el("b",{text:c.id+" "}),document.createTextNode(c.title)))}
+    right.append(el("p",{class:"small",style:"margin-top:10px",text:`Built and missing as mapped on develop ${D.stagemap_sha.slice(0,8)}; progress is live.`}));
+    det.append(left,right);
+  }
+  function io(rows,side){
+    if(!rows.length)return el("p",{class:"gap",text:"Nothing recorded."});
+    const ul=el("ul",{class:"io"});
+    for(const c of rows)ul.append(el("li",{},el("span",{class:"who",text:c[side]}),el("span",{class:"what",text:c.what}),el("span"),stateChip(c.state)));
+    return ul;
+  }
+  function list(xs){if(!xs.length)return el("p",{class:"gap",text:"Nothing recorded."});const ul=el("ul",{class:"plainlist"});for(const x of xs)ul.append(el("li",{text:String(x).replace(/\s*\(([^)]*@[^)]*)\)/g,"")}));return ul}
+  select("Sběr dat");
+})();
+
+// Build sequence
+(function(){
+  const order=["W0","W1","W2","W3","W4","W5","POST"];
+  const LBL={POST:"After MVP"};
+  const isDone=c=>!!(c.state&&c.state.done);
+  const byWave={};
+  for(const g of D.groups)(byWave[g.wave]=byWave[g.wave]||{groups:[],loose:[]}).groups.push(g);
+  for(const c of D.loose)(byWave[c.wave]=byWave[c.wave]||{groups:[],loose:[]}).loose.push(c);
+  const waves=order.filter(w=>byWave[w]);
+  const gdone={};for(const g of D.groups)gdone[g.id]=g.chunks.every(isDone);
+  const counts=w=>{const all=[...byWave[w].groups.flatMap(g=>g.chunks),...byWave[w].loose];return [all.filter(isDone).length,all.length]};
+  const current=waves.find(w=>w!=="POST"&&counts(w)[0]<counts(w)[1]);
+  const tabs=$("#wavetabs"),body=$("#wavebody");
+  function topo(gs){const ids=new Set(gs.map(g=>g.id)),out=[],seen=new Set();
+    const visit=g=>{if(seen.has(g.id))return;seen.add(g.id);for(const n of g.needs){const h=gs.find(x=>x.id===n);if(h)visit(h)}out.push(g)};
+    gs.slice().sort((a,b)=>+a.id.slice(1)-+b.id.slice(1)).forEach(visit);return out}
+  function chunkLi(c){const[slug,cid]=c.ref.split("#");const li=el("li",{class:isDone(c)?"d":"o"},el("span",{class:"m",text:isDone(c)?"✓":"○"}),el("span",{},el("a",{href:"#plan-"+slug,text:c.ref,onclick:ev=>{ev.preventDefault();jump(slug)}}),c.state?el("span",{class:"tx",text:c.state.text.replace(/^[\w.\-]+\.\s*/,"").replace(/`/g,"").slice(0,140)}):el("span",{class:"tx",text:"not found in the plan's chunks"})));return li}
+  function show(w){
+    for(const b of tabs.children)b.setAttribute("aria-selected",String(b.dataset.w===w));
+    body.innerHTML="";const W=byWave[w];
+    if(W.groups.length){const box=el("div",{class:"groups"});
+      for(const g of topo(W.groups)){const d=g.chunks.filter(isDone).length;const blocked=d<g.chunks.length&&g.needs.some(n=>gdone[n]===false);
+        box.append(el("div",{class:"grp"+(blocked?" blocked":"")},
+          el("div",{class:"gh"},el("span",{class:"gid",text:g.id}),chip(d===g.chunks.length?"r-done":blocked?"r-after":"r-support",d===g.chunks.length?"done":blocked?"waiting on "+g.needs.filter(n=>gdone[n]===false).join(", "):`${d} / ${g.chunks.length}`),g.needs.length?el("span",{class:"small",text:"needs "+g.needs.join(", ")}):null),
+          el("ul",{class:"clist"},...g.chunks.map(chunkLi)),el("div",{class:"proof",text:g.proof.replace(/`/g,"")})))}
+      body.append(el("h3",{text:"Cross-plan groups, in dependency order",style:"margin:0 0 8px"}),box)}
+    if(W.loose.length){const per={};for(const c of W.loose)(per[c.ref.split("#")[0]]=per[c.ref.split("#")[0]]||[]).push(c);
+      const od=W.loose.filter(c=>!isDone(c)).length;
+      const det=el("details",{class:"loose",open:""},el("summary",{text:`${W.loose.length} more chunks in this wave, by plan (${od} open)`}));
+      const grid=el("div",{class:"byplan"});
+      for(const[slug,cs]of Object.entries(per).sort((a,b)=>b[1].filter(c=>!isDone(c)).length-a[1].filter(c=>!isDone(c)).length)){
+        grid.append(el("div",{class:"grp"},el("div",{class:"gh"},el("a",{href:"#plan-"+slug,class:"gid",text:slug,onclick:ev=>{ev.preventDefault();jump(slug)}}),chip("r-support",`${cs.filter(isDone).length} / ${cs.length}`)),el("ul",{class:"clist"},...cs.map(chunkLi))))}
+      det.append(grid);body.append(det)}
+  }
+  for(const w of waves){const[d,t]=counts(w);const b=el("button",{type:"button",role:"tab","aria-selected":"false"},el("span",{class:"wl",text:LBL[w]||w}),bar(d,t),el("span",{class:"wc",text:`${d} / ${t}`}),w===current?el("span",{class:"now",text:"current"}):null);b.dataset.w=w;b.addEventListener("click",()=>show(w));tabs.append(b)}
+  show(current||waves[0]);
+})();
+
+// Configuration
+(function(){
+  const t=$("#cfgtable");t.append(el("tr",{},...["Switch or resource","Needed by","Set by","How to see it is on","Develop now"].map(h=>el("th",{text:h}))));
+  const ds=D.develop_state||{};
+  for(const r of D.activation){const key=Object.keys(ds).find(k=>r.switch.includes(k));const st=key?ds[key]:null;
+    t.append(el("tr",{},el("td",{text:r.switch}),el("td",{text:r.needed_by}),el("td",{text:r.set_by}),el("td",{text:r.evidence}),
+      el("td",{},st?chip("st-"+st.state,st.state):chip("st-UNKNOWN","not checked"),st&&st.note?el("div",{class:"small",style:"margin-top:4px",text:st.note}):null)))}
+  for(const[k,st]of Object.entries(ds).filter(([k])=>!D.activation.some(r=>r.switch.includes(k)))){
+    t.append(el("tr",{},el("td",{text:k}),el("td",{text:st.needed_by||"found by the infra audit"}),el("td",{text:st.set_by||"—"}),el("td",{text:st.evidence||"—"}),el("td",{},chip("st-"+st.state,st.state),st.note?el("div",{class:"small",style:"margin-top:4px",text:st.note}):null)))}
+  $("#cfgnote").textContent=Object.keys(ds).length?`Develop state from the read-only AWS audit of ${ds._at||"tonight"}.`:"Develop state not yet checked: the read-only AWS audit is running.";
+})();
+
+// Plans by page
+const refsOut={},refsIn={};
+for(const[a,b,n]of D.edges){(refsOut[a]=refsOut[a]||[]).push([b,n]);(refsIn[b]=refsIn[b]||[]).push([a,n])}
+(function(){
+  const root=$("#epics");
+  for(const e of D.epics){
+    const ps=open.filter(p=>p.epic===e.id).sort((a,b)=>({core:0,support:1,after:2}[a.role]-{core:0,support:1,after:2}[b.role])||a.title.localeCompare(b.title));
+    const done=D.plans.filter(p=>p.status==="done"&&p.epic===e.id);
+    const box=el("div",{class:"epic",id:"ep-"+e.id},el("div",{class:"hd"},el("h3",{text:e.name,style:"font:600 18px/24px var(--serif)"}),el("span",{class:"where",text:e.where})),el("p",{class:"sub",text:e.sub,style:"margin:0 0 8px"}));
+    const list=el("div",{class:"plans"});
+    for(const p of ps)list.append(planRow(p));
+    box.append(list);
+    if(done.length){const d=el("details",{class:"donebox"},el("summary",{text:`${done.length} finished plans in this area`}));const ul=el("ul");for(const p of done)ul.append(el("li",{text:p.title||p.slug}));d.append(ul);box.append(d)}
+    root.append(box);
+  }
+})();
+function planRow(p){
+  const nextC=p.chunks.find(c=>!c.done);
+  const d=el("details",{class:"plan",id:"plan-"+p.slug});
+  d.append(el("summary",{},
+    el("div",{class:"pt"},el("div",{},el("span",{class:"t",text:p.title.replace(/^(Artifact|Plan):\s*/,"")||p.slug})," ",chip("r-"+p.role,ROLE[p.role])),el("div",{class:"n",text:nextC?"Next: "+nextC.text:"No open chunk"})),
+    bar(p.done,p.total),el("span",{class:"pc",text:`${p.done} / ${p.total}`})));
+  d.addEventListener("toggle",()=>{if(!d.open||d.dataset.filled)return;d.dataset.filled="1";
+    const ul=el("ul",{class:"chunks"});
+    for(const c of p.chunks)ul.append(el("li",{class:c.done?"d":"o"},el("span",{class:"m",text:c.done?"✓":"○"}),el("span",{text:c.text})));
+    const right=el("div",{});
+    right.append(el("div",{class:"eyebrow",text:"Plan file"}),el("div",{class:"mono",style:"margin-bottom:10px",text:".planning/plans/"+(p.archived?"done/":"")+p.slug+".md"}));
+    right.append(el("div",{class:"eyebrow",text:"Cites"}),linkList(refsOut[p.slug]),el("div",{class:"eyebrow",style:"margin-top:10px",text:"Cited by"}),linkList(refsIn[p.slug]));
+    d.append(el("div",{class:"pbody"},ul,right));
+  });
+  return d;
+}
+function linkList(xs){
+  const w=el("div",{class:"links"});
+  const live=(xs||[]).filter(([s])=>P[s]&&P[s].status!=="done").sort((a,b)=>b[1]-a[1]);
+  if(!live.length){w.append(el("span",{class:"small",text:"No open plan."}));return w}
+  for(const[s,n]of live)w.append(el("button",{type:"button",onclick:()=>jump(s)},document.createTextNode(s),el("span",{class:"k",text:"×"+n})));
+  return w;
+}
+function jump(slug){const d=document.getElementById("plan-"+slug);if(!d)return;d.open=true;d.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});d.querySelector("summary").focus({preventScroll:true})}
+
+// Connections
+(function(){
+  const HUB=new Set(["mvp-master-plan","prototype-build"]);
+  const ids=D.epics.map(e=>e.id),M={},pairs={};
+  for(const[a,b,n]of D.edges){const pa=P[a],pb=P[b];if(!pa||!pb||pa.status==="done"||pb.status==="done"||HUB.has(a)||HUB.has(b))continue;
+    const k=pa.epic+"|"+pb.epic;M[k]=(M[k]||0)+n;(pairs[k]=pairs[k]||[]).push([a,b,n])}
+  const max=Math.max(1,...Object.values(M));
+  const t=$("#matrix");const hr=el("tr",{},el("th",{text:"cites →"}));for(const id of ids)hr.append(el("th",{text:EP[id].name}));t.append(hr);
+  for(const r of ids){const tr=el("tr",{},el("th",{text:EP[r].name}));
+    for(const c of ids){const v=M[r+"|"+c]||0;const td=el("td");
+      if(v){const a=0.12+0.78*(v/max);const b=el("button",{type:"button","aria-label":`${EP[r].name} cites ${EP[c].name} ${v} times`,text:String(v)});
+        b.style.background=`color-mix(in srgb, var(--signal) ${Math.round(a*100)}%, transparent)`;b.style.color=a>0.5?"var(--onsig)":"var(--ink)";
+        b.addEventListener("click",()=>{const ps=(pairs[r+"|"+c]||[]).sort((x,y)=>y[2]-x[2]);const box=$("#pairs");box.innerHTML="";box.append(el("b",{text:`${EP[r].name} → ${EP[c].name}: `}));
+          ps.slice(0,14).forEach(([a,b2,n],i)=>{if(i)box.append(document.createTextNode(" · "));box.append(el("a",{href:"#plan-"+a,text:a,onclick:ev=>{ev.preventDefault();jump(a)}}),document.createTextNode(" → "),el("a",{href:"#plan-"+b2,text:b2,onclick:ev=>{ev.preventDefault();jump(b2)}}),document.createTextNode(` (${n})`))});
+          if(ps.length>14)box.append(document.createTextNode(` · and ${ps.length-14} more`));});
+        td.append(b)}else td.style.background="var(--sunken)";
+      tr.append(td)}
+    t.append(tr)}
+  const deg={};for(const[a,b]of D.edges){if(!P[a]||!P[b]||P[a].status==="done"||P[b].status==="done"||HUB.has(a)||HUB.has(b))continue;(deg[a]=deg[a]||new Set).add(b);(deg[b]=deg[b]||new Set).add(a)}
+  Object.entries(deg).map(([s,v])=>[s,v.size]).sort((a,b)=>b[1]-a[1]).slice(0,12).forEach(([s,n])=>$("#hubs").append(el("div",{class:"hub"},el("button",{type:"button",text:s,onclick:()=>jump(s)}),el("span",{class:"mono",text:n+" plans"}))));
+})();
+
+// Board
+(function(){
+  const cols=[["Now","now"],["Next","next"],["Later","later"]];
+  for(const[h,k]of cols){const c=el("div",{class:"col"},el("h3",{text:h}));
+    for(const it of D.queue[k]){const st=it.state;
+      c.append(el("div",{class:"ticket"},el("div",{class:"t",text:it.t}),it.who?el("div",{class:"n",text:it.who+(it.note?" · "+it.note:"")}):it.note?el("div",{class:"n",text:it.note}):null,it.blocks?el("div",{class:"n",text:"Unblocks "+it.blocks}):null,it.ref?el("div",{class:"r"},document.createTextNode(it.ref+" "),st?chip(st.done?"r-done":"r-support",st.done?"done":"open"):null):null))}
+    $("#boardcols").append(c)}
+  for(const c of D.proposed)$("#proposed").append(el("div",{class:"ticket",style:"margin:0"},el("div",{class:"t",text:c.id+" · "+c.title}),el("div",{class:"n",text:c.why}),el("div",{class:"r",text:c.stage+" · "+c.state})));
+})();
+
+// Questions
+(function(){
+  const order=["Nigel","Methodology owner","Legal","Operator"];const by={};for(const q of D.questions)(by[q.who]=by[q.who]||[]).push(q);
+  for(const w of order.filter(w=>by[w])){const c=el("div",{class:"card"},el("h3",{text:w==="Nigel"?"Nigel (product owner)":w,style:"margin-bottom:4px"}));
+    for(const q of by[w])c.append(el("div",{class:"q"},el("div",{text:q.q}),el("div",{class:"b",text:"Holds back: "+q.blocks+" · open since "+q.from}),q.rec?el("div",{class:"rec"},el("b",{text:"Recommended: "}),document.createTextNode(q.rec)):null));
+    $("#qgroups").append(c)}
+})();
+
+// How to read
+for(const[a,b]of D.agile)$("#agile").append(el("tr",{},el("td",{text:a}),el("td",{text:b})));
+$("#sources").textContent=`Live from develop ${D.develop_sha.slice(0,8)}: every plan's status and chunks (front matter), the register's core, support and after-MVP lists (mvp-master-plan §3), and the citations between plans. Kept by the PM coordinator: the page areas each plan belongs to, the stage purposes, the board and the open questions. Stage hand-offs and gaps: the stage map of develop ${D.stagemap_sha.slice(0,8)}. Rebuilt on each coordinator pass.`;
+</script>
