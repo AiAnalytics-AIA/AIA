@@ -257,7 +257,7 @@
       {
         "t": "UX upgrade of every prototype (done, core v4.3), exported to the repo, and draft PR #1022 (tokens, components)",
         "who": "design-system session",
-        "note": "Prototypes on core v4.3 (Klienti v19, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
+        "note": "Prototypes on core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2); exports and 46 reference images in #1026-#1029 and #1031. #1022 stays a draft: it's CPR21, timing is your call."
       },
       {
         "t": "#1015 -5 terrain: IDW with a plain/falloff switch",
@@ -396,7 +396,7 @@
     },
     {
       "who": "Nigel",
-      "q": "The UX upgrade is in the prototypes at core v4.3 (Klienti v19, Výzkumné kroky v95, Nastavení v117; Design System v3.2; the rail hover fixed, Projektová paměť gone) and exported to the repo with 46 reference images (#1026-#1029, #1031). Draft PR #1022 holds the tokens and first components. Should it be built into the product now (CPR21), or after the client pages redesign?",
+      "q": "The UX upgrade is in the prototypes at core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2 (artifact v12); the rail hover fixed, Projektová paměť gone) and exported to the repo with 46 reference images (#1026-#1029, #1031). Draft PR #1022 holds the tokens and first components. Should it be built into the product now (CPR21), or after the client pages redesign?",
       "blocks": "client-pages-redesign CPR21; every screen's look",
       "from": "27 Oct",
       "rec": "After the client pages redesign, as you said: CPR21 lands the tokens once the redesigned pages exist, so nothing is restyled twice."
