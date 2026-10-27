@@ -19,6 +19,7 @@ import { fileToBase64 } from "@/research/brief";
 import { Button, Chip, Tag } from "../../rehome/ui";
 import { useResource } from "../useResource";
 import { type AiRights, SourceProposals } from "./SourceProposals";
+import { errorText } from "@/lib/error-words";
 
 /** How many of a source's segments the card shows; the original holds the rest. */
 const SHOWN_SEGMENTS = 8;
@@ -34,7 +35,7 @@ function refusal(e: unknown): string {
   if (e instanceof ApiError && e.status === 422 && reasonKnown(e.code)) {
     return tv("aia.sources.refused", { reason: reasonWords(e.code) });
   }
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 /** One file, stored as the client's source the moment it is picked. */
@@ -126,7 +127,7 @@ export function SourceCard({
   const download = () =>
     workspace.sourceOriginal(clientId, s.source_id).then(
       (blob) => saveBlob(blob, s.filename),
-      (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+      (e: unknown) => setError(errorText(e)),
     );
   const added = s.occurrences[0]?.added_at ?? s.created_at;
   return (

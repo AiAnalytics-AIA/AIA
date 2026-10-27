@@ -48,6 +48,7 @@ import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/u
 import { useResource } from "../useResource";
 import { useClient } from "./ClientContext";
 import { LabelChip } from "./KnowledgeLibrary";
+import { errorText } from "@/lib/error-words";
 
 const BADGE: Record<ReturnType<typeof badge>["tone"], string> = {
   pdf: "bg-status-fault-wash text-status-fault",
@@ -60,7 +61,7 @@ const BADGE: Record<ReturnType<typeof badge>["tone"], string> = {
 /** A refused upload in words: the API's reason where AIA has words for it. */
 function refusal(e: unknown): string {
   if (e instanceof ApiError && e.status === 422 && reasonKnown(e.code)) return tv("aia.sources.refused", { reason: reasonWords(e.code) });
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 let seq = 0;
@@ -209,7 +210,7 @@ export function IntakeSheet() {
       // Filed from what is owed, so a failed placement is tried again with every item it held.
       for (const placement of placementsFor(made.current, labels)) await workspace.place(clientId, placement);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
+      const message = errorText(e);
       setError(filing ? tv("aia.intake.unfiled", { error: message }) : message);
       setUnfiled(made.current.length > 0);
       setSaving(false);

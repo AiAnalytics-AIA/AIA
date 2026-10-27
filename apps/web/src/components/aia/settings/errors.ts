@@ -4,10 +4,10 @@
 
 import { t } from "@/i18n/t";
 import { ApiError } from "@/lib/api";
+import { errorText } from "@/lib/error-words";
 
 export function describeError(e: unknown): string {
-  if (e instanceof ApiError) return `HTTP ${e.status} · ${e.code}: ${e.message}${e.requestId ? ` (${e.requestId})` : ""}`;
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 /** The OWNER guard's refusals (details.reason) said in Czech; any other refusal as given. */

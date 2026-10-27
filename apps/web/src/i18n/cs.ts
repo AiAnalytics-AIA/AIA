@@ -4441,6 +4441,21 @@ export const cs = {
       "Co AIA zatím nemá, říká tam, kde to potkáte, například simulace, ověření a další krok výzkumu, Data Library, klientský report nebo filtry publika z panelu.",
     openAia: "Otevřít AIA",
   },
+  errors: {
+    generic: "Nepovedlo se to. Zkuste to prosím znovu.",
+    network: "Nepodařilo se spojit s AIA. Zkontrolujte připojení a zkuste to znovu.",
+    technical: "Technické údaje",
+    status: {
+      "401": "Přihlášení vypršelo. Přihlaste se znovu a zkuste to ještě jednou.",
+      "403": "K tomu nemáte oprávnění. O změnu požádejte vlastníka nebo správce organizace.",
+      "404": "Tady nic není, nebo k tomu nemáte přístup.",
+      "409": "Mezitím se tu něco změnilo. Načtěte stránku znovu a zkuste to ještě jednou.",
+      "413": "Soubor je příliš velký.",
+      "422": "AIA hodnotu odmítla: některý údaj neplatí. Zkontrolujte ho a zkuste to znovu.",
+      "429": "Příliš mnoho požadavků najednou. Zkuste to za chvíli.",
+      "500": "AIA teď neodpovídá. Zkuste to za chvíli; když to trvá, napište správci.",
+    },
+  },
   pageNotFound: {
     title: "Tato stránka v AIA není",
     text: "Adresa je chybná, nebo stránka už neexistuje. Klienty, jejich výzkumy a nastavení najdete z úvodní stránky.",

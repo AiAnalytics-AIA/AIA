@@ -26,6 +26,7 @@ import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { SourceCard, SourcePicker } from "./SourceFile";
 import type { AiRights } from "./SourceProposals";
+import { errorText } from "@/lib/error-words";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 
@@ -64,7 +65,7 @@ export function said(e: unknown): string {
   const stale = staleEdit(e);
   if (stale) return tv("aia.library.staleEdit", { current: stale.current });
   if (e instanceof ApiError && e.status === 404) return t("aia.library.goneMeanwhile");
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 export function LabelChip({ label, onRemove }: { label: KnowledgeLabel; onRemove?: () => void }) {

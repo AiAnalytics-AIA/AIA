@@ -13,6 +13,7 @@ import { ApiError, type ProposalsRun, type SourceDetail, workspace } from "@/lib
 import { appRoutes } from "@/lib/app-routes";
 import { PROPOSALS_STEP, POLL_MS, isMoving, mayAsk, proposalsLine, proposalsPhase, proposalsReason } from "@/lib/source-proposals";
 import { AiButton, Button, Chip, Field, TextInput } from "../../rehome/ui";
+import { errorText } from "@/lib/error-words";
 
 /** What the person may do with AI proposals on this client. */
 export type AiRights = {
@@ -25,7 +26,7 @@ export type AiRights = {
 /** A request's refusal in words: a reason AIA knows, else the message. */
 function said(e: unknown): string {
   if (e instanceof ApiError && e.status === 422 && e.code !== "budget_not_raised") return proposalsReason(e.code);
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 export function SourceProposals({ clientId, source, rights }: { clientId: string; source: SourceDetail; rights: AiRights }) {

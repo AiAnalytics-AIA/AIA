@@ -17,6 +17,7 @@ import { type Ask, AskDialog, Button, Field, TextInput } from "../../rehome/ui";
 import { AppShell } from "../AppShell";
 import { Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
+import { errorText } from "@/lib/error-words";
 
 export function roleLabel(role: string | null): string {
   return t(`aia.roles.${role ?? "none"}`);
@@ -75,7 +76,7 @@ export function ClientDirectory() {
         if (name === null) return;
         workspace.startClient(name.trim()).then(
           (c) => router.push(appRoutes.client(c.client_id)),
-          (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+          (e: unknown) => setError(errorText(e)),
         );
       },
     });
