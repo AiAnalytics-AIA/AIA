@@ -6,16 +6,20 @@ not product code. Every client, study and number in its screenshots is fictional
 | | |
 |---|---|
 | Live artifact (private to the owner's account) | <https://claude.ai/artifact/6duL5pNSVfiqqBz6V16Tfo> |
-| Exported version | artifact version id `1793072278-450e`, 27 Oct 2026, byte for byte |
+| Exported version | artifact version id `1793072278-450e`, 27 Oct 2026 |
 | Before | `develop` @ dbaa7720 |
 | After | `feature/ux-upgrade` (draft PR #1022) as it stood then |
 | Design System | [`../design-system-2026-10-27/`](../design-system-2026-10-27/) |
 
 ## How to open it
 
-Open [`index.html`](index.html) in a browser. It is one self-contained file (1.5 MB): the 24 screenshots are inline
-JPEGs, and its one script only filters them by theme. The fonts come from Google Fonts; offline, the system fonts
-stand in.
+Open [`index.html`](index.html) in a browser. Its one script only filters the screenshots by theme. The fonts come
+from Google Fonts; offline, the system fonts stand in.
+
+The artifact keeps its 24 screenshots inline as base64 JPEGs. Here each one is its own file in `images/`, byte for
+byte, and `index.html` names it by path; nothing else in the page changed. The reason: a 4-character run in one
+image's base64 matched a client token in `tools/exposure_check.sh`. That match was chance, not content, but the check
+rightly allows no file exceptions.
 
 ## What it shows
 
