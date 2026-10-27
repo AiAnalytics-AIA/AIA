@@ -24,6 +24,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import Link from "next/link";
 import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { said } from "./KnowledgeLibrary";
@@ -200,6 +201,21 @@ function ContactForm({ initial, onSubmit, onCancel }: { initial: ContactWrite; o
 function Contacts({ clientId, contacts, mayEdit, onChanged }: { clientId: string; contacts: ClientContact[]; mayEdit: boolean; onChanged: () => void }) {
   const [editing, setEditing] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A removed contact can be put back for 8 s (design system v3, I-VratitNeboPotvrdit): the same
+  // name, role, e-mail and report choice, written again.
+  const undo = useUndo();
+  const remove = (c: ClientContact) =>
+    void workspace.removeContact(clientId, c.contact_id).then(
+      () => {
+        setError(null);
+        onChanged();
+        undo.offer({
+          message: tv("aia.profile.contact.removed", { name: c.name }),
+          undo: () => void done(workspace.addContact(clientId, { name: c.name, role: c.role, email: c.email, receives_reports: c.receives_reports })),
+        });
+      },
+      (err: unknown) => setError(said(err)),
+    );
   const done = (work: Promise<unknown>) =>
     work.then(
       () => {
@@ -258,7 +274,7 @@ function Contacts({ clientId, contacts, mayEdit, onChanged }: { clientId: string
                         <Button small variant="quiet" onClick={() => setEditing(c.contact_id)} aria-label={tv("aia.profile.contact.editOne", { name: c.name })}>
                           {t("aia.profile.contact.edit")}
                         </Button>
-                        <Button small variant="quiet" onClick={() => void done(workspace.removeContact(clientId, c.contact_id))} aria-label={tv("aia.profile.contact.removeOne", { name: c.name })}>
+                        <Button small variant="quiet" onClick={() => remove(c)} aria-label={tv("aia.profile.contact.removeOne", { name: c.name })}>
                           {t("aia.profile.contact.remove")}
                         </Button>
                       </td>
@@ -274,6 +290,7 @@ function Contacts({ clientId, contacts, mayEdit, onChanged }: { clientId: string
           <Empty>{t("aia.profile.contactsNone")}</Empty>
         </div>
       ) : null}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
     </section>
   );
 }

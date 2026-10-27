@@ -475,8 +475,9 @@ function RulesCell({ id, read }: { id: string; read: RulesRead }) {
   );
 }
 
-function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
+function ClientRow({ c, statuses, self, rules, canAdminister, reload, offerUndo }: {
   c: AdminClient; statuses: readonly string[]; self: Tri | null; rules: RulesRead; canAdminister: boolean; reload: () => void;
+  offerUndo: (message: string, undo: () => void) => void;
 }) {
   const status = useSave(reload);
   const approval = useSave(reload);
@@ -489,7 +490,12 @@ function ClientRow({ c, statuses, self, rules, canAdminister, reload }: {
       <div role="cell" className="border-t border-border px-2 py-2">
         {canAdminister ? (
           <ChoiceChips saves look="segmented" small label={tv(`${A}.statusOf`, { client: c.name })} value={c.status} options={statuses.map((s) => ({ key: s, label: t(`${P}.clientStatus.${s}`) }))}
-            onChange={(s) => void status.run(() => admin.setClientStatus(c.client_id, s))} />
+            onChange={(s) => {
+              const before = c.status;
+              void status.run(() => admin.setClientStatus(c.client_id, s)).then((ok) => {
+                if (ok) offerUndo(tv(`${A}.statusChanged`, { client: c.name, status: t(`${P}.clientStatus.${s}`) }), () => { void status.run(() => admin.setClientStatus(c.client_id, before)); });
+              });
+            }} />
         ) : <span className="text-sm">{t(`${P}.clientStatus.${c.status}`)}</span>}
         <SaveNote state={status.state} />
         {status.error ? <p role="alert" className="mt-1 text-xs text-status-fault">{status.error}</p> : null}
@@ -516,6 +522,7 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
 }) {
   const byClient = new Map(levels?.ok ? levels.data.clients.map((c) => [c.client_id, c.allowed]) : []);
   const rules = useClientRules();
+  const undo = useUndo();
   const explained = useExplained<"clients">();
   return (
     <section id="set-clients" aria-labelledby="set-clients-title" className={CARD}>
@@ -537,10 +544,12 @@ export function ClientsCard({ clients, levels, vocab, canAdminister, reload }: {
             </div>
             {clients.data.map((c) => (
               <ClientRow key={c.client_id} c={c} statuses={vocab.client_statuses} rules={rules} reload={reload} canAdminister={canAdminister}
+                offerUndo={(message, back) => undo.offer({ message, undo: back })}
                 self={levels === null || !levels.ok ? null : tri(byClient.get(c.client_id))} />
             ))}
           </div>
         )}
+      <UndoToast offer={undo.current} onDone={undo.clear} />
     </section>
   );
 }

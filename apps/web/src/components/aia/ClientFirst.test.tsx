@@ -340,6 +340,10 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/contacts")[0].body).toEqual({ name: "Petr", role: "", email: "", receives_reports: true });
     fireEvent.click(within(contacts).getByRole("button", { name: "Odebrat kontakt Jana Nová" }));
     await waitFor(() => expect(called("DELETE", "/api/v1/clients/CLI-a/contacts/CON-1")).toHaveLength(1));
+    // A removed contact can be put back for 8 s: the same fields, written again.
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/contacts")).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/contacts")[1].body).toEqual({ name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true });
 
     const entities = screen.getByRole("heading", { name: "Značky a konkurenti" }).closest("section")!;
     expect(await within(entities).findByText("Konkurent B")).toBeTruthy();

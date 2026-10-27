@@ -177,6 +177,7 @@ export const cs = {
         remove: "Odebrat",
         editOne: "Upravit kontakt {name}",
         removeOne: "Odebrat kontakt {name}",
+        removed: "Kontakt {name} odebrán",
       },
       rulesTitle: "Pravidla",
       clientRules: {
@@ -2039,6 +2040,7 @@ export const cs = {
           clientsHelp: "Stav a samoschválení měníte zde. Postoj dat a strop peněženky jsou jen ke čtení; nastavuje je vlastník nebo správce u klienta v Profil → Pravidla. „Dědit“ přebírá pravidlo organizace.",
           studyCount: "studií: {n}",
           statusOf: "Stav klienta {client}",
+          statusChanged: "Stav klienta {client}: {status} · zapsáno do auditu",
           selfOf: "Samoschválení klienta {client}",
           inherit: "Dědit",
           adminOnlyShort: "vidí vlastník nebo správce",
