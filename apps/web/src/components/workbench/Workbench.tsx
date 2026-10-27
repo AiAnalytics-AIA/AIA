@@ -880,13 +880,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               <div className="arthead">
                 <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
-                  <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
+                  {/* The revision only: whether the copy is saved, new or read only is the save state's to say, beside the title. */}
+                  {state.revision === null && (frame.canEdit || state.save.kind === "readonly") ? null : <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit || state.save.kind === "readonly" ? "" : " · jen ke čtení"}</div>}
                 </div>
                 <div className="arthead__actions">
                   <span ref={setHeaderActions} className="arthead__slot" />
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
-                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
-                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
+                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. From
+                        768 px the header says the count, so the toggle does not say it again. */}
+                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked && layout === "sheet" ? <span>{` · ${blocked}`}</span> : null}
                   </button>
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />
@@ -1103,7 +1105,6 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
                 </>
               ) : null}
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
-              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.client(frame.clientId))}>Pracovní prostor klienta</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.memory())}>Projektová paměť</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.settings())}>Nastavení</button>
             </div>

@@ -203,7 +203,7 @@ export function AppShell({
               <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
                 <Breadcrumbs crumbs={crumbs.length || crumbEnd ? crumbs : [{ label: title }]} strong end={crumbEnd} />
               </div>
-              <div className="ml-auto flex flex-wrap items-center gap-3"><CommandPalette chord={!path.startsWith("/app/settings")} />{status}{action}</div>
+              <div className="ml-auto flex flex-wrap items-center gap-3">{/* Settings searches its sections with its own SectionMenu (⌘K): one search per bar. */}{path.startsWith("/app/settings") ? null : <CommandPalette />}{status}{action}</div>
             </div>
           </header>
         ) : (

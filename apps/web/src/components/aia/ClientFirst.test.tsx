@@ -503,6 +503,12 @@ describe("a client's workspace", () => {
     const changes = screen.getByRole("heading", { name: "Poslední změny znalostí" }).closest("section")!;
     expect(within(changes).getByText("napsal člověk · revize 3")).toBeTruthy();
     expect(within(changes).getByText("ze studie · revize 1")).toBeTruthy();
+    // Each thing once: a study in review is not listed again under Aktivní práce, and the
+    // knowledge is opened from Kontext klienta, not again under its changes.
+    const active = screen.getByRole("heading", { name: "Aktivní práce" }).closest("section")!;
+    expect(within(active).queryByText("Firemní klienti")).toBeNull();
+    expect(within(changes).queryByRole("link")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Otevřít znalosti" })).toHaveLength(1);
 
     const context = screen.getByRole("heading", { name: "Kontext klienta" }).closest("section")!;
     expect(within(context).getByRole("link", { name: "Neměněno déle než rok: 2" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=old");

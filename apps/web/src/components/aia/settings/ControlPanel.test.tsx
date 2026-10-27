@@ -1188,6 +1188,8 @@ describe("what powers AIA", () => {
     expect(within(crumbs).getAllByRole("listitem")).toHaveLength(2);
     await sectionsDrawn();
     expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual(["AI běh"]);
+    // One search in the bar: the section menu's, not the app's palette beside it.
+    expect(screen.queryByRole("button", { name: /Hledat nebo přejít/ })).toBeNull();
   });
 
   it("on the Settings page, who you are is read once and passed to the panel", async () => {

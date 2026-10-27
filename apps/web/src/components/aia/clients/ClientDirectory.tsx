@@ -103,7 +103,8 @@ export function ClientDirectory() {
           const shown = needle ? list.filter(c => `${c.name} ${c.recent.map(s => s.name).join(" ")}`.toLocaleLowerCase("cs").includes(needle)) : list;
           return shown.length ? (
             <>
-            <p role="status" className="mb-3 text-xs text-ink-muted">{shown.length} z {list.length} klientů</p>
+            {/* The count is the hero's; while a search narrows the list, how many of them it shows. */}
+            <p role="status" className="mb-3 text-xs text-ink-muted empty:hidden">{needle ? `${shown.length} z ${list.length} klientů` : ""}</p>
             <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {shown.map((c) => (
                 <Card key={c.client_id} c={c} />
