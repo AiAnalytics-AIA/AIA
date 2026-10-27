@@ -24,7 +24,8 @@ import type { StepKey } from "@/research/steps";
 import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { StatusPill } from "../rehome/ui";
-import { Facts, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
+import { Facts } from "../rehome/AiJobCard";
+import { RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 import { LeadSees } from "./LeadSees";
 import { errorText } from "@/lib/error-words";
 

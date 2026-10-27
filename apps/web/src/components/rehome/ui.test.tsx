@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { AiButton, FaultNote, StaleMark, StatusPill, type StatusTone, Value } from "./ui";
 import { usdWords } from "@/lib/spend";
+import { AiJobCard } from "./AiJobCard";
 
 afterEach(cleanup);
 
@@ -75,5 +76,26 @@ describe("StaleMark", () => {
     }
     expect(alert.hasAttribute("data-proposal-stale")).toBe(true);
     expect(note.textContent).toBe("Výsledky běhu z revize 3Čísla platí pro revizi 3.");
+  });
+});
+
+describe("AiJobCard", () => {
+  it("is one card for an AI job and a run: the AI's edge turns only while a model works, a run is drawn in ink", () => {
+    const { container } = render(<>
+      <AiJobCard kind="ai" title="Analýza zadání" state={{ word: "Běží", tone: "running" }} working facts={[{ label: "Cena nejvýše", value: "0,40 USD", key: true }]} />
+      <AiJobCard kind="ai" title="Návrh dotazníku" state={{ word: "Návrh čeká na vás", tone: "you" }} />
+      <AiJobCard kind="run" title="Běh 2" state={{ word: "Běží", tone: "running" }} working />
+    </>);
+    const [busy, waiting, run] = [...container.querySelectorAll<HTMLElement>("[data-job-card]")];
+    expect(busy.className).toContain("ai-spark--working");
+    expect(busy.getAttribute("aria-busy")).toBe("true");
+    expect(waiting.className).toContain("ai-spark");
+    expect(waiting.className).not.toContain("ai-spark--working");
+    expect(run.className).not.toContain("ai-spark");
+    for (const card of [busy, waiting, run]) {
+      expect(card.className).toContain("rounded-panel");
+      expect(card.querySelector("[data-status-pill]")).toBeTruthy();
+    }
+    expect(screen.getByText("0,40 USD").hasAttribute("data-fact-key")).toBe(true);
   });
 });

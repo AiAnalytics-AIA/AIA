@@ -11,7 +11,7 @@ export type IconName =
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
   | "attach" | "link" | "next" | "download" | "client" | "knowledge" | "data" | "memory" | "intelligence"
   | "pencil" | "minus" | "chevron" | "more" | "inspector" | "close"
-  | "done" | "running" | "you" | "world" | "fault" | "dot" | "warning" | "person";
+  | "done" | "running" | "you" | "world" | "fault" | "dot" | "warning" | "person" | "worker";
 
 const NAMES: Record<IconName, PhosphorName> = {
   home: "house-simple",
@@ -56,6 +56,7 @@ const NAMES: Record<IconName, PhosphorName> = {
   dot: "dot",
   warning: "warning",
   person: "user",
+  worker: "cpu",
 };
 
 // The item inspector opens at the right: its panel glyph is drawn on that side.
