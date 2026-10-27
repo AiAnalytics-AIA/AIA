@@ -615,6 +615,9 @@ done or as dropped. `tools/master_check.py` fails when an open chunk of a core p
 | `sociomap-5-web#9` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; the methodology owner's sign-off before a client sees a scenario; wave proposed here |
 | `sociomap-5-web#10` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): MVP: the Sociomap what-if layer; wave proposed here |
 | `sociomap-5-web#11` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: Zajímavé skupiny |
+| `sociomap-5-web#12` | W1 | Nigel, 27 Oct 2026 (PM coordinator's chat): the map's switch between the two stored IDW terrains; built in #1015 with `signed-off-sociomap-method#12` |
+| `signed-off-sociomap-method#12` | W1 | the methodology owner, 26 Oct 2026, and Nigel, 27 Oct 2026: the `-5` terrain by inverse-distance weighting, both terrains stored; built in #1015 |
+| `signed-off-sociomap-method#13` | W2 | Nigel, 27 Oct 2026: the report's map terrain chosen by the study's lead researcher; after `signed-off-sociomap-method#9` and #1015 |
 | `study-data-lifecycle#SDL7` | POST | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): after the MVP: client data export |
 | `settings-redesign#F23` | W2 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the -5 render, once -5 is live); wave proposed here |
 | `settings-redesign#F24` | W1 | the unplanned-features inventory, Nigel's decisions of 27 Oct 2026 (PM coordinator's chat): Settings' smaller gaps (the Metodik's coral count); wave proposed here |
