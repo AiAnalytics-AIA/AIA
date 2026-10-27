@@ -157,9 +157,6 @@ function Changes({ clientId, o }: { clientId: string; o: Overview }) {
           <span className="w-24 text-right text-xs text-ink-faint">{relative(c.at)}</span>
         </li>
       ))}
-      <li className="px-5 py-2">
-        <Link href={appRoutes.area(clientId, "knowledge")} className="text-sm font-medium text-signal">{t("aia.overview.openKnowledge")}</Link>
-      </li>
     </ul>
   );
 }
@@ -179,7 +176,8 @@ export function ClientOverview() {
               </section>
               <section aria-labelledby="ov-active">
                 <h2 id="ov-active" className="mb-3 text-base font-semibold">{t("aia.overview.activeTitle")}</h2>
-                <Active clientId={client.client_id} list={o.active} />
+                {/* A study in review is listed once, under Čeká na vás. */}
+                <Active clientId={client.client_id} list={o.active.filter((s) => s.status !== "IN_REVIEW")} />
               </section>
               {o.knowledge ? (
                 <section aria-labelledby="ov-changes">

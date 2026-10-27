@@ -343,7 +343,7 @@ describe("ResearchScreen", () => {
     let fail = true;
     api(() => (fail ? new Response('{"code":"not_found","message":"No such resource."}', { status: 404 }) : content()));
     render(<ResearchScreen step="verify" frame={TEST_FRAME} />);
-    expect(await screen.findByText("No such resource.")).toBeTruthy();
+    expect(await screen.findByText(/^Tady nic není, nebo k tomu nemáte přístup\..*No such resource\./)).toBeTruthy();
     fail = false;
     fireEvent.click(screen.getByRole("button", { name: "Zkusit znovu" }));
     expect(await screen.findByText(t("research.notInAia"))).toBeTruthy();

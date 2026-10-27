@@ -11,7 +11,7 @@ export type IconName =
   | "external" | "plus" | "search" | "pin" | "tag" | "copy" | "archive" | "trash" | "restore" | "back"
   | "attach" | "link" | "next" | "download" | "client" | "knowledge" | "data" | "memory" | "intelligence"
   | "pencil" | "minus" | "chevron" | "more" | "inspector" | "close"
-  | "done" | "running" | "you" | "world" | "fault" | "dot";
+  | "done" | "running" | "you" | "world" | "fault" | "dot" | "warning" | "person";
 
 const NAMES: Record<IconName, PhosphorName> = {
   home: "house-simple",
@@ -54,6 +54,8 @@ const NAMES: Record<IconName, PhosphorName> = {
   world: "globe-simple",
   fault: "x-circle",
   dot: "dot",
+  warning: "warning",
+  person: "user",
 };
 
 // The item inspector opens at the right: its panel glyph is drawn on that side.
@@ -68,5 +70,5 @@ export function Icon({ name, size = 16, className = "" }: { name: IconName; size
  * an AI worker job, and nothing else.
  */
 export function Sparkle({ size = 16, className = "" }: { size?: number; className?: string }) {
-  return <PhosphorIcon name="sparkle" size={size} className={`shrink-0 ${className}`} />;
+  return <PhosphorIcon name="sparkle" size={size} className={`ai-sparkle shrink-0 ${className}`} />;
 }

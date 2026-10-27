@@ -95,7 +95,7 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { readBudget, withBudget } from "@/lib/budget-line";
+import { readBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
 import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
@@ -131,6 +131,7 @@ import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
 import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { errorText } from "@/lib/error-words";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -156,7 +157,7 @@ function retiredMethodRefusal(e: unknown): NewRunStart | null {
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
 /** A link back to the stage where something is set: the input standard's touch target (I11) and
@@ -651,7 +652,7 @@ const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
-  const { store, stepHref, confirm } = useResearch();
+  const { store, stepHref, confirmSpend } = useResearch();
   const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
@@ -762,9 +763,9 @@ export function RunStep() {
     setChoosing(false);
   };
 
-  // The question carries what remains of the study's budget, read as it asks (6d).
-  const ask = async (ceiling: number, limit: number) =>
-    confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }), ceiling));
+  // SpendDialog, with what remains of the study's budget read as it asks (6d; design system v3, I-Penize).
+  const ask = (ceiling: number, limit: number) =>
+    confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startRun") });
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
@@ -1155,7 +1156,7 @@ function useRetryableRead(run: ResearchRun | null | undefined): Repairable | nul
  * server asks about are answered here, as a start's are.
  */
 function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) => Promise<void>, busy: boolean) {
-  const { confirm, stepHref } = useResearch();
+  const { confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   const [offer, setOffer] = useState<{ runId: string; body: NewRunStart } | null>(null);
   const [asked, setAsked] = useState<{ runId: string; answer: Answerability } | null>(null);
@@ -1174,7 +1175,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
         } catch (e) {
           const cost = confirmationAsked(e);
           if (!cost) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: cost.ceiling.toFixed(2), limit: cost.limit.toFixed(2) }), cost.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: cost.ceiling, thresholdUsd: cost.limit, act: t("input.spend.research.startRun") });
           if (!yes) return run;
           next = await send(cost.ceiling);
         }
@@ -1223,7 +1224,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
 function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
-  const { confirm } = useResearch();
+  const { confirmSpend } = useResearch();
   const frame = useFrame();
   const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
   const newRun = useNewRunOffer(run, act, busy);
@@ -1247,7 +1248,7 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
                   // The retry asks a model again, so the study's limit asks again over what it may cost.
                   const asked = confirmationAsked(e);
                   if (!asked) throw e;
-                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+                  const yes = await confirmSpend({ summary: t("input.spend.research.retryAnalysis"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryAnalysisAct") });
                   if (!yes) return run;
                   return await research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
                 }
@@ -1272,7 +1273,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
   repairable: Repairable | null;
 }) {
-  const { confirm, stepHref } = useResearch();
+  const { confirm, confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   // A retry the server refused for its research questions: the gaps, for the run it was refused
   // for, and the person's answer. Shown only while that run is the one followed and retryable.
@@ -1290,7 +1291,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
           // A retry is a new run, so the study's limit asks again.
           const asked = confirmationAsked(e);
           if (!asked) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.retryRun"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryRunAct") });
           if (!yes) return run;
           next = await research.retry(frame.studyId, run.run_id, asked.ceiling, acknowledge);
         }

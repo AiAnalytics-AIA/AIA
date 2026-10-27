@@ -33,6 +33,7 @@ import { AppShell } from "./AppShell";
 import { useClient } from "./clients/ClientContext";
 import { CARD, Empty, Loaded, NotFound } from "./states";
 import { useResource } from "./useResource";
+import { errorText } from "@/lib/error-words";
 
 const S = "aia.memory.study";
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
@@ -197,7 +198,7 @@ function ReuseDesign({ studyId, studyName, revision }: { studyId: string; studyN
       router.push(appRoutes.study(client.client_id, done.study_id, "RESEARCH"));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : null;
-      setError(code && [`target_not_empty`, `not_research`, `not_found`].includes(code) ? t(`${S}.reuse.refused.${code}`) : e instanceof Error ? e.message : String(e));
+      setError(code && [`target_not_empty`, `not_research`, `not_found`].includes(code) ? t(`${S}.reuse.refused.${code}`) : errorText(e));
       setBusy(false);
     }
   };

@@ -9,7 +9,7 @@
 // the API says so. Folders and labels are organization, never knowledge (D4).
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import { t, tv } from "@/i18n/t";
 import {
@@ -25,7 +25,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { locatorWords, takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, nextLabelColour, staleEdit, undoable } from "@/lib/knowledge-library";
-import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, Chip, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -34,6 +34,7 @@ import { ClientPage, IntakeButton, useClient } from "./ClientContext";
 import { FolderRow, LabelRow, NavButton, NewLabelRow, type OrganizerEdit } from "./KnowledgeOrganizers";
 import { KnowledgeLibrary, said } from "./KnowledgeLibrary";
 import { SourceCard } from "./SourceFile";
+import { errorText } from "@/lib/error-words";
 
 const PROPOSABLE = ["SOURCE", "DOCUMENT", "FACT", "FINDING", "TERM", "ENTITY", "DIMENSION", "AUDIENCE", "DATASET"] as const;
 const KINDS: (KnowledgeSection | "all")[] = ["all", "sources", "knowledge", "dimensions", "audiences", "data"];
@@ -52,8 +53,12 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
   const [error, setError] = useState<string | null>(null);
   // An approval refused because the item moved on (F-K1): which proposal, and the revision now current.
   const [stale, setStale] = useState<{ proposalId: string; edit: StaleEdit } | null>(null);
-  const decide = (p: Proposal, approve: boolean, reviewedRevision?: number) =>
-    workspace.decide(clientId, p.proposal_id, approve, "", reviewedRevision).then(
+  // The proposal a decision is being sent for: its buttons wait, so a second click sends nothing.
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const decide = (p: Proposal, approve: boolean, reviewedRevision?: number) => {
+    if (deciding) return Promise.resolve();
+    setDeciding(p.proposal_id);
+    return workspace.decide(clientId, p.proposal_id, approve, "", reviewedRevision).then(
       () => {
         setError(null);
         setStale(null);
@@ -67,13 +72,14 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
           setStale({ proposalId: p.proposal_id, edit });
         } else {
           setStale(null);
-          setError(e instanceof Error ? e.message : String(e));
+          setError(errorText(e));
         }
       },
-    );
+    ).finally(() => setDeciding(null));
+  };
   return (
     <>
-      {error ? <p role="alert" className="mb-3 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote className="mb-3">{error}</FaultNote> : null}
       <Loaded res={res} retry={retry}>
         {(list) =>
           list.length ? (
@@ -93,7 +99,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       {p.from_source ? (
                         // What an AI proposal rests on: the words, found by code where it says.
                         <figure className="mt-2 flex flex-col gap-1.5">
-                          <blockquote className="border-l-2 border-ai-edge pl-2 text-sm">„{p.from_source.quote}“</blockquote>
+                          <blockquote className="border-l-2 border-spark-1 pl-2 text-sm">„{p.from_source.quote}“</blockquote>
                           <figcaption className="text-xs text-ink-faint">
                             {t("aia.sources.ai.quote")} · {locatorWords(p.from_source.locator)}
                           </figcaption>
@@ -114,8 +120,8 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                       {p.yours && !p.from_source ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
                       {mayApprove ? (
                         <>
-                          <Button small variant="primary" onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
-                          <Button small onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
+                          <Button small variant="primary" disabled={deciding !== null} aria-busy={deciding === p.proposal_id || undefined} onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>
+                          <Button small disabled={deciding !== null} aria-busy={deciding === p.proposal_id || undefined} onClick={() => void decide(p, false)}>{t("aia.knowledge.reject")}</Button>
                         </>
                       ) : null}
                     </div>
@@ -152,12 +158,20 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const submit = () => {
-    if (!title.trim()) return;
-    workspace.propose(clientId, { kind, title: title.trim(), summary }).then((added) => onDone(added), (e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+  const [busy, setBusy] = useState(false);
+  // A form: Enter in the title saves, Esc leaves; one request at a time (design system v3, Interakce).
+  const submit = (e?: FormEvent) => {
+    e?.preventDefault();
+    if (!title.trim() || busy) return;
+    setBusy(true);
+    workspace.propose(clientId, { kind, title: title.trim(), summary }).then(
+      (added) => onDone(added),
+      (err: unknown) => { setError(errorText(err)); setBusy(false); },
+    );
   };
   return (
-    <section className={`${CARD} mb-5`} aria-labelledby="kn-propose">
+    <form className={`${CARD} mb-5`} aria-labelledby="kn-propose" onSubmit={submit}
+      onKeyDown={(e) => { if (e.key === "Escape" && !e.defaultPrevented && !busy) { e.preventDefault(); onDone(); } }}>
       <h2 id="kn-propose" className="text-base font-semibold">{t("aia.knowledge.proposeTitle")}</h2>
       <div className="mt-3 grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)]">
         <Field label={t("aia.knowledge.proposeKind")}>
@@ -182,10 +196,10 @@ function AddForm({ clientId, onDone }: { clientId: string; onDone: (added?: Prop
       </Field>
       {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
       <div className="mt-3 flex gap-2">
-        <Button variant="primary" disabled={!title.trim()} onClick={submit}>{t("aia.knowledge.proposeSubmit")}</Button>
-        <Button variant="quiet" onClick={() => onDone()}>{t("aia.cancel")}</Button>
+        <Button variant="primary" type="submit" disabled={!title.trim() || busy} aria-busy={busy || undefined}>{t("aia.knowledge.proposeSubmit")}</Button>
+        <Button variant="quiet" disabled={busy} onClick={() => onDone()}>{t("aia.cancel")}</Button>
       </div>
-    </section>
+    </form>
   );
 }
 
@@ -195,7 +209,7 @@ const viewRequested = (params: URLSearchParams): LibraryView | null => {
   return v === "review" || v === "unfiled" || v === "old" ? v : null;
 };
 
-const SECTION_HEAD = "mx-2 mb-1 mt-3 text-[10px] font-semibold uppercase tracking-[0.08em] text-ink-faint";
+const SECTION_HEAD = "mx-2 mb-1 mt-3 text-xs font-medium text-ink-faint";
 
 /** A folder or a label just deleted, or about to be once its row is confirmed. */
 type Doomed = { kind: "folder"; folder: KnowledgeFolder } | { kind: "label"; label: KnowledgeLabel };
@@ -402,7 +416,7 @@ export function KnowledgeArea() {
               }}
             />
           ) : null}
-          {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+          {error ? <FaultNote className="mb-4">{error}</FaultNote> : null}
           <div className="flex flex-wrap items-start gap-5">
             <nav aria-label={t("aia.library.navLabel")} className="min-w-[13rem] flex-[1_1_13rem] rounded-md border border-border bg-surface-raised p-2 lg:max-w-[16rem]">
               <p className={`${SECTION_HEAD} mt-1`}>{t("aia.library.viewsTitle")}</p>

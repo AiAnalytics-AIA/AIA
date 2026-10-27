@@ -23,6 +23,8 @@ import { StepActivityPanel } from "../rehome/research/StepActivityPanel";
 import { useStepActivity } from "../rehome/research/useStepActivity";
 import { Glyph } from "./Glyph";
 import { Icon } from "./Icons";
+import { Sparkle } from "../rehome/icons";
+import { errorText } from "@/lib/error-words";
 
 /** One fact of a card: its label, its value, and a smaller muted line under it. */
 export type Fact = { label: string; value: ReactNode; key?: boolean; sub?: ReactNode };
@@ -72,7 +74,7 @@ export function WorkerCardView({ job, studyId, onOpen, onStage, onChanged }: {
     <div className="msg" data-aia={`activity.${job.run_id}`} data-card="worker" data-card-state={c.state}>
       <div className="act act--worker act__card">
         <div className="card__titlerow">
-          <span className="act__type" title="Úloha AI"><Icon name="worker" size={13} /></span>
+          <span className="act__type" title="Úloha AI"><Sparkle size={13} /></span>
           <span className="act__title">{c.title}</span>
           <Pill word={c.word} tone={c.tone} />
         </div>
@@ -160,7 +162,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
     try {
       setPrepared(await check());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     }
     setState("open");
   };
@@ -181,7 +183,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
       setState("started");
       onStarted(run);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
       setState("open");
     }
   };

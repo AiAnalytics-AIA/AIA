@@ -13,11 +13,12 @@ import { type DragEvent, type ReactNode, createContext, useCallback, useContext,
 import { t, tv } from "@/i18n/t";
 import { type ClientWorkspace, type StudyKind, workspace } from "@/lib/api";
 import { type ClientArea, appRoutes } from "@/lib/app-routes";
-import { type Ask, AskDialog, Button, Chip } from "../../rehome/ui";
+import { type Ask, AskDialog, Button, Chip, FaultNote } from "../../rehome/ui";
 import { AppShell, type Crumb, type Tab } from "../AppShell";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
 import { IntakeSheet } from "./IntakeSheet";
+import { errorText } from "@/lib/error-words";
 
 /** Files handed to the intake sheet; `n` moves with every hand-over, so the same files twice still arrive. */
 export type Incoming = { files: File[]; n: number };
@@ -97,7 +98,7 @@ function useStartStudy(): { start: (kind: StudyKind) => void; dialog: ReactNode;
             router.push(
               kind === "RESEARCH" ? appRoutes.stage(client.client_id, s.study_id, "brief") : appRoutes.study(client.client_id, s.study_id, kind),
             ),
-          (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
+          (e: unknown) => setError(errorText(e)),
         );
       },
     });
@@ -179,7 +180,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
       action={actions ?? defaultActions}
       tabs={clientTabs(client, area)}
     >
-      {error ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{error}</p> : null}
+      {error ? <FaultNote className="mb-4">{error}</FaultNote> : null}
       {children}
       {dialog}
     </AppShell>

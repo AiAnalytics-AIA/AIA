@@ -5,7 +5,7 @@
 // spent, the budget and the confirmation threshold set by a stepper in the row (I2: Shift x10, a
 // value out of bounds refused at the field, never clamped), and the wallet pointed to where it is
 // set. A study's status is not chosen here (the product owner, F7). A study above 90 % of its
-// budget reads grey with ⚠: it needs a person, and the fault colour is not a state of the money
+// budget reads grey with a warning icon: it needs a person, and the fault colour is not a state of the money
 // (the product owner, 2026-10-22). Costs a caller may not see stay "náklady nevidíte".
 
 import Link from "next/link";
@@ -24,6 +24,7 @@ import type { SaveState } from "@/lib/inline-edit";
 import { clientAccent } from "../AppShell";
 import { describeMemberError } from "./errors";
 import { InfoButton } from "./InfoButton";
+import { Icon, type IconName } from "../../rehome/icons";
 
 const P = "aia.settings.panel";
 const S = `${P}.studiesTab`;
@@ -36,7 +37,7 @@ type Part<T> = { ok: true; data: T } | { ok: false; message: string };
 export type StudyRow = { study: Study; detail: Part<Study> };
 
 /** A study's status in words, with the prototype's glyph beside it (read only). */
-const STATUS_GLYPH: Record<string, string> = { DRAFT: "✎", ACTIVE: "▶", IN_REVIEW: "◐", DELIVERED: "✓", ARCHIVED: "▪", CANCELLED: "✕" };
+const STATUS_GLYPH: Record<string, IconName> = { DRAFT: "pencil", ACTIVE: "running", IN_REVIEW: "inspector", DELIVERED: "done", ARCHIVED: "archive", CANCELLED: "close" };
 const TD = "border-t border-border px-2 py-2.5 align-top";
 
 /** A save's refusal, said at the field as the API gave it (I9); the Stepper says Neuloženo beside. */
@@ -66,7 +67,7 @@ function Spend({ costs }: { costs: Study }) {
   const spent = costs.spent_usd ?? 0;
   const pct = budget > 0 ? Math.min(100, Math.round((spent / budget) * 100)) : spent > 0 ? 100 : 0;
   const near = nearLimit(costs);
-  // The prototype's line is "53 %" (and "· ⚠" near the limit); the rest of the sentence is read
+  // The prototype's line is "53 %" (and a warning icon near the limit); the rest of the sentence is read
   // to a screen reader, not drawn.
   return <>
     <span className="whitespace-nowrap font-mono text-sm tabular-nums">{usd(spent)}</span>
@@ -76,7 +77,7 @@ function Spend({ costs }: { costs: Study }) {
     <span data-spend-line className="mt-0.5 block whitespace-nowrap text-xs text-ink-muted">
       {/* The remainder as the server gives it; one it did not give is unknown, never worked out here. */}
       {pct} %<span className="sr-only"> {t(`${S}.ofBudgetRest`)} · {costs.remaining_usd === null || costs.remaining_usd === undefined ? t(`${S}.remainingUnknown`) : tv(`${S}.remaining`, { usd: usd(costs.remaining_usd) })}</span>
-      {near ? <><span aria-hidden="true"> · ⚠</span><span className="sr-only"> · {t(`${S}.nearLimit`)}</span></> : null}
+      {near ? <><span aria-hidden="true" className="ml-1 inline-flex align-[-2px]"><Icon name="warning" size={12} /></span><span className="sr-only"> · {t(`${S}.nearLimit`)}</span></> : null}
     </span>
   </>;
 }
@@ -88,7 +89,7 @@ function Budget({ costs, reload }: { costs: Study; reload: () => void }) {
   // anything is sent (the API itself refuses only a negative budget). Open holds are not in it.
   const min = Math.ceil((costs.spent_usd ?? 0) * 100) / 100;
   return <>
-    <Stepper label={tv(`${S}.budgetOf`, { study: costs.name })} value={answered.value} min={min} max={MAX_USD} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
+    <Stepper deferred label={tv(`${S}.budgetOf`, { study: costs.name })} value={answered.value} min={min} max={MAX_USD} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
       onCommit={(v) => refusal.guard(() => admin.setStudyBudget(costs.study_id, v)).then(() => { answered.hold(v); reload(); })} note={tv(`${S}.budgetFloor`, { min: formatNumber(min, 2) })} />
     {refusal.shown}
   </>;
@@ -102,7 +103,7 @@ function Threshold({ costs, reload }: { costs: Study; reload: () => void }) {
   const refusal = useRefusal();
   const max = Math.max(MIN_THRESHOLD_USD, budget);
   return <>
-    <Stepper label={tv(`${S}.thresholdOf`, { study: costs.name })} value={limit} min={MIN_THRESHOLD_USD} max={max} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
+    <Stepper deferred label={tv(`${S}.thresholdOf`, { study: costs.name })} value={limit} min={MIN_THRESHOLD_USD} max={max} step={10} decimals={2} unit="USD" unitShown={false} showBounds={false}
       note={limit === null ? t(`${S}.never`) : null}
       onCommit={(v) => refusal.guard(() => research.setSpendConfirm(costs.study_id, v)).then(() => { answered.hold(v); reload(); })} />
     {refusal.shown}
@@ -197,7 +198,7 @@ export function StudiesTable({ studies, clients, reload }: {
                         <span className="text-sm font-medium">{study.name}</span>
                         <span className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted"><span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${clientAccent(study.client_id)}`} />{client}</span>
                       </th>
-                      <td className={`${TD} whitespace-nowrap`}><span aria-hidden="true" className="inline-block w-[18px] text-ink-muted">{STATUS_GLYPH[study.status] ?? ""}</span>{t(`aia.status.${study.status}`)}</td>
+                      <td className={`${TD} whitespace-nowrap`}><span aria-hidden="true" className="inline-flex w-[18px] align-[-2px] text-ink-muted">{STATUS_GLYPH[study.status] ? <Icon name={STATUS_GLYPH[study.status]!} size={13} /> : null}</span>{t(`aia.status.${study.status}`)}</td>
                       {costs ? <>
                         <td className={TD}><Spend costs={costs} /></td>
                         <td className={TD}><Budget costs={costs} reload={reload} /></td>

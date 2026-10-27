@@ -5,7 +5,7 @@
  * RUNNING -- lib/activity-orb.ts decides when and which. The dots are the
  * identity's lattice in motion, tinted with a theme colour read where the orb is
  * mounted, so light, dark and an ancestor data-theme all apply without a second
- * copy of the token: --ai-ink (the "AI úloha" badge) while a model thinks,
+ * copy of the token: --spark-1 (the spark edge's cyan) while a model thinks,
  * --status-running (the running chip) while code works. Decoration beside text
  * that already says the state, so hidden from assistive technology; the package
  * draws a still frame under prefers-reduced-motion.
@@ -16,7 +16,7 @@ import { ThinkingOrb, type OrbSize } from "thinking-orbs";
 
 import type { Orb, OrbInk } from "@/lib/activity-orb";
 
-const INK_PROPERTY: Record<OrbInk, string> = { ai: "--ai-ink", running: "--status-running" };
+const INK_PROPERTY: Record<OrbInk, string> = { ai: "--spark-1", running: "--status-running" };
 
 export function ActivityOrb({ orb, size = 32, className = "" }: { orb: Orb; size?: OrbSize; className?: string }) {
   const host = useRef<HTMLSpanElement>(null);

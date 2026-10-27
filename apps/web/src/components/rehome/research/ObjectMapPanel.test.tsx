@@ -999,7 +999,7 @@ describe("the map's overlays (artifact-sociomap SOC13)", () => {
     expect(box).toContain("Dvojice: 62 spolehlivé · 4 slabé · 0 neznámé vztahy");
     cleanup();
     render(<ObjectMapView battery={sum} dataOrigin={null} />);
-    expect(screen.getByRole("button", { name: "Informace o mapě: ⚠ Slabě určená mapa" }).className).toContain("is-warn");
+    expect(screen.getByRole("button", { name: "Informace o mapě: Slabě určená mapa" }).className).toContain("is-warn");
   });
 
   it("keeps the bar, the rail, the legend, the ⓘ box and the sheet inside the stage, so they stay in its full screen", () => {

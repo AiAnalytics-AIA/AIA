@@ -48,6 +48,8 @@ import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/u
 import { useResource } from "../useResource";
 import { useClient } from "./ClientContext";
 import { LabelChip } from "./KnowledgeLibrary";
+import { errorText } from "@/lib/error-words";
+import { MenuButton } from "../../ui/MenuButton";
 
 const BADGE: Record<ReturnType<typeof badge>["tone"], string> = {
   pdf: "bg-status-fault-wash text-status-fault",
@@ -60,7 +62,7 @@ const BADGE: Record<ReturnType<typeof badge>["tone"], string> = {
 /** A refused upload in words: the API's reason where AIA has words for it. */
 function refusal(e: unknown): string {
   if (e instanceof ApiError && e.status === 422 && reasonKnown(e.code)) return tv("aia.sources.refused", { reason: reasonWords(e.code) });
-  return e instanceof Error ? e.message : String(e);
+  return errorText(e);
 }
 
 let seq = 0;
@@ -209,7 +211,7 @@ export function IntakeSheet() {
       // Filed from what is owed, so a failed placement is tried again with every item it held.
       for (const placement of placementsFor(made.current, labels)) await workspace.place(clientId, placement);
     } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
+      const message = errorText(e);
       setError(filing ? tv("aia.intake.unfiled", { error: message }) : message);
       setUnfiled(made.current.length > 0);
       setSaving(false);
@@ -342,17 +344,14 @@ export function IntakeSheet() {
                   <LabelChip key={l.label_id} label={l} onRemove={saving ? undefined : () => setLabels(labels.filter((x) => x !== l.label_id))} />
                 ))}
               {allLabels.some((l) => !labels.includes(l.label_id)) ? (
-                <label>
-                  <span className="sr-only">{t("aia.intake.addLabel")}</span>
-                  <Select disabled={saving} value="" className="min-h-8" onChange={(e) => e.target.value && setLabels([...labels, e.target.value])}>
-                    <option value="">{t("aia.intake.addLabel")}</option>
-                    {allLabels
-                      .filter((l) => !labels.includes(l.label_id))
-                      .map((l) => (
-                        <option key={l.label_id} value={l.label_id}>{l.name}</option>
-                      ))}
-                  </Select>
-                </label>
+                // A menu, not a select that acts on change (input-interactions I3): moving through it adds nothing.
+                <MenuButton
+                  label={t("aia.intake.addLabel")}
+                  icon="plus"
+                  disabled={saving}
+                  items={allLabels.filter((l) => !labels.includes(l.label_id)).map((l) => ({ key: l.label_id, label: l.name }))}
+                  onSelect={(id) => setLabels([...labels, id])}
+                />
               ) : null}
             </span>
           </div>

@@ -18,8 +18,9 @@ import { staleDetails } from "@/research/proposal-items";
 import type { ResearchStore } from "@/research/store";
 import { Sparkle } from "../icons";
 import { Button } from "../ui";
+import { errorText } from "@/lib/error-words";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 /** How many saves an accept waits for: each one takes what was typed during the one before. */
 const SAVE_ATTEMPTS = 3;
 const isUrl =(s: string) => /^https?:\/\//i.test(s);
@@ -106,10 +107,10 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
 
   const mayAccept = canApply && reading.admissible && !reading.spent && !stale;
   return (
-    <section aria-labelledby={`dr-review-${runId}`} data-design-research-review className="overflow-hidden rounded-card border border-ai-edge bg-surface-raised">
+    <section aria-labelledby={`dr-review-${runId}`} data-design-research-review className="overflow-hidden rounded-card border ai-spark">
       <div className="flex flex-wrap items-center gap-2 border-b border-ai-edge bg-ai-wash px-4 py-2.5">
         <Sparkle size={14} />
-        <h3 id={`dr-review-${runId}`} className="flex-1 text-sm font-semibold text-ai-ink">
+        <h3 id={`dr-review-${runId}`} className="flex-1 text-sm font-semibold text-ink">
           Návrh k dotazníku · {itemsWord(evidence)} s podklady{reading.items.length > evidence ? ` · ${reading.items.length - evidence} bez nálezu` : ""}
         </h3>
         <span className="text-xs text-ink-muted">Nic se nezmění, dokud podklady nepřijmete.</span>

@@ -585,6 +585,19 @@ describe("the item inspector", () => {
 });
 
 describe("Připravenost a pomoc", () => {
+  it("says each thing once: the blocked count in the header from 768 px, the client in its link", () => {
+    bench();
+    const toggle = () => screen.getByRole("button", { name: /Připravenost a pomoc/ });
+    const header = screen.getByText(/Do spuštění zbývá \d+|Návrh splňuje podmínky kroků/);
+    const count = /Do spuštění zbývá (\d+)/.exec(header.textContent ?? "")?.[1];
+    expect(toggle().textContent).not.toMatch(/ · \d/);
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    expect(screen.queryByRole("menuitem", { name: "Pracovní prostor klienta" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    setWidth(390);
+    if (count) expect(toggle().textContent).toContain(` · ${count}`);
+  });
+
   it("takes the focus when it opens, closes on Escape before the drawer, and gives the focus back (audit)", async () => {
     bench();
     const toggle = screen.getByRole("button", { name: /Připravenost a pomoc/ });

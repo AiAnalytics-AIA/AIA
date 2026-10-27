@@ -275,7 +275,8 @@ describe("the settings control panel", () => {
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     await waitFor(() => expect(row.getAttribute("data-near")).toBe("true"));
     // "92 % · ⚠" to the eye, the whole sentence to a screen reader; grey, never the fault's colour.
-    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · ⚠ · téměř vyčerpáno");
+    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno");
+    expect(row.querySelector("[data-spend-line] svg")).not.toBeNull(); // the warning is Phosphor's icon, not a glyph
     expect(row.className).toContain("bg-surface-sunken");
     expect(row.className).not.toMatch(/status-(you|fault)/);
     // Named with its client, so a list of links never reads "Pravidla" six times.
@@ -1187,6 +1188,8 @@ describe("what powers AIA", () => {
     expect(within(crumbs).getAllByRole("listitem")).toHaveLength(2);
     await sectionsDrawn();
     expect(screen.getAllByRole("heading", { level: 1 }).filter((h) => !h.closest("[hidden]")).map((h) => h.textContent)).toEqual(["AI běh"]);
+    // One search in the bar: the section menu's, not the app's palette beside it.
+    expect(screen.queryByRole("button", { name: /Hledat nebo přejít/ })).toBeNull();
   });
 
   it("on the Settings page, who you are is read once and passed to the panel", async () => {
@@ -1374,9 +1377,10 @@ describe("the settings tabs", () => {
     expect(chips("Deep Research")).toEqual(["Čte každý člen|plain", "Vy: navrhujete a schvalujete|you"]);
     expect(chips("AI běh")).toEqual(["Spravuje nasazení · jen ke čtení|deployment"]);
     expect(chips("Přístup a schvalování")).toEqual(["Vy: spravujete členy|you"]);
-    expect(chips("Studie a rozpočty")).toEqual(["✎Upravujete|you"]);
+    expect(chips("Studie a rozpočty")).toEqual(["Upravujete|you"]);
     // The pencil is decoration: a screen reader hears "Upravujete" alone.
-    expect((panelOf("Studie a rozpočty").querySelector("[data-tab-chips] [aria-hidden='true']") as HTMLElement).textContent).toBe("✎");
+    // The pencil is Phosphor's, never a typed glyph (no emoji or dingbats as UI).
+    expect(panelOf("Studie a rozpočty").querySelector("[data-tab-chips] [aria-hidden='true'] svg")).not.toBeNull();
     expect(chips("Stav systému")).toEqual(["Spravuje nasazení|deployment"]);
     expect(chips("Správa dat")).toEqual(["Jen vlastník nebo správce|plain"]);
     expect(chips("Audit")).toEqual([]);

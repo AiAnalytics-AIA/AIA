@@ -72,7 +72,7 @@ export function ClientRulesEditor({ clientId, clientName, mayAdminister }: { cli
       <div>
         <p id="client-posture-label" className="text-sm font-medium">{t(`${R}.posture`)}</p>
         <p className="text-xs leading-5 text-ink-muted">{t(`${R}.postureHelp`)}</p>
-        <ChoiceChips className="mt-2" label={t(`${R}.posture`)} value={rules.effective_posture} disabled={!mayAdminister || busy}
+        <ChoiceChips saves className="mt-2" label={t(`${R}.posture`)} value={rules.effective_posture} disabled={!mayAdminister || busy}
           options={POSTURES.map((p) => ({ key: p, label: p }))} onChange={choose} />
         {rules.data_posture === null ? <p data-posture-unset className="mt-1 text-xs text-ink-muted">{t(`${R}.unset`)}</p> : null}
       </div>
@@ -81,7 +81,7 @@ export function ClientRulesEditor({ clientId, clientName, mayAdminister }: { cli
         <p className="text-xs leading-5 text-ink-muted">{t(`${R}.ceilingHelp`)}</p>
         {mayAdminister ? (
           <div className="mt-2 flex flex-wrap items-start gap-2">
-            <Stepper label={t(`${R}.ceiling`)} value={rules.wallet_ceiling_usd} min={0} max={MAX_CEILING_USD} step={10} decimals={2} unit="USD" disabled={busy}
+            <Stepper deferred label={t(`${R}.ceiling`)} value={rules.wallet_ceiling_usd} min={0} max={MAX_CEILING_USD} step={10} decimals={2} unit="USD" disabled={busy}
               onCommit={(v) => send({ wallet_ceiling_usd: v })} />
             {rules.wallet_ceiling_usd !== null ? <Button small disabled={busy} onClick={() => void send({ wallet_ceiling_usd: null }).catch(() => {})}>{t(`${R}.clear`)}</Button> : null}
           </div>

@@ -86,6 +86,7 @@ import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { useAudiencePreview } from "./useAudiencePreview";
+import { errorText } from "@/lib/error-words";
 
 /** A filter refused whole, in words (filterProblems' reasons other than `values`). */
 const PROBLEM_WORDS = { factor: "research.audience.problemFactor", policy: "research.audience.problemPolicy", empty: "research.audience.problemEmpty", range: "research.audience.problemRange" } as const;
@@ -122,7 +123,7 @@ function useLiveAudience(): Live {
         if (!on) return;
         if (e instanceof ApiError && e.code === "population_not_established") return setLive({ state: "missing", text: t("research.audience.catalogueNoPopulation") });
         if (e instanceof ApiError && e.status === 404) return setLive({ state: "missing", text: t("research.audience.catalogueMissing") });
-        setLive({ state: "missing", text: tv("research.audience.catalogueFailed", { message: e instanceof Error ? e.message : String(e) }) });
+        setLive({ state: "missing", text: tv("research.audience.catalogueFailed", { message: errorText(e) }) });
       },
     );
     return () => {
@@ -347,7 +348,8 @@ function LiveFilters({ live }: { live: Extract<Live, { state: "ready" }> }) {
         <TextInput value={query} onChange={(e) => setQuery(e.target.value)} />
       </Field>
       <p aria-live="polite" className="mt-2 text-xs text-ink-muted">{tv("research.audience.factorsShown", { shown: shown.length, total })}</p>
-      <ul className="mt-2 flex flex-col gap-2">
+      {/* Factors as rows divided by hairlines, not cards inside the step's card (design system v3). */}
+      <ul className="mt-2 flex flex-col divide-y divide-border border-y border-border">
         {shown.map((f) => (
           <li key={f.id}>
             <FactorEditor factor={f} project={state.project} onChange={change} />
@@ -425,8 +427,8 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
   if (factor.kind === "numeric") {
     const { lo, hi } = storedRange(project, factor.id);
     return (
-      <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
-        <legend className="px-1 text-sm font-medium">{legend}</legend>
+      <fieldset className="min-w-0 py-3" disabled={!!refusal}>
+        <legend className="mb-1.5 text-sm font-medium">{legend}</legend>
         {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
         <RangeEditor factor={factor} legend={legend} lo={lo} hi={hi} disabled={!!refusal} onSave={(min, max) => onChange(setRange(project, factor.id, min, max))} />
       </fieldset>
@@ -434,8 +436,8 @@ function FactorEditor({ factor, project, onChange }: { factor: Factor; project: 
   }
   const chosen = storedValues(project, factor.id);
   return (
-    <fieldset className="rounded-control border border-border p-3" disabled={!!refusal}>
-      <legend className="px-1 text-sm font-medium">{legend}</legend>
+    <fieldset className="min-w-0 py-3" disabled={!!refusal}>
+      <legend className="mb-1.5 text-sm font-medium">{legend}</legend>
       {refusal ? <p className="text-xs text-ink-muted">{refusal}</p> : null}
       <ValueChips legend={legend} values={factor.values || []} chosen={chosen} disabled={!!refusal} onPick={(next) => onChange(setAudienceCategory(project, factor.id, next))} />
     </fieldset>
@@ -511,7 +513,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
   const failed = error
     ? error instanceof ApiError && error.code === "audience_preview_unavailable"
       ? t("research.audience.previewUnavailable")
-      : tv("research.audience.previewFailed", { message: error instanceof Error ? error.message : String(error) })
+      : tv("research.audience.previewFailed", { message: errorText(error) })
     : null;
   return (
     <section data-aia={audiencePartAia("preview")} aria-labelledby="aud-feasibility" className="mt-4 border-t border-border pt-3">
@@ -525,13 +527,14 @@ function Preview({ catalog }: { catalog: Catalog }) {
           <p className="rounded-control border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{failed}</p>
         ) : (
           <>
-            <dl className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-control border border-border bg-surface p-3">
+            {/* One strip of three figures, not three cards inside the step's card (design system v3). */}
+            <dl className="grid divide-y divide-border rounded-control border border-border bg-surface sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <div className="p-3">
                 <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySelected")}</dt>
                 <dd className="mt-1 text-lg font-semibold tabular-nums">{answer?.selected_rows != null ? answer.selected_rows.toLocaleString("cs-CZ") : unknown}</dd>
                 <dd className="text-xs text-ink-muted">{answer ? tv("research.audience.feasibilityOf", { rows: answer.population_rows.toLocaleString("cs-CZ") }) : null}</dd>
               </div>
-              <div className="rounded-control border border-border bg-surface p-3">
+              <div className="p-3">
                 <dt className="text-xs text-ink-muted">{t("research.audience.feasibilitySample")}</dt>
                 <dd className="mt-1 text-lg font-semibold tabular-nums">{n != null ? `N ${n.toLocaleString("cs-CZ")}` : t("research.audience.unset")}</dd>
                 <dd className="text-xs">
@@ -539,7 +542,7 @@ function Preview({ catalog }: { catalog: Catalog }) {
                   <Link className="text-signal underline" href={stageHref("sample", stepHref)}>{t("research.audience.feasibilitySampleEdit")}</Link>
                 </dd>
               </div>
-              <div className="rounded-control border border-border bg-surface p-3">
+              <div className="p-3">
                 <dt className="text-xs text-ink-muted">{t("research.audience.feasibilityDraw")}</dt>
                 <dd className={`mt-1 text-lg font-semibold ${FEASIBLE[verdict.verdict].tone}`}>{t(FEASIBLE[verdict.verdict].key)}</dd>
                 <dd className="text-xs text-ink-muted">{verdict.text}</dd>

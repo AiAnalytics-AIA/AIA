@@ -37,7 +37,8 @@ export function StudyList({ kind }: { kind: StudyKind }) {
   const research = kind === "RESEARCH";
   return (
     <ClientPage>
-      <h2 className="mb-3 text-base font-semibold">{research ? t("aia.studies.researchTitle") : t("aia.studies.simulationsTitle")}</h2>
+      {/* The active tab already names the list; the heading stays for assistive technology. */}
+      <h2 className="sr-only">{research ? t("aia.studies.researchTitle") : t("aia.studies.simulationsTitle")}</h2>
       <ListOrSearch clientId={client.client_id} research={research}>
         <Loaded res={res} retry={retry}>
           {(list) =>

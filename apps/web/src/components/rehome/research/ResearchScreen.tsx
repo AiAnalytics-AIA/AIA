@@ -20,14 +20,14 @@ import { RAIL_STEPS, type StepKey } from "@/research/steps";
 import { type ResearchState, ResearchStore, loadResearch, newResearch, readWorkingContent } from "@/research/store";
 import { appRoutes } from "@/lib/app-routes";
 import { AppShell } from "../../aia/AppShell";
-import { type Ask, AskDialog, Button, Toast } from "../ui";
+import { type Ask, AskDialog, Button, FaultNote, Toast } from "../ui";
 import { JobPanel } from "./JobPanel";
 import { StageTrack, TRACK_STEPS } from "./StageTrack";
 import { Blockers, InspectorProvider, ReadOnly } from "./Inspector";
 import { ProposalReview } from "./ProposalReview";
 import { SaveIndicator } from "./SaveIndicator";
 import { StepPlaceholder } from "./StepPlaceholder";
-import { ResearchContext, type RunJob } from "./context";
+import { ResearchContext, type RunJob, type SpendAsk } from "./context";
 import { ACTIONS, ACTION_LABELS } from "@/lib/research-agent-jobs";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type WorkingContent } from "@/lib/api";
 import { known } from "@/lib/reason-words";
@@ -41,6 +41,10 @@ import { ResearchAssistance, isAdviceAction } from "./ResearchAssistance";
 import { OPEN_REVIEW_KEY, Workbench } from "../../workbench/Workbench";
 import { leadOwnsAiStarts } from "@/lib/lead-cards";
 import { loadConfig } from "@/lib/auth";
+import { SpendDialog } from "../../ui/SpendDialog";
+import { readBudget } from "@/lib/budget-line";
+import { type MoneyLine, spendAct } from "@/lib/spend";
+import { errorText } from "@/lib/error-words";
 
 // Contextual help keeps the same stage/action contract and native job boundaries.
 const AI_HELP: { action: ResearchAgentAction; label: string; title: string; rail: readonly number[] | "all" }[] = [
@@ -66,7 +70,7 @@ type Loaded =
 type Session = { studyId: string; loaded: Loaded; retry: () => void; startAgain: () => void; memory: Map<string, unknown>; lost: string | null };
 const SessionContext = createContext<Session | null>(null);
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
@@ -145,7 +149,7 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
 /** A change the replaced store could not save when the study's status changed under it. */
 function LostEdit() {
   const lost = useContext(SessionContext)?.lost;
-  return lost ? <p role="alert" data-lost-edit className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{tv("aia.study.status.lost", { reason: lost })}</p> : null;
+  return lost ? <FaultNote data-lost-edit className="mb-4">{tv("aia.study.status.lost", { reason: lost })}</FaultNote> : null;
 }
 
 /** The stages a person edits the design on: read-only, as one, when the study may not change. */
@@ -200,7 +204,7 @@ function StageChrome({ frame, step, state, status, help, flush, children }: {
       track={<StageTrack studyId={frame.studyId} state={state ?? null} current={step} stepHref={frame.stepHref} />}
     >
       {frame.notice ? (
-        <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p>
+        <FaultNote className="mb-4">{frame.notice}</FaultNote>
       ) : null}
       <LostEdit />
       {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
@@ -309,8 +313,25 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
   }, [toast]);
 
   const confirm = useCallback((m: string) => new Promise<boolean>((resolve) => setAsk({ kind: "confirm", message: m, resolve })), []);
-  // A job reaching the study's confirmation threshold asks here first (LO15).
-  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirm);
+  // Money asks in SpendDialog, with the study's budget read as it asks (design system v3, I-Penize).
+  const [spend, setSpend] = useState<(SpendAsk & { lines: MoneyLine[]; key: number; resolve: (yes: boolean) => void }) | null>(null);
+  const confirmSpend = useCallback(async (q: SpendAsk) => {
+    const budget = await readBudget(frame.studyId);
+    const lines: MoneyLine[] = [{ name: "study_budget", usd: budget?.budget_usd ?? null, remainingUsd: budget?.remaining_usd ?? null }];
+    if (q.thresholdUsd !== undefined) lines.push({ name: "threshold", usd: q.thresholdUsd });
+    return new Promise<boolean>((resolve) => setSpend({ ...q, lines, key: Date.now(), resolve }));
+  }, [frame.studyId]);
+  const answerSpend = (yes: boolean) => {
+    spend?.resolve(yes);
+    setSpend(null);
+  };
+  // A job reaching the study's confirmation threshold asks here first (LO15), in SpendDialog.
+  const confirmJobCost = useCallback(
+    (message: string, asked?: { ceiling: number; limit: number }) =>
+      asked ? confirmSpend({ summary: t("input.spend.research.job"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.startJob") }) : confirm(message),
+    [confirm, confirmSpend],
+  );
+  const agents = useResearchAgents(frame.studyId, store, setJob, true, true, confirmJobCost);
   const nativeRun = agents.run;
 
   // Design actions remain research agent jobs; Deep Research uses its own durable panel.
@@ -367,8 +388,8 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
     [],
   );
   const value = useMemo(
-    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, prompt, memory, stepHref, frame }),
-    [store, template, runJob, continueJob, claimWait, job, confirm, prompt, memory, stepHref, frame],
+    () => ({ store, template, runJob, continueJob, claimWait, job, toast: setToast, confirm, confirmSpend, prompt, memory, stepHref, frame }),
+    [store, template, runJob, continueJob, claimWait, job, confirm, confirmSpend, prompt, memory, stepHref, frame],
   );
   const Screen = STEP_SCREENS[step];
   const aiHelp = aiHelpFor(step);
@@ -430,7 +451,7 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
     {({ card, panel, expanded, ask: askAssistance }) => <ResearchContext.Provider value={{ ...value, leadOwnsAiStarts: leadOwns, askAssistance: leadOwns ? undefined : askAssistance }}>
       {inWorkbench ? (
         <InspectorProvider disabled={!frame.canEdit && DESIGN_STEPS.has(step)}>{(column) => (
-          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} onAgentStarted={() => void agents.refresh()}
+          <Workbench frame={frame} step={step} store={store} memory={memory} reload={reload} confirm={confirm} confirmSpend={confirmSpend} onAgentStarted={() => void agents.refresh()}
             jobs={agents.recent} onOpenJob={(j) => void agents.open(j)} onRefreshJobs={refreshJobs}
             save={<SaveIndicator save={state.save} onRetry={() => void store.flush("retry").catch(() => {})} onReload={reload} />}
             inspector={column(<>
@@ -444,7 +465,7 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
                 </div>
               </section> : null}
             </>)}>
-            {frame.notice ? <p role="alert" className="mb-4 rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">{frame.notice}</p> : null}
+            {frame.notice ? <FaultNote className="mb-4">{frame.notice}</FaultNote> : null}
             <LostEdit />
             {frame.closed ? <ClosedStudyNotice closed={frame.closed} studyId={frame.studyId} onChanged={frame.refreshStudy} hold={frame.holdEdits} /> : null}
             <DesignSourceNote clientId={frame.clientId} studyId={frame.studyId} />
@@ -494,6 +515,18 @@ function Ready({ store, template, origin, memory, step, frame: given, reload }: 
       {job && starts && !isAdviceAction(agents.activeAction) ? <JobPanel job={job} onCancel={onCancel} studyId={frame.studyId} /> : null}
       {agents.dialog}
       <AskDialog ask={ask} onDone={() => setAsk(null)} />
+      <SpendDialog
+        open={spend !== null}
+        question={String(spend?.key ?? "")}
+        kind="spend_confirm"
+        summary={spend?.summary ?? ""}
+        ceilingUsd={spend?.ceilingUsd ?? null}
+        lines={spend?.lines ?? []}
+        pays="study_budget"
+        confirmLabel={spend ? spendAct(spend.act, spend.ceilingUsd) : ""}
+        onConfirm={() => answerSpend(true)}
+        onCancel={() => answerSpend(false)}
+      />
       <Toast message={toast} />
     </ResearchContext.Provider>}
     </ResearchAssistance>

@@ -15,6 +15,7 @@ import { researchQuestionsOf } from "@/research/trace";
 import { findingItem, useOpenAnalysisItem } from "./AnalysisInspect";
 import { FormattedText } from "./FormattedText";
 import { useFrame } from "./frame-hook";
+import { Icon } from "../icons";
 
 /** A cell that, below md, stacks under its column's name; the explicit roles keep the table's semantics
  *  there, which display:block would strip. */
@@ -109,7 +110,7 @@ export function AnalysisMilestones({ run, analysis }: { run: ResearchRun; analys
     <ul aria-label="Stav dokončení" data-analysis-milestones className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
       {items.map(([label, ok, note]) => (
         <li key={label} data-done={ok ? "true" : "false"}>
-          <span aria-hidden className={ok ? "text-status-done" : "text-ink-muted"}>{ok ? "✓" : "○"}</span>{" "}
+          <span aria-hidden className={`inline-flex align-[-2px] ${ok ? "text-status-done" : "text-ink-muted"}`}><Icon name={ok ? "done" : "dot"} size={13} /></span>{" "}
           <span className="font-semibold">{label}</span> <span className="text-ink-muted">{note}</span>
         </li>
       ))}

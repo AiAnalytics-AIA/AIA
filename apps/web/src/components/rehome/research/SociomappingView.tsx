@@ -33,6 +33,7 @@ import {
 } from "@/lib/sociomapping-view";
 import { Button } from "../ui";
 import { type OriginKind, originKind } from "@/lib/research-execution";
+import { errorText } from "@/lib/error-words";
 
 /** What the map says about its data, one sentence per origin kind; an unknown origin is said. */
 const SOCIOMAPPING_ORIGIN: Record<OriginKind, string> = {
@@ -353,7 +354,7 @@ function SociomappingReport({ run, studyId, canEdit }: { run: ResearchRun; study
     let live = true;
     research.sociomappingReport(studyId, run.run_id).then(
       (value) => live && setLoaded({ state: "ready", value }),
-      (e: unknown) => live && setLoaded(e instanceof ApiError && e.status === 403 ? { state: "hidden" } : { state: "failed", message: e instanceof Error ? e.message : String(e) }),
+      (e: unknown) => live && setLoaded(e instanceof ApiError && e.status === 403 ? { state: "hidden" } : { state: "failed", message: errorText(e) }),
     );
     return () => {
       live = false;
@@ -367,7 +368,7 @@ function SociomappingReport({ run, studyId, canEdit }: { run: ResearchRun; study
     try {
       saveBlob(await research.downloadSociomappingReport(studyId, run.run_id), `AIA-${studyId}-sociomapping-experimental-draft.docx`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

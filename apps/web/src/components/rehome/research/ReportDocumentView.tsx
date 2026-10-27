@@ -29,12 +29,13 @@ import { approvalQuestion, fileLine, pdfStatesReview, reviewLabel, reviewsFor, t
 import { approvalRefusal, reviewStatus } from "@/lib/report-status";
 import { type SeenEdit, unsavedWords } from "@/lib/report-editor";
 import { coverageRecord, type CoverageLine } from "@/lib/artifacts/report-coverage";
+import { errorText } from "@/lib/error-words";
 
 // A line carrying an id or a SHA-256 breaks anywhere: an unbroken hash would widen the page past a
 // phone's width (the 390 px journey).
 const WRAPS = "[overflow-wrap:anywhere]";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 type Loaded =
   | { state: "loading" }

@@ -25,6 +25,7 @@ import { Glyph } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { Facts, Pill, RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 import { LeadSees } from "./LeadSees";
+import { errorText } from "@/lib/error-words";
 
 const POLL_MS = 1500;
 
@@ -135,7 +136,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       return s;
     } catch (e) {
       onSession?.(null, true);
-      setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : e instanceof Error ? e.message : String(e));
+      setError(e instanceof ApiError && e.status === 404 ? "Vedoucí výzkumu v této verzi AIA zatím není." : errorText(e));
       return null;
     } finally {
       setReads((n) => n + 1);

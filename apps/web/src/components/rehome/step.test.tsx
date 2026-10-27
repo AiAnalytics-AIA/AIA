@@ -225,4 +225,13 @@ describe("Studio v3 step pieces", () => {
     expect(yes).toHaveBeenCalledTimes(1);
     expect(no).toHaveBeenCalledTimes(1);
   });
+
+  it("InlineConfirm keeps on Escape, as Ponechat does", () => {
+    const yes = vi.fn();
+    const no = vi.fn();
+    render(<InlineConfirm message="Smazat blok i otázky?" action="Smazat" onConfirm={yes} onCancel={no} />);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Ponechat" }), { key: "Escape" });
+    expect(no).toHaveBeenCalledTimes(1);
+    expect(yes).not.toHaveBeenCalled();
+  });
 });

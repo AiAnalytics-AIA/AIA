@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { researchAgents, type ResearchAgentAction, type ResearchAgentJob, type ResearchAgentResult } from "@/lib/api";
-import { followAgentJob, withJobCostConfirmation } from "@/lib/research-agent-jobs";
+import { type JobCostConfirm, followAgentJob, withJobCostConfirmation } from "@/lib/research-agent-jobs";
 import { JobError, type JobUpdate } from "@/research/jobs";
 import { staleDetails, staleMessage } from "@/research/proposal-items";
 import { submitWorkingDesign, type ResearchStore } from "@/research/store";
 import { AgentProposalDialog } from "./AgentProposalDialog";
+import { errorText } from "@/lib/error-words";
 
 /**
  * What a person decides on a proposal: `true` is "apply", `false` is "keep" (the dialog's two
@@ -21,7 +22,7 @@ const adviceActions = new Set<ResearchAgentAction>(["critique_design", "design_c
 /** The stage a job's design is submitted from. */
 const sourceOf = (action: ResearchAgentAction) =>
   action === "analyze_brief" ? "brief" : action === "propose_audience" ? "audience" : action === "suggest_dimensions" ? "persona" : "questionnaire";
-const message = (e: unknown) => e instanceof Error ? e.message : String(e);
+const message = (e: unknown) => errorText(e);
 function check(signal: AbortSignal) {
   if (signal.aborted) throw new JobError("Sledování přerušeno; běh zůstává uložený.", "cancelled", null);
 }
@@ -37,7 +38,7 @@ const refuse = async () => false;
  * confirmation threshold is started only after that yes (LO15). Without it, nothing is confirmed
  * and such a start or rebuild ends with the server's refusal.
  */
-export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false, confirm: (message: string) => Promise<boolean> = refuse) {
+export function useResearchAgents(studyId: string, store: ResearchStore, onUpdate: (u: JobUpdate | null) => void, adviceInWorkspace = false, proposalsInWorkspace = false, confirm: JobCostConfirm = refuse) {
   const [recent, setRecent] = useState<ResearchAgentJob[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

@@ -309,3 +309,45 @@ describe("Stepper (I2): bounded numbers, refused and never clamped", () => {
     expect(money.getAttribute("aria-valuetext")).toBe("85,00\u00a0USD");
   });
 });
+
+describe("Stepper save note (design system v3, I-Ukladani)", () => {
+  it("says Uloženo once the caller confirms the save, then goes quiet after 3 s", async () => {
+    vi.useFakeTimers();
+    try {
+      n(400, vi.fn(() => Promise.resolve()));
+      fireEvent.click(plus());
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByText("Uloženo")).toBeTruthy();
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(screen.queryByText("Uloženo")).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("Stepper for money (deferred, design system v3, I-Penize)", () => {
+  it("moves the draft on each press and saves once, on Enter", () => {
+    const save = vi.fn();
+    render(<Stepper deferred label="Počet respondentů" value={400} onCommit={save} min={50} max={5000} step={10} />);
+    fireEvent.click(plus());
+    fireEvent.click(plus());
+    fireEvent.keyDown(field(), { key: "ArrowUp" });
+    expect(save).not.toHaveBeenCalled();
+    expect((field() as HTMLInputElement).value).toBe("430");
+    expect(screen.getByText("Neuloženo · Enter nebo odchod z pole uloží")).toBeTruthy();
+    fireEvent.keyDown(field(), { key: "Enter" });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(save).toHaveBeenCalledWith(430);
+  });
+
+  it("restores the saved value on Escape and saves nothing", () => {
+    const save = vi.fn();
+    render(<Stepper deferred label="Počet respondentů" value={400} onCommit={save} min={50} max={5000} step={10} />);
+    fireEvent.click(plus());
+    fireEvent.keyDown(field(), { key: "Escape" });
+    expect((field() as HTMLInputElement).value).toBe("400");
+    fireEvent.blur(field());
+    expect(save).not.toHaveBeenCalled();
+  });
+});

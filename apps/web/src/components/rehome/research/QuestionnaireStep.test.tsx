@@ -671,8 +671,12 @@ describe("Dotazník", () => {
     render(<ResearchScreen step="questionnaire" frame={TEST_FRAME} />);
     fireEvent.click(await screen.findByRole("button", { name: "Spustit veřejný výzkum" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("Výzkum může stát nejvýše 4.00 USD. Čerpá rozpočet této studie. Spustit? Z rozpočtu studie zbývá 3.00 USD. To je víc, než nyní zbývá: přesáhne-li skutečná cena zbytek, krok se zastaví, dokud rozpočet nezvýšíte.")).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole("button", { name: "OK" }));
+    // SpendDialog (design system v3, I-Penize): the ceiling, the study's budget, and that it may stop.
+    const said = (dialog.textContent ?? "").replace(/\s/g, " ");
+    expect(said).toContain("Horní mez4,00 USD · horní mez, ne odhad");
+    expect(said).toContain("Rozpočet studie10,00 USD · zbývá 3,00 USD");
+    expect(said).toContain("Může stát víc, než zbývá: krok se pak zastaví a počká na zvýšení.");
+    fireEvent.click(within(dialog).getByRole("button", { name: /^Spustit Deep Research · do 4,00\sUSD$/ }));
     await waitFor(() => expect(posted(path).map((c) => (c.body as { confirm_cost_usd?: number }).confirm_cost_usd)).toEqual([undefined, 4]));
   });
 

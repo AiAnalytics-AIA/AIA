@@ -69,3 +69,8 @@ export function lineWords(line: MoneyLine): string {
   if (line.remainingUsd !== undefined) parts.push(tv("input.spend.remaining", { usd: usdWords(line.remainingUsd) }));
   return parts.join(" · ");
 }
+
+/** A spend's button: the act and, when the API gave one, its ceiling ("Spustit běh · do 225,00 USD"). */
+export function spendAct(act: string, ceilingUsd: number | null): string {
+  return known(ceilingUsd) ? tv("input.spend.actUpTo", { act, amount: usdWords(ceilingUsd) }) : act;
+}

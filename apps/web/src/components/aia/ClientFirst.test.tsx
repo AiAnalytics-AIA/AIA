@@ -264,13 +264,16 @@ describe("a client's workspace", () => {
     window.history.pushState({}, "", "/app/clients/CLI-a/knowledge?add=1");
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
-    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("section")!;
+    const form = (await screen.findByRole("heading", { name: "Napsat znalost klienta" })).closest("form")!;
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/app/clients/CLI-a/knowledge"));
     window.history.pushState({}, "", "/");
     // What is added re-reads the client, so the tabs' counts follow.
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Výroční zpráva 2026" } });
+    // A form: Enter (submit) saves it, as the button does; a second submit while it saves sends nothing.
+    fireEvent.submit(form);
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a").filter((c) => c.url.endsWith("/CLI-a"))).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/knowledge/proposals")).toHaveLength(1);
   });
 
   it("does not offer to add knowledge to a person who may not", async () => {
@@ -306,7 +309,9 @@ describe("a client's workspace", () => {
     profileApi();
     render(inClient("CLI-a", <ProfileArea />));
     const record = (await screen.findByRole("heading", { name: "Klient" })).closest("section")!;
-    expect(within(record).getByText("Klient A")).toBeTruthy();
+    // The name is the page's title; the record does not repeat it.
+    expect(within(record).queryByText("Klient A")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Klient A" })).toBeTruthy();
     expect(within(record).getByText("Aktivní")).toBeTruthy();
     const tab = within(screen.getByRole("navigation", { name: "Oblasti klienta" })).getByRole("link", { name: "Profil" });
     expect(tab.getAttribute("aria-current")).toBe("page");
@@ -332,6 +337,10 @@ describe("a client's workspace", () => {
     render(inClient("CLI-a", <ProfileArea />));
     const contacts = (await screen.findByRole("heading", { name: "Kontakty" })).closest("section")!;
     expect(within(contacts).getByText("jana@klient.test")).toBeTruthy();
+    // Esc leaves the form unsent, as Zrušit does.
+    fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
+    fireEvent.keyDown(within(contacts).getByRole("textbox", { name: "Jméno" }), { key: "Escape" });
+    expect(within(contacts).queryByRole("textbox", { name: "Jméno" })).toBeNull();
     fireEvent.click(within(contacts).getByRole("button", { name: "Přidat kontakt" }));
     fireEvent.change(within(contacts).getByRole("textbox", { name: "Jméno" }), { target: { value: "Petr" } });
     fireEvent.click(within(contacts).getByRole("checkbox", { name: "Dostává výsledky" }));
@@ -340,6 +349,10 @@ describe("a client's workspace", () => {
     expect(called("POST", "/api/v1/clients/CLI-a/contacts")[0].body).toEqual({ name: "Petr", role: "", email: "", receives_reports: true });
     fireEvent.click(within(contacts).getByRole("button", { name: "Odebrat kontakt Jana Nová" }));
     await waitFor(() => expect(called("DELETE", "/api/v1/clients/CLI-a/contacts/CON-1")).toHaveLength(1));
+    // A removed contact can be put back for 8 s: the same fields, written again.
+    fireEvent.click(await screen.findByRole("button", { name: "Vrátit" }));
+    await waitFor(() => expect(called("POST", "/api/v1/clients/CLI-a/contacts")).toHaveLength(2));
+    expect(called("POST", "/api/v1/clients/CLI-a/contacts")[1].body).toEqual({ name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true });
 
     const entities = screen.getByRole("heading", { name: "Značky a konkurenti" }).closest("section")!;
     expect(await within(entities).findByText("Konkurent B")).toBeTruthy();
@@ -492,6 +505,12 @@ describe("a client's workspace", () => {
     const changes = screen.getByRole("heading", { name: "Poslední změny znalostí" }).closest("section")!;
     expect(within(changes).getByText("napsal člověk · revize 3")).toBeTruthy();
     expect(within(changes).getByText("ze studie · revize 1")).toBeTruthy();
+    // Each thing once: a study in review is not listed again under Aktivní práce, and the
+    // knowledge is opened from Kontext klienta, not again under its changes.
+    const active = screen.getByRole("heading", { name: "Aktivní práce" }).closest("section")!;
+    expect(within(active).queryByText("Firemní klienti")).toBeNull();
+    expect(within(changes).queryByRole("link")).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Otevřít znalosti" })).toHaveLength(1);
 
     const context = screen.getByRole("heading", { name: "Kontext klienta" }).closest("section")!;
     expect(within(context).getByRole("link", { name: "Neměněno déle než rok: 2" }).getAttribute("href")).toBe("/app/clients/CLI-a/knowledge?view=old");
@@ -577,7 +596,7 @@ describe("a client's workspace", () => {
     api();
     render(inClient("CLI-a", <KnowledgeArea />));
     fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
-    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("section")!;
+    const form = screen.getByRole("heading", { name: "Napsat znalost klienta" }).closest("form")!;
     fireEvent.change(within(form).getByRole("combobox"), { target: { value: "SOURCE" } });
     fireEvent.change(within(form).getAllByRole("textbox")[0], { target: { value: "Starbucks výroční zpráva" } });
     fireEvent.click(within(form).getByRole("button", { name: "Uložit znalost" }));
