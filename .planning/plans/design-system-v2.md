@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[ ] DS0. Owner decisions D1-D15 of the v2 design system recorded here (no code)"
   - "[ ] DS1. Tokens: hero-title, lede, eyebrow, figure, figure-xl, diff-*; num-hero 600; usage notes rewritten; eight unread colours and the two scope-bar tokens retired (tokens.json, build-tokens.mjs, check-design.mjs)"
@@ -13,7 +13,7 @@ chunks:
   - "[ ] DS9. One Note: plain, you, bad, sig, ai; Loaded's failed box, AiFailureCard and AnalysisFailureCard on it"
   - "[ ] DS10. One Card and EmptyState: CARD and its five copies, SampleView's Sec; Empty and workbench .empty merged; ActionDock as an action bar"
   - "[ ] DS11. Dialogs: AskDialog's confirm and prompt into ConfirmDialog; InlineConfirm's yes as Button danger; the six <dialog> frames on one class"
-  - "[ ] DS12. SpendDialog on every money confirmation (the withBudget call sites)"
+  - "[x] DS12. SpendDialog on every money confirmation (the withBudget call sites; confirmSpend, PR #1022)"
   - "[ ] DS13. Segmented and Tabs: single-choice ChoiceChips to look=segmented; step.tsx Segmented retired; one Tabs; the nine pill rows replaced"
   - "[ ] DS14. Switch: step.tsx and ProfileArea's switches onto ui/Switch"
   - "[ ] DS15. One Icon: one name map over PhosphorIcon; the 40 board glyphs added; 41 unicode marks and the emoji replaced; sizes 16/20 (14 in small buttons)"
@@ -24,6 +24,12 @@ chunks:
   - "[ ] DS20. Headers inside a study: ResearchStudy, SimulationFrame and MemoryStudy on the compact header; stage title 20/26"
   - "[ ] DS21. The old /studies pages and components/live/ retired once every function has a home under /app (D3)"
   - "[ ] DS22. The design-system/ package regenerated from v2, or removed (D1)"
+  - "[x] DS23. Petrol palette, the owner's choice of three (tokens.json; check-design 0 failures; PR #1022)"
+  - "[x] DS24. Ctrl/⌘ K command palette on every page and in the workbench (lib/command-palette.ts, aia/CommandPalette.tsx; PR #1022)"
+  - "[x] DS25. A failure in Czech, technical detail labelled after it (lib/error-words.ts, every e.message sink; PR #1022)"
+  - "[x] DS26. One interaction behaviour: SAVED_MS everywhere, ChoiceChips saves, Stepper deferred, Vrátit for a contact and a client status (PR #1022)"
+  - "[x] DS27. A Czech 404 with a way back (app/not-found.tsx; PR #1022)"
+  - "[x] DS28. Quiet chrome: rail and client tabs without hue, no header strip, on-client monogram, no bounce easing, Phosphor for the last glyphs, the 12 px floor (PR #1022)"
 ---
 # Design system v2: from the approved look to apps/web
 
