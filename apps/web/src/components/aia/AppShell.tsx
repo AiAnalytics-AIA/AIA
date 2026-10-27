@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { t } from "@/i18n/t";
 import type { ClientArea } from "@/lib/app-routes";
 import { Icon, type IconName } from "../rehome/icons";
+import { CommandPalette } from "./CommandPalette";
 import { DockRail, initials } from "./DockRail";
 import { Hero, type HeroEdit, type HeroFigure } from "./Hero";
 
@@ -173,6 +174,7 @@ export function AppShell({
               <div className="min-w-0 flex-1">
                 <Breadcrumbs crumbs={crumbs} />
               </div>
+              <CommandPalette />
               {status}
               {action}
             </div>
@@ -204,7 +206,7 @@ export function AppShell({
               <div className="flex min-w-0 flex-wrap items-center gap-1 text-[13px] leading-5">
                 <Breadcrumbs crumbs={crumbs.length || crumbEnd ? crumbs : [{ label: title }]} strong end={crumbEnd} />
               </div>
-              {status || action ? <div className="ml-auto flex flex-wrap items-center gap-3">{status}{action}</div> : null}
+              <div className="ml-auto flex flex-wrap items-center gap-3"><CommandPalette />{status}{action}</div>
             </div>
           </header>
         ) : (
@@ -221,7 +223,10 @@ export function AppShell({
                 {back.label}
               </Link>
             ) : null}
-            <Breadcrumbs crumbs={crumbs} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Breadcrumbs crumbs={crumbs} />
+              <div className="ml-auto"><CommandPalette /></div>
+            </div>
             {hero ? (
               <div className="pb-[22px] pt-3">
                 <Hero eyebrow={eyebrow} title={title} lede={sub} edit={edit} figures={figures} aside={status} action={action} />
