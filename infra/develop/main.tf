@@ -40,6 +40,11 @@ locals {
     [for r in var.bedrock_destination_regions :
     "arn:${data.aws_partition.current.partition}:bedrock:${r}::foundation-model/${local.bedrock_foundation_model}"],
     local.bedrock_lead_model_arns,
+    # The tagged application profiles below (develop-spend-attribution 2): a call sent through
+    # one is checked on its ARN as well as on the foundation model in the region it lands in,
+    # which the lines above already grant. Each copies one of the system profiles above.
+    [aws_bedrock_inference_profile.route.arn],
+    aws_bedrock_inference_profile.lead[*].arn,
   ))
 }
 
