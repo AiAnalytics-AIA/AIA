@@ -9,12 +9,12 @@ chunks:
   - "[ ] CPR6. Přehled as the canvas draws it: Čeká na vás first, no coloured tiles, the study's outputs in words (W1)"
   - "[ ] CPR7. Klienti as a table: a sort segment, honest search, the client's status (CPR2), and a similar-name warning before Nový klient makes a second one (W1, after CPR2; with input-interactions#7's inline row)"
   - "[ ] CPR8. Klienti's 'Čeká na vás dnes': the cross-client portfolio of client-knowledge-lifecycle#K9 at the top of the directory (W3, with K9)"
-  - "[ ] CPR9. Výzkumy: a status segment, the Krok column in the eleven stages' words, the rejected-knowledge count per study, and the memory search as its own section (W1, after CPR10)"
+  - "[ ] CPR9. Výzkumy: a status segment, the Krok column in the eleven stages' words, the rejected-knowledge count per study, the table's one search matching the designs' text as project memory does, and Použít jako základ on every study (W1, after CPR10)"
   - "[ ] CPR10. One stage vocabulary: the client pages' stage names (apps/web/src/i18n/cs.ts:251-262) replaced by the eleven stages of lib/workbench-stages.ts (W1)"
   - "[ ] CPR11. Profil: fields edited in place, the data posture in words (Nesmí / Smí), the budget without a false zero, and the history with budget and rule changes (W1, after CPR3; with input-interactions#8)"
   - "[ ] CPR12. Přidat podklady: the destination folder as a tree and AI extraction as a switch showing its ceiling, 'Cena nejvýše' (W2, after study-files#SF3 and client-knowledge-lifecycle#K16)"
   - "[ ] CPR13. Přidat podklady: Vložit odkaz, one public URL kept as the client's source (W2, after client-knowledge-lifecycle#K2e)"
-  - "[ ] CPR14. Projektová paměť: the client in one click, the recently changed studies without a query, a past research read-only with Použít tento design (W1)"
+  - "[ ] CPR14. Remove Projektová paměť: off the global navigation (three items left), its pages redirected, its search folded into Výzkumy (CPR9); the memory search and reuse routes stay (Nigel, 27 Oct; W1)"
   - "[ ] CPR15. The library's layout: kinds as a segment, the open item in a 380 px drawer (W1)"
   - "[ ] CPR16. Label colours without green: the swatch picker offers no green, which belongs to the version in force alone; what happens to existing green labels is the owner's open Q2 (W1)"
   - "[ ] CPR17. Znalosti as a Drive (canvas v6): the folder tree on the left, a breadcrumb whose every part is a drop target, a row or tile view, every client file in one list (GET /clients/{id}/sources), a row dragged onto a folder moved at once with Vrátit for 8 s, the same actions in the ⋯ menu and on right-click, a details panel, the Interní switch on a file, Přečíst znovu; renaming a file waits on the owner's open Q1 (W2, with study-files#SF3)"
@@ -23,7 +23,7 @@ chunks:
   - "[ ] CPR20. Removing a contact on Profil with Vrátit: today it is removed at once, with no undo and no confirmation (ProfileArea.tsx:261-262); the removal held for Vrátit as the design draws it (a defect; W1)"
   - "[ ] CPR21. The Petrol core v4 visual base brought into apps/web/src/design/tokens.json (then npm run tokens and make web_design), a separate chunk after the redesign's screens (the design-system session's canvas v10; W3)"
 ---
-# Client pages redesign: Klienti, the client's tabs, Projektová paměť and Přidat podklady
+# Client pages redesign: Klienti, the client's tabs and Přidat podklady
 
 Written 2026-10-27 on `chore/plan-unplanned-gaps` from `origin/develop @ dbaa7720`. Anchors are `@ dbaa7720`
 unless they name another ref; the canvas's own anchors are `@ a1a9a45c` (an ancestor of `dbaa7720`).
@@ -31,7 +31,7 @@ unless they name another ref; the canvas's own anchors are `@ a1a9a45c` (an ance
 ## Context
 
 The client pages prototype, canvas <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> ("AIA Klienti – prototyp",
-nine boards: 0 Přehled prototypu, 1 Klienti, 2 Přehled klienta, 3 Výzkumy, 4 Projektová paměť, 5 Znalosti jako Disk
+nine boards: 0 Přehled prototypu, 1 Klienti, 2 Přehled klienta, 3 Výzkumy, 4 Projektová paměť (removed by CPR14), 5 Znalosti jako Disk
 (Data sloučena), 6 Znalosti: schvalování a položka, 7 Přidat podklady, 8 Profil), redraws every client page. At v5 it
 listed 184 functions kept and 11 things the API does not do. The client inventory of 27 Oct 2026 (35 items, about
 24 in no plan) found no plan for most of it. The canvas has since moved to **v7** (Nigel's chat, relayed by the PM
@@ -118,7 +118,12 @@ researcher, across clients, at the top of Klienti. Test: two clients' waiting st
 stage.
 
 **CPR9. Výzkumy** (W1). The status segment; Krok in the eleven stages' words (CPR10); the rejected-knowledge count
-per study; the memory search (`MemorySearch.tsx`) as its own section below the table. Simulace stays hidden as
+per study. **One search** over the table that matches the designs' text the way project memory does today (every
+word, accent-folded, a four-letter stem: `domain/project_memory.py`, served by `GET /clients/{id}/memory/search`),
+not only the studies' names, so "find the study where we asked about X" still works; the matched words are said
+beside each row. **Použít jako základ nového výzkumu** on every study, in the row's ⋯ menu and in the study header,
+calling the existing `POST /clients/{id}/memory/reuse` (`application/design_reuse.py`), its citation kept
+(`DesignSourceNote` on every stage of the new study). No separate memory section (Nigel, 27 Oct: CPR14). Simulace stays hidden as
 `client-knowledge-lifecycle#K12` left it. Test: `StudyList` shows the stage word, never a stage code.
 
 **CPR10. One stage vocabulary** (W1). `cs.ts:251-262` names ten stages of the classic flow (Audience, Kontrola a
@@ -137,10 +142,31 @@ close. Test: the switch shows the ceiling the API quotes; an unknown ceiling tur
 **CPR13. Vložit odkaz** (W2). The intake's link field becomes live (`IntakeSheet.tsx:307-308`, today "V AIA zatím
 není") over `client-knowledge-lifecycle#K2e`'s capture. Test: a public URL is kept as the client's source.
 
-**CPR14. Projektová paměť** (W1). The client in one click; the recently changed studies shown before any query
-(composed from the studies list the page already reads; `MemorySearch.tsx:37-50` offers nothing without a query
-today); the past research read-only and Použít tento design as now. Test: the page lists recent studies with no
-query typed.
+**CPR14. Remove Projektová paměť** (W1). Nigel, 27 Oct 2026, in the PM coordinator's chat: "yes lets remove
+projektova pamet", after agreeing that even a memory section inside Výzkumy is redundant. Each of its jobs now
+lives where the study already is:
+
+- searching past studies: the Výzkumy table's one search over the designs' text (CPR9);
+- reading a past study: opening the study itself, read-only where it can no longer change;
+- Použít tento design: Použít jako základ nového výzkumu on every study (CPR9).
+
+The work:
+
+- the global navigation loses Projektová paměť and keeps three items: Klienti, Společenská inteligence,
+  Nastavení (`components/aia/AppShell`, `lib/app-routes.ts`);
+- `/app/memory` redirects to `/app/clients`, and `/app/clients/<client>/memory/<study>` to the study itself;
+- `MemorySearch.tsx`'s own section and `MemoryStudy.tsx` go once nothing renders them, with their tests;
+- the routes stay: `GET /clients/{id}/memory/search` serves the Výzkumy search and can serve the Lead's "najdi
+  podobný výzkum" later, and `POST /clients/{id}/memory/reuse` serves Použít jako základ.
+
+Tests:
+- the navigation renders three items;
+- both old URLs redirect;
+- Výzkumy finds a study by a word that appears only in its design;
+- Použít jako základ creates a study whose stages show the citation.
+
+Doc follow-up: CLAUDE.md's map (the four global items; `MemorySearch`, `MemoryStudy`, `clients/<client>/memory/<study>`) and
+ADR 0015's navigation.
 
 **CPR15. The library's layout** (W1). Kinds as a segment (not pills); the open item in a 380 px drawer; the review
 views as `client-knowledge-lifecycle#K14` names them. Test: the drawer opens on `?item=` at 380 px.
