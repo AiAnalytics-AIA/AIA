@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 0. This plan"
-  - "[ ] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
+  - "[x] 1. Sign-off: design, Brave and its written terms, D8, budgets, the light model, quotas"
   - "[x] 2. Structured output with thinking on (no forced tool choice) for Deep Research agents"
   - "[x] 3. Brave search adapter"
   - "[x] 4. The search key as a credential reference"
@@ -1190,6 +1190,22 @@ in code calls Gemini; the arm runs when chunk 26 does.
   live before chunk 1 records § 4's extraction items and 27 activates.
 
 ## 13. Measurements and decisions log
+
+**Chunk 1, the owner's sign-off, 2026-10-27.** Nigel kept Deep Research on, and signed off Brave and the
+Deep Research values: "these should all be settled". He was answering the second account's PM coordinator,
+which had asked him to "Sign off Brave and the Deep Research values in Settings → Deep Research". He then
+asked for this chunk to be ticked ("open the plan PR").
+
+- **Evidence that the values are approved in AIA.** On develop, a priced Deep Research quote
+  (`POST …/deep-research/quote`) answered 200 on 2026-10-26 at 01:02 UTC. A priced route with any live
+  setting unapproved answers 409 `live_settings_unapproved` (ADR 0022). Read from the container logs.
+- **Develop's SSM settings,** read-only: Brave at USD 5.00 per 1,000 (prices as of 2026-10-14), fan-out,
+  agent-directed, lead, 7 connectors, Wikipedia off, no Common Crawl key.
+- **Not verified by an agent.** The settings page's approval history (who approved each value and when) is
+  in AIA's database, which agents cannot read (host commands are denied by IAM). Neither is the Bedrock
+  quota request.
+- **What stays open.** Chunk 51 (switching on; Common Crawl is not on) and chunk 54 (each connector probed
+  live once) stay open for the owner's word.
 
 **Chunk 1, decisions of the data owner, 2026-10-09** (in this session; the rest of chunk 1
 stays open):
