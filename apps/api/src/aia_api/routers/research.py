@@ -174,6 +174,7 @@ from aia_core.domain.scope import (
     StudyContext,
 )
 from aia_core.domain.sociomap_register import SOCIOMAP_REGISTER, MethodologyStatus
+from aia_core.domain.support_forecast import SupportForecast
 from aia_core.domain.workflow import FailureClass, StepRunStatus
 from aia_core.infrastructure.artifact_repository import (
     Artifact,
@@ -731,6 +732,28 @@ class SampleCompositionResponse(BaseModel):
     support_counted: bool = False
 
 
+class SupportForecastResponse(BaseModel):
+    """What the support forecast found beyond its check's words (artifact-sample SMP9)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The smallest n, with everything else in the design as it is, at which the analysis gate
+    #: admits the evidence (``domain.support_forecast``); a number only in ``needs_more``.
+    reportable_n: int | None
+    #: What ``reportable_n`` stands for, so its ``None`` is never read as good: ``met`` (n
+    #: already suffices), ``indicative``, ``needs_more`` (the number), ``not_found`` (none within
+    #: the search) or ``unknown`` (nothing was forecast).
+    reportable_n_state: Literal["met", "indicative", "needs_more", "not_found", "unknown"]
+
+
+def support_forecast_response(forecast: SupportForecast) -> SupportForecastResponse:
+    """The forecast's sufficient n as readiness serves it, with what its ``None`` stands for."""
+    return SupportForecastResponse(
+        reportable_n=forecast.reportable_n,
+        reportable_n_state=forecast.reportable_state.value,
+    )
+
+
 class _ReadinessBody(BaseModel):
     """What readiness says of a design, whichever revision it was read on."""
 
@@ -770,6 +793,8 @@ class _ReadinessBody(BaseModel):
     #: The sample a panel run would draw (RQC6b); ``None`` when none was drawn (another persona
     #: source, no population to draw from, a fieldwork source that is not ``ai_runtime``).
     sample_composition: SampleCompositionResponse | None = None
+    #: ``None`` when this fieldwork source forecasts no support.
+    support_forecast: SupportForecastResponse | None = None
 
 
 class ReadinessResponse(_ReadinessBody):
@@ -1574,6 +1599,9 @@ def _readiness_body(
             outlook.panel, counted=outlook.forecast is not None and outlook.forecast.known
         )
         if outlook.panel is not None
+        else None,
+        "support_forecast": support_forecast_response(outlook.forecast)
+        if outlook.forecast is not None
         else None,
     }
 

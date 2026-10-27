@@ -2832,8 +2832,62 @@ def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     small, check = forecast(50)
     assert small["ready"] is True, "a forecast warns, it never refuses"
     assert check["status"] == "WARN" and "nevzniknou" in check["message"]
-    _, enough = forecast(450)
+    big, enough = forecast(450)
     assert enough["status"] == "PASS"
+    # SMP9: the n that would suffice is a field, the one the check's words name; none once met.
+    reportable = small["support_forecast"]["reportable_n"]
+    assert isinstance(reportable, int) and reportable > 50
+    assert f"n = {reportable}" in check["message"]
+    assert small["support_forecast"]["reportable_n_state"] == "needs_more"
+    # Met, and said so: a None that only means "nothing needed" (stand-in review of #1010).
+    assert big["support_forecast"] == {"reportable_n": None, "reportable_n_state": "met"}
+
+
+def test_readiness_names_an_unforecast_sufficient_n_unknown_never_good(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A panel run without the sample a start would draw forecasts nothing: its ``None`` is
+    unknown, never "n already suffices" (stand-in review of #1010)."""
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    revision_id = submit(researcher, world, {**DESIGN, "n": 450}).json()["revision_id"]
+    body = researcher.get(
+        f"{API}/studies/{world.study_id()}/research/readiness",
+        params={"design_revision_id": revision_id, "persona_source": "panel"},
+    ).json()
+    assert body["support_forecast"] == {"reportable_n": None, "reportable_n_state": "unknown"}
+
+
+@pytest.mark.parametrize(
+    ("analysis", "reportable_n", "state"),
+    [
+        ("REPORTABLE", None, "met"),
+        ("INDICATIVE", None, "indicative"),
+        ("SUPPRESS", 120, "needs_more"),
+        ("SUPPRESS", None, "not_found"),
+        (None, None, "unknown"),
+    ],
+)
+def test_every_sufficient_n_is_served_with_what_it_stands_for(
+    analysis: str | None, reportable_n: int | None, state: str
+) -> None:
+    from aia_core.domain.evidence import SupportStatus
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.support_forecast import SupportForecast
+
+    from aia_api.routers.research import support_forecast_response
+
+    forecast = SupportForecast(
+        persona_source=PersonaSource.FICTIONAL_ROSTER,
+        respondents=50,
+        donors=None if analysis is None else 40,
+        results=None if analysis is None else SupportStatus(analysis),
+        analysis=None if analysis is None else SupportStatus(analysis),
+        reportable_n=reportable_n,
+    )
+    served = support_forecast_response(forecast).model_dump()
+    assert served == {"reportable_n": reportable_n, "reportable_n_state": state}
 
 
 def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(
