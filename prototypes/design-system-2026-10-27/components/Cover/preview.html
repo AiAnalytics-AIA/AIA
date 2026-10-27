@@ -1,0 +1,32 @@
+<!-- @dsCard height=288 -->
+<div class="cv">
+<style>
+.cv{position:relative;width:960px;height:288px;background:var(--surface);overflow:hidden;font-family:var(--font-sans)}
+.cv svg{position:absolute;left:0;top:0}
+.cv .ink{fill:var(--ink)}.cv .sig{fill:var(--signal)}.cv .shl{fill:var(--shell)}.cv .you{fill:var(--status-you)}.cv .ai{fill:var(--ai)}.cv .wash{fill:var(--signal-wash)}
+.cv .dot{fill:var(--shell-ink);opacity:.35}.cv .dotk{fill:var(--shell-ink)}.cv .apex{fill:var(--brand-apex)}
+.cv .card{rx:var(--radius-card)}.cv .ctl{rx:var(--radius-control)}
+.cv .txt{position:absolute;left:48px;bottom:40px;max-width:440px}
+.cv h1{margin:0;font-family:var(--font-serif);font-weight:600;font-size:72px;line-height:.95;color:var(--ink);letter-spacing:-.01em}
+.cv p{margin:12px 0 0;font-size:14px;line-height:20px;color:var(--ink-muted)}
+</style>
+<svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+<!-- blocks: shell 224×288 (graphite slab, bleeds top and bottom), signal 160×128, status-you 96×64, ai 96×128, signal-wash 160×96; corners radius-card 8 / radius-control 6
+     arrangement: one tall graphite slab with satellites, flush on a 16 px gutter (space-4), right of x = 496
+     pattern: a dot lattice at space-6 (24 px) inside the slab, five bright points, one apex: the AIA mark's 5×5 grid, because the system calls itself precise and technical and its identity is a lattice
+     steps and radii: space-4 16, space-6 24, space-8 32; radius-card 8, radius-control 6 -->
+<rect class="shl" x="736" y="-8" width="224" height="304"/>
+<rect class="sig card" x="560" y="32" width="160" height="128"/>
+<rect class="wash card" x="560" y="176" width="160" height="96"/>
+<rect class="you ctl" x="496" y="96" width="48" height="64"/>
+<rect class="ai card" x="496" y="176" width="48" height="96"/>
+<g>
+<circle class="dot" cx="776" cy="56" r="2.4"/><circle class="dot" cx="800" cy="56" r="2.4"/><circle class="apex" cx="824" cy="56" r="6"/><circle class="dot" cx="848" cy="56" r="2.4"/><circle class="dot" cx="872" cy="56" r="2.4"/>
+<circle class="dot" cx="776" cy="80" r="2.4"/><circle class="dotk" cx="800" cy="80" r="6"/><circle class="dot" cx="824" cy="80" r="2.4"/><circle class="dotk" cx="848" cy="80" r="6"/><circle class="dot" cx="872" cy="80" r="2.4"/>
+<circle class="dot" cx="776" cy="104" r="2.4"/><circle class="dotk" cx="800" cy="104" r="6"/><circle class="dotk" cx="824" cy="104" r="6"/><circle class="dotk" cx="848" cy="104" r="6"/><circle class="dot" cx="872" cy="104" r="2.4"/>
+<circle class="dotk" cx="776" cy="128" r="6"/><circle class="dot" cx="800" cy="128" r="2.4"/><circle class="dot" cx="824" cy="128" r="2.4"/><circle class="dot" cx="848" cy="128" r="2.4"/><circle class="dotk" cx="872" cy="128" r="6"/>
+<circle class="dotk" cx="776" cy="152" r="6"/><circle class="dot" cx="800" cy="152" r="2.4"/><circle class="dot" cx="824" cy="152" r="2.4"/><circle class="dot" cx="848" cy="152" r="2.4"/><circle class="dotk" cx="872" cy="152" r="6"/>
+</g>
+</svg>
+<div class="txt"><h1>AIA Design<br>System v2</h1><p>Jeden vzhled pro Nastavení i výzkumné kroky.</p></div>
+</div>

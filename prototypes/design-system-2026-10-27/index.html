@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIA Design System v3.2</title>
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="bundle.css">
+<style>
+body{margin:0;background:var(--surface);color:var(--ink);font-family:var(--font-sans)}
+.gx{max-width:1180px;margin:0 auto;padding:32px 24px 64px}
+.gx-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+.gx-head h1{font-family:var(--font-serif);font-size:40px;line-height:46px;font-weight:600;margin:0}
+.gx-nav{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 28px;font-size:13px}
+.gx-nav a{color:var(--signal)}
+.gx .gx-group{font-size:15px;line-height:20px;font-weight:600;margin:36px 0 12px;padding-top:12px;border-top:1px solid var(--border)}
+.gx-card{margin:0 0 20px}
+.gx-card h3{font-size:13px;font-weight:600;margin:0 0 6px;color:var(--ink-muted)}
+.gx-card h3 a{color:inherit;text-decoration:none}
+.gx-frame{border:1px solid var(--border);border-radius:8px;background:var(--surface-raised);padding:16px;overflow:auto}
+.gx-theme{margin-left:auto}
+</style>
+</head>
+<body>
+<main class="gx">
+<div class="gx-head"><h1>AIA Design System v3.2</h1><span class="cap">Petrol · AI jiskrový okraj · Interakce · 27. 10. 2026</span>
+<button type="button" class="btn gx-theme" id="gx-theme" aria-pressed="false">Tmavý režim</button></div>
+<p class="cap" style="margin:0">Každá karta je náhled komponenty, jak ho ukazuje artefakt. Pravidla jsou v <code>components/&lt;Název&gt;/README.md</code>, celý přehled v <code>docs/brand-book.md</code>.</p>
+
+<nav class="gx-nav" aria-label="Skupiny">
+<a href="#g-vod">Úvod</a>
+<a href="#g-zklad">Základ</a>
+<a href="#g-rm">Rám</a>
+<a href="#g-vstupy">Vstupy</a>
+<a href="#g-akce">Akce</a>
+<a href="#g-stav">Stav</a>
+<a href="#g-zobrazen">Zobrazení</a>
+<a href="#g-pekryvy">Překryvy</a>
+<a href="#g-vedouc">Vedoucí</a>
+<a href="#g-interakce">Interakce</a>
+</nav>
+<h2 id="g-vod" class="gx-group">Úvod</h2>
+<section class="gx-card" id="Cover"><h3><a href="components/Cover/README.md">AIA Design System</a></h3><div class="gx-frame"><div class="cv">
+<style>
+.cv{position:relative;width:960px;height:288px;background:var(--surface);overflow:hidden;font-family:var(--font-sans)}
+.cv svg{position:absolute;left:0;top:0}
+.cv .ink{fill:var(--ink)}.cv .sig{fill:var(--signal)}.cv .shl{fill:var(--shell)}.cv .you{fill:var(--status-you)}.cv .ai{fill:var(--ai)}.cv .wash{fill:var(--signal-wash)}
+.cv .dot{fill:var(--shell-ink);opacity:.35}.cv .dotk{fill:var(--shell-ink)}.cv .apex{fill:var(--brand-apex)}
+.cv .card{rx:var(--radius-card)}.cv .ctl{rx:var(--radius-control)}
+.cv .txt{position:absolute;left:48px;bottom:40px;max-width:440px}
+.cv h1{margin:0;font-family:var(--font-serif);font-weight:600;font-size:72px;line-height:.95;color:var(--ink);letter-spacing:-.01em}
+.cv p{margin:12px 0 0;font-size:14px;line-height:20px;color:var(--ink-muted)}
+</style>
+<svg width="960" height="288" viewBox="0 0 960 288" aria-hidden="true">
+<!-- blocks: shell 224×288 (graphite slab, bleeds top and bottom), signal 160×128, status-you 96×64, ai 96×128, signal-wash 160×96; corners radius-card 8 / radius-control 6
+     arrangement: one tall graphite slab with satellites, flush on a 16 px gutter (space-4), right of x = 496
+     pattern: a dot lattice at space-6 (24 px) inside the slab, five bright points, one apex: the AIA mark's 5×5 grid, because the system calls itself precise and technical and its identity is a lattice
+     steps and radii: space-4 16, space-6 24, space-8 32; radius-card 8, radius-control 6 -->
+<rect class="shl" x="736" y="-8" width="224" height="304"/>
+<rect class="sig card" x="560" y="32" width="160" height="128"/>
+<rect class="wash card" x="560" y="176" width="160" height="96"/>
+<rect class="you ctl" x="496" y="96" width="48" height="64"/>
+<rect class="ai card" x="496" y="176" width="48" height="96"/>
+<g>
+<circle class="dot" cx="776" cy="56" r="2.4"/><circle class="dot" cx="800" cy="56" r="2.4"/><circle class="apex" cx="824" cy="56" r="6"/><circle class="dot" cx="848" cy="56" r="2.4"/><circle class="dot" cx="872" cy="56" r="2.4"/>
+<circle class="dot" cx="776" cy="80" r="2.4"/><circle class="dotk" cx="800" cy="80" r="6"/><circle class="dot" cx="824" cy="80" r="2.4"/><circle class="dotk" cx="848" cy="80" r="6"/><circle class="dot" cx="872" cy="80" r="2.4"/>
+<circle class="dot" cx="776" cy="104" r="2.4"/><circle class="dotk" cx="800" cy="104" r="6"/><circle class="dotk" cx="824" cy="104" r="6"/><circle class="dotk" cx="848" cy="104" r="6"/><circle class="dot" cx="872" cy="104" r="2.4"/>
+<circle class="dotk" cx="776" cy="128" r="6"/><circle class="dot" cx="800" cy="128" r="2.4"/><circle class="dot" cx="824" cy="128" r="2.4"/><circle class="dot" cx="848" cy="128" r="2.4"/><circle class="dotk" cx="872" cy="128" r="6"/>
+<circle class="dotk" cx="776" cy="152" r="6"/><circle class="dot" cx="800" cy="152" r="2.4"/><circle class="dot" cx="824" cy="152" r="2.4"/><circle class="dot" cx="848" cy="152" r="2.4"/><circle class="dotk" cx="872" cy="152" r="6"/>
+</g>
+</svg>
+<div class="txt"><h1>AIA Design<br>System v2</h1><p>Jeden vzhled pro Nastavení i výzkumné kroky.</p></div>
+</div>
+</div></section>
+<h2 id="g-zklad" class="gx-group">Základ</h2>
+<section class="gx-card" id="Icon"><h3><a href="components/Icon/README.md">Ikona (Icon)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row" style="gap:18px;font-size:13px">
+ <span class="row" style="gap:6px"><i class="ph ph-check"></i>check</span><span class="row" style="gap:6px"><i class="ph ph-x"></i>x</span><span class="row" style="gap:6px"><i class="ph ph-sparkle"></i>sparkle</span><span class="row" style="gap:6px"><i class="ph ph-wallet"></i>wallet</span><span class="row" style="gap:6px"><i class="ph ph-lock-simple"></i>lock-simple</span><span class="row" style="gap:6px"><i class="ph ph-info"></i>info</span><span class="row" style="gap:6px"><i class="ph ph-caret-right"></i>caret-right</span><span class="row" style="gap:6px"><i class="ph ph-file-text"></i>file-text</span><span class="row" style="gap:6px"><i class="ph ph-pause"></i>pause</span><span class="row" style="gap:6px"><i class="ph ph-trash"></i>trash</span>
+</div>
+<div class="ds-row" style="margin-top:14px"><span class="ds-lbl">Velikosti</span><i class="ph ph-sparkle s"></i><span class="cap">14</span><i class="ph ph-sparkle" style="width:16px;height:16px"></i><span class="cap">16</span><i class="ph ph-sparkle" style="width:20px;height:20px"></i><span class="cap">20</span></div>
+</div>
+</div></section>
+<section class="gx-card" id="Thinking"><h3><a href="components/Thinking/README.md">Přemýšlení (Thinking)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><span style="width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 40% 40%,var(--ai) 0,var(--ai-wash) 70%);display:inline-block" aria-hidden="true"></span><span class="st"><i class="g run"></i>Běží · model odpovídá</span><span class="cap">9:14 · 312 z 1 600 respondentů hotovo</span></div>
+</div>
+</div></section>
+<h2 id="g-rm" class="gx-group">Rám</h2>
+<section class="gx-card" id="ActivityTray"><h3><a href="components/ActivityTray/README.md">Probíhá a čeká (ActivityTray)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="tray" style="position:static;width:380px"><div class="tray-h"><span class="grow">Probíhá a čeká</span><span class="cap">aktualizováno teď</span></div>
+<a class="tray-it"><span class="v4-dot"></span><span class="tx" style="flex:1"><b>Sběr dat · Běh 2</b><span class="cap">1 038 z 1 600 AI respondentů</span></span></a>
+<a class="tray-it"><span class="v4-dot you"></span><span class="tx" style="flex:1"><b>Analýza zadání čeká na vás</b><span class="cap">nejvýše 0,40 USD · spustíte na Zadání</span></span></a>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Breadcrumb"><h3><a href="components/Breadcrumb/README.md">Drobečková navigace (Breadcrumb)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="as-crumbs" style="font-size:13px;line-height:20px;color:var(--muted)">Klienti <span class="sep">/</span> Pivovar Zlatá Hora <span class="sep">/</span> <b style="color:var(--ink);font-weight:500">Studie</b></div>
+<div class="as-crumbs" style="font-size:13px;line-height:20px;color:var(--muted);margin-top:12px">Organizace Delta <span class="sep">/</span> Nastavení <span class="sep">/</span> <b style="color:var(--ink);font-weight:500">Audit</b></div>
+</div>
+</div></section>
+<section class="gx-card" id="DockRail"><h3><a href="components/DockRail/README.md">Lišta (DockRail)</a></h3><div class="gx-frame"><div class="aia ds flush">
+<nav class="asb" aria-label="Hlavní navigace" style="position:relative;height:380px;width:240px">
+ <a class="as-brand" href="#"><img src="assets/Brand/aia-mark-on-graphite.svg" width="30" height="30" alt=""><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+ <div class="as-sec">Pracovní prostor</div>
+ <ul class="as-nav">
+  <li><a href="#" class="on" aria-current="page"><span class="as-tile blue"><i class="ph ph-buildings"></i></span><span class="as-l">Klienti</span></a></li>
+  <li><a href="#"><span class="as-tile green"><i class="ph ph-globe"></i></span><span class="as-l">Společenská inteligence</span></a></li>
+  <li><a href="#"><span class="as-tile violet"><i class="ph ph-clock-counter-clockwise"></i></span><span class="as-l">Projektová paměť</span></a></li>
+  <li><a href="#"><span class="as-tile slate"><i class="ph ph-sliders-horizontal"></i></span><span class="as-l">Nastavení</span></a></li>
+ </ul>
+ <div class="as-gap"></div>
+ <a class="as-lead" href="#"><span class="as-tile"><img src="assets/LeadMarks/lissajous.svg" width="18" height="18" alt="" style="filter:invert(1)"></span><span class="as-l">Můj Vedoucí</span></a>
+ <div class="as-foot"><span class="as-av">JM</span><span class="as-l"><b>Jana Malá</b><a href="#">Účet a nastavení</a></span></div>
+</nav>
+</div>
+</div></section>
+<section class="gx-card" id="Hero"><h3><a href="components/Hero/README.md">Hrdina stránky (Hero)</a></h3><div class="gx-frame"><div class="aia ds">
+<header class="hero">
+ <div class="hero-top"><span class="eyebrow"><i class="ph ph-users"></i> Tým a peníze</span><span class="chip op"><i class="ph ph-lock-simple"></i>Mění vlastník a správce</span></div>
+ <h1 class="hero-h">Studie a rozpočty</h1>
+ <p class="hero-lede">Kolik každá studie utratila, kde se blíží strop a kdo může rozpočet zvednout.</p>
+ <dl class="hero-meta"><div><dt>Otevřené studie</dt><dd>12</dd></div><div><dt>Utraceno tento měsíc</dt><dd>214,60 USD</dd></div><div><dt>Nad 90 % rozpočtu</dt><dd class="you">2</dd></div></dl>
+</header>
+</div>
+</div></section>
+<section class="gx-card" id="StageNavigator"><h3><a href="components/StageNavigator/README.md">Navigátor kroků (StageNavigator)</a></h3><div class="gx-frame"><div class="aia ds wb">
+<nav class="snav" aria-label="Kroky studie" style="grid-template-columns:3fr 3fr 1fr">
+ <div class="phz"><div class="phl">Návrh výzkumu</div><div class="sts">
+  <a class="sg t-done" href="#"><span class="nm">Zadání</span><span class="sw"><span class="stg sm done"><i class="ph ph-check"></i></span>Hotovo</span></a>
+  <a class="sg t-you on" href="#" aria-current="page"><span class="nm">Návrh</span><span class="sw"><span class="stg sm you"><i class="ph ph-pause"></i></span>Čeká na vás</span></a>
+  <a class="sg t-none" href="#"><span class="nm">Dotazník</span><span class="sw" style="color:var(--faint)">Nezačato</span></a></div></div>
+ <div class="phz"><div class="phl">Vymezení vzorku</div><div class="sts">
+  <a class="sg t-done" href="#"><span class="nm">Cílová skupina</span><span class="sw"><span class="stg sm done"><i class="ph ph-check"></i></span>Hotovo</span><span class="reo" aria-label="Změněno od posledního běhu"></span></a>
+  <a class="sg t-run" href="#"><span class="nm">Dimenze</span><span class="sw"><span class="stg sm run"></span>Běží</span></a>
+  <a class="sg t-fault" href="#"><span class="nm">Vzorek</span><span class="sw"><span class="stg sm fault"><i class="ph ph-x"></i></span>Chyba</span></a></div></div>
+ <div class="phz"><div class="phl">Sběr</div><div class="sts"><a class="sg t-none" href="#"><span class="nm">Sběr dat</span><span class="sw" style="color:var(--faint)">Nezačato</span></a></div></div>
+</nav>
+</div>
+</div></section>
+<section class="gx-card" id="StudyBar"><h3><a href="components/StudyBar/README.md">Přehled studie v liště (StudyBar)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="v4-pb" style="border:1px solid var(--border);border-radius:8px"><span class="stp">Dotazník<span class="of">krok 3 z 11</span></span><span class="sep"></span><span class="lbl">Čeká na vás</span><a class="wt"><span class="stg sm youq"><i class="ph ph-pause"></i></span>Posoudit návrh Vedoucího</a><a class="gate">a 1 na jiném kroku</a><span class="grow"></span><a class="gate"><i class="ph ph-flag s"></i>Návrh se změnil od běhu 1 · nový běh na Sběru dat</a></div>
+</div>
+</div></section>
+<section class="gx-card" id="StudyHeader"><h3><a href="components/StudyHeader/README.md">Hlavička studie (StudyHeader, BudgetMeter)</a></h3><div class="gx-frame"><div class="aia ds wb">
+<header class="top" style="border:1px solid var(--border)">
+ <span class="cl">ZH</span>
+ <div><div class="crumb">Klienti / Pivovar Zlatá Hora</div><div class="ttl">Vnímání značek ležáků 2026</div></div>
+ <span class="grow"></span>
+ <span class="meter" role="meter" aria-valuemin="0" aria-valuemax="50" aria-valuenow="11.2" aria-label="Rozpočet studie: utraceno 11,20, drženo 0,40 z 50,00 USD"><i class="ph ph-wallet"></i>Rozpočet studie<span class="bar"><i style="width:22%"></i><i style="width:4%"></i></span>11,20 / 50,00 USD</span>
+ <button class="btn quiet sm"><i class="ph ph-info s"></i>Přehled</button>
+</header>
+<div class="ahd" style="display:flex;align-items:center;gap:10px;padding:12px 20px;border:1px solid var(--border);border-top:0;background:var(--raised)"><h1 style="font:600 20px/26px var(--font-sans);margin:0">Zadání</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><button class="btn primary sm">Návrh<i class="ph ph-caret-right s"></i></button></div>
+</div>
+</div></section>
+<section class="gx-card" id="StudyOverview"><h3><a href="components/StudyOverview/README.md">Přehled studie (StudyOverview)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col"><div class="v4-pb" style="border:1px solid var(--border);border-radius:8px"><span class="stp">Přehled studie<span class="of">11 kroků</span></span><span class="sep"></span><span class="lbl">Čeká na vás</span><a class="wt"><span class="stg sm youq"><i class="ph ph-pause"></i></span>Doplnit rozhodnutí</a><a class="wt"><span class="stg sm youq"><i class="ph ph-pause"></i></span>Posoudit návrh</a></div>
+<div class="ov"><div><div class="k">Krok</div><div class="v">3 z 11</div></div><div><div class="k">Čeká na vás</div><div class="v you">2</div></div><div><div class="k">Běhy</div><div class="v">1 hotov</div></div><div><div class="k">Respondenti</div><div class="v">400 AI</div></div><div><div class="k">Rozpočet</div><div class="v">11,20 / 50,00</div></div><div><div class="k">Změna</div><div class="v">Návrh</div></div></div></div>
+</div>
+</div></section>
+<h2 id="g-vstupy" class="gx-group">Vstupy</h2>
+<section class="gx-card" id="FilterBar"><h3><a href="components/FilterBar/README.md">Filtr jako tokeny (FilterBar)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="fbar" style="width:520px"><span class="ftok"><b>Stav:</b> Rozpracované<button aria-label="Odebrat">×</button></span><span class="ftok"><b>Štítek:</b> Brand<button aria-label="Odebrat">×</button></span><input aria-label="Hledat" placeholder="Hledat ve výzkumech…"></div>
+</div>
+</div></section>
+<section class="gx-card" id="InlineEdit"><h3><a href="components/InlineEdit/README.md">Úprava na místě (InlineEdit)</a></h3><div class="gx-frame"><div class="aia ds">
+<style>
+.ie{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.ie .ipt{min-width:320px;border:0;border-bottom:2px solid var(--signal);background:var(--stint);border-radius:0}
+.ie .ie-note{font-size:12px;line-height:16px;color:var(--muted)}
+.ie .ie-note.bad{color:var(--fault)}
+</style>
+<div class="ds-col">
+ <div class="ds-row"><span class="ds-lbl">Klikněte</span><span class="ie" data-ie><button class="inplace" data-ie-value>Ověřit, zda zvednout cenu o 3 Kč</button><span class="ie-note" aria-live="polite"></span></span></div>
+ <div class="ds-row"><span class="ds-lbl">Prázdné</span><span class="ie" data-ie data-ie-ph="Doplňte rozhodnutí, které výzkum podpoří"><button class="inplace ph" data-ie-value data-empty>Doplňte rozhodnutí, které výzkum podpoří</button><span class="ie-note" aria-live="polite"></span></span></div>
+ <div class="ds-row"><span class="ds-lbl">Odmítne</span><span class="ie" data-ie data-ie-refuse="Název musí mít aspoň 3 znaky."><button class="inplace" data-ie-value>Značka A</button><span class="ie-note" aria-live="polite"></span></span></div>
+ <div class="ds-row"><span class="ds-lbl">Jen ke čtení</span><button class="inplace" disabled>Rozpočet studie</button></div>
+ <p class="cap" style="margin:0">Klik, Enter nebo F2 otevře · Enter nebo odchod uloží · Esc vrátí · „Uloženo" 3 s · odmítnutí zůstane u pole i s textem</p>
+</div>
+<script>
+(function () {
+  function open(host) {
+    var btn = host.querySelector("[data-ie-value]");
+    var note = host.querySelector(".ie-note");
+    var was = btn.hasAttribute("data-empty") ? "" : btn.textContent;
+    var input = document.createElement("input");
+    input.className = "ipt"; input.type = "text"; input.value = was;
+    input.placeholder = host.getAttribute("data-ie-ph") || "";
+    input.setAttribute("aria-label", "Upravit");
+    btn.hidden = true; host.insertBefore(input, note); note.textContent = ""; note.className = "ie-note";
+    input.focus(); input.select();
+    var done = false;
+    function close(save) {
+      if (done) return;
+      var next = input.value.trim();
+      var refuse = host.getAttribute("data-ie-refuse");
+      if (save && next !== was && refuse && next.length < 3) {
+        note.textContent = refuse; note.className = "ie-note bad"; input.focus(); return;
+      }
+      done = true;
+      if (save && next !== was) {
+        if (next) { btn.textContent = next; btn.removeAttribute("data-empty"); btn.classList.remove("ph"); }
+        else { btn.textContent = host.getAttribute("data-ie-ph") || ""; btn.setAttribute("data-empty", ""); btn.classList.add("ph"); }
+        note.textContent = "Uloženo"; setTimeout(function () { note.textContent = ""; }, 3000);
+      }
+      input.remove(); btn.hidden = false; btn.focus();
+    }
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); close(true); }
+      else if (e.key === "Escape") { e.preventDefault(); done = false; input.value = was; close(false); }
+    });
+    input.addEventListener("blur", function () { close(true); });
+  }
+  document.querySelectorAll("[data-ie]").forEach(function (host) {
+    var btn = host.querySelector("[data-ie-value]");
+    btn.addEventListener("click", function () { open(host); });
+    btn.addEventListener("keydown", function (e) { if (e.key === "F2") { e.preventDefault(); open(host); } });
+  });
+})();
+</script>
+</div>
+</div></section>
+<section class="gx-card" id="Segmented"><h3><a href="components/Segmented/README.md">Přepínač možností (Segmented)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row"><span class="ds-lbl">Období</span><span class="seg" role="radiogroup" aria-label="Období"><button role="radio">Tento měsíc</button><button role="radio" class="on" aria-checked="true">Minulý měsíc</button><button role="radio">Od začátku roku</button></span></div>
+ <div class="ds-row"><span class="ds-lbl">Malý</span><span class="seg sm" role="radiogroup" aria-label="Role"><button role="radio" class="on" aria-checked="true">Výzkumník</button><button role="radio">Správce</button><button role="radio">Vlastník</button></span></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Select"><h3><a href="components/Select/README.md">Výběr (Select)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="dd" style="position:relative;display:inline-block">
+ <button class="ddbtn btn" aria-haspopup="listbox" aria-expanded="true">Kategorie: Peníze<i class="ph ph-caret-down"></i></button>
+ <div class="ddlist" role="listbox" aria-label="Kategorie" style="position:absolute;top:40px;left:0">
+  <button class="ddit" role="option">Vše<span class="grow"></span><span class="n">214</span></button>
+  <button class="ddit on" role="option" aria-selected="true"><i class="ph ph-check"></i>Peníze<span class="grow"></span><span class="n">38</span></button>
+  <button class="ddit" role="option">Přístup<span class="grow"></span><span class="n">12</span></button>
+  <button class="ddit" role="option">Metodika<span class="grow"></span><span class="n">9</span></button>
+ </div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Stepper"><h3><a href="components/Stepper/README.md">Krokovač (Stepper)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row">
+ <span class="ds-lbl">Velikost vzorku</span>
+ <span class="stepper" role="group" aria-label="Velikost vzorku"><button aria-label="Méně">−</button><span class="val">1 600</span><button aria-label="Více">+</button></span>
+ <span class="ds-lbl" style="min-width:0;margin-left:16px">Rozpočet studie</span>
+ <span class="stepper" role="group" aria-label="Rozpočet studie"><button aria-label="Méně" disabled>−</button><span class="val">50,00 USD</span><button aria-label="Více">+</button></span>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Switch"><h3><a href="components/Switch/README.md">Přepínač (Switch)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row"><button class="switch on" role="switch" aria-checked="true" aria-label="Automaticky přijímat textové úpravy"></button><span>Automaticky přijímat textové úpravy Vedoucího</span><span class="cap">Zapnuto</span></div>
+ <div class="ds-row"><button class="switch" role="switch" aria-checked="false" aria-label="Štítek Metodik"></button><span>Štítek Metodik</span><span class="cap">Vypnuto</span></div>
+ <div class="ds-row"><button class="switch" role="switch" aria-checked="false" disabled aria-label="Štítek Metodik"></button><span class="muted">Mění jen vlastník.</span></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Tabs"><h3><a href="components/Tabs/README.md">Záložky (Tabs)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="subtabs" role="tablist" aria-label="Modul"><button role="tab" class="on" aria-selected="true">Výpočet</button><button role="tab">Verze a aktivace</button><button role="tab">Porovnání</button><button role="tab" disabled title="Upravovat smí jen Metodik">Upravit · jen Metodik</button></div>
+</div>
+</div></section>
+<section class="gx-card" id="TextField"><h3><a href="components/TextField/README.md">Pole (TextField)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="max-width:420px">
+ <div><label class="lbl" for="t1">Název studie</label><input id="t1" type="text" value="Vnímání značek ležáků 2026"></div>
+ <div><label class="lbl" for="t2">Cíl vlastními slovy · 1–3 věty</label><textarea id="t2" rows="2">Jak lidé, kteří pijí ležák aspoň jednou týdně, vnímají Zlatou Horu 12° vedle konkurence.</textarea></div>
+ <div><label class="lbl" for="t3">Hledat v auditu</label><input id="t3" class="search" type="text" placeholder="Kdo, co, kdy…"></div>
+</div>
+</div>
+</div></section>
+<h2 id="g-akce" class="gx-group">Akce</h2>
+<section class="gx-card" id="AiSpark"><h3><a href="components/AiSpark/README.md">AI: jiskrový okraj (spark edge)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row"><span class="ds-lbl">Akce AI</span>
+  <button class="btn ai"><i class="ph ph-sparkle"></i>Spustit úlohu<b class="amt">0,40 USD</b></button>
+  <button class="btn ai sm"><i class="ph ph-sparkle s"></i>Navrhni dotazník</button>
+  <span class="cap">najetí nebo fokus: světlo oběhne okraj, jemná záře</span>
+ </div>
+ <div class="ds-row"><span class="ds-lbl">Napsala AI</span>
+  <span class="chip ai"><i class="ph ph-sparkle"></i>Návrh AI</span>
+  <div class="note ai" style="margin:0;max-width:360px"><i class="ph ph-sparkle"></i><span>Vedoucí navrhuje 3 změny Dotazníku. Rozhodujete vy.</span></div>
+ </div>
+ <div class="ds-row"><span class="ds-lbl">Model pracuje</span>
+  <div class="agent"><span class="orb"></span>Analýza zadání · 2 z 3 kroků</div>
+  <span class="cap">okraj se otáčí, dokud API hlásí RUNNING</span>
+ </div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Button"><h3><a href="components/Button/README.md">Tlačítko (Button)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row"><span class="ds-lbl">Druhy</span>
+  <button class="btn primary">Návrh<i class="ph ph-caret-right s"></i></button>
+  <button class="btn"><i class="ph ph-floppy-disk"></i>Uložit jako v3</button>
+  <button class="btn quiet">Zrušit</button>
+  <button class="btn danger"><i class="ph ph-trash"></i>Smazat natrvalo</button>
+  <button class="btn ai"><i class="ph ph-sparkle"></i>Spustit úlohu<b class="amt">0,40 USD</b></button>
+ </div>
+ <div class="ds-row"><span class="ds-lbl">Malé (28 px)</span>
+  <button class="btn primary sm">Posoudit na Návrhu</button>
+  <button class="btn sm"><i class="ph ph-arrow-counter-clockwise s"></i>Obnovit</button>
+  <button class="btn quiet sm">Teď ne</button>
+  <button class="btn ai sm"><i class="ph ph-sparkle s"></i>Navýšit a pokračovat<b class="amt">10,00 USD</b></button>
+ </div>
+ <div class="ds-row"><span class="ds-lbl">Nedostupné</span>
+  <button class="btn primary" disabled>Spustit výzkum</button><span class="cap">Nejdřív doplňte velikost vzorku.</span>
+ </div>
+</div>
+</div>
+</div></section>
+<h2 id="g-stav" class="gx-group">Stav</h2>
+<section class="gx-card" id="Chip"><h3><a href="components/Chip/README.md">Štítek (Chip)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row"><span class="chip op"><i class="ph ph-lock-simple"></i>Jen operátor</span><span class="chip inapp"><i class="ph ph-sliders-horizontal"></i>Nastavuje se v AIA</span><span class="chip code">Pevně v kódu</span><span class="chip code">V AIA zatím není</span></div>
+ <div class="ds-row"><span class="chip good">Třída A</span><span class="chip live"><span class="dot live"></span>V platnosti</span><span class="chip you">Ke schválení · 3</span><span class="chip bad">Odmítnuto</span><span class="chip world">Čeká na poskytovatele</span><span class="chip ai"><i class="ph ph-sparkle"></i>AI úloha</span></div>
+ <div class="ds-row"><span class="ds-lbl">Výběr více</span><button class="chip pick on">Cenová citlivost</button><button class="chip pick">Loajalita</button><button class="chip pick on">Image značky</button></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="StatusGlyph"><h3><a href="components/StatusGlyph/README.md">Stav (StatusGlyph and status pill)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col">
+ <div class="ds-row">
+  <span class="st"><i class="g done"></i>Hotovo</span>
+  <span class="st"><i class="g you"></i>Čeká na vás</span>
+  <span class="st"><i class="g run"></i>Běží</span>
+  <span class="st"><i class="g world"></i>Čeká na rozpočet</span>
+  <span class="st"><i class="g fault"></i>Chyba</span>
+  <span class="st"><i class="g inert"></i>Nezačato</span>
+  <span class="st"><i class="g force"></i>V platnosti</span>
+ </div>
+ <div class="ds-row wb ds">
+  <span class="pill done"><span class="stg sm done"><i class="ph ph-check"></i></span>Hotovo</span>
+  <span class="pill you"><span class="stg sm you"><i class="ph ph-pause"></i></span>Čeká na vás</span>
+  <span class="pill run"><span class="stg sm run"></span>Běží</span>
+  <span class="pill fault"><span class="stg sm fault"><i class="ph ph-x"></i></span>Chyba</span>
+  <span class="pill"><span class="stg sm inert"></span>Nezačato</span>
+ </div>
+ <div class="ds-row"><span class="ds-lbl">Hustá tabulka</span><span class="row" style="gap:6px"><span class="dot on"></span>Aktivní</span><span class="row" style="gap:6px"><span class="dot live"></span>V platnosti</span><span class="row" style="gap:6px"><span class="dot world"></span>Čeká</span><span class="row" style="gap:6px"><span class="dot off"></span>Vypnuto</span></div>
+</div>
+</div>
+</div></section>
+<h2 id="g-zobrazen" class="gx-group">Zobrazení</h2>
+<section class="gx-card" id="Card"><h3><a href="components/Card/README.md">Karta a sekce (Card, StageSection)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col wb ds" style="max-width:720px">
+ <section class="sec"><div class="sh"><span class="num">01</span><h2>Co potřebujete zjistit?</h2><span class="grow"></span><span class="cap">povinné</span></div>
+  <div class="sb"><p>Jak lidé, kteří pijí ležák aspoň jednou týdně, vnímají Zlatou Horu 12° vedle konkurence, a ve kterých atributech ztrácí.</p></div></section>
+ <div class="card"><div class="between"><h2>Uchovávané záznamy</h2><span class="cap">365 dní</span></div><p class="muted">Útrata AI a audit zůstávají i po smazání studie nebo klienta.</p></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Diff"><h3><a href="components/Diff/README.md">Změny (Diff)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="max-width:640px"><span class="cap"><b style="color:var(--diff-add-sign)">+2</b> <b style="color:var(--fault)">−1</b> oproti verzi v platnosti</span>
+<div class="diff" style="min-height:0"><div class="dl eq"><span class="no">12</span><span class="sg"></span><code>Odpovídej česky a stručně.</code></div><div class="dl del"><span class="no">13</span><span class="sg">−</span><code>Čísla zaokrouhluj na celé.</code></div><div class="dl add"><span class="no">13</span><span class="sg">+</span><code>Čísla piš jen z kontextu, se znaménkem.</code></div><div class="dl add"><span class="no">14</span><span class="sg">+</span><code>Neznámou hodnotu napiš slovy.</code></div></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="EmptyState"><h3><a href="components/EmptyState/README.md">Prázdný stav (EmptyState)</a></h3><div class="gx-frame"><div class="aia ds">
+<div style="border:1px dashed var(--strong);border-radius:6px;padding:24px;display:flex;gap:12px;align-items:center;background:var(--raised);max-width:640px"><i class="ph ph-tray" style="width:20px;height:20px"></i><div class="grow"><b>Zatím žádné znalosti</b><p class="cap">Přidejte podklady klienta, nebo je navrhněte ze studie. Každý návrh AI čeká na schválení.</p></div><button class="btn primary sm"><i class="ph ph-plus s"></i>Přidat podklady</button></div>
+</div>
+</div></section>
+<section class="gx-card" id="KeyValue"><h3><a href="components/KeyValue/README.md">Údaje (KeyValue, Facts)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row" style="align-items:flex-start;gap:32px">
+ <dl class="kv" style="grid-template-columns:200px 120px"><dt>Studie, běhy, výsledky</dt><dd>14</dd><dt>Zdroje klienta</dt><dd>37</dd><dt>Útrata AI</dt><dd>zůstane 365 dní</dd></dl>
+ <div class="wb ds" style="width:320px"><dl class="facts"><dt>Cena nejvýše</dt><dd class="key">0,40 USD<span class="cap">z rozpočtu studie · zbývá 38,80 USD</span></dd><dt>Model</dt><dd>neznámá cena</dd></dl></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="KpiTile"><h3><a href="components/KpiTile/README.md">Figury (KpiTile, hero figures)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="kpis" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+ <div class="kpi"><span class="ic"><i class="ph ph-wallet"></i></span><div><div class="cap">Utraceno</div><div class="v">11,20 USD</div></div></div>
+ <div class="kpi"><span class="ic"><i class="ph ph-hourglass-medium"></i></span><div><div class="cap">Drženo</div><div class="v">0,40 USD</div></div></div>
+ <div class="kpi"><span class="ic"><i class="ph ph-question"></i></span><div><div class="cap">Nejistá volání</div><div class="v">1 · ?</div></div></div>
+ <div class="kpi"><span class="ic"><i class="ph ph-gauge"></i></span><div><div class="cap">Zbývá</div><div class="v">38,40 USD</div></div></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Note"><h3><a href="components/Note/README.md">Poznámka (Note)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="max-width:640px">
+ <div class="note"><i class="ph ph-pause-circle"></i> Klientovi právě běží 1 studie. Smazat jde, až doběhne nebo ji zastavíte.</div>
+ <div class="note you"><i class="ph ph-pause"></i> <b>Čeká na vás.</b> Krok Sběr dat se zastavil na rozpočtu studie. Navyšte ho, nebo běh ukončete.</div>
+ <div class="note bad"><i class="ph ph-x"></i> <b>Analýza modulu Hypotézy selhala.</b> Model dvakrát vrátil odpověď mimo schéma. Zkusit znovu nad stejnými daty: <a href="#">Zopakovat analýzu</a>.</div>
+ <div class="note sig">Úprava začíná z verze v platnosti: <b class="mono">aia-sociomap-5</b>. Uložená úprava je jen interní, dokud ji vlastník metody nezapíše do registru.</div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Table"><h3><a href="components/Table/README.md">Tabulka (Table)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="tbl" role="table" aria-label="Útrata podle výzkumníka" style="grid-template-columns:minmax(160px,1fr) 120px 120px 140px">
+ <div class="tr" role="row"><div class="th" role="columnheader">Výzkumník</div><div class="th" role="columnheader" style="text-align:right">Utraceno</div><div class="th" role="columnheader" style="text-align:right">Drženo</div><div class="th" role="columnheader">Stav</div></div>
+ <div class="tr" role="row"><div class="td" role="cell">Jana Malá</div><div class="td mono" role="cell" style="text-align:right">11,20 USD</div><div class="td mono" role="cell" style="text-align:right">0,40 USD</div><div class="td" role="cell"><span class="st"><i class="g run sm"></i>Běží</span></div></div>
+ <div class="tr" role="row" style="background:var(--youwash)"><div class="td" role="cell">Petr Novák</div><div class="td mono" role="cell" style="text-align:right">46,80 USD</div><div class="td mono" role="cell" style="text-align:right">2,00 USD</div><div class="td" role="cell"><span class="st"><i class="g you sm"></i>Čeká na vás</span></div></div>
+ <div class="tr" role="row"><div class="td" role="cell">Neznámý</div><div class="td" role="cell" style="text-align:right">?</div><div class="td mono" role="cell" style="text-align:right">0,00 USD</div><div class="td cap" role="cell">cena nezjištěna</div></div>
+</div>
+</div>
+</div></section>
+<h2 id="g-pekryvy" class="gx-group">Překryvy</h2>
+<section class="gx-card" id="CommandPalette"><h3><a href="components/CommandPalette/README.md">Příkazová paleta (CommandPalette)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="cmdk" style="position:static;width:560px" role="dialog" aria-label="Příkazová paleta">
+ <div class="cmdk-in"><i class="ph ph-magnifying-glass"></i><input type="text" aria-label="Hledat" value="ležák"><span class="cmdk-scope">Vše</span></div>
+ <div class="cmdk-list">
+  <div class="cmdk-grp">Čeká na vás</div>
+  <a class="cmdk-it" aria-selected="true"><i class="ph ph-pause-circle"></i><span class="grow">Posoudit návrh dotazníku <span class="sub">Vnímání značek ležáků 2026 · Dotazník</span></span><span class="kbd">Enter</span></a>
+  <div class="cmdk-grp">Přejít</div>
+  <a class="cmdk-it"><i class="ph ph-squares-four"></i><span class="grow">Vnímání značek ležáků 2026 <span class="sub">přehled studie</span></span></a>
+  <div class="cmdk-grp">Akce</div>
+  <a class="cmdk-it"><i class="ph ph-sparkle"></i><span class="grow">Analyzuj zadání <span class="sub">úloha Vedoucího</span></span><span class="cap">≤ 0,40 USD</span></a>
+ </div>
+ <div class="cmdk-ft"><span><span class="kbd">↑</span><span class="kbd">↓</span> vybrat</span><span><span class="kbd">Enter</span> otevřít</span><span><span class="kbd">Esc</span> zavřít</span></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="Dialog"><h3><a href="components/Dialog/README.md">Dialog</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="scrim" style="position:relative;inset:auto;min-height:260px"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="d1">
+ <h2 id="d1">Smazat klienta Pivovar Zlatá Hora?</h2>
+ <p class="muted" style="margin:8px 0">Smaže se 14 studií, 37 zdrojů a 112 znalostí klienta. Záznamy útraty a audit zůstanou 365 dní.</p>
+ <label class="lbl" for="cn">Pro potvrzení napište název klienta: <b>Pivovar Zlatá Hora</b></label><input id="cn" type="text" value="Pivovar Zlatá" style="width:100%">
+ <div class="row" style="justify-content:flex-end;margin-top:12px;gap:8px"><button class="btn quiet">Zrušit</button><button class="btn danger" disabled>Smazat natrvalo</button></div>
+</div></div>
+</div>
+</div></section>
+<section class="gx-card" id="SpendDialog"><h3><a href="components/SpendDialog/README.md">Peníze (SpendDialog)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="scrim" style="position:relative;inset:auto;min-height:300px"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="s1">
+ <h2 id="s1">Spustit výzkum za nejvýše 24,00 USD?</h2>
+ <dl class="kv" style="grid-template-columns:200px 1fr"><dt>Strop běhu</dt><dd><b>24,00 USD</b> · horní mez, ne odhad</dd><dt>Rozpočet studie</dt><dd>zbývá 38,80 USD z 50,00 USD</dd><dt>Práh potvrzení</dt><dd>20,00 USD · překročen, proto se ptáme</dd><dt>Nejistá volání</dt><dd>1, cena neznámá</dd></dl>
+ <div class="row" style="justify-content:flex-end;margin-top:16px;gap:8px"><button class="btn quiet">Zrušit</button><button class="btn ai"><i class="ph ph-sparkle"></i>Spustit výzkum<b class="amt">24,00 USD</b></button></div>
+</div></div>
+</div>
+</div></section>
+<section class="gx-card" id="Toast"><h3><a href="components/Toast/README.md">Oznámení (Toast)</a></h3><div class="gx-frame"><div class="aia ds">
+<div style="position:relative;height:72px"><div class="toast row" role="status" style="position:absolute;gap:12px">Role Petra Nováka změněna na Správce.<button class="btn sm quiet" style="color:var(--surface)">Vrátit</button></div></div>
+</div>
+</div></section>
+<h2 id="g-vedouc" class="gx-group">Vedoucí</h2>
+<section class="gx-card" id="AgentStatus"><h3><a href="components/AgentStatus/README.md">Stav Vedoucího (AgentStatus)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="width:420px"><div class="agent"><span class="orb"></span><span class="grow">Čte zadání a 2 podklady · 0:12</span><button class="btn quiet sm">Zastavit</button></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="ChangeReview"><h3><a href="components/ChangeReview/README.md">Kontrola změn (ChangeReview)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="chg" style="width:460px"><div class="chg-h"><span class="grow">Dotazník · Q4 · škála</span><button class="btn quiet sm">Vrátit</button><button class="btn sm">Ponechat</button></div><div class="chg-b">Jak hodnotíte chuť? Škála <del>1–5</del> <ins>1–7</ins></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="LeadCard"><h3><a href="components/LeadCard/README.md">Karta Vedoucího (LeadCard)</a></h3><div class="gx-frame"><div class="aia ds wb">
+<div class="lc ai" style="max-width:420px;border-radius:10px">
+ <div class="ch"><span class="ico"><i class="ph ph-sparkle"></i></span><div class="grow"><div class="ey">Váš příkaz · návrhová úloha</div><div class="ttl">Analýza zadání</div></div><span class="pill you"><span class="stg sm you"><i class="ph ph-pause"></i></span>Čeká na vás</span></div>
+ <p class="why">Z cíle, rozhodnutí a podkladů navrhne výzkumné otázky, cíle a hypotézy pro Návrh. Nic nezmění, dokud návrh nepřijmete.</p>
+ <dl class="facts"><dt>Cena nejvýše</dt><dd class="key">0,40 USD<span class="cap">z rozpočtu studie · zbývá 38,80 USD</span></dd><dt>Čte</dt><dd>Zadání, revize 7 · brief_ZlataHora_2026.pdf</dd></dl>
+ <div class="acts" style="display:flex;gap:8px;padding:10px 12px"><button class="btn quiet sm">Teď ne</button><span class="grow"></span><button class="btn ai sm"><i class="ph ph-sparkle s"></i>Spustit úlohu<b class="amt">0,40 USD</b></button></div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="LeadChat"><h3><a href="components/LeadChat/README.md">Konverzace s Vedoucím (LeadChat)</a></h3><div class="gx-frame"><div class="aia ds wb">
+<div class="conv" style="display:flex;flex-direction:column;gap:12px;max-width:420px;padding:12px;background:var(--surface)">
+ <div class="day cap" style="text-align:center">Dnes</div>
+ <div class="reply"><span class="lav"><img src="assets/LeadMarks/lissajous.svg" width="18" height="18" alt="" style="filter:invert(1)"></span><div class="body"><div class="who"><b>Ada</b>9:12 · četla revizi 7</div><p>Zadání je skoro úplné. Chybí jen rozhodnutí, které má výzkum podpořit.</p><div class="views"><button class="btn sm"><i class="ph ph-target s"></i>Ukázat: Rozhodnutí</button></div></div></div>
+ <div class="me"><span class="chip" style="margin-bottom:4px"><i class="ph ph-file-text s"></i>brief_ZlataHora_2026.pdf · 6 stran</span><br>Posílám brief od klienta.</div>
+ <div class="composer" style="border:1px solid var(--strong);border-radius:12px"><div class="row" style="gap:6px"><button class="btn quiet sm" aria-label="Akce, podklady a kontext"><i class="ph ph-plus"></i></button><textarea rows="1" aria-label="Zpráva Vedoucímu" placeholder="Napište Vedoucímu…" style="flex:1;border:0;background:transparent;min-height:28px"></textarea><button class="btn primary sm" aria-label="Odeslat"><i class="ph ph-paper-plane-right"></i></button></div></div>
+ <div class="cap row" style="gap:6px"><i class="ph ph-eye s"></i>Vedoucí vidí: Zadání, revize 7 · 2 soubory</div>
+</div>
+</div>
+</div></section>
+<section class="gx-card" id="LeadMark"><h3><a href="components/LeadMark/README.md">Značka Vedoucího (LeadMark)</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="lmarks" role="radiogroup" aria-label="Značka">
+ <button role="radio" aria-checked="true"><span class="tile"><img src="assets/LeadMarks/lissajous.svg" alt="Lissajous"></span><b>Lissajous</b><code>x = sin(3t + π/2), y = sin(2t)</code></button>
+ <button role="radio" aria-checked="false"><span class="tile"><img src="assets/LeadMarks/fourier.svg" alt="Fourierovy kružnice"></span><b>Fourier</b><code>z(t) = Σ rₖ e^(i k t)</code></button>
+ <button role="radio" aria-checked="false"><span class="tile"><img src="assets/LeadMarks/slunecnice.svg" alt="Slunečnice"></span><b>Slunečnice</b><code>θ = n · 137,5°, r = c√n</code></button>
+ <button role="radio" aria-checked="false"><span class="tile"><img src="assets/LeadMarks/interference.svg" alt="Interference"></span><b>Interference</b><code>y = sin(kx − ωt) + sin(k′x + ω′t)</code></button>
+ <button role="radio" aria-checked="false"><span class="tile"><img src="assets/LeadMarks/gauss.svg" alt="Gaussova křivka"></span><b>Gauss</b><code>φ(x) = e^(−x²/2) / √(2π)</code></button>
+</div>
+<div class="between" style="margin-top:12px;display:flex;align-items:center;gap:12px"><b style="font-size:14px">Pohyb značky</b><span class="seg sm" role="radiogroup" aria-label="Pohyb značky"><button role="radio" class="on" aria-checked="true">Pohyb</button><button role="radio">Klid</button></span></div>
+</div>
+</div></section>
+<h2 id="g-interakce" class="gx-group">Interakce</h2>
+<section class="gx-card" id="I-AIUloha"><h3><a href="components/I-AIUloha/README.md">AI úloha: od návrhu k rozhodnutí</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><span class="pill you"><span class="stg sm youq"><i class="ph ph-pause"></i></span>Čeká na vás</span><span class="pill run"><span class="stg sm run"></span>Běží</span><span class="pill done"><span class="stg sm done"><i class="ph ph-check"></i></span>Hotovo</span><span class="pill">Zastaralé</span></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-Klavesnice"><h3><a href="components/I-Klavesnice/README.md">Klávesnice</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="keys" style="width:520px"><div><span>Hledat nebo spustit</span><span><span class="kbd">⌘</span><span class="kbd">K</span></span></div><div><span>Zkratky</span><span class="kbd">?</span></div><div><span>Přejmenovat</span><span class="kbd">F2</span></div><div><span>Zpět o úroveň</span><span class="kbd">Esc</span></div><div><span>Klienti</span><span><span class="kbd">G</span><span class="kbd">K</span></span></div><div><span>Nový výzkum</span><span class="kbd">N</span></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-Navigace"><h3><a href="components/I-Navigace/README.md">Pohyb studií</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><a class="btn primary sm">Cílová skupina<i class="ph ph-caret-right s"></i></a><span class="cap">otevře další krok a zaměří jeho nadpis</span></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-Penize"><h3><a href="components/I-Penize/README.md">Peníze: jedno okno, čtyři jména</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><button class="btn ai"><i class="ph ph-sparkle"></i>Spustit výzkum<b class="amt">≤ 6,10 USD</b></button><span class="cap">otevře SpendDialog: horní mez 6,10 · zbude nejméně 32,70 USD z rozpočtu studie</span></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-StavyObsahu"><h3><a href="components/I-StavyObsahu/README.md">Načítání, prázdno, chyba</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="width:420px"><div class="skel" style="height:12px;width:60%"></div><div class="skel" style="height:12px;width:85%"></div><div class="empty"><p>Zatím žádné výstupy.</p><button class="btn sm">Spustit výzkum</button></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-Ukladani"><h3><a href="components/I-Ukladani/README.md">Ukládání: jeden stav, všude stejně</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><span class="cap">Ukládám…</span><span class="cap" style="color:var(--ink)"><i class="ph ph-check s"></i> Uloženo</span><span class="cap" style="color:var(--fault)">Neuloženo – <a href="#">Zkusit znovu</a></span></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-UpravyNaMiste"><h3><a href="components/I-UpravyNaMiste/README.md">Úpravy na místě a vytváření v řádku</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-col" style="width:380px"><div class="ds-row"><i class="ph ph-dots-six-vertical" aria-hidden="true"></i><span>Q4 · Jak hodnotíte chuť?</span><span class="cap">Alt ↑ ↓</span></div><div class="ds-row"><i class="ph ph-plus"></i><span class="cap">Nová otázka · Enter vytvoří a otevře další</span></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-VratitNeboPotvrdit"><h3><a href="components/I-VratitNeboPotvrdit/README.md">Vrátit, nebo potvrdit</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="ds-row"><div class="toasts" style="position:static"><div class="toast" style="display:flex;gap:10px;align-items:center;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--overlay)"><span>Složka „Brand 2025“ smazána</span><button class="btn quiet sm">Vrátit</button><span class="cap">8 s</span></div></div></div>
+</div>
+</div></section>
+<section class="gx-card" id="I-Vyber"><h3><a href="components/I-Vyber/README.md">Výběr a hromadné akce</a></h3><div class="gx-frame"><div class="aia ds">
+<div class="bulk" style="display:flex;gap:8px;align-items:center;padding:6px 10px;border:1px solid var(--sedge);background:var(--stint);border-radius:8px;width:520px"><b>Vybráno: 3</b><span class="grow" style="flex:1"></span><button class="btn sm">Přesunout do složky</button><button class="btn sm">Přidat štítek</button><button class="btn quiet sm">Zrušit výběr</button></div>
+</div>
+</div></section>
+</main>
+<script>
+(function () {
+  var b = document.getElementById("gx-theme");
+  b.addEventListener("click", function () {
+    var dark = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", String(dark));
+    b.textContent = dark ? "Světlý režim" : "Tmavý režim";
+    document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+    document.querySelectorAll(".aia").forEach(function (el) { el.setAttribute("data-theme", dark ? "dark" : "light"); });
+  });
+})();
+</script>
+</body>
+</html>
