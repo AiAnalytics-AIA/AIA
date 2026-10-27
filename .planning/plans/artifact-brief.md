@@ -7,7 +7,8 @@ chunks:
   - "[ ] BRF4. The Lead on the Brief: analyze_brief as a Lead card, its proposal inline, the stage's own AI start removed"
   - "[ ] BRF5. What the Brief hands on, in its inspector (Vstupy, závislosti a původ): the readers of each field, from the chain manifest"
   - "[x] BRF6. Journey: the Brief at 1440, 1100, 768 and 390 px with the scripted Lead and zero paid jobs"
-  - "[ ] BRF7. A brief's files are Class A by rule, like a client's sources; a person marks one Veřejné to make it Class B: material_rules.py and the class pill, an ADR 0008 amendment note (B4 (a), Nigel 2026-10-26; spec navrh B6, OQ18; W1)"
+  - "[ ] BRF7. A brief's files are Class A by rule, like a client's sources; a person marks one Veřejné to make it Class B: material_rules.py and the class pill, an ADR 0008 amendment note (B4 (a), Nigel 2026-10-26; spec navrh B9, OQ18; W1)"
+  - "[ ] BRF8. The served class sentence: GET …/workspace/materials answers, beside each material's class, where that class may go in words (for example 'smí jen k modelu v EU'), from the residency and route rules, so BRF3's sentence is the server's, never written in the web (spec navrh B6, Zadání gap 2; W1, with BRF7)"
 ---
 # Artifact: Zadání (Brief)
 
@@ -322,7 +323,9 @@ ids repeat across sections. A ticked chunk the spec reopens is never unticked: i
 follow-up chunk below.
 
 **Notes.**
-**BRF7. A brief's files are Class A by rule** (spec `navrh/B6`, OQ18; W1, lane E). B4 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: a brief's files are Class A by rule, like a client's sources; a person may mark one Veřejné, which makes it Class B. A material-rule change in `domain/material_rules.py` (today a brief's file and link take `MaterialRule.DESIGN`, Class B, `packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 40b16d58`) with BRF3's pill. An ADR 0008 implication: the amendment note goes under Doc follow-up in its PR. Test: an unmarked brief file classes A, a file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one.
+**BRF7. A brief's files are Class A by rule** (spec `navrh/B9`, OQ18; W1, lane E; cited `navrh/B6` until 2026-10-27, which is the class sentence of BRF3 and BRF8). B4 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: a brief's files are Class A by rule, like a client's sources; a person may mark one Veřejné, which makes it Class B. A material-rule change in `domain/material_rules.py` (today a brief's file and link take `MaterialRule.DESIGN`, Class B, `packages/aia_core/src/aia_core/domain/brief_material_classes.py:8-9 @ 40b16d58`) with BRF3's pill. An ADR 0008 implication: the amendment note goes under Doc follow-up in its PR. Test: an unmarked brief file classes A, a file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one.
+
+*Lost work, not built (PM coordinator, 26 Oct 2026).* Part 1 was built once and lost: commit `35487a6b2` on `feature/brief-file-class`, local to the Zadání session and never pushed (Nigel withdrew its push at 13:10 UTC for usage limits), went with the session's container when it was archived at 23:19 UTC. Nothing of it is on any branch; BRF7 starts again from this entry. What it held, as a guide to the redo: the Class A rule for a brief's files in `material_rules.py`, unless marked Veřejné (Class B); an endpoint answering each file's class; the design jobs reading that class; the Lead's turn adding a `brief_files` part, Class A, in the design layer (`domain/research_lead.py` `context_classification`, `lead_context.PART_LAYERS`), agreed with the integration coordinator. Its lint, typecheck, layer and exposure checks and 631 lead and prompt tests passed; the full suite had one failure not yet identified. Part 2, the web (BRF3's pill from the server's class, the Veřejné toggle on each file), was never started. Nigel's decision that each part keeps its own class (BRF7, 26 Oct 2026) stands.
 
 Every other Zadání row of the spec maps to an open chunk.
 - BRF2 carries `navrh/B1`, `navrh/B2`, `navrh/B3`, `navrh/B5`, on `research-lead-workbench#36`.
@@ -330,3 +333,22 @@ Every other Zadání row of the spec maps to an open chunk.
 - BRF4 carries `navrh/B7` and `navrh/B8`.
 - Decided by default (planning, 26 Oct 2026, open to Nigel's override): the brief's "povinné" is advisory, never a gate on analyze_brief.
 - B5 decided (b) (Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator): **keep the ten problem types** (18.6.6's, parity-tested); the board changes to the ten, not the code (spec `navrh/B1`, OQ15).
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**BRF7's citation** is fixed: the class rule is spec `navrh/B9` ("A brief file's class: Důvěrné by rule, Veřejné by a
+person"); `navrh/B6` is the Podklady rows' class sentence (BRF3, BRF8).
+
+**BRF8. Where a class may go, served** (W1, lane E). Zadání gap 2 (spec `navrh/§1.4`): "smí jen k modelu v EU" needs a
+served answer for where a class may go; no route serves it, and reading it from `residency` is a **hypothesis**. The
+materials route (`GET /studies/{id}/workspace/materials`) answers, per material, a sentence built on the server from the
+class and the residency and route rules (`domain/residency.py`, `material_rules.py`); the web prints it and never writes
+its own. Test: a Class A file answers the EU-only sentence; an unanswered class reads "neznámá".

@@ -18,7 +18,7 @@ chunks:
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
-  - "[ ] LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line"
+  - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
   - "[ ] LO5a. Deep Research from the Lead: a plan-step kind and a typed chat start, priced by deep-research-web-search 55's ceiling (D-12); split into LO5a.1-LO5a.4 (2026-10-21), this line holds the acceptance and is ticked when they and research-lead-workbench 26f.1 have landed"
@@ -38,14 +38,17 @@ chunks:
   - "[ ] LO21d. The four request types (agent_job, research_run, design_research, interpretation_research) migrated to actions; a stored request still reads"
   - "[ ] LO21e. The plan kind: one action whose steps reference registered actions, LO4's card (steps shown, one approval, live state per step)"
   - "[ ] LO9d. Every stage worker gets its declared inputs: the upstream accepted items, readiness, question outlook, research trace, earlier proposals' reasons and dismissals, and the newest sealed Deep Research bundle's findings by reference, labelled external context (Q12)"
-  - "[ ] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
+  - "[x] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
   - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
   - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
   - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
   - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
   - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
   - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
-  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the newest Design Research run (artifact-questionnaire#QST13) (Nigel, 26 Oct; W1)"
+  - "[ ] LO27. The Lead drafts or improves the questionnaire with no file through the existing build/optimize questionnaire jobs as a card, those jobs reading every verified finding of the study's Design Research runs, not the newest run's first 24 (artifact-questionnaire#QST13, #QST14; amended 2026-10-27) (Nigel, 26 Oct; W1)"
+  - "[ ] LO28. The Deep Research cards' price before approval, the server: a Design, Interpretation or retry card's request answers its quoted ceiling_usd before the person approves, as LO23 does for a design job (Nigel, 27 Oct 2026; W1)"
+  - "[ ] LO29. A confirmation names the ceiling it confirmed: a start (a card, a typed start, a document's AI proposals) whose ceiling grew after the person's yes is asked again, 409 with the new ceiling, never started on the old yes and never shown as an error (Nigel, 27 Oct 2026; W1)"
+  - "[ ] LO30. A reused run's spend: an agent job that reused an earlier run answers reused_run_id and its spend is attributed to that run, never counted twice (as #1006 did for Deep Research; Nigel, 27 Oct 2026; W2)"
 ---
 # Lead orchestration: the wallet, the plan card, the continuation turn and the Lead over time
 
@@ -216,6 +219,13 @@ A wording change to the criterion, made with the acceptance harness, not a behav
 
 **LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line**  
 The prototype's own documentation lists the unmeasured cost per turn as a gap to production.
+*ADR 0041 Amendment 1 (the owner, 2026-10-26, REV-0041-BENCH-CAP (a)).* The cost per turn is
+measured by `lead-conversation#LC13`'s benchmark: each configuration's mean and 95th-percentile USD
+per turn and per search-and-read round (`lead-client-knowledge#LK3`), from the usage ledger. A paid
+benchmark run is started by hand, its request count and ceiling stated before it starts, at most
+USD 50, on Nigel's word each time; it repeats when the model, the prompt or the share table
+changes. The hold is the counted tokens of the turn's requests (A1, `lead-conversation#LC4`), never
+its bytes as tokens. The budget line shows the measured cost per turn beside the wallet.
 
 ## Open: owner clarifications
 
@@ -1603,6 +1613,40 @@ follow-up chunk below.
 
 **LO23. The ceiling before a start** (spec `lead/LP-4`, also `szz/A6` and `lead/LP-13`, one API; W1, a money API moved into W1 by the register §6.3). A prepared request and an analysis retry answer the most they can cost, with LO15's threshold. Test: a prepared run request answers its ceiling; an unknown ceiling reads unknown.
 
+*LO23 delivered (2026-10-26, `feature/lead-request-ceiling`, stacked on #1006):*
+- `routers/lead.py`: every `LeadTurn` answers `ceiling_usd`: a Lead card's `agent_job` request or
+  a typed `agent_job:` command answers the design job's reservation
+  (`AIA_AI_RESEARCH_RESERVATION_USD`, what its start holds and its threshold reads), `null` when
+  that is not configured (unknown, never 0) and on every other turn. A research run's card has
+  its ceiling on its own readiness; a Deep Research card's is its quote (LO5a.2).
+- `GET …/research/runs/{id}/analysis/retryable` answers `ceiling_usd`: the retryable modules,
+  each a draft and its repairs, at the analysis reservation, as the retry's start works it out
+  (`domain/run_cost.py` `analysis_ceiling_usd`, now also what `run_cost_ceiling` counts for its
+  analysis, bit for bit); `null` when the reservation is not configured. Read from the stored
+  outcomes, so not on `GET /lead`, which the pane polls.
+- The web: an agent-job card shows "Cena nejvýše" before approval, an unknown one in words
+  (`usdWords`); `api.ts` `retryableModules` types the field.
+- Tests: `test_research_lead_api.py` "a prepared job answers its ceiling before the start and
+  unknown is null"; `test_lead_chat_start_api.py` "a typed job answers its ceiling before it
+  starts"; `test_product_acceptance.py` (a failed module's retry answers 1 x 3 x 1.0);
+  `test_research_api.py` (null without a reservation); `test_run_cost.py`; `LeadPane.test.tsx`
+  "says the most a prepared job can cost before it starts".
+- Not here: the typed analysis retry's card reading the ceiling (LP-13's card, which lists the
+  modules, reads the same route), and Výsledky's retry button showing it (szz/A6's screen).
+- Stand-in review of #1014:
+  - *P2, fixed:* the retryable route priced only the retryable modules, but the retry's start
+    prices `modules_asked`, which also counts modules the run has no record of. A run missing a
+    module's step showed 3,00 USD and then asked 6,00. `analysis_results.modules_asked` is now
+    the one count both use. Test: `test_analysis_executor.py` "a retry is priced on every module
+    its start asks, not only the failed ones".
+  - *P3, fixed:* a reservation of 0 answered "Cena nejvýše 0,00 USD"; a non-positive reservation
+    is now unknown on the card too, as `analysis_ceiling_usd` reads it.
+  - *P3, a later chunk:* nothing on screen reads the retry's ceiling yet (`api.ts` types it);
+    LP-13's card and szz/A6's button will (above).
+- Doc follow-up: `CLAUDE.md` map, routers `lead`: "each turn's `ceiling_usd` (LO23)"; routers
+  `research`: "`…/analysis/retryable` answers `ceiling_usd`"; `domain/run_cost.py`:
+  `analysis_ceiling_usd`.
+
 **LO24. A job's open hold** (spec `lead/LP-5`, no backend; W2).
 
 **LO25. Request dismiss** (spec `lead/LP-7`, no backend; W1). After LO10.
@@ -1619,4 +1663,31 @@ follow-up chunk below.
 - **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
 - **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.
 
-**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13`, every verified finding of the newest Design Research run (Nigel, 01:47 UTC: "All verified findings"). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.
+**LO27. The questionnaire from the Lead without a file** (Nigel, 26 Oct). W1. The existing `build_questionnaire` / `optimize_questionnaire` agent jobs, reached through the Lead's job request (a card). They read the brief, plan, analysis and approved knowledge today and, with `artifact-questionnaire#QST13` and `#QST14`, every verified finding of the study's Design Research runs (Nigel, 01:47 UTC: "All verified findings"; amended 2026-10-27: QST13 as built reads the newest run's findings, capped at 24, which QST14 lifts). Test: a typed request on an empty Dotazník prepares the job's card; nothing is written before the accept.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**LO28. Deep Research cards priced** (W1, lane C). Every paid card shows its price before approval (Nigel, 27 Oct 2026).
+The three Deep Research cards (LO5a.1) are approved on the quote LO5a.2 computes at approval
+(`application/lead_deep_research.py`, #1006), but the card does not answer that ceiling before the person decides.
+Serve it on the turn's request, from the same quote, for the design, interpretation and retry cards. Test: each card's
+request answers `ceiling_usd`; an unquotable one answers unknown, never 0.
+
+**LO29. Re-ask when the ceiling grows** (W1). A person's yes names the ceiling it confirmed (the ledger's confirmation
+row); a start whose ceiling is now higher answers 409 with the new ceiling, the card asks again in words ("Cena se
+zvýšila na nejvýše …"), never an error state, and nothing starts on the old yes. One rule for the Lead's cards, the
+typed starts and a document's AI proposals (`client-knowledge-lifecycle#K16`). Test: a yes at 1.20 USD, the ceiling now
+1.50: 409 with 1.50; a yes at 1.50 starts.
+
+**LO30. Reused-run spend** (W2). The workflow repository already names a reused run (`reused_run_id`,
+`infrastructure/workflow_repository.py:2845-2881 @ dbaa7720`); `AgentJobResponse` and the card's spend do not say it.
+Answer `reused_run_id` and attribute the spend to it, so a reused job costs nothing new and says why. Test: a job that
+reused a run answers its id and no new spend.

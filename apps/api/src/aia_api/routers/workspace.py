@@ -28,11 +28,13 @@ from aia_core.application.project_memory import (
     search_client_studies,
 )
 from aia_core.application.research import BudgetNotRaised, ResearchStepNotFound
+from aia_core.application.working_copy import EditsRefused, apply_person_edits
 from aia_core.domain.attachments import ATTACHMENT_MAX_BYTES, AttachmentRejected
 from aia_core.domain.brief_material_classes import brief_material_classes
 from aia_core.domain.client_profile import ClientContact, ClientProfile, ContactDraft
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
+from aia_core.domain.edit_ops import WorkingOp
 from aia_core.domain.knowledge import (
     KNOWLEDGE_SECTIONS,
     KnowledgeFolder,
@@ -534,6 +536,30 @@ class WorkingContentSaved(BaseModel):
     revision: int
     revision_id: str
     deduplicated: bool
+
+
+#: The most operations one batch carries; a stage that holds more saves its copy whole.
+OPS_PER_BATCH = 100
+
+
+class WorkingOpsSave(BaseModel):
+    """A person's edits from a stage, in the working copy's vocabulary (``domain/edit_ops.py``),
+    applied in order as one batch (working-copy-edit-ops WCE3a)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    #: The revision the edits were made on; null only for a study with no content yet.
+    base_revision: int | None = Field(default=None, ge=1)
+    ops: list[WorkingOp] = Field(min_length=1, max_length=OPS_PER_BATCH)
+    reason: str = Field(default="autosave", max_length=64, pattern=r"^[a-z0-9_:.-]{1,64}$")
+
+
+class WorkingOpsSaved(WorkingContentSaved):
+    """What one batch did, and the copy as saved: the stage keeps the server's copy (the ids it
+    gave what the batch added among it), not its own."""
+
+    content: dict[str, Any]
+    analysis: dict[str, Any] | None
 
 
 class WorkingRevisionResponse(BaseModel):
@@ -2191,6 +2217,66 @@ def save_study_working_content(
         revision=saved.revision,
         revision_id=saved.revision_id,
         deduplicated=saved.deduplicated,
+    )
+
+
+@router.post(
+    "/studies/{study_id}/workspace/ops",
+    response_model=WorkingOpsSaved,
+    summary="Apply a person's edits to the research study's working content",
+    responses={
+        409: {
+            "model": ErrorResponse,
+            "description": "A newer revision exists, an edit was refused, or the content awaits "
+            "migration",
+        }
+    },
+)
+def apply_study_working_ops(
+    body: WorkingOpsSave, scope: StudyScopeDep, session: SessionDep
+) -> WorkingOpsSaved:
+    """The edits applied in order and saved as one new revision, each logged under its own
+    operation, made by the caller through the interface (ADR 0029 decisions 1 and 3).
+
+    Needs ``EDIT_STUDY`` on an open research study. ``base_revision`` is the revision the edits
+    were made on; one from an older revision is refused with 409 ``stale_revision``, as a save is.
+    The batch is all or nothing: an edit the copy does not take (its item gone, a locked Sociomap
+    input) refuses the batch with 409 ``edit_refused``, each refused position with its word, and
+    nothing is saved. An operation the vocabulary declares but does not apply yet has no payload,
+    so the body is refused (422) before anything is read.
+    """
+    try:
+        saved, content = apply_person_edits(
+            session, scope, body.ops, base_revision=body.base_revision, reason=body.reason
+        )
+    except ScopeDenied as exc:
+        raise _forbidden(exc.reason, "Your role on this study does not permit that.") from exc
+    except WorkspaceConflict as exc:
+        raise _workspace_conflict(exc) from exc
+    except WorkspaceRejected as exc:
+        raise HTTPException(
+            status_code=422, detail={"code": exc.reason, "message": str(exc)}
+        ) from exc
+    except EditsRefused as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "edit_refused",
+                "message": "The working content did not take every edit; nothing was saved.",
+                "details": {
+                    "refused": {str(i): word for i, word in sorted(exc.refused.items())},
+                    "current_revision": exc.current_revision,
+                },
+            },
+        ) from exc
+    return WorkingOpsSaved(
+        study_id=saved.study_id,
+        state=saved.state.value,
+        revision=saved.revision,
+        revision_id=saved.revision_id,
+        deduplicated=saved.deduplicated,
+        content=dict(content.content or {}),
+        analysis=content.analysis,
     )
 
 

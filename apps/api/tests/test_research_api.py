@@ -397,6 +397,40 @@ def test_analysis_results_are_study_scoped_and_internal(
     assert other_client_lead.get(wrong).status_code == 404
 
 
+def test_finding_reviews_are_read_and_refused_through_the_study_the_path_names(
+    app: FastAPI, researcher: TestClient, other_client_lead: TestClient, world: Any
+) -> None:
+    """artifact-analysis ANL11: a run's finding reviews are found only through its study, a
+    finding the analysis does not hold is 404, and only an edit carries a wording."""
+    app.state.settings = app.state.settings.model_copy(update={"ai_analysis_enabled": True})
+    revision = submit(researcher, world).json()["revision_id"]
+    run = start(researcher, world, revision).json()
+    base = f"{_runs(world)}/{run['run_id']}/analysis/findings"
+
+    listed = researcher.get(base)
+    assert listed.status_code == 200, listed.text
+    assert listed.json() == {"run_id": run["run_id"], "reviews": []}
+
+    # No module has an outcome yet: there is no finding to decide on.
+    refused = researcher.put(f"{base}/executive/0", json={"decision": "accepted"})
+    assert refused.status_code == 404, refused.text
+    assert refused.json()["code"] == "finding_not_found"
+    mismatch = researcher.put(
+        f"{base}/executive/0", json={"decision": "accepted", "wording": "Čaj vede."}
+    )
+    assert (mismatch.status_code, mismatch.json()["code"]) == (422, "wording_mismatch")
+    assert researcher.put(f"{base}/nonsense/0", json={"decision": "accepted"}).status_code == 422
+    assert researcher.put(f"{base}/executive/0", json={"decision": "kept"}).status_code == 422
+
+    # Another client's study does not hold this run.
+    wrong = f"{_runs(world, 'other_client')}/{run['run_id']}/analysis/findings"
+    assert other_client_lead.get(wrong).status_code == 404
+    assert (
+        other_client_lead.put(f"{wrong}/executive/0", json={"decision": "accepted"}).status_code
+        == 404
+    )
+
+
 def _store_internal_report(
     app: FastAPI,
     world: Any,
@@ -2512,7 +2546,8 @@ def test_retrying_analysis_says_why_a_run_has_nothing_to_ask_again(
     assert missing.status_code == 404
     retryable = researcher.get(f"{_runs(world)}/{run_id}/analysis/retryable")
     assert retryable.status_code == 200, retryable.text
-    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": []}
+    # No analysis reservation is configured here, so the ceiling (LO23) is unknown: null, not 0.
+    assert retryable.json() == {"run_id": run_id, "modules": [], "stale": [], "ceiling_usd": None}
     assert (
         researcher.get(f"{_runs(world)}/RUN-0000000000000000/analysis/retryable").status_code == 404
     )
@@ -2801,8 +2836,62 @@ def test_readiness_forecasts_whether_a_runs_numbers_will_be_shown(
     small, check = forecast(50)
     assert small["ready"] is True, "a forecast warns, it never refuses"
     assert check["status"] == "WARN" and "nevzniknou" in check["message"]
-    _, enough = forecast(450)
+    big, enough = forecast(450)
     assert enough["status"] == "PASS"
+    # SMP9: the n that would suffice is a field, the one the check's words name; none once met.
+    reportable = small["support_forecast"]["reportable_n"]
+    assert isinstance(reportable, int) and reportable > 50
+    assert f"n = {reportable}" in check["message"]
+    assert small["support_forecast"]["reportable_n_state"] == "needs_more"
+    # Met, and said so: a None that only means "nothing needed" (stand-in review of #1010).
+    assert big["support_forecast"] == {"reportable_n": None, "reportable_n_state": "met"}
+
+
+def test_readiness_names_an_unforecast_sufficient_n_unknown_never_good(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """A panel run without the sample a start would draw forecasts nothing: its ``None`` is
+    unknown, never "n already suffices" (stand-in review of #1010)."""
+    app.state.settings = app.state.settings.model_copy(
+        update={"ai_population_personas_enabled": True}
+    )
+    revision_id = submit(researcher, world, {**DESIGN, "n": 450}).json()["revision_id"]
+    body = researcher.get(
+        f"{API}/studies/{world.study_id()}/research/readiness",
+        params={"design_revision_id": revision_id, "persona_source": "panel"},
+    ).json()
+    assert body["support_forecast"] == {"reportable_n": None, "reportable_n_state": "unknown"}
+
+
+@pytest.mark.parametrize(
+    ("analysis", "reportable_n", "state"),
+    [
+        ("REPORTABLE", None, "met"),
+        ("INDICATIVE", None, "indicative"),
+        ("SUPPRESS", 120, "needs_more"),
+        ("SUPPRESS", None, "not_found"),
+        (None, None, "unknown"),
+    ],
+)
+def test_every_sufficient_n_is_served_with_what_it_stands_for(
+    analysis: str | None, reportable_n: int | None, state: str
+) -> None:
+    from aia_core.domain.evidence import SupportStatus
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.support_forecast import SupportForecast
+
+    from aia_api.routers.research import support_forecast_response
+
+    forecast = SupportForecast(
+        persona_source=PersonaSource.FICTIONAL_ROSTER,
+        respondents=50,
+        donors=None if analysis is None else 40,
+        results=None if analysis is None else SupportStatus(analysis),
+        analysis=None if analysis is None else SupportStatus(analysis),
+        reportable_n=reportable_n,
+    )
+    served = support_forecast_response(forecast).model_dump()
+    assert served == {"reportable_n": reportable_n, "reportable_n_state": state}
 
 
 def test_readiness_lists_every_question_with_whether_the_run_will_answer_it(

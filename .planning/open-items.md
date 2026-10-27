@@ -1769,6 +1769,10 @@ the cleared state.
 **Decided 2026-10-25 (the owner, OI-51 (a), the audit page, relayed by coordinator 3):** "clear the subpanel and filters on every
 preset change." Open until the audience step clears them (the smallest fix above) and the
 characterization test asserts the cleared state; no chunk builds it yet. To be built by the audience session's fix PR (`fix/audience-preset-clears-filters`).
+**Closed 2026-10-26 by #910** (merged as `40b16d58`): every preset change clears the subpanel, the filters and the
+segment (`presetReset`, `apps/web/src/research/audience.ts @ 40b16d58`). #917 (`d6f7f977`) also resets the strategy and the
+support figures on a preset change and keeps the description (the product owner, 2026-10-25, "Clear both"). The
+preset's other writes are an open owner question, recorded in `artifact-audience.md` § Findings.
 
 ## OI-52 · Question · Is a questionnaire of tracked sets only a questionnaire?
 
@@ -1794,6 +1798,8 @@ to both buttons. The rebuild keeps both as they are.
 **Decided 2026-10-25 (the owner, OI-52 (b), the audit page, relayed by coordinator 3):** "a questionnaire needs at least one plain
 question." A tracked set alone does not count. Open until both buttons apply the rule; no chunk
 builds it yet. To be built by the questionnaire session's fix PR (`fix/questionnaire-plain-question`, QF-17).
+**Closed 2026-10-25 by #899** (merged as `0b278552`): readiness's questionnaire check FAILs a design with no plain
+question (QF-17 in `artifact-questionnaire.md`).
 
 ## OI-53 · Finding · "AI doporučí" approves dimensions that are not in the catalogue
 
@@ -2635,6 +2641,9 @@ runs. Data owner + integration-architecture.
 success time, model and build per activity, no client or study identifiers, owners and admins
 only). Open until Settings reads it, as a named second cross-study read in `ARCHITECTURE.md` §3;
 no chunk builds it yet. To be built by `settings-redesign` F14.
+**Closed 2026-10-26 by #922** (merged as `f7b2f381`): `GET /settings/ai-activity` answers each activity's last answered
+call from the usage ledger (`infrastructure/ai_usage_repository.py:463 @ f7b2f381` `last_answered_calls`), OWNER and
+ADMIN, no client, study, person or cost; recorded in `ARCHITECTURE.md` §3 as the second cross-study read.
 
 ---
 
@@ -6138,6 +6147,9 @@ host's pacing turn, up to the 20 MB cap.
 **Test.** A stub wire that trickles bytes is cut at the deadline.
 
 **Status.** Open (`security-audit-2026-10` chunk 13).
+**Closed 2026-10-26 by #999** (merged as `6850ff6c`): one 120 s deadline per fetch, with a watchdog from the TLS
+handshake on (`infrastructure/web_retrieval_live.py:126-149 @ 6850ff6c`, `deadline_s`). DNS resolution stays outside the
+deadline. The Brave wire is a new item (S13b, below).
 
 ---
 
@@ -6502,6 +6514,8 @@ Plan `code-health-2026-10.md` § Findings (#805).
 **Test.** `make web_unused` stays green after the removal.
 
 **Status.** Open, for the PM.
+**Closed 2026-10-26 by #995** (merged as `646780a3`): AiaMark and its test are removed; `src/components/brand/` holds
+Wordmark alone of the identity. `.planning/plans/login-handoff.md:89`'s mention is marked removed.
 
 ---
 
@@ -6754,6 +6768,9 @@ refused `holdout_system_confirmation_started`.
 client deletion). *2026-10-26: to be built now, as its own small fix PR ahead of the rest of
 `study-deletion`* (REV-SD-F1-NOW (a), "Yes, a small fix PR now", the product owner in the Decision
 Review, relayed by the PM coordinator; Q4 (a), "Keep it, without content"); SD7 is W1.
+**Closed 2026-10-26 by #1012** (merged as `9d25112d`): `erase_client_holdouts` keeps the confirmation and blanks the
+preregistration's content. Test: `packages/aia_core/tests/test_holdout_repository.py::test_a_deleted_clients_confirmation_still_holds_its_system`.
+The study half waits for `study-deletion` (SD7).
 
 ---
 
@@ -7168,3 +7185,263 @@ lock, as a snapshot's approval does
 **Test.** The same key posted twice stores one turn.
 
 **Status.** Open, hypothesis.
+
+---
+
+## OI-251 · Finding, closed · The stage navigator shifted and resized with the current stage
+
+**Claim.** The current stage was drawn bold, so its button grew and every later stage moved; the bar
+used part of the width, the phase labels hid below 1500 px, and a stage's status was an 11 px glyph alone.
+
+**Anchor.** `apps/web/src/components/workbench/workbench.css:89-99 @ a25d2435`. Plan
+`research-lead-workbench.md` F24 (the navigator's; the file has a second F24, the review drawer).
+
+**Reproduction.** On the UI workbench at 1440 px, Dotazník's slot is 96 px wide when current and 94 px
+otherwise; every later slot moves 1-4 px.
+
+**Consequence.** "the menu resizes depending on what stage you're currently on … it looks chaotic" (the
+product owner, 2026-10-22).
+
+**Smallest fix.** The six phases as labelled groups across the width, a fixed slot per stage, the current
+stage a fill and an underline, never a weight; status by glyph, word and tone strip.
+
+**Test.** `Workbench.layout.test.tsx` "the stage navigator: a steady, full-width bar"; `workbench_journey.mjs`.
+
+**Status.** Closed 2026-10-26 by #840 (merged as `978d1789`, research-lead-workbench 35).
+
+---
+
+## OI-252 · Finding · Settings' near-limit tile reads spent alone; the server counts spent plus held
+
+**Claim.** The "Téměř vyčerpané" tile and each row's ⚠ compare spent alone with the budget, while the
+server's `near_limit` counts an open study's spent plus held, so a study whose budget is taken by open
+holds is near to the server and not on Settings.
+
+**Anchor.** `apps/web/src/lib/researcher-spend.ts:129 @ a1a9a45c` (`nearLimit`, >= 0.9); the server's rule
+`domain/spend_attribution.py` `NEAR_LIMIT_SHARE`, served by `GET /settings/organization-spend`. Plan
+`settings-redesign.md` F7 (#892).
+
+**Reproduction.** Hypothesis until the test below is written: a study with a budget of 10, spent 5 and
+held 5 is near on `GET /settings/organization-spend` and not on the tile.
+
+**Consequence.** An administrator does not see a study about to stop at its cap.
+
+**Smallest fix.** Read `near_limit` from `/settings/organization-spend` for an OWNER or ADMIN (it refuses a
+member 403); keep the client rule for a member's own rows.
+
+**Test.** A held-heavy study is near on the tile.
+
+**Status.** Open (`settings-redesign`).
+
+---
+
+## OI-253 · Finding, closed · A question's condition editor dropped keyboard focus to the page
+
+**Claim.** "Podmínka zobrazení" and "Upravit podmínku" unmounted as the form replaced them, and Uložit,
+Zrušit, Escape and Odebrat podmínku unmounted what had focus, so a keyboard user started again from the top.
+
+**Anchor.** `apps/web/src/components/rehome/research/QuestionCondition.tsx:69 @ ffce5c72`. Plan
+`artifact-questionnaire.md` QF-18.
+
+**Reproduction.** The test below, on `ffce5c72`.
+
+**Consequence.** The condition editor could not be used from the keyboard.
+
+**Smallest fix.** The form opens with focus on the chosen question; every way out puts focus on the first
+enabled button left in the condition's box, else the question's wording.
+
+**Test.** `QuestionnaireStep.test.tsx` "moves focus into the condition form and back to its button when it closes".
+
+**Status.** Closed 2026-10-26 by #905 (merged as `e55cfb50`).
+
+---
+
+## OI-254 · Finding · A Lead's self-update of SOUL or USER is not checked for client facts
+
+**Claim.** ADR 0030 decision 3 says a proposed personal text naming a client or holding a number is refused
+as `client_fact_in_personal_file`; #919 built the check for hatching only, and a self-update still is not run
+through it, only seen by the person before it is kept.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/research_lead.py:1091 @ a1a9a45c`
+(`decide_self_update`), `domain/research_lead.py:962` (`split_self_update`), the check
+`domain/lead_hatch.py:148` (`personal_text_refusal`). Plan `lead-identity.md` F1.
+
+**Reproduction.** Hypothesis until the test below is written: `git grep client_fact_in_personal_file` finds
+it only in `lead_hatch.py` and its tests.
+
+**Consequence.** A client's name or figure can land in the Lead's personal files, which every client's study
+then reads.
+
+**Smallest fix.** Run `personal_text_refusal` on a self-update's name, SOUL, USER and personal notes in
+`split_self_update`'s waiting half.
+
+**Test.** A self-update naming a client is refused by name.
+
+**Status.** Open; owner `lead-orchestration` LO11.
+
+---
+
+## OI-255 · Finding · The experimental Sociomapping view prints the run id outside Technické údaje
+
+**Claim.** On the Sociomapa stage the experimental Sociomapping view's provenance row and report line print
+the artifact, SHA-256 and run id outside `map-tech`.
+
+**Anchor.** `apps/web/src/components/rehome/research/SociomappingView.tsx:318 @ a1a9a45c` (and its report
+line, `:383 @ ce25a1b8`), rendered from `ExecutionSteps.tsx:1664 @ ce25a1b8`. Plan `artifact-sociomap.md`
+§ Findings.
+
+**Reproduction.** `node tools/ui_workbench/sociomap_journey.mjs` after `--prepare` on a fresh workbench:
+"no run or method id outside Technické údaje" fails.
+
+**Consequence.** A researcher reads internal ids on a stage meant to print none.
+
+**Smallest fix.** Those two lines go inside a Technické údaje disclosure on the stage.
+
+**Test.** The same journey check.
+
+**Status.** Open; owner the map-first stage (SOC9-SOC11).
+
+---
+
+## OI-256 · Finding, closed · Opening Výsledky opened a report editor session
+
+**Claim.** Opening Výsledky POSTed `…/report/editor` twice on the page's load, before the person asked for
+the editor.
+
+**Anchor.** `apps/web/src/lib/api.ts:1428 @ ce25a1b8`. Plans `artifact-sociomap.md` § Findings, `artifact-report.md`
+§ Findings.
+
+**Reproduction.** `sociomap_journey.mjs`: "nothing written but the stage opened" failed on `ce25a1b8`.
+
+**Consequence.** A read of the results wrote editor sessions.
+
+**Smallest fix.** Open the editor only once its results panel is shown.
+
+**Test.** The same journey check.
+
+**Status.** Closed 2026-10-26 by #964 (merged as `b969dca7`, `panel-shown.ts`).
+
+---
+
+## OI-257 · Finding, closed · An administrator's role change stamped the member's last activity
+
+**Claim.** `ScopeRepository.upsert_user` wrote `last_seen_at = utcnow()` on every upsert of an existing user,
+and `add_member` upserts the member it adds or re-roles, so an administrator's edit was read as the member's
+last activity.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/scope_repository.py:214 @ 25ce6493`.
+
+**Reproduction.** The tests below, on `25ce6493`.
+
+**Consequence.** Naposledy showed a guess as a fact (CLAUDE.md §8).
+
+**Smallest fix.** `upsert_user(…, seen=False)`; only the API's identity path passes `seen=True`.
+
+**Test.** `apps/api/tests/test_member_last_seen_api.py`.
+
+**Status.** Closed 2026-10-26 by #940 (merged as `3323de75`). A member whose last stamp came from an
+administrator's edit keeps it until their next request.
+
+---
+
+## OI-258 · Finding · A member's last activity is the person's, not the membership's
+
+**Claim.** `last_seen_at` lives on `users`, not on `organization_members`, so a request made in one
+organization moves the Naposledy another organization's administrator reads.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/tables.py:458 @ a1a9a45c`.
+
+**Reproduction.** Hypothesis until the test below is written: a member of two organizations makes a request
+in one; the other's `GET /members` moves.
+
+**Consequence.** None today: one deployment holds one organization (`deployment_shared`). Across
+organizations it leaks a person's activity.
+
+**Smallest fix.** A `last_seen_at` per membership (a migration), stamped for the organization the request
+resolves to, read by `members()` from the membership.
+
+**Test.** The reproduction above, asserting the other organization's value does not move.
+
+**Status.** Open, low (#940's stand-in review).
+
+---
+
+## OI-259 · Finding · Návrh's research-question list hides questions the server reads
+
+**Claim.** The list reads the analysis alone, while readiness traces `research_plan.research_questions`, so a
+design whose questions are only in its research plan shows "Zatím žádné".
+
+**Anchor.** `apps/web/src/research/plan-narrative.ts:25 @ 25ce6493` (`narrativeOf`). Plan `artifact-design.md`
+F-DSN-4.
+
+**Reproduction.** The workbench's `deep_research` fixture (`tools/ui_workbench/fixture_project.py:316 @
+25ce6493`).
+
+**Consequence.** A person adds the questions again while the run answers the ones they cannot see. Mitigated
+by DSN2b (#942): the traced questions are listed under the list with their coverage.
+
+**Smallest fix.** The list falls back to the research plan's questions when the analysis states none; it
+changes what an edit writes, so it is DSN3's to decide.
+
+**Test.** `PlanStep.test.tsx` "lists what the server reads as a research question that the list does not show…".
+
+**Status.** Open, mitigated; owner `artifact-design` DSN3.
+
+---
+
+## OI-260 · Finding · The decided 365-day retention of kept spend and audit rows is enforced nowhere
+
+**Claim.** MVPQ-07's 365 days for the kept AI spend, approval and audit rows is decided, but nothing erases
+such a row after 365 days; every `kept_for` reads indefinite.
+
+**Anchor.** `packages/aia_core/src/aia_core/application/client_deletion.py:252-282 @ 3aed0643`.
+
+**Reproduction.** `grep -n "365" packages/aia_core/src/aia_core/application/client_deletion.py` finds nothing.
+
+**Consequence.** Rows are kept past the agreed retention, and Settings' lhůta says "bez lhůty".
+
+**Smallest fix.** An operator command beside `lead_retention.py` that erases them after 365 days; then
+`kept_for` and the lhůta read 365 days.
+
+**Test.** A kept row older than 365 days is gone after the command runs.
+
+**Status.** Open (#980, `settings-redesign` F22).
+
+---
+
+## OI-261 · Hypothesis · The Brave search wire has no overall deadline
+
+**Claim.** `web_retrieval_brave.py`'s urllib3 request has connect and read timeouts and no overall deadline.
+
+**Anchor.** `packages/aia_core/src/aia_core/infrastructure/web_retrieval_brave.py:403 @ a1a9a45c` (its
+timeouts). Plan `security-audit-2026-10.md` S13b.
+
+**Reproduction.** Hypothesis: the same trickle as OI-206, from the search API's host.
+
+**Consequence.** A stalled Brave answer holds a priced search step.
+
+**Smallest fix.** The same watchdog and deadline as `UrllibWire`, or the request made through it.
+
+**Test.** A trickling local server behind the Brave wire is cut at its deadline.
+
+**Status.** Open (`security-audit-2026-10` S13b).
+
+---
+
+## OI-262 · Hypothesis · A priced tool call still out counts as held, not uncertain
+
+**Claim.** In the spend fold Settings and Průběh share, a priced tool call dispatched and not yet answered
+counts as held, while a model call in the same state counts as uncertain.
+
+**Anchor.** Plan `artifact-results.md` F-R10 (#1004); the fold `domain/spend_attribution.py @ a1a9a45c`.
+
+**Reproduction.** Hypothesis until a test is written: a run with one priced tool call in flight reads it in
+`held`, not `uncertain_calls`.
+
+**Consequence.** A run's spend reads as known while a priced call's outcome is not.
+
+**Smallest fix.** Count a dispatched, unanswered priced tool call as uncertain in the fold.
+
+**Test.** The reproduction above.
+
+**Status.** Open (backend, the spend fold's).

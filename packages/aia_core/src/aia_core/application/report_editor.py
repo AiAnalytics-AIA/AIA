@@ -19,6 +19,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
+from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE
 from aia_core.application.contextual_report import CONTEXT_REPORT_ARTIFACT_TYPE
 from aia_core.application.report import INTERNAL_REPORT_ARTIFACT_TYPE
 from aia_core.domain.report.editor import (
@@ -54,6 +55,7 @@ __all__ = [
 _COMPOSED_TYPES = {
     "internal": INTERNAL_REPORT_ARTIFACT_TYPE,
     "context": CONTEXT_REPORT_ARTIFACT_TYPE,
+    "client": CLIENT_REPORT_ARTIFACT_TYPE,
 }
 
 

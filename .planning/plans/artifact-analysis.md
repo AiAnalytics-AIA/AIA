@@ -15,6 +15,7 @@ chunks:
   - "[x] ANL10. The header 'Běh z … · interní · origin'; run and claim ids off the stage (spec szz A2; W3)"
   - "[ ] ANL11. Finding review on the server: ledger subject analysis_finding, its routes and migration (spec szz A7; W3)"
   - "[ ] ANL12. Finding review on the web: Přijmout / Upravit / Vyřadit / Vrátit, 'Přijato N z M' (spec szz A8; W3)"
+  - "[ ] ANL13. Evidence grades on Analýza: each finding's cited numbers carry the report's glyph, with the legend (Nigel, 27 Oct 2026; W3, with artifact-results#RES13)"
 ---
 # Artifact: Analýza (Analysis)
 
@@ -280,3 +281,16 @@ answer cites opens its module). The module's summary stays in the pane above the
 
 **Notes.**
 - ANL4 and ANL6 carry `szz/A5`; ANL6 `szz/A6` (its ceiling from `lead-orchestration#LO23`); ANL8 `szz/A10`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**ANL13. Grades on Analýza** (W3, lane G). RES13's component beside each number a finding cites. Test: a cited
+modelled number carries the modelled glyph.

@@ -14,6 +14,8 @@ chunks:
   - "[x] PBA5. Lane A, Phosphor icons across apps/web except the rail's navigation icons (UI-2, @phosphor-icons/core, MIT; W1)"
   - "[x] PBA6. Lane A, the primitives to the look contract: radii 6/8/10, chips 24/6, switch 40x24, dialog 560/10, toast, table header on sunken, no font weight 700 (W1)"
   - "[x] PBA7. Lane A, the Lead chat's radii 10/12, the same as the rest of the product (UI-3; W1)"
+  - "[ ] PBA8. Lane A, the rail's collapsed badge dot (a needs-you dot on an item while the rail is collapsed) and the active item's ring (follows PBA1; W1)"
+  - "[ ] PBA9. Lane A, the Nastavení flyout's fourth column: an animated Můj Vedoucí card (follows PBA3; lane H's words, lead-identity#LI9; W1)"
 ---
 # Prototype build: from the approved prototypes to the product
 
@@ -311,3 +313,22 @@ setting.
   `/research/limits` (contradiction 14). The server's limits win; #5's text is to be amended by its owner.
 - FLD6 promises one spend dialog in W1 while `input-interactions#6` is W2 (contradiction 5): FLD6 ships with today's
   confirmation and moves onto SpendDialog in W2.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**PBA8. The rail's badge dot and ring** (lane A, W1). The Settings prototype v99 draws, on the collapsed 64 px rail, a
+coral dot on an item where something waits for the person (only for those who can act) and a ring on the active item.
+PBA1 built the rail without them. Files: `AppShell.tsx`. Test: a collapsed rail shows the dot from real API state and the
+ring on the current item; unknown state draws no dot.
+
+**PBA9. The flyout's fourth column** (lane A, W1; after PBA3). An animated Můj Vedoucí card beside the three section
+groups (the prototype's motion; none under prefers-reduced-motion), linking Můj Vedoucí, or Vypěstovat when no Lead
+exists (PBA2's rule). Test: the card opens the right page in both states.

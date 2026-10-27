@@ -26,8 +26,10 @@ import logging
 from datetime import UTC, datetime
 from typing import Annotated, Any, Literal
 
+from aia_core.application.client_report import client_report_document
 from aia_core.application.errors import IntegrityError, ObjectNotFound
 from aia_core.application.report import INTERNAL_REPORT_MEDIA_TYPE
+from aia_core.application.report_approval import edited_client_warnings
 from aia_core.application.report_editor import (
     EditorSession,
     LineNotFound,
@@ -50,7 +52,13 @@ from aia_core.application.report_export import ReviewUnrecorded
 from aia_core.application.report_variants import request_pdf, variant_pdf
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal
-from aia_core.domain.report.editor import CallbackAction, SeenEdit, UnsavedEdits, callback_action
+from aia_core.domain.report.editor import (
+    EDIT_ARTIFACT_TYPES,
+    CallbackAction,
+    SeenEdit,
+    UnsavedEdits,
+    callback_action,
+)
 from aia_core.domain.report.saved_changes import changes_payload
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
 from fastapi import APIRouter, Depends, Header, HTTPException, Path, Query, Request, Response
@@ -105,7 +113,7 @@ FONTS_REEMBEDDED_HEADER = "X-AIA-Fonts-Reembedded"
 class EditorRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    #: ``client`` is named so it is refused by name, never read as another variant.
+    #: ``client``: the run's stored client report, approved as the client's (RPT13).
     variant: Literal["internal", "context", "client"] = "internal"
     deep_research_run_id: str | None = Field(
         default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$"
@@ -139,7 +147,11 @@ def _composed(
 ) -> Any:
     """The run's current draft of the variant asked for, as the report routes find it."""
     if body.variant == "client":
-        raise HTTPException(409, detail={"code": "client_report_not_editable"})
+        # The stored draft, or the approved version, composing nothing: the pane prepares it.
+        found_client = client_report_document(session, scope, store, run_id=run_id)
+        if found_client is None:
+            raise HTTPException(409, detail={"code": "client_report_not_prepared"})
+        return found_client[0]
     if body.variant == "internal":
         _step, report = _report_for_run(run_id, scope, session, store)
         if report is None:
@@ -224,7 +236,7 @@ def open_report_editor(
 ) -> dict[str, Any]:
     """The line asked for, or the one with the newest version, and its session's config: the
     open session's key when one is open, so co-editors meet in one document. The client report
-    is refused by name (409 ``client_report_not_editable``)."""
+    opens once it is stored (409 ``client_report_not_prepared`` before; RPT13)."""
     tokens = _tokens(settings)
     composed = _composed(body, run_id, scope, session, store)
     now = _now()
@@ -576,9 +588,12 @@ def _version_pdf(
     return found.artifact, found.to_json()
 
 
-#: The variant a version's file names: the internal report's, or its Deep Research run's.
+#: The variant a version's file names: the internal report's, the client's, or its Deep Research
+#: run's.
 def _file_variant(version: Any) -> str:
-    return "zakladni" if version.variant == "internal" else str(version.deep_research_run_id)
+    if version.variant == "internal":
+        return "zakladni"
+    return "klient" if version.variant == "client" else str(version.deep_research_run_id)
 
 
 @router.get(
@@ -651,7 +666,23 @@ def report_editor_version(
         "changes": changes_payload(changes) if changes is not None else None,
         # Its PDF, rendered from exactly this version (of its approved export once approved).
         "pdf": _version_pdf(version, artifact, run_id, scope, session, store)[1],
+        # An edited client report's checks (RPT13), as its approval records them: its composed
+        # draft's, then what the save changed; null for any other version (nothing checked here).
+        "warnings": _edited_warnings(artifact, scope, session, store),
     }
+
+
+def _edited_warnings(
+    artifact: Any, scope: StudyContext, session: Any, store: Any
+) -> list[dict[str, Any]] | None:
+    if artifact.artifact_type != EDIT_ARTIFACT_TYPES["client"]:
+        return None
+    try:
+        return edited_client_warnings(
+            session, scope, research_artifacts(session, scope, store), artifact
+        )
+    except (IntegrityError, ObjectNotFound) as exc:
+        raise artifact_corrupt(session) from exc
 
 
 @router.get(

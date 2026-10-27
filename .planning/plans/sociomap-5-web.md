@@ -10,6 +10,9 @@ chunks:
   - "[x] 6. Detail on click: an object's and a respondent's detail, in the panel's content"
   - "[x] 7. The Word report's -5 map figure in the panel's look; the web map's PNG snapshot, with its legend"
   - "[x] 8. The panel's map window: the dock and tools on the map, the ⓘ info pill, Nastavení mapy / Nástroje / Správa objektů and the detail as movable, resizable glass windows inside the stage"
+  - "[ ] 9. The what-if layer, the server: three scenarios over a -5 map's frozen inputs (objects left out, one respondent segment only, an object's ratings shifted), computed as a provisional view and never stored over the run's map; no node drag (D-40) (Nigel, 27 Oct 2026; W2; each scenario's maths signed off by the methodology owner before a scenario reaches a client)"
+  - "[ ] 10. The what-if layer on screen: 'Co kdyby', the three scenarios, the map always marked provisional, one way back to the real map, nothing saved (W2, after 9)"
+  - "[ ] 11. After the MVP: Zajímavé skupiny on the map (Nigel, 27 Oct 2026)"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -211,3 +214,30 @@ Display only, from the stored relations. The experimental map itself stays in th
 - Contour lines stay the panel's earlier ones: seven thin dark levels, one stroke per level (the owner,
   2026-10-27). The Sociomapy app's contours were ported the day before and taken out again: in the browser they
   did not look as smooth as in the app.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**9. What-if, the server** (W2; the methodology owner's lane). Nigel, 27 Oct 2026, answering Q57: the Sociomap what-if
+layer is in the MVP, always marked provisional, never saved over the real map, no node drag (D-40). The scenarios allowed:
+leave objects out; one respondent segment only; shift an object's ratings. A scenario is recomputed by the engine from the
+run's frozen inputs (the dataset and specification the map was computed from) with the scenario applied, and answered as
+a view: never an artifact of the run, never in the register's approved set, its own fingerprint naming the scenario
+(`domain/sociomap/view.py`'s rule: scenarios never write). **Prerequisite:** the maths of each scenario needs the
+methodology owner's sign-off before a scenario reaches a client; until then a scenario is internal only. **Open:** Nigel
+also ticked "Something else" without saying what; a fourth scenario waits for his words. Test: a scenario leaves the
+run's stored map byte for byte unchanged; a segment-only scenario recomputes from that segment's respondents.
+
+**10. What-if on screen** (W2). "Co kdyby" in the map's tools: the three scenarios, the map marked "Prozatímní · co kdyby"
+on every view and snapshot, one way back ("Zpět na skutečnou mapu"), nothing saved; no drag of a node. Test: the mark is
+on every scenario view; leaving restores the stored map.
+
+**11. Zajímavé skupiny** (after the MVP). Excluded from this plan's first round (the table above) and not in the MVP;
+the clustering it needs is `segment-maps-and-drilldown#3`.

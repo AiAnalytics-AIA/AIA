@@ -103,7 +103,8 @@ Q6 (a) "Its pending proposals and its knowledge selection go; accepted knowledge
 citation, marked 'source deleted', with no link"; Q8 (a) "'Smazat studii…' in the study's status
 menu". And **REV-SD-F1-NOW (a): "Yes, a small fix PR now"**: SD7's client half (Finding F1, OI-232) is
 built now, as its own small PR, ahead of the rest of this plan (below). Q5's "budget and wallet close"
-is SD3's: the delete closes the study's budget and wallet; their ledgers stay.
+is SD3's: the delete closes the study's budget and wallet; their ledgers stay. *2026-10-26:* SD7's client half
+is done by #1012 (`9d25112d`, OI-232 closed); its study half waits for study deletion.
 
 **Register (proposed, planning, 26 Oct: all SD questions answered).** This plan is proposed core in
 master §3.1 (S3, I-5); waves in `mvp-execution-contracts.md`: SD7 W1 (the client half now), SD1-SD6 and

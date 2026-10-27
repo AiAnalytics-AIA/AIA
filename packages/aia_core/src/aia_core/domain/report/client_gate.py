@@ -13,19 +13,36 @@ with the approval, so who approved past which warning is on record. Each names i
 * ``ledger_not_client_facing``: the document's numbers were admitted for another surface. The
   block checks still run over it, so a warning about the whole never hides one about a block.
 
+A version a researcher saved in the report editor (artifact-report RPT13; B2 (a), the product
+owner, 2026-10-26) has no document model: it is judged as its line's composed draft was, plus what
+the save changed in what code wrote (``saved_changes``), by :func:`edited_client_gate`:
+
+* a number code wrote that was retyped (``changed``), a number typed outside every number code
+  wrote (``typed``), or text under a tag that is not a text code wrote under it (``added``: a
+  control copied and then retyped) is ``unadmitted_number``: no admitted claim prints it;
+* a number removed, or a copy of a text code wrote under its own tag, prints nothing new: no
+  finding. A copy is told by the texts the line's composed draft holds under each tag; where those
+  are unknown, every ``added`` is flagged (a warning: it errs toward a typed number);
+* what the save could not be compared with is ``gate_unrecorded``, and so is the text a person
+  wrote: nothing reads hand-written prose for one respondent's words, so it is never passed.
+
 ``internal_source_cited`` waits for a chapter that cites a client source (RD11): no client
 report cites one yet, so there is nothing to read. It is not a legal-rights review either way.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
 from aia_core.domain.evidence.claims import ClaimLevel, ClaimSurface
 from aia_core.domain.report.document_model import DOCUMENT_MODEL_CONTRACT
+from aia_core.domain.report.saved_changes import ChangeKind, SavedChanges
+
+#: How much of the paragraph a typed number sits in a finding quotes.
+_EXCERPT = 60
 
 
 class GateCode(StrEnum):
@@ -93,3 +110,69 @@ def client_gate(document: Mapping[str, Any]) -> tuple[GateFinding, ...]:
                         )
                     )
     return tuple(findings)
+
+
+def edited_client_gate(
+    changes: SavedChanges, written: Mapping[str, Collection[str]] | None
+) -> tuple[GateFinding, ...]:
+    """What a saved editor version of a client report adds to its line's composed draft's
+    findings (RPT13): its changed, added and typed numbers, and the text nothing judged.
+    ``written``: per tag, the texts code wrote under it in the line's composed draft
+    (``saved_changes.written_texts``); ``None`` when they could not be read, and then no
+    ``added`` text counts as a copy."""
+    findings: list[GateFinding] = []
+    if not changes.comparable:
+        findings.append(
+            GateFinding(
+                GateCode.UNRECORDED,
+                "numbers",
+                "čísla verze nelze porovnat s tím, co napsal kód; nelze je ověřit",
+            )
+        )
+    for change in changes.changes:
+        if change.kind is ChangeKind.CHANGED:
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    change.tag or "numbers",
+                    f"číslo přepsané ručně: {change.was} → {change.now}",
+                )
+            )
+        elif change.kind is ChangeKind.ADDED and not _copy(change.tag, change.now, written):
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    change.tag or "numbers",
+                    f"číslo přidané ručně: {change.now}",
+                )
+            )
+        elif change.kind is ChangeKind.TYPED:
+            findings.append(
+                GateFinding(
+                    GateCode.UNADMITTED_NUMBER,
+                    "text",
+                    f"číslo {change.now} napsané ručně mimo připuštěná čísla"
+                    f" („{_excerpt(change.paragraph or '')}“)",
+                )
+            )
+    findings.append(
+        GateFinding(
+            GateCode.UNRECORDED,
+            "text",
+            "text upravený v editoru AIA neověří; zkontrolujte, že necituje jednoho respondenta",
+        )
+    )
+    return tuple(findings)
+
+
+def _copy(tag: str | None, text: str | None, written: Mapping[str, Collection[str]] | None) -> bool:
+    """Whether ``text`` under ``tag`` is a text code wrote under that tag: a copy prints an
+    admitted number again. Unknown (``written`` ``None``) is never a copy."""
+    if written is None or tag is None or text is None:
+        return False
+    return text in written.get(tag, ())
+
+
+def _excerpt(paragraph: str) -> str:
+    """The paragraph's start, marked "…" only where it was cut."""
+    return paragraph if len(paragraph) <= _EXCERPT else f"{paragraph[:_EXCERPT]}…"

@@ -70,15 +70,17 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 /** A design proposal a person has still to decide, as the server projects it (ADR 0026 decision 8). */
 const pendingProposal = (j: ResearchAgentJob) => j.status === "COMPLETED" && !isAdviceAction(j.action) && j.proposal_state === "pending";
 
-/** The stable item ids switch once read (/config's stableItemIds, WCE1); null until then. */
-let itemIdsKnown: boolean | null = null;
+type StoreSwitches = { itemIds: boolean; editOps: boolean };
 
-/** Whether the store keeps stable item ids: off when the config cannot be read. */
-function stableItemIds(): Promise<boolean> {
-  if (itemIdsKnown !== null) return Promise.resolve(itemIdsKnown);
+/** The store's switches once read (/config's stableItemIds, WCE1; editOps, WCE3a); null until then. */
+let switchesKnown: StoreSwitches | null = null;
+
+/** Whether the store keeps stable item ids and saves edits as operations: each off when the config cannot be read. */
+function storeSwitches(): Promise<StoreSwitches> {
+  if (switchesKnown !== null) return Promise.resolve(switchesKnown);
   return loadConfig().then(
-    (c) => (itemIdsKnown = c.stableItemIds === true),
-    () => false,
+    (c) => (switchesKnown = { itemIds: c.stableItemIds === true, editOps: c.editOps === true }),
+    () => ({ itemIds: false, editOps: false }),
   );
 }
 
@@ -102,17 +104,17 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
   useEffect(() => {
     let live = true;
     let store: ResearchStore | null = null;
-    // Stable item ids are kept only behind their switch (WCE1); a config that cannot be read is off.
-    stableItemIds().then((itemIds) =>
-      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds })),
+    // Stable item ids (WCE1) and edits saved as operations (WCE3a) only behind their switches; a config that cannot be read is off.
+    storeSwitches().then(({ itemIds, editOps }) =>
+      (version === 0 && initialContent ? Promise.resolve(readWorkingContent(initialContent, { itemIds })) : loadResearch(studyId, undefined, { itemIds })).then((r) => ({ r, itemIds, editOps })),
     ).then(
-      ({ r, itemIds }) => {
+      ({ r, itemIds, editOps }) => {
         if (!live) return;
         if (r.kind === "awaiting_migration") return setLoaded({ kind: "awaiting_migration" });
         if (r.kind === "unrecoverable") return setLoaded({ kind: "unrecoverable", template: r.template, canEdit: r.canEdit });
         // Read-only when the content says so or the study does: never a store that takes edits the
         // study refuses, nor one the screen would show enabled while it drops them.
-        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit || editable.current === false, itemIds });
+        const s = new ResearchStore(r.state, studyId, { readOnly: !r.canEdit || editable.current === false, itemIds, editOps });
         store = s;
         setLoaded({ kind: "ready", store: s, template: r.template, origin: r.origin, forCanEdit: editable.current });
       },
@@ -127,7 +129,7 @@ export function ResearchSession({ studyId, initialContent, canEdit, children }: 
   // Nothing survived in 18.6.6: a person who may edit starts again, explicitly,
   // from the template. The first save records it with the study (ADR 0018).
   const startAgain = useCallback(() => {
-    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: itemIdsKnown === true }), template: l.template, origin: null, forCanEdit: editable.current } : l));
+    setLoaded((l) => (l.kind === "unrecoverable" && l.canEdit ? { kind: "ready", store: new ResearchStore(newResearch(l.template), studyId, { itemIds: switchesKnown?.itemIds === true, editOps: switchesKnown?.editOps === true }), template: l.template, origin: null, forCanEdit: editable.current } : l));
   }, [studyId]);
 
   // A store built for what the study allowed before is not handed out: until the store for what it

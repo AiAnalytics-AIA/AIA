@@ -24,11 +24,17 @@ chunks:
   - "[ ] RPT8b.1. A prose number's change shown inline as 'Upraveno ručně'; no 'Vrátit' inside the open editor (follows RPT8b; spec szz Z6; W3)"
   - "[x] RPT8c.1. The editor's config: no download or print, cs-CZ, uiTheme, compact flags; unlocking stays allowed (follows RPT8c; spec szz Z5; W3)"
   - "[ ] RPT8d.1. A number's detail in words from the bar's lists (follows RPT8d; spec szz Z7; W3)"
-  - "[ ] RPT11. Zpráva as a stage of its own; the parts list under the bar (spec szz Z1; W3)"
+  - "[ ] RPT11. Zpráva as a stage of its own (prototype v78): the editor fills the stage, no Výsledky tabs and no report card above it; the card's parts list moves into the 'Osnova a zdroje' right panel, closed by default, each part with its source and a part not in this version shown '–' (spec szz Z1 and §3.0; rewritten 2026-10-27; W3)"
   - "[x] RPT12. No ids on the stage (spec szz Z3; W3)"
   - "[ ] RPT13. The client report in the editor: only accepted findings reach it, the client gate re-run on every saved version before approval (B2 (a), Nigel 2026-10-26; spec szz Z8, OQ10; W3)"
   - "[x] RPT14. The editor config asks for uiTheme theme-aia (spec szz T5; W3, with RPT8c.1 and report-editor-hosting 6)"
   - "[x] RPT15. The brand fonts re-embedded on download of an editor-saved DOCX, the download saying so (spec szz T7; Nigel P7 and B6 (b), 26 Oct 2026; W3)"
+  - "[ ] RPT16. The header chips 'Zjištění n/m' (coral while findings wait) and 'n ruční úprava' (only when there is one), each a popover with its detail and its way out, 'Posoudit na Analýze' (prototype v78; spec szz §3.0; W3, the count after artifact-analysis#ANL11)"
+  - "[ ] RPT17. The 'Osnova a zdroje' icon button in the header row, opening and closing RPT11's panel (prototype v78; W3, with RPT11)"
+  - "[ ] RPT18. One 'Stáhnout ▾' menu in the header: DOCX and PDF, naming the version it hands over (prototype v78; follows RPT3c; W3)"
+  - "[ ] RPT19. The approval dialog's 'Než schválíte' rows: findings accepted (with 'Posoudit na Analýze'), the research questions' coverage (with 'Záznam pokrytí'), hand edits, whether the literature review is in; none blocks, only a server refusal does, in words (prototype v78; spec szz Z4; follows RPT3d; W3)"
+  - "[ ] RPT20. 'Pro klienta' before preparing: one sheet saying how the client report differs (accepted findings only, numbers labelled modelled, approved maps only, the design and questionnaire appended, the client gate on every save), then 'Připravit klientskou zprávu' (prototype v78; W3, with RPT13)"
+  - "[ ] RPT21. After the MVP, design only: board 11b 'Editor zprávy' drawn as a board of its own (ReportEditor.dc.html), no code (Nigel, 27 Oct 2026)"
 ---
 # Artifact: Zpráva (Report)
 
@@ -913,7 +919,14 @@ accepted-findings count on Pro klienta, after ANL11; the chunk stays open until 
 
 **RPT8d.1. Number detail** (spec `szz/Z7`; follows RPT8d, partly new; W3, lane G). After RPT8a part 3.
 
-**RPT11. Its own stage** (spec `szz/Z1`; W3, lane G).
+**RPT11. Its own stage** (spec `szz/Z1` and `szz/§3.0`; W3, lane G). *Rewritten 2026-10-27 to prototype v78*
+(Nigel, 27 Oct: "i want the doc editor to be the main focus"): the editor is the whole stage; no Výsledky tabs and
+no CompleteReport card above it. The card's parts list (`reportParts`, `R/CompleteReport.tsx:52 @ bd0d1ad6`;
+`domain/report/sources.py`) moves into **"Osnova a zdroje"**, a right panel closed by default: every part of the
+report with its source (`report_sources`, `artifact-chain-to-draft-report#CHN1`), a part not in this version shown
+"–", and a clicked number's detail at its top (RPT8d.1). The knowledge `<details>`
+(`R/ExecutionSteps.tsx:1717 @ bd0d1ad6`) leaves the stage. The earlier wording, "the parts list under the bar",
+contradicted v78 (the research stages inventory) and is withdrawn. The panel's header button is RPT17.
 
 **RPT12. No ids** (spec `szz/Z3`; W3, lane G). *Built (`feature/report-no-ids`):* the doc bar no longer prints the
 DOCX's artifact id and the draft's footer reads the review in words and the revision (`reviewWords`), with no review code,
@@ -926,7 +939,42 @@ or review code anywhere on the stage (RPT12)"; `ExecutionSteps.test.tsx` the Var
 is: the approval question and the card's review line still name the version approved by its id (RPT3a, D2), and the
 card's "Běh" row (`CompleteReport.tsx`), which Z3 does not name; both go with the card in RPT3c / RPT11.
 
-**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked.
+**RPT13. Client report in the editor** (spec `szz/Z8`, no backend; W3, lane G). B2 decided (a), Nigel, 26 Oct 2026 01:21-01:24 UTC on the plan page, relayed by the PM coordinator: the client report is editable in the editor; only accepted findings reach it (`artifact-chain-to-draft-report#CHN13`), and the client gate (RD0) re-runs on every saved version before approval. Unblocked. *Server half built
+(`feature/client-report-editor`):* the editor opens the run's stored client report (`variant: "client"`; 409
+`client_report_not_prepared` before one is stored, composing nothing; `report_editor_versions.variant` takes `client`,
+migration `184381bbcfef`); a save is `research_client_docx_edit`, approved as the client's (kind `client`, never
+`internal_only`), its authors with the run's starter as the composed client report's (RD8). Its checks
+(`report_approval.edited_client_warnings`): the line's composed draft's (RD0, RD7, from its stored document), then what
+the save changed in what code wrote (`client_gate.edited_client_gate`): a retyped or typed number `unadmitted_number`, a
+removed number or a copy under its own tag nothing, a save not comparable and the hand-written text `gate_unrecorded`
+(nothing reads prose for one respondent's words, so it is never passed). The version read answers them as `warnings`, the
+approval records them. Tests: `test_client_gate.py` (three edited cases), `test_the_client_report_opens_once_it_is_stored`,
+`test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients`. Open: the web half (the pane
+hands the client report to the editor, its doc bar and approval question show these warnings, an approved edited version
+downloaded as the client's); "only accepted findings reach it" is `artifact-chain-to-draft-report#CHN13`.
+
+*Fixed on the stand-in review of #1017 (review 5660893091, on `a2a6f199`):*
+- P1. `saved_changes` reports any surplus text under a tag as `added`, not only a copy, so a control copied and then
+  retyped (a second `trust_total` reading "99 %") passed as a copy. `edited_client_gate` now takes the texts code wrote
+  under each tag in the line's composed draft (`saved_changes.written_texts`, read by
+  `report_approval.edited_client_warnings` from koncept 1's census): an `added` text that is not one of them is
+  `unadmitted_number` ("číslo přidané ručně: …"), and where they are unknown (koncept 1 does not read as a DOCX) every
+  `added` is. Wrong / right: `elif change.kind is ChangeKind.TYPED` alone let every `ADDED` through; now `ADDED and not
+  _copy(tag, now, written)` is flagged. Tests: `test_a_control_copied_and_retyped_is_unadmitted`,
+  `test_a_copied_control_retyped_is_unadmitted_through_the_census` (the real `census` and `compare`),
+  `test_a_client_control_copied_and_retyped_is_an_unadmitted_number` (through the save and the version read).
+- P2. Once an edited client version is approved, the composed client draft's approval is refused, 409
+  `client_report_edit_approved` naming the approved version and its koncept (`report_approval.ClientEditApproved`), so
+  a line has one approved client deliverable; the client document and prepare body carry `approved_edits` and
+  `edited_line` as the internal status does. Tests: the end of
+  `test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients`,
+  `test_a_client_draft_with_no_approved_edit_is_approved_and_its_document_names_none`. Not done here: the reverse order
+  (an edited version approved after its composed draft was) is still allowed, and the client download still serves the
+  composed draft; the web half sends a person to the approved edited version's own download.
+- P3. A saved version carries its composition's `report_kind` (a client report's `client`), never a hard-coded
+  `internal`; none when the composition stored none.
+- P3. The typed number's excerpt ends in "…" only where the paragraph was cut.
+- Migration `184381bbcfef` now revises #1018's `b7d1f3a5c9e2` (both had revised `124dedc8f7b1`): one head.
 
 **RPT14. uiTheme** (spec `szz/T5`; W3, lane G). *Built with RPT8c.1:* the config asks for `theme-aia`; the theme itself
 is served by `report-editor-hosting` 6, and until it is the Document Server shows its default theme.
@@ -940,3 +988,45 @@ answers `X-AIA-Fonts-Reembedded: true`, the other headers naming the stored vers
 
 **Notes.**
 - RPT10 carries `szz/Z9` (literature only from the Lead card); RPT9 `szz/Z10`; RPT7 `szz/Z11`; RPT8e with `report-editor-hosting#4` carry `szz/T8`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+Prototype v78's Zpráva (spec `szz/§3.0`): one header row, left to right: "Zpráva" and its state; the chips
+"Zjištění n/m" and "n ruční úprava"; Interní / Pro klienta; the "Osnova a zdroje" icon button; "Stáhnout ▾"; the
+primary "Schválit" (or "Připravit klientskou zprávu" before the client report exists). The editor fills the rest.
+RPT11 is rewritten to it above; the rest of v78 is new here.
+
+**RPT16. Header chips** (W3, lane G). "Zjištění n/m" counts the accepted findings of the internal draft's modules
+(`artifact-analysis#ANL11`'s ledger subject `analysis_finding`), coral while any waits; "n ruční úprava" reads the
+version's `changes` (RPT8b), neutral, absent when there is none. Each opens a popover with the detail and its way out
+("Posoudit na Analýze"). Test: a draft with 2 of 5 findings accepted shows "Zjištění 2/5" in coral; an unedited version
+shows no edit chip.
+
+**RPT17. The Osnova button** (W3, lane G). An icon button with an accessible name ("Osnova a zdroje"), `aria-expanded`,
+toggling RPT11's panel. Test: the button opens and closes the panel and keeps focus.
+
+**RPT18. One download menu** (W3, lane G). RPT3c's DOCX and PDF buttons become one "Stáhnout ▾" menu (`MenuButton`)
+whose items name the version they hand over ("DOCX · koncept 3"). The checks of RPT3c (`downloadMismatch`) stay.
+Test: both items name the version shown; a PDF the server has not made is disabled with its reason.
+
+**RPT19. Než schválíte** (W3, lane G). The approval dialog (RPT3d) gains a checklist: findings accepted (with "Posoudit
+na Analýze"), research questions' coverage (`lib/report-coverage.ts`, with "Záznam pokrytí"), hand edits (the version's
+`changes`), literature in or not. Nothing in it blocks; only a server refusal does, in words. Test: each row reads from
+its source; an unknown count reads unknown, never 0.
+
+**RPT20. Pro klienta before preparing** (W3, lane G). Before the client report exists, the Pro klienta view is one sheet:
+accepted findings only, numbers labelled modelled, approved maps only, the design and questionnaire appended, the client
+gate (RD0) on every save; then "Připravit klientskou zprávu". With RPT13. Test: the sheet lists the five differences
+and the primary prepares the client report.
+
+**RPT21. Board 11b** (after the MVP, design only). Nigel, 27 Oct 2026: "Board 11b as a board (design only)". The
+editor's theme work is its own board, 11b · Editor zprávy (`ReportEditor.dc.html` in the research stages prototype); no
+code is planned from it here.

@@ -204,6 +204,9 @@ export type LeadTurn = {
   workspace_revision: number | null;
   created_at: string;
   created_by: string | null;
+  /** The most the turn's prepared agent job can cost, before it starts (LO23): its reservation;
+   *  null when unknown (never 0) or when the turn prepares no agent job. */
+  ceiling_usd?: number | null;
   /** What the person decided on each of this turn's edits, from the approval ledger (by index). */
   edit_decisions?: Record<string, { status: "accepted" | "dismissed" | "refused"; reason: string | null; auto?: boolean }>;
   /** The person's approval of this turn's paid request, when given. */
@@ -292,6 +295,8 @@ export type LeadPreferences = { auto_accept_text_edits: boolean };
 
 type Content = { project: ResearchProject; analysis: Analysis | null };
 const norm = (s: string) => s.replace(/\s+/g, " ").trim().toLocaleLowerCase("cs");
+/** Whether `text` names exactly one of `items` as a list edit compares them (whitespace collapsed, case aside). */
+export const namesOne = (items: readonly string[], text: string): boolean => items.filter((x) => norm(x) === norm(text)).length === 1;
 const LIST_KEY: Record<PlanList, "objectives" | "research_questions" | "hypotheses"> = {
   "plan.objectives": "objectives",
   "plan.research_questions": "research_questions",

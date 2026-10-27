@@ -32,6 +32,12 @@ chunks:
   - "[x] K11. Profil → Pravidla: the wallet ceiling, set by an OWNER or ADMIN, beside the posture setter deep-research-web-search 53 builds; both listed read-only in Settings (D-17) (#853 @ 0eda121e)"
   - "[x] K12. The Simulace tab and its new-simulation button hidden until simulation is built (MVP-31)"
   - "[ ] K13. A person's accept of an AI-written knowledge proposal writes one ai_proposal row in the approval ledger, once, in the decision's transaction, as design proposals do (two-roles 5b.3; REV-5B-KNOWLEDGE (a), the product owner 2026-10-26; W1)"
+  - "[ ] K14. Reject with a reason, and Rozhodnuté: the review's reject takes an optional reason (DecisionRequest.note, stored as decision_note) and a Rozhodnuté tab lists decided proposals with who, when and why (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K15. People's names in every trail, the server: approved_by, proposed_by, decided_by, internal.by and set_by answered with the person's name beside the id, null when unknown (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K16. 'Cena nejvýše' of AI proposals from a document, the server: the run's ceiling quoted before the start, confirmed by the person, asked again when it grows (lead-orchestration#LO29's rule) (Nigel, 27 Oct 2026; W1)"
+  - "[ ] K17. The ceiling on 'Navrhnout znalosti' before the start, 'horní mez, ne odhad', unknown never zero, asked again when it grows (W1, after K16)"
+  - "[ ] K18. After the MVP: the Data Library's shared-layer flow, as the prototypes draw it (Nigel, 27 Oct 2026)"
+  - "[ ] K19. Deleting a knowledge item for good: DELETE …/knowledge/{item_id} (a person with the right permission), the item and its revisions out of the library, a study's frozen copy kept, the source's bytes kept while anything else names them, audited; no retired state (Q3, Nigel 27 Oct; W2)"
 ---
 # Client knowledge that studies can use correctly
 
@@ -898,3 +904,48 @@ and K11 places the ceiling beside it in the same Pravidla card; both are listed 
 at enqueue (G64; a bundle-contract change needing ADR 0021's defect note). The fold of
 `client-workspace` C6-C9 lands here: C6 → K2f/K3, C8 → `client-data-in-analysis#2/2a/3` with its UI
 chunk `client-data-in-analysis#10`, C9 → K6; C7 is closed as superseded by `client-budget`.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**K14. Reject with a reason and Rozhodnuté** (W1, screen). Nigel, 27 Oct 2026: reject with a reason (optional), a
+Rozhodnuté tab (who, when, why). The server already takes a note (`DecisionRequest.note`,
+`apps/api/src/aia_api/routers/workspace.py:661-672 @ dbaa7720`), stores it (`decision_note`,
+`infrastructure/tables.py:1577`) and lists decided proposals (`GET …/knowledge/proposals?status=`, `workspace.py:1924-1936`);
+the web sends no reason and shows no decided list. Test: a reject with a reason reads back on Rozhodnuté with who and
+when; a reject without one is allowed.
+
+**K15. Names in trails** (W1, server). Every trail answers ids (`approved_by`, `proposed_by`, `decided_by`,
+`internal.by`, `set_by`; `workspace.py:363`, `:404`; `client_sources.py:102-120 @ a1a9a45c`). Answer each with the
+person's display name from the organization's members beside the id; a departed or unknown person reads null, never a
+guessed name. Used by K14, `client-pages-redesign#CPR3` and `#CPR11`. Test: a proposal by a member answers their name.
+
+**K16. The document proposals' ceiling** (W1, server). The proposals run (`POST …/sources/{id}/proposals`,
+`apps/api/src/aia_api/routers/client_sources.py:507 @ dbaa7720`) states no ceiling; only the client's budget stops it.
+Quote it before the start (the batches K2d counts, at most `MAX_REQUESTS`, times the reservation), take the person's
+confirmation of that ceiling, and ask again when it grows (LO29). Test: the quote equals batches times reservation; a
+start on an older, lower confirmation is 409 with the new ceiling.
+
+**K17. On screen** (W1). `SourceProposals.tsx` and the intake's AI switch (`client-pages-redesign#CPR12`) show it.
+Test: the ceiling shows before the start; an unknown one starts nothing.
+
+**K18. Data Library** (after the MVP). The prototypes' shared-layer flow for the data library (the prototypes inventory:
+partly built). Nothing scheduled.
+
+**K9 on Klienti.** Nigel, 27 Oct 2026: the cross-client "needs me today" is in the MVP, on Klienti. K9 stays this
+plan's (its read); its place on the directory is `client-pages-redesign#CPR8`.
+
+**K19 and K6: deletion, not retirement** (Nigel, 27 Oct 2026 (the Klienti canvas session, relayed by the PM coordinator; the folder rule in the PM coordinator's chat ~10:00 UTC)). Q3: a knowledge item is deleted permanently after a confirmation,
+no undo, brands and competitors too; studies that used it keep their frozen copy (K4's `FrozenKnowledgeContext`); the
+deletion is audited. A folder's files are deleted the same way (`study-files#SF2`; the earlier "retired" reading is
+withdrawn). K19 builds the item deletion (W2): today the only DELETE routes are a contact, a folder and a label
+(`apps/api/src/aia_api/routers/workspace.py:1588, 1748, 1832 @ dbaa7720`). K6 keeps correction, conflicts and
+dependent-study visibility; it no longer builds a retired state or a Vyřadit, and "dependent-study visibility" now
+includes saying an item a study froze has since been deleted. The screens are `client-pages-redesign#CPR22`.

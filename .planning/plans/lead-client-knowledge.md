@@ -2,9 +2,9 @@
 status: planned
 chunks:
   - "[ ] LK0. Prerequisite, built in its own fix PR: the licence determination for the unclassified-client-knowledge lineage, approved for bedrock-eu-primary only (Q60 a, 2026-10-21); closes Finding 1"
-  - "[ ] LK1. The knowledge index as data: every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's budget, paged past it, never silent; ADR 0042 (Proposed) amends ADR 0026 decision 3 for the read round"
+  - "[ ] LK1. The knowledge index as data, always in the context (ADR 0041 A2): every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's share, paged past it, never silent; ADR 0042 written as ADR 0041 A3 (accepted by the owner, 2026-10-26) amends ADR 0026 decision 3 for the search-and-read round"
   - "[ ] LK2. The index frozen at enqueue: study-scoped repository reads (no silent 200-row cap), reading pins per source and revisions per item in the frozen context, each entry classed by material_rules, the lineage declared"
-  - "[ ] LK3. The read in the closed contract: LeadOutput.read (at most 3 refs, a page each), a read turn holds nothing else, the answering request's contract forbids another read; the reads layer (3 x 8 KB) refitted inside 96 KB; quotes grounded in the segment read and cited by locator, numbers through lead_contract"
+  - "[ ] LK3. The search and read in the closed contract (ADR 0041 A3): LeadOutput.search (at most 2 word-search queries over the study's chosen knowledge) and LeadOutput.read (at most 3 page reads a turn), a searching or reading turn holds nothing else, at most three model calls a turn, the answering request's contract forbids another search or read; the reads layer sized as a share of the token budget (lead-conversation LC4); quotes grounded in the segment read and cited by page, numbers through lead_contract"
   - "[ ] LK4. The read round in the worker behind AIA_AI_RESEARCH_LEAD_KNOWLEDGE_READS (off by default, off in test): pinned, study-scoped fetches from ClientSourceRepository and ClientKnowledgeRepository, the first answer checkpointed, a second STUDY_LEAD request with its own reservation, the class re-read before it; cost and latency per read measured"
   - "[ ] LK5. Datasets: a DATASET is read as its preview (columns, kinds, fill, masked samples), never its rows (Q62 a); the turn with a dataset item answered on bedrock-eu-primary under LK0's determination, refused by name on any other route"
   - "[ ] LK6. What the Lead read, in the API and on screen: the turn's reads in GET /studies/{id}/lead, and the \"Přečteno: …\" line in LeadPane linking to each item (LeadPane.tsx and lib/lead.ts by the integration coordinator session)"
@@ -111,6 +111,17 @@ three reads. Nothing is cut silently, and the 200-row repository cap (Finding 2)
 the index query is counted and paged, not limited.
 
 ### 2. The read: a second request inside the same turn (settled, LCK-Q4)
+
+*Amended by ADR 0041 A3 (the owner, 2026-10-26, REV-0041-ACCEPT (a) and REV-0041-EMBED (a)).* The
+round gains search. The first request may name up to 2 `search` queries (`{query, why}`) and up to
+3 `read` refs; code runs each search as word search over the study's chosen knowledge only (the
+project-memory matcher, `domain/project_memory.py`: accent-folded, four-letter stems), returning
+ranked hits (ref, page, the matching segment's first 300 characters). When it searched, a second
+request sees the hits and may name the page reads still left of the 3; the last request answers,
+with no `search` or `read` in its contract. So a turn makes at most three model calls (ask, read,
+answer), each reserved and metered on its own; one that only reads makes two, as below. Search by
+meaning (embeddings) is after the MVP (`lead-conversation#LC17`). The reads layer is a share of the
+Lead's token budget (`lead-conversation#LC4`), 3 x 8 KB at today's model.
 
 `LeadOutput` gains `read`: at most 3 `{ref, page, why}` (page from 1). A turn that reads holds a
 short `reply` ("Otevírám …") and nothing else: `edits`, `request`, `self_update` and `view` must be
@@ -271,7 +282,8 @@ on its own fix PR now, not under this plan. This plan's chunks LK2, LK4 and LK5 
 tick here records that PR once merged. It is the one chunk without a journey step: it is a
 policy record, tested by the licence gate's own tests.
 
-**LK1. The index as data, and ADR 0042.** `domain/lead_knowledge.py`: `IndexEntry` (item,
+**LK1. The index as data, and ADR 0042** (the index is always in the context, ADR 0041 A2; ADR
+0042 is written as ADR 0041 A3, accepted by the owner 2026-10-26, so it is filed Accepted). `domain/lead_knowledge.py`: `IndexEntry` (item,
 proposal, source), `knowledge_index(items, proposals, sources, selected)` in the
 order and budget of §1, `index_page(n)`, each entry's `MaterialRule`. ADR 0042 (Proposed): the
 read round as an amendment of ADR 0026 decision 3, its bounds and its relation to ADR 0040.
@@ -296,13 +308,17 @@ approved for C alone refuses an A turn as `route_not_approved_for_class` with ev
 the context, nothing dropped. Journey: a
 fictional client with an internal source and a pending proposal; the greeting counts them.
 
-**LK3. The read in the closed contract.** `LeadOutput.read`; the read-turn validator (§2); the
-answer contract without `read`; `reads_layer(results)` and `read_context(frozen, results)`
+**LK3. The search and read in the closed contract** (ADR 0041 A3). `LeadOutput.search` (at most
+2) and `LeadOutput.read` (at most 3 across the turn); the search-or-read-turn validator (§2); the
+answer contract without either; `search_hits(index, queries)` over the frozen index, pure, by the
+project-memory matcher; `reads_layer(results)` and `read_context(frozen, results)`
 refitting to 96 KB with every omission named; `ground_quotes` and code-written citations from
 locators (§6); `lead_contract` over the read texts. Tests: a read turn with an edit refused; four
 reads refused; a quote not in the read removed and counted; a citation written from the segment,
 never the model's locator; a number only in the read accepted, one in no read refused; a too-large
-fourth page dropped by name. Journey: none paid; the scripted Lead's script gains a read whose
+fourth page dropped by name; a third search refused; a search never returns another client's
+or an unchosen document's segment; a turn that searched, read and answered made three model
+calls and no fourth. Journey: none paid; the scripted Lead's script gains a read whose
 answer the journey reads at the four widths.
 
 **LK4. The read round in the worker.** `reading_for_study`, `item_for_study`,
@@ -400,6 +416,12 @@ For the docs PR after each chunk merges (no feature PR edits these files):
   `proposal_for_study`. The workbench line under LeadPane: "Přečteno: …".
 - `ARCHITECTURE.md`: the Lead's read round as the second exception to "the Lead holds no tools",
   beside ADR 0040.
-- `docs/architecture/adr/README.md`: ADR 0042, Proposed.
+- `docs/architecture/adr/0042-*.md`: written as ADR 0041 Amendment 1's A3 (the owner accepted
+  A1-A5 on 2026-10-26, REV-0041-ACCEPT (a), so 0042 is Accepted): the Lead's one bounded
+  search-and-read round per turn, amending ADR 0026 decision 3: at most 2 word searches and 3 page
+  reads over the study's chosen knowledge (this client, this study), run by code, never a free tool
+  loop; every quote cites its page; at most three model calls a turn; search by meaning after the
+  MVP (REV-0041-EMBED (a)); its relation to ADR 0040 as §2 above states.
+- `docs/architecture/adr/README.md`: ADR 0042, Accepted.
 - `.planning/open-items.md`: Findings 1 and 2, with OI numbers; Finding 1 closed by LK0's fix PR once it merges.
 - `AGENTS.md`: anything non-obvious the read round's checkpointing teaches (LK4).

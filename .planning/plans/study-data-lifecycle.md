@@ -9,6 +9,7 @@ chunks:
   - "[ ] SDL5. A restore after a deletion does not resurrect it: the restore runbook re-applies the tombstones"
   - "[ ] SDL6. Exercised once on develop: a delete, then a restore, with the evidence recorded"
   - "[ ] SDL4b. Deleting one client source, its bytes and readings, by any researcher from the source's card (D-29)"
+  - "[ ] SDL7. After the MVP: a client's data export as a feature, today an operator procedure in the runbook (D-29; master, The scope baseline, Out) (Nigel, 27 Oct 2026)"
 ---
 # Study and client data lifecycle: retention and the delete path
 
@@ -35,6 +36,8 @@ Neither has one (`tables.py:1833, 1938-1939`). The usage ledger must still recon
 
 **SDL3. The delete service for a study and a client: rows, S3 prefixes, audit policy, logs and the error tracker**  
 Test on PostgreSQL: delete a study; nothing of it remains in the database or the artifact bucket; the usage ledger still reconciles.
+*2026-10-26:* the client part is built as `settings-backends` SB5 (#850 @ 46fc909f); the study part is `study-deletion#SD5`.
+SDL1's study foreign key is not on the deletion path once studies are tombstoned (ADR 0043).
 
 **SDL4. The lifecycle of an attachment's bytes: orphans and removal**  
 No code deletes an attachment's bytes today.
@@ -65,6 +68,22 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 **New chunk.** SDL4b (W4), D-29.
 
 **Existing chunks, changed.** SDL3 (D-29) gains its entry points: an OWNER or ADMIN deletes a client
-from Settings with a typed confirmation; knowledge is retired, never deleted. Export of a client's
+from Settings with a typed confirmation; knowledge is retired, never deleted (*stale since the owner's rule of 2026-10-22: a client's deletion deletes its
+content, knowledge among it, `client_knowledge_repository.py:1699-1702 @ f7762d72`; ledgers kept under a tombstone,
+ADR 0043*). Export of a client's
 data and erasing one person are an operator procedure in the runbook for about ten users. SDL5
 (D-25): RPO 24 h, RTO 4 h.
+
+## From the unplanned-features inventory (2026-10-27)
+
+Source: the five inventories of 27 Oct 2026 (the Lead, the client pages, Settings, the research stages and the
+prototypes, each compared with develop `dbaa7720`) and the product owner's decisions on them (Nigel, 27 Oct 2026,
+~01:10-01:40 UTC, in the PM coordinator's chat: "lets turn these into chunks", then an answer to every decision
+question). The research build spec cited is <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> (spec v6,
+prototype v78); its ids carry their section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lead/`). Waves are in
+`.planning/mvp-execution-contracts.md`; a chunk marked **after the MVP** has the wave POST there. Ids are only
+added, never renumbered; a ticked chunk a decision reopens gets a follow-up chunk.
+
+**SDL7. Client data export** (after the MVP). The master plan's scope baseline keeps the export of a client's data an
+operator procedure in the runbook for about ten users (D-29). Nigel, 27 Oct 2026, keeps it after the MVP. Nothing
+scheduled.
