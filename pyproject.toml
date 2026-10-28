@@ -141,6 +141,7 @@ source_modules = [
     "aia_core.infrastructure.report_pdf",
     "aia_executors.report",
     "aia_executors.sociomapping_report",
+    "aia_executors.status_report",
 ]
 forbidden_modules = [
     "aia_core.infrastructure.study_lead_repository",

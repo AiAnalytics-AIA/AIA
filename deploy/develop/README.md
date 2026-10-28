@@ -250,6 +250,15 @@ agent ships them to the log group `/aia/develop` (`infra/develop`).
 
 Host: `journalctl -u docker`, `journalctl -u aia-backup.service`, `df -h /`.
 
+**The status line, without a shell.** After every deploy and after the nightly backup,
+`python -m aia_executors.status_report` writes one line, `aia-status {json}`, to the deploy log
+(CloudWatch stream `<instance>/deploy`): the worker's switches, runs and steps by status, every
+failed or parked step with its reason code, model calls and their cost, open holds, and each
+organization's Deep Research approvals. It holds codes, counts and ids only, never text, names or
+secrets (plan `ops-status-report`). In Logs Insights on `/aia/develop`:
+`filter @message like /aia-status / | sort @timestamp desc | limit 1`. Run it by hand with
+`docker compose run --rm --no-deps -T worker python -m aia_executors.status_report --days 30`.
+
 ## Error tracking
 
 GlitchTip (self-hosted, `errors/docker-compose.yml`) collects what broke, grouped into

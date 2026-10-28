@@ -30,6 +30,11 @@ log "dumping to s3://$AIA_OPS_BUCKET/$key"
 size="$(aws s3api head-object --bucket "$AIA_OPS_BUCKET" --key "$key" --region "$AWS_REGION" --query ContentLength --output text)"
 [ "${size:-0}" -gt 1024 ] || die "backup object is ${size:-0} bytes; refusing to call that a backup"
 log "backup complete: $key ($size bytes)"
+# The nightly run's output is not shipped, the deploy log is (CloudWatch <instance>/deploy):
+# the day's status line goes there. Only the timer's run: a pre-deploy backup's deploy reports.
+if [ "$LABEL" = "nightly" ]; then
+  status_report >> /var/log/aia-deploy.log 2>&1 || true
+fi
 # The 18.6.6 unit's working databases are not the product's and are not backed
 # up here (ADR 0018): deploy/reference/bin/backup-state.sh copies them, WAL-safe,
 # from the unit's volume, which this stack no longer mounts.

@@ -188,3 +188,4 @@ log "smoke tests"
 python3 "$DEPLOY_DIR/bin/image_retention.py" record \
   --state-file "$release_history" --sha "$SHA" --previous "$previous"
 log "deployed $SHA"
+status_report
