@@ -4,8 +4,8 @@ chunks:
   - "[x] 1. The code: the route model's id and request profile, the respondent's temperature, Deep Research's thinking budget, a capability's effort (feature/sonnet-5-5-readiness)"
   - "[x] 2. Nigel accepts the Bedrock Marketplace agreement for Claude Sonnet 5.5 on develop's account"
   - "[ ] 3. Terraform: bedrock_model_id swapped to eu.anthropic.claude-sonnet-5-5 (infra session)"
-  - "[ ] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
-  - "[ ] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
+  - "[x] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
+  - "[x] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
   - "[ ] 6. The acceptance study re-run on Sonnet 5.5, within the existing USD 25 allocation"
 ---
 # Develop's AI route from Claude Sonnet 4.5 to Claude Sonnet 5.5
@@ -103,6 +103,101 @@ needs its own reading: with the budget dropped, each agent kind's answer limit
 adaptive thinking still counts inside it, so its truncation is measured before Deep Research is
 switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the frozen engine).
 
+## Chunk 6: waits for tier B (decided 2026-10-28)
+
+**The product owner's decision,** relayed by the PM coordinator at about 20:48 UTC: "Wait for tier B". Chunk 6 stays open until `mvp-acceptance-harness` chunk 7 (the tier B runbook and record) exists, and it runs then as tier B.
+
+**Why chunk 6 could not run as written.** The acceptance study (`docs/migration/mvp-acceptance.md` § 1) has never run live, so there was nothing to re-run, and the full tier B was not runnable that night. It also needs:
+- Deep Research measured on 5.5 (allocation lines A06-A08);
+- the report-writer and map-interpreter workers (A05, LO9b);
+- the client-source extraction (A10);
+- a second person's approvals;
+- the runbook itself.
+
+**Prepared for the tier B runbook** (nothing run). The study's core path is brief, design jobs, the n = 300 panel run, analysis and the internal report, on `tests/acceptance/inputs/brief.json` and `concepts.json`, in a study named so that queries can find it.
+
+- **Ceiling as a start shows it:** n × blocks × 0.15 (fieldwork) + 24.00 (analysis: 8 modules × 3 calls × 1.00). The probe confirms the rule: 78 × 0.15 + 24 = 35.70.
+  - n = 300 at 2 blocks (`MAX_BLOCK_ITEMS` 8) gives USD 114.00; at 1 block, 69.00.
+  - It is above the study's limit, so the start asks for the person's confirmation.
+- **Expected spend at the 5.5 rates measured in chunk 5:**
+
+  | Allocation line | Calls | Expected | Ceiling |
+  |---|---|---|---|
+  | A01 fieldwork | 600 at about USD 0.013 (the probe's 0.0100, plus a panel persona's profile and 8-item blocks) | ≈ USD 7.8 | 8.00, **tight** |
+  | A02 analysis and repairs | 8 modules + repairs | ≈ USD 0.5-1.0 | 1.80 |
+  | A04 design workers | two jobs at about 0.11-0.15 | ≈ USD 0.3 | 1.50 |
+  | A03 Lead turns | about 10 at 0.043 | ≈ USD 0.4 | 2.60 |
+  | **Core path total** | | **≈ USD 9-10.5** | |
+
+  The allocation (`tests/acceptance/allocation.json`) was priced on Sonnet 4.5. Tier B re-prices A01-A04 from these rates before it runs.
+- **Read-out:** five read-only queries filter the usage ledger, steps and attempts by the study's name: calls by capability with `finish_reason`, the calls that did not complete, the study's steps, failed attempts with their error, and spend by `agent_id` mapped onto A01-A04. CloudTrail is read for the instance's own session, to show every call's `modelId` is the tagged profile.
+
+## Chunk 5: done (2026-10-28)
+
+The probe ran on Nigel's ok, at 19:49 UTC, on a fictional study ("Sonnet 5.5 probe", the fictional Fio banka Sandbox client). It ran after develop's deploy, which rewrote `.env` from the switched SSM.
+
+- **The run.** n = 78: a fictional roster at n = 20 drew only 6 donors, and the panel could not draw 20.
+  - Ceiling USD 35.70. Started 20:16:12 and ended 20:22:10 UTC: fieldwork took 3 min 48 s; analysis and the report 2 min 8 s.
+  - All 16 steps SUCCEEDED on their first attempt. The run cost USD 1.10.
+- **The usage ledger, under policy `aia-bedrock-develop-2026-10-28-route-sonnet55`.** Total USD 1.35, the 19:45 smoke turn included.
+
+  | capability | calls | outcome / finish | output tokens (avg / max) | latency ms (avg / max) | USD |
+  |---|---|---|---|---|---|
+  | SIMULATION (fieldwork, cap 1,024, effort low) | 78 | SUCCEEDED / COMPLETED | 314 / 322 | 2,845 / 34,065 | 0.7830 |
+  | RESEARCH_REASONING | 9 | SUCCEEDED / COMPLETED | 1,608 / 2,807 | 10,904 / 15,836 | 0.3039 |
+  | RESEARCH_REASONING | 2 | FAILED / COMPLETED (schema refused, then repaired) | 1,844 / 2,141 | 13,601 / 15,776 | 0.0698 |
+  | RESEARCH_REASONING | 1 | FAILED / TRUNCATED | 4,096 | 28,121 | 0.0622 |
+  | STUDY_LEAD (cap 8,000, effort medium) | 3 | SUCCEEDED / COMPLETED | 575 / 692 | 5,960 / 7,330 | 0.1284 |
+
+- **CloudTrail**, read for the instance's own session alone, 19:42-20:29 UTC: 93 `Converse` calls, every one to `application-inference-profile/hnpij62nm89g`, none with an error. The calls by `maxTokens`:
+  - 78 at 1,024 (fieldwork);
+  - 10 at 8,192 (analysis: 8 modules and 2 repairs);
+  - 2 at 4,096 (the design job: its truncated primary and its repair);
+  - 3 at 8,000 (the Lead).
+- **One truncation: the design job's primary** (`aia.research.build_questionnaire`, 20:23:57 UTC). It used all 4,096 output tokens of `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` at research effort `high`. Adaptive thinking counts inside that cap, which Sonnet 4.5, with no thinking, never spent. Its repair answered, and the proposal arrived complete; the cost was one wasted call (USD 0.0622, 28 s).
+  - Raising the cap is the product owner's decision. Proposed: 8,192, the analysis cap, where no analysis call came near it (max 2,807).
+  - **Raised to 8,192 on the product owner's decision.** He said "lets raise it" at about 20:35 UTC, relayed by the PM coordinator.
+    - SSM `aia_ai_research_max_output_tokens` went from 4096 to 8192 (version 3).
+    - `aia_ai_research_reservation_usd` stays 2.00, above the 1.2802 that two calls at 200,000 and 8,192 need.
+    - `bin/write-env.sh` and the restart of the API and worker finished at 2026-10-28T20:38:27Z, on image `92041d11`. The worker started at 20:38:20 with no `AIRuntimeConfigError`, reading `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS=8192`.
+  - **Side effect:** the same key bounds Deep Research's per-kind output (`domain/deep_research/request_limits.py:172-205`), so its ceilings rise a little. An investigator call's reservation goes from 0.882 to 0.927, a planner, lead or synthesizer call's from 1.190 to 1.280.
+  - **Rollback:** the same write with 4096 and the same restart.
+  - Whether 8,192 holds shows in the next design job's `finish_reason`, which chunk 6 measures.
+- **Analysis.** 2 of its 10 calls failed their schema at first and were repaired: a 5.5 reading for the schema-enforced-output work. Segmenty and Hypotézy stated nothing (not enough data).
+- **The Lead** answered "Shrň mi, co běh zjistil" without the run's values, which are not in its context. That's the known gap until LO8's ResultsContext.
+- **Deep Research** was not run on 5.5. It is measured on its own before anyone relies on it.
+
+## Chunk 4: done (2026-10-28)
+
+Nigel ran it from prompts the infra session prepared, relayed by the PM coordinator. Nothing was applied by an agent. The route now runs on `eu.anthropic.claude-sonnet-5-5` through the tagged profile `application-inference-profile/hnpij62nm89g`, so spend keeps the `Environment=develop` tag.
+
+- **Chunk 3 (Terraform) did not gate this.** The tagged 5.5 profile and its IAM grant already existed (`aia-develop-lead`, develop-spend-attribution 1 and 2), and Terraform owns none of these SSM values (`infra/develop/main.tf:286-316`). Chunk 3 becomes a cleanup: one profile per model, keeping hnpij by a `moved` block, then the 4.5 profile `xz0r7v8bizok` and its grants removed after chunk 6.
+- **SSM, set 19:26-19:30 UTC.**
+  - The route's values are as § Chunk 4 lists them.
+  - `aia_bedrock_effort=medium` and `aia_ai_research_effort=high`. The product owner chose to keep the Lead at medium: on the route binding, `STUDY_LEAD` takes the route's effort, since no capability key covers it (`ai_runtime.py:515-521`).
+  - `aia_ai_fieldwork_effort=low`.
+  - `aia_bedrock_invocation_target` points at hnpij.
+  - `aia_ai_policy_version=aia-bedrock-develop-2026-10-28-route-sonnet55`.
+  - The Lead's 11 own-model keys were deleted, because the worker refuses a Lead model equal to the route's (`ai_runtime.py:821-825`). `aia_ai_research_lead_max_output_tokens` (8000) and `_reservation_usd` (1.10) stay.
+  - The values before are saved in CloudShell as `~/aia-s55-rollback-20261028T192600Z.json`: 23 values, route `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` at 3.30 / 16.50 through `xz0r7v8bizok`, and policy `aia-bedrock-develop-2026-09-26-lead-sonnet55-20261026`.
+- **Start-time checks**, computed beforehand with the code's `reservation_usd`. Each holds with the reservations unchanged:
+  - research: 1.1901 needed, 2.00 set;
+  - Lead: 1.0259 needed (window 154,519), 1.10 set;
+  - client source: 0.3573 needed, 0.50 set.
+- **The switch.** At 2026-10-28T19:42:33Z, `bin/write-env.sh` then `docker compose up -d api web worker`, image `1f633e5b` unchanged.
+  - The worker logged "worker started" at 19:42:27 with no `AIRuntimeConfigError`.
+  - Its environment shows every value above, and the deleted keys empty.
+- **The smoke.** One Lead turn on a fictional study at 19:45:44 UTC:
+  - the ledger row reads `STUDY_LEAD`, `eu.anthropic.claude-sonnet-5-5`, `SUCCEEDED`, `COMPLETED`;
+  - 23,918 input and 570 output tokens, 6,212 ms, USD 0.0588896 (exactly 2.20 / 11.00 per Mtok);
+  - under the new policy version.
+
+  CloudTrail, read for the instance role's session alone: one `Converse` at 19:45:44 UTC, `modelId` `arn:aws:bedrock:eu-central-1:311141567391:application-inference-profile/hnpij62nm89g`, `maxTokens` 8000, no error.
+- **Before the switch, nothing could resume on 5.5 by itself.**
+  - Every `WAITING_PROVIDER` step was `ai_runtime_unavailable`: unpaid, no `runnable_after`, never timer-resumed (`domain/workflow.py:797-798`).
+  - The 2 `AWAITING_BUDGET` steps wait for a person.
+  - The 6 RUNNABLE sociomapping steps sit in FAILED runs (§ Findings).
+
 ## Chunk 2: done (2026-10-27)
 
 - **The agreement.** Accepted by Nigel on 27 Oct from the Bedrock console. `get-foundation-model-availability`
@@ -127,6 +222,41 @@ switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the f
   unknown write price once writes are possible. Test that would catch it:
   `test_ai_runtime_route_profile.py::test_a_cache_write_is_charged_at_its_own_price`, with the price
   unset.
+- **A run that fails leaves its other ready steps RUNNABLE for good.** A run's status is FAILED as
+  soon as any step has failed. FAILED outranks RUNNABLE (`domain/workflow.py:852-861 @ e53fddbd`,
+  `derive_run_status` at `:864`), and `claim_next` takes no step whose run is FAILED
+  (`infrastructure/workflow_repository.py:1013-1031 @ e53fddbd`). So a step that was already
+  RUNNABLE, on a branch the failure does not depend on, stays RUNNABLE: nothing claims it, cancels
+  it or skips it.
+  - **Seen on develop**, read 2026-10-28 13:20 UTC, before the route switch: 6 `research_sociomapping`
+    steps (`domain/workflow_templates.py:245 @ e53fddbd`, depending only on `run`) were RUNNABLE in
+    FAILED runs, with no cancel flag and no `runnable_after`.
+  - **Reproduction:** a run of two independent steps, both RUNNABLE. Fail one terminally;
+    `claim_next` then returns nothing, and the other stays RUNNABLE.
+  - **Consequence:** no cost, since the experimental Sociomapping calls no model. A failed run's step
+    list shows a step as waiting in the queue that will never run. A sweep for "RUNNABLE work" (such as
+    the precondition before this switch) counts it as live and has to be explained away.
+  - **Smallest fix:** when a run's derived status becomes FAILED, move its RUNNABLE and BLOCKED steps
+    to SKIPPED with the reason `run_failed`, in the same transaction.
+  - **Test that would catch it:**
+    `test_workflow_repository.py::test_a_failed_run_leaves_no_step_runnable`.
+  - This is a hypothesis about intent until the workflow plan's owner says whether a FAILED run's
+    siblings are meant to stay offered.
+- **`ssm delete-parameters` takes at most 10 names.** The chunk 4 prompt deleted the Lead's 11
+  own-model keys in one call, and it stopped there at 19:26 UTC on 2026-10-28 with a
+  `ValidationException` ("Member must have length less than or equal to 10"). By then all 15 writes
+  had landed, so SSM was half-written: the route model and the Lead's own model both read
+  `eu.anthropic.claude-sonnet-5-5`, a pair the worker refuses at start (`ai_runtime.py:821-825`).
+  - **Consequence:** no running process changed, because only `bin/write-env.sh` (run by a deploy or
+    by prompt C) reads SSM. A deploy in that window would have stopped the worker, so merges into
+    develop were held until the deletes and the restart were done.
+  - **Fix for any later prompt:** split the deletes into calls of at most 10 names (here 10, then
+    `invocation_target`).
+  - **No order of single writes is safe to start between.** Deleting first leaves the Lead on the
+    4.5 route, where its 1.10 reservation is below that model's 1.2838 minimum for an 8,000-token
+    turn (`ai_runtime.py:1023-1029`), and the worker refuses that state too. So the guard is that
+    nothing reads SSM until every write and delete is done: hold deploys, and restart only from
+    prompt C, after the "after" list matches.
 
 ## Doc follow-up (for the docs PR)
 

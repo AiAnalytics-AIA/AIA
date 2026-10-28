@@ -914,8 +914,8 @@ forbid "no executor builds a spend confirmation" \
 # which a number may sit in an analysis result, and only admit_numeric_claims
 # can mint one, after field policy, joint structure, support, interval and tier
 # have all passed. A JointStatus is the only way the claim gate learns what the
-# population's joint structure supports, and only load_joint_status can issue
-# one, after checking the certificate against the loaded panel's hash. If any
+# population's joint structure supports, and only evaluate_joint_certificate can
+# issue one, after checking the certificate against the loaded panel's hash. If any
 # other module can build either, a prompt is the enforcement mechanism again.
 # See .planning/plans/done/evidence-governance-foundation.md.
 forbid "claims are admitted only by the evidence admission gate" \
@@ -927,15 +927,12 @@ forbid "the API never admits its own claims" \
   '^[^#]*\bAdmittedClaim\(' \
   "$API"
 
-# companions.py is exempt by name, and only for now: it defines a *second*
-# JointStatus -- the population loader's own certificate evaluator -- which is a
-# duplicate of the evidence one, not a bypass of it. Which of the two is the single
-# authority is an open decision (.planning/open-items.md OI-24); this exemption goes
-# when that decision lands, not before.
-forbid "a joint status is issued only by its loader" \
+# One certificate evaluator for the population loader and the claim gate (OI-24, evidence-integrity
+# 5b): the population's, which alone issues a JointStatus.
+forbid "a joint status is issued only by its evaluator" \
   '^[^#]*\bJointStatus\(' \
   "$CORE" \
-  "$CORE/domain/evidence/joint_status.py" "$CORE/domain/population/companions.py"
+  "$CORE/domain/population/companions.py"
 
 # Field policy and the joint certificate are authority: what a claim may rest on.
 # An app that built its own -- a permissive book for a questionnaire, a certificate
@@ -944,7 +941,7 @@ forbid "a joint status is issued only by its loader" \
 # through the analysis inputs in aia_core, never from the API, the worker or an
 # executor (.planning/plans/evidence-backed-analysis.md).
 forbid "the API, worker and executors never build field policy or a joint status" \
-  '\b(FieldPolicyBook|FieldPolicy|FieldEligibility)\(|\b(load_joint_status|instrument_policy|instrument_policy_book|from_dictionary_rows|from_policy_document)\(' \
+  '\b(FieldPolicyBook|FieldPolicy|FieldEligibility)\(|\b(evaluate_joint_certificate|instrument_policy|instrument_policy_book|from_dictionary_rows|from_population_policy|from_policy_document)\(' \
   apps
 
 # --- Population: one resolver, one loader ----------------------------------

@@ -792,7 +792,7 @@ def module_artifact(
             field_policy_version=instrument_policy_version(evidence.origin),
             field_policy_sha256=evidence.book.source_sha256,
             joint_status_fingerprint=joint.fingerprint(),
-            joint_degradation=joint.degradation.value if joint.degradation else None,
+            joint_degradation=None if joint.certified else joint.state.value,
             system_fingerprint=evidence.system_fingerprint,
         ),
         harness=prepared.harness,

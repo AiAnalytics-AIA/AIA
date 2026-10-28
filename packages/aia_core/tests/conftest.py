@@ -764,6 +764,7 @@ SYNTHETIC_PANEL_SHA256 = "b" * 64
 # Shaped like the reference certificate (population-subsystem.md §10), with a
 # synthetic panel name and hash.
 SYNTHETIC_JOINT_CERTIFICATE: dict[str, Any] = {
+    "status": "COHERENT_CORE_MATCHED_BLOCKS",
     "production_panel": "synthetic_panel.csv.gz",
     "panel_sha256": SYNTHETIC_PANEL_SHA256,
     "structure_status": "QC_PASSED",
@@ -802,16 +803,16 @@ def certificate_bytes() -> Any:
 @pytest.fixture
 def joint_status(certificate_bytes: Any) -> Any:
     """The certified status: the synthetic certificate bound to the synthetic panel."""
-    from aia_core.domain.evidence import load_joint_status
+    from aia_core.domain.population import evaluate_joint_certificate
 
-    return load_joint_status(certificate_bytes(), measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+    return evaluate_joint_certificate(certificate_bytes(), panel_sha256=SYNTHETIC_PANEL_SHA256)
 
 
 @pytest.fixture
 def degraded_joint_status() -> Any:
-    from aia_core.domain.evidence import load_joint_status
+    from aia_core.domain.population import evaluate_joint_certificate
 
-    return load_joint_status(None, measured_panel_sha256=SYNTHETIC_PANEL_SHA256)
+    return evaluate_joint_certificate(None, panel_sha256=SYNTHETIC_PANEL_SHA256)
 
 
 @pytest.fixture
@@ -1118,6 +1119,7 @@ def joint_certificate_json(certified_sha256: str, /, **overrides: Any) -> bytes:
 
     document: dict[str, Any] = {
         "status": "COHERENT_CORE_MATCHED_BLOCKS",
+        "production_panel": "synthetic_panel.csv.gz",
         "structure_status": "QC_PASSED",
         "prediction_validation_status": "EXTERNAL_HOLDOUT_PENDING",
         "panel_sha256": certified_sha256,
