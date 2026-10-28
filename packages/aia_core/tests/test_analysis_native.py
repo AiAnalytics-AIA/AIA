@@ -24,13 +24,13 @@ from aia_core.domain.evidence import (
     ClaimSurface,
     Disclosure,
     InstrumentPolicyRefused,
-    JointDegradation,
     MetricKind,
     SupportStatus,
     ViolationCode,
 )
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1, REFERENCE_THRESHOLDS
 from aia_core.domain.fieldwork import DataOrigin, FieldworkDataset
+from aia_core.domain.population import JointState
 from aia_core.domain.research_aggregate import aggregate_dataset
 from aia_core.domain.research_design import ResearchSpecification, compile_design
 from aia_core.domain.synthetic_fieldwork import synthetic_dataset
@@ -303,7 +303,7 @@ def test_a_native_run_has_no_certificate_and_its_system_is_its_own(
 ) -> None:
     spec, aggregate, evidence = built
     assert not evidence.joint_status.certified
-    assert evidence.joint_status.degradation is JointDegradation.MISSING
+    assert evidence.joint_status.state is JointState.MISSING
     other = native_evidence(
         spec,
         aggregate,

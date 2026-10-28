@@ -1,10 +1,10 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[x] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
   - "[ ] PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM"
   - "[ ] PE2. `deploy-production.yml`: a manual release, an RDS snapshot first, the rollback"
-  - "[ ] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
+  - "[x] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
   - "[ ] PE4. The egress allow-list: a forward proxy for search hosts, reconciled with fetch from any public host"
   - "[ ] PE5. Production route classes and retention evidence; `AIA_AI_ROUTE_ID` must equal `bedrock-eu-primary` for panel lineage; ADR 0022 approvals per organization"
   - "[ ] PE6. Population provisioning in production: asset root, import, establish, `record-dictionary`, `record-catalogue`, the store"
@@ -115,3 +115,65 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **The release checklist (D-28).** Terms, a privacy notice, a client DPA and the data owner's
   confirmation that the panel licence covers paid deliverables, all before the first client; the
   first-sign-in notice is the only screen.
+
+## PE3: what landed, and what a person still does (2026-10-28)
+
+**Landed** (`.github/workflows/ci.yml`, jobs `terraform` and `terraform-plan`):
+
+- `Terraform (format, validate)`: `terraform fmt -check -recursive infra`, then `init -backend=false`
+  and `validate` in every `infra/*/` root with a `versions.tf`, under Terraform 1.10.5 (the minimum
+  `versions.tf` accepts). No credentials and no state. It runs on a pull request that changes
+  `infra/**` or `ci.yml` (the `changes` job's new `infra` output) and on every push to `main` and
+  `develop`. `dispatch-develop` does not wait on it.
+- Checked before the push, with Terraform 1.10.5: `infra/develop` on `origin/develop` @ 7107c1f0 and
+  #1046's head (the two `aws_bedrock_inference_profile` resources, `model_source` in
+  `ignore_changes`, the `postcondition`) both pass `fmt`, `init -backend=false` and `validate` (AWS
+  provider 5.100.0). A root with an unsupported argument fails the step (exit 1). The `changes`
+  filter, run outside CI: a plan-only change is `infra=false`, an `apps/` change is `infra=false`,
+  `infra/develop/main.tf` and `ci.yml` are `infra=true`, a push is `infra=true`.
+- `Terraform plan (develop)`: written, **off**. It runs only with the repository variable
+  `TERRAFORM_PLAN_ENABLED=true`. Until then the validate job's summary says so.
+
+**Why the plan is gated by a person.** The plan reads develop's state, which holds the PostgreSQL
+password, the Google client secret and the Cognito client secret. A job on a pull request runs the
+branch's own copy of the workflow, so anyone who can push a branch could print whatever the plan's
+role can read. Read-only rights do not change that. So the role may be assumed only from the
+`terraform-plan` environment, and that environment requires a person's approval before the job
+starts. The plan runs with `-lock=false`, so it writes nothing, not even the state's lock file.
+
+**PE3 done (2026-10-28).** The role was applied by the owner (plan: 2 to add, 0 to change, 0 to
+destroy), the `terraform-plan` environment and `TERRAFORM_PLAN_ENABLED` set, and the plan ran once on
+#1076 behind his approval: job 122931673979, every resource refreshed with no access refused,
+"No changes. Your infrastructure matches the configuration." (16:04 UTC).
+
+### The person's steps (no agent may do these: IAM, an apply, GitHub settings)
+
+Updated 2026-10-28 after #1065 merged: the role is now Terraform in `infra/develop/github.tf`
+(`aws_iam_role.github_plan`, merged by the follow-up PR), and the plan job reads its tfvars from SSM
+`/aia/terraform/develop/tfvars`, the parameter an operator's apply reads, so GitHub keeps no copy of
+them and no secret is set.
+
+1. **The subject.** Add `github_plan_oidc_subject` to the tfvars in SSM `/aia/terraform/develop/tfvars`:
+   the value of its `github_oidc_subject` with `:environment:develop` replaced by
+   `:environment:terraform-plan`. The organization issues immutable subjects (develop-deployment, run
+   35863981545); unset, the role trusts a subject its tokens never carry.
+2. **The apply**, from CloudShell on a clean checkout of `develop` (after the follow-up PR merges), with
+   that tfvars: `terraform plan` must read **2 to add, 0 to change, 0 to destroy** (`aws_iam_role.github_plan`,
+   `aws_iam_role_policy.github_plan`) and one new output, `github_plan_role_arn`. Anything else, in
+   particular a change to `aws_bedrock_inference_profile.route` / `.lead` or to
+   `aws_iam_role_policy.instance`, means the tfvars or the state is not what develop's code expects:
+   stop, apply nothing. Then `terraform apply` that plan.
+3. **The environment.** GitHub → Settings → Environments → New environment `terraform-plan`; required
+   reviewer Nigel Blount; Prevent self-review off (a single reviewer).
+4. **Its variable.** In that environment, the variable `AWS_PLAN_ROLE_ARN` =
+   `terraform output -raw github_plan_role_arn`. Then the repository variable
+   `TERRAFORM_PLAN_ENABLED` = `true`, **last**, so the job never starts before its reviewer exists.
+5. **One run.** A pull request that touches `infra/develop` (the docs of this role in
+   `infra/develop/README.md`); approve the job and read the plan in its summary. An `AccessDenied` that
+   names an action is a read to add to `data.aws_iam_policy_document.github_plan`. PE3 is ticked in that
+   pull request once the plan has run.
+6. Optional: `Terraform (format, validate)` a required check on `develop`.
+
+Correction (2026-10-28): `infra/develop/.terraform.lock.hcl` **is** committed (since #525, AWS provider
+5.100.0). #1065 said otherwise from a directory listing that hid dotfiles. CI's `init -backend=false`
+honours it, so CI and the operator's apply already use the same provider.

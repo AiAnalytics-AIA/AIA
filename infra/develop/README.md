@@ -15,6 +15,7 @@ What it creates, and why each piece exists:
 | SSM parameters `/aia/develop/*` | Configuration for the host's env file; the PostgreSQL password is a generated `SecureString` |
 | Cognito user pool + Google IdP + hosted domain + public app client | Authentication only ([ADR 0003](../../docs/architecture/adr/0003-cognito-identity-boundary.md)); PKCE; no self sign-up |
 | GitHub OIDC provider + `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys |
+| `aia-develop-github-plan` role | Lets CI's *Terraform plan (develop)* job, in the `terraform-plan` GitHub environment only, read develop's state, its tfvars in SSM and the settings of what it refreshes. No write, no bucket object ([§ Terraform in CI](#terraform-in-ci)) |
 | DLM daily snapshot (7 kept), CloudWatch log group, 3 alarms, SNS email, AWS Budget | Observability and cost control at the size that matters here |
 
 Not created: a KMS customer-managed key (SSE-S3 covers encryption at rest for
@@ -33,9 +34,41 @@ terraform apply
 terraform output                                # values for GitHub and DNS below
 ```
 
-`terraform validate` and `plan` need provider downloads and an AWS account,
-so they run on an operator's machine, not in CI. `terraform fmt -check` is
-the only check the repository runs on these files.
+The tfvars an apply reads live in SSM `/aia/terraform/develop/tfvars` (a SecureString), not only on
+one operator's disk: fetch them with `aws ssm get-parameter --name /aia/terraform/develop/tfvars
+--with-decryption --query Parameter.Value --output text > terraform.tfvars`, never print them, and
+store any change back with `put-parameter --overwrite` under the same type and tier. CI's plan job
+reads the same parameter.
+
+**From AWS CloudShell**, set `export TF_DATA_DIR=/tmp/tf-develop` before `terraform init`: the
+providers do not fit in CloudShell's 1 GB home, and `init` fails there for want of space
+(2026-10-28, the plan role's apply).
+
+## Terraform in CI
+
+`.github/workflows/ci.yml` checks this root (production-environment PE3):
+
+- **Terraform (format, validate)**, on every pull request that touches `infra/**` or `ci.yml` and on
+  every push to `main` and `develop`: `terraform fmt -check -recursive infra`, then `init
+  -backend=false` and `validate` in every `infra/*/` root, Terraform 1.10.5 and the committed
+  `.terraform.lock.hcl`. No credentials, no state.
+- **Terraform plan (develop)**, on a pull request that touches `infra/**` or `ci.yml`, once the
+  repository variable `TERRAFORM_PLAN_ENABLED` is `true`: `terraform plan -lock=false` against
+  develop's state, its text in the job summary. It runs in the `terraform-plan` GitHub environment,
+  which a person approves for every run, because the state it reads holds the PostgreSQL password and
+  the Google and Cognito client secrets, and a pull request runs its own branch's copy of the
+  workflow. Read the workflow change in the pull request before approving the job.
+  - Its role, `aia-develop-github-plan` (`github.tf`), trusts only that environment's subject:
+    `github_plan_oidc_subject`, the tfvars' `github_oidc_subject` with `:environment:develop` replaced
+    by `:environment:terraform-plan` (this organization issues immutable subjects). It reads the state
+    key, bucket settings (never an object), the resource types this root refreshes and SSM
+    `/aia/develop/*` and `/aia/terraform/develop/tfvars`; it writes nothing.
+  - The environment's variable `AWS_PLAN_ROLE_ARN` is `terraform output -raw github_plan_role_arn`.
+    GitHub holds no copy of the tfvars.
+  - The environment's "Allow administrators to bypass" lets an administrator run the job without the
+    approval; with one administrator that is the reviewer, but turn it off when there is a second.
+  - An `AccessDenied` naming an action in the plan's refresh is a read missing from
+    `data.aws_iam_policy_document.github_plan`; add it there and apply.
 
 ## Human actions
 

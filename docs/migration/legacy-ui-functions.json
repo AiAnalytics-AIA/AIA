@@ -18,7 +18,7 @@
  },
  "statuses": {
   "LEGACY": "runs only in the browser of the oracle",
-  "PORTING": "an aia_core.domain implementation exists; parity not yet PASS",
+  "PORTING": "an AIA implementation exists (aia_core.domain, or apps/web/src/lib for a display-only function); parity not yet PASS",
   "PORTED": "parity PASS from executed gates against unit-captured fixtures"
  },
  "functions": [
@@ -450,11 +450,13 @@
    "source_sha256": "513815bd15cdcc6589d74a17bac07e8a45c263dd083e20deb62cf657914649ff",
    "reference_chars": 340,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 16,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "computeDirectedMatrix1798",
@@ -987,11 +989,13 @@
    "source_sha256": "ac9e513eabfc2ffff4d0dac26b422ec5c505f80bd159c450bdc22c934dfc423a",
    "reference_chars": 1676,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 8,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "drawBubbleSocio1797",
@@ -1022,11 +1026,13 @@
    "source_sha256": "28e02636bb997788d6a7dc122e9a8e0358aa6ca54156c1ca7ce0197fe372b6f7",
    "reference_chars": 1385,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 8,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "fieldHtml1882",
@@ -1219,11 +1225,13 @@
    "source_sha256": "f0584130f399c99988da3110309311111b39c5ccb534c06180b0f9da0c7a518a",
    "reference_chars": 946,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 8,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "pointerUp1865",
@@ -1253,11 +1261,13 @@
    "source_sha256": "aa3185b579c4f80948cd00e6bd03c4d56aa584a1877a33f0636e05e6f8b05c85",
    "reference_chars": 685,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 8,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "projection1865",
@@ -1283,11 +1293,13 @@
    "source_sha256": "0b4f9a422cbbaaa257e63e2c677a364711eed54271b29ce517b70984259eab56",
    "reference_chars": 487,
    "source": "reference_ledger",
-   "status": "LEGACY",
-   "implementation": [],
+   "status": "PORTING",
+   "implementation": [
+    "apps/web/src/lib/object-map-panel.ts"
+   ],
    "fixtures": [],
    "slice": 8,
-   "notes": ""
+   "notes": "ported to the web client, the panel's constants and order kept; pinned to the panel's values by apps/web/src/lib/fixtures/object-map-draw-golden.json (plan sociomap-5-web chunk 2); display only, no methodological number"
   },
   {
    "name": "renderDetail1865",

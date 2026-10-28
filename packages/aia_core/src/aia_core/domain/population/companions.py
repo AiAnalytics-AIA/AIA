@@ -32,16 +32,18 @@ import hashlib
 import io
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Final
 
+from ..pipeline import fingerprint
 from .table import ParsedPanel
 from .versions import content_sha256, is_sha256
 
 __all__ = [
     "KNOWN_JOINT_STATUSES",
+    "KNOWN_PREDICTION_STATUSES",
     "CompanionKind",
     "CompanionReport",
     "CompanionSet",
@@ -57,6 +59,9 @@ __all__ = [
 #: Certificate statuses whose meaning is recovered. Anything else is unknown and
 #: falls back. ``COHERENT_CORE_MATCHED_BLOCKS`` is the v17 status (M03).
 KNOWN_JOINT_STATUSES: Final = frozenset({"COHERENT_CORE_MATCHED_BLOCKS"})
+#: Predictive-validation statuses whose meaning is recovered: only the one the v17 certificate
+#: carries. Anything else is unknown and falls back.
+KNOWN_PREDICTION_STATUSES: Final = frozenset({"EXTERNAL_HOLDOUT_PENDING"})
 _QC_PASSED: Final = "QC_PASSED"
 
 _JOINT_FLAGS: Final = (
@@ -119,7 +124,11 @@ class CompanionSpec:
 
 
 class JointState(StrEnum):
-    """How a certificate evaluated. Only CERTIFIED grants anything."""
+    """How a certificate evaluated. Only CERTIFIED grants anything.
+
+    Stored: a version's companion set and every run binding record it, under a check constraint
+    of exactly these values.
+    """
 
     CERTIFIED = "CERTIFIED"
     NOT_THIS_PANEL = "NOT_THIS_PANEL"
@@ -136,14 +145,27 @@ class JointDecision:
     reason: str
 
 
+# Proves a status came from evaluate_joint_certificate or JointStatus.fallback. A certificate
+# decoded from a model response or a request body can never carry it, so nobody can hand the
+# claim gate a permissive status they built themselves.
+_JOINT_ISSUER: Final = object()
+
+
 @dataclass(frozen=True, slots=True)
 class JointStatus:
-    """What may be claimed jointly for one panel. The fallback forbids everything."""
+    """What may be claimed jointly for one panel. The fallback forbids everything.
+
+    The one status the population loader and the evidence claim gate both read (MVP-29,
+    evidence-integrity 5b): issued only by :func:`evaluate_joint_certificate` and
+    :meth:`fallback`.
+    """
 
     state: JointState
     detail: str
     certified_panel_sha256: str | None = None
     status: str | None = None
+    production_panel: str | None = None
+    structure_status: str | None = None
     client_joint_outputs_allowed: bool = False
     cross_block_joint_claims_allowed: bool = False
     cross_block_same_person_joint: bool = False
@@ -152,18 +174,46 @@ class JointStatus:
     matched_block_outputs_allowed: bool = False
     matched_blocks: frozenset[str] = frozenset()
     prediction_validation_status: str | None = None
+    runtime_identity_contract: str | None = None
+    _issuer: Any = field(default=None, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        if self._issuer is not _JOINT_ISSUER:
+            raise ValueError("a joint status is issued only by evaluate_joint_certificate")
 
     @classmethod
     def fallback(cls, state: JointState, detail: str) -> JointStatus:
         """The fail-closed status: nothing joint is permitted."""
         if state is JointState.CERTIFIED:
             raise ValueError("the fallback is never CERTIFIED")
-        return cls(state=state, detail=detail)
+        return cls(state=state, detail=detail, _issuer=_JOINT_ISSUER)
 
     @property
     def certified(self) -> bool:
         """True only for a certificate that binds to this panel and passed every check."""
         return self.state is JointState.CERTIFIED
+
+    def fingerprint(self) -> str:
+        """Identity of everything this status permits, for anything cached on it.
+
+        Two certificates for the same panel that permit different things must not share an
+        identity: a result computed under one is not valid under the other. ``detail`` is prose
+        and is left out. Every analysis module's input fingerprint carries it, so its material is
+        the one the evidence gate's own status carried before the two were one (the missing and
+        the certified status hash as they did).
+        """
+        return fingerprint(
+            {
+                "degradation": None if self.certified else self.state.value,
+                "production_panel": self.production_panel,
+                "panel_sha256": self.certified_panel_sha256,
+                "structure_status": self.structure_status,
+                "prediction_validation_status": self.prediction_validation_status,
+                **{flag: getattr(self, flag) for flag in _JOINT_FLAGS},
+                "matched_blocks": sorted(self.matched_blocks),
+                "runtime_identity_contract": self.runtime_identity_contract,
+            }
+        )
 
     def decide(self, field_blocks: Mapping[str, str], *, client_facing: bool) -> JointDecision:
         """May the fields in ``field_blocks`` (field -> dictionary block) be used jointly?
@@ -201,8 +251,15 @@ class JointStatus:
         }
 
 
-def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str) -> JointStatus:
-    """Evaluate ``CORE_JOINT_STATUS.json`` against the panel it must certify."""
+def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str | None) -> JointStatus:
+    """Evaluate ``CORE_JOINT_STATUS.json`` against the panel it must certify.
+
+    The one evaluator (evidence-integrity 5b): the loader asks it with the panel it loaded, the
+    claim gate with the panel SHA-256 a dataset recorded. ``panel_sha256`` is measured by whoever
+    loaded the panel, never read from the certificate; one that was not measured cannot be bound,
+    so it refuses. Every check either side made before they were one refuses here, so nothing
+    either refused is certified.
+    """
     if data is None:
         return JointStatus.fallback(JointState.MISSING, "no certificate")
     try:
@@ -213,12 +270,20 @@ def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str) -> Join
         return JointStatus.fallback(JointState.UNPARSEABLE, "not a JSON object")
 
     status = document.get("status")
-    if status not in KNOWN_JOINT_STATUSES:
+    # Text first: a JSON array or object is unhashable, and must refuse, never raise.
+    if not isinstance(status, str) or status not in KNOWN_JOINT_STATUSES:
         return JointStatus.fallback(JointState.UNKNOWN_STATUS, f"status {status!r} is not known")
     if document.get("structure_status") != _QC_PASSED:
         return JointStatus.fallback(
             JointState.UNKNOWN_STATUS,
             f"structure_status {document.get('structure_status')!r} is not {_QC_PASSED}",
+        )
+    prediction = document.get("prediction_validation_status")
+    if not isinstance(prediction, str) or prediction not in KNOWN_PREDICTION_STATUSES:
+        # A certificate that claims more must arrive with the code that knows what more permits.
+        return JointStatus.fallback(
+            JointState.UNKNOWN_STATUS,
+            f"prediction_validation_status {prediction!r} is not known",
         )
     flags: dict[str, bool] = {}
     for flag in _JOINT_FLAGS:
@@ -230,24 +295,38 @@ def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str) -> Join
             )
         flags[flag] = value
     blocks = document.get("matched_blocks")
-    if not isinstance(blocks, list) or not all(isinstance(b, str) for b in blocks):
-        return JointStatus.fallback(JointState.UNPARSEABLE, "matched_blocks is not a list")
+    if not isinstance(blocks, list) or not all(isinstance(b, str) and b for b in blocks):
+        return JointStatus.fallback(JointState.UNPARSEABLE, "matched_blocks is not a list of names")
+    production_panel = document.get("production_panel")
+    if not isinstance(production_panel, str) or not production_panel:
+        return JointStatus.fallback(JointState.UNPARSEABLE, "production_panel is missing")
+    identity = document.get("runtime_identity_contract")
+    if identity is not None and not isinstance(identity, str):
+        return JointStatus.fallback(JointState.UNPARSEABLE, "runtime_identity_contract is not text")
     certified = document.get("panel_sha256")
     if not isinstance(certified, str) or not is_sha256(certified):
         return JointStatus.fallback(JointState.UNPARSEABLE, "panel_sha256 is not a digest")
+    if panel_sha256 is None:
+        return JointStatus.fallback(
+            JointState.NOT_THIS_PANEL,
+            "the loaded panel's SHA-256 was not measured, so the binding cannot be checked",
+        )
     if certified != panel_sha256:
         return JointStatus.fallback(
             JointState.NOT_THIS_PANEL,
             f"certifies {certified}, not this panel {panel_sha256}",
         )
-    prediction = document.get("prediction_validation_status")
     return JointStatus(
         state=JointState.CERTIFIED,
-        detail="certificate binds to this panel",
+        detail=f"certified for {production_panel}",
         certified_panel_sha256=certified,
         status=status,
+        production_panel=production_panel,
+        structure_status=_QC_PASSED,
         matched_blocks=frozenset(blocks),
-        prediction_validation_status=prediction if isinstance(prediction, str) else None,
+        prediction_validation_status=prediction,
+        runtime_identity_contract=identity,
+        _issuer=_JOINT_ISSUER,
         **flags,
     )
 

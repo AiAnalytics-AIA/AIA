@@ -18,8 +18,11 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 </helmet>
 <div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px">
   <div style="max-width: 1344px; display: flex; flex-direction: column; gap: 16px">
-    <div><div class="cap">11b · k zprávě</div><h1 style="margin-top: 4px">Editor zprávy: vzhled a ověření</h1>
-      <p class="lede">Zpráva se upravuje ve skutečném editoru ONLYOFFICE Docs 9.4.0.1, který AIA hostuje na docs.&lt;hostname&gt;. Tady je, jak vypadá v motivu AIA proti výchozímu, co jsme na něm ověřili a co mu AIA posílá. Snímky jsou ze skutečného serveru s interní zprávou fiktivní studie.</p></div>
+    <header class="hero" style="margin-bottom: 0">
+      <div class="hero-top"><a class="eyebrow" href="Report.dc.html"><i class="ph ph-file-text" aria-hidden="true"></i> 11b · k zprávě</a></div>
+      <h1 class="hero-h">Editor zprávy: vzhled a ověření</h1>
+      <p class="hero-lede">Zpráva se upravuje ve skutečném editoru ONLYOFFICE Docs 9.4.0.1, který AIA hostuje na docs.&lt;hostname&gt;. Tady je, jak vypadá v motivu AIA proti výchozímu, co jsme na něm ověřili a co mu AIA posílá. Snímky jsou ze skutečného serveru s interní zprávou fiktivní studie.</p>
+    </header>
 
     <section class="sec" aria-labelledby="e-cmp"><div class="sh"><span class="num">01</span><h2 id="e-cmp">Motiv AIA proti výchozímu</h2><span class="grow"></span><span class="seg sm" role="radiogroup" aria-label="Co ukázat"><sc-for list="{{views}}" as="v" hint-placeholder-count="4"><button class="{{v.cls}}" type="button" role="radio" aria-checked="{{v.on}}" onClick="{{v.pick}}">{{v.l}}</button></sc-for></span></div>
       <div class="sb" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px">

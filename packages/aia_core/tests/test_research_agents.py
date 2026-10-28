@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
 from aia_core.application.research import ResearchAgentJobs, ResearchRunNotFound, _Probed
-from aia_core.domain.ai_contracts import canonical_json, schema_node_is_open, schema_object_nodes
+from aia_core.domain.ai_contracts import (
+    canonical_json,
+    schema_node_is_open,
+    schema_object_nodes,
+    validate_structured_output,
+)
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
@@ -677,3 +683,61 @@ def test_questionnaire_jobs_freeze_the_pinned_findings_only_when_given_a_store(
         )
     jobs.start(design_revision_id=revision.revision_id, action=ResearchAction.BUILD)
     assert state["reads"] == reads + 1
+
+
+# --------------------------------------------------------------------------- #
+# A brief analysis's tracked sets in the wrong JSON type (brief-analysis-schema-repair)
+# --------------------------------------------------------------------------- #
+
+_TRACKED_SET: dict[str, Any] = {
+    "title": "Značky",
+    "object_type": "značka",
+    "purpose": "",
+    "objects": ["A", "B"],
+    "object_question": "Jak hodnotíte {object}?",
+    "scale_labels": ["špatně", "dobře"],
+    "familiarity_required": True,
+    "why_map": "",
+    "objects_are_suggested": True,
+}
+
+
+def _brief_answer(tracked_sets: object) -> dict[str, Any]:
+    return {
+        "title": "Studie",
+        "problem_summary": "",
+        "decision_use": "",
+        "objectives": ["cíl"],
+        "research_questions": ["otázka"],
+        "hypotheses": [],
+        "recommended_topics": [],
+        "tracked_sets": tracked_sets,
+        "non_object_measures": [],
+        "questions_for_user": [],
+        "complexity": "standard",
+        "method_reason": "",
+        "ready_for_questionnaire": True,
+    }
+
+
+@pytest.mark.parametrize(
+    ("sent", "received"),
+    [
+        # HYPOTHESIS for develop's 2026-10-28 failure (RUN-4486b029e2c74102): the refused
+        # answer was never stored, so its shape is unknown. A JSON array sent as a string
+        # holding JSON is a known tool-use failure in long answers; null and a lone object
+        # give the very same violation today.
+        (json.dumps([_TRACKED_SET], ensure_ascii=False), "string"),
+        (None, "null"),
+        (_TRACKED_SET, "object"),
+    ],
+    ids=["string", "null", "object"],
+)
+def test_a_wrong_json_type_is_named_in_the_violation(sent: object, received: str) -> None:
+    verdict = validate_structured_output(BriefAnalysis, structured=_brief_answer(sent), text="")
+    assert not verdict.ok
+    assert verdict.violations == (
+        f"tracked_sets: Input should be a valid array, received {received}",
+    )
+    # The repair turn's hint is for a string alone; strict validation refuses each.
+    assert verdict.container_as_string is (received == "string")

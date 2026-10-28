@@ -77,3 +77,8 @@ output "bedrock_application_profile_arns" {
     { for p in aws_bedrock_inference_profile.lead : (var.bedrock_lead_model_id) => p.arn },
   )
 }
+
+output "github_plan_role_arn" {
+  description = "The read-only role ci.yml's Terraform plan job assumes (AWS_PLAN_ROLE_ARN in the terraform-plan environment)."
+  value       = aws_iam_role.github_plan.arn
+}

@@ -10,8 +10,9 @@ a fourth image (``aia-legacy-panel``, ADR 0011) the Terraform list did not, so
 the build succeeded and the push was refused with 403 on the first real deploy
 (OI-41).
 
-Terraform does not run in CI (``infra/develop/README.md`` § Apply), so this is
-the only check that fires before an operator applies. It reads the files as
+CI's Terraform format and validate cannot see this mismatch, and its plan runs
+only behind a person's approval (``infra/develop/README.md`` § Terraform in CI),
+so this is the only check that always fires before an operator applies. It reads the files as
 text, without a YAML or HCL parser, and expects nothing outside the repository.
 """
 

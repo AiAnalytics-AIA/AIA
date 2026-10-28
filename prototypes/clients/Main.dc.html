@@ -30,9 +30,11 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   <div class="main" style="flex: 1 1 100%">
     <div class="clhero-ground">
       <div class="content" style="max-width: 1240px; padding-bottom: 8px">
-        <header class="tophead">
-          <div class="th-id"><span class="eyebrow"><i class="ph ph-buildings" aria-hidden="true"></i> Prototyp · stránky klienta</span><h1>AIA Klienti – prototyp</h1><p class="th-sub">Všechny stránky klienta: jak dnes vypadají na develop, co dělají (s odkazem do kódu) a jak je překreslit v systému, který už platí pro Nastavení a výzkumné kroky. <span class="th-cap">develop @ a1a9a45c · 27. 10. 2026 · fiktivní data, nic placeného</span></p></div>
-          <dl class="ch-facts"><div><dt>Desky</dt><dd>7</dd></div><div><dt>Funkcí dnes, zachovaných</dt><dd>184</dd></div><div><dt>NO BACKEND</dt><dd>11</dd></div><div><dt>Otevřené otázky</dt><dd>0</dd></div></dl>
+        <header class="hero">
+          <div class="hero-top"><span class="eyebrow"><i class="ph ph-buildings" aria-hidden="true"></i> Prototyp · stránky klienta</span></div>
+          <h1 class="hero-h">AIA Klienti – prototyp</h1>
+          <p class="hero-lede">Všechny stránky klienta: jak dnes vypadají na develop, co dělají (s odkazem do kódu) a jak je překreslit v systému, který už platí pro Nastavení a výzkumné kroky. <span class="th-cap">develop @ a1a9a45c · 27. 10. 2026 · fiktivní data, nic placeného</span></p>
+          <dl class="hero-meta"><div><dt>Desky</dt><dd>7</dd></div><div><dt>Funkcí dnes, zachovaných</dt><dd>184</dd></div><div><dt>NO BACKEND</dt><dd>11</dd></div><div><dt>Otevřené otázky</dt><dd>0</dd></div></dl>
         </header>
       </div>
     </div>
@@ -43,7 +45,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
           <div class="sb">
             <div class="mapgrid">
               <a class="mapcard" href="Clients.dc.html"><span class="pth">/app/clients</span><b>Klienti</b><span class="cap">Adresář: tabulka místo karet, poctivé hledání, řazení, Nový klient.</span></a>
-              <a class="mapcard" href="Overview.dc.html"><span class="pth">…/&lt;klient&gt;</span><b>Přehled klienta</b><span class="cap">Kompaktní hlavička: jméno, co čeká na vás, akce; čísla tiše u záložek. Čeká na vás, výstupy slovy.</span></a>
+              <a class="mapcard" href="Overview.dc.html"><span class="pth">…/&lt;klient&gt;</span><b>Přehled klienta</b><span class="cap">Hlavička podle core v4.3: jméno, akce, čísla i to, co čeká na vás. Čeká na vás, výstupy slovy.</span></a>
               <a class="mapcard" href="Studies.dc.html"><span class="pth">…/research</span><b>Výzkumy</b><span class="cap">Jedno hledání v názvech i designech, „Použít jako základ nového výzkumu“ u každé studie (paměť sloučena). Simulace dál skrytá (K12).</span></a>
               <a class="mapcard new" href="Knowledge.dc.html"><span class="pth">…/knowledge (Data sloučena)</span><b>Znalosti jako Disk</b><span class="cap">Nigel 27. 10.: složky ve složkách, přetažení, cesta, seznam/mřížka; datové sady jako druh; složka každé studie se Vstupy a Výstupy.</span></a>
               <a class="mapcard" href="KnowledgeItem.dc.html"><span class="pth">…/knowledge?view=review · ?item=</span><b>Znalosti · schvalování a položka</b><span class="cap">Čeká na vás / Rozhodnuté, důvod zamítnutí, diff úpravy, historie revizí.</span></a>
@@ -58,7 +60,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
             <div class="sh"><span class="num">02</span><h2 id="h-pr">Principy, které desky drží</h2></div>
             <div class="sb">
               <ul class="wells" style="gap: 6px">
-                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Kompaktní hlavička s jasnou hierarchií</b><span class="cap">Nigel 27. 10.: hero zabíralo moc místa. Jeden řádek nese kdo (jméno, stav), co čeká na vás (korál) a akce; čísla z API tiše u záložek, popis oblasti jednou větou pod nimi. Číslo, které už nese záložka, se neopakuje.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Hlavička podle core v4.3</b><span class="cap">Nigel 28. 10.: stejná jako v Nastavení. Nadpis oblasti a akce v jednom řádku, jméno serifem, popis jednou větou, pod ním čísla z API; co čeká na vás korálem. Popis oblasti jednou větou pod záložkami.</span></div></li>
                 <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Barva jen podle významu</b><span class="cap">Signál výběr a hlavní akce; korál jen co čeká na vás; břidlice čeká na jiné; chyba jen chyba; zelená žádná; odstín oblasti jen 8% pás listu.</span></div></li>
                 <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>R16 tónové vrstvy</b><span class="cap">Měkké listy s blednoucím pásem v hlavičce, studny o tón níž, žádné tvrdé barevné hrany; číslované listy tam, kde je pořadí.</span></div></li>
                 <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Neznámé nikdy jako nula</b><span class="cap">Nenastavený rozpočet slovy, cena „nejvýše“ jen když ji API řekne, jméno místo id jen když ho API pošle.</span></div></li>
