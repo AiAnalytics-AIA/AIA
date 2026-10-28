@@ -110,13 +110,6 @@
     "evidence": "app.ai-analytics.ai answers",
     "note": "As planned: the zone exists, no app record, no RDS."
   },
-  "Haiku 4.5 usage in the account": {
-    "state": "MISMATCH",
-    "needed_by": "—",
-    "set_by": "Nigel",
-    "evidence": "CloudTrail: IAM user makli-bedrock",
-    "note": "Not AIA: IAM user makli-bedrock, ~240-300 Converse calls a day from one IP, two active access keys ('Local Cli', 'bedrock'). Decide whose it is and whether the keys stay."
-  },
   "Smoke shows the AI switches (MP6)": {
     "state": "MISSING",
     "needed_by": "knowing a green deploy has a working product (mvp-master-plan MP6)",
