@@ -20,7 +20,9 @@ decision 8 (`study_lead_turns` gains three columns; queued messages are stored) 
 operation log and per-change accept), ADR 0030 (the Lead's files over time; a Lead is its
 researcher's alone), ADR 0039 (the study context file), ADR 0040 (the web lookup and its
 continuation turn) and ADR 0035 (report edits).
-**Leaves unchanged** the closed `LeadOutput`, "the Lead calls no tool", the governed model gateway as
+**Leaves unchanged** the closed `LeadOutput`, "the Lead calls no tool" (since [ADR 0026 Amendment
+2026-10-28](0026-research-lead-proposes-a-person-decides.md#amendment-2026-10-28-the-lead-reads-through-tools-inside-a-turn-paid-work-stays-an-approved-job):
+no paid or external tool), the governed model gateway as
 the only model path, the number rule, the privacy of turns, the wallet and spend gates, and the
 96 KB context bound. (Amendment 1 replaces the 96 KB bound with a token budget taken from the model,
 and adds a bounded search-and-read round that code runs; the rest of this list stands.)
@@ -656,7 +658,10 @@ runs and older decisions (`lead-conversation#LC9`).
 **A3. One bounded search-and-read round.** At most 2 searches and 3 page reads a turn, over the
 study's chosen knowledge only. Code runs them, never a free tool loop; every quote cites its page;
 at most three model calls a turn. Its shape is ADR 0042's (Proposed, `lead-client-knowledge#LK1`,
-`#LK3`), which amends ADR 0026 decision 3. Word search only in the MVP (REV-0041-EMBED); embeddings
+`#LK3`), which amends ADR 0026 decision 3. *Since 2026-10-28:* ADR 0042 is folded into ADR 0026
+Amendment 2026-10-28, whose R2 makes knowledge search and read two of the Lead's native read
+tools, keeping these limits (2 searches, 3 page reads a turn), and whose R4 bound (USD 0.50 or 8
+rounds a turn) replaces the three-call cap. Word search only in the MVP (REV-0041-EMBED); embeddings
 stay after the MVP, as decision 5 says.
 
 **A4. Summaries start on tokens.** Compaction (`lead-conversation#LC7`) runs once the recent
