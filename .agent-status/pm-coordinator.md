@@ -164,3 +164,33 @@ Arigamaru; #512 ADR decisions; design feedback (optional).
   for an explainer). Relayed to planning 3.
 - #527 vite fix opened (Nigel: "push the vite fix"), Codex clean; merge when green, then bring develop into #525.
   #526 IdP reviewed by me: OK; merge when backend green. Input audit refused a relayed "go" (correct); Nigel to type it there.
+
+## 2026-10-28 evening (second-account coordinator, session_013NjzbwGc9RWTsTMyFqigwh)
+
+Verified state, develop @ 28406c46:
+- W0 33/33 done (#1076 merged 17:23). Build Map republished v13 (#1083).
+- Develop's route on Sonnet 5.5 since 19:42:33 UTC: tagged profile hnpij62nm89g, policy aia-bedrock-develop-2026-10-28-route-sonnet55. Verified by a Lead turn (USD 0.0589) and CloudTrail. SSM DeleteParameters takes at most 10 names (recorded in #1077).
+- Develop deployed 92041d11 at 20:06; #1082 merged 20:10 (28406c46).
+- Status page in this account: https://claude.ai/artifact/5BMkhxqdicnjSZDdpaMqgR (v8).
+
+Nigel's answers on the page (applied or relayed):
+- W1Q1 merge #1082 (done).
+- W1Q2-5 chunk 5: request's class, last answer, operators only, EVERY structured agent.
+- W1Q6 build chunk 4, probe after the switch.
+- W1Q7 start E08/E09/E12.
+- W1Q8 acceptance docs PR, merge once clean.
+- W1Q9 drop the parity checks from required (Nigel does it).
+- W1Q10 LO2 runs only, the rest in LO3.
+- W1Q11 F-LO-PARK-1 both fixes.
+
+W1 build sessions:
+- E06 session_013Njzbv7BbG6cd9PwvWK2uP
+- E07 session_013NjzbvzKNggwtGtXxArKQG
+- E08 session_013Njzbva8LMzLmHHKkzqkJV
+- E09 session_013NjzbzeAGeUtjbsRkTpAb7
+- E12 session_013NjzbvCcH2BsLRKwkiPHp9
+- brief-analysis session_013Njzbzux3dqg6CfmWBQxhT (chunks 5 then 4)
+
+In flight:
+- The Sonnet 5.5 probe (prompt P2): study "Sonnet 5.5 probe" on the fictional Fio client, n 78, fictional respondents, budget USD 40, ceiling 35.70.
+- #1077 (switch record) draft, pushed on Nigel's word; merge needs his word.
