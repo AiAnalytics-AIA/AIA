@@ -1776,3 +1776,56 @@ figure is refused for that before its 404. Every person holds every permission (
 - `ARCHITECTURE.md` enforcement list: the import contract and the four `layer_check` rules above.
 - ADR 0028 *What enforces it*: the contract's name and module (`aia_core.application.spend_confirmation`).
 
+## Findings (2026-10-28)
+
+### F-LO-PARK-1. A turn parked at the budget answers from the context frozen when it parked (hypothesis)
+
+Reported by the PM coordinator from the product owner's develop session of 2026-10-28 (the "Sonnet 5.5 probe"
+study on the fictional Fio banka Sandbox client). **A hypothesis until reproduced**: the code path is anchored,
+the observation is not yet a test.
+
+1. **Claim.** A Lead turn parked `AWAITING_BUDGET` is released with the context it froze when it was queued,
+   so it answers about a working copy that has since moved. A greeting the web posts on its own when the
+   study opens can be that parked turn, so a person who never wrote to the Lead finds one waiting for the
+   budget.
+2. **Anchors** (`@ df1377f7`):
+   - The context is frozen once, into the step's input, when the turn is queued:
+     `packages/aia_core/src/aia_core/application/research_lead.py:872-917` (`_freeze`, then
+     `step_inputs["turn"]["context"]`).
+   - Release resumes the same step and its input; nothing freezes the context again:
+     `research_lead.py:476-540` (`release_lead_budget_waits` → `WorkflowRepository.resume_budget_waits`).
+   - The web greets on its own when the pane opens: `apps/web/src/components/workbench/LeadPane.tsx:208-212`;
+     `ResearchLead.post` queues a greeting turn like a message (`research_lead.py:677-760`), and a greeting is
+     only skipped while a turn is already waiting for the budget (`:732-736`).
+3. **Reproduction (open).** Observed on develop: a new study with no budget showed a parked turn at once
+   ("Na odpověď nezbývá rozpočet studie …") although nothing had been written to the Lead. The person then
+   edited the brief, five questions and n = 20, and set the budget to USD 30 (about 19:55-20:00 UTC). The turn
+   was sent within about 15 s, cost USD 0.03, said it had read revision 1, and described an empty "Nový výzkum"
+   with n = 300. The test to write: post a greeting on a study with no budget; save the working copy; raise the
+   budget; assert the released turn's context names the current working revision, and assert whether a greeting
+   should park at all.
+4. **Consequence.** The person pays for an answer about a design that no longer exists, and the answer contradicts
+   what is on screen.
+5. **Smallest fix (not chosen here; the owner's or S1's call).** Either (a) re-freeze a parked turn's context when
+   it is released (a new step input under the same turn, its digest recorded again), or (b) never park a greeting
+   on the budget: drop it, as a greeting is already dropped when a turn waits (`:732-736`). The two answer
+   different questions (ADR 0041 decision 7, Q39): Q39 resends "the message the researcher attempted to send",
+   which a greeting is not.
+6. **Test that would have caught it.** `test_research_lead_application.py`: a parked turn released after the
+   working copy moved names the current `workspace_revision`; and a greeting on a study with no budget parks
+   nothing (or is dropped).
+
+**Decided (Nigel, 2026-10-28, 20:09:36 UTC, W1Q11 on the PM status page, relayed by the
+coordinator): "Both".**
+- A greeting the web sends by itself never parks at the budget.
+- A real message released from a budget park re-freezes its context on release, so it answers on the
+  current design.
+
+**Where it lands (proposed):** its own small fix PR after LO2, on a fresh branch from `develop`
+(`fix/lead-park-refreeze`), not folded into LO2 or LO3: it touches `ResearchLead.post` and
+`release_lead_budget_waits` alone, none of the start paths, and needs no migration. Each fix with its
+own red-first test from part 6 above.
+
+### Doc follow-up (2026-10-28 findings)
+
+- `open-items.md`: number F-LO-PARK-1 (owner LO7 / research-lead-workbench), a hypothesis until its test exists.
