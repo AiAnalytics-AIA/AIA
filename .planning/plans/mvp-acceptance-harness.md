@@ -15,7 +15,7 @@ chunks:
   - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
   - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
-  - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
+  - "[x] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
   - "[ ] 16. The per-number provenance walk for AC-15: every ledger ref of both reports resolves to its model binding, prompt pin, population version and weight role (G65)"
   - "[ ] 18. Performance budgets as a release gate: page and API latency budgets per journey (D-48; the numbers are open)"
 ---
@@ -476,3 +476,38 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   (ADR 0019; G73). AC-14 reads "typed settings refuse a malformed value by name; each run records its
   composition digest" (D-09, `lead-orchestration#LO12c`). The three 18.6.6 ledgers are refreshed and
   the L-04 / L-29 contradiction removed.
+
+## Chunk 14: the wording reconciled (2026-10-28)
+
+Branch `chore/acceptance-wording-matrix`, from `develop` @ `fa0723ec`; permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+**The owner's decision, W0Q5 (Nigel Blount, 2026-10-28, "Keep USD 0.01").** AC-15 keeps USD 0.01
+as the gap allowed between AIA's usage ledger and the develop-tagged AWS cost record. Until now
+that comparison had no tolerance written down; `develop-spend-attribution` raised it as a
+hypothesis ("within USD 0.01 may be unreachable"). The decision is now in AC-15's statement and
+its tier-B projection, in both files, and the document's Decisions column cites it.
+
+**The document is the matrix's wording again.** `mvp-acceptance.md` §3 says "the authoritative
+wording is in `parity-matrix.json`; this is the same list", but it no longer was. Every
+criterion's row except AC-07 and AC-15, and every §3.1 tier cell but three, were shortened
+paraphrases. Nothing contradicted the matrix, but each paraphrase dropped something:
+- AC-02: "(text edits, structural edits per stage)";
+- AC-08: "on every client-facing number";
+- AC-09: "never generated persona prose";
+- AC-11 and AC-04: the allocation's lines in tier B.
+
+§3 and §3.1 are now the matrix's `statement`, `tier_a` and `tier_b` word for word. The Decisions
+column stays. The document's one sentence the matrix lacked, AC-14's "AIA has no edition file:
+18.6.6's was replaced by typed configuration", moved into the matrix's statement.
+`test_parity_matrix.py::test_the_acceptance_document_words_each_criterion_as_the_matrix_does`
+holds the two together, and `test_ac15_holds_the_aws_record_to_the_owner_s_usd_0_01` holds the
+decision. Both failed on `develop` and pass here.
+
+AC-01 and AC-14 (W0, G73, D-09 (b)), the L-04 / L-29 contradiction (W0), and AC-02, AC-11, AC-13
+and AC-15's separate lines (#503) were already reconciled and are unchanged in substance.
+
+**Left, in a PR of its own, as the W0 note says:** refreshing the three 18.6.6 ledgers
+(`legacy-route-ledger.json`, `legacy-ui-functions.json`, `interface-screens.json`), whose LEGACY /
+NOT_STARTED rows include built work. That is an audit of 157 routes, 89 functions and 28 screens
+with their tests. It is a different kind of work from wording, and not in this PR.
