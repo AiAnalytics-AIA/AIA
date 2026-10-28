@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
-  - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
+  - "[x] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[x] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
   - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
@@ -347,6 +347,35 @@ For the docs PR (CLAUDE.md §1; this PR edits no shared file):
   - Two error answers differ by their `request_id`: compare the body without it, never the bytes
     (`test_mvp_acceptance.py::_error`).
 - `.planning/open-items.md`: F-2, F-4, F-5 and F-6 above, numbered there.
+
+## Chunk 2: the study's fixed inputs (2026-10-28)
+
+Branch `feature/acceptance-inputs`, from `develop` @ `7107c1f0`. Permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+`tests/acceptance/inputs/`, every file pinned by SHA-256 in `inputs/index.json`, all fictional
+(e-mails on `example.test`, the page on `.example`, a library and town that do not exist):
+
+| Key | File | What |
+| --- | --- | --- |
+| `brief` | `brief.json` | Zadání: the brief sentence of `mvp-acceptance.md` §1 as the goal, decision use, briefing, the audience (age 18-65, `vek` filter) and n 300, as fields over the research template |
+| `concepts` | `concepts.json` | `service_a` ... `service_e`, five fictitious service concepts as one tracked set; chunk 4's recorded design workers answer from them |
+| `client_document` | `annual-summary.md` | The library's fictional annual summary, a Markdown client source |
+| `client_dataset` | `visits.csv` | 48 rows of visits by branch and month, with one personal column (`E-mail kontaktní osoby`) the data contract must drop |
+| `web_page` | `web-page.html` | The one public page, at `https://knihovna-kvitkov.example/sluzby-knihoven`, for tier A's recorded retrieval (chunk 4) |
+| `past_study` | `past-study.json` | One past fictional study of the same client (a question block and a tracked set), whose design is reused |
+
+**The web page is fictional (option (a)).** AIA takes no link as a client source yet, so the page
+enters only through Deep Research; tier A serves a committed snapshot at a reserved `.example`
+address. Tier B's live public page is chosen and recorded in its runbook (chunk 7). Not taken:
+(b) a snapshot of a real public page, which brings a CC BY-SA attribution and goes stale.
+
+Tests (`tests/acceptance/test_acceptance_inputs.py`, marked `acceptance`, listed under no criterion):
+the pins hold and nothing unpinned is kept; the inputs name no real address or site; the brief and
+concepts are section 1's; over HTTP on the stack, the brief saves as a study's working copy and
+reads back, the past study's design submits as a Design Revision and a new study of the same client
+reuses it, the annual summary reads `READ`, and the dataset reads with exactly one column flagged
+personal, that one as `EMAIL`. Run locally on PostgreSQL 16: `tests/acceptance` 17 passed.
 
 ## Chunk 8: parity reports and never blocks
 

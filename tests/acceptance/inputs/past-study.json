@@ -1,0 +1,74 @@
+{
+  "about": "One past fictional study of the same client (docs/migration/mvp-acceptance.md section 1, project memory): its design is saved over the research template, submitted as a Design Revision and reused through POST /clients/{id}/memory/reuse. Each key of `content` replaces the template's own (a nested object merged into it).",
+  "name": "Spokojenost čtenářů 2024 (fiktivní)",
+  "content": {
+    "title": "Spokojenost čtenářů 2024 (fiktivní)",
+    "study_type": "custom",
+    "goal": "Jak jsou čtenáři fiktivní Městské knihovny Kvítkov spokojeni se službami poboček?",
+    "decision_use": "Které služby poboček zlepšit jako první.",
+    "briefing": {
+      "product_description": "Stávající služby čtyř poboček fiktivní Městské knihovny Kvítkov.",
+      "situation": "Knihovna se ptala poprvé po pěti letech.",
+      "what_is_known": "Počty výpůjček a návštěv podle poboček.",
+      "constraints": "Bez změny rozpočtu."
+    },
+    "research_plan": {
+      "research_questions": [
+        "Které služby poboček čtenáři hodnotí nejlépe a které nejhůře?",
+        "Jak často čtenáři knihovnu navštěvují?"
+      ]
+    },
+    "audience": {
+      "source_mode": "population",
+      "strategy": "population",
+      "dataset_name": "ČR 18+",
+      "description": "ČR 18+",
+      "filters": {}
+    },
+    "n": 200,
+    "ui_state": {"questionnaire_path": "manual"},
+    "sections": [
+      {
+        "id": "sec_past_main",
+        "type": "questions",
+        "title": "Návštěvy knihovny",
+        "purpose": "Jak často a proč lidé knihovnu navštěvují",
+        "questions": [
+          {
+            "id": "Q_past1",
+            "text": "Jak často jste v posledním roce navštívili veřejnou knihovnu?",
+            "typ": "vyber",
+            "kategorie": ["Alespoň jednou týdně", "Alespoň jednou měsíčně", "Několikrát za rok", "Vůbec"],
+            "povolit_nevim": false,
+            "research_questions": ["Jak často čtenáři knihovnu navštěvují?"]
+          },
+          {
+            "id": "Q_past2",
+            "text": "Jak jste celkově spokojeni se službami knihovny?",
+            "typ": "skala",
+            "skala": [1, 10],
+            "popisky_skaly": ["vůbec", "zcela"],
+            "povolit_nevim": false
+          }
+        ]
+      },
+      {
+        "id": "sec_past_set",
+        "type": "object_battery",
+        "title": "Služby poboček",
+        "purpose": "Které služby čtenáři hodnotí nejlépe",
+        "object_family": "služba",
+        "object_type": "služba",
+        "objects": ["Výběr knih", "Otevírací doba", "Ochota knihovníků", "Studijní místa"],
+        "object_question": "Jak jste spokojeni se službou: {object}?",
+        "scale": [1, 10],
+        "scale_labels": ["vůbec", "velmi"],
+        "familiarity_required": false,
+        "output_type": "pozicni_mapa",
+        "visualize": true,
+        "metadata": {"tracked_set": true},
+        "research_questions": ["Které služby poboček čtenáři hodnotí nejlépe a které nejhůře?"]
+      }
+    ]
+  }
+}
