@@ -2397,7 +2397,9 @@ deploy/reference/           The 18.6.6 unit beside the product, never part of it
                             .github/workflows/reference-unit.yml builds its image and bundle
   bin/backup-legacy-state.py The unit's SQLite databases copied WAL-safe (backup API), for the
                             migration's copy and backup-state.sh
-infra/develop/              Terraform for the develop AWS resources (one root, no modules)
+infra/develop/              Terraform for the develop AWS resources (one root, no modules); CI formats and
+                            validates it, and plans it through the read-only aia-develop-github-plan role behind
+                            the terraform-plan environment's approval (README § Terraform in CI)
 docs/architecture/          System design + the ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief
@@ -2782,6 +2784,7 @@ ungated fixture.
 | **Settings UX acceptance** | After `make ui-workbench`, `node tools/ui_workbench/settings_journey.mjs` (Playwright + Chromium): all ten tabs at 1440/1024/768/390; real local member/budget persistence, policy proposal/approval/withdrawal, methodology validation/compare/refused-save retry/separate activation, protected drafts and expanded technical details. Fictional local identity only, zero paid jobs. `--facade`, `--out` and `AIA_CHROMIUM` configure the local URL, evidence directory and browser. |
 | **The Metodika tab, every module** | `make ui-methodology` (after `make ui-workbench` + `make ui-fixtures`; Playwright + Chromium): every module's steps and links, one edit compared, stored and activated per editable module, a run that pins them; every module restored afterwards. `--facade`, `--out` and `AIA_CHROMIUM` as for the settings journey |
 | **Timed UX journeys** | `python3 tools/ui_workbench/workbench.py up --production` (a production build of the web client), then `node tools/ui_workbench/contextual_settings_journey.mjs` / `contextual_research_journey.mjs`: interactions within 400 ms, a research stage's cold first open within 800 ms (Q78 (c); `tools/ui_workbench/production.mjs`), measured on a production build; on `next dev` they refuse to run |
+| **Terraform, as CI checks it** | `terraform fmt -check -recursive infra`; `terraform -chdir=infra/<root> init -backend=false && terraform -chdir=infra/<root> validate` (Terraform ≥ 1.10). The plan CI runs needs AWS: `infra/develop/README.md` § Apply (tfvars from SSM `/aia/terraform/develop/tfvars`; from CloudShell `TF_DATA_DIR=/tmp/…`) |
 | **Layering** | `make layer_check`: the grep rules (`tools/layer_check.sh`) and `lint-imports` (the import contracts, `[tool.importlinter]` in the root `pyproject.toml`) |
 | **Reference exposure** | `make exposure_check` |
 | Everything CI runs | `make check` |
