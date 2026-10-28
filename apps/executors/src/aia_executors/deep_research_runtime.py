@@ -128,10 +128,11 @@ from datetime import UTC, date, datetime
 from typing import Final
 
 from aia_core.application.acquisition_ladder import LadderConfig
+from aia_core.application.web_retrieval import WebRetrieval
 from aia_core.domain.ai_contracts import THINKING_MIN_BUDGET_TOKENS
 from aia_core.domain.deep_research.common_crawl import MAX_CRAWLS_PER_QUERY
 from aia_core.domain.deep_research.reputation import REPUTATION_REGISTER_V1
-from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1
+from aia_core.domain.deep_research.sources import SOURCE_TABLE_V1, SourceTable
 from aia_core.domain.providers import Provider
 from aia_core.infrastructure.common_crawl import CommonCrawlSettings, common_crawl_settings
 from aia_core.infrastructure.db import create_app_engine, create_session_factory, is_sqlite
@@ -425,6 +426,29 @@ def thinking_budget(env: Mapping[str, str] | None = None) -> int | None:
     return value
 
 
+#: Where a composed retrieval may stand in for the environment's routes: the acceptance
+#: harness's recorded web exists only there (``aia_executors.acceptance_recorded``).
+_COMPOSED_RETRIEVAL_ENVIRONMENTS: Final = frozenset({"local", "test"})
+
+
+def _refuse_beside_composed(values: Mapping[str, str], routes_named: bool) -> None:
+    """A composed retrieval is a test's: refused outside local and test, with Deep Research
+    off (it would be dropped unseen), or beside any route the environment names."""
+    environment = (values.get("AIA_ENV") or "").strip().lower()
+    if environment not in _COMPOSED_RETRIEVAL_ENVIRONMENTS:
+        raise AIRuntimeConfigError(
+            f"a composed retrieval is local and test only and refuses AIA_ENV={environment!r}"
+        )
+    if not deep_research_enabled(values):
+        raise AIRuntimeConfigError(f"a composed retrieval needs {ENABLED_KEY}")
+    if routes_named or common_crawl(values):
+        raise AIRuntimeConfigError(
+            "a composed retrieval replaces the environment's routes: name no "
+            f"{WEB_SEARCH_KEY}, {WIKIPEDIA_KEY}, {PUBLIC_FETCH_CONTACT_KEY}, "
+            f"{CONNECTORS_KEY} or {COMMON_CRAWL_KEY} beside it"
+        )
+
+
 def deep_research_runtime(
     settings: AIRuntimeSettings | None,
     *,
@@ -432,11 +456,14 @@ def deep_research_runtime(
     transport: HttpTransport | None = None,
     signer: BedrockSigner | None = None,
     coordination: sessionmaker[Session] | None = None,
+    retrieval: tuple[WebRetrieval, SourceTable] | None = None,
 ) -> DeepResearchRuntime | None:
     """``None`` when Deep Research is off; the runtime when on; raise when it cannot be.
 
     ``coordination`` is the fan-out's session factory (a test's database); ``None``
-    builds one from ``DATABASE_URL`` when the switch is on.
+    builds one from ``DATABASE_URL`` when the switch is on. ``retrieval`` is a search and
+    fetch the caller composed (the acceptance harness's recorded web, local and test only),
+    used in place of the routes the environment names; naming a route as well is refused.
     """
     values = os.environ if env is None else env
     search = web_search(values)
@@ -448,6 +475,8 @@ def deep_research_runtime(
     slots_limit = model_concurrency(values)
     contact = public_fetch_contact(values)
     listed = connectors(values)
+    if retrieval is not None:
+        _refuse_beside_composed(values, has_search or contact is not None or bool(listed))
     if contact is not None and not has_search:
         raise AIRuntimeConfigError(
             f"{PUBLIC_FETCH_CONTACT_KEY} needs {WIKIPEDIA_KEY} or {WEB_SEARCH_KEY}: pages "
@@ -518,20 +547,24 @@ def deep_research_runtime(
         sessions = coordination or _coordination_sessions(values)
         slots = ModelSlots(sessions, pool=f"bedrock:{settings.route_id}", limit=slots_limit)
         pacer = SharedHostPacer(sessions)
-    if not has_search:
-        retrieval, table = None, SOURCE_TABLE_V1
+    web: WebRetrieval | None
+    given = retrieval
+    if given is not None:
+        web, table = given
+    elif not has_search:
+        web, table = None, SOURCE_TABLE_V1
     elif search == "brave":
         assert contact is not None
-        retrieval, table = brave_retrieval(
+        web, table = brave_retrieval(
             contact,
             price_usd_per_call=brave_price_per_call(values),
             credentials=EnvironmentCredentials(environ=values),
             pacer=pacer,
         )
     elif contact is not None:
-        retrieval, table = public_retrieval(contact, pacer=pacer)
+        web, table = public_retrieval(contact, pacer=pacer)
     else:
-        retrieval, table = wikipedia_retrieval(pacer=pacer)
+        web, table = wikipedia_retrieval(pacer=pacer)
     datasets, archives = (
         connector_accesses(listed, contact=contact, pacer=pacer)
         if listed and contact is not None
@@ -560,7 +593,7 @@ def deep_research_runtime(
             fan_out=fanned_out,
             class_gates=settings.data_class_gates,
         ),
-        retrieval=retrieval,
+        retrieval=web,
         source_table=table,
         # The proposed register names publishers for the agent-directed review only
         # (chunk 12); the planned mode never reads it.

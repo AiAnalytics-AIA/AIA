@@ -19,6 +19,8 @@ import os
 from collections.abc import Callable, Mapping
 from typing import Final
 
+from aia_core.application.web_retrieval import WebRetrieval
+from aia_core.domain.deep_research.sources import SourceTable
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.population_source import FilesystemPopulationSource
 from aia_core.infrastructure.population_store import PopulationStoreSettings, S3PopulationStore
@@ -172,6 +174,7 @@ def compose_registry(
     signer: BedrockSigner | None = None,
     population: PopulationLoader | None = None,
     on_deep_research: Callable[[DeepResearchRuntime | None], object] | None = None,
+    deep_research_retrieval: tuple[WebRetrieval, SourceTable] | None = None,
 ) -> dict[str, StepExecutor]:
     """The production composition from the environment, over a given model wire.
 
@@ -183,6 +186,10 @@ def compose_registry(
     ``population`` replaces the panel path's loader (``build_ai_fieldwork(population=)``); only
     the local and test composition ``aia_executors.population_double`` passes one. Without it
     the loader is the production one over ``AIA_POPULATION_ASSET_ROOT``.
+
+    ``deep_research_retrieval`` replaces the search and fetch the environment names
+    (``deep_research_runtime(retrieval=)``); only the acceptance composition passes one, its
+    recorded web.
     """
     build = BuildIdentity.from_env()
     connectedness_interval = sociomap_connectedness_interval(os.environ)
@@ -242,7 +249,9 @@ def compose_registry(
             config=config,
         )["research_analysis"]
     children = population_store(os.environ)
-    deep = deep_research_runtime(settings, transport=transport, signer=signer)
+    deep = deep_research_runtime(
+        settings, transport=transport, signer=signer, retrieval=deep_research_retrieval
+    )
     registry = registry_for(
         store=store,
         materialize=materialize_executor(os.environ, store=children),

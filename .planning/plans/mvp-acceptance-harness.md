@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
   - "[x] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[x] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
-  - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
+  - "[x] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
@@ -376,6 +376,52 @@ concepts are section 1's; over HTTP on the stack, the brief saves as a study's w
 reads back, the past study's design submits as a Design Revision and a new study of the same client
 reuses it, the annual summary reads `READ`, and the dataset reads with exactly one column flagged
 personal, that one as `EMAIL`. Run locally on PostgreSQL 16: `tests/acceptance` 17 passed.
+
+## Chunk 4: the recorded doubles, completed (2026-10-28)
+
+Branch `feature/acceptance-recorded-doubles`, stacked on chunk 2's (`feature/acceptance-inputs`,
+#1058) for its public page. Permission as chunk 2's.
+
+W0 left three contracts off the shared wire. They are on it now, behind the real gateway and the
+real retrieval gate. The respondents, the analysis modules, the Lead and the eight design workers
+were recorded already (W0; #570).
+
+- **The client's own extraction** (`aia_knowledge_source_proposals`):
+  `recorded_models.source_proposals_answer`. It makes one FACT per carried segment, at most
+  three, each quoting the segment's first sentence literally, so the step's own `ground` keeps
+  every one.
+- **The five Deep Research agents** (`aia_deep_research_<role>`): `recorded_models.
+  deep_research_answer`, answered from a recorded script given to the wire
+  (`RecordedModels(deep_research=)`, the workbench's `agents.json` format). Without a script the
+  wire refuses them by name, as it refuses any unrecorded contract. The workbench's
+  `ScriptedDeepResearchModel` now answers through the same function: one scripted provider, as
+  this plan asks. It keeps its own zero usage and headers.
+- **Recorded retrieval in the harness's worker.** `acceptance_recorded` composes Deep Research
+  only over `AIA_ACCEPTANCE_RECORDINGS`, a directory holding `web.json` and `agents.json`. It
+  goes through `compose_registry(deep_research_retrieval=)` into
+  `deep_research_runtime(retrieval=)`, which refuses a live route named beside it. Deep Research
+  on without the recordings is still refused. `make layer_check` admits `acceptance_recorded`
+  beside the workbench as a composer of `deep_research_recorded`, and forbids it a recorded double
+  of its own.
+- **The recordings**, `tests/acceptance/recordings/`. `web.json` serves the study's one public
+  page (chunk 2's `inputs/web-page.html`, byte for byte, at its `.example` URL) for one query.
+  `agents.json` holds two quotes literally on that page.
+
+Proven over HTTP on the stack (`tests/acceptance/test_recorded_doubles.py`):
+
+- **The annual summary's proposals** complete. Every proposal is kept, and the client is charged
+  exactly batches x the recording's usage.
+- **A QUICK Design Research run** on the brief completes. Its sealed bundle is
+  `RECORDED_FIXTURE` only. Its one snapshot is the page, retrieved `RECORDED`. Its accepted quotes
+  are the script's. Its cost is a whole number of recorded agent calls.
+
+The design is Class B by rule and the recorded routes carry Class C alone, so that worker runs
+`AIA_DATA_CLASS_GATES=advisory`, as develop does (ADR 0008, Amendment 2026-10-21). An operator's
+exact-bytes classification is the deployed path, and the test cannot compute it without importing
+what it drives.
+
+Measured locally on PostgreSQL 16: `tests/acceptance` 20 passed in 51 s; the Design Research run
+takes about 15 s.
 
 ## Chunk 8: parity reports and never blocks
 
