@@ -147,6 +147,21 @@ switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the f
     `test_workflow_repository.py::test_a_failed_run_leaves_no_step_runnable`.
   - This is a hypothesis about intent until the workflow plan's owner says whether a FAILED run's
     siblings are meant to stay offered.
+- **`ssm delete-parameters` takes at most 10 names.** The chunk 4 prompt deleted the Lead's 11
+  own-model keys in one call, and it stopped there at 19:26 UTC on 2026-10-28 with a
+  `ValidationException` ("Member must have length less than or equal to 10"). By then all 15 writes
+  had landed, so SSM was half-written: the route model and the Lead's own model both read
+  `eu.anthropic.claude-sonnet-5-5`, a pair the worker refuses at start (`ai_runtime.py:821-825`).
+  - **Consequence:** no running process changed, because only `bin/write-env.sh` (run by a deploy or
+    by prompt C) reads SSM. A deploy in that window would have stopped the worker, so merges into
+    develop were held until the deletes and the restart were done.
+  - **Fix for any later prompt:** split the deletes into calls of at most 10 names (here 10, then
+    `invocation_target`).
+  - **No order of single writes is safe to start between.** Deleting first leaves the Lead on the
+    4.5 route, where its 1.10 reservation is below that model's 1.2838 minimum for an 8,000-token
+    turn (`ai_runtime.py:1023-1029`), and the worker refuses that state too. So the guard is that
+    nothing reads SSM until every write and delete is done: hold deploys, and restart only from
+    prompt C, after the "after" list matches.
 
 ## Doc follow-up (for the docs PR)
 
