@@ -7,7 +7,7 @@ chunks:
   - "[ ] MP3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
   - "[ ] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
   - "[ ] MP5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits, respondent replacement, assumption evidence and open-answer coding; ADRs awaiting an owner decision stay Proposed"
-  - "[ ] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
+  - "[x] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
   - "[ ] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
   - "[x] MP8. A register check: tools/master_check.py fails on a dangling plan#ID reference, a plan missing from §3, an AC or G or I row with no resolvable chunk, or a count that does not match the tables"
   - "[ ] MP9. The production release checklist exercised once on develop: delete path, backups and restore, alarms, rollback"
@@ -901,3 +901,58 @@ parallel crosscheck's not-yet-received final output. Segment-map/filter work is 
 proof that compare_segments supplies admitted comparative analysis; until a named
 producer/method passes admission, the capability and affected coverage remain
 explicitly unavailable. Apply the owner's empty-module/report policy when answered.
+
+### MP4: contracts and shared-surface owners, checked 2026-10-28
+
+Checked against `develop` @ `6309d390`. Paths are repo-relative; `core/` is
+`packages/aia_core/src/aia_core/`, `exec/` is `apps/executors/src/aia_executors/`. The shared fixtures
+live under `packages/aia_core/tests/fixtures/`, not a root `tests/fixtures/` (there is none).
+
+**The six contracts of `mvp-development-plan.md` §5**
+
+| Contract | State | Anchor | Needed by | What remains |
+|---|---|---|---|---|
+| Edit vocabulary | WRITTEN | `core/domain/edit_ops.py:803` (`CATALOGUE`, 30 operations, 9 `applied=True`, 21 declared), `:871` (`REFUSALS`), `:1041` (`locked_items`), `:341` (`TEXT_EDIT_OPS`) @ 6309d390; fixture `packages/aia_core/tests/fixtures/edit_ops/cases.json`, read by `test_edit_ops.py::test_the_case_file_holds_the_catalogue_exactly` and `apps/web/src/lib/edit-ops.cases.test.ts`; `working-copy-edit-ops#WCE0` ticked | W0 (S1, S2 locks, S3) | the 21 declared operations are refused `op_not_available` until the chunk that gives each its payload |
+| `LeadWorkerSpec` row | WRITTEN | `core/domain/lead_workers.py:88` (`LeadWorkerSpec`), `:171` (`WorkerRegistry`) @ 6309d390; fixture `packages/aia_core/tests/fixtures/lead_workers/workers.json` (8 rows, the design workers), `test_lead_workers.py::test_the_rows_are_the_fixture_s`, `::test_a_row_missing_any_field_is_refused_at_registration`; `lead-orchestration#LO9a` ticked | W0 (S1); S2 straight-liner, S3 report writer | rows for the results and report workers: `lead-orchestration#LO9c` (W2), `#LO9b` (W3) |
+| `ResultsContext` | PLANNED (W1) | no type in code (no `ResultsContext` definition in any `.py` or `.ts` @ 6309d390); `lead-orchestration#LO8` open, W1 (`mvp-execution-contracts.md` E11); ADR 0041 reserves its layer (`docs/architecture/adr/0041-lead-conversation-and-context.md:100` @ 6309d390) | before W2 (§5); I1 says W1 | the whole contract: type, `MaterialRule`, lineage, bound, the L slot |
+| Plan authority capability | PLANNED (W1) | ADR 0028 decision 4, Accepted (`docs/architecture/adr/0028-orchestration-scope-wallet-and-plan-card.md:104` @ 6309d390); ledger subjects admitted (`core/domain/approval_ledger.py:55-56, 92-93` @ 6309d390); no capability in code, `exec/activation.py:391-394` @ 6309d390 reports `lead_plans` not built; `lead-orchestration#LO3` open, W1 (E07); `#LO0` ticked | before W1 plan code | the capability, its `ScopeResolver` issue and the `layer_check` rule ADR 0028:228 promises (not in `tools/layer_check.sh` yet) |
+| Origin `CLIENT_REPORTED` and the evidence policy | PLANNED (W1 design, W3 code) | code MISSING: `DataOrigin` has three members (`core/domain/fieldwork.py:59-78`), `CLIENT_ADMISSIBLE_ORIGINS` is `MODELLED_AI_PANEL` alone (`:88`) @ 6309d390, held by `test_evidence_admission.py::test_every_origin_is_decided_once`; `evidence-integrity#8a` open, W1 (E11); `client-data-in-analysis#0` (policy) and `#1` (origin) open, W3 (E17); ADR 0027 and ADR 0037 Proposed, 0037 held for the methodology owner | W3 (S3) | the policy decision, both ADRs, the two-origin input (8a) and the origin |
+| Acceptance fixtures and the scripted provider | PLANNED (W0), the provider partly written | provider: `exec/recorded_models.py` (respondent, analysis, Lead, the eight design workers; `:25` lists what is not recorded: client-source extraction and the Deep Research agents), `exec/acceptance_recorded.py:12` refuses Deep Research @ 6309d390, `tests/acceptance/test_acceptance_harness.py::test_a_run_is_answered_by_recorded_models_behind_the_gateway`; harness `#1`, `#3`, `#9` ticked; **`mvp-acceptance-harness#2` (fixed inputs) and `#4` (doubles behind the gateway and the retrieval gate) open**, W0 (E01); `tests/acceptance/` holds no inputs; no open PR for either into develop on 2026-10-28 | W0 (all) | `#2`: the fictional brief, document, dataset with a personal column, web page, past study; `#4`: recorded Deep Research agents, client-source extraction and the retrieval-gate double |
+
+**The ADRs of §6 that W0 and W1 need**
+
+| ADR | Decides | Status @ 6309d390 | Needed before |
+|---|---|---|---|
+| [0028](../../docs/architecture/adr/0028-orchestration-scope-wallet-and-plan-card.md) | orchestration scope, wallet, plan card | Accepted 2026-10-20 (`:3`) | W1 plan code |
+| [0029](../../docs/architecture/adr/0029-working-copy-operation-log-merge-and-per-change-accept.md) | the operation log, merge, per-change accept | Accepted 2026-10-20 (`:3`) | W1 |
+| [0030](../../docs/architecture/adr/0030-the-lead-over-time-and-its-files.md) | the Lead over time and its files | Accepted 2026-10-20 (`:3`) | W2 M7 |
+| [0031](../../docs/architecture/adr/0031-production-environment.md) | the production environment | Accepted 2026-10-20 (`:3`) | W1 infra apply |
+| [0032](../../docs/architecture/adr/0032-open-posture-classification-deferred.md) | open posture, amends ADR 0008 | Accepted 2026-10-20 (`:3`); built as `DataPosture` (`core/domain/client_rules.py:19`, `test_client_rules.py`) | W0 |
+
+**The shared surfaces of `mvp-development-plan.md` §2 (I16, I17, I24)**
+
+| Surface | Owner | Path exists? | Enforced by |
+|---|---|---|---|
+| `core/domain/material_rules.py`, `core/domain/residency.py` | S1 | yes, both | convention only; `test_material_rules.py`, `test_residency.py` hold behaviour, not ownership |
+| the classification in `web_retrieval.py`, `core/application/deep_research.py`, `exec/deep_research/*` | S2 | yes; **two files are named `web_retrieval.py`**: the classification is `core/application/web_retrieval.py:7-9` (`RetrievalGate`), the wires `core/infrastructure/web_retrieval.py` | convention for ownership; `layer_check` holds the egress fence (`tools/layer_check.sh:653`, `:752`) and the import contract "only the executor compositions import a live network wire" (`pyproject.toml:209`) |
+| `core/infrastructure/workflow_repository.py` (ledger writers) | S3 | yes | convention for ownership; `layer_check` keeps the ledger to its repositories (`tools/layer_check.sh:472`) and cross-study queries to `WorkQueue` (`:296`) |
+| `core/domain/workflow_templates.py`, `exec/registry.py` | S3 reviews | yes, both | convention; a new type fails `test_workflow_templates.py::test_the_set_of_workflow_types_is_closed` and a new ledger subject `test_approval_ledger.py::test_every_subject_is_listed_once_and_says_who_writes_it` until listed, which makes the addition visible, not reviewed |
+| `apps/web/src/lib/api.ts`, `apps/web/src/i18n/cs.ts` | S1 for refusal wording | yes, both | convention only |
+| `apps/api/src/aia_api/routers/settings.py` | S1 (Reach panel S2) | yes | convention only |
+
+No `CODEOWNERS` exists (`.github/CODEOWNERS`, `CODEOWNERS`, `docs/CODEOWNERS` absent @ 6309d390); the
+repository has no rulesets (`GET /repos/…/rulesets` answered `[]`); branch protection on `develop` is
+unknown (the API refused this session, 403). The rule "a small PR the owner reviews first" is therefore
+convention: the sessions keep it, nothing in CI does. `layer_check` and the import contracts enforce
+*who may call what*, which narrows where a change can land, never *who reviews it*. Every session-owned
+path in §2's first table also exists @ 6309d390.
+
+**Verdict.** MP4 is **not met** for W0. Of the four things W0 needs, three are in place: the edit
+vocabulary (WRITTEN), the `LeadWorkerSpec` row (WRITTEN) and the open-posture ADR (0032, Accepted and
+built). The acceptance fixtures and the scripted provider are not: `mvp-acceptance-harness#2` and `#4`
+are open, and the provider double covers the Lead, the design workers, respondents and analysis but not
+Deep Research, client-source extraction or the retrieval gate. They are the only missing piece, so
+**MP4 ticks when harness #2 and #4 merge.** The shared-surface owners are named and every path stands;
+their review rule is convention. `ResultsContext`, the plan authority and `CLIENT_REPORTED` are not W0
+contracts: each is PLANNED under its own chunk before the wave that needs it, and is re-checked at its
+gate under MP10.
