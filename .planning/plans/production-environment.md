@@ -1,5 +1,5 @@
 ---
-status: planned
+status: in-progress
 chunks:
   - "[x] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
   - "[ ] PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM"
@@ -115,3 +115,167 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 - **The release checklist (D-28).** Terms, a privacy notice, a client DPA and the data owner's
   confirmation that the panel licence covers paid deliverables, all before the first client; the
   first-sign-in notice is the only screen.
+
+## PE3: what landed, and what a person still does (2026-10-28)
+
+**Landed** (`.github/workflows/ci.yml`, jobs `terraform` and `terraform-plan`):
+
+- `Terraform (format, validate)`: `terraform fmt -check -recursive infra`, then `init -backend=false`
+  and `validate` in every `infra/*/` root with a `versions.tf`, under Terraform 1.10.5 (the minimum
+  `versions.tf` accepts). No credentials and no state. It runs on a pull request that changes
+  `infra/**` or `ci.yml` (the `changes` job's new `infra` output) and on every push to `main` and
+  `develop`. `dispatch-develop` does not wait on it.
+- Checked before the push, with Terraform 1.10.5: `infra/develop` on `origin/develop` @ 7107c1f0 and
+  #1046's head (the two `aws_bedrock_inference_profile` resources, `model_source` in
+  `ignore_changes`, the `postcondition`) both pass `fmt`, `init -backend=false` and `validate` (AWS
+  provider 5.100.0). A root with an unsupported argument fails the step (exit 1). The `changes`
+  filter, run outside CI: a plan-only change is `infra=false`, an `apps/` change is `infra=false`,
+  `infra/develop/main.tf` and `ci.yml` are `infra=true`, a push is `infra=true`.
+- `Terraform plan (develop)`: written, **off**. It runs only with the repository variable
+  `TERRAFORM_PLAN_ENABLED=true`. Until then the validate job's summary says so.
+
+**Why the plan is gated by a person.** The plan reads develop's state, which holds the PostgreSQL
+password, the Google client secret and the Cognito client secret. A job on a pull request runs the
+branch's own copy of the workflow, so anyone who can push a branch could print whatever the plan's
+role can read. Read-only rights do not change that. So the role may be assumed only from the
+`terraform-plan` environment, and that environment requires a person's approval before the job
+starts. The plan runs with `-lock=false`, so it writes nothing, not even the state's lock file.
+
+**PE3 stays open** until a person has done the steps below and the plan has run once on a pull
+request.
+
+### The person's steps (no agent may do these: IAM, an apply, GitHub settings)
+
+1. Add the role below to `infra/develop/github.tf`, then `terraform plan` and `terraform apply` in
+   `infra/develop`. Apply after #1046 merges, or from its branch, so that its two profiles are not
+   destroyed.
+2. GitHub → Settings → Environments → **New environment** `terraform-plan`. Required reviewers:
+   Nigel Blount. Prevent self-review: off (a single reviewer).
+3. In that environment: the variable `AWS_PLAN_ROLE_ARN` = `terraform output -raw github_plan_role_arn`,
+   and the secret `TFVARS_DEVELOP` = the contents of `infra/develop/terraform.tfvars`.
+4. Repository → Settings → Variables → `TERRAFORM_PLAN_ENABLED` = `true`. This must be the last step,
+   so the job is never started without its reviewer.
+5. Open (or re-run) a pull request that touches `infra/develop`, approve the job, and read the plan
+   in the job summary. If a refresh is refused (`AccessDenied` naming an action), add that read to
+   the policy. The list below has not been run against AWS.
+6. Optional: make `Terraform (format, validate)` a required check on `develop`.
+
+### The role (not applied)
+
+```hcl
+data "aws_iam_policy_document" "github_plan_assume" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    principals {
+      type        = "Federated"
+      identifiers = [local.github_oidc_arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+    # Only a job in the terraform-plan environment, which a person approves (PE3).
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.github_repository}:environment:terraform-plan"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_plan" {
+  name                 = "${local.name}-github-plan"
+  assume_role_policy   = data.aws_iam_policy_document.github_plan_assume.json
+  max_session_duration = 3600
+}
+
+data "aws_iam_policy_document" "github_plan" {
+  statement {
+    sid       = "ReadDevelopState"
+    actions   = ["s3:GetObject"]
+    resources = ["arn:${data.aws_partition.current.partition}:s3:::aia-terraform-state-${local.account_id}/develop/terraform.tfstate"]
+  }
+  statement {
+    sid       = "ListDevelopState"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:${data.aws_partition.current.partition}:s3:::aia-terraform-state-${local.account_id}"]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["develop/*"]
+    }
+  }
+  # Bucket settings, never an object: the artifacts, ops and population buckets' contents stay
+  # out of reach.
+  statement {
+    sid = "RefreshBuckets"
+    actions = [
+      "s3:ListBucket", "s3:GetBucketAcl", "s3:GetBucketCORS", "s3:GetBucketLocation",
+      "s3:GetBucketLogging", "s3:GetBucketObjectLockConfiguration", "s3:GetBucketOwnershipControls",
+      "s3:GetBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:GetBucketRequestPayment",
+      "s3:GetBucketTagging", "s3:GetBucketVersioning", "s3:GetBucketWebsite",
+      "s3:GetAccelerateConfiguration", "s3:GetEncryptionConfiguration",
+      "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration",
+    ]
+    resources = [for b in values(local.buckets) : b.arn]
+  }
+  statement {
+    sid = "RefreshEverythingElse"
+    actions = [
+      "ec2:Describe*",
+      "iam:GetRole", "iam:GetRolePolicy", "iam:GetInstanceProfile", "iam:GetOpenIDConnectProvider",
+      "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:ListInstanceProfilesForRole",
+      "iam:ListOpenIDConnectProviders",
+      "ecr:DescribeRepositories", "ecr:GetLifecyclePolicy", "ecr:ListTagsForResource",
+      "cognito-idp:DescribeUserPool", "cognito-idp:DescribeUserPoolClient",
+      "cognito-idp:DescribeUserPoolDomain", "cognito-idp:DescribeIdentityProvider",
+      "cognito-idp:GetUserPoolMfaConfig", "cognito-idp:ListTagsForResource",
+      "sns:GetTopicAttributes", "sns:GetSubscriptionAttributes", "sns:ListTagsForResource",
+      "cloudwatch:DescribeAlarms", "cloudwatch:ListTagsForResource",
+      "logs:DescribeLogGroups", "logs:ListTagsForResource", "logs:ListTagsLogGroup",
+      "dlm:GetLifecyclePolicy", "dlm:GetLifecyclePolicies",
+      "budgets:ViewBudget", "budgets:ListTagsForResource",
+      "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:GetChange",
+      "bedrock:GetInferenceProfile", "bedrock:ListTagsForResource",
+      "ssm:DescribeParameters",
+    ]
+    resources = ["*"]
+  }
+  # The three parameters develop manages and the public AMI id; the SecureString through SSM alone.
+  statement {
+    sid     = "RefreshParameters"
+    actions = ["ssm:GetParameter", "ssm:GetParameters", "ssm:ListTagsForResource"]
+    resources = [
+      "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${local.account_id}:parameter${local.ssm_prefix}/*",
+      "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}::parameter/aws/service/canonical/*",
+    ]
+  }
+  statement {
+    sid       = "DecryptThroughSsmOnly"
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${var.aws_region}.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role_policy" "github_plan" {
+  name   = "${local.name}-github-plan"
+  role   = aws_iam_role.github_plan.id
+  policy = data.aws_iam_policy_document.github_plan.json
+}
+
+output "github_plan_role_arn" {
+  description = "The read-only role the Terraform plan job assumes (CI, PE3)."
+  value       = aws_iam_role.github_plan.arn
+}
+```
+
+Not done here: no `.terraform.lock.hcl` is committed, so CI resolves `~> 5.70` to the newest 5.x
+on each run (5.100.0 on 2026-10-28). Committing one (`terraform providers lock -platform=linux_amd64
+-platform=darwin_arm64`) would pin CI and the operator's apply to the same provider. That is the
+operator's call, because it changes their `init`.
