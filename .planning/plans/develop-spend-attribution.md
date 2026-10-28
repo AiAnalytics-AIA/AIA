@@ -401,3 +401,45 @@ replaces any invocation target set before.
    and one fieldwork call read back in `ai_usage_events`.
 3. Chunk 3's reconciliation counts only calls made after step 2; AWS's tagged cost lags (stated in
    chunk 4).
+
+## Chunk 2 configured (2026-10-28, the product owner in the console; checked by the infra session)
+
+**Done by Nigel in the AWS console**, from the steps prepared for Claude in Chrome:
+
+- **The IAM grant.** The inline policy `aia-develop-instance` on role `aia-develop-instance` now has
+  the two application profile ARNs in `InvokeTheOneApprovedModel`: 16 resources, with the system
+  profiles and the foundation models in the six regions kept. This is exactly the policy that
+  `develop`'s Terraform renders (#1046, `988d0e62`).
+- **The two targets, set in SSM (`String`).**
+  - `aia_bedrock_invocation_target` = `…:application-inference-profile/xz0r7v8bizok`, at 11:42:21 UTC.
+  - `aia_ai_research_lead_invocation_target` = `…:application-inference-profile/hnpij62nm89g`, at
+    **11:42:45 UTC on 2026-10-28**. This is chunk 3's window start.
+- **The cost-allocation tag**, chunk 2's billing half, has been `Active` since 2026-09-25
+  (`ce list-cost-allocation-tags`).
+
+**Checked read-only by the infra session (2026-10-28):**
+
+- **SSM.** `get-parameter-history`: version 1 of each parameter, with the values and times above.
+- **IAM.** `iam simulate-principal-policy` for the role gives `bedrock:InvokeModel` **allowed** on
+  both profiles. On 2026-10-27 it gave `implicitDeny` on `xz0r7v8bizok`.
+- **Terraform.** A `terraform plan` of `develop` @ `be69a343` against develop's state shows **no
+  resource change**. Its one difference is the stored output `bedrock_model_arns_granted`, which an
+  apply would bring up to date. So the console edit equals the code, and no apply reverts it.
+
+**No new `aia_ai_policy_version`.** The "What chunk 2 needs" list above said one was needed. It
+isn't: a target changes only the Converse URL's `modelId`. The identity, prices and route stay as
+they are (`domain/model_invocation.py`; 5a).
+
+**Not yet in effect, so not ticked.** The worker reads the targets from `.env`, which
+`bin/write-env.sh` writes on every deploy (`deploy-develop.yml:203`). No develop deploy has run
+since 11:40 UTC. The chunk is ticked once the following is seen after the next deploy:
+
+- CloudTrail `Converse` events by `assumed-role/aia-develop-instance/…` with
+  `requestParameters.modelId` set to the profile ARN, `…/hnpij62nm89g` for a Lead turn and
+  `…/xz0r7v8bizok` for the route's calls. Until now the field has held the `eu.` id.
+- A `SUCCEEDED` row in `ai_usage_events` for each model.
+
+### For chunk 3
+
+Chunk 3 must read the `Environment=develop` cost, never the account's Bedrock total, because the
+account's Bedrock spend is not AIA's alone.
