@@ -1,12 +1,16 @@
-# Settings prototype, 27 Oct 2026
+# Settings prototype, 28 Oct 2026
 
-A snapshot of the Design canvas "AIA Nastavení – prototyp"
-(<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7>, private to the owner's account), exported on
-27 Oct 2026 at about 11:15 UTC. It replaces the 26 Oct snapshot, `prototypes/settings-v99/` (v99), which is in git history. Design reference only, no product code; every client, person and number is fictional.
+A snapshot of the Design canvas "AIA Nastavení – prototyp" in the owner's second account
+(<https://claude.ai/artifact/8bHnTkAJNiPNgGcYTzQqLS>), exported on 28 Oct 2026. The 27 Oct export came
+from the first account's canvas (<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7>). That export replaced the 26 Oct snapshot, `prototypes/settings-v99/` (v99), which is in git history. Design reference only, no product code; every client, person and number is fictional.
 
-- **Version:** v117, artifact version `1793098752-b063`, on core v4.3. It includes the owner's own canvas
-  edit renaming the hatch start button to "Vypěstovat" and the design-system session's v4.3 pass (the owner,
-  27 Oct 11:10 UTC: "i need these to be included").
+- **Owner:** the second account's canvas, <https://claude.ai/artifact/8bHnTkAJNiPNgGcYTzQqLS>, since 28 Oct
+  2026 (the owner: "This account now owns the Settings prototype"). It was rebuilt from these files on 27 Oct
+  (artifact version `1793114802-6ae6`): every file byte-identical, and every board's render matching
+  `reference/`. Change the design there, and export it here. Don't edit the first account's canvas any more.
+
+- **Version:** v118, the second account's artifact version `1793147967-5454` (28 Oct 2026), on core v4.3.
+  It is v117 (first account, `1793098752-b063`) with every hero drawn as core v4.3 draws it (see below).
 - **How to read it:** as in [`../README.md`](../README.md) § How to read a `.dc.html` file. Each
   `.dc.html` is one canvas artboard that loads `./support.js`, the canvas runtime, which is not exported.
   `canvas.json` gives each board's size, position and order.
@@ -15,7 +19,7 @@ A snapshot of the Design canvas "AIA Nastavení – prototyp"
 | File | What | Canvas asset |
 |---|---|---|
 | `assets/aia-core.css` | Core v4.3, the shared stylesheet: the Petrol palette, the shell (Dock rail, top bar with ⌘K palette and activity tray), the components and the Phosphor icons. Written by the design-system session from Settings' core v3 | `be52e47160b1f8335f5ed91f934ae252` |
-| `assets/aia-settings.css` | Settings-only: Metodika steps and maps, KPI tiles, the compact hero. Loaded second on the nine Settings boards | `88037ffee3c58d5ab72ffad1caf4bfc2` |
+| `assets/aia-settings.css` | Settings-only: Metodika steps and maps, KPI tiles. Loaded second on the nine Settings boards | `88037ffee3c58d5ab72ffad1caf4bfc2` |
 | `assets/thinking-orb.js` | thinking-orbs 0.3.2 (MIT, Jakub Antalik) as a `<thinking-orb>` element; licence in its header | `6659cc2592302e4ff9bbdaaa4c953b68` |
 | `assets/889c3d28bc209704c3ef7887107cb48d.webp` | The Metodika Sociomapa card's placeholder image | `889c3d28bc209704c3ef7887107cb48d` |
 | `assets/PHOSPHOR-LICENSE` | MIT licence of the Phosphor icons inlined in core | (copy of `../shared/PHOSPHOR-LICENSE`) |
@@ -26,19 +30,35 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
 
 | Board | File | Size |
 |---|---|---|
-| Metodika | `Main.dc.html` | 1440 × 1060 |
-| Systémové prompty | `Prompts.dc.html` | 1440 × 1090 |
-| Deep Research | `DeepResearch.dc.html` | 1440 × 1450 |
-| AI běh | `AI.dc.html` | 1440 × 1310 |
-| Přístup a schvalování | `Access.dc.html` | 1440 × 1200 |
-| Studie a rozpočty | `Studies.dc.html` | 1440 × 1110 |
-| Audit | `Audit.dc.html` | 1440 × 930 |
-| Stav systému | `System.dc.html` | 1440 × 1560 |
+| Metodika | `Main.dc.html` | 1440 × 1100 |
+| Systémové prompty | `Prompts.dc.html` | 1440 × 1129 |
+| Deep Research | `DeepResearch.dc.html` | 1440 × 1491 |
+| AI běh | `AI.dc.html` | 1440 × 1348 |
+| Přístup a schvalování | `Access.dc.html` | 1440 × 1239 |
+| Studie a rozpočty | `Studies.dc.html` | 1440 × 1149 |
+| Audit | `Audit.dc.html` | 1440 × 947 |
+| Stav systému | `System.dc.html` | 1440 × 1603 |
 | Správa dat | `Data.dc.html` | 1440 × 930 |
 | Vypěstovat Vedoucího | `Hatch.dc.html` | 1440 × 1050 |
-| Můj Vedoucí | `LeadSettings.dc.html` | 1440 × 2110 |
+| Můj Vedoucí | `LeadSettings.dc.html` | 1440 × 2152 |
 
-## What changed since v99
+## What changed in v118
+
+- **Heroes as core v4.3** (the owner, 28 Oct: "Change the Settings hero to match core v4.3, ensure no text
+  is broken"). The compact hero of v117 is gone: its rules from `aia-settings.css`, and their inline copies
+  in `Hatch.dc.html` (with its `.hz` grid placements) and `LeadSettings.dc.html`. Every board now uses core's
+  own hero:
+  - the eyebrow and the who-may-change chips in one row;
+  - the serif title at 28/34;
+  - the lede at 14/20;
+  - the figures in a row beneath it (36 px apart, value under label), with a rule under the hero.
+  
+  The hero is 189 px tall again, against 129 px. Each board grew by 17 to 43 px, and `canvas.json` gives the
+  new heights. "Čeká na vás" is now a coral figure, with no tinted cell. Checked on every board's render:
+  nothing is clipped, overflows or overlaps, no figure wraps, and the text-character counts are unchanged.
+  Under it: Hatch's `.hz .pg>.hero{margin-bottom:4px}` stays, because it is the hatch page's own spacing.
+
+## What changed in v117 (since v99)
 
 - **The Petrol design system,** written by the design-system session (session_01WhkCbrxP4R2kgtfDvr4VRt)
   on the owner's word of 27 Oct ("Not just color, the whole design system and UX of all the open
@@ -52,7 +72,7 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
   - Projektová paměť removed from the rail and the ⌘K palette.
   
   Its rules are in Design System v3.1 (<https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4>).
-- **Compact heroes** (the owner, 27 Oct: "all the heros in each page have no visual hierrchy and take
+- **Compact heroes** (replaced in v118; the owner, 27 Oct: "all the heros in each page have no visual hierrchy and take
   up so much space"):
   - one band: title (serif 30) and a short lede on the left, the figures on the right as one stat strip
     (value over label);
@@ -106,5 +126,7 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
   - the flyout's Můj Vedoucí card;
   - the collapsed rail's dot and ring;
   - the hero on the hatch page.
-- **The compact hero lives in `aia-settings.css`;** core v4.3 still carries the old 189 px hero, so
-  other canvases (Klienti) keep it until the design-system session folds this in.
+- **The sibling links point at the first account's canvases** (research stages
+  `3dkKPTDoa1yvK4GCV7PLtJ`, Klienti `4dP7Y43dtHcJFkJLD31hFo`), which this account cannot open. They stay as
+  they are (the owner, 27 Oct: "as long as i can edit them here and see the changes im making i dont need
+  them to link properly").
