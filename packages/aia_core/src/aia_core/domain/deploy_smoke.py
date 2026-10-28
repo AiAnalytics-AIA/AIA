@@ -1,13 +1,15 @@
 """A deploy's smoke run read from its own lines (settings-backends SB4), pure.
 
 ``deploy/develop/bin/smoke.sh`` and ``aia_executors.smoke`` print one line per check, in one
-shape: ``ok    <label>``, ``FAIL  <label>`` or ``NOT_RUNNABLE  <label>``, a failure's detail on
-the indented lines after it. :func:`parse_smoke_lines` keeps each check's label and result and
-nothing else: no detail line (a response body, a header, a path), no ``info`` line. A label
-longer than :data:`MAX_LABEL` is cut, never dropped, so the count of checks stays true.
+shape: ``ok    <label>``, ``FAIL  <label>``, ``NOT_READY  <label>`` (an activation row of
+the MVP's profile that is not switched on, its reason in the label; mvp-master-plan MP6) or
+``NOT_RUNNABLE  <label>``, a failure's detail on the indented lines after it.
+:func:`parse_smoke_lines` keeps each check's label and result and nothing else: no detail line
+(a response body, a header, a path), no ``info`` line. A label longer than :data:`MAX_LABEL` is
+cut, never dropped, so the count of checks stays true.
 
 :func:`order_checks` is how Settings lists them: what is not ready first (FAIL, then
-NOT_RUNNABLE), then the passes, each group in the order the smoke ran them.
+NOT_READY, then NOT_RUNNABLE), then the passes, each group in the order the smoke ran them.
 """
 
 from __future__ import annotations
@@ -31,6 +33,7 @@ MAX_LABEL: Final = 300
 class SmokeStatus(StrEnum):
     OK = "ok"
     FAIL = "FAIL"
+    NOT_READY = "NOT_READY"
     NOT_RUNNABLE = "NOT_RUNNABLE"
 
 
@@ -43,6 +46,7 @@ class SmokeCheck:
 # The longest token first: "NOT_RUNNABLE" is never read as anything shorter.
 _PREFIXES: Final = (
     (SmokeStatus.NOT_RUNNABLE, "NOT_RUNNABLE "),
+    (SmokeStatus.NOT_READY, "NOT_READY "),
     (SmokeStatus.FAIL, "FAIL "),
     (SmokeStatus.OK, "ok "),
 )
@@ -63,7 +67,12 @@ def parse_smoke_lines(lines: Iterable[str]) -> list[SmokeCheck]:
     return checks
 
 
-_ORDER: Final = {SmokeStatus.FAIL: 0, SmokeStatus.NOT_RUNNABLE: 1, SmokeStatus.OK: 2}
+_ORDER: Final = {
+    SmokeStatus.FAIL: 0,
+    SmokeStatus.NOT_READY: 1,
+    SmokeStatus.NOT_RUNNABLE: 2,
+    SmokeStatus.OK: 3,
+}
 
 
 def order_checks(checks: Iterable[tuple[int, SmokeCheck]]) -> list[SmokeCheck]:

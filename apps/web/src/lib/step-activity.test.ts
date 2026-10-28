@@ -105,14 +105,14 @@ group("one event in words", () => {
     expect(text(ev({ message: "ai_request_answered", payload: { input_tokens: 10 } }))).toBeNull();
     // Tokens the provider did not report are said to be missing, not zero.
     expect(text(ev({ message: "ai_request_answered", payload: { input_tokens: null, output_tokens: null, cost_usd: 0.01, latency_ms: 500 } }))).toBe(
-      "Model odpověděl · tokeny neuvedeny · $0.010 · 0.5 s",
+      "Model odpověděl · tokeny neuvedeny · 0,010 USD · 0,5 s",
     );
     expect(text(ev({ event_type: "RUN_STATUS", message: "RUNNING" }))).toBeNull();
   });
 
   it("a model's answer reads with its real tokens, cost and time", () => {
     expect(text(ev({ message: "ai_request_answered", payload: { input_tokens: 1200, output_tokens: 380, cost_usd: 0.0042, latency_ms: 3200 } }))).toBe(
-      "Model odpověděl · 1200 → 380 tokenů · $0.004 · 3.2 s",
+      "Model odpověděl · 1200 → 380 tokenů · 0,004 USD · 3,2 s",
     );
   });
 });

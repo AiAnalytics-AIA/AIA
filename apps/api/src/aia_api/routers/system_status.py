@@ -1,7 +1,7 @@
 """Settings → Stav systému (settings-backends SB4, MP6).
 
 ``GET /settings/system-status``: the deployment's latest smoke run, the checks not ready first
-(FAIL, NOT_RUNNABLE), then the passes; ``latest: null`` when no run has been kept.
+(FAIL, NOT_READY, NOT_RUNNABLE), then the passes; ``latest: null`` when no run has been kept.
 ``GET /settings/error-tracking``: GlitchTip's open issues of the last seven days, its alert
 rules and uptime monitors, read with a read-only token; ``configured: false`` without one, and
 a GlitchTip that cannot be read answers ``error``, never a 500. The token is never returned.
@@ -74,9 +74,11 @@ class SmokeRunOut(BaseModel):
     run_id: str
     build_sha: str
     ran_at: datetime
-    #: True only when every check passed; a NOT_RUNNABLE check is not a pass.
+    #: True only when every check passed; a NOT_READY or NOT_RUNNABLE check is not a pass.
     all_ok: bool
     failed: int
+    #: Activation rows not switched on (mvp-master-plan MP6): said, never a failed deploy.
+    not_ready: int
     not_runnable: int
     checks: list[SmokeCheckOut]
 
@@ -105,8 +107,9 @@ def get_system_status(
             run_id=run.run_id,
             build_sha=run.build_sha,
             ran_at=run.ran_at,
-            all_ok=failed == 0 and not_runnable == 0,
+            all_ok=all(c.status is SmokeStatus.OK for c in run.checks),
             failed=failed,
+            not_ready=sum(1 for c in run.checks if c.status is SmokeStatus.NOT_READY),
             not_runnable=not_runnable,
             checks=[SmokeCheckOut(check=c.label, status=c.status) for c in run.checks],
         )

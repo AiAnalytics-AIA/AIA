@@ -10,12 +10,12 @@
 // through Spuštění's own route.
 
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import { researchAgents, research, type Readiness, type ResearchAgentJob, type ResearchRun } from "@/lib/api";
 import { activityOf } from "@/lib/step-activity";
 import { readBudget } from "@/lib/budget-line";
-import { budgetFacts, ceilingWords, pillClass, runCard, runRequestPill, runRequestPlan, workerCard, type CardTone, type RunRequestPlan } from "@/lib/lead-cards";
+import { budgetFacts, ceilingWords, runCard, runRequestPill, runRequestPlan, workerCard, type RunRequestPlan } from "@/lib/lead-cards";
 import { STAGES, type WorkbenchStage } from "@/lib/workbench-stages";
 import { t } from "@/i18n/t";
 import type { StepKey } from "@/research/steps";
@@ -23,30 +23,9 @@ import { StepActivityPanel } from "../rehome/research/StepActivityPanel";
 import { useStepActivity } from "../rehome/research/useStepActivity";
 import { Glyph } from "./Glyph";
 import { Icon } from "./Icons";
-import { Sparkle } from "../rehome/icons";
+import { AiJobCard, Facts, type Fact } from "../rehome/AiJobCard";
+import { StatusPill } from "../rehome/ui";
 import { errorText } from "@/lib/error-words";
-
-/** One fact of a card: its label, its value, and a smaller muted line under it. */
-export type Fact = { label: string; value: ReactNode; key?: boolean; sub?: ReactNode };
-
-export function Pill({ word, tone }: { word: string; tone: CardTone }) {
-  return <span className={pillClass(tone)} data-card-pill><Glyph tone={tone} size={10} />{word}</span>;
-}
-
-/** A card's key facts as label/value rows (the prototype's kvgrid). */
-export function Facts({ facts }: { facts: Fact[] }) {
-  if (!facts.length) return null;
-  return (
-    <dl className="kvgrid wide card__facts">
-      {facts.map((f) => (
-        <div key={f.label} style={{ display: "contents" }}>
-          <dt>{f.label}</dt>
-          <dd>{f.key ? <span className="card__key">{f.value}</span> : f.value}{f.sub ? <span className="card__sub">{f.sub}</span> : null}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 /** A design job in the conversation: what, how it stands, its live activity, the way to its result. */
 export function WorkerCardView({ job, studyId, onOpen, onStage, onChanged }: {
@@ -72,22 +51,13 @@ export function WorkerCardView({ job, studyId, onOpen, onStage, onChanged }: {
   const actions = (c.state === "completed" || parked) && (onOpen || onStage);
   return (
     <div className="msg" data-aia={`activity.${job.run_id}`} data-card="worker" data-card-state={c.state}>
-      <div className="act act--worker act__card">
-        <div className="card__titlerow">
-          <span className="act__type" title="Úloha AI"><Sparkle size={13} /></span>
-          <span className="act__title">{c.title}</span>
-          <Pill word={c.word} tone={c.tone} />
-        </div>
-        <StepActivityPanel orb={c.orb} activity={activityOf(feed, c.stepId)} startedAt={c.startedAt} label={c.title} />
-        <Facts facts={facts} />
-        {actions ? (
-          <div className="card__actions">
-            {c.stage && onStage ? <button type="button" className="btn btn--sm btn--quiet" onClick={() => onStage(c.stage!)}><Icon name="open" size={12} />Otevřít {STAGES[c.stage].label}</button> : null}
-            {parked ? <button type="button" className="btn btn--sm" disabled={resuming} onClick={() => { setResuming(true); void researchAgents.resume(studyId, job.run_id).finally(() => { setResuming(false); onChanged?.(); }); }}>Pokračovat v úloze</button> : null}
-            {c.reviewable && onOpen ? <button type="button" className="btn btn--sm btn--primary" data-card-review onClick={() => onOpen(job)}>{c.advice ? "Otevřít odpověď" : "Zkontrolovat návrh"}</button> : null}
-          </div>
-        ) : null}
-      </div>
+      <AiJobCard kind="ai" title={c.title} state={{ word: c.word, tone: c.tone }} working={live} facts={facts}
+        activity={<StepActivityPanel orb={c.orb} activity={activityOf(feed, c.stepId)} startedAt={c.startedAt} label={c.title} />}
+        actions={actions ? <>
+          {c.stage && onStage ? <button type="button" className="btn btn--sm btn--quiet" onClick={() => onStage(c.stage!)}><Icon name="open" size={12} />Otevřít {STAGES[c.stage].label}</button> : null}
+          {parked ? <button type="button" className="btn btn--sm" disabled={resuming} onClick={() => { setResuming(true); void researchAgents.resume(studyId, job.run_id).finally(() => { setResuming(false); onChanged?.(); }); }}>Pokračovat v úloze</button> : null}
+          {c.reviewable && onOpen ? <button type="button" className="btn btn--sm btn--primary" data-card-review onClick={() => onOpen(job)}>{c.advice ? "Otevřít odpověď" : "Zkontrolovat návrh"}</button> : null}
+        </> : null} />
     </div>
   );
 }
@@ -108,19 +78,12 @@ export function RunCardView({ run, studyId, stepHref }: { run: ResearchRun; stud
   ];
   return (
     <div className="msg" data-aia={`run.${run.run_id}`} data-card="run" data-card-state={c.reading.state}>
-      <div className="act act--compute act__card">
-        <div className="card__titlerow">
-          <span className="act__type" title="Výzkumný běh"><Icon name="worker" size={13} /></span>
-          <span className="act__title">{c.title}</span>
-          <Pill word={c.reading.label} tone={c.tone} />
-        </div>
-        {c.running ? <StepActivityPanel orb={c.running.orb} activity={activityOf(feed, c.running.step.step_id)} startedAt={c.running.step.started_at} label={c.running.label} /> : null}
-        <Facts facts={facts} />
-        <div className="card__actions">
+      <AiJobCard kind="run" title={c.title} state={{ word: c.reading.label, tone: c.tone }} working={live} facts={facts}
+        activity={c.running ? <StepActivityPanel orb={c.running.orb} activity={activityOf(feed, c.running.step.step_id)} startedAt={c.running.step.started_at} label={c.running.label} /> : null}
+        actions={<>
           <Link className="btn btn--sm btn--quiet" href={`${stepHref("progress")}${q}`}><Icon name="open" size={12} />Průběh</Link>
           {c.hasResults ? <Link className="btn btn--sm btn--primary" href={`${stepHref("results")}${q}#data`}>Výsledky<Icon name="next" size={12} /></Link> : null}
-        </div>
-      </div>
+        </>} />
     </div>
   );
 }
@@ -207,7 +170,7 @@ export function RunRequestCard({ studyId, why, canEdit, prepare, start, stepHref
       <div className={`dec${decided ? " is-decided" : ""}`}>
         <div className="dec__body">
           {decided ? null : <p className="card__eyebrow">Rozhodnutí patří vám</p>}
-          <div className="card__titlerow"><p className="dec__title">Spuštění výzkumu</p><Pill word={pill.word} tone={pill.tone} /></div>
+          <div className="card__titlerow"><p className="dec__title">Spuštění výzkumu</p><StatusPill tone={pill.tone}>{pill.word}</StatusPill></div>
           <p className="dec__reason">{why}</p>
           <Facts facts={facts} />
           {prepared?.existing ? <p className="cap">Na této revizi návrhu už běh je: <Link href={`${stepHref("progress")}?run=${encodeURIComponent(prepared.existing.run_id)}`} className="linkbtn">Průběh</Link>.</p> : null}

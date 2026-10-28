@@ -44,7 +44,7 @@ import {
 } from "@/lib/intake";
 import { canPropose, proposalsReason } from "@/lib/source-proposals";
 import { fileToBase64 } from "@/research/brief";
-import { Button, Chip, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, StatusPill, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { useResource } from "../useResource";
 import { useClient } from "./ClientContext";
 import { LabelChip } from "./KnowledgeLibrary";
@@ -436,7 +436,7 @@ function Row({
           {e.name} <span className="font-normal text-ink-muted">· {sizeWords(e.size)}{e.phase === "stored" ? ` · ${kindWord}` : ""}</span>
         </span>
         <span role={e.phase === "failed" ? "alert" : undefined}>
-          <Chip tone={line.tone}>{line.text}</Chip>
+          <StatusPill tone={line.tone}>{line.text}</StatusPill>
         </span>
         {kept ? <span className="text-xs leading-4 text-ink-muted">{kept}</span> : null}
         {takesItem && isTable(e) ? (
