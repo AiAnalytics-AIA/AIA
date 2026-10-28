@@ -472,4 +472,5 @@ other open item until its named owner answers.
 | RIR-5 | The literature check is paid, capped by the study budget | — | Decided | `research-integrity-report` 5 (its 2026-10-26 note), `artifact-report#RPT10` |
 | LANE-A | Lane A (the look and the frame) built by "the second account" | Nigel's art-chain organisation account | Decided | `prototype-build#PBA1` to `#PBA7` |
 | OQ13 | The AGPL sprites (legal) | the redrawn icons ship with the NOTICE and the AGPL §13 source offer | Decided: legal approved (Nigel, 2026-10-28, W0Q8) | `report-editor-hosting#5`, `#9` |
+| AC15-TOL | AC-15's gap allowed between AIA's usage ledger and the develop-tagged AWS cost record | USD 0.01, in the criterion and its tier-B projection (`mvp-acceptance.md`, `parity-matrix.json`; #1061) | Decided: "Keep USD 0.01" (Nigel, 2026-10-28, W0Q5) | `mvp-acceptance-harness#14`, `develop-spend-attribution` |
 | OQ8/OQ9 | Kish n on Výsledky; a set's scale by the board's presets | — | Open (methodology owner) | `artifact-results#RES3`, `artifact-questionnaire#QST10` |

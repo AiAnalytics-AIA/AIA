@@ -67,6 +67,9 @@ cost record.
   documentation, unverified here) and rounds its own way, and the ledger prices from AIA's
   catalogue. If the live check differs by more than a cent for reasons of rounding or lag, chunk 3
   reports the difference and the owner sets the tolerance. Do not loosen the criterion to pass it.
+  **The owner kept the tolerance at USD 0.01 on 2026-10-28** ("Keep USD 0.01", W0Q5): AC-15 now
+  states it for the AWS comparison too (#1061). The risk stands as written: a live difference above
+  a cent is reported, never absorbed, and goes back to the owner.
 - Changing the profiles changes the model route; the licence determination names
   `bedrock-eu-primary` (OI-61). Confirm the application profile is the same route in the
   determination's terms before chunk 1 merges.
