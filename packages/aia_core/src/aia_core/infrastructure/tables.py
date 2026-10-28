@@ -663,7 +663,9 @@ class DeploySmokeResultRow(Base):
     ran_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
     __table_args__ = (
-        CheckConstraint("status in ('ok', 'FAIL', 'NOT_RUNNABLE')", name="status_known"),
+        CheckConstraint(
+            "status in ('ok', 'FAIL', 'NOT_READY', 'NOT_RUNNABLE')", name="status_known"
+        ),
         UniqueConstraint("run_id", "position", name="uq_deploy_smoke_results_run_id_position"),
         Index("ix_deploy_smoke_results_ran_at", "ran_at"),
     )

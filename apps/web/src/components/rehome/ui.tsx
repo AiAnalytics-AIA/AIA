@@ -14,6 +14,8 @@ import {
 
 import type { Tone } from "@/lib/tone";
 import { t } from "@/i18n/t";
+import { usdWords } from "@/lib/spend";
+import { Glyph, type GlyphTone } from "../workbench/Glyph";
 import { Icon, type IconName, Sparkle } from "./icons";
 
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -80,13 +82,21 @@ const TONE = {
   fault: "text-status-fault bg-status-fault-wash border-status-fault/40",
   done: "text-status-done bg-surface-sunken border-border",
   neutral: "text-ink-muted bg-surface-sunken border-border",
-} as const satisfies Record<Tone, string>;
+  cancelled: "text-ink-muted bg-surface-sunken border-border line-through decoration-ink-faint",
+  inert: "text-ink-muted bg-surface-raised border-dashed border-border-strong",
+} as const satisfies Record<StatusTone, string>;
 
-const GLYPH: Record<Tone, IconName> = {
-  running: "running", you: "you", world: "world", fault: "fault", done: "done", neutral: "dot",
+/** Every state a status pill can say: the design system's six families, plus what ended without
+ *  finishing (cancelled) and what has nothing to do (inert, a card kept or already run). */
+export type StatusTone = Tone | "cancelled" | "inert";
+
+/** The shape that carries each state (Glyph's grammar: circles for the machine, squares with pause
+ *  bars for what waits, dashed for what is inert); none for neutral, which states no status. */
+const GLYPH: Record<StatusTone, GlyphTone | null> = {
+  running: "running", you: "you", world: "world", fault: "fault", done: "done",
+  cancelled: "cancelled", inert: "inert", neutral: null,
 };
 
-/** A status, drawn: glyph and label always, so colour is never the only cue. */
 /**
  * One row of a section (v73 X1's well item): a tone below the sheet, no border; its mono id at
  * the left, its text, its actions at the right. A list item: its section's list is the caller's.
@@ -107,12 +117,50 @@ export function FaultNote({ children, className = "", ...rest }: ComponentProps<
   return <p role="alert" className={`rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault ${className}`} {...rest}>{children}</p>;
 }
 
-export function Chip({ tone, children }: { tone: Tone; children: ReactNode }) {
+/**
+ * A status, drawn: its shape and its word always, so colour is never the only cue. The one status
+ * pill: stages, studies, clients, runs, AI jobs and the Lead's cards all say their state with it.
+ */
+export function StatusPill({ tone, children, title }: { tone: StatusTone; children: ReactNode; title?: string }) {
+  const glyph = GLYPH[tone];
   return (
-    <span data-tone={tone} className={`inline-flex min-h-6 items-center gap-1 rounded-control border px-2 text-xs font-medium leading-4 ${TONE[tone]}`}>
-      <Icon name={GLYPH[tone]} size={12} />
+    <span data-tone={tone} data-status-pill title={title} className={`inline-flex min-h-6 items-center gap-1.5 rounded-control border px-2 text-xs font-medium leading-4 whitespace-nowrap ${TONE[tone]}`}>
+      {glyph ? <Glyph tone={glyph} size={11} /> : null}
       {children}
     </span>
+  );
+}
+
+/**
+ * A figure, or why there is none. The one place "unknown is never good" is drawn: a value AIA did
+ * not read says "neznámé" (muted, with why on hover), never 0 or a dash that reads as nothing; a
+ * suppressed one says "Potlačeno" and its reason, never the number. `usd`: a number is money,
+ * printed as usdWords prints it.
+ */
+export function Value({ of, usd = false, suppressed }: { of?: ReactNode; usd?: boolean; suppressed?: string }) {
+  if (suppressed !== undefined) {
+    return <span data-value="suppressed" className="text-ink-muted">{t("aia.value.suppressed")}{suppressed ? ` · ${suppressed}` : ""}</span>;
+  }
+  const unknown = of === null || of === undefined || of === "" || (typeof of === "number" && !Number.isFinite(of));
+  if (unknown) return <span data-value="unknown" title={t("aia.hero.unknownTitle")} className="text-ink-faint">{t("aia.hero.unknown")}</span>;
+  return <span data-value="known" className="tabular-nums">{typeof of === "number" && usd ? usdWords(of) : of}</span>;
+}
+
+/**
+ * What is older than the copy in front of you: a proposal made over an earlier revision, results of
+ * a run whose design has since moved. The one stale mark: coral, because the next step is a person's
+ * (propose again, run again), never red, because nothing failed; Glyph's reopened shape beside it.
+ * The stage navigator's marks say the same in words (working-impact.ts impactWords).
+ */
+export function StaleMark({ title, children, alert = false, ...rest }: { title?: string; children: ReactNode; alert?: boolean } & Omit<ComponentProps<"div">, "title" | "children">) {
+  return (
+    <div role={alert ? "alert" : "note"} data-stale className="flex items-start gap-2.5 rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-[13px] leading-5 text-ink" {...rest}>
+      <span className="mt-1 shrink-0"><Glyph tone="reopened" size={12} /></span>
+      <div className="min-w-0">
+        {title ? <p className="font-semibold">{title}</p> : null}
+        <div className={title ? "mt-0.5" : ""}>{children}</div>
+      </div>
+    </div>
   );
 }
 

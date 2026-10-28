@@ -2016,9 +2016,9 @@ export type DeepResearchReach = {
 };
 
 /** Stav systému (#839): the deployment's latest smoke run and GlitchTip's state; OWNER or ADMIN. */
-export type SmokeCheckStatus = "ok" | "FAIL" | "NOT_RUNNABLE";
+export type SmokeCheckStatus = "ok" | "FAIL" | "NOT_READY" | "NOT_RUNNABLE";
 export type SystemStatus = {
-  latest: { run_id: string; build_sha: string; ran_at: string; all_ok: boolean; failed: number; not_runnable: number; checks: { check: string; status: SmokeCheckStatus }[] } | null;
+  latest: { run_id: string; build_sha: string; ran_at: string; all_ok: boolean; failed: number; not_ready: number; not_runnable: number; checks: { check: string; status: SmokeCheckStatus }[] } | null;
 };
 export type ErrorTracking = {
   /** false: no read token yet; said so, never as an error. */

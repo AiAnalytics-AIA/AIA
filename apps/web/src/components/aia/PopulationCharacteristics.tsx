@@ -10,7 +10,7 @@ import { useState } from "react";
 import { t, tv } from "@/i18n/t";
 import { type PopulationCharacteristics, type PopulationField, type PopulationRegistry, population } from "@/lib/api";
 import { defaultVersionId, filterFields, reasonKey, subpanelFilterText, usability } from "@/lib/population";
-import { Chip, Field, Select, Tag, TextInput } from "../rehome/ui";
+import { StatusPill, Field, Select, Tag, TextInput } from "../rehome/ui";
 import { Empty, Loaded } from "./states";
 import { useResource } from "./useResource";
 
@@ -122,7 +122,7 @@ function Subpanels({ c }: { c: PopulationCharacteristics }) {
             <li key={s.key} className="rounded-sm border border-border p-3 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-ink">{s.name}</span>
-                <Chip tone={u === "usable" ? "done" : "neutral"}>{t(`${C}.usability.${u}`)}</Chip>
+                <StatusPill tone={u === "usable" ? "done" : "neutral"}>{t(`${C}.usability.${u}`)}</StatusPill>
               </div>
               <p className="mt-1 font-mono text-xs text-ink-faint">{subpanelFilterText(s.filter)}</p>
               {u === "unusable" && s.reason ? <p className="mt-1 text-xs text-ink-muted">{reason(s.reason)}</p> : null}

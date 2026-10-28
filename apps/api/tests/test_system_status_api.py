@@ -65,6 +65,27 @@ def test_the_latest_run_reads_not_ready_first(app: FastAPI, owner: TestClient) -
     ]
 
 
+def test_a_not_ready_activation_row_is_no_pass(app: FastAPI, owner: TestClient) -> None:
+    """MP6: a deploy whose checks all passed but whose MVP switches are not all on is not
+    all_ok, and the row says which and why, after a failure and before an unrun check."""
+    with create_session_factory(app.state.engine)() as session:
+        record_smoke_run(
+            session,
+            run_id="SMK-3",
+            build_sha="ccccccc",
+            checks=[
+                SmokeCheck("web: / opens AIA", SmokeStatus.OK),
+                SmokeCheck("ai: a paid model call", SmokeStatus.NOT_RUNNABLE),
+                SmokeCheck("activation: analysis -- off", SmokeStatus.NOT_READY),
+            ],
+            ran_at=datetime.now(UTC),
+        )
+        session.commit()
+    latest = owner.get(f"{API}/system-status").json()["latest"]
+    assert (latest["all_ok"], latest["failed"], latest["not_ready"]) == (False, 0, 1)
+    assert [c["status"] for c in latest["checks"]] == ["NOT_READY", "NOT_RUNNABLE", "ok"]
+
+
 def test_a_researcher_reads_neither(researcher: TestClient) -> None:
     for path in ("system-status", "error-tracking"):
         refused = researcher.get(f"{API}/{path}")

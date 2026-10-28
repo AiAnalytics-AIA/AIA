@@ -460,3 +460,26 @@ def test_the_report_editor_reaches_the_api_on_its_public_origin_and_stays_off_un
     )
     assert overridden.onlyoffice_api_integrity == integrity
     assert "AIA_ONLYOFFICE_CALLBACK_BASE" not in _container("worker", dotenv)
+
+
+def test_every_key_the_activation_profile_reads_reaches_the_worker() -> None:
+    """MP6: a row reads the worker's environment; a key the Compose file does not pass to the
+    worker would read NOT_READY on every deploy, whatever Parameter Store holds."""
+    from aia_executors.activation import PROFILE
+
+    worker = _service_environment("worker")
+    missing = [key for row in PROFILE for key in row.reads if key not in worker]
+    assert missing == []
+
+
+def test_the_develop_hosts_route_reads_not_ready_until_it_is_widened() -> None:
+    """MP6, §2.2: develop's configuration as Parameter Store first held it (Class C only)
+    starts the worker, and the smoke says the route is not ready, by name; widened, ready."""
+    from aia_executors.activation import judge
+
+    rows = {row.key: r for row, r in judge(_container("worker", HOST_ENV))}
+    assert rows["ai_runtime"].ready
+    assert not rows["route_classes"].ready
+    assert "not approved for CLASS_A_CLIENT_CONFIDENTIAL" in rows["route_classes"].reason
+    widened = {row.key: r for row, r in judge(_container("worker", WIDENED_ENV))}
+    assert widened["route_classes"].ready

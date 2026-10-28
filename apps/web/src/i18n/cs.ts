@@ -34,6 +34,11 @@ export const cs = {
       unknown: "neznámé",
       unknownTitle: "Tuto hodnotu se nepodařilo zjistit.",
     },
+    // A figure that is suppressed says so and why, never the number (components/rehome/ui.tsx Value).
+    value: {
+      suppressed: "Potlačeno",
+    },
+
     navClients: "Klienti",
     navIntelligence: "Společenská inteligence",
     navMemory: "Projektová paměť",
@@ -1710,7 +1715,7 @@ export const cs = {
           smokeAt: "smoke test {when}",
           build: "sestava {sha}",
           readinessHelp: "Nepřipravené nahoře. Každý řádek ověřuje smoke test po nasazení, bez placeného volání.",
-          check: { ok: "Připraveno", FAIL: "Selhalo", NOT_RUNNABLE: "Nešlo ověřit" },
+          check: { ok: "Připraveno", FAIL: "Selhalo", NOT_READY: "Nezapnuto", NOT_RUNNABLE: "Nešlo ověřit" },
           openGlitchtip: "Otevřít GlitchTip",
           errorsReadOnly: "Jen ke čtení. Upozornění, projekty a členy GlitchTipu spravujete přímo v něm; přepínače hlášení mění operátor (bin/errors.sh, SSM).",
           unconfigured: "GlitchTip zatím nemá čtecí klíč, a tak jeho stav tu nevidíme. Klíč přidá operátor do SSM; hlášení chyb samo běží dál.",

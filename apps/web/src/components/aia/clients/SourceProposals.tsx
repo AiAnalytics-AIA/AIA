@@ -12,7 +12,7 @@ import { t, tv } from "@/i18n/t";
 import { ApiError, type ProposalsRun, type SourceDetail, workspace } from "@/lib/api";
 import { appRoutes } from "@/lib/app-routes";
 import { PROPOSALS_STEP, POLL_MS, isMoving, mayAsk, proposalsLine, proposalsPhase, proposalsReason } from "@/lib/source-proposals";
-import { AiButton, Button, Chip, Field, TextInput } from "../../rehome/ui";
+import { AiButton, Button, StatusPill, Field, TextInput } from "../../rehome/ui";
 import { errorText } from "@/lib/error-words";
 
 /** What the person may do with AI proposals on this client. */
@@ -107,7 +107,7 @@ export function SourceProposals({ clientId, source, rights }: { clientId: string
       <div aria-live="polite" className="flex flex-col gap-1.5">
         {line ? (
           <span>
-            <Chip tone={line.tone}>{line.text}</Chip>
+            <StatusPill tone={line.tone}>{line.text}</StatusPill>
           </span>
         ) : null}
         {phase.phase === "done" && phase.dropped ? (

@@ -271,12 +271,20 @@ setting.
 
 ## Still open
 
-- **Legal, OQ13.** The AIA editor icons are redrawn from ONLYOFFICE's AGPL sprites, a modified covered work, so the
-  NOTICE and the AGPL §13 source offer apply. The editor goes live with ONLYOFFICE's own icons until legal decides
-  (`report-editor-hosting#5`, `#6`, `#9`).
 - **The methodology owner.** Výsledky's "Efektivní n" is Kish's, as `artifact-results#RES3` says (OQ8); a set's
   scale follows the board's presets (OQ9, `artifact-questionnaire#QST10`). Both await the methodology owner's
   confirmation.
+
+## Decided on 28 Oct 2026 (the PM status page, W0Q7-W0Q8)
+
+- **Legal, OQ13: approved.** Nigel on the PM status page, 2026-10-28 00:29 UTC (W0Q8): "legal approved". The AIA
+  editor icons redrawn from ONLYOFFICE's AGPL sprites may ship, with the NOTICE and the AGPL §13 source offer
+  `report-editor-hosting#9` writes (`report-editor-hosting#5`, `#6`, `#9` no longer wait on legal).
+- **#928 moves to W1** (W0Q7, "Merge #1030 once clean; #928 to W1"). Dotazník's one editor waits on
+  `lead-orchestration#LO18b`, a W1 chunk, so it no longer holds PB1. #1030 merged on 28 Oct.
+- **#1032** the coordinator reviews and merges when clean, and **#1038** goes back to its author to fix the three
+  review findings, then merges as post-MVP (Nigel's answers of 27 Oct, S2Q5-S2Q6). Neither holds PB1 beyond that.
+- **The methodology owner's two items (OQ8, OQ9)** are sent to him by Nigel (W0Q8, "Draft both, I send them").
 
 ## Decided by default by planning, open to Nigel's override
 
