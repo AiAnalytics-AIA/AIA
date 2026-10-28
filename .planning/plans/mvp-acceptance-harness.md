@@ -672,3 +672,31 @@ Branch `feature/acceptance-ac06`, on `feature/acceptance-wiring` (#1090); the sa
 test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
 `AIA_ACCEPTANCE_RECORDED_NO_FINDINGS` (analysis module ids); a value outside either is refused by name at start
 (`test_acceptance_recorded.py`). The conftest's `Process.kill` is the harness's SIGKILL.
+
+### AC-07 is not runnable: F-9
+
+**F-9. A run after an edit pays for every stage again, whatever the impact read says.**
+1. *Claim.* After a report-only edit, `GET …/research/impact` answers FIELDWORK, AGGREGATION and
+   ANALYSIS `CURRENT` and only REPORT and DELIVERY `CHANGED`. A run started on the edited Design
+   Revision still asks every respondent again and recomputes aggregation, the Sociomap and all
+   eight analysis modules; of its artifacts only the preflight's is reused.
+2. *Anchor.* A fieldwork dataset is fingerprinted with its attempt id, "never reused over another
+   attempt's" (`apps/executors/src/aia_executors/research.py:564-566 @ b52ee648`), so no later
+   run can reuse it, and everything downstream reads the new dataset.
+3. *Reproduction.* Over the acceptance stack (a probe, not committed): the past study run once;
+   the working copy saved with `report_style` changed; the impact read as above; the edited copy
+   submitted as revision 2 and run. Run 2's last `fieldwork_progress` is `sent 200, replayed 0`,
+   and 13 of its 14 step artifacts differ from run 1's (all but `research_preflight`).
+4. *Consequence.* AC-07 ("exactly the stages the impact preview names reopen, every other stage's
+   artifacts reused by fingerprint") cannot pass. The impact read tells a person that fieldwork is
+   current, but the run they then start pays for all of it again.
+5. *Smallest fix: a product decision first, not a patch.* Either a run on a revision whose
+   fieldwork stage is `CURRENT` starts from the first reopened stage over the earlier run's frozen
+   dataset (the analysis retry's `FrozenDataset` path generalized: `working-copy-edit-ops#WCE7d2`
+   and `#WCE17` are the nearest chunks), or AC-07 is reworded to the analysis-only retry, which
+   AC-06 already proves.
+6. *Test.* The AC-07 tier-A test: a report-only edit after recorded fieldwork; the next run's
+   fieldwork replays every respondent (`sent 0`) and its fieldwork, aggregate, Sociomap and
+   analysis artifacts are run 1's by id.
+
+AC-07 lists no test until that decision is taken and built.
