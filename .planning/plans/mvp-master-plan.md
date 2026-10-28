@@ -5,7 +5,7 @@ chunks:
   - "[x] MP1. The five cohesion traces folded in: the gap register (§6) and the interface register (§5), anchors spot-checked"
   - "[x] MP2. Each gap's chunk added to its plan, with a named ID (§6.1, §5); each plan's owner reviews before its wave"
   - "[ ] MP3. Disposition edits: close or re-scope the plans §3.2 marks CLOSE or FOLD (each plan's owner confirms)"
-  - "[ ] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
+  - "[x] MP4. Contracts written before the work that needs them (mvp-development-plan.md §5), and the shared-surface owners of §2 of that plan"
   - "[ ] MP5. The ADRs (mvp-development-plan.md §6), the ADR 0008 amendment for the open posture, and the ADRs ADR 0026 decision 4 requires before semantic report edits, respondent replacement, assumption evidence and open-answer coding; ADRs awaiting an owner decision stay Proposed"
   - "[x] MP6. The activation profile: deploy/develop declares the MVP switches and the smoke reports each READY or NOT_READY without a paid call"
   - "[ ] MP7. The operator runbook run once on develop: AI route classes, Brave sign-off, secrets, the reach switches, with the evidence recorded"
@@ -956,3 +956,11 @@ Deep Research, client-source extraction or the retrieval gate. They are the only
 their review rule is convention. `ResultsContext`, the plan authority and `CLIENT_REPORTED` are not W0
 contracts: each is PLANNED under its own chunk before the wave that needs it, and is re-checked at its
 gate under MP10.
+
+**Ticked 2026-10-28.** The acceptance fixtures and the scripted provider landed:
+- `mvp-acceptance-harness` #2, the fixed fictional inputs, in #1058 (`98a8fd1d`);
+- `mvp-acceptance-harness` #4, recorded doubles behind the gateway and the retrieval gate, in #1062 (`088a5d18`).
+
+Both are ticked on develop @ 088a5d18. All four of W0's contracts are therefore WRITTEN, and MP4 is met. The
+contracts W1-W3 need (`ResultsContext`, the plan authority, `CLIENT_REPORTED`) stay PLANNED under their own chunks,
+re-checked at their gates (MP10).
