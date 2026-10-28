@@ -5,7 +5,7 @@ chunks:
   - "[x] 2. Nigel accepts the Bedrock Marketplace agreement for Claude Sonnet 5.5 on develop's account"
   - "[ ] 3. Terraform: bedrock_model_id swapped to eu.anthropic.claude-sonnet-5-5 (infra session)"
   - "[x] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
-  - "[ ] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
+  - "[x] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
   - "[ ] 6. The acceptance study re-run on Sonnet 5.5, within the existing USD 25 allocation"
 ---
 # Develop's AI route from Claude Sonnet 4.5 to Claude Sonnet 5.5
@@ -102,6 +102,41 @@ needs its own reading: with the budget dropped, each agent kind's answer limit
 (`request_limits.REQUEST_LIMITS`) no longer carries the 2,048 tokens of thinking headroom it had, while
 adaptive thinking still counts inside it, so its truncation is measured before Deep Research is
 switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the frozen engine).
+
+## Chunk 5: done (2026-10-28)
+
+The probe ran on Nigel's ok, at 19:49 UTC, on a fictional study ("Sonnet 5.5 probe", the fictional Fio banka Sandbox client). It ran after develop's deploy, which rewrote `.env` from the switched SSM.
+
+- **The run.** n = 78: a fictional roster at n = 20 drew only 6 donors, and the panel could not draw 20.
+  - Ceiling USD 35.70. Started 20:16:12 and ended 20:22:10 UTC: fieldwork took 3 min 48 s; analysis and the report 2 min 8 s.
+  - All 16 steps SUCCEEDED on their first attempt. The run cost USD 1.10.
+- **The usage ledger, under policy `aia-bedrock-develop-2026-10-28-route-sonnet55`.** Total USD 1.35, the 19:45 smoke turn included.
+
+  | capability | calls | outcome / finish | output tokens (avg / max) | latency ms (avg / max) | USD |
+  |---|---|---|---|---|---|
+  | SIMULATION (fieldwork, cap 1,024, effort low) | 78 | SUCCEEDED / COMPLETED | 314 / 322 | 2,845 / 34,065 | 0.7830 |
+  | RESEARCH_REASONING | 9 | SUCCEEDED / COMPLETED | 1,608 / 2,807 | 10,904 / 15,836 | 0.3039 |
+  | RESEARCH_REASONING | 2 | FAILED / COMPLETED (schema refused, then repaired) | 1,844 / 2,141 | 13,601 / 15,776 | 0.0698 |
+  | RESEARCH_REASONING | 1 | FAILED / TRUNCATED | 4,096 | 28,121 | 0.0622 |
+  | STUDY_LEAD (cap 8,000, effort medium) | 3 | SUCCEEDED / COMPLETED | 575 / 692 | 5,960 / 7,330 | 0.1284 |
+
+- **CloudTrail**, read for the instance's own session alone, 19:42-20:29 UTC: 93 `Converse` calls, every one to `application-inference-profile/hnpij62nm89g`, none with an error. The calls by `maxTokens`:
+  - 78 at 1,024 (fieldwork);
+  - 10 at 8,192 (analysis: 8 modules and 2 repairs);
+  - 2 at 4,096 (the design job: its truncated primary and its repair);
+  - 3 at 8,000 (the Lead).
+- **One truncation: the design job's primary** (`aia.research.build_questionnaire`, 20:23:57 UTC). It used all 4,096 output tokens of `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS` at research effort `high`. Adaptive thinking counts inside that cap, which Sonnet 4.5, with no thinking, never spent. Its repair answered, and the proposal arrived complete; the cost was one wasted call (USD 0.0622, 28 s).
+  - Raising the cap is the product owner's decision. Proposed: 8,192, the analysis cap, where no analysis call came near it (max 2,807).
+  - **Raised to 8,192 on the product owner's decision.** He said "lets raise it" at about 20:35 UTC, relayed by the PM coordinator.
+    - SSM `aia_ai_research_max_output_tokens` went from 4096 to 8192 (version 3).
+    - `aia_ai_research_reservation_usd` stays 2.00, above the 1.2802 that two calls at 200,000 and 8,192 need.
+    - `bin/write-env.sh` and the restart of the API and worker finished at 2026-10-28T20:38:27Z, on image `92041d11`. The worker started at 20:38:20 with no `AIRuntimeConfigError`, reading `AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS=8192`.
+  - **Side effect:** the same key bounds Deep Research's per-kind output (`domain/deep_research/request_limits.py:172-205`), so its ceilings rise a little. An investigator call's reservation goes from 0.882 to 0.927, a planner, lead or synthesizer call's from 1.190 to 1.280.
+  - **Rollback:** the same write with 4096 and the same restart.
+  - Whether 8,192 holds shows in the next design job's `finish_reason`, which chunk 6 measures.
+- **Analysis.** 2 of its 10 calls failed their schema at first and were repaired: a 5.5 reading for the schema-enforced-output work. Segmenty and Hypotézy stated nothing (not enough data).
+- **The Lead** answered "Shrň mi, co běh zjistil" without the run's values, which are not in its context. That's the known gap until LO8's ResultsContext.
+- **Deep Research** was not run on 5.5. It is measured on its own before anyone relies on it.
 
 ## Chunk 4: done (2026-10-28)
 
