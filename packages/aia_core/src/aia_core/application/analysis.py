@@ -166,7 +166,7 @@ def run_analysis_module(
                 Violation(
                     ViolationCode.JOINT_CERTIFICATE_DEGRADED,
                     "preflight",
-                    f"{joint.degradation}: {joint.detail}; no client claim can be admitted",
+                    f"{joint.state.value}: {joint.detail}; no client claim can be admitted",
                 ),
             ),
         )

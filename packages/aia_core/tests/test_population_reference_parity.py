@@ -687,6 +687,7 @@ def m03_certificate(m03: Any, panel_sha: str) -> bytes:
     restrictions = m03["claim_restrictions"]
     document = {
         "status": "COHERENT_CORE_MATCHED_BLOCKS",
+        "production_panel": m03["constants"]["production_panel"],
         "structure_status": "QC_PASSED",
         "panel_sha256": panel_sha,
         "matched_blocks": m03["matched_blocks"],
