@@ -669,10 +669,15 @@ forbid "the worker never imports recorded web retrieval" \
 # The workbench composition (local and test only; nothing imports it and no deployment names it,
 # above) composes Deep Research over the recorded composition for its browser journeys
 # (research-lead-workbench 12a); it names the composition and builds no recorded double itself.
-forbid "among the executors, only the recorded and workbench compositions build recorded web retrieval" \
+# The acceptance harness's worker (local and test only, named by no deployment) composes it the
+# same way, over the harness's recordings (mvp-acceptance-harness chunk 4).
+forbid "among the executors, only the recorded, workbench and acceptance compositions build recorded web retrieval" \
   "$RECORDED_WEB|deep_research_recorded" \
   "$EXECUTORS" \
-  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py"
+  "$EXECUTORS/deep_research_recorded.py" "$EXECUTORS/workbench.py" "$EXECUTORS/acceptance_recorded.py"
+forbid "the acceptance composition builds no recorded web double of its own" \
+  "$RECORDED_WEB" \
+  "$EXECUTORS/acceptance_recorded.py"
 forbid "the workbench composition builds no recorded web double of its own" \
   "$RECORDED_WEB" \
   "$EXECUTORS/workbench.py"

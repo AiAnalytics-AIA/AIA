@@ -76,7 +76,12 @@ from .deep_research import (
     deep_research_registry,
 )
 from .deep_research_recorded import recorded_runtime
-from .recorded_models import RecordedModels, RecordedSigner
+from .recorded_models import (
+    DEEP_RESEARCH_ROLES,
+    RecordedModels,
+    RecordedSigner,
+    deep_research_answer,
+)
 from .registry import registry_for
 from .research import research_registry
 from .research_agents import ResearchAgentConfig, ResearchAgentExecutor
@@ -391,13 +396,11 @@ class _ScriptedSigner:
 class ScriptedDeepResearchModel:
     """Bedrock Converse's wire for the Deep Research agents, answered by a script.
 
-    Each answer is built from what the agent was shown and ``answers`` (``agents.json``):
-    the planner's queries per subject text (else ``default_queries``), each web source's
-    evidence by URL (quotes literally on the recorded page, so grounding passes by its own
-    rules), every item supported by the verifier, and one finding per subject citing its
-    first accepted evidence. An internal track finds nothing. A contract this wire has no
-    script for gets the provider's validation refusal, answered and unbilled. Every response
-    carries ``x-aia-scripted`` and a ``workbench-scripted-<role>-<n>`` request id.
+    Each answer is the shared recorded one (:func:`~aia_executors.recorded_models.
+    deep_research_answer`), built from what the agent was shown and ``answers``
+    (``agents.json``). A contract this wire has no script for gets the provider's validation
+    refusal, answered and unbilled. Every response carries ``x-aia-scripted`` and a
+    ``workbench-scripted-<role>-<n>`` request id, and reports no tokens.
     """
 
     answers: Mapping[str, Any]
@@ -414,7 +417,15 @@ class ScriptedDeepResearchModel:
             "x-amzn-requestid": f"workbench-scripted-{role}-{len(self.requests)}",
             "x-aia-scripted": SCRIPTED_DEEP_RESEARCH,
         }
-        answer = getattr(self, f"_answer_{role}", None)
+        answer = (
+            deep_research_answer(
+                role,
+                json.loads(request.body["messages"][0]["content"][0]["text"]),
+                self.answers,
+            )
+            if role in DEEP_RESEARCH_ROLES
+            else None
+        )
         if answer is None:
             return HttpResponse(
                 status=400,
@@ -422,8 +433,7 @@ class ScriptedDeepResearchModel:
                 body={"message": f"the workbench has no script for {role!r}"},
             )
         name = request.body["toolConfig"]["tools"][0]["toolSpec"]["name"]
-        payload = json.loads(request.body["messages"][0]["content"][0]["text"])
-        tool = {"toolUse": {"toolUseId": "t", "name": name, "input": answer(payload)}}
+        tool = {"toolUse": {"toolUseId": "t", "name": name, "input": answer}}
         return HttpResponse(
             status=200,
             headers=headers,
@@ -434,60 +444,6 @@ class ScriptedDeepResearchModel:
                 "usage": {"inputTokens": 0, "outputTokens": 0, "totalTokens": 0},
             },
         )
-
-    def _answer_planner(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        plans: Mapping[str, Any] = self.answers.get("planner") or {}
-        default = list(self.answers.get("default_queries") or [])
-        tracks = []
-        for track in payload["tracks"]:
-            plan: Mapping[str, Any] = plans.get(track["subject"]) or {}
-            tracks.append(
-                {
-                    "track_id": track["track_id"],
-                    "sub_questions": list(plan.get("sub_questions") or []),
-                    "queries": list(plan.get("queries") or default),
-                }
-            )
-        return {"tracks": tracks, "notes": ""}
-
-    def _answer_web_investigator(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        web: Mapping[str, Any] = self.answers.get("web") or {}
-        evidence = [
-            {"source_id": s["source_id"], **e}
-            for s in payload["sources"]
-            for e in web.get(s["url"], [])
-        ]
-        return {"evidence": evidence, "gaps": []}
-
-    def _answer_internal_investigator(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        return {"evidence": [], "gaps": []}
-
-    def _answer_verifier(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        return {
-            "verdicts": [
-                {
-                    "evidence_id": item["evidence_id"],
-                    "verdict": "supported",
-                    "reason": "workbench: podloženo citací",
-                }
-                for item in payload["items"]
-            ]
-        }
-
-    def _answer_synthesizer(self, payload: Mapping[str, Any]) -> dict[str, Any]:
-        by_subject: dict[str, list[Mapping[str, Any]]] = {}
-        for evidence in payload["evidence"]:
-            by_subject.setdefault(evidence["subject_key"], []).append(evidence)
-        first = payload["evidence"][0]["claim"] if payload["evidence"] else ""
-        return {
-            "summary": first or "Workbench: nic nebylo nalezeno.",
-            "findings": [
-                {"subject_key": k, "text": v[0]["claim"], "evidence_ids": [v[0]["evidence_id"]]}
-                for k, v in by_subject.items()
-            ],
-            "gaps": [s["text"] for s in payload["subjects"] if s["subject_key"] not in by_subject],
-            "limitations": ["Workbench: zaznamenané fiktivní stránky, nikoli živý web."],
-        }
 
 
 def _role(request: HttpRequest) -> str:
