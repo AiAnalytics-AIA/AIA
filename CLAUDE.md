@@ -1622,7 +1622,9 @@ packages/aia_core/src/aia_core/
                             contract + validation, weights, bindings, RuntimePopulation
       czech.py              The Czech v17 import contract (pinned by hash, not copied)
       policy.py             Field policy as code: what each field may be used for
-      companions.py         Companion assets + the fail-closed joint certificate gate
+      companions.py         Companion assets + the one fail-closed joint certificate evaluator
+                            (evaluate_joint_certificate), for the loader and the claim gate alike; JointStatus
+                            issued only there (evidence-integrity 5b, #1082)
       authority.py          Population-operator capability (establish / promote)
       runtime.py            RuntimePopulation, issued only by the loader; companion(asset_id): a
                             companion's bytes as the loader verified them at load; joint_certificate:
@@ -1848,8 +1850,12 @@ packages/aia_core/src/aia_core/
       templates.py          client / final / internal / documentation recipes; the client report
                             keeps the legacy client_report_v2 section order
     evidence/               What may be claimed — every gate fails closed
-      field_policy.py       400-field dictionary as typed policy; FieldPolicyBook
-      joint_status.py       CORE_JOINT_STATUS certificate, hash-bound; joint units
+      field_policy.py       400-field dictionary as typed policy; FieldPolicyBook: a population's fields take
+                            every eligibility from the population contract (from_population_policy; 115
+                            client-measurable v17 fields, MVP-29, #1069); the reference's derivation (287,
+                            derive_eligibility, from_policy_document) is the parity reading only
+      joint_status.py       The claim gate's joint units and evaluate_joint_structure, over the population's
+                            JointStatus (#1082)
       claims.py             Permissible-claim policy: measured vs modelled, disclosures
       support.py            Kish effective n, SUPPRESS by default, intervals required
       metrics.py            The allowed analysis metrics, one unit each
