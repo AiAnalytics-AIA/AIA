@@ -8,7 +8,7 @@ chunks:
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
-  - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
+  - "[x] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
   - "[x] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
   - "[ ] 10. Browser evidence kept distinct from HTTP evidence: real browser journeys (hand edits, pointing, proposals, keyboard and focus, stale states, all eleven stages, map view-only operations) are their own line in the record and never counted as HTTP"
   - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
@@ -398,6 +398,52 @@ report is read. The record's parity line and the PR summary are the only places 
 
 **Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
 and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
+
+**Delivered (2026-10-28)**, branch `feature/parity-reports-never-blocks`, from `develop` @
+`7107c1f0`; permission: the product owner's words of 2026-10-28 00:43Z, relayed by the PM
+coordinator (CLAUDE.md §5).
+
+- `tools/parity_report_only.py <label> <command…>` (stdlib) runs each comparison suite: the
+  `parity` job's, the `golden-fixtures` job's contract parity (population and evidence) and the
+  `oracle-parity` job's. It judges the outcome by the suite's own JUnit. Exactly one outcome
+  becomes a `::warning::`, a step-summary line and exit 0: pytest exited 1 and the JUnit shows
+  test bodies that failed and no error.
+- Everything else is the step's own, because then nothing was compared. That covers an error (a
+  broken fixture, and the `AIA_REQUIRE_REFERENCE_REPO` / `AIA_REQUIRE_LEGACY_ORACLE` ratchets,
+  which `pytest.fail` in their fixtures), a JUnit that is missing or unreadable, and exits 2-5.
+  No `|| true`.
+- **The golden fixtures' pin check stays blocking.** `test_golden_fixtures.py` checks the pins,
+  the manifest, and that each vendored copy is byte-identical to its original. It now runs in a
+  step of its own outside the wrapper. That is integrity, not parity: a fixture edited to make a
+  test pass fails there (CLAUDE.md §2).
+- `tools/parity_status.py --report-only` prints each capability's FAIL ("capability FAIL
+  reported, not blocking") and opens the step summary's markdown with the same note. It exits 0
+  for parity FAILs. An acceptance criterion's FAIL and a malformed matrix still fail. Without the
+  flag, a person's local run exits 1 as before. CI's Parity status step passes the flag.
+- `dispatch-develop` no longer needs `parity` or `oracle-parity`, and reads each direct need's
+  `result` by name instead of `success()`. `success()` also looks through `parity-status` to the
+  comparison jobs it needs, so a broken comparison suite would otherwise still hold a deploy back.
+  It still needs `golden-fixtures`, for the pin check, and `parity-status`, which blocks on an
+  acceptance FAIL.
+- Unchanged: `test_parity_matrix.py`, the vendored F1-F9 in the backend job, and every non-parity
+  test. They stay blocking.
+- Tests:
+  - `test_parity_reports_never_blocks.py`: the wrapper's outcomes (failures only, any error, an
+    unreadable JUnit, exits 0-5), each comparison job going through it with JUnit and no escape,
+    the pin check outside it, `--report-only` on Parity status, and the deploy's needs and
+    condition.
+  - `test_parity_status_tool.py`: `--report-only` with a parity FAIL (exit 0, the FAIL printed and
+    in the JSON and markdown; exit 1 without the flag), with an acceptance FAIL (exit 1), and with
+    a malformed matrix (refused).
+
+**Left for chunk 6.** "A parity FAIL also appears as one line in the acceptance record" lands with
+the record, which does not exist yet. Until then the Parity status report and the step summary are
+where a parity FAIL shows.
+
+**Branch protection is a person's.** A required status check on `Parity against legacy prototype`
+or `Parity against the running 18.6.6 unit` now passes on a comparison that differed. It still
+fails on a suite that could not run. Whether those checks stay required is a repository setting
+for an administrator.
 
 ## Added by the master plan (2026-10-19)
 

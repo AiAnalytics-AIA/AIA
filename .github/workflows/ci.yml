@@ -317,7 +317,10 @@ jobs:
           if [ ! -f "${AIA_LEGACY_REFERENCE:-../npc-panel-reference}/project_pipeline.py" ]; then
             echo "::warning::Legacy prototype not available in CI; its parity tests are skipped and reported as NOT_EXECUTED."
           fi
-          pytest packages/aia_core -q -m parity -rs \
+          # Reports and never blocks (MVP-21): a failed comparison is a warning and a summary
+          # line, its capability FAIL is in Parity status; a suite that could not run fails.
+          python tools/parity_report_only.py "Parity against legacy prototype" \
+            pytest packages/aia_core -q -m parity -rs \
             --junit-xml=tmp/junit/parity-legacy.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
@@ -332,9 +335,9 @@ jobs:
     # repository and need no raw archive. F1-F9 are vendored and gated in the
     # backend job; this job checks out the reference at the commit pinned in
     # docs/migration/parity-matrix.json, refuses any fixture that does not hash
-    # to its pin, proves each vendored copy is byte-identical to its original,
-    # and runs the F10/F11, population-contract and evidence-contract gates
-    # that read the checkout.
+    # to its pin, proves each vendored copy is byte-identical to its original
+    # (blocking), and runs the population-contract and evidence-contract parity
+    # that reads the checkout (reports, never blocks: MVP-21).
     #
     # Access is a read-only deploy key on AiAnalytics-AIA/AIA-reference, stored
     # as the AIA_REFERENCE_DEPLOY_KEY secret. Without it (forks, or before it is
@@ -387,14 +390,24 @@ jobs:
       - name: Run golden-fixture gates
         # F1-F9 are vendored and run in the backend job with no checkout; what
         # needs the reference repository is the pin check against its manifest
-        # and parity plan, F10/F11, and the population and evidence contract parity.
+        # and parity plan. Integrity, not parity: a fixture edited to make a test
+        # pass fails here, so this step blocks.
         env:
           AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
         run: >-
-          pytest packages/aia_core/tests/test_golden_fixtures.py
-          packages/aia_core/tests/test_population_reference_parity.py
-          packages/aia_core/tests/test_evidence_gate_parity.py -q -rs
+          pytest packages/aia_core/tests/test_golden_fixtures.py -q -rs
           --junit-xml=tmp/junit/golden.xml -o junit_family=xunit1
+
+      - name: Run reference contract parity (reports, never blocks)
+        # The population and evidence contracts compared with 18.6.6's: a difference
+        # is reported and never blocks (MVP-21); a suite that could not run fails.
+        env:
+          AIA_REFERENCE_REPO: ${{ github.workspace }}/.reference/aia-reference
+        run: >-
+          python tools/parity_report_only.py "Reference contract parity"
+          pytest packages/aia_core/tests/test_population_reference_parity.py
+          packages/aia_core/tests/test_evidence_gate_parity.py -q -rs
+          --junit-xml=tmp/junit/golden-parity.xml -o junit_family=xunit1
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -411,7 +424,9 @@ jobs:
     # `oracle` tests skip and parity-status reports their gates as NOT_EXECUTED,
     # never as a pass. With them present, `AIA_REQUIRE_LEGACY_ORACLE=1` turns an
     # unreachable oracle into a failure -- the same ratchet as AIA_REQUIRE_POSTGRES.
-    # Never a `|| true`: an oracle that answers differently is a finding.
+    # Never a `|| true`: an oracle that answers differently is a finding, reported
+    # and never blocking (MVP-21, tools/parity_report_only.py); an unreachable one
+    # is an error and fails the job.
     name: Parity against the running 18.6.6 unit (needs the oracle secrets)
     runs-on: ubuntu-latest
     needs: [changes]
@@ -449,7 +464,9 @@ jobs:
           AIA_LEGACY_REFERENCE_USER: ${{ secrets.AIA_LEGACY_REFERENCE_USER }}
           AIA_LEGACY_REFERENCE_PASSWORD: ${{ secrets.AIA_LEGACY_REFERENCE_PASSWORD }}
           AIA_REQUIRE_LEGACY_ORACLE: ${{ env.HAS_ORACLE == 'true' && '1' || '' }}
+        # Reports and never blocks (MVP-21), as the parity suite does.
         run: >-
+          python tools/parity_report_only.py "Parity against the running 18.6.6 unit"
           pytest packages/aia_core -q -m oracle -rs
           --junit-xml=tmp/junit/oracle.xml -o junit_family=xunit1
 
@@ -461,8 +478,10 @@ jobs:
           if-no-files-found: warn
 
   parity-status:
-    # One verdict per capability, from every JUnit file above. FAIL (a gate ran
-    # and failed, or could have run and did not) fails this job. NOT_EXECUTED
+    # One verdict per capability, from every JUnit file above. A capability's FAIL
+    # (a gate ran and failed, or could have run and did not) is reported here and
+    # never blocks (MVP-21, --report-only); an acceptance criterion's FAIL fails
+    # this job, and so does a malformed matrix. NOT_EXECUTED
     # and NOT_RUNNABLE are reported in the step summary beside the passes, so a
     # skip can no longer be read as one.
     name: Parity status
@@ -495,8 +514,10 @@ jobs:
           if [ "$REFERENCE_AVAILABLE" = "true" ]; then available="$available reference_repo"; fi
           if [ "$ORACLE_AVAILABLE" = "true" ]; then available="$available legacy_oracle"; fi
           set +e
+          # --report-only: a capability's FAIL is reported here and never blocks (MVP-21); an
+          # acceptance criterion's FAIL or a malformed matrix still fails this job.
           python tools/parity_status.py --junit tmp/junit/*.xml --available $available \
-            --json parity-status.json --markdown parity-status.md
+            --report-only --json parity-status.json --markdown parity-status.md
           status=$?
           set -e
           cat parity-status.md >> "$GITHUB_STEP_SUMMARY"
@@ -1124,8 +1145,17 @@ jobs:
 
   dispatch-develop:
     name: Dispatch verified develop deployment
-    needs: [backend, parity, golden-fixtures, oracle-parity, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
-    if: success() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    # Not the 18.6.6 comparison jobs (parity, oracle-parity): parity reports and never blocks a
+    # deploy (MVP-21). golden-fixtures stays for its pin check; parity-status for the acceptance.
+    needs: [backend, golden-fixtures, parity-status, api-contract, frontend, startup-smoke, develop-host-config, security]
+    # Each direct need by name, not success(): success() also looks through parity-status to the
+    # comparison jobs it needs, and one of those failing would hold the deploy back.
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      && needs.backend.result == 'success' && needs.golden-fixtures.result == 'success'
+      && needs.parity-status.result == 'success' && needs.api-contract.result == 'success'
+      && needs.frontend.result == 'success' && needs.startup-smoke.result == 'success'
+      && needs.develop-host-config.result == 'success' && needs.security.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: read
