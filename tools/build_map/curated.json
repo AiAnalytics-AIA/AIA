@@ -522,13 +522,6 @@
       "rec": "Name it or drop it; the three scenarios are planned either way."
     },
     {
-      "who": "Nigel",
-      "q": "IAM user makli-bedrock calls Haiku 4.5 ~240-300 times a day from one IP, with two active access keys ('Local Cli', 'bedrock'). It isn't AIA. Whose is it, and do those keys stay?",
-      "blocks": "cost attribution and the shared account's security",
-      "from": "27 Oct",
-      "rec": "Find the owner today; if nobody claims it, disable both keys (reversible) rather than delete them."
-    },
-    {
       "who": "Operator",
       "q": "Move /aia/develop SecureStrings to a customer-managed KMS key granted to the instance role only; add a CloudTrail trail and Bedrock invocation logging",
       "blocks": "secret isolation in the shared account; audit beyond 90 days",
