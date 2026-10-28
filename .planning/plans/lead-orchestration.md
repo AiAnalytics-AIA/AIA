@@ -10,6 +10,12 @@ chunks:
   - "[ ] LO6. The continuation turn: a finished step enqueues a Lead turn with typed results; no polling"
   - "[ ] LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)"
   - "[ ] LO8. `ResultsContext`: type, class (`MaterialRule` for results, module text, maps, report text), lineage, bound, an external-evidence slot labelled L; and the decision on a read tool against ADR 0026 decision 3"
+  - "[ ] LO8a. ADR 0026 Amendment 2026-10-28 G1: the gateway's message contracts carry content blocks (text, tool_use, tool_result, reasoning) and a TOOL_ROUND call purpose; every existing caller's request body byte-identical"
+  - "[ ] LO8b. G2: the Converse tool-use wire recorded once on develop's Lead route (fictional, at most 10 requests, under USD 1; the owner's \"ok to record G2\", 2026-10-28), then the Bedrock adapter against those fixtures: several tools, every toolUse kept, reasoning blocks returned untouched"
+  - "[ ] LO8c. G3: the gateway and StepModelCaller run a tool conversation: a ledger row, reservation and fingerprint per round, the gates before every round, the turn's ceiling (USD 0.50) and round cap (8), every round and read journaled and replayed on retry"
+  - "[ ] LO8d. G4: the read tools in the first product ToolRegistry (run_results, run_findings, readiness, run_status, changes_since, knowledge_search, knowledge_read), the import contract, the manifest's reads section"
+  - "[ ] LO8e. G5: each LeadWorkerSpec row generates one request definition in the Lead's output schema; a switched-off worker none"
+  - "[ ] LO8f. G6: cost and latency per round measured on recorded turns, then on a fictional develop study, before AIA_AI_RESEARCH_LEAD_READS goes on"
   - "[x] LO9a. The worker contract, early (W0, the first deliverable of `research-lead-workbench` 11): `LeadWorkerSpec` as a type, one row per worker (id, closed task, context layer, data-class rule, capability, reservation, prompt id and pin, switch, card kind, result kind), with its fixture"
   - "[ ] LO9c. A results-worker job shape (W2, before LO9b): a workflow type and step kind keyed on (run_id, target), frozen inputs by artifact id and SHA-256, its own context builder and executor behind its own switch, sharing the worker row, prompt pin and usage ledger"
   - "[ ] LO9b. The three new workers as rows (W3): a `REPORT_WRITING` binding, result kinds and accept destinations, per-worker price and keys"
@@ -94,9 +100,14 @@ analysis completes wakes one whose context offers its Interpretation candidates 
 scripted Lead can prepare an interpretation card. Tests: a completed Deep Research run's turn holds
 its counts and ids and no quote text; a park wakes one with the code; a completed analysis lets the
 scripted Lead prepare an interpretation card. Detail in *Deep Research under the Lead* below.
+A continuation turn may read through the Lead's read tools like any turn (ADR 0026 Amendment 2026-10-28).
 
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.
+*Since ADR 0026 Amendment 2026-10-28 (accepted, #1085):* the always-in part is a one-line state summary (readiness verdict,
+question-outlook counts, each run's state with its park code, changes since the last turn) frozen per decision 2; the
+detail comes through the read tools `readiness`, `run_status` and `changes_since` (its R2). Test: "Kde jsme?" answered
+from the summary with no read; "Proč běh stojí?" answered after one `run_status` read, its park code cited.
 
 - **Delivered beside LO7: external context, never evidence** (evidence-integrity 7, the Lead's half;
   `feature/lead-external-context`, after #669).
@@ -124,6 +135,13 @@ scripted Lead prepare an interpretation card. Detail in *Deep Research under the
 Written in **W1**, not W2. S2 and S3 write providers against it. Test: a result with Class A lineage is refused by a Class-C-only route. Interfaces I1.
 *The owner, 2026-10-25 (AUD-1 (a), the audit page, relayed by coordinator 3):* the Lead reads and acts on the result stages and never
 edits results; LO8's read decision is taken within that.
+*Decided by ADR 0026 Amendment 2026-10-28 (accepted, #1085):* `ResultsContext` is built as the providers of the read
+tools `run_results` and `run_findings` (admitted rows only; a suppressed ref with its reason codes and no number),
+plus a frozen index of the newest run (question ids with their status, modules with their state, maps with their
+register status, no number). The results `MaterialRule` is Class B, raised to A when the run's analysis input carries
+client data, the dataset lineage declared (its Q5). The gateway work comes first: LO8a-LO8c before the providers are
+wired. Test: "Shrň mi, co běh zjistil" answered with admitted numbers cited by ref after one read, a suppressed row
+named without its number.
 **Deep Research's provider and the one door for external numbers (DRL-11, 2026-10-21):** the L slot's
 Deep Research provider carries the study's newest sealed bundle(s) by reference (each accepted
 finding's claim, quote, source title and URL, source class, verifier verdict and injection flag;
@@ -234,7 +252,7 @@ None here. The wallet sits beside `spend_confirm_usd`, which stays a per-start c
 
 ## Execution predecessors (2026-10-20)
 
-LO0, LO9a, LO12a, LO15 and LO16 are W0; LO1-LO8, LO10, LO12b, LO13 and LO14 are W1; LO11 is W2;
+LO0, LO9a, LO12a, LO15 and LO16 are W0; LO1-LO8, LO8a-LO8f, LO10, LO12b, LO13 and LO14 are W1; LO11 is W2;
 LO9b is W3. LO10's card-revision check precedes the first actionable card, not the final workers.
 LO7 uses WCE4's change feed and RQC7's events; unavailable result providers are typed unavailable,
 never guessed. LO11's persistent personal lifecycle is later work; basic per-researcher turn privacy
