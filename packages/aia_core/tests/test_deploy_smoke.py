@@ -29,6 +29,7 @@ FAIL  api: /health is ok
 info  host: no 18.6.6 working volume on this host (aia_legacy_state)
 NOT_RUNNABLE  ai: a paid model call
       the smoke makes no paid model call
+NOT_READY  activation: analysis (AC-08) -- AIA_AI_ANALYSIS_ENABLED is not true
 ok    worker: container is running
 warn  smoke: results not kept; Settings shows the previous run
 
@@ -42,6 +43,10 @@ def test_only_check_lines_are_read_and_no_detail_is_kept() -> None:
         SmokeCheck("web: / opens AIA (302 /app/clients), not the 18.6.6 document", SmokeStatus.OK),
         SmokeCheck("api: /health is ok", SmokeStatus.FAIL),
         SmokeCheck("ai: a paid model call", SmokeStatus.NOT_RUNNABLE),
+        SmokeCheck(
+            "activation: analysis (AC-08) -- AIA_AI_ANALYSIS_ENABLED is not true",
+            SmokeStatus.NOT_READY,
+        ),
         SmokeCheck("worker: container is running", SmokeStatus.OK),
     ]
     assert "Bearer" not in repr(checks)
@@ -73,11 +78,12 @@ def test_the_latest_run_is_read_not_ready_first(scoped: Any, session: Any) -> No
     assert (latest.run_id, latest.build_sha) == ("SMK-new", "bbbbbbb")
     assert [c.status for c in latest.checks] == [
         SmokeStatus.FAIL,
+        SmokeStatus.NOT_READY,
         SmokeStatus.NOT_RUNNABLE,
         SmokeStatus.OK,
         SmokeStatus.OK,
     ]
-    assert latest.checks[2].label.startswith("web: /")  # passes keep the smoke's order
+    assert latest.checks[3].label.startswith("web: /")  # passes keep the smoke's order
 
 
 def test_nothing_kept_reads_none_and_only_an_administrator_reads(scoped: Any, session: Any) -> None:

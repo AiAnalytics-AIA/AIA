@@ -3,10 +3,15 @@
 Run by ``deploy/develop/bin/smoke.sh`` inside the worker image, against the
 running deployment. It proves, in order:
 
-1. **Storage** -- a synthetic object round-trips through the configured
+1. **Activation** -- first, since it is pure: each row of the MVP's activation
+   profile (``activation.py``, mvp-master-plan MP6) ``ok`` when READY, ``NOT_READY``
+   with its reason otherwise, judged from this container's environment, which is the
+   worker's. Never a call, and never a failure: a switch nobody threw is said, not a
+   broken deploy.
+2. **Storage** -- a synthetic object round-trips through the configured
    :class:`ArtifactStore` (S3 in develop) and is hash-verified on read.
-2. **Seed** -- the develop world exists (idempotent; creates it on first run).
-3. **Worker + slice** -- a fresh ``develop_snapshot`` run is created as the smoke's
+3. **Seed** -- the develop world exists (idempotent; creates it on first run).
+4. **Worker + slice** -- a fresh ``develop_snapshot`` run is created as the smoke's
    own synthetic owner, in the seed's smoke organization (never the operator's,
    so nothing a person archives in their workspace can stop it), through the
    same use case the API calls; the *running* worker
@@ -15,14 +20,12 @@ running deployment. It proves, in order:
    artifact carries the deployed build as its ``runtime_version``; one reused
    by content fingerprint keeps the build that first produced it, and the
    check says so instead of failing (reuse is the design, ``snapshot.py``).
-4. **AI** -- reported ``NOT_RUNNABLE``: the smoke makes no paid model call. The
-   AI runtime (``ai_runtime.py``) is off by default and fail-closed when on, and
-   is proven by its own acceptance (ADR 0010, accepted for fictional Class C on
-   develop only; ``docs/architecture/bedrock-develop-activation-2026-09-26.md``),
-   not on each deploy. Printed, never counted as a pass.
+5. **AI** -- the live route probe, reported ``NOT_RUNNABLE``: the smoke makes no paid
+   model call. A probe runs only after the owner's sign-off and a named allocation line
+   (execution contract E05), never on a deploy. Printed, never counted as a pass.
 
-Output is one ``ok``/``FAIL``/``NOT_RUNNABLE`` line per check, in the same shape
-as ``smoke.sh``; exit status is non-zero on any ``FAIL``.
+Output is one ``ok``/``FAIL``/``NOT_READY``/``NOT_RUNNABLE`` line per check, in the same
+shape as ``smoke.sh``; exit status is non-zero on any ``FAIL``.
 """
 
 from __future__ import annotations
@@ -32,7 +35,7 @@ import os
 import sys
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from aia_core.application.develop_seed import seed_develop, seeded_study_scope
@@ -47,9 +50,10 @@ from aia_core.infrastructure.storage_settings import StorageSettings, build_arti
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from sqlalchemy.orm import Session, sessionmaker
 
+from . import activation
 from ._db import engine_from_env
 
-__all__ = ["ai_check", "main", "storage_round_trip", "wait_for_snapshot"]
+__all__ = ["activation_check", "ai_check", "main", "storage_round_trip", "wait_for_snapshot"]
 
 
 class Report:
@@ -67,6 +71,10 @@ class Report:
         self._out(f"FAIL  {label}")
         if detail:
             self._out(f"      {detail}")
+
+    def not_ready(self, label: str) -> None:
+        """Said and kept, never a failure: the label carries the reason, as Settings keeps it."""
+        self._out(f"NOT_READY  {label}")
 
     def not_runnable(self, label: str, detail: str) -> None:
         self._out(f"NOT_RUNNABLE  {label}")
@@ -204,13 +212,23 @@ def slice_check(
         report.fail("slice: the snapshot describes the seeded project", str(payload)[:200])
 
 
+def activation_check(report: Report, env: Mapping[str, str]) -> None:
+    """Each row of the activation profile, READY as ``ok`` and NOT_READY with its reason."""
+    for row, readiness in activation.judge(env):
+        label = f"activation: {row.key} for {row.needed_by} -- {readiness.reason}"
+        if readiness.ready:
+            report.ok(label)
+        else:
+            report.not_ready(label)
+
+
 def ai_check(report: Report) -> None:
-    """Report the AI check as not runnable, and say why; it is never a pass."""
+    """Report the live route probe as not runnable, and say why; it is never a pass."""
     report.not_runnable(
         "ai: governed model call through ModelGateway -> bedrock-eu-primary",
-        "the smoke makes no paid model call; the AI runtime is off by default "
-        "and is checked by its own acceptance, not on each deploy (ADR 0010, "
-        "docs/architecture/bedrock-develop-activation-2026-09-26.md)",
+        "the smoke makes no paid model call; a live probe runs only after the owner's "
+        "sign-off and a named allocation line (E05). What the runtime is configured to do "
+        "is the activation rows",
     )
 
 
@@ -245,6 +263,8 @@ def main(argv: list[str] | None = None) -> int:
         print("AIA_SEED_OWNER_EMAIL (or --owner-email) is required", file=sys.stderr)
         return 2
 
+    # First: pure, so a storage or database failure below never hides what is switched on.
+    activation_check(report, os.environ)
     store = build_artifact_store(StorageSettings.from_env())
     storage_round_trip(store, report)
 
