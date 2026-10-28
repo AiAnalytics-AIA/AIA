@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
+  - "[x] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
   - "[ ] CPR2. A client's status on the list, the server: ClientCard carries the client's status (active, archived), so the directory can say it (W1)"
   - "[ ] CPR3. Budget and rule changes in the profile history, the server: the profile's history reads the client budget, wallet ceiling, data posture and self-approval changes from the audit, each with who and when (W1)"
   - "[ ] CPR4. The client hero on every client tab: eyebrow, the client's name, one line, and five figures from GET /clients/{id} (the file count from CPR1); a figure the API does not give reads unknown, never 0 (W1, on prototype-build#PBA4's hero, after CPR1)"
@@ -227,5 +227,9 @@ Test: `make web_design`; the client journey (CPR19) passes on the new tokens.
 
 ## Doc follow-up
 
+- `CLAUDE.md` § 2, CPR1 (landed): in the workspace router's entry, "GET /clients/{id} carries the tabs' counts
+  (archived studies out, the knowledge counts null without VIEW_CLIENT_KNOWLEDGE)" becomes "… (archived studies out;
+  the knowledge counts and `sources`, the files the client keeps, null without VIEW_CLIENT_KNOWLEDGE)"; and under
+  `client_source_repository.py`: "count: every source the client keeps, scoped, VIEW_CLIENT_KNOWLEDGE".
 - `CLAUDE.md` § 2, when CPR4 lands: the client workspace's hero and its five figures; when CPR10 lands: the client
   pages read the eleven stages of `lib/workbench-stages.ts`.
