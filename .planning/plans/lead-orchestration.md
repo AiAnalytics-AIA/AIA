@@ -16,7 +16,7 @@ chunks:
   - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
-  - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
+  - "[x] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
@@ -213,6 +213,59 @@ The refusal surfaces in the job error, the Lead pane, source proposals and Progr
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.
+
+- **Landed** (`feature/lead-route-preflight`), behind `AIA_AI_ROUTE_PREFLIGHT_ENABLED` (API, off by
+  default, off in test, absent from the develop Compose file).
+  - One rule: `domain/residency.py` `route_refusal(route, data_class, class_gates=)`, the route
+    checks `evaluate_egress` makes (no route, class, residency, training, retention), which
+    `evaluate_egress` now calls (`_route_denial`). Held to it over 1,728 route × class × gate cases
+    (`test_route_refusal_says_what_evaluate_egress_does_over_every_route`).
+  - The record: 52's row, no second table. `deep_research_compositions.ai_route` (JSON, nullable;
+    migration `c3e5a7b9d1f2`): runtime on, route id, region, zone, the three confirmations,
+    retention, approved classes, class gates, the study Lead off / unconfigured / configured. No
+    price, model id or invocation target. `aia_executors.deep_research_reach.ai_route_of(env)`
+    builds it from `AIRuntimeSettings.route()`, the facts the gateway judges, and
+    `record_reach` keeps it at every worker start. A row from before reads as unknown, and so does a
+    malformed one (`ai_route_from_record`).
+  - The pre-flight: `domain/ai_route_reach.py`. `class_reach` gives each class's verdict by
+    `route_refusal`. `lead_preflight` gives the reason a Lead turn would park:
+    `research_lead_unconfigured`, or the route's refusal of Class B (`egress_…`), which is the least a
+    turn carries (`material_rules`: the design). Class A depends on a turn's content and is never
+    claimed.
+  - The API:
+    - `GET /studies/{id}/lead`: `worker_readiness(turns, preflight)` reads the newest record
+      (`worker_ready_source: composition`). A turn refused for its own material (a class its
+      knowledge raised it to) is that turn's reason, never the worker's.
+    - `GET /settings/ai-route` (any member; 404 `ai_route_preflight_off` with the switch off): the
+      route as recorded, each class carried / advisory / refused, and `lead_refusal`.
+  - **Decided: `true` from the record, with its time** (Nigel, 2026-10-28 ~21:02 UTC, in the PM
+    coordinator's chat, relayed by send_message: "Yes, with its time"). `worker_ready: true`
+    (`worker_ready_source: composition`) means the newest worker start was composed to answer a
+    Lead turn, not that a worker runs now. GET /lead answers that start's `worker_composed_at` and
+    `worker_build`, and the pane says them beside "odpovídá". A parked turn still wins when its
+    worker decided it at or after that start, compared by the attempt's `finished_at` against
+    `composed_at` (both the worker's clock), or when it has no decision time. With the switch off,
+    or no record, `true` is never answered.
+  - The web:
+    - The Lead pane says the three new refusals (`egress_retention_unspecified`,
+      `egress_residency_violation`, `egress_training_exclusion_missing`) with LO12a's who-fixes line
+      (`lib/lead.ts`).
+    - Settings → AI běh → Trasa modelu shows "Podle pracovníka" (`settings/WorkerRoute.tsx`,
+      `lib/ai-route.ts`), read only, and nothing while the read is off.
+  - Cost: one indexed `ORDER BY composition_id DESC LIMIT 1` per GET /lead with the switch on. At
+    start, one more JSON value in the row the worker already writes.
+  - Tests:
+    - core: `test_ai_route_reach.py`;
+    - API: `test_with_the_preflight_on_the_composition_names_the_route_refusal`,
+      `test_with_the_preflight_on_a_turn_refused_for_its_own_class_stays_its_own`,
+      `test_with_the_preflight_on_a_turn_parked_after_the_start_wins`,
+      `test_ai_route_api.py`;
+    - executors: `test_the_ai_route_is_the_one_the_gateway_judges`,
+      `test_the_ai_route_is_kept_and_read_back`;
+    - web: `ai-route.test.ts`, `lead.test.ts`, `lead-availability.test.ts`, and ControlPanel's two
+      LO12b cases.
+  - Not done here: RQC8, readiness reading the same record for a run. It needs only
+    `class_reach(…)[CLASS_A]`.
 
 **LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02**  
 A wording change to the criterion, made with the acceptance harness, not a behaviour change. Interfaces I23.
