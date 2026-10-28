@@ -270,7 +270,8 @@ def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str | None) 
         return JointStatus.fallback(JointState.UNPARSEABLE, "not a JSON object")
 
     status = document.get("status")
-    if status not in KNOWN_JOINT_STATUSES:
+    # Text first: a JSON array or object is unhashable, and must refuse, never raise.
+    if not isinstance(status, str) or status not in KNOWN_JOINT_STATUSES:
         return JointStatus.fallback(JointState.UNKNOWN_STATUS, f"status {status!r} is not known")
     if document.get("structure_status") != _QC_PASSED:
         return JointStatus.fallback(
@@ -278,7 +279,7 @@ def evaluate_joint_certificate(data: bytes | None, *, panel_sha256: str | None) 
             f"structure_status {document.get('structure_status')!r} is not {_QC_PASSED}",
         )
     prediction = document.get("prediction_validation_status")
-    if prediction not in KNOWN_PREDICTION_STATUSES:
+    if not isinstance(prediction, str) or prediction not in KNOWN_PREDICTION_STATUSES:
         # A certificate that claims more must arrive with the code that knows what more permits.
         return JointStatus.fallback(
             JointState.UNKNOWN_STATUS,

@@ -68,6 +68,11 @@ def test_unreadable_certificates_degrade(certificate: bytes | None, reason: Join
         # Checked by the population loader's alone.
         ({"status": "SOMETHING_NEWER"}, JointState.UNKNOWN_STATUS),
         ({"status": None}, JointState.UNKNOWN_STATUS),
+        # A JSON array or object is unhashable: refused, never raised.
+        ({"status": ["COHERENT_CORE_MATCHED_BLOCKS"]}, JointState.UNKNOWN_STATUS),
+        ({"status": {"value": "COHERENT_CORE_MATCHED_BLOCKS"}}, JointState.UNKNOWN_STATUS),
+        ({"prediction_validation_status": ["EXTERNAL_HOLDOUT_PENDING"]}, JointState.UNKNOWN_STATUS),
+        ({"prediction_validation_status": {"a": 1}}, JointState.UNKNOWN_STATUS),
     ],
 )
 def test_malformed_or_unknown_certificates_degrade(
