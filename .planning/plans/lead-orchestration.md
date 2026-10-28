@@ -1620,6 +1620,93 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card, and
   an Interpretation card's `research_run_id` (the results it is shown under).
 
+## F-LO-PARK-1 fixed (2026-10-28, `fix/lead-park-refreeze`)
+
+The finding (recorded with LO2's PR, `feature/lead-typed-start-run`): a Lead turn parked at the
+budget answered from the context it froze when it parked, and the parked turn on develop was a
+greeting nobody wrote. Nigel's decisions, 2026-10-28: "Both" (W1Q11, the PM status page); then, in
+this session, "Owner's pane resends" and "Show a quiet note".
+
+Before (`@ e06cfc10`): `release_lead_budget_waits` resumed the parked step
+(`application/research_lead.py:476-532`, `WorkflowRepository.resume_budget_waits`), whose input
+holds the context frozen at enqueue (`:872-917`); the executor let a greeting's `BudgetExceeded`
+park it like a message (`apps/executors/src/aia_executors/research_lead.py:201`).
+
+Now:
+
+- **A greeting never parks at the budget.** The executor ends a greeting whose reservation the
+  budget refuses as `Succeeded({"skipped": "greeting_unfunded"})`, before anything is sent: no
+  retry, no park, no error report. The turn reads `COMPLETED`, reason `greeting_unfunded`, no
+  output; the pane says it in one slate line, "Přehled studie čeká na rozpočet.", with no button.
+  A message still parks.
+- **A released message is answered on the design as it is now.** A budget set no longer resumes
+  the parked step: it cancels its run (never paid) with the reason `lead_turn_released`
+  (`domain/research_lead.py`), under the same rules as before (the budget went up, the hold fits,
+  oldest first). The messages the turn held wait again (`ResearchLead._released`: the newest Lead
+  turn's run carries that cancel reason): the state marks them `queued` and the released turn
+  `reason: lead_turn_released` ("Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je
+  teď."). The owner's pane sends what waits by itself (`LeadPane.tsx`, `answer_queued`), so the new
+  turn is frozen on the current working copy, under the owner's own scope: a colleague's budget set
+  never reads another researcher's Lead. A message written meanwhile is sent with the released one,
+  in order; a greeting is never sent ahead of them; a withdrawn one is not sent.
+- **No ledger row for a release.** Nothing is lifted: the parked run is cancelled, and the new turn
+  reserves from the budget as it now stands. The budget change itself stays audited
+  (`ScopeRepository.set_study_budget`).
+
+- **The pane reads again while a turn waits on the budget** (`LeadPane.tsx`, `PARKED_POLL_MS`, 10 s,
+  and when the tab regains focus), so a budget set in another tab or by a colleague sends the
+  released message without a reload; it polled only while the Lead was busy.
+
+**From the review of this fix (applied).** A released greeting, or a turn whose messages were all
+withdrawn, carries no `lead_turn_released` reason, since nothing follows it. Under the run's lock the
+release reads the step again (`WorkflowRepository.awaits_budget`, past the session's copy) and skips
+one no longer parked, so a hold is never counted twice. It needs `CANCEL_WORKFLOW` beside
+`APPROVE_BUDGET`, so it never fails the budget change it rides on. The released turn is read from one
+indexed query (`WorkflowRepository.cancel_reason`), not the run's whole event log. A greeting whose
+own reservation the gateway refuses (`reservation_exhausted`, a failed step rather than the
+reservation's `BudgetExceeded`) also ends unpaid; it parked for ever before.
+
+The trade-offs:
+- With no tab of the owner open, a released message is sent when they next open the study, not at
+  the moment the budget is set; its answer could not be read before then anyway.
+- A greeting whose repair call no longer fits its reservation drops the primary answer it paid for,
+  rather than park.
+
+Tests: `test_research_lead_application.py`
+`test_setting_the_budget_sends_the_parked_message_on_the_design_as_it_is_now` (replacing
+`…_and_records_the_person`), `test_a_message_written_after_the_release_is_sent_with_the_released_one`,
+`test_a_budget_set_by_another_researcher_releases_the_turn_for_its_owner_alone`,
+`test_a_released_message_withdrawn_is_never_sent`,
+`test_a_greeting_the_budget_did_not_pay_for_reads_as_one_quiet_line`,
+`test_a_released_greeting_promises_nothing`,
+`test_a_step_cancelled_since_it_parked_reads_as_no_longer_waiting`; `test_research_lead_executor.py`
+`test_a_greeting_the_budget_cannot_pay_for_ends_unpaid_and_never_parks`,
+`test_a_greeting_its_own_reservation_cannot_cover_ends_unpaid_too`; `test_research_lead_api.py`
+`test_setting_the_study_budget_sends_the_message_that_waited_for_it` (updated); `LeadPane.test.tsx`
+"says a greeting the budget could not pay for in one quiet line…" and "reads again when the tab comes
+back to a turn parked on the budget…". Red first on `e06cfc10`: the first five application tests,
+the executor's first test (the greeting read `WAITING`, `budget_exceeded`) and both pane tests fail;
+without its catch the second executor test reads `WAITING`, `reservation_exhausted`.
+
+### Doc follow-up (F-LO-PARK-1 fixed)
+
+- `CLAUDE.md` map, `routers/scope`: "PUT /studies/{id}/budget releases the study's Lead turns parked
+  at the cap whose hold now fits (Q39): each parked run cancelled (`lead_turn_released`), its
+  messages waiting again for their owner's pane to send them on the current design
+  (F-LO-PARK-1)", in place of "sends … lifted in the ledger under the person who set it".
+- `CLAUDE.md` map, `application/research_lead.py`: "`set_study_budget` / `release_lead_budget_waits`
+  release, never resume, a parked turn".
+- `CLAUDE.md` map, `aia_executors/research_lead.py`: "a greeting the budget cannot pay for ends
+  unpaid (`greeting_unfunded`), never parked".
+- ADR 0041 decision 7: a message released from a budget park waits again and is frozen afresh.
+- `open-items.md`: F-LO-PARK-1 closed by this PR.
+- `CLAUDE.md` §7 Known flakes, a candidate entry, met on this branch's full web run:
+  `apps/web/src/components/aia/settings/SystemDataPanels.test.tsx` › "shows the diagnostics to select
+  by hand when the browser refuses the copy, never 'Zkopírováno'": symptom, `expect(document.activeElement)
+  .toBe(field)` received `<body>`, on a host loaded with three other suites. Confirmation: passes run
+  alone, twice. Cause (a hypothesis): the field's focus is asserted the moment it appears, before
+  focus lands. Fix or waiver: none here; the file is untouched by this change.
+
 ## From the research build spec (2026-10-26)
 
 Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at

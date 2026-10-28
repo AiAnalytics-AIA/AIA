@@ -1181,7 +1181,9 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:
     """F4 and the product owner's Q39 (2026-10-21): the message that parked for lack of budget
-    is sent once a person sets the budget in Nastavení -> Studie, and the ledger names them."""
+    is sent once a person sets the budget in Nastavení -> Studie. F-LO-PARK-1 (Nigel,
+    2026-10-28, W1Q11): never on the context it froze when it parked; the parked turn is
+    released, its message waits again, and the pane's own ask sends it on the copy as it is."""
     budget_url = f"/api/v1/studies/{world.study_id()}/budget"
     assert researcher.put(budget_url, json={"budget_usd": 0.0}).status_code == 200
     _hatched(researcher)
@@ -1210,14 +1212,19 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
 
     assert researcher.put(budget_url, json={"budget_usd": 5.0}).status_code == 200
     lead = researcher.get(lead_url(world)).json()
-    assert lead["turns"][-1]["status"] == "QUEUED" and lead["busy"] is True
+    released = next(t for t in lead["turns"] if t["run_id"] == run_id)
+    assert (released["status"], released["reason"]) == ("CANCELLED", "lead_turn_released")
+    assert [t["queued"] for t in lead["turns"] if t["actor"] == "person"] == [True]
+    assert lead["busy"] is False
+    sent = researcher.post(f"{lead_url(world)}/turns/queued")
+    assert sent.status_code == 201, sent.text
+    (turn,) = sent.json()["turns"]
+    assert turn["status"] == "QUEUED" and turn["run_id"] != run_id
     with create_session_factory(app.state.engine)() as session:
         rows = session.scalars(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == run_id)
         ).all()
-        assert [(r.gate_type, r.decision, r.approver_user_id) for r in rows] == [
-            ("budget", "lift", world.users["researcher"])
-        ]
+        assert rows == []  # cancelled, never paid: nothing was lifted
 
 
 # --------------------------------------------------------------------------- the switch off (27b)

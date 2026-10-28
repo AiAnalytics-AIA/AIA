@@ -892,6 +892,10 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
+  // F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): a greeting the budget could not pay for ends unpaid,
+  // one quiet line; a turn a budget set released is answered again on the design as it is now.
+  greeting_unfunded: "Přehled studie čeká na rozpočet.",
+  lead_turn_released: "Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je teď.",
 };
 
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */
