@@ -4,7 +4,7 @@ chunks:
   - "[x] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
   - "[ ] PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM"
   - "[ ] PE2. `deploy-production.yml`: a manual release, an RDS snapshot first, the rollback"
-  - "[ ] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
+  - "[x] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
   - "[ ] PE4. The egress allow-list: a forward proxy for search hosts, reconciled with fetch from any public host"
   - "[ ] PE5. Production route classes and retention evidence; `AIA_AI_ROUTE_ID` must equal `bedrock-eu-primary` for panel lineage; ADR 0022 approvals per organization"
   - "[ ] PE6. Population provisioning in production: asset root, import, establish, `record-dictionary`, `record-catalogue`, the store"
@@ -141,8 +141,10 @@ role can read. Read-only rights do not change that. So the role may be assumed o
 `terraform-plan` environment, and that environment requires a person's approval before the job
 starts. The plan runs with `-lock=false`, so it writes nothing, not even the state's lock file.
 
-**PE3 stays open** until a person has done the steps below and the plan has run once on a pull
-request.
+**PE3 done (2026-10-28).** The role was applied by the owner (plan: 2 to add, 0 to change, 0 to
+destroy), the `terraform-plan` environment and `TERRAFORM_PLAN_ENABLED` set, and the plan ran once on
+#1076 behind his approval: job 122931673979, every resource refreshed with no access refused,
+"No changes. Your infrastructure matches the configuration." (16:04 UTC).
 
 ### The person's steps (no agent may do these: IAM, an apply, GitHub settings)
 
