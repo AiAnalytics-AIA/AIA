@@ -103,6 +103,35 @@ needs its own reading: with the budget dropped, each agent kind's answer limit
 adaptive thinking still counts inside it, so its truncation is measured before Deep Research is
 switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the frozen engine).
 
+## Chunk 6: waits for tier B (decided 2026-10-28)
+
+**The product owner's decision,** relayed by the PM coordinator at about 20:48 UTC: "Wait for tier B". Chunk 6 stays open until `mvp-acceptance-harness` chunk 7 (the tier B runbook and record) exists, and it runs then as tier B.
+
+**Why chunk 6 could not run as written.** The acceptance study (`docs/migration/mvp-acceptance.md` § 1) has never run live, so there was nothing to re-run, and the full tier B was not runnable that night. It also needs:
+- Deep Research measured on 5.5 (allocation lines A06-A08);
+- the report-writer and map-interpreter workers (A05, LO9b);
+- the client-source extraction (A10);
+- a second person's approvals;
+- the runbook itself.
+
+**Prepared for the tier B runbook** (nothing run). The study's core path is brief, design jobs, the n = 300 panel run, analysis and the internal report, on `tests/acceptance/inputs/brief.json` and `concepts.json`, in a study named so that queries can find it.
+
+- **Ceiling as a start shows it:** n × blocks × 0.15 (fieldwork) + 24.00 (analysis: 8 modules × 3 calls × 1.00). The probe confirms the rule: 78 × 0.15 + 24 = 35.70.
+  - n = 300 at 2 blocks (`MAX_BLOCK_ITEMS` 8) gives USD 114.00; at 1 block, 69.00.
+  - It is above the study's limit, so the start asks for the person's confirmation.
+- **Expected spend at the 5.5 rates measured in chunk 5:**
+
+  | Allocation line | Calls | Expected | Ceiling |
+  |---|---|---|---|
+  | A01 fieldwork | 600 at about USD 0.013 (the probe's 0.0100, plus a panel persona's profile and 8-item blocks) | ≈ USD 7.8 | 8.00, **tight** |
+  | A02 analysis and repairs | 8 modules + repairs | ≈ USD 0.5-1.0 | 1.80 |
+  | A04 design workers | two jobs at about 0.11-0.15 | ≈ USD 0.3 | 1.50 |
+  | A03 Lead turns | about 10 at 0.043 | ≈ USD 0.4 | 2.60 |
+  | **Core path total** | | **≈ USD 9-10.5** | |
+
+  The allocation (`tests/acceptance/allocation.json`) was priced on Sonnet 4.5. Tier B re-prices A01-A04 from these rates before it runs.
+- **Read-out:** five read-only queries filter the usage ledger, steps and attempts by the study's name: calls by capability with `finish_reason`, the calls that did not complete, the study's steps, failed attempts with their error, and spend by `agent_id` mapped onto A01-A04. CloudTrail is read for the instance's own session, to show every call's `modelId` is the tagged profile.
+
 ## Chunk 5: done (2026-10-28)
 
 The probe ran on Nigel's ok, at 19:49 UTC, on a fictional study ("Sonnet 5.5 probe", the fictional Fio banka Sandbox client). It ran after develop's deploy, which rewrote `.env` from the switched SSM.
