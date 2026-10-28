@@ -296,6 +296,12 @@ def test_the_legend_reads_the_declared_floor_and_names_the_objects_nobody_rated(
     )
     assert "nejnižší objekt na 30 % výšky" in words(fig)
     assert "neumístěno: 3 objekty, nikdo je nehodnotil" in words(fig)
+    # A floor of 0 (MQ-08): the ramp's two ends are the lowest and highest rating, no floor line.
+    terrain = artifact.spec.terrain.model_copy(update={"relative_height_floor": 0.0})  # type: ignore[union-attr]
+    zero = _with(artifact, spec=artifact.spec.model_copy(update={"terrain": terrain}))
+    fig, cam = axes()
+    render_objects(fig.axes[0], zero, list(OBJECTS), cam, scale=None)
+    assert "nejnižší objekt na" not in words(fig)
 
 
 def test_the_sparse_note_shows_only_when_no_statement_veils_the_map() -> None:
@@ -532,6 +538,25 @@ def test_the_report_reads_the_declared_scale_and_explains_the_respondent_map() -
         in prose
     )
     assert "převedené na škálu od nuly do jedné" not in prose
+    # A map whose spec declares a floor of 0 says so, never "0 % výšky" (MQ-08).
+    zero = AIA_SOCIOMAP_V5.model_copy(
+        update={
+            "terrain": AIA_SOCIOMAP_V5.terrain.model_copy(  # type: ignore[union-attr]
+                update={"relative_height_floor": 0.0}
+            )
+        }
+    )
+    zero_blocks = compose_map_sections(
+        (z := tastes(zero)), object_map_snapshots(z), source="Frozen"
+    )[0].blocks
+    zero_prose = " ".join(
+        i.text
+        for b in zero_blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "nejvýše hodnocený objekt má plnou výšku, nejníže hodnocený nulovou." in zero_prose
     assert "Mapa respondentů ukazuje každého umístěného respondenta jako bod" in prose
     assert "Barva bodu ukazuje chuťový segment" in prose and "alespoň 80 %" in prose
     # An earlier method keeps its 0-1 sentence and has no respondent paragraph.
