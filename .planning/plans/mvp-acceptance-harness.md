@@ -450,7 +450,7 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 
 ## Chunk 14: the wording reconciled (2026-10-28)
 
-Branch `chore/acceptance-reconcile`, from `develop` @ `fa0723ec`; permission: the product owner's
+Branch `chore/acceptance-wording-matrix`, from `develop` @ `fa0723ec`; permission: the product owner's
 words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
 
 **The owner's decision, W0Q5 (Nigel Blount, 2026-10-28, "Keep USD 0.01").** AC-15 keeps USD 0.01
