@@ -18,6 +18,16 @@ This module makes that policy typed and enforceable:
   fails closed: an undeclared field, an unknown evidence status, an unknown grade
   or a stored policy whose flags disagree with the re-derivation is refused.
 
+**One authority for a population's fields** (MVP-29, OI-24 (a), the owner 2026-10-25). A
+book of population fields takes every eligibility from the population contract's
+:class:`aia_core.domain.population.FieldPolicy` (:meth:`FieldPolicyBook.from_population_policy`,
+and :meth:`FieldPolicyBook.from_dictionary_rows` through it): 115 of the 400 v17 fields may back
+a client-facing measured claim, where the reference's derivation allows 287. The reference's
+derivation stays here, exact, as the parity reading: :func:`derive_eligibility` and
+:meth:`FieldPolicyBook.from_policy_document`, which loads the reference's own export, are what
+the parity suites compare against, never what a population's claim is judged under. A Study's
+own items take theirs from :mod:`.instrument`.
+
 The dictionary itself is **not** vendored. It is reference material bound to one
 population version, supplied at runtime with that version and checked against
 its SHA-256 (see ``.planning/plans/done/evidence-governance-foundation.md``).
@@ -27,9 +37,11 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import Any, Final
+
+from ..population import policy as contract
 
 __all__ = [
     "ClaimRule",
@@ -364,6 +376,24 @@ def derive_field_policy(
     )
 
 
+#: Each use as the population contract names it (``population.policy.FieldUse``).
+_CONTRACT_USE: Final[Mapping[FieldUse, contract.FieldUse]] = {
+    FieldUse.ANALYSIS: contract.FieldUse.AGGREGATE_ANALYSIS,
+    FieldUse.CLIENT_FACING_MEASURED_CLAIM: contract.FieldUse.CLIENT_MEASURED_CLAIM,
+    FieldUse.FILTERING: contract.FieldUse.AUDIENCE_FILTERING,
+    FieldUse.SIMULATION: contract.FieldUse.SIMULATION,
+    FieldUse.PERSONA_CONSTRUCTION: contract.FieldUse.PERSONA_CONSTRUCTION,
+    FieldUse.WEIGHTING: contract.FieldUse.WEIGHTING,
+}
+
+
+def _contract_eligibility(policy: contract.FieldPolicy, field: str) -> FieldEligibility:
+    """A field's eligibility as the population contract decides it, use by use."""
+    return FieldEligibility(
+        **{use.value: policy.decide(field, _CONTRACT_USE[use]).allowed for use in FieldUse}
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class FieldPolicyBook:
     """Every declared field's policy, bound to the dictionary it came from.
@@ -397,35 +427,80 @@ class FieldPolicyBook:
             ) from None
 
     @classmethod
+    def from_population_policy(
+        cls, policy: contract.FieldPolicy, *, descriptions: Mapping[str, str] | None = None
+    ) -> FieldPolicyBook:
+        """A population's fields, each eligible for exactly what its contract permits.
+
+        The policy is the one a run's population carries (``RuntimePopulation.field_policy``),
+        bound to its dictionary's SHA-256. A field the contract could not map refuses the whole
+        book, as an unknown status does; a runtime field the dictionary does not declare stays
+        undeclared. ``descriptions`` are the dictionary's, which the contract does not keep.
+        """
+        if policy.unmapped:
+            shown = "; ".join(f"{e.field!r}: {', '.join(e.unmapped)}" for e in policy.unmapped[:10])
+            raise FieldPolicyError(f"the population contract maps no policy for {shown}")
+        described = descriptions or {}
+        fields: dict[str, FieldPolicy] = {}
+        undeclared: set[str] = set()
+        for name, entry in policy.entries.items():
+            if entry.unclassified_derived:
+                undeclared.add(name)
+                continue
+            derived = derive_field_policy(
+                field=name,
+                block=entry.block,
+                source=entry.source,
+                evidence_status=entry.evidence_status,
+                production_grade=entry.production_grade,
+                recommended_use=entry.recommended_use,
+                description=described.get(name, ""),
+                persona_eligible=entry.persona_eligible,
+            )
+            fields[derived.field] = replace(
+                derived, eligibility=_contract_eligibility(policy, name)
+            )
+        return cls(policy.dictionary_sha256, fields, frozenset(undeclared))
+
+    @classmethod
     def from_dictionary_rows(
         cls,
         rows: Iterable[Mapping[str, str]],
         *,
         source_sha256: str,
+        weight_columns: Iterable[str],
         runtime_columns: Iterable[str] = (),
     ) -> FieldPolicyBook:
-        """Build from raw ``FIELD_DICTIONARY`` CSV rows (``persona_eligible`` is ``yes``/``no``)."""
-        fields: dict[str, FieldPolicy] = {}
+        """Build from raw ``FIELD_DICTIONARY`` CSV rows (``persona_eligible`` is ``yes``/``no``).
+
+        Through the population contract (:meth:`from_population_policy`): ``weight_columns`` are
+        the contract's declared weights, the only fields eligible for weighting.
+        """
+        rows = list(rows)
+        descriptions: dict[str, str] = {}
         for row in rows:
-            policy = derive_field_policy(
-                field=row.get("field") or "",
-                block=row.get("block") or "",
-                source=row.get("source") or "",
-                evidence_status=row.get("evidence_status") or "",
-                production_grade=row.get("production_grade") or "",
-                recommended_use=row.get("recommended_use") or "",
-                description=row.get("description") or "",
-                persona_eligible=(row.get("persona_eligible") or "").strip().lower() == "yes",
-            )
-            if policy.field in fields:
-                raise FieldPolicyError(f"field {policy.field!r} is declared twice")
-            fields[policy.field] = policy
-        extra = frozenset(runtime_columns) - fields.keys()
-        return cls(source_sha256, fields, extra)
+            name = (row.get("field") or "").strip()
+            if name in descriptions:
+                raise FieldPolicyError(f"field {name!r} is declared twice")
+            descriptions[name] = row.get("description") or ""
+        weights = frozenset(weight_columns)
+        population = contract.build_field_policy(
+            rows,
+            dictionary_sha256=source_sha256,
+            weight_columns=weights,
+            derived_fields=[
+                (name, name in weights) for name in frozenset(runtime_columns) - descriptions.keys()
+            ],
+        )
+        return cls.from_population_policy(population, descriptions=descriptions)
 
     @classmethod
     def from_policy_document(cls, document: Mapping[str, Any]) -> FieldPolicyBook:
-        """Load the machine-readable policy export, re-deriving and checking every field.
+        """Load the reference's policy export, re-deriving and checking every field.
+
+        The parity reading: its eligibility is the reference's derivation (287 client-measurable
+        fields), not the population contract's, so it backs the parity suites and nothing that
+        judges a run's claims (:meth:`from_population_policy` does).
 
         The stored ``provenance_class``, ``claim_rules`` and ``eligibility`` are
         recomputed from the verbatim text. Any disagreement refuses the whole

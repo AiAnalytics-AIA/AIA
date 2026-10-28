@@ -304,10 +304,14 @@ GATE_CASES: tuple[GateCase, ...] = (
         _decide(_claim("value_security")), False,
         frozenset({ViolationCode.NEVER_DIRECT_SCHWARTZ, ViolationCode.NOT_MEASURED_EVIDENCE}),
     ),
+    # The reference refuses these two; production also refuses the measured basis itself, since
+    # a calibrated or derived value is not client-measurable under the population contract (MVP-29).
     GateCase(
-        "person-value-modeled-individual", "M02", "EXACT",
+        "person-value-modeled-individual", "M02", "SEMANTIC",
         _decide(_claim("has_savings", level=ClaimLevel.INDIVIDUAL)), False,
-        frozenset({ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD}),
+        frozenset(
+            {ViolationCode.INDIVIDUAL_CLAIM_ON_AGGREGATE_FIELD, ViolationCode.NOT_MEASURED_EVIDENCE}
+        ),
     ),
     GateCase(
         "audit-only", "M02", "EXACT",
@@ -315,9 +319,9 @@ GATE_CASES: tuple[GateCase, ...] = (
         frozenset({ViolationCode.FIELD_AUDIT_ONLY}),
     ),
     GateCase(
-        "mandated-weight", "M02, R3", "EXACT",
+        "mandated-weight", "M02, R3", "SEMANTIC",
         _decide(_claim("is_procurement_buyer_current", weight_scheme="vaha_kalibrovana")), False,
-        frozenset({ViolationCode.WEIGHT_SCHEME_MISMATCH}),
+        frozenset({ViolationCode.WEIGHT_SCHEME_MISMATCH, ViolationCode.NOT_MEASURED_EVIDENCE}),
     ),
     GateCase(
         "undeclared-runtime-column", "field-policy.json runtime_columns_without_dictionary_entry",

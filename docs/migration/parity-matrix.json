@@ -1755,7 +1755,7 @@
     "blocking": false,
     "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
-   "notes": "Claim policy, the hash-bound joint certificate and AdmittedClaim admission are ported, fail closed (.planning/plans/done/evidence-governance-foundation.md). Decisions only the withheld legacy source states are OI-18. A second field-policy authority exists in domain.population (D8, OI-24)."
+   "notes": "Claim policy, the hash-bound joint certificate and AdmittedClaim admission are ported, fail closed (.planning/plans/done/evidence-governance-foundation.md). Decisions only the withheld legacy source states are OI-18. A population's fields take their eligibility from domain.population's contract, the one field-policy authority (MVP-29, evidence-integrity#5); the reference's derivation is kept as the parity reading. The joint certificate is still implemented twice (OI-24, evidence-integrity#5b)."
   },
   "governance.holdout": {
    "family": "governance",

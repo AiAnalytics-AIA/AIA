@@ -5,7 +5,9 @@ chunks:
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
-  - "[ ] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
+  - "[x] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
+  - "[ ] 5b. One joint-certificate authority: the claim gate and admission take the population's JointStatus, and layer_check's companions.py exemption is dropped (OI-24, the joint half)"
+  - "[ ] 5c. A client MODELLED claim on a field whose phrase permits none (HISTORICAL_OR_EXPLORATORY, persona/context with provenance, …) refused at the evidence gate, as the contract's CLIENT_MODELLED_CLAIM refuses it; wave left for the methodology owner"
   - "[x] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side (the screen moves onto it in artifact-results RES2)"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
   - "[ ] 9a. A module with no supported finding (MVPQ-04, W1): stored as a structured diagnostic that is not a finding, shown on Analysis and Results, with its resolution paths named"
@@ -101,6 +103,71 @@ named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (20
 5. **One authority.** Test that every field `domain.evidence` admits client-facing is allowed by
    `RECOMMENDED_USE_POLICY`; then make `domain.evidence` read the population list and delete the
    duplicate. Blocked on `mvp-cohesion.md` F3 only for client data columns.
+   *Landed (2026-10-28; field policy only, the product owner in the session: "Go ahead, field policy
+   only; do 5b separately").*
+   - Proven first: the two lists disagree. Over the real dictionary the evidence derivation (the
+     reference's, exact) lets 287 fields back a client-facing measured claim; the population contract
+     115, a strict subset (`test_population_reference_parity.py`
+     `test_client_measured_claims_are_never_more_permissive_than_the_reference`). Nothing in production
+     built a dictionary-backed evidence book (`native.py` builds the instrument book only), so the 172
+     were a latent widening, reached the moment a claim names a panel field.
+   - `FieldPolicyBook.from_population_policy(policy)` (`domain/evidence/field_policy.py`): every
+     eligibility of a population field is the contract's `FieldPolicy.decide`, use by use
+     (`_CONTRACT_USE`); bound to the contract's dictionary SHA-256; an unmapped field refuses the book; a
+     runtime field the dictionary does not declare stays undeclared. Its input is what a run's population
+     carries (`RuntimePopulation.field_policy`).
+   - `from_dictionary_rows` goes through it and now takes the contract's `weight_columns` (weighting is the
+     declared weights, no longer any `vaha_` name).
+   - Kept, as the parity reading only: `derive_eligibility` and `from_policy_document` (the reference's
+     own export, re-derived and checked). Its docstring says so; `layer_check` already keeps the API,
+     worker and executors from calling it.
+   - Per source: panel respondents' fields, the contract (this chunk); a Study's own items,
+     `instrument.py`, unchanged; a client's own data, `client-data-in-analysis` chunk 0.
+   - On the synthetic dictionary six fields tighten (`vote_2021`, `religious_affiliation`, `has_savings`,
+     `tv_daily_minutes`, `life_stage`, `is_procurement_buyer_current`): a measured claim on each is now
+     refused `NOT_MEASURED_EVIDENCE`, and `life_stage` answers a factual question as modelled.
+   - No stored run moves: no module was judged under a dictionary book, so no fingerprint changes.
+   - Tests (each failed on `origin/develop` @ 7b1b3df7 and passes here): `test_evidence_field_policy.py`
+     "a population book is eligible for exactly what its contract permits", "the reference reading stays
+     wider than the book", "a measured claim the contract refuses is refused" (six), "a derived field
+     answers as modelled not measured", "a runtime field the contract has not classified stays undeclared",
+     "a contract with an unmapped field refuses the book"; parity, on the real 400 fields:
+     `test_population_reference_parity.py` "the evidence book of the real dictionary is the contract's 115".
+     The policy-document tests' helper writes the reference's derivation, as a reference export carries
+     it, and the round trip compares against that.
+   - Tests that pinned the old, wider answer, changed (none loosened):
+     - `test_evidence_claims.py`: `decide(claim("has_savings")) == frozenset()` asserted that a measured
+       client claim on a calibrated, person-modelled field passes, the widening OI-24 names. The
+       individual-level and mandated-weight tests now hold their own rule on a modelled claim, and each
+       states the new refusal of the measured one ("a calibrated field is not measured evidence"); the
+       disclosure cases add `NOT_MEASURED_EVIDENCE` where the contract refuses the field, and "a historical
+       field needs its disclosure on a modelled claim too" keeps that branch's own case.
+     - `test_evidence_gate_parity.py`: `person-value-modeled-individual` and `mandated-weight` move from
+       EXACT to SEMANTIC: the reference blocks both, production blocks both with one more code
+       (`NOT_MEASURED_EVIDENCE`).
+   - The book's other flags come from the contract too. Only `analysis` (equal under both readings: not
+     audit-only) and `client_facing_measured_claim` are read by a gate; simulation (5 "technical/provenance
+     only" fields, stricter, pinned in the population parity suite) and weighting (the contract's declared
+     weight columns, not any `vaha_` name) change no decision today.
+   - A dictionary row whose `recommended_use` is not one of the contract's 16 phrases, or whose
+     `persona_eligible` is neither yes nor no, now refuses the book, as the population import does; the
+     evidence regexes used to read it.
+   - A book from a run's population carries no field descriptions (the contract keeps none); no gate reads
+     them.
+   - **For the methodology owner (Aram):** the contract's client list also narrows internal measured
+     claims; kept fail closed. Findings F2.
+   - **Not built here:** the contract also refuses a client *modelled* claim on a field whose phrase
+     permits none (`CLIENT_MODELLED_CLAIM`, e.g. HISTORICAL_OR_EXPLORATORY); the evidence gate has no such
+     check. MVP-29 names the measured list only; chunk 5c (the coordinator, 2026-10-28), its wave the
+     methodology owner's. The internal-surface question is Findings F2.
+5b. **One joint-certificate authority** (OI-24, the joint half, split from 5 by the product owner on
+   2026-10-28). The claim gate and admission take the population's `JointStatus` in place of
+   `evidence/joint_status.py`'s; `layer_check`'s `companions.py` exemption is dropped. Touches the
+   analysis, report tables and the population loader.
+5c. **A client modelled claim the contract permits none for** (split from 5 by the coordinator, 2026-10-28).
+   The evidence gate refuses a client-facing modelled claim on a field whose `recommended_use` permits no
+   client claim, as `population.policy.FieldPolicy.decide(…, CLIENT_MODELLED_CLAIM)` does. Its wave is the
+   methodology owner's (Aram).
 
 ## Depends on / feeds
 
@@ -117,6 +184,12 @@ name: this plan owns the edit, they review it (`mvp-cohesion.md` F8).
 ## Doc follow-up
 
 `ARCHITECTURE.md` §4 (a finding cites an admitted claim; QC is a warning, never a gate).
+
+Chunk 5: `ARCHITECTURE.md` §4 and `CLAUDE.md`'s map, `domain/evidence/field_policy.py`: "a population's
+fields take their eligibility from the population contract (`FieldPolicyBook.from_population_policy`,
+115 client-measurable v17 fields); the reference's derivation (287) is the parity reading only".
+`open-items.md` OI-24: the field-policy half closed by evidence-integrity#5; the joint-certificate half
+open, owned by #5b.
 
 ## Added by the master plan (2026-10-19)
 
@@ -287,3 +360,18 @@ draft report.
   - Tests: `test_analysis_modules.py` "only the hypotheses module is given the stated hypotheses" and "the
     design's hypotheses are read as stated"; `test_analysis_executor.py` "the hypotheses module is given the
     design's stated hypotheses".
+- **F2. The contract's client list also narrows internal measured claims** (evidence-integrity#5,
+  2026-10-28; for the methodology owner, Aram).
+  - Anchor: `domain/evidence/claims.py` `_field_rules` refuses a measured claim on any surface without
+    `eligibility.client_facing_measured_claim`, which #5 takes from the contract's `CLIENT_MEASURED_CLAIM`
+    (`domain/evidence/field_policy.py` `_contract_eligibility`).
+  - Consequence: on the real dictionary 172 fields lose measured eligibility (287 to 115); 40 of them are
+    measured on a person (26 politics, 9 core, 5 RELIGION) and refused only for grade D (27) or a phrase
+    permitting no client claim (13), so they cannot back an internal measured claim either.
+  - Kept fail closed (the coordinator, 2026-10-28). The alternative: judge internal measured claims by the
+    contract's provenance (`ProvenanceClass.is_measured`) and its forbidding rules, the 115 for
+    client-facing claims only.
+  - Nothing changes in production until a population-dictionary book is built: `domain/analysis/native.py`
+    builds only the instrument book.
+  - Test: `test_evidence_claims.py` "client facing disclosures" (the internal surface's
+    `NOT_MEASURED_EVIDENCE`).

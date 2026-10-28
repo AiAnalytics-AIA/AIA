@@ -753,6 +753,7 @@ def field_book(dictionary_rows: list[dict[str, str]]) -> Any:
     return FieldPolicyBook.from_dictionary_rows(
         dictionary_rows,
         source_sha256=SYNTHETIC_DICTIONARY_SHA256,
+        weight_columns=["vaha_strukturalni_2025"],
         runtime_columns=[r["field"] for r in dictionary_rows]
         + list(SYNTHETIC_RUNTIME_ONLY_COLUMNS),
     )
