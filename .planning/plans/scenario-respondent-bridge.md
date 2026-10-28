@@ -167,7 +167,7 @@ unchanged**: the deterministic numeric read of a world's `FS_*` columns, no mode
 The respondent run is a second, parallel consumer of the same `InoculatedWorld`: its answers
 assemble into a `FieldworkDataset` exactly as production fieldwork's `assemble_dataset` does
 today (one dataset per `(world, variant)` pair, stamped with the new origin from chunk 5 and the
-world's content fingerprint, `InoculatedWorld.sha256` (`domain/simulation/inoculation.py:411`,
+world's content fingerprint, `InoculatedWorld.sha256` (`domain/simulation/inoculation.py:442`,
 verified on read at `:486 @ 8d9d1299`), recorded in its metadata beside the world's display id
 and seed; chunk 6 reads the fingerprint, never the id), never merged into or mistaken for
 `WorldOutcome`/`EnsembleOutcome`, which stay the deterministic factor-level read. The two can be
@@ -189,9 +189,9 @@ nad AI respondenty, skóre k datu…").
 **6. Sociomap compatibility guard.** One pure check, `require_single_world`, beside
 `validate_dataset` in `domain/fieldwork.py` (`:218 @ 8d9d1299`), refuses (not warns) a
 `SCENARIO_MODELLED_PANEL` dataset unless it names exactly one world by its content fingerprint
-(`InoculatedWorld.sha256`, recorded by chunk 4): more than one fingerprint is
-`sociomap_mixed_worlds_refused`, none recorded is `sociomap_world_unrecorded` (unknown is never
-read as one world). Datasets of any other origin pass untouched.
+(`InoculatedWorld.sha256`, `domain/simulation/inoculation.py:442`, recorded by chunk 4): more
+than one fingerprint is `sociomap_mixed_worlds_refused`, none recorded is
+`sociomap_world_unrecorded` (unknown is never read as one world). Datasets of any other origin pass untouched.
 
 - **Keyed on the fingerprint, never `FS_WORLD_ID`.** `world_id()` derives the id from the
   world's index alone (`domain/simulation/reference.py:83-87 @ 8d9d1299`): the first world of
@@ -253,8 +253,8 @@ None yet; this is a design plan, not a landed chunk.
 
 ## Review outcome
 
-First pass, 2026-10-28, anchors checked against `develop` @ 8d9d1299 (the Codex review of #1038
-and a reading of the cited code):
+First pass, 2026-10-27/28, anchors checked against `develop` @ 8d9d1299 (the Codex review of #1038,
+first answered in 40c4ea04, and a reading of the cited code):
 
 - Chunk 6 keyed the mixed-world guard on `FS_WORLD_ID`, which is index-derived and collides
   across runs (`reference.py:83-87`); it now keys on `InoculatedWorld.sha256`, and chunk 4
