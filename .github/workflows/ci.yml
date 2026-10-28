@@ -107,7 +107,10 @@ jobs:
 
   backend:
     name: Backend (lint, types, tests)
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: on Ubuntu 26.04 (glibc 2.43) the aia-sociomap-5 kernels' last
+    # bits differ, and the byte-exact pins (test_object_map_web_fixture.py,
+    # test_sociomap_signed_off_segments.py) were written on 24.04. Move with the fixtures, never alone.
+    runs-on: ubuntu-24.04
     needs: [changes]
     if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
 
