@@ -704,3 +704,25 @@ test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
 earlier run's frozen dataset, with no respondent paid twice. It is planned under
 `working-copy-edit-ops` (nearest WCE7d2 / WCE17) and built by the E06 session. AC-07 lists no
 test, and stays NOT_RUNNABLE, until that reuse lands; the test in point 6 then wires it.
+
+### The rest of the criteria, audited (2026-10-28, on `9c1883b2`)
+
+Nothing else is runnable yet; a criterion is wired only when every clause of its tier-A projection
+is observable over HTTP. Read from the code, each blocker:
+
+| Criterion | Blocked by |
+|---|---|
+| AC-02 | browser line (chunk 10); approved plans (`lead-orchestration#LO3`, `#LO4`); no HTTP read of approval-ledger rows |
+| AC-03 | tracked assumptions (`assumptions-and-open-answer-coding`, 0 of 10) |
+| AC-04 | **only** the ledger read: the spend-limit confirmation's `SPEND` row is written (`infrastructure/workflow_repository.py:2481-2520 @ 9c1883b2`) but no route reads approval-ledger rows (`grep -rn approval_decisions apps/api/src/aia_api/routers` finds none) |
+| AC-05 | no worker composition joins the recorded wire and the population double (`compose_registry` takes both, `registry.py:171-178`; no factory passes them); a removed weight cannot be staged over HTTP; the weight identity is not served (F-5) |
+| AC-08 | open-answer coding (AOC) |
+| AC-09 | `segment-maps-and-drilldown` (0 of 13); the drag is the browser line |
+| AC-10 | a web page's intake (`client-knowledge-lifecycle#K2e`); data contracts (`client-data-in-analysis`, 1 of 15); the AC-05 composition |
+| AC-11 | a CLASSIFIED client's run refused whole (`deep-research-web-search#53`; the pinned posture is read by nothing, `domain/client_rules.py:7-8`) |
+| AC-13 | the "Interní dokument" check (RD0b), map snapshot approval (RD4), and refusing an unapproved or stale download (both download a draft today) |
+| AC-15 | the per-number provenance walk (chunk 16) and per-call usage over HTTP (F-5) |
+
+Two pieces would unblock more than one: a read of a run's approval-ledger rows (AC-04 at once,
+AC-02 later), and a local/test worker composition of the recorded wire over the population double
+(AC-05 and AC-10, with their other gaps).
