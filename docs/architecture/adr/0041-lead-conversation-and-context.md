@@ -1,13 +1,16 @@
 # ADR 0041 — The Lead's conversation and context: five memory tiers, a budgeted context with a manifest, compaction that keeps decisions, and message operations as new turns
 
-**Status:** Proposed — 2026-10-20. Not accepted until the product owner says so. The coordinator
-relayed the owner's answers to all six of its questions (PM status page, 2026-10-20 22:39-22:48
-UTC: Q25 a, Q26 a, Q27 a, Q28 a, Q29 a, Q30 a); they are written in as relayed, to be confirmed when
-the owner accepts this ADR.
-**Owner decision, 2026-10-25** (ADR-0041 (b), the audit page, relayed by coordinator 3): accept with amendments. His note: align
-it with Sonnet 5.5's capabilities and give the Lead enough context for all documents and actions;
-"What's a good benchmark? How do we design this?" The Lead design session is drafting the
-amendment. **Still Proposed:** accepted subject to that amendment being written in.
+**Status:** Accepted with [Amendment 1](#amendment-1-2026-10-26-a-token-budget-from-the-model-and-a-benchmark-for-every-number)
+— 2026-10-26, by the product owner (the AIA Decision Review page, relayed by coordinator 3 at
+12:40 UTC: REV-0041-ACCEPT (a), A1-A5 as proposed); confirmed by him in the second account's PM
+coordinator session on 2026-10-27, which wrote the amendment in. Where the amendment and the
+decisions below differ, the amendment wins.
+**History.** Proposed 2026-10-20. The coordinator relayed the owner's answers to all six of its
+questions (PM status page, 2026-10-20 22:39-22:48 UTC: Q25 a, Q26 a, Q27 a, Q28 a, Q29 a, Q30 a);
+they are written in as relayed and confirmed by the acceptance. **2026-10-25** (ADR-0041 (b), the
+audit page, relayed by coordinator 3): accept with amendments. His note: align it with Sonnet 5.5's
+capabilities and give the Lead enough context for all documents and actions; "What's a good
+benchmark? How do we design this?" Amendment 1 answers that note.
 
 **Amends** [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 2 (the context's
 layers get budgets and a manifest; the conversation layer's rolling summary is specified and built),
@@ -19,7 +22,8 @@ researcher's alone), ADR 0039 (the study context file), ADR 0040 (the web lookup
 continuation turn) and ADR 0035 (report edits).
 **Leaves unchanged** the closed `LeadOutput`, "the Lead calls no tool", the governed model gateway as
 the only model path, the number rule, the privacy of turns, the wallet and spend gates, and the
-96 KB context bound.
+96 KB context bound. (Amendment 1 replaces the 96 KB bound with a token budget taken from the model,
+and adds a bounded search-and-read round that code runs; the rest of this list stands.)
 **Date:** 2026-10-20.
 **Plan:** [lead-conversation](../../../.planning/plans/lead-conversation.md).
 **Evidence:** [`.planning/evidence/lead-chat-capabilities.md`](../../../.planning/evidence/lead-chat-capabilities.md)
@@ -621,3 +625,66 @@ and to be confirmed on acceptance. Nothing is left open.
 - **Q30 (a), regenerate and edit-and-resend:** in the MVP. Decision 7.
 - **Q29 (a), threads within a study:** none. The study is the thread, with pinned items instead, and
   branching comes after the MVP. Decisions 6, 7 and 10.
+
+## Amendment 1 (2026-10-26): a token budget from the model, and a benchmark for every number
+
+*(The product owner, 2026-10-26, the AIA Decision Review page, relayed by coordinator 3 at 12:40 UTC;
+written in on 2026-10-27.)* It answers his note of 2026-10-25: align the Lead with Sonnet 5.5's
+capabilities, give it enough context for all documents and actions, and find a good benchmark. His
+four answers:
+
+- **REV-0041-ACCEPT (a):** A1-A5 as proposed.
+- **REV-0041-FRACTION (a):** half (0.5) of the model's usable window, until the benchmark picks.
+- **REV-0041-BENCH-CAP (a):** USD 50 at most per paid benchmark run.
+- **REV-0041-EMBED (a):** word search for the MVP, embeddings after.
+
+**A1. A budget in tokens, from the model.** The Lead's budget is a fraction (0.5, REV-0041-FRACTION)
+of its model's usable window, counted in tokens: `context_window_tokens` from the Lead's catalog
+entry (`domain/ai_models.py:641 @ a45aad6f`), less the output reservation and the frame. Today it is
+a fixed `CONTEXT_MAX_BYTES` = 96 KB (`domain/research_lead.py:196 @ a45aad6f`), and the hold treats
+one byte as one token (`domain/research_lead.py:1489-1501`, `aia_executors/research_lead.py:173-180
+@ a45aad6f`), so raising the bytes would over-reserve money on every turn. The eleven layers of
+decision 2 keep their order and become shares of the token budget, with the same two-pass allocation
+(`lead-conversation#LC4`). The stable prefix (the frame, the Lead's files, the study file, the
+index) is cached, so a turn pays mostly for what is new.
+
+**A2. Always in, and looked up.** Always in: the Lead's own files, the study file, the index of every
+chosen client document (`lead-client-knowledge#LK1`), the design, the newest results, the decision
+digest (decision 4) and the recent turns. Looked up on demand: document pages (A3), older turns, older
+runs and older decisions (`lead-conversation#LC9`).
+
+**A3. One bounded search-and-read round.** At most 2 searches and 3 page reads a turn, over the
+study's chosen knowledge only. Code runs them, never a free tool loop; every quote cites its page;
+at most three model calls a turn. Its shape is ADR 0042's (Proposed, `lead-client-knowledge#LK1`,
+`#LK3`), which amends ADR 0026 decision 3. Word search only in the MVP (REV-0041-EMBED); embeddings
+stay after the MVP, as decision 5 says.
+
+**A4. Summaries start on tokens.** Compaction (`lead-conversation#LC7`) runs once the recent
+conversation would pass 60 % of its share, not after a count of turns. Every summarised turn stays
+retrievable (`lead-conversation#LC9`).
+
+**A5. A benchmark sets every number** (`lead-conversation#LC13`). It has 12 fictional studies (150-300
+turns, 5-15 documents, runs and decision ledgers each) and about 600 questions with code-scored
+answers. Pass marks:
+
+- decisions recalled 98 %, facts 90 %, document lookups 85 %, results 95 %;
+- 100 % on an honest "nevím", on client isolation, and on numbers only from the ledger.
+
+The cheapest configuration that passes every mark wins. A paid run is started by hand on develop's
+Lead route, charged to a fictional study, its count and cost stated before it starts, at most USD 50
+(REV-0041-BENCH-CAP), and only on the product owner's word for that stated cost. It repeats when the
+model, the prompt or the share table changes.
+
+**What this changes above.**
+
+- **Decision 2:** the 96 KB total and the byte floors and ceilings become token shares of A1's
+  budget, in the same order and with the same named over-ceiling policies. The proposed values are
+  set by A5, not by LO14's measurement alone. Q28 (a)'s "96 KB kept" is superseded.
+- **Decision 4:** compaction starts on A4's token threshold, not after a count of turns. The digest,
+  the kept facts, the references, the preservation check and the uncovered-terms index are unchanged.
+  Decision 4's recall test becomes one part of A5's benchmark.
+- **Decision 5:** retrieval at enqueue stays. A3's bounded round is added, run by code, as ADR 0042
+  specifies. The "Lead-requested recall … not built now" is that round, limited to the study's
+  chosen knowledge.
+- **Unchanged:** the five memory tiers, the manifest, pins, the message operations, streaming, cost
+  and feedback (decisions 1, 3 and 6-11), and everything this ADR leaves out.

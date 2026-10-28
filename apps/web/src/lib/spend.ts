@@ -18,9 +18,14 @@ export type MoneyLine = { name: MoneyName; usd: number | null; remainingUsd?: nu
 
 const known = (v: number | null | undefined): v is number => typeof v === "number" && Number.isFinite(v);
 
-/** USD as Czech prints it: "1,76 USD", "1 250,00 USD"; unknown in words, never "0,00". */
-export function usdWords(usd: number | null | undefined): string {
-  return known(usd) ? `${formatNumber(usd, 2)} USD` : t("input.spend.unknown");
+/** USD as Czech prints it ("1,76 USD"); a positive amount under the last place shown "< 0,01 USD",
+ *  never rounded to nothing; unknown in words, never "0,00". The one money formatter. `decimals`:
+ *  3 for a single model call's price, which is read in thousandths. */
+export function usdWords(usd: number | null | undefined, decimals = 2): string {
+  if (!known(usd)) return t("input.spend.unknown");
+  const smallest = 10 ** -decimals;
+  if (usd > 0 && usd < smallest / 2) return `< ${formatNumber(smallest, decimals)} USD`;
+  return `${formatNumber(usd, decimals)} USD`;
 }
 
 export function spendTitle(kind: SpendKind): string {
@@ -68,4 +73,9 @@ export function lineWords(line: MoneyLine): string {
   const parts = [usdWords(line.usd)];
   if (line.remainingUsd !== undefined) parts.push(tv("input.spend.remaining", { usd: usdWords(line.remainingUsd) }));
   return parts.join(" · ");
+}
+
+/** A spend's button: the act and, when the API gave one, its ceiling ("Spustit běh · do 225,00 USD"). */
+export function spendAct(act: string, ceilingUsd: number | null): string {
+  return known(ceilingUsd) ? tv("input.spend.actUpTo", { act, amount: usdWords(ceilingUsd) }) : act;
 }

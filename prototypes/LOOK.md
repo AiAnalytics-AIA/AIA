@@ -188,7 +188,7 @@ Czech, sentence case, the product's own words.
   classes (inline SVG masks) and scopes the serif titles to `.hero-h` (40/46) and `h1.title` (24/30).
 - **`aia-study.css`**, owned by the research session, built only on core's tokens: the stage
   navigator, study header, split, Lead pane, Lead cards and stage sections. Kept as
-  [`research-stages-v73/assets/aia-study.css`](research-stages-v73/assets/aia-study.css).
+  [`research-stages/assets/aia-study.css`](research-stages/assets/aia-study.css).
 - Both canvases load core; the research boards add study. A change to core is made once, by its
   owner, and the other canvas copies the new version in. Page-specific CSS stays only for
   page-specific parts.

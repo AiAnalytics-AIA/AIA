@@ -45,7 +45,8 @@ describe("workbench.css", () => {
       const rule = new RegExp(`(^|\\n)${selector.replace(/[.]/g, "\\.")} \\{[^}]*border-radius: ([^;]+);`).exec(CSS);
       return rule?.[2];
     };
-    for (const card of [".bubble", ".act", ".act__row", ".dec", ".ret", ".queue", ".autopilot", ".mention"]) {
+    // The job and run cards are AiJobCard (rounded-panel), held in rehome/ui.test.tsx.
+    for (const card of [".bubble", ".dec", ".ret", ".queue", ".autopilot", ".mention"]) {
       expect(radius(card), card).toBe("var(--radius-panel)");
     }
     expect(radius(".composer")).toBe("var(--radius-composer)");

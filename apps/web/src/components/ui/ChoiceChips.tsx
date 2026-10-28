@@ -3,8 +3,8 @@
 // I3: a known set is chosen, never typed. One of a few short values, or several of a small set,
 // as chips that wrap (at phone width a segmented control over three options becomes these, I11).
 // The group is one Tab stop; the arrows move within it (roving tabindex). Single choice is a radio
-// group whose arrows choose as they move, as radios do; multiple choice is a group of toggles whose
-// arrows only move and Space/Enter toggle.
+// group whose arrows choose as they move, as radios do, unless the choice saves (`saves`), when they
+// only move; multiple choice is a group of toggles whose arrows only move and Space/Enter toggle.
 // `look="segmented"` draws the same control as the prototype's segmented bar (Settings, v51): one
 // bordered bar, the chosen segment filled with the signal; still a touch target on a phone.
 
@@ -26,12 +26,18 @@ type Common<K extends string> = {
   /** Chips that wrap (the default), or one segmented bar; `small` the bar's dense row size. */
   look?: "chips" | "segmented";
   small?: boolean;
+  /**
+   * The choice saves or spends where it is made (a role, a status, a proposal). The arrows then
+   * only move, and Enter, Space or a click chooses (design system v3, I-Klavesnice): passing over
+   * a segment never writes. A filter leaves it off, and its arrows choose as radios do.
+   */
+  saves?: boolean;
 };
 
 export function ChoiceChips<K extends string>(
   props: Common<K> & ({ multiple?: false; value: K | null; onChange: (key: K) => void } | { multiple: true; value: readonly K[]; onChange: (keys: K[]) => void }),
 ) {
-  const { options, label, disabled = false, className = "", look = "chips", small = false } = props;
+  const { options, label, disabled = false, className = "", look = "chips", small = false, saves = false } = props;
   const segmented = look === "segmented";
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const off = (i: number) => disabled || !!options[i]?.disabled;
@@ -54,7 +60,7 @@ export function ChoiceChips<K extends string>(
     if (next === null) return;
     e.preventDefault();
     refs.current[next]?.focus();
-    if (!props.multiple) choose(options[next].key);
+    if (!props.multiple && !saves) choose(options[next].key);
   };
 
   return (

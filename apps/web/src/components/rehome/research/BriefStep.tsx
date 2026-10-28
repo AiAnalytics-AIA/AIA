@@ -50,11 +50,12 @@ import { AiButton, Button, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { useAskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AnalysisFailureCard, useAnalysis } from "./useAnalysis";
+import { errorText } from "@/lib/error-words";
 
 /** The typed start command the Lead stores as the person's own and answers with its analysis card. */
 const ANALYSE_COMMAND = "Analyzuj zadání";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
 const INPUT = `rounded-control border border-border-strong text-ink placeholder:text-ink-faint ${FOCUS}`;
 

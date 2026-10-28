@@ -13,6 +13,7 @@ chunks:
   - "[ ] 9. The what-if layer, the server: three scenarios over a -5 map's frozen inputs (objects left out, one respondent segment only, an object's ratings shifted), computed as a provisional view and never stored over the run's map; no node drag (D-40) (Nigel, 27 Oct 2026; W2; each scenario's maths signed off by the methodology owner before a scenario reaches a client)"
   - "[ ] 10. The what-if layer on screen: 'Co kdyby', the three scenarios, the map always marked provisional, one way back to the real map, nothing saved (W2, after 9)"
   - "[ ] 11. After the MVP: Zajímavé skupiny on the map (Nigel, 27 Oct 2026)"
+  - "[x] 12. The map's terrain switch: Nastavení mapy offers Terén: IDW / IDW s poklesem, opening on plain IDW and offering only the terrains the run stored; Blokový and the envelope view gone; the panel's earlier contour lines (Nigel 2026-10-27; #1015)"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -200,14 +201,20 @@ Display only, from the stored relations. The experimental map itself stays in th
   base just under it, in one gradient from the terrain's colour at that edge to x0.3 at the base; Sociomapy's depth,
   darkening and base colour, scaled to the panel's relief. Same in the panel's `drawSlab66` and the port's
   `drawSlab`; the golden frames' slab was recorded again from `drawSlab66`.
-- Nastavení mapy offers „Terén: Hladký / Blokový“, remembered in the browser, Hladký by default (the owner,
-  2026-10-26). Both draw the same stored terrain, the method's envelope of hills (the respondent map's density):
-  Blokový as flat triangles, as before; Hladký refined bicubically (x4, clamped, as the Sociomapy app's
-  `refineGrid`) and shaded smoothly in WebGL in the panel's colours (`lib/object-map-smooth.ts`), painted into the
-  2D canvas so objects, lines, labels, clicks and the PNG export stay as they are; without WebGL it draws Blokový.
-  Drawing only: the heights are the method's. Sociomapy's own inverse-distance-weighted terrain was tried and left
-  out (the owner, 2026-10-26): a weighted mean fills empty ground with the nearest objects' values, the plateaus
-  the envelope replaced (`sociomap_math/terrain.py`).
+- The terrain is drawn smooth (the owner, 2026-10-26): the method's stored terrain refined bicubically (x4,
+  clamped, as the Sociomapy app's `refineGrid`) and shaded smoothly in WebGL in the panel's colours
+  (`lib/object-map-smooth.ts`), painted into the 2D canvas so objects, lines, labels, clicks and the PNG export
+  stay as they are; without WebGL it draws the same heights as flat triangles. The browser computes no terrain of
+  its own.
+- Nastavení mapy offers „Terén: IDW / IDW s poklesem“ (Nigel, 2026-10-27): a `-5` run stores both
+  inverse-distance terrains (`signed-off-sociomap-method.md`), its own and the other one beside it
+  (`terrain.alternate_method`, `alternate_height`, `alternate_absolute_height`). The map opens on plain IDW. The
+  switch offers only what the run stored; a map stored under the envelope has no switch. The earlier Blokový view
+  (the envelope drawn beside the method's terrain) is gone: a map draws only terrain computed under the method
+  in force.
+- Contour lines stay the panel's earlier ones: seven thin dark levels, one stroke per level (the owner,
+  2026-10-27). The Sociomapy app's contours were ported the day before and taken out again: in the browser they
+  did not look as smooth as in the app.
 
 ## From the unplanned-features inventory (2026-10-27)
 
@@ -235,3 +242,10 @@ on every scenario view; leaving restores the stored map.
 
 **11. Zajímavé skupiny** (after the MVP). Excluded from this plan's first round (the table above) and not in the MVP;
 the clustering it needs is `segment-maps-and-drilldown#3`.
+
+## Chunk 12 added (2026-10-27)
+
+The map side of #1015 (§ the terrain bullets above, as that PR rewrites them). It is ticked when #1015
+merges, with `signed-off-sociomap-method#12`.
+
+Chunk 12 ticked: #1015 merged into develop on 2026-10-27 (`aabb37e2`).

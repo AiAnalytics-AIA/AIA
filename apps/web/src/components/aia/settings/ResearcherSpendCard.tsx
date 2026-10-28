@@ -33,6 +33,7 @@ import { ChoiceChips } from "../../ui/ChoiceChips";
 import { FOCUS } from "../../ui/parts";
 import { Empty } from "../states";
 import { useResource } from "../useResource";
+import { Icon } from "../../rehome/icons";
 
 const TH = "px-2 py-1.5 text-left text-xs font-normal text-ink-faint";
 const TD = "border-t border-border px-2 py-2.5 align-top text-sm";
@@ -93,7 +94,7 @@ function Parts({ items }: { items: ReturnType<typeof parts> }) {
   );
 }
 
-function Tile({ icon, label, children, note }: { icon: string; label: string; children: ReactNode; note: ReactNode }) {
+function Tile({ icon, label, children, note }: { icon: ReactNode; label: string; children: ReactNode; note: ReactNode }) {
   return (
     <div data-spend-tile className="flex items-start gap-3 rounded-md border border-border bg-surface-raised px-3.5 py-3">
       <span aria-hidden="true" className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-sunken text-sm text-ink-muted">{icon}</span>
@@ -115,12 +116,12 @@ function Figures({ report, nearLimitCount }: { report: ResearcherSpend; nearLimi
   return (
     <div data-org-spend className="grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3">
       <Tile icon="Σ" label={`${report.everyone ? "Utraceno" : "Vaše útrata"} · ${PERIOD_LABEL[report.period].toLocaleLowerCase("cs")}`}
-        note={line.note ?? <span title="výzkumníci · studie"><span aria-hidden="true">👤︎ </span>{people}<span className="sr-only"> výzkumníků</span> · <span aria-hidden="true">▤ </span>{studies}<span className="sr-only"> studií</span></span>}>
+        note={line.note ?? <span title="výzkumníci · studie"><span aria-hidden="true" className="inline-flex align-[-2px]"><Icon name="person" size={12} /></span> {people}<span className="sr-only"> výzkumníků</span> · <span aria-hidden="true">▤ </span>{studies}<span className="sr-only"> studií</span></span>}>
         <Amount line={line} />
       </Tile>
       <Tile icon="⧗" label="Rezervováno" note="běžící práce">{usd(sum.reserved_usd)}</Tile>
       <Tile icon="?" label="Nejistá volání" note="nikdy jako 0 USD">{sum.uncertain_calls}</Tile>
-      <Tile icon="⚠" label="Téměř vyčerpané" note={nearLimitCount?.unknown ? `≥ 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "≥ 90 % rozpočtu"}>
+      <Tile icon={<Icon name="warning" size={14} />} label="Téměř vyčerpané" note={nearLimitCount?.unknown ? `≥ 90 % rozpočtu · u ${nearLimitCount.unknown} nevíme` : "≥ 90 % rozpočtu"}>
         {nearLimitCount ? nearLimitWords(nearLimitCount) : "neznámo"}
       </Tile>
     </div>
@@ -154,7 +155,7 @@ export function ResearcherSpendCard({ nearLimitCount = null, roleOf = () => null
     <section data-researcher-spend aria-labelledby="researcher-spend-h" className="min-w-0 rounded-md border border-border bg-surface-raised px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-1.5">
-          <h3 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h3>
+          <h2 id="researcher-spend-h" className="text-base font-semibold">Útrata podle výzkumníka</h2>
           {/* A real disclosure: a keyboard and a touch open what the ⓘ explains, not only a hover. */}
           <button type="button" aria-expanded={explained} aria-controls="researcher-spend-about" aria-label="Jak se útrata počítá"
             title={about} onClick={() => setExplained((v) => !v)} data-dense

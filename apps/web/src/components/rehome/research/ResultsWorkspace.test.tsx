@@ -191,18 +191,18 @@ const spentLine = (r: Partial<ResearchRun>) => {
 };
 
 it("reads what the run spent from its spend, never the attempts' sum", () => {
-  expect(spentLine({ actual_cost_usd: 0, is_terminal: true, spend: { spent_usd: 0.42, reserved_usd: 0.3, uncertain_calls: 0 } })).toBe("0,42 USD");
+  expect(spentLine({ actual_cost_usd: 0, is_terminal: true, spend: { spent_usd: 0.42, reserved_usd: 0.3, uncertain_calls: 0 } })).toBe("0,42 USD");
 });
 
 it("names a call the run could not price beside the sum, never a bare zero", () => {
   // The attempts' sum reads 0 for a paid call that came back without a price; the run's spend counts it.
   const unpriced = `${t("research.exec.spend.unpriced")}: ${tv("research.exec.spend.unpricedCalls", { count: 1 })}`;
   expect(spentLine({ actual_cost_usd: 0, is_terminal: true, spend: { spent_usd: 0, reserved_usd: 0, uncertain_calls: 1 } }))
-    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedEnded")})`);
+    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedEnded")})`);
   cleanup();
   // While the run goes on, the call may still be in flight: said so, never called a failure.
   expect(spentLine({ actual_cost_usd: 0, is_terminal: false, spend: { spent_usd: 0, reserved_usd: 0.1, uncertain_calls: 1 } }))
-    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedRunning")})`);
+    .toBe(`0,00 USD · ${unpriced} (${t("research.exec.spend.unpricedRunning")})`);
 });
 
 it("says the cost cannot be told when the run carries no spend, whatever its attempts sum to", () => {

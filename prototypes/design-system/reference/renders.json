@@ -1,0 +1,22 @@
+[
+ {
+  "board": "index.html",
+  "title": "design-system-light",
+  "w": 1440,
+  "h": 12553,
+  "text_chars": 7863,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-design-system-light.webp"
+ },
+ {
+  "board": "index.html",
+  "title": "design-system-dark",
+  "w": 1440,
+  "h": 12553,
+  "text_chars": 7864,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-design-system-dark.webp"
+ }
+]

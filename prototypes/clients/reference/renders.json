@@ -1,0 +1,82 @@
+[
+ {
+  "board": "Main.dc.html",
+  "title": "0 · Přehled prototypu",
+  "w": 1440,
+  "h": 2577,
+  "text_chars": 6891,
+  "errors": [],
+  "failed_requests": [],
+  "image": "01-Main.webp"
+ },
+ {
+  "board": "Clients.dc.html",
+  "title": "1 · Klienti",
+  "w": 1440,
+  "h": 2488,
+  "text_chars": 4802,
+  "errors": [],
+  "failed_requests": [],
+  "image": "02-Clients.webp"
+ },
+ {
+  "board": "Overview.dc.html",
+  "title": "2 · Přehled klienta",
+  "w": 1440,
+  "h": 3550,
+  "text_chars": 6836,
+  "errors": [],
+  "failed_requests": [],
+  "image": "03-Overview.webp"
+ },
+ {
+  "board": "Studies.dc.html",
+  "title": "3 · Výzkumy (paměť sloučena)",
+  "w": 1440,
+  "h": 2812,
+  "text_chars": 6592,
+  "errors": [],
+  "failed_requests": [],
+  "image": "04-Studies.webp"
+ },
+ {
+  "board": "Knowledge.dc.html",
+  "title": "4 · Znalosti jako Disk (Data sloučena)",
+  "w": 1440,
+  "h": 3827,
+  "text_chars": 8654,
+  "errors": [],
+  "failed_requests": [],
+  "image": "05-Knowledge.webp"
+ },
+ {
+  "board": "KnowledgeItem.dc.html",
+  "title": "5 · Znalosti: schvalování a položka",
+  "w": 1440,
+  "h": 2931,
+  "text_chars": 6218,
+  "errors": [],
+  "failed_requests": [],
+  "image": "06-KnowledgeItem.webp"
+ },
+ {
+  "board": "Intake.dc.html",
+  "title": "6 · Přidat podklady",
+  "w": 1440,
+  "h": 3421,
+  "text_chars": 5466,
+  "errors": [],
+  "failed_requests": [],
+  "image": "07-Intake.webp"
+ },
+ {
+  "board": "Profile.dc.html",
+  "title": "7 · Profil",
+  "w": 1440,
+  "h": 3586,
+  "text_chars": 6944,
+  "errors": [],
+  "failed_requests": [],
+  "image": "08-Profile.webp"
+ }
+]

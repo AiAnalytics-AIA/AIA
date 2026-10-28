@@ -2,20 +2,20 @@
 status: in-progress
 chunks:
   - "[x] 1. The USD 25 allocation: a ceiling per category, summed and checked before any recorded run, covering fieldwork, analysis and its repairs, the Lead's turns, Deep Research search and tool spend and the second (Interpretation) run, a retry round; the evaluation allowance stated apart"
-  - "[ ] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
+  - "[x] 2. The study's fixed inputs, fictional and committed: brief, client document, dataset with one personal column, a web page, a past study"
   - "[x] 3. The harness: tests/acceptance driven over HTTP, reusing the scripted-provider fixture of test_product_acceptance.py, and its CI step (collected, writing JUnit)"
-  - "[ ] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
+  - "[x] 4. Recorded doubles behind the gateway and the retrieval gate for the Lead, every worker, respondents, analysis and Deep Research"
   - "[ ] 5. Criteria wired one by one as each becomes runnable, the built ones first (AC-01, 06, 07, 12, 14)"
   - "[ ] 6. The acceptance record: one PASS/FAIL line per criterion, stored as an artifact, with the parity report beside it"
   - "[ ] 7. Tier B: the live run on develop, its runbook and its record"
-  - "[ ] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
+  - "[x] 8. Parity reports, never blocks (owner, 2026-10-19): the 18.6.6 comparison jobs stop gating merges and deploys and report in the step summary and the record"
   - "[x] 9. The `acceptance` marker registered (`pyproject.toml` runs `--strict-markers`) and the tree collected by CI"
   - "[ ] 10. Browser evidence kept distinct from HTTP evidence: real browser journeys (hand edits, pointing, proposals, keyboard and focus, stale states, all eleven stages, map view-only operations) are their own line in the record and never counted as HTTP"
   - "[ ] 11. The Deep Research evaluations 25, 26 and 39 before the final live chunk 27, and the second live Interpretation run, are in the tier B record and its allocation"
   - "[ ] 12. Production release is a blocker: the record states I-5 as not passed until the production release checklist is done, whatever tier B showed on develop"
   - "[ ] 13. Every prototype scenario (A to M, X1 to X7) is an acceptance journey on recorded doubles; X2 (missing evidence) and X6 (a methodology change refused) stay as negative cases"
   - "[ ] 15. The assumptions and open-answer coding journey (W5, MVPQ-02) with its refusals, over recorded doubles: `assumptions-and-open-answer-coding#AOC9`"
-  - "[ ] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
+  - "[x] 14. The acceptance wording reconciled in the acceptance document and `parity-matrix.json` together, in a PR that runs the tests: AC-02 (approval card and plan), AC-11 (OPEN posture), AC-13 (F17), AC-15 (separate model, tool, reservation, uncertain and billing-lag lines; the USD 0.01 tolerance kept unless the owner changes it)"
   - "[ ] 16. The per-number provenance walk for AC-15: every ledger ref of both reports resolves to its model binding, prompt pin, population version and weight role (G65)"
   - "[ ] 18. Performance budgets as a release gate: page and API latency budgets per journey (D-48; the numbers are open)"
 ---
@@ -348,6 +348,81 @@ For the docs PR (CLAUDE.md §1; this PR edits no shared file):
     (`test_mvp_acceptance.py::_error`).
 - `.planning/open-items.md`: F-2, F-4, F-5 and F-6 above, numbered there.
 
+## Chunk 2: the study's fixed inputs (2026-10-28)
+
+Branch `feature/acceptance-inputs`, from `develop` @ `7107c1f0`. Permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+`tests/acceptance/inputs/`, every file pinned by SHA-256 in `inputs/index.json`, all fictional
+(e-mails on `example.test`, the page on `.example`, a library and town that do not exist):
+
+| Key | File | What |
+| --- | --- | --- |
+| `brief` | `brief.json` | Zadání: the brief sentence of `mvp-acceptance.md` §1 as the goal, decision use, briefing, the audience (age 18-65, `vek` filter) and n 300, as fields over the research template |
+| `concepts` | `concepts.json` | `service_a` ... `service_e`, five fictitious service concepts as one tracked set; chunk 4's recorded design workers answer from them |
+| `client_document` | `annual-summary.md` | The library's fictional annual summary, a Markdown client source |
+| `client_dataset` | `visits.csv` | 48 rows of visits by branch and month, with one personal column (`E-mail kontaktní osoby`) the data contract must drop |
+| `web_page` | `web-page.html` | The one public page, at `https://knihovna-kvitkov.example/sluzby-knihoven`, for tier A's recorded retrieval (chunk 4) |
+| `past_study` | `past-study.json` | One past fictional study of the same client (a question block and a tracked set), whose design is reused |
+
+**The web page is fictional (option (a)).** AIA takes no link as a client source yet, so the page
+enters only through Deep Research; tier A serves a committed snapshot at a reserved `.example`
+address. Tier B's live public page is chosen and recorded in its runbook (chunk 7). Not taken:
+(b) a snapshot of a real public page, which brings a CC BY-SA attribution and goes stale.
+
+Tests (`tests/acceptance/test_acceptance_inputs.py`, marked `acceptance`, listed under no criterion):
+the pins hold and nothing unpinned is kept; the inputs name no real address or site; the brief and
+concepts are section 1's; over HTTP on the stack, the brief saves as a study's working copy and
+reads back, the past study's design submits as a Design Revision and a new study of the same client
+reuses it, the annual summary reads `READ`, and the dataset reads with exactly one column flagged
+personal, that one as `EMAIL`. Run locally on PostgreSQL 16: `tests/acceptance` 17 passed.
+
+## Chunk 4: the recorded doubles, completed (2026-10-28)
+
+Branch `feature/acceptance-recorded-doubles`, stacked on chunk 2's (`feature/acceptance-inputs`,
+#1058) for its public page. Permission as chunk 2's.
+
+W0 left three contracts off the shared wire. They are on it now, behind the real gateway and the
+real retrieval gate. The respondents, the analysis modules, the Lead and the eight design workers
+were recorded already (W0; #570).
+
+- **The client's own extraction** (`aia_knowledge_source_proposals`):
+  `recorded_models.source_proposals_answer`. It makes one FACT per carried segment, at most
+  three, each quoting the segment's first sentence literally, so the step's own `ground` keeps
+  every one.
+- **The five Deep Research agents** (`aia_deep_research_<role>`): `recorded_models.
+  deep_research_answer`, answered from a recorded script given to the wire
+  (`RecordedModels(deep_research=)`, the workbench's `agents.json` format). Without a script the
+  wire refuses them by name, as it refuses any unrecorded contract. The workbench's
+  `ScriptedDeepResearchModel` now answers through the same function: one scripted provider, as
+  this plan asks. It keeps its own zero usage and headers.
+- **Recorded retrieval in the harness's worker.** `acceptance_recorded` composes Deep Research
+  only over `AIA_ACCEPTANCE_RECORDINGS`, a directory holding `web.json` and `agents.json`. It
+  goes through `compose_registry(deep_research_retrieval=)` into
+  `deep_research_runtime(retrieval=)`, which refuses a live route named beside it. Deep Research
+  on without the recordings is still refused. `make layer_check` admits `acceptance_recorded`
+  beside the workbench as a composer of `deep_research_recorded`, and forbids it a recorded double
+  of its own.
+- **The recordings**, `tests/acceptance/recordings/`. `web.json` serves the study's one public
+  page (chunk 2's `inputs/web-page.html`, byte for byte, at its `.example` URL) for one query.
+  `agents.json` holds two quotes literally on that page.
+
+Proven over HTTP on the stack (`tests/acceptance/test_recorded_doubles.py`):
+
+- **The annual summary's proposals** complete. Every proposal is kept, and the client is charged
+  exactly batches x the recording's usage.
+- **A QUICK Design Research run** on the brief completes. Its sealed bundle is
+  `RECORDED_FIXTURE` only. Its one snapshot is the page, retrieved `RECORDED`. Its accepted quotes
+  are the script's. Its cost is a whole number of recorded agent calls.
+
+The design is Class B by rule and the recorded routes carry Class C alone, so that worker runs
+`AIA_DATA_CLASS_GATES=advisory`, as develop does (ADR 0008, Amendment 2026-10-21). An operator's
+exact-bytes classification is the deployed path, and the test cannot compute it without importing
+what it drives.
+
+Measured locally on PostgreSQL 16: `tests/acceptance` 20 passed in 51 s; the Design Research run
+takes about 15 s.
+
 ## Chunk 8: parity reports and never blocks
 
 **Decision.** The owner decided on 2026-10-19 that parity runs and reports but never blocks
@@ -369,6 +444,52 @@ report is read. The record's parity line and the PR summary are the only places 
 
 **Test.** A CI-script test feeds `parity_status.py --report-only` a JUnit file with a failing parity test
 and asserts exit 0 and a `FAIL` line, and a matrix-consistency failure still exits 1.
+
+**Delivered (2026-10-28)**, branch `feature/parity-reports-never-blocks`, from `develop` @
+`7107c1f0`; permission: the product owner's words of 2026-10-28 00:43Z, relayed by the PM
+coordinator (CLAUDE.md §5).
+
+- `tools/parity_report_only.py <label> <command…>` (stdlib) runs each comparison suite: the
+  `parity` job's, the `golden-fixtures` job's contract parity (population and evidence) and the
+  `oracle-parity` job's. It judges the outcome by the suite's own JUnit. Exactly one outcome
+  becomes a `::warning::`, a step-summary line and exit 0: pytest exited 1 and the JUnit shows
+  test bodies that failed and no error.
+- Everything else is the step's own, because then nothing was compared. That covers an error (a
+  broken fixture, and the `AIA_REQUIRE_REFERENCE_REPO` / `AIA_REQUIRE_LEGACY_ORACLE` ratchets,
+  which `pytest.fail` in their fixtures), a JUnit that is missing or unreadable, and exits 2-5.
+  No `|| true`.
+- **The golden fixtures' pin check stays blocking.** `test_golden_fixtures.py` checks the pins,
+  the manifest, and that each vendored copy is byte-identical to its original. It now runs in a
+  step of its own outside the wrapper. That is integrity, not parity: a fixture edited to make a
+  test pass fails there (CLAUDE.md §2).
+- `tools/parity_status.py --report-only` prints each capability's FAIL ("capability FAIL
+  reported, not blocking") and opens the step summary's markdown with the same note. It exits 0
+  for parity FAILs. An acceptance criterion's FAIL and a malformed matrix still fail. Without the
+  flag, a person's local run exits 1 as before. CI's Parity status step passes the flag.
+- `dispatch-develop` no longer needs `parity` or `oracle-parity`, and reads each direct need's
+  `result` by name instead of `success()`. `success()` also looks through `parity-status` to the
+  comparison jobs it needs, so a broken comparison suite would otherwise still hold a deploy back.
+  It still needs `golden-fixtures`, for the pin check, and `parity-status`, which blocks on an
+  acceptance FAIL.
+- Unchanged: `test_parity_matrix.py`, the vendored F1-F9 in the backend job, and every non-parity
+  test. They stay blocking.
+- Tests:
+  - `test_parity_reports_never_blocks.py`: the wrapper's outcomes (failures only, any error, an
+    unreadable JUnit, exits 0-5), each comparison job going through it with JUnit and no escape,
+    the pin check outside it, `--report-only` on Parity status, and the deploy's needs and
+    condition.
+  - `test_parity_status_tool.py`: `--report-only` with a parity FAIL (exit 0, the FAIL printed and
+    in the JSON and markdown; exit 1 without the flag), with an acceptance FAIL (exit 1), and with
+    a malformed matrix (refused).
+
+**Left for chunk 6.** "A parity FAIL also appears as one line in the acceptance record" lands with
+the record, which does not exist yet. Until then the Parity status report and the step summary are
+where a parity FAIL shows.
+
+**Branch protection is a person's.** A required status check on `Parity against legacy prototype`
+or `Parity against the running 18.6.6 unit` now passes on a comparison that differed. It still
+fails on a suite that could not run. Whether those checks stay required is a repository setting
+for an administrator.
 
 ## Added by the master plan (2026-10-19)
 
@@ -447,3 +568,38 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
   (ADR 0019; G73). AC-14 reads "typed settings refuse a malformed value by name; each run records its
   composition digest" (D-09, `lead-orchestration#LO12c`). The three 18.6.6 ledgers are refreshed and
   the L-04 / L-29 contradiction removed.
+
+## Chunk 14: the wording reconciled (2026-10-28)
+
+Branch `chore/acceptance-wording-matrix`, from `develop` @ `fa0723ec`; permission: the product owner's
+words of 2026-10-28 00:43Z, relayed by the PM coordinator (CLAUDE.md §5).
+
+**The owner's decision, W0Q5 (Nigel Blount, 2026-10-28, "Keep USD 0.01").** AC-15 keeps USD 0.01
+as the gap allowed between AIA's usage ledger and the develop-tagged AWS cost record. Until now
+that comparison had no tolerance written down; `develop-spend-attribution` raised it as a
+hypothesis ("within USD 0.01 may be unreachable"). The decision is now in AC-15's statement and
+its tier-B projection, in both files, and the document's Decisions column cites it.
+
+**The document is the matrix's wording again.** `mvp-acceptance.md` §3 says "the authoritative
+wording is in `parity-matrix.json`; this is the same list", but it no longer was. Every
+criterion's row except AC-07 and AC-15, and every §3.1 tier cell but three, were shortened
+paraphrases. Nothing contradicted the matrix, but each paraphrase dropped something:
+- AC-02: "(text edits, structural edits per stage)";
+- AC-08: "on every client-facing number";
+- AC-09: "never generated persona prose";
+- AC-11 and AC-04: the allocation's lines in tier B.
+
+§3 and §3.1 are now the matrix's `statement`, `tier_a` and `tier_b` word for word. The Decisions
+column stays. The document's one sentence the matrix lacked, AC-14's "AIA has no edition file:
+18.6.6's was replaced by typed configuration", moved into the matrix's statement.
+`test_parity_matrix.py::test_the_acceptance_document_words_each_criterion_as_the_matrix_does`
+holds the two together, and `test_ac15_holds_the_aws_record_to_the_owner_s_usd_0_01` holds the
+decision. Both failed on `develop` and pass here.
+
+AC-01 and AC-14 (W0, G73, D-09 (b)), the L-04 / L-29 contradiction (W0), and AC-02, AC-11, AC-13
+and AC-15's separate lines (#503) were already reconciled and are unchanged in substance.
+
+**Left, in a PR of its own, as the W0 note says:** refreshing the three 18.6.6 ledgers
+(`legacy-route-ledger.json`, `legacy-ui-functions.json`, `interface-screens.json`), whose LEGACY /
+NOT_STARTED rows include built work. That is an audit of 157 routes, 89 functions and 28 screens
+with their tests. It is a different kind of work from wording, and not in this PR.

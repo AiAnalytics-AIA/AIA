@@ -2460,7 +2460,9 @@
       "step_ids": [
        "relative_heights",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "title_cs": "Terén"
      },
@@ -4548,7 +4550,9 @@
        "segment_mixture",
        "segment_consensus",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
       "formulas": [],
@@ -6643,7 +6647,9 @@
        }
       ],
       "feeds": [
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
@@ -6710,7 +6716,9 @@
       ],
       "feeds": [
        "respondent_density",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
@@ -6855,7 +6863,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
@@ -7042,11 +7050,125 @@
         "reference": "terrain.relative_height_floor",
         "unit": "",
         "value": null
+       },
+       {
+        "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
+          }
+         ],
+         "whole": false
+        },
+        "effect": "",
+        "label_cs": "Mocnina vážení vzdáleností p",
+        "origin": "specification",
+        "reference": "terrain.idw_power",
+        "unit": "",
+        "value": null
        }
       ]
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j},\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw",
+      "implements": "aia_core.domain.sociomap.terrain:idw_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "reading_cs": "",
+      "role_cs": "Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, jinde vážený průměr výšek objektů.",
+      "source_cs": "",
+      "source_sha256": "675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_every_other_point_is_a_weighted_mean_of_the_objects",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky objektů vážené vzdáleností",
+      "values": []
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j}\\,\\max_{j} \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw_falloff",
+      "implements": "aia_core.domain.sociomap.terrain:idw_falloff_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
+      "reading_cs": "",
+      "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+      "source_cs": "",
+      "source_sha256": "ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "šířka kopce",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky vážené vzdáleností, pod poklesem kopců",
+      "values": []
      }
     ],
-    "steps": 48,
+    "steps": 50,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-3": {
@@ -7133,7 +7255,9 @@
       "step_ids": [
        "relative_heights",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "title_cs": "Terén"
      },
@@ -9221,7 +9345,9 @@
        "segment_mixture",
        "segment_consensus",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
       "formulas": [],
@@ -11316,7 +11442,9 @@
        }
       ],
       "feeds": [
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
@@ -11383,7 +11511,9 @@
       ],
       "feeds": [
        "respondent_density",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
@@ -11528,7 +11658,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
@@ -11715,11 +11845,125 @@
         "reference": "terrain.relative_height_floor",
         "unit": "",
         "value": null
+       },
+       {
+        "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
+          }
+         ],
+         "whole": false
+        },
+        "effect": "",
+        "label_cs": "Mocnina vážení vzdáleností p",
+        "origin": "specification",
+        "reference": "terrain.idw_power",
+        "unit": "",
+        "value": null
        }
       ]
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j},\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw",
+      "implements": "aia_core.domain.sociomap.terrain:idw_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "reading_cs": "",
+      "role_cs": "Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, jinde vážený průměr výšek objektů.",
+      "source_cs": "",
+      "source_sha256": "675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_every_other_point_is_a_weighted_mean_of_the_objects",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky objektů vážené vzdáleností",
+      "values": []
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j}\\,\\max_{j} \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw_falloff",
+      "implements": "aia_core.domain.sociomap.terrain:idw_falloff_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
+      "reading_cs": "",
+      "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+      "source_cs": "",
+      "source_sha256": "ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "šířka kopce",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky vážené vzdáleností, pod poklesem kopců",
+      "values": []
      }
     ],
-    "steps": 48,
+    "steps": 50,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-4": {
@@ -11806,7 +12050,9 @@
       "step_ids": [
        "relative_heights",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "title_cs": "Terén"
      },
@@ -13894,7 +14140,9 @@
        "segment_mixture",
        "segment_consensus",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
       "formulas": [],
@@ -15996,7 +16244,9 @@
        }
       ],
       "feeds": [
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
@@ -16063,7 +16313,9 @@
       ],
       "feeds": [
        "respondent_density",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
@@ -16208,7 +16460,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
@@ -16395,11 +16647,125 @@
         "reference": "terrain.relative_height_floor",
         "unit": "",
         "value": null
+       },
+       {
+        "absent": true,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
+          }
+         ],
+         "whole": false
+        },
+        "effect": "",
+        "label_cs": "Mocnina vážení vzdáleností p",
+        "origin": "specification",
+        "reference": "terrain.idw_power",
+        "unit": "",
+        "value": null
        }
       ]
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j},\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw",
+      "implements": "aia_core.domain.sociomap.terrain:idw_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "reading_cs": "",
+      "role_cs": "Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, jinde vážený průměr výšek objektů.",
+      "source_cs": "",
+      "source_sha256": "675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_every_other_point_is_a_weighted_mean_of_the_objects",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky objektů vážené vzdáleností",
+      "values": []
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j}\\,\\max_{j} \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw_falloff",
+      "implements": "aia_core.domain.sociomap.terrain:idw_falloff_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
+      "reading_cs": "",
+      "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+      "source_cs": "",
+      "source_sha256": "ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "šířka kopce",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky vážené vzdáleností, pod poklesem kopců",
+      "values": []
      }
     ],
-    "steps": 48,
+    "steps": 50,
     "title_cs": "Sociomapa: objektová mapa"
    },
    "aia-sociomap-5": {
@@ -16486,7 +16852,9 @@
       "step_ids": [
        "relative_heights",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "title_cs": "Terén"
      },
@@ -18574,7 +18942,9 @@
        "segment_mixture",
        "segment_consensus",
        "terrain_frame",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "X \\leftarrow (X - \\bar X)\\, \\frac{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}\\,\\delta_{ij}}{\\sum_{(i,j) \\in \\mathcal{L}} d_{ij}^2},\\qquad \\mathcal{L} = \\emptyset \\;\\Rightarrow\\; X \\leftarrow (X - \\bar X)\\,\\frac{\\sqrt 2}{\\sqrt{\\overline{d^2}}}",
       "formulas": [],
@@ -20672,7 +21042,9 @@
        }
       ],
       "feeds": [
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "t_j = f + (1 - f)\\,\\frac{h_j - \\min_l h_l}{\\max_l h_l - \\min_l h_l},\\qquad \\max_l h_l - \\min_l h_l < 10^{-15} \\;\\Rightarrow\\; t_j = \\tfrac12,\\qquad h_j = \\varnothing \\;\\Rightarrow\\; t_j = \\varnothing",
       "formulas": [],
@@ -20739,7 +21111,9 @@
       ],
       "feeds": [
        "respondent_density",
-       "f12_envelope"
+       "f12_envelope",
+       "terrain_idw",
+       "terrain_idw_falloff"
       ],
       "formula_latex": "c = \\tfrac12\\left(\\min_{j \\in K} x_j + \\max_{j \\in K} x_j\\right),\\qquad H = \\frac{\\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty}{v},\\qquad \\max_{j \\in K} \\lVert x_j - c\\rVert_\\infty \\le 10^{-12}/27 \\;\\Rightarrow\\; H = H_0,\\qquad K = \\varnothing \\;\\Rightarrow\\; c = 0,\\; H = H_0",
       "formulas": [],
@@ -20884,7 +21258,7 @@
        "terrain_frame"
       ],
       "keeps_cs": [],
-      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
+      "note_cs": "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. σ = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; σ = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku pravítka).",
       "reading_cs": "",
       "role_cs": "Krajina, kterou čtenář vidí: z poloh objektů a jejich výšek vytvoří kopce.",
       "source_cs": "",
@@ -20916,7 +21290,7 @@
         "origin": "specification",
         "reference": "terrain.method",
         "unit": "",
-        "value": "framed_relative_envelope"
+        "value": "framed_relative_idw"
        },
        {
         "absent": false,
@@ -21071,11 +21445,125 @@
         "reference": "terrain.relative_height_floor",
         "unit": "",
         "value": 0.15
+       },
+       {
+        "absent": false,
+        "bound": {
+         "limits": [
+          {
+           "reference": null,
+           "side": "low",
+           "strict": true,
+           "value": 0.0
+          },
+          {
+           "reference": null,
+           "side": "high",
+           "strict": false,
+           "value": 10.0
+          }
+         ],
+         "whole": false
+        },
+        "effect": "",
+        "label_cs": "Mocnina vážení vzdáleností p",
+        "origin": "specification",
+        "reference": "terrain.idw_power",
+        "unit": "",
+        "value": 3.0
        }
       ]
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j},\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw",
+      "implements": "aia_core.domain.sociomap.terrain:idw_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva Absolutní.",
+      "reading_cs": "",
+      "role_cs": "Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, jinde vážený průměr výšek objektů.",
+      "source_cs": "",
+      "source_sha256": "675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_every_other_point_is_a_weighted_mean_of_the_objects",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky objektů vážené vzdáleností",
+      "values": []
+     },
+     {
+      "audit": "AIA",
+      "effect_cs": "",
+      "evidence": [
+       {
+        "kind": "register_rule",
+        "note_cs": "",
+        "ref": "AIA-SIGNED-OFF-TERRAIN"
+       }
+      ],
+      "feeds": [],
+      "formula_latex": "z(q) = \\frac{\\sum_{j} w_j t_j}{\\sum_{j} w_j}\\,\\max_{j} \\exp\\!\\left(-\\frac{\\lVert q - y_j\\rVert^2}{2\\sigma^2}\\right),\\quad w_j = \\lVert q - y_j\\rVert^{-p}",
+      "formulas": [],
+      "id": "terrain_idw_falloff",
+      "implements": "aia_core.domain.sociomap.terrain:idw_falloff_at",
+      "inputs": [
+       "ruler_scale",
+       "relative_heights",
+       "terrain_frame"
+      ],
+      "keeps_cs": [],
+      "note_cs": "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z předchozího kroku, násobený poklesem kopců o šířce σ. U objektu jeho vlastní výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze.",
+      "reading_cs": "",
+      "role_cs": "Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+      "source_cs": "",
+      "source_sha256": "ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+      "symbols": [
+       {
+        "latex": "p",
+        "meaning_cs": "mocnina vážení vzdáleností",
+        "unit": ""
+       },
+       {
+        "latex": "\\sigma",
+        "meaning_cs": "šířka kopce",
+        "unit": "jednotky vzdálenosti"
+       }
+      ],
+      "tests": [
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_height_frame_and_terrain_match_the_methodologys_own_code",
+       "packages/aia_core/tests/test_sociomap_signed_off_terrain.py::test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5"
+      ],
+      "title_cs": "Terén: výšky vážené vzdáleností, pod poklesem kopců",
+      "values": []
      }
     ],
-    "steps": 48,
+    "steps": 50,
     "title_cs": "Sociomapa: objektová mapa"
    }
   },
@@ -24595,7 +25083,9 @@
      "step_ids": [
       "relative_heights",
       "terrain_frame",
-      "f12_envelope"
+      "f12_envelope",
+      "terrain_idw",
+      "terrain_idw_falloff"
      ],
      "title_cs": "Terén"
     },
@@ -24653,7 +25143,7 @@
     "aia-sociomap-2"
    ],
    "preview_title_cs": "",
-   "steps": 48,
+   "steps": 50,
    "title_cs": "Sociomapa: objektová mapa"
   },
   {
@@ -25391,7 +25881,8 @@
     "terrain": {
      "frame_fill": 0.7,
      "grid_resolution": 84,
-     "method": "framed_relative_envelope",
+     "idw_power": 3.0,
+     "method": "framed_relative_idw",
      "relative_height_floor": 0.15,
      "sigma": 0.25,
      "sigma_basis": "signed_off_methodology"

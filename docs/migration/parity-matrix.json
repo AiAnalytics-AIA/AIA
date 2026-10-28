@@ -4134,7 +4134,7 @@
    },
    {
     "id": "AC-14",
-    "statement": "Typed settings refuse a malformed value by name: the API and the worker do not start on one. Each run records its composition digest (the settings and the composition it ran under), served with the run.",
+    "statement": "Typed settings refuse a malformed value by name: the API and the worker do not start on one. Each run records its composition digest (the settings and the composition it ran under), served with the run. AIA has no edition file: 18.6.6's was replaced by typed configuration.",
     "capabilities": [
      "config.environment",
      "config.edition"
@@ -4145,14 +4145,14 @@
    },
    {
     "id": "AC-15",
-    "statement": "Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); model spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record; tool and search spend, open reservations, uncertain calls and non-provider infrastructure charges (compute, storage, database) are reported on their own lines, and cloud billing lag is recorded, never read as zero.",
+    "statement": "Every number in the report traces to provenance (fingerprints, provider, model, prompt version, population version, weight identity, data contract); model spend reconciles to AIA's usage ledger within USD 0.01 and agrees with the develop-tagged AWS cost record within USD 0.01; tool and search spend, open reservations, uncertain calls and non-provider infrastructure charges (compute, storage, database) are reported on their own lines, and cloud billing lag is recorded, never read as zero.",
     "capabilities": [
      "artifacts.registration",
      "ai.usage_ledger",
      "cost.estimation"
     ],
     "tier_a": "Every ledger ref of the recorded run's reports resolves to its provenance; recorded model spend reconciles to the usage ledger within USD 0.01; tool spend, open reservations and uncertain calls on their own lines.",
-    "tier_b": "Model spend agrees with the develop-tagged AWS cost record, billing lag recorded and never read as zero; infrastructure charges on their own line; each allocation line's actual beside its ceiling.",
+    "tier_b": "Model spend agrees with the develop-tagged AWS cost record within USD 0.01 (the owner, 2026-10-28, W0Q5), billing lag recorded and never read as zero; infrastructure charges on their own line; each allocation line's actual beside its ceiling.",
     "tests": []
    }
   ]

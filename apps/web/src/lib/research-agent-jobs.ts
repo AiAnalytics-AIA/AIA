@@ -80,13 +80,17 @@ export class JobCostDeclined extends Error {
  * {@link JobCostDeclined}, in Czech; any other refusal, or a second one, is thrown as it came.
  * Nothing is started without the server's own figure confirmed.
  */
-export async function withJobCostConfirmation<T>(create: (confirmCostUsd?: number) => Promise<T>, confirm: (message: string) => Promise<boolean>): Promise<T> {
+/** How a caller asks the threshold question: the question in words, and the amounts it is about,
+ *  so a caller with SpendDialog can show them as sums rather than in a sentence. */
+export type JobCostConfirm = (message: string, asked?: { ceiling: number; limit: number }) => Promise<boolean>;
+
+export async function withJobCostConfirmation<T>(create: (confirmCostUsd?: number) => Promise<T>, confirm: JobCostConfirm): Promise<T> {
   try {
     return await create(undefined);
   } catch (e) {
     const asked = jobCostAsked(e);
     if (!asked) throw e;
-    if (!(await confirm(jobCostQuestion(asked)))) throw new JobCostDeclined(asked.ceiling, asked.limit);
+    if (!(await confirm(jobCostQuestion(asked), asked))) throw new JobCostDeclined(asked.ceiling, asked.limit);
     return create(asked.ceiling);
   }
 }

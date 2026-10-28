@@ -14,7 +14,7 @@ import { useRouter } from "next/navigation";
 import { type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { ApiError, api, lead as leadApi, research, researchAgents, type Readiness, type ResearchAgentJob, type ResearchRun, type Study } from "@/lib/api";
-import { withBudget } from "@/lib/budget-line";
+import { usdWords } from "@/lib/spend";
 import { backEntry, closeStack, emptyStack, type InspectorEntry, type InspectorStack, onStage, openEntry, topEntry } from "@/lib/inspector-stack";
 import { availabilityWords, leadAvailability, type LeadAvailability, type LeadStateWithWorker } from "@/lib/lead-availability";
 import { JOB_STAGE, jobMovesByItself } from "@/lib/lead-cards";
@@ -46,6 +46,7 @@ import { useRuns } from "../rehome/research/StageTrack";
 import { LeadAskContext } from "../rehome/research/AskLead";
 import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/components/rehome/step";
 import { ItemInspector } from "../rehome/research/ItemInspector";
+import { ItemReview } from "../rehome/ItemReview";
 import { Glyph, type GlyphTone } from "./Glyph";
 import { Icon, Mark } from "./Icons";
 import { ItemInspectBody } from "./ItemInspectBody";
@@ -54,9 +55,12 @@ import { LeadPane, type LeadCardsContext } from "./LeadPane";
 import { SampleView } from "./SampleView";
 import { Split } from "./Split";
 import { useWorkingImpact } from "./useWorkingImpact";
+import { CommandPalette } from "../aia/CommandPalette";
 import "./workbench.css";
 import { StudyStatusMenu, otherStatuses, useStudyStatus } from "../rehome/research/StudyStatus";
 import { t, tv } from "@/i18n/t";
+import { errorText } from "@/lib/error-words";
+import type { SpendAsk } from "../rehome/research/context";
 
 const storage = () => {
   try {
@@ -110,7 +114,6 @@ function useWorkbenchLayout(): WorkbenchLayout {
 }
 
 const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
-const usd = (n: number | null | undefined) => (typeof n === "number" ? n.toLocaleString("cs-CZ", { maximumFractionDigits: 2 }) : "?");
 
 type EditMark = "accepted" | "dismissed" | { refused: string };
 /**
@@ -178,7 +181,7 @@ const openingStack = (studyId: string, stage: WorkbenchStage): InspectorStack =>
   return want?.stage === stage && want.studyId === studyId ? openEntry(emptyStack(stage), want.entry) : emptyStack(stage);
 };
 
-export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
+export function Workbench({ frame, step, store, memory, save, inspector, reload, confirm, confirmSpend, onAgentStarted, jobs, onOpenJob, onRefreshJobs, children }: {
   frame: StudyFrame;
   step: StepKey;
   store: ResearchStore;
@@ -192,6 +195,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   reload: () => void;
   /** Ask the person a yes/no question (the study's AskDialog). */
   confirm: (message: string) => Promise<boolean>;
+  /** Ask about money in SpendDialog (design system v3, I-Penize); without it, `confirm` asks in words. */
+  confirmSpend: (question: SpendAsk) => Promise<boolean>;
   /** A design job the person approved on a Lead decision card has started. */
   onAgentStarted: (runId: string) => void;
   /** The study's design jobs, newest first, as the AI help lists them; shown in the conversation. */
@@ -578,7 +583,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         if (e instanceof ApiError && e.code === "cost_confirmation_required" && confirmUsd === undefined) {
           const ceiling = Number(e.details.ceiling_usd);
           const limit = Number(e.details.limit_usd);
-          if (!(await confirm(`Úloha může stát až ${usd(ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(limit)} USD. Spustit?`))) throw e;
+          if (!(await confirmSpend({ summary: t("input.spend.research.job"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startJob") }))) throw e;
           confirmUsd = ceiling;
           continue;
         }
@@ -598,7 +603,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         throw e;
       }
     }
-  }, [go, store, frame.studyId, stepHref, confirm, onAgentStarted, router, step]);
+  }, [go, store, frame.studyId, stepHref, confirm, confirmSpend, onAgentStarted, router, step]);
 
   // Alt+Shift+A / C / N: artifact focus, conversation focus, back to the split (the prototype's keys).
   useEffect(() => {
@@ -682,7 +687,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
         setNotice("Vedoucí přijal textové úpravy, zatímco jste psali. Vaše změna zůstala na obrazovce, ale neuložila se: zkopírujte si ji a pracovní kopii načtěte znovu.");
       }
     } catch (e) {
-      setNotice(e instanceof Error ? e.message : String(e));
+      setNotice(errorText(e));
     }
   }, [store, frame.studyId, autoStore]);
   useEffect(() => {
@@ -819,8 +824,8 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     return { readiness, runs: all };
   }, [store, frame.studyId]);
   const startRun = useCallback(async (readiness: Readiness, asked: { ceiling: number; limit: number } | null): Promise<ResearchRun | null> => {
-    const ask = async (a: { ceiling: number; limit: number }) =>
-      confirm(await withBudget(frame.studyId, `Běh může stát až ${usd(a.ceiling)} USD, což dosahuje prahu potvrzení studie ${usd(a.limit)} USD. Spustit?`, a.ceiling));
+    const ask = (a: { ceiling: number; limit: number }) =>
+      confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: a.ceiling, thresholdUsd: a.limit, act: t("input.spend.research.startRun") });
     let yes: number | undefined;
     if (asked) {
       if (!(await ask(asked))) return null;
@@ -836,7 +841,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
       if (!again || yes !== undefined || !(await ask(again))) throw e;
       return research.start(frame.studyId, readiness.design_revision_id, again.ceiling, undefined, source);
     }
-  }, [frame.studyId, confirm]);
+  }, [frame.studyId, confirmSpend]);
   const cards: LeadCardsContext = useMemo(() => ({
     runs: runs ?? [],
     stepHref: frame.stepHref,
@@ -873,13 +878,15 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
               <div className="arthead">
                 <div style={{ minWidth: 0, flex: "1 1 240px" }}>
                   <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
-                  <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit ? "" : " · jen ke čtení"}</div>
+                  {/* The revision only: whether the copy is saved, new or read only is the save state's to say, beside the title. */}
+                  {state.revision === null && (frame.canEdit || state.save.kind === "readonly") ? null : <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit || state.save.kind === "readonly" ? "" : " · jen ke čtení"}</div>}
                 </div>
                 <div className="arthead__actions">
                   <span ref={setHeaderActions} className="arthead__slot" />
                   <button ref={inspectorToggle} type="button" className={`btn btn--sm btn--quiet${inspectorOpen ? " is-on" : ""}`} aria-expanded={inspectorOpen} onClick={() => setInspectorOpen((v) => !v)}>
-                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. */}
-                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked ? <span>{` · ${blocked}`}</span> : null}
+                    {/* The sheet shows the icon and the count; the name stays whole for assistive technology. From
+                        768 px the header says the count, so the toggle does not say it again. */}
+                    <Icon name="inspector" size={14} /><span className="arthead__label">Připravenost a pomoc</span>{blocked && layout === "sheet" ? <span>{` · ${blocked}`}</span> : null}
                   </button>
                   <button type="button" className={`iconbtn${mode === "artifact" ? " is-on" : ""}`} aria-pressed={mode === "artifact"} title={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} aria-label={mode === "artifact" ? "Zpět na 40 / 60" : "Soustředit se na artefakt"} onClick={() => setMode((m) => (m === "artifact" ? "split" : "artifact"))}>
                     <Icon name={mode === "artifact" ? "normal" : "focusArtifact"} size={16} />
@@ -941,32 +948,16 @@ function EditsBar({ items, state, marks, canEdit, onAccept, onDismiss }: {
   onAccept: (keys: string[]) => void; onDismiss: (keys: string[]) => void;
 }) {
   const content = { project: state.project, analysis: state.analysis };
-  const keys = items.map((x) => x.key);
   return (
-    <div className="artbar artbar--you edits" role="region" aria-label={EDITS_LABEL}>
-      <div className="edits__head">
-        <Glyph tone="you" size={12} />
-        <div className="artbar__grow"><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</div>
-        <button type="button" className="btn btn--sm btn--quiet" onClick={() => onDismiss(keys)}>Zahodit vše</button>
-        <button type="button" className="btn btn--sm btn--primary" disabled={!canEdit} onClick={() => onAccept(keys)}>Přijmout vše</button>
-      </div>
-      {items.map(({ key, edit }) => {
-        const d = describeEdit(content, edit);
-        const m = marks[key];
-        return (
-          <div key={key} className="chg" data-aia={`lead-edit.${key}`}>
-            <div className="chg__h">
-              <span className="grow">{d.where}</span>
-              {typeof m === "object" ? <span className="chg__refused">{m.refused}</span> : null}
-              <button type="button" className="btn btn--sm btn--quiet" onClick={() => onDismiss([key])}>Zahodit</button>
-              <button type="button" className="btn btn--sm" disabled={!canEdit} onClick={() => onAccept([key])}>Přijmout</button>
-            </div>
-            {d.before !== null ? <div className="chg__before">{d.before}</div> : null}
-            {d.after !== null ? <div>{d.after}</div> : null}
-            {edit.why ? <div className="chg__why">Proč: {edit.why}</div> : null}
-          </div>
-        );
-      })}
+    <div className="artbar artbar--you edits">
+      <ItemReview mode="each" label={EDITS_LABEL} canEdit={canEdit} onAccept={onAccept} onDismiss={onDismiss}
+        head={<><b>Vedoucí navrhuje {items.length === 1 ? "1 změnu" : `${items.length} změn`}</b> · nic se nezmění, dokud je nepřijmete</>}
+        items={items.map(({ key, edit }) => {
+          const d = describeEdit(content, edit);
+          const m = marks[key];
+          return { id: key, where: d.where, before: d.before, after: d.after, why: edit.why || null,
+            refused: typeof m === "object" ? m.refused : null, data: { "data-aia": `lead-edit.${key}` } };
+        })} />
     </div>
   );
 }
@@ -1061,12 +1052,13 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
       </button>
       {narrow ? null : <span className="shead__state"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</span>}
       <span className="shead__spacer" />
+      {narrow ? null : <CommandPalette />}
       {pending > 0 && !narrow ? <button type="button" className="shead__pending" onClick={onPending}><Glyph tone="you" size={11} />Čeká na vás: {pending}</button> : null}
       {narrow ? null : (
         <span className="budgetmini" title="Rozpočet studie: utraceno / limit">
           <Icon name="budget" size={13} />
           <span className="budgetmini__bar" aria-hidden="true"><i style={{ width: `${spentPct}%` }} /></span>
-          <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usd(spent)} / ${usd(budget)} USD`}</span>
+          <span className="num">{budget === null ? "Rozpočet nenastaven" : `${usdWords(spent)} / ${usdWords(budget)}`}</span>
         </span>
       )}
       {/* The study's status (F7): its own menu beside the header's; under 768 px, items of the header's
@@ -1082,7 +1074,7 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
               {narrow ? (
                 <>
                   <div className="menu__info" role="none"><Glyph tone={blocked ? "you" : "done"} size={11} />{blocked ? `Do spuštění zbývá ${blocked}` : "Návrh splňuje podmínky kroků"}</div>
-                  <div className="menu__info num" role="none"><Icon name="budget" size={13} />{budget === null ? "Rozpočet nenastaven" : `Rozpočet: ${usd(spent)} / ${usd(budget)} USD`}</div>
+                  <div className="menu__info num" role="none"><Icon name="budget" size={13} />{budget === null ? "Rozpočet nenastaven" : `Rozpočet: ${usdWords(spent)} / ${usdWords(budget)}`}</div>
                   {pending > 0 ? <button type="button" role="menuitem" className="listbtn" onClick={() => { setMenu(false); onPending(); }}>Čeká na vás: {pending}</button> : null}
                   {frame.status && frame.refreshStudy ? <>
                     <div className="menu__info" role="none" data-study-status={frame.status}>{tv("aia.study.status.label", { status: t(`aia.status.${frame.status}`) })}</div>
@@ -1095,7 +1087,6 @@ function StudyHeader({ frame, study, flush, pending, blocked, onPending, layout 
                 </>
               ) : null}
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.lead())}>Můj Vedoucí výzkumu</button>
-              <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.client(frame.clientId))}>Pracovní prostor klienta</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.memory())}>Projektová paměť</button>
               <button type="button" role="menuitem" className="listbtn" onClick={() => leave(appRoutes.settings())}>Nastavení</button>
             </div>

@@ -441,6 +441,42 @@ def test_a_failed_gate_test_fails_the_cli(tool: ModuleType, tmp_path: Path) -> N
     assert tool.main(["--junit", str(junit(tmp_path, "", "empty.xml"))]) == 0
 
 
+def test_report_only_reports_a_parity_fail_and_never_blocks(
+    tool: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """MVP-21: in CI a capability's FAIL is printed and written, and the run exits 0."""
+    body = case("tests/test_sociomap_engine.py", "test_f9_manual_drag_is_a_view_override", "failed")
+    path = junit(tmp_path, body)
+    out_json, out_md = tmp_path / "s.json", tmp_path / "s.md"
+    argv = ["--junit", str(path), "--report-only", "--json", str(out_json)]
+    assert tool.main([*argv, "--markdown", str(out_md)]) == 0
+    printed = capsys.readouterr().out
+    assert "capability FAIL reported, not blocking" in printed
+    assert json.loads(out_json.read_text())["counts"]["FAIL"] >= 1
+    assert out_md.read_text().startswith("> **"), "the step summary says why it is green"
+    # Run by a person, without the flag, the same run still exits 1.
+    assert tool.main(["--junit", str(path)]) == 1
+
+
+def test_report_only_still_fails_on_an_acceptance_fail(
+    tool: ModuleType, matrix: dict[str, Any], tmp_path: Path
+) -> None:
+    """The acceptance test is judged apart from parity and stays blocking."""
+    m = wired(matrix)
+    matrix_path = tmp_path / "matrix.json"
+    matrix_path.write_text(json.dumps(m))
+    body = case(ACC, "test_ac07_proof", "failed")
+    argv = ["--matrix", str(matrix_path), "--junit", str(junit(tmp_path, body)), "--report-only"]
+    assert tool.main(argv) == 1
+
+
+def test_report_only_still_fails_on_a_malformed_matrix(tool: ModuleType, tmp_path: Path) -> None:
+    matrix_path = tmp_path / "matrix.json"
+    matrix_path.write_text(json.dumps({"reference": {}}))
+    with pytest.raises(SystemExit, match="malformed parity matrix"):
+        tool.main(["--matrix", str(matrix_path), "--report-only"])
+
+
 def test_the_cli_writes_json_and_markdown(tool: ModuleType, tmp_path: Path) -> None:
     out_json, out_md = tmp_path / "s.json", tmp_path / "s.md"
     assert tool.main(["--json", str(out_json), "--markdown", str(out_md)]) == 0

@@ -14,13 +14,13 @@ const nbsp = (s: string) => s.replace(/[  ]/g, " ");
 describe("amounts", () => {
   it("prints Czech USD and keeps a sub-cent spend visible", () => {
     expect(nbsp(usd(1234.5))).toBe("1 234,50 USD");
-    expect(usd(0)).toBe("0,00 USD");
-    expect(usd(0.003)).toBe("< 0,01 USD");
+    expect(usd(0)).toBe("0,00 USD");
+    expect(usd(0.003)).toBe("< 0,01 USD");
     expect(usd(Number.NaN)).toBe("neznámá");
   });
 
   it("says a total with an unknown bill is not exact, and an all-unknown one is unknown, not 0", () => {
-    expect(totalLine(fig(0.4))).toEqual({ text: "0,40 USD", exact: true, note: null });
+    expect(totalLine(fig(0.4))).toEqual({ text: "0,40 USD", exact: true, note: null });
     const uncertain = totalLine(fig(0.4, 2));
     expect(uncertain.exact).toBe(false);
     expect(uncertain.note).toMatch(/^2 nejistá volání/);
@@ -31,7 +31,7 @@ describe("amounts", () => {
   });
 
   it("names open holds apart and nothing when none are open", () => {
-    expect(reservedLine(fig(0, 0, 2))).toBe("2,00 USD drženo v běžící práci");
+    expect(reservedLine(fig(0, 0, 2))).toBe("2,00 USD drženo v běžící práci");
     expect(reservedLine(fig(3))).toBeNull();
   });
 });
@@ -53,9 +53,9 @@ describe("people and parts", () => {
       { activity: "other", ...fig(0) },
     ];
     expect(parts(acts).map((p) => [p.activity, p.label, p.line.text])).toEqual([
-      ["lead", "Vedoucí výzkumu", "0,10 USD"],
+      ["lead", "Vedoucí výzkumu", "0,10 USD"],
       ["analysis_report", "Analýza a zpráva", "neznámá"],
-      ["deep_research", "Deep Research", "0,00 USD"],
+      ["deep_research", "Deep Research", "0,00 USD"],
     ]);
   });
 

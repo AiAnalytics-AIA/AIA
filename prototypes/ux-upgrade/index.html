@@ -1,0 +1,87 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AIA UX Upgrade</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,600&display=swap">
+<style>
+/* Layout: one reading column for the story, full-width before/after pairs below it; AIA's own Petrol tokens. */
+:root{--bg:#f6f7f8;--card:#ffffff;--well:#eef0f2;--line:#e2e5e8;--ink:#13171b;--muted:#48515a;--faint:#5f6871;--signal:#0f6577;--wash:#e1eff2;--you:#ff9050;--youink:#a33a05;--youwash:#fdeee2;--ai:#6650d8;
+--sans:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--serif:"Source Serif 4",Georgia,serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1113;--card:#15191c;--well:#0a0c0e;--line:#262c31;--ink:#e8ecee;--muted:#aab3ba;--faint:#8a949c;--signal:#4fb2c3;--wash:#12272c;--you:#ffa45c;--youink:#ffb07a;--youwash:#3a2416;--ai:#a397f7;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1113;--card:#15191c;--well:#0a0c0e;--line:#262c31;--ink:#e8ecee;--muted:#aab3ba;--faint:#8a949c;--signal:#4fb2c3;--wash:#12272c;--you:#ffa45c;--youink:#ffb07a;--youwash:#3a2416;--ai:#a397f7;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:14px/1.55 var(--sans);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:36px}
+.col{max-width:760px}
+h1{font:600 34px/40px var(--serif);margin:0 0 8px;text-wrap:balance}
+h2{font:600 19px/26px var(--sans);margin:0 0 10px}
+p{margin:0 0 10px}.lede{font-size:16px;color:var(--muted);max-width:68ch}
+.ey{font-size:12px;font-weight:500;color:var(--faint);margin-bottom:6px}
+a{color:var(--signal)}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.links a{display:inline-flex;align-items:center;height:30px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);text-decoration:none;font-weight:500;font-size:13px}
+.links a:hover{border-color:var(--signal)}
+.figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--line);border-radius:8px;background:var(--card);overflow:hidden}
+.figs>div{padding:14px 16px;border-right:1px solid var(--line);min-width:0}.figs>div:last-child{border-right:0}
+.figs .k{font-size:12px;color:var(--faint)}.figs .v{font:600 22px/28px var(--sans);font-variant-numeric:tabular-nums}.figs .v s{color:var(--faint);font-weight:400;font-size:15px;margin-right:6px}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--muted);background:var(--well)}tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:12px;font-weight:500;background:var(--wash);color:var(--signal)}
+.tag.todo{background:var(--youwash);color:var(--youink)}
+.pair{display:flex;flex-direction:column;gap:10px}
+.pair h3{margin:0;font:600 15px/20px var(--sans);display:flex;gap:8px;align-items:baseline}.pair h3 span{font-weight:400;font-size:12px;color:var(--faint)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+figure{margin:0;min-width:0}figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:8px}
+figcaption{font-size:12px;color:var(--faint);margin-top:4px}
+.ctrl{display:flex;gap:6px;flex-wrap:wrap}
+.ctrl button{font:500 13px var(--sans);height:30px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);cursor:pointer}
+.ctrl button[aria-pressed="true"]{background:var(--wash);border-color:var(--signal);color:var(--signal)}
+.ctrl button:focus-visible,.links a:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+ul.list{margin:0;padding-left:18px}ul.list li{margin:3px 0}
+@media (max-width:720px){.duo{grid-template-columns:1fr}.figs{grid-template-columns:1fr 1fr}.figs>div:nth-child(2){border-right:0}.figs>div:nth-child(-n+2){border-bottom:1px solid var(--line)}}
+</style>
+<div class="wrap">
+<header class="col"><div class="ey">AIA · návrhový systém v3 · 27. 10. 2026</div><h1>AIA UX Upgrade</h1>
+<p class="lede">What changed in the product, what the audits say before and after, and every screen side by side at the owner's smallest laptop size (Dell XPS 13, 1280 px). The work is on a draft pull request; nothing is merged.</p>
+<div class="links"><a href="https://github.com/AiAnalytics-AIA/AIA/pull/1022" target="_blank" rel="noopener">Pull request #1022</a><a href="https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4" target="_blank" rel="noopener">Design System v3</a><a href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener">Výzkumné kroky</a><a href="https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo" target="_blank" rel="noopener">Klienti</a><a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener">Nastavení</a><a href="https://github.com/AiAnalytics-AIA/AIA/blob/feature/ux-upgrade/docs/aia-ux-research.md" target="_blank" rel="noopener">Research doc</a></div></header>
+<section><h2>Audits, before and after</h2><div class="figs">
+<div><div class="k">taste lint FAIL</div><div class="v"><s>38</s>26</div></div>
+<div><div class="k">impeccable, rendered findings</div><div class="v"><s>57</s>35</div></div>
+<div><div class="k">cards inside cards</div><div class="v"><s>27</s>15</div></div>
+<div><div class="k">contrast failures</div><div class="v"><s>4</s>0</div></div></div>
+<p style="margin-top:10px;color:var(--muted);font-size:13px">The 26 lint FAILs left are uppercase eyebrows the approved look contract keeps, the brand dot field and map overlays (gradients), and glyphs inside tests and comments. impeccable's static scan is unchanged at 4.</p></section>
+<section><h2>What changed</h2><div class="tbl"><table><thead><tr><th>Area</th><th>Change</th><th>Status</th></tr></thead><tbody><tr><td>Palette</td><td>Petrol tokens (owner&#x27;s choice): neutral greys, one petrol accent, iris only for AI, orange only for what waits on you</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Contrast</td><td>check-design: 222 checks, 0 failures (were 4); needs-you held apart from fault and orange</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Keyboard</td><td>Ctrl/⌘ K palette on every page and in the workbench: places, clients, recent studies, settings sections</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Money</td><td>SpendDialog for every paid start and retry in the research flow and for agent-job thresholds; Czech amounts; one save per budget change</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Errors</td><td>Czech sentence by status; API words and request id kept as labelled technical detail</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Saving</td><td>Uloženo for 3 s everywhere; arrows never save a role, status or proposal</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Undo</td><td>Vrátit for a removed contact and a client status change</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Dead ends</td><td>Own Czech 404 with a way back</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Chrome</td><td>Quiet rail and tabs, no hue strip; readable client monogram; no bounce easing</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Icons</td><td>Last typed glyphs (✎ ⚠ 👤 ✓) replaced by Phosphor</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Density</td><td>Cílová skupina flattened (no cards in cards); 12 px floor</td><td><span class="tag">v tomto PR</span></td></tr><tr><td>Study overview page</td><td>Designed on the canvas (Přehled studie); needs an events feed in the API</td><td><span class="tag todo">navrženo</span></td></tr><tr><td>Activity tray</td><td>Designed; needs an event feed</td><td><span class="tag todo">navrženo</span></td></tr><tr><td>Peek, filter tokens, bulk undo</td><td>Designed in DS v3; next PR</td><td><span class="tag todo">navrženo</span></td></tr></tbody></table></div></section>
+<section style="display:flex;flex-direction:column;gap:20px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2 style="margin:0">Screens, before and after</h2>
+<div class="ctrl" role="group" aria-label="Motiv snímků"><button type="button" data-f="all" aria-pressed="true">Vše</button><button type="button" data-f="light" aria-pressed="false">Světlý</button><button type="button" data-f="dark" aria-pressed="false">Tmavý</button></div></div>
+<section class="pair" data-theme-shot="light"><h3>Klienti <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/01-klienti-pred-upravou-light.jpg" alt="Klienti před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/02-klienti-po-uprave-light.jpg" alt="Klienti po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="dark"><h3>Klienti <span>1280 × 900 · tmavý motiv</span></h3>
+<div class="duo"><figure><img src="images/03-klienti-pred-upravou-dark.jpg" alt="Klienti před úpravou, dark" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/04-klienti-po-uprave-dark.jpg" alt="Klienti po úpravě, dark" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Přehled klienta <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/05-prehled-klienta-pred-upravou-light.jpg" alt="Přehled klienta před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/06-prehled-klienta-po-uprave-light.jpg" alt="Přehled klienta po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="dark"><h3>Přehled klienta <span>1280 × 900 · tmavý motiv</span></h3>
+<div class="duo"><figure><img src="images/07-prehled-klienta-pred-upravou-dark.jpg" alt="Přehled klienta před úpravou, dark" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/08-prehled-klienta-po-uprave-dark.jpg" alt="Přehled klienta po úpravě, dark" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Znalosti <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/09-znalosti-pred-upravou-light.jpg" alt="Znalosti před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/10-znalosti-po-uprave-light.jpg" alt="Znalosti po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Zadání (výzkum) <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/11-zadani-vyzkum-pred-upravou-light.jpg" alt="Zadání (výzkum) před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/12-zadani-vyzkum-po-uprave-light.jpg" alt="Zadání (výzkum) po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="dark"><h3>Zadání (výzkum) <span>1280 × 900 · tmavý motiv</span></h3>
+<div class="duo"><figure><img src="images/13-zadani-vyzkum-pred-upravou-dark.jpg" alt="Zadání (výzkum) před úpravou, dark" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/14-zadani-vyzkum-po-uprave-dark.jpg" alt="Zadání (výzkum) po úpravě, dark" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Dotazník <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/15-dotaznik-pred-upravou-light.jpg" alt="Dotazník před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/16-dotaznik-po-uprave-light.jpg" alt="Dotazník po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Cílová skupina <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/17-cilova-skupina-pred-upravou-light.jpg" alt="Cílová skupina před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/18-cilova-skupina-po-uprave-light.jpg" alt="Cílová skupina po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Spuštění <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/19-spusteni-pred-upravou-light.jpg" alt="Spuštění před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/20-spusteni-po-uprave-light.jpg" alt="Spuštění po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Nastavení · Metodika <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/21-nastaveni-metodika-pred-upravou-light.jpg" alt="Nastavení · Metodika před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/22-nastaveni-metodika-po-uprave-light.jpg" alt="Nastavení · Metodika po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section><section class="pair" data-theme-shot="light"><h3>Můj Vedoucí <span>1280 × 900 · světlý motiv</span></h3>
+<div class="duo"><figure><img src="images/23-muj-vedouci-pred-upravou-light.jpg" alt="Můj Vedoucí před úpravou, light" loading="lazy"><figcaption>Před · develop @ dbaa7720</figcaption></figure>
+<figure><img src="images/24-muj-vedouci-po-uprave-light.jpg" alt="Můj Vedoucí po úpravě, light" loading="lazy"><figcaption>Po · feature/ux-upgrade</figcaption></figure></div></section></section>
+</div>
+<script>
+document.querySelectorAll('.ctrl button').forEach(b=>b.addEventListener('click',()=>{const f=b.dataset.f;document.querySelectorAll('.ctrl button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));document.querySelectorAll('[data-theme-shot]').forEach(s=>{s.hidden=!(f==='all'||s.dataset.themeShot===f)})}));
+</script>
+</body></html>

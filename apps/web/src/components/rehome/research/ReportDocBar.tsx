@@ -16,12 +16,13 @@ import { downloadMismatch, fileLine, pdfAskable, pdfStatesReview, pdfWhy, report
 import { t } from "@/i18n/t";
 import { Button } from "../ui";
 import { Icon } from "../icons";
+import { errorText } from "@/lib/error-words";
 
 export type ExportKind = "internal" | "client" | "with_review";
 
 type Status = { kind: "internal"; value: ResearchReport } | { kind: "with_review"; value: ReportVariant };
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 /** The run's status names another version than the one on screen: its PDF, its ask and its edits
  *  are not this document's (stand-in review of #985). */

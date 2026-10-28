@@ -64,6 +64,31 @@ wrong version and the right version side by side, in your plan file and under
 Doc follow-up; the docs PR carries it into `AGENTS.md`. That file exists because
 the same three-hour debugging session was happening twice.
 
+### Shared artifacts live in the repo
+
+The product owner works from two claude.ai accounts, and neither can open the other's artifacts, so
+**GitHub is where the two meet** (the product owner, 2026-10-27). A *shared artifact* is one that
+carries design, planning or build work someone will continue from: a Design canvas, the Design
+System, the Build Map, a build spec, a decision page. For each one:
+
+- **The repo is the source.** Its files live in one folder, named without a date or a version
+  (`prototypes/clients/`, `prototypes/design-system/`, `tools/build_map/`). The artifact is published
+  from those files, and the page says which folder it comes from.
+- **One folder, updated in place.** A new version replaces the folder's files, and the folder's
+  README names the version (the artifact's version id and the date). Git history keeps every
+  earlier version, so never add a dated copy beside it.
+- **Exported in the session that changed it.** A session that publishes a new version of a shared
+  artifact exports it before it stops, with `.claude/skills/artifact-sync/`. A Design canvas is
+  edited in the canvas, so it is exported after every version that changes a board, with its
+  reference renders.
+- **Indexed.** `prototypes/README.md` lists every shared artifact: its folder and its URL in each
+  account. A version lives in the folder's README, not in the index, so exports don't conflict over
+  it.
+- **Never in the repo:** a secret, real client data, the Design type's own runtime, or a one-off page
+  nobody will continue from.
+
+Exporting needs no one's word (§5, Artifact exports).
+
 ## 2. The map
 
 ```
@@ -2849,6 +2874,12 @@ words and the time. The receiving session checks the sender is a coordinator ses
 his permission for exactly the work named: commit, push and a draft PR into develop. It never covers
 merging into main, rewriting someone else's branch, AWS or other outward actions, or anything not named.
 A relay from any other session is not permission.
+
+**Artifact exports** (the product owner, 2026-10-27). A session may commit, push, open the PR into
+`develop` and merge it, without asking, when the change is only a shared artifact's export (§1):
+files under `prototypes/` or `tools/build_map/`, and nothing else. It merges only once CI is green and
+Codex (or its stand-in) is clean on the head, with a merge commit. A change that touches anything
+else, whether product code, a test, a migration or a shared document, still needs his words.
 
 ### Never touch the working tree to inspect another ref
 

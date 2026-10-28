@@ -1,0 +1,1735 @@
+{
+  "develop_sha": "5d2ac5acc766c3e2d452bbb6f7a5271b104c2045",
+  "stages": [
+    {
+      "stage": {
+        "name": "Zadání",
+        "phase": "Návrh výzkumu (design)",
+        "plan": ".planning/plans/artifact-brief.md",
+        "wave": "W1 (all chunks; mvp-execution-contracts.md rows artifact-brief#BRF1-BRF6, BRF7; umbrella research-lead-workbench#18, E26)"
+      },
+      "progress": {
+        "ticked": 2,
+        "total": 7,
+        "ticked_ids": [
+          "BRF1",
+          "BRF6"
+        ]
+      },
+      "built": [
+        "Pointable ids brief:<field>, material:<attachment_id> (BRF1; apps/web/src/lib/artifacts/brief.ts)",
+        "Body in the v73 order Cíl, Cíle, Rozhodnutí, Typ problému, Kontext, Podklady; objectives as items read/written in plan.objectives (BRF2 landed parts, apps/web/src/research/brief-objectives.ts); chunk stays open",
+        "Header: readiness chips in the status slot and 'Požádat Vedoucího o analýzu' sending the typed command, on research-lead-workbench#36 (BRF2/BRF4 landed parts, #936)",
+        "Each brief material's data class served by GET /studies/{id}/workspace/materials (apps/api/src/aia_api/routers/workspace.py:2122 @ 5d2ac5ac, commit ebc86cd1) -- BRF3's API half; BRF3 still unticked; journey at four widths (BRF6)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "BRF7",
+          "what": "Brief files Class A by rule, Class B once marked Veřejné (domain/material_rules.py; today MaterialRule.DESIGN = B, brief_material_classes.py:66 @ 5d2ac5ac); ADR 0008 amendment note",
+          "kind": "domain rule (plus a stored 'Veřejné' mark: unclear whether it needs a migration)"
+        },
+        {
+          "id": "BRF3",
+          "what": "Podklady with class: API half built (workspace.py:2122); still open: picked client sources and their class, depends on client-data-in-analysis#8",
+          "kind": "new API (owned by client-data-in-analysis#8) + web chips -> both"
+        },
+        {
+          "id": "BRF2",
+          "what": "Remaining: Předpoklady as a link (after assumptions-and-open-answer-coding#AOC1) and moving the store onto WCE3a's vocabulary",
+          "kind": "both (AOC1 domain kind + web); unclear how much is left beyond the link"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "BRF4",
+          "what": "analyze_brief only through a Lead card or typed start; BriefStep's own AI start removed under leadOwnsAiStarts; goal/objective changes inline",
+          "kind": "frontend"
+        },
+        {
+          "id": "BRF5",
+          "what": "Inspector's Původ tab lists each field's readers from the chain manifest (CHN1)",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "the client and its approved knowledge titles (artifact-brief §5)",
+        "picked client sources (client-data-in-analysis#8, open)",
+        "a reused design (application/design_reuse.py)"
+      ],
+      "produces": [
+        "working content `briefing` read by analyze_brief (lead_artifacts.py:270 @ 5d2ac5ac)",
+        "plan.objectives to Návrh (artifact-brief §5)",
+        "goal and decision_use to the analysis inputs (application/analysis_results.py:463-466 @ 5d2ac5ac) and printed in ch-design (application/report_design.py:176-180 @ 5d2ac5ac, commit 917efa35)",
+        "attachment records to the brief signature (domain/design_items.py brief_signature)"
+      ],
+      "depends_on": [
+        "input-interactions#1",
+        "input-interactions#4",
+        "working-copy-edit-ops#WCE3a",
+        "research-lead-workbench#7",
+        "research-lead-workbench#26f",
+        "research-lead-workbench#15",
+        "artifact-chain-to-draft-report#CHN1 (done)",
+        "client-data-in-analysis#8",
+        "assumptions-and-open-answer-coding#AOC1",
+        "lead-orchestration#LO5 (done)"
+      ],
+      "next_chunk": {
+        "id": "BRF7",
+        "why": "W1, no listed predecessor; BRF3's pill then shows its class"
+      }
+    },
+    {
+      "stage": {
+        "name": "Návrh",
+        "phase": "Návrh výzkumu (design)",
+        "plan": ".planning/plans/artifact-design.md",
+        "wave": "W1 for DSN1-DSN8, DSN2b, DSN3c, DSN10, DSN12, DSN13, DSN14; W2 for DSN9, DSN11, DSN12b (mvp-execution-contracts.md)"
+      },
+      "progress": {
+        "ticked": 6,
+        "total": 18,
+        "ticked_ids": [
+          "DSN1",
+          "DSN2",
+          "DSN3",
+          "DSN3b",
+          "DSN2b",
+          "DSN12"
+        ]
+      },
+      "built": [
+        "rq:/objective:/hypothesis: targets on the narrative items by item id (DSN1; research/plan-narrative.ts itemTargets)",
+        "Coverage per research question from readiness on the working revision, GET …/research/readiness/working (DSN2, DSN2b; apps/api/src/aia_api/routers/research.py:1421 @ 5d2ac5ac)",
+        "Narrative and set cards edited in place and autosaved; ProposalEditor and MeasurementEditor retired; select-to-comment (DSN3, DSN3b)",
+        "Hypotheses as their own section (DSN12)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "DSN9",
+          "what": "objective_ids on a research question, a new edit operation, analyze_brief harness bump proposing it",
+          "kind": "domain rule + edit op (+ prompt/harness) -> both"
+        },
+        {
+          "id": "DSN12b",
+          "what": "Hypothesis-to-measure link and a research_trace verdict ('ověří S1')",
+          "kind": "domain rule (new link + trace verdict) -> both"
+        },
+        {
+          "id": "DSN13",
+          "what": "Follow-up answers saved per question in the working copy; analyze_brief harness bump; after WCE3a",
+          "kind": "both (working-copy field + harness)"
+        },
+        {
+          "id": "DSN14",
+          "what": "Comments with target and author: {target, author} on a stored comment, author from the session (UI part built on feature/design-comments-undo)",
+          "kind": "both (a new stored field)"
+        },
+        {
+          "id": "DSN4",
+          "what": "Ve zprávě: each RQ's report chapter and answering module from the stored report model (RD5a done) and CHN3",
+          "kind": "both (needs CHN3's trace in ch-2; reading RD5a's document is web)"
+        },
+        {
+          "id": "DSN6",
+          "what": "Tracked assumptions from the one assumption contract (AOC1)",
+          "kind": "both (AOC1 is server)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "DSN3c",
+          "what": "Header: counts and 'Dotazník ›'; tinted intro, JumpChips and dock removed (on research-lead-workbench#36)",
+          "kind": "frontend"
+        },
+        {
+          "id": "DSN10",
+          "what": "Rozsah as a segmented choice; applyVariant stops writing n (a recommended_n field is a hypothesis)",
+          "kind": "frontend (unclear: may need recommended_n)"
+        },
+        {
+          "id": "DSN11",
+          "what": "'k cíli' on each RQ; objectives leave Návrh for Zadání (after DSN9)",
+          "kind": "frontend"
+        },
+        {
+          "id": "DSN5",
+          "what": "Design Research findings per RQ as external context; DesignResearchReview (7b) mounted at the RQ; panel moved from Dotazník as a reader",
+          "kind": "frontend"
+        },
+        {
+          "id": "DSN7",
+          "what": "analyze_brief, critique_design, design_copilot as cards; proposals inline; PlanStep's AI starts removed",
+          "kind": "frontend"
+        },
+        {
+          "id": "DSN8",
+          "what": "Journey at 1440/1100/768/390",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "Zadání: goal, objectives, decision_use (artifact-design §5)",
+        "Dotazník's research_questions links on questions and sets (domain/research_design.py)",
+        "newest finished Design Research run (apps/web/src/lib/design-evidence.ts)"
+      ],
+      "produces": [
+        "plan.research_questions linked by items' research_questions to Dotazník (lead_artifacts.py:288-294 @ 5d2ac5ac)",
+        "research questions to every analysis module (analysis_results.py:455) and hypotheses to HYPOTHESES (analysis_results.py:456, commit 3652d716)",
+        "research_question_comparisons read by readiness; sets compiled into spec.batteries (artifact-design §5)",
+        "Design Research accepted items as a ledger ref + Design Revision (not printed: CHN4)"
+      ],
+      "depends_on": [
+        "research-lead-workbench#36 (built, see notes)",
+        "working-copy-edit-ops#WCE3a",
+        "research-lead-workbench#7",
+        "research-lead-workbench#26f",
+        "research-lead-workbench#26f.1",
+        "research-lead-workbench#23",
+        "lead-orchestration#LO5 (done)",
+        "report-delivery#RD5a (done)",
+        "artifact-chain-to-draft-report#CHN3",
+        "assumptions-and-open-answer-coding#AOC1",
+        "artifact-sample#SMP7 (done, with DSN10)"
+      ],
+      "next_chunk": {
+        "id": "DSN3c",
+        "why": "W1; its only base, research-lead-workbench#36, has landed (artifact-brief BRF2 note, #936; research-lead-workbench.md §'The stage header's slots', feature/stage-header-slot)"
+      }
+    },
+    {
+      "stage": {
+        "name": "Dotazník",
+        "phase": "Návrh výzkumu (design)",
+        "plan": ".planning/plans/artifact-questionnaire.md",
+        "wave": "W1 for QST1-QST9, QST11-QST13; W2 for QST10 (mvp-execution-contracts.md)"
+      },
+      "progress": {
+        "ticked": 2,
+        "total": 13,
+        "ticked_ids": [
+          "QST8",
+          "QST11"
+        ]
+      },
+      "built": [
+        "Závislosti: what reads each set and question downstream, from the working copy (QST8; apps/web/src/research/readers.ts)",
+        "Respondent preview at the stored scale range, saying what was left out (QST11)",
+        "Partial, unticked: the strip with coverage per RQ (QuestionnaireStrip.tsx), VO n chips, B n / S n numbering, type as a tag (QST2 progress notes); length read from /research/limits questionnaire_length, unset today (QST7 progress)",
+        "Partial: section:/question: data-aia marks (QST1 progress, QuestionnaireLeadTargets.test.tsx); no apps/web/src/lib/artifacts/questionnaire.ts at 5d2ac5ac"
+      ],
+      "backend_gaps": [
+        {
+          "id": "QST13",
+          "what": "build/optimize questionnaire contracts read every verified finding of the newest Design Research run, frozen at enqueue, labelled external; prompt and harness bump; fingerprint changes on a newer seal",
+          "kind": "domain rule (research_agents contract) + worker input"
+        },
+        {
+          "id": "QST3",
+          "what": "Lock line and every writer's refusal at the item; depends on working-copy-edit-ops#WCE8 (declarations editor, sociomap_unlock)",
+          "kind": "both (WCE8 is server)"
+        },
+        {
+          "id": "QST4",
+          "what": "Routing and stimulus at the question; route_set is built (WCE13 done), stimulus needs WCE14",
+          "kind": "both (WCE14 adds an op and a design field)"
+        },
+        {
+          "id": "QST5",
+          "what": "Proposals inline per item with coverage gained/lost/kept, per-change accept; needs research-lead-workbench#7, WCE5, WCE6, WCE8b",
+          "kind": "both (WCE6 migration M6, WCE8b proposal rule)"
+        },
+        {
+          "id": "QST7",
+          "what": "Length by the methodology owner's declared rule: server field questionnaire_length on /research/limits, the Metodika entry (Q53 (a))",
+          "kind": "both (domain/methodology/readiness.py entry + inspector)"
+        },
+        {
+          "id": "QST10",
+          "what": "One comparison set shared by Návrh and Dotazník via set_edit (WCE3a) after WCE8b; scale awaits OQ9",
+          "kind": "both (unclear: set_edit is declared, not applied, in edit_ops.py)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "QST1",
+          "what": "Contract as data: view ops show_changes/show_coverage, set:/option: ids (lib/artifacts/questionnaire.ts)",
+          "kind": "frontend"
+        },
+        {
+          "id": "QST2",
+          "what": "Rows edited in place and the item pills (strip landed); needs input-interactions#1 and WCE3b",
+          "kind": "frontend (on WCE3b)"
+        },
+        {
+          "id": "QST6",
+          "what": "build/optimize as Lead cards, stage AI starts removed, Design Research moved to Návrh",
+          "kind": "frontend"
+        },
+        {
+          "id": "QST12",
+          "what": "One editor; the Způsob radiogroup removed; ships with lead-orchestration#LO18b",
+          "kind": "frontend"
+        },
+        {
+          "id": "QST9",
+          "what": "Journey at four widths",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "Návrh's RQs and sets; the accepted Brief (lead-orchestration#LO9d, open); readiness and the question outlook (artifact-questionnaire §5)"
+      ],
+      "produces": [
+        "spec.questions and spec.batteries to fieldwork (lead_artifacts.py:311-316 @ 5d2ac5ac; domain/research_design.py compile_design)",
+        "rating_universe to the Sociomap; ch-design, ch-questions, app-questionnaire (lead_artifacts.py:317)",
+        "items' research_questions links back to Návrh's coverage (research_trace)"
+      ],
+      "depends_on": [
+        "research-lead-workbench#14",
+        "research-lead-workbench#16",
+        "input-interactions#1",
+        "working-copy-edit-ops#WCE3b",
+        "working-copy-edit-ops#WCE5",
+        "working-copy-edit-ops#WCE6",
+        "working-copy-edit-ops#WCE8",
+        "working-copy-edit-ops#WCE8b",
+        "working-copy-edit-ops#WCE14",
+        "research-lead-workbench#7",
+        "research-lead-workbench#26f",
+        "research-lead-workbench#26f.1",
+        "lead-orchestration#LO18b",
+        "lead-orchestration#LO27",
+        "run-qc-and-checkpoint#RQC11"
+      ],
+      "next_chunk": {
+        "id": "QST13",
+        "why": "W1, no listed predecessor; LO27 waits on it"
+      }
+    },
+    {
+      "stage": {
+        "name": "Cílová skupina",
+        "phase": "Vymezení vzorku (sample)",
+        "plan": ".planning/plans/artifact-audience.md",
+        "wave": "W2 (all chunks; umbrella research-lead-workbench#22, E15)"
+      },
+      "progress": {
+        "ticked": 2,
+        "total": 11,
+        "ticked_ids": [
+          "AUD1",
+          "AUD3"
+        ]
+      },
+      "built": [
+        "audience:filter/subpanel targets, refused server-side when the working copy stores no such filter (AUD1; domain/research_lead.py target_refusal, #624)",
+        "Per-filter counts beside the combined one in the audience preview, counts only (AUD3)",
+        "Partial: AUD2 part 1, one strategy choice 'Koho mají výsledky reprezentovat?' (AudienceStep); stored filters the population cannot honour named (finding F3, filterProblems)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "AUD4",
+          "what": "Předpoklady with attached evidence, external and client knowledge apart; needs AOC1, AOC2 (with its ADR)",
+          "kind": "both (AOC1/AOC2 domain + API)"
+        },
+        {
+          "id": "AUD5",
+          "what": "propose_audience as a card, proposal inline; needs working-copy-edit-ops#WCE10 (audience_set is declared, not applied: edit_ops.py CATALOGUE) and lead_artifacts audience edits=False (lead_artifacts.py:323)",
+          "kind": "both (WCE10 edit op + web)"
+        },
+        {
+          "id": "AUD8",
+          "what": "'Přidat faktor' chips and catalogue search; suggested factors have no ranking source",
+          "kind": "both (partly no backend; unclear)"
+        },
+        {
+          "id": "AUD11",
+          "what": "Note where description and filters disagree; blocked on OQ5",
+          "kind": "unclear (no backend, blocked)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "AUD2",
+          "what": "Part 2: editable filter rows (factor, value, count, LIVE version); depends on input-interactions#5",
+          "kind": "frontend"
+        },
+        {
+          "id": "AUD7",
+          "what": "Source note above §01: catalogue version label and default persona source",
+          "kind": "frontend"
+        },
+        {
+          "id": "AUD9",
+          "what": "Live Proveditelnost: debounced preview, three KPI tiles; p95 measured on develop before merge",
+          "kind": "frontend"
+        },
+        {
+          "id": "AUD10",
+          "what": "Built-in subpanels as 'Hotové skupiny' chips inside Zúžit",
+          "kind": "frontend"
+        },
+        {
+          "id": "AUD6",
+          "what": "Journey at four widths",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "Brief and Návrh (lead-orchestration#LO9d)",
+        "LIVE's kept catalogue (GET /population/audience-catalogue) and the client's materialized children (artifact-audience §5)"
+      ],
+      "produces": [
+        "ResearchSpecification audience and SpecSelection filters to Vzorek/fieldwork (lead_artifacts.py:328 @ 5d2ac5ac)",
+        "the stated description and filters printed in ch-design (artifact-chain-to-draft-report#CHN5, done; domain/research_design.py:1257-1268 @ 5d2ac5ac); filters as applied in ch-method",
+        "assumptions to report-delivery#RD9 (planned)"
+      ],
+      "depends_on": [
+        "input-interactions#5",
+        "assumptions-and-open-answer-coding#AOC1",
+        "assumptions-and-open-answer-coding#AOC2",
+        "working-copy-edit-ops#WCE10",
+        "research-lead-workbench#7",
+        "research-lead-workbench#26f",
+        "lead-orchestration#LO5 (done)"
+      ],
+      "next_chunk": {
+        "id": "AUD7",
+        "why": "W2, no listed predecessor; lane F's order (prototype-build.md) puts AUD2 first, but AUD2 part 2 waits on input-interactions#5"
+      }
+    },
+    {
+      "stage": {
+        "name": "Dimenze",
+        "phase": "Vymezení vzorku (sample)",
+        "plan": ".planning/plans/artifact-dimensions.md",
+        "wave": "W2 (DIM1-DIM8), W1 for DIM3b (mvp-execution-contracts.md)"
+      },
+      "progress": {
+        "ticked": 3,
+        "total": 9,
+        "ticked_ids": [
+          "DIM1",
+          "DIM3",
+          "DIM3b"
+        ]
+      },
+      "built": [
+        "dimension:/own_dimension: ids via tryAiaId (DIM1; lib/artifacts/dimensions.ts)",
+        "N moved to Vzorek inside the workbench, shared SampleSize.tsx stepper bounded by /research/limits (DIM3, DIM3b)",
+        "Persona topic per dimension from GET …/research/persona-topics (DIM2 part 1, #612; routers/research.py:1754 @ 5d2ac5ac)",
+        "Own dimensions listed with state and target beside achieved (DIM4 read half, #667; OwnDimensions.tsx)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "DIM4",
+          "what": "Requesting an own dimension: waits on client-knowledge-lifecycle#K5 (definition contract) and MVPQ-03 (descriptors); materialize routes exist (routers/materialize.py)",
+          "kind": "both (K5 domain + web)"
+        },
+        {
+          "id": "DIM5",
+          "what": "suggest_dimensions as a card, proposal inline; needs WCE10 (dimensions_set declared, not applied)",
+          "kind": "both"
+        },
+        {
+          "id": "DIM7",
+          "what": "'podpoří …' per dimension from persona-topic feeds; blocked on master I5 and research_trace",
+          "kind": "unclear (no backend; blocked)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "DIM2",
+          "what": "Remaining: each dimension's definition, source and use from GET /population/versions/{id}/characteristics (data exists)",
+          "kind": "frontend"
+        },
+        {
+          "id": "DIM8",
+          "what": "Dead 'Faktory společnosti' card and AI suggestion card removed, with research-lead-workbench#26f",
+          "kind": "frontend"
+        },
+        {
+          "id": "DIM6",
+          "what": "Journey at four widths",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "Brief, Návrh, Cílová skupina (lead-orchestration#LO9d)",
+        "population catalogue and field policy (RuntimePopulation.decide)"
+      ],
+      "produces": [
+        "SpecSelection dimensions (persona_dimensions.approved) to fieldwork's persona allowlist (lead_artifacts.py:340 @ 5d2ac5ac)",
+        "a materialized child pinned on the run by population_version_id; ch-method prints each dimension applied or not"
+      ],
+      "depends_on": [
+        "client-knowledge-lifecycle#K5",
+        "working-copy-edit-ops#WCE10",
+        "research-lead-workbench#7",
+        "research-lead-workbench#26f",
+        "lead-orchestration#LO5 (done)"
+      ],
+      "next_chunk": {
+        "id": "DIM2",
+        "why": "W2; the remaining part needs only the existing characteristics route"
+      }
+    },
+    {
+      "stage": {
+        "name": "Vzorek",
+        "phase": "Vymezení vzorku (sample)",
+        "plan": ".planning/plans/artifact-sample.md",
+        "wave": "W1 (all chunks; umbrella research-lead-workbench#19, E26)"
+      },
+      "progress": {
+        "ticked": 11,
+        "total": 15,
+        "ticked_ids": [
+          "SMP1",
+          "SMP2",
+          "SMP3",
+          "SMP4",
+          "SMP5",
+          "SMP6",
+          "SMP2b",
+          "SMP3b",
+          "SMP5b",
+          "SMP7",
+          "SMP8"
+        ]
+      },
+      "built": [
+        "Composition by quota cells for the panel path, 'no quotas' for the roster (SMP2, SMP2b, with run-qc-and-checkpoint#RQC6)",
+        "Support forecast and question outlook as a forecast; readiness on the working revision, worst first, each check with its fixing stage (SMP3, SMP3b, SMP4; WCE7b)",
+        "N set on Vzorek with set_n; ARTIFACTS.sample edits true (SMP7; lead_artifacts.py:347 @ 5d2ac5ac)",
+        "The run's ceiling and the study's remainder beside N (SMP8)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "SMP10",
+          "what": "Readiness FAILs while the run's ceiling exceeds what is left of Rozpočet studie (B1 (a)); needs lead-orchestration#LO23",
+          "kind": "domain rule (readiness check) + API"
+        },
+        {
+          "id": "SMP9",
+          "what": "Server reportable_n and 'Zvýšit na N x · strop +Δ USD'; a readiness ?n= ceiling query is new; browser recommendation removed",
+          "kind": "new API (query param) -> both"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "SMP4b",
+          "what": "§03 readiness in words, one fix per check, header pill, budget row (the FAIL SMP10 serves)",
+          "kind": "frontend (budget row waits for SMP10)"
+        },
+        {
+          "id": "SMP6b",
+          "what": "Journey extended: N stepped and read back, the Lead's focus, zero paid (after SMP7-SMP9)",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "Dimenze (dimensions), Cílová skupina (filters), Dotazník (items for the outlook), Návrh (the trace) (artifact-sample §5; lead_artifacts.py:350)",
+        "readiness on the working revision (routers/research.py:1421)"
+      ],
+      "produces": [
+        "ResearchSpecification n to fieldwork (lead_artifacts.py:352)",
+        "readiness the start reads; gaps, answerability and forecast recorded in run metadata, printed in ch-method (artifact-sample §5)"
+      ],
+      "depends_on": [
+        "lead-orchestration#LO23",
+        "research-lead-workbench#36 (built)",
+        "working-copy-edit-ops#WCE7 (7a-7c done)"
+      ],
+      "next_chunk": {
+        "id": "SMP4b",
+        "why": "W1; base research-lead-workbench#36 landed; its budget row then reads SMP10 once LO23 lands"
+      }
+    },
+    {
+      "stage": {
+        "name": "Sběr dat",
+        "phase": "Sběr (execution)",
+        "plan": ".planning/plans/artifact-fieldwork.md",
+        "wave": "W1 (all chunks; umbrella research-lead-workbench#19, E26)"
+      },
+      "progress": {
+        "ticked": 14,
+        "total": 19,
+        "ticked_ids": [
+          "FLD2",
+          "FLD3",
+          "FLD4",
+          "FLD4a",
+          "FLD4b",
+          "FLD4d",
+          "FLD4c",
+          "FLD7",
+          "FLD8",
+          "FLD2b",
+          "FLD2c",
+          "FLD4e",
+          "FLD10",
+          "FLD11"
+        ]
+      },
+      "built": [
+        "Run head and steps from run.steps, tagged 'AI model' / 'kód'; progress from fieldwork_progress and the per-respondent checkpoint (FLD2, FLD2b, FLD2c, FLD3; RQC0, RQC7a)",
+        "Náklady: GET …/research/runs/{id} answers spend (spent, held, uncertain) and cost_ceiling recorded at start; KPI tiles (FLD4a, FLD4d, FLD4e)",
+        "budget_need on a step parked at the cap (FLD10; routers/research.py:1121-1178 @ 5d2ac5ac)",
+        "Kdo odpovídal receipt; feed in words with STEP_RESUMED (FLD7, FLD11)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "FLD5",
+          "what": "Kvalita a zásah: QC warnings and straight-liner flags, keep/flag; needs evidence-integrity#3, run-qc-and-checkpoint#RQC4, MVPQ-10 for replacement",
+          "kind": "both (QC stored beside the run is server)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "FLD1",
+          "what": "Contract as data: view ops, pointable ids (run, step, cost line, quality flag); lib/artifacts/fieldwork.ts exists but the chunk is open",
+          "kind": "frontend"
+        },
+        {
+          "id": "FLD6",
+          "what": "Spuštění: Start kept with its gates; the run also a Lead card; paid retries to the Lead's cards; SpendDialog when input-interactions#6 lands (W2)",
+          "kind": "frontend"
+        },
+        {
+          "id": "FLD9",
+          "what": "One stage, two views Kontrola and Průběh; a start opens Průběh (on research-lead-workbench#36)",
+          "kind": "frontend"
+        },
+        {
+          "id": "FLD8b",
+          "what": "Fieldwork disc journey at four widths; needs a recorded panel run or says what it cannot show",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "a frozen Design Revision; persona source and population pins; readiness acknowledgement; study budget and wallet (artifact-fieldwork §5; lead_artifacts.py:362)"
+      ],
+      "produces": [
+        "research_fieldwork_dataset -> research_aggregate, research_sociomap, admitted evidence (lead_artifacts.py:364-368 @ 5d2ac5ac; workflow graph domain/workflow_templates.py:112-118)",
+        "run metadata (population binding, persona_source, selection receipt, pinned Sociomap methods, cost_ceiling) read by ch-method and app-audit"
+      ],
+      "depends_on": [
+        "evidence-integrity#3",
+        "run-qc-and-checkpoint#RQC4",
+        "input-interactions#6",
+        "research-lead-workbench#26f",
+        "research-lead-workbench#36 (built)",
+        "research-lead-workbench#14",
+        "research-lead-workbench#16",
+        "run-qc-and-checkpoint#RQC7c"
+      ],
+      "next_chunk": {
+        "id": "FLD9",
+        "why": "W1; base research-lead-workbench#36 landed"
+      }
+    },
+    {
+      "stage": {
+        "name": "Výsledky",
+        "phase": "Evidence",
+        "plan": ".planning/plans/artifact-results.md",
+        "wave": "W2 (umbrella research-lead-workbench#20, E15); RES5b W3"
+      },
+      "progress": {
+        "ticked": 3,
+        "total": 14,
+        "ticked_ids": [
+          "RES4a",
+          "RES5a",
+          "RES7a"
+        ]
+      },
+      "built": [
+        "Reopened note 'Výsledky běhu z revize N; studie je na revizi M' from GET …/design/revisions (RES4a)",
+        "Up to five raw open answers, internal only, labelled as data (RES5a; test_open_answers_stay_internal.py)",
+        "Data view journey at four widths (RES7a; results_journey.mjs)",
+        "Today the screen reads the raw aggregate artifact and decides suppression in the browser (artifact-results §2; GET …/runs/{id}/artifacts/{artifact_id}, routers/research.py:2172 @ 5d2ac5ac)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "RES2",
+          "what": "Results read admitted rows from the server (evidence-integrity#6)",
+          "kind": "new API (owned by evidence-integrity#6) + web"
+        },
+        {
+          "id": "RES4b",
+          "what": "Původ a kvalita: run, revision, origin, suppression rule, QC count (QC after evidence-integrity#3; productization-coherence#PC5)",
+          "kind": "both"
+        },
+        {
+          "id": "RES5b",
+          "what": "Coded counts after assumptions-and-open-answer-coding#AOC8",
+          "kind": "both"
+        },
+        {
+          "id": "RES8",
+          "what": "CSV/XLSX export of per-question tables from the aggregate; note: report-delivery#RD12 already exports from the report's document model at GET …/report/tables/{file_format} (routers/research.py:3487 @ 5d2ac5ac, commit 841138ed)",
+          "kind": "new API (unclear whether still needed beyond RD12)"
+        },
+        {
+          "id": "RES10",
+          "what": "Research-question tiles VO1…VOn; the RQ list on the compiled specification is a hypothesis until anchored",
+          "kind": "unclear"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "RES1",
+          "what": "Contract as data (no lib/artifacts/results.ts at 5d2ac5ac)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RES3",
+          "what": "Body: means with intervals and Kish n, suppressed rows, reading line, shares (OQ8 awaits the methodology owner)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RES4c",
+          "what": "Header pill 'Běh z … · revize n', revision-moved link, 'Sociomapa ›' (on research-lead-workbench#36)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RES6",
+          "what": "Interpretation Research on a question or set as a Lead card; client-knowledge ask removed",
+          "kind": "frontend"
+        },
+        {
+          "id": "RES7b",
+          "what": "Journey's Lead half (after RES6)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RES9",
+          "what": "No inner tabs in the workbench",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "the run's aggregate (artifact id + SHA-256), the specification, run metadata and the evidence table (artifact-results §5); lead_artifacts.py:378 inputs fieldwork"
+      ],
+      "produces": [
+        "research_aggregate to Analýza (lead_artifacts.py:380 @ 5d2ac5ac)",
+        "admitted claims by evidence_ref to Analysis, ch-questions and the Lead (lead-orchestration#LO8)"
+      ],
+      "depends_on": [
+        "evidence-integrity#6",
+        "evidence-integrity#3",
+        "productization-coherence#PC5",
+        "assumptions-and-open-answer-coding#AOC8",
+        "research-lead-workbench#14",
+        "research-lead-workbench#16",
+        "research-lead-workbench#23b",
+        "research-lead-workbench#26f",
+        "research-lead-workbench#26f.1",
+        "lead-orchestration#LO5a.1 (done)"
+      ],
+      "next_chunk": {
+        "id": "RES9",
+        "why": "W2, no listed predecessor; first in lane F's Výsledky order (prototype-build.md)"
+      }
+    },
+    {
+      "stage": {
+        "name": "Sociomapa",
+        "phase": "Evidence",
+        "plan": ".planning/plans/artifact-sociomap.md",
+        "wave": "W2 (umbrella research-lead-workbench#20, E15)"
+      },
+      "progress": {
+        "ticked": 9,
+        "total": 15,
+        "ticked_ids": [
+          "SOC1",
+          "SOC3",
+          "SOC9",
+          "SOC10",
+          "SOC11",
+          "SOC12",
+          "SOC13",
+          "SOC11b",
+          "SOC14"
+        ]
+      },
+      "built": [
+        "Closed display ops and object:/pair: targets, writes refused by name (SOC1; lib/artifacts/sociomap.ts readMapOp); select and filter live on the server (lead_artifacts.py:84-93 @ 5d2ac5ac)",
+        "Filter bar and the four registers on the -5 panel (SOC3; lib/sociomap-display.ts)",
+        "The stage is the map; plain Czech; overlays (SOC9-SOC13, SOC11b, SOC14)",
+        "Partial: object and pair detail in the item inspector (SOC4 2026-10-26, MapInspect.tsx); Lead map views routed to the -5 panel (SOC2 2026-10-26)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "SOC5",
+          "what": "Map interpreter's labelled output and a pair's Interpretation Research as Lead cards; needs lead-orchestration#LO9b, report-delivery#RD6, research-lead-workbench#23b/#23c",
+          "kind": "both"
+        },
+        {
+          "id": "SOC6",
+          "what": "Segment maps, filters and respondent drill-down; needs segment-maps-and-drilldown#8 and #0 (method owner); respondent:/segment: targets",
+          "kind": "both"
+        },
+        {
+          "id": "SOC7",
+          "what": "Map snapshot approval slot; needs report-delivery#RD4 (map-snapshot routes exist: routers/research.py:4224-4336 @ 5d2ac5ac)",
+          "kind": "both (RD4 open)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "SOC2",
+          "what": "Host the -5 panel in the artifact frame, Results and project memory, old-method text; sociomap-5-web#6 and signed-off-sociomap-method#8 are done, the frame (research-lead-workbench#15) is not",
+          "kind": "frontend"
+        },
+        {
+          "id": "SOC4",
+          "what": "Remaining: a respondent's detail in the inspector (no respondent: target yet, SOC6)",
+          "kind": "frontend"
+        },
+        {
+          "id": "SOC8",
+          "what": "Journey at four widths (partly delivered: sociomap_journey.mjs)",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "the run's Sociomap artifact verified against dataset and specification (report_chapters.py); the Sociomap register; the pinned methods (artifact-sociomap §5)"
+      ],
+      "produces": [
+        "research_sociomap contract-3 maps (verified_map) to the report's ch-native-map-<n> and their figures (lead_artifacts.py:392 @ 5d2ac5ac)",
+        "map id + SHA in app-audit (CHN6 done)"
+      ],
+      "depends_on": [
+        "research-lead-workbench#15",
+        "lead-orchestration#LO9b",
+        "report-delivery#RD6",
+        "report-delivery#RD4",
+        "research-lead-workbench#23b",
+        "research-lead-workbench#23c",
+        "segment-maps-and-drilldown#0",
+        "segment-maps-and-drilldown#8",
+        "signed-off-sociomap-method#9"
+      ],
+      "next_chunk": {
+        "id": "SOC8",
+        "why": "W2; extends the existing sociomap_journey.mjs; no listed predecessor outstanding (26b-26d done)"
+      }
+    },
+    {
+      "stage": {
+        "name": "Analýza",
+        "phase": "Interpretace (interpretation)",
+        "plan": ".planning/plans/artifact-analysis.md",
+        "wave": "W3 (umbrella research-lead-workbench#21, E20)"
+      },
+      "progress": {
+        "ticked": 3,
+        "total": 14,
+        "ticked_ids": [
+          "ANL1",
+          "ANL2",
+          "ANL3"
+        ]
+      },
+      "built": [
+        "module:/finding:/claim: targets on the registry (ANL1; lib/artifacts/analysis.ts)",
+        "Coverage per research question from the frozen Design Revision with milestones (ANL2; AnalysisCoverage.tsx)",
+        "Findings opened in the item inspector down to the measure (ANL3; AnalysisInspect)",
+        "Partial: Blokované nároky from stored violations (ANL4, AnalysisBlocked.tsx); Externí kontext from GET …/analysis external_context (ANL5, AnalysisExternal.tsx)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "ANL11",
+          "what": "Finding review on the server: ledger subject analysis_finding, its routes and migration (LO16's pattern)",
+          "kind": "migration + new API"
+        },
+        {
+          "id": "ANL4",
+          "what": "Remaining: per-claim refusals as stored (N-3, a new API) and evidence-integrity#9a's no-supported-finding diagnostic",
+          "kind": "both"
+        },
+        {
+          "id": "ANL5",
+          "what": "Remaining: the labelled-interpretation register (lead-orchestration#LO9b)",
+          "kind": "both"
+        },
+        {
+          "id": "ANL7",
+          "what": "Open-answer coding hosted here (AOC8)",
+          "kind": "both"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "ANL9",
+          "what": "Analýza as a stage of its own, no Výsledky tabs",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL10",
+          "what": "Header 'Běh z … · interní · origin'; ids off the stage",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL2b",
+          "what": "Coverage table as Otázka | Odpověď | Stav",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL3b",
+          "what": "One findings list with a module filter (with ANL5)",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL6",
+          "what": "Modules and same-data retry through the Lead's card; stage retry buttons removed; ceiling from LO23",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL12",
+          "what": "Finding review on the web: Přijmout / Upravit / Vyřadit / Vrátit (after ANL11, ANL3b)",
+          "kind": "frontend"
+        },
+        {
+          "id": "ANL8",
+          "what": "Journey at four widths on recorded analysis",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "admitted claims, the specification, research_questions_of, hypotheses and the brief's goal/decision_use, run metadata (application/analysis_results.py:198-245, 448-466 @ 5d2ac5ac)",
+        "the pinned Design Research bundle as external context (analysis_results.py:242-243)"
+      ],
+      "produces": [
+        "eight research_analysis modules to the report's ch-1..ch-8 and app-evidence (lead_artifacts.py:404-416 @ 5d2ac5ac; application/report.py:158-197: all eight with a supported finding or no draft)"
+      ],
+      "depends_on": [
+        "evidence-integrity#9a",
+        "lead-orchestration#LO9b",
+        "assumptions-and-open-answer-coding#AOC8",
+        "research-lead-workbench#26f",
+        "lead-orchestration#LO23",
+        "research-lead-workbench#48"
+      ],
+      "next_chunk": {
+        "id": "ANL9",
+        "why": "W3, no listed predecessor; first in lane G's order (prototype-build.md)"
+      }
+    },
+    {
+      "stage": {
+        "name": "Zpráva",
+        "phase": "Předání (delivery)",
+        "plan": ".planning/plans/artifact-report.md",
+        "wave": "W3 (umbrella research-lead-workbench#21, E20)"
+      },
+      "progress": {
+        "ticked": 14,
+        "total": 28,
+        "ticked_ids": [
+          "RPT1",
+          "RPT2",
+          "RPT3",
+          "RPT3a",
+          "RPT3b",
+          "RPT4",
+          "RPT8b",
+          "RPT8c",
+          "RPT8d",
+          "RPT8f",
+          "RPT8c.1",
+          "RPT12",
+          "RPT14",
+          "RPT15"
+        ]
+      },
+      "built": [
+        "Draft rendered in the pane from the stored document model with claim chips (RPT1, RPT2; report-delivery#RD5a; GET …/report/document, routers/research.py:2766 @ 5d2ac5ac)",
+        "Approval on the version shown, modal naming it (RPT3, RPT3a); Záznam pokrytí from the CHN1 manifest (RPT4)",
+        "ONLYOFFICE editor routes behind AIA_ONLYOFFICE_URL, saves as versions, 'Upraveno ručně', edit-sequence approval gate (RPT8b, RPT8c, RPT8d, RPT8f; routers/report_editor.py)",
+        "Editor config, uiTheme, no ids, fonts re-embedded on download (RPT8c.1, RPT12, RPT14, RPT15)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "RPT13",
+          "what": "Client report editable; only accepted findings reach it; client gate (RD0) re-run on every saved version before approval (B2 (a))",
+          "kind": "both (domain/API gate)"
+        },
+        {
+          "id": "RPT9",
+          "what": "The Lead edits the same document as tracked changes / proposed versions; every number a ledger ref passing the sentence check",
+          "kind": "both (after the editor is live)"
+        },
+        {
+          "id": "RPT10",
+          "what": "Literature by the Lead: Interpretation Research on a plan card, findings woven in (CHN8); panel start removed after LO5a.3",
+          "kind": "both"
+        },
+        {
+          "id": "RPT5",
+          "what": "Draft revisions and editor version history; depends on report-delivery#RD5",
+          "kind": "both"
+        },
+        {
+          "id": "RPT8e",
+          "what": "api.js Subresource Integrity gate: built per its notes; its last check is activation's against a real Document Server",
+          "kind": "operations (unclear: front-matter open)"
+        },
+        {
+          "id": "RPT8a",
+          "what": "Locked, tagged content controls for every printed number: parts 1-3 described as landed in the plan's notes, front-matter unticked",
+          "kind": "backend (likely built; verify before scheduling)"
+        },
+        {
+          "id": "RPT8",
+          "what": "Umbrella for RPT8a-d",
+          "kind": "both"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "RPT11",
+          "what": "Zpráva as a stage of its own; parts list under the bar",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT3c",
+          "what": "One document bar; every download moves into it; 'Zpráva s rešerší' leaves the pane (P3)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT3d",
+          "what": "Approval dialog with saved time and accepted-findings count (count after ANL11)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT8b.1",
+          "what": "Prose number change shown inline 'Upraveno ručně'; no Vrátit in the editor",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT8d.1",
+          "what": "A number's detail in words from the bar's lists (after RPT8a part 3)",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT7",
+          "what": "Journey at four widths",
+          "kind": "frontend"
+        },
+        {
+          "id": "RPT6",
+          "what": "Replaced by RPT9 and RPT10",
+          "kind": "n/a"
+        }
+      ],
+      "consumes": [
+        "design, questionnaire, sociomap, analysis (lead_artifacts.py:424 inputs)",
+        "the stored document model and its ledger (RD5a), the approval ledger (RD2), the chain manifest (CHN1)"
+      ],
+      "produces": [
+        "research_internal_docx, DRAFT_UNAPPROVED, approved only by a person (lead_artifacts.py:425-427 @ 5d2ac5ac)",
+        "approved DOCX/PDF by artifact id + SHA-256; project memory reads the approved state (lib/memory.ts runLabels)"
+      ],
+      "depends_on": [
+        "report-delivery#RD5",
+        "report-delivery#RD6",
+        "report-delivery#RD3",
+        "artifact-analysis#ANL11",
+        "artifact-chain-to-draft-report#CHN8",
+        "artifact-chain-to-draft-report#CHN13",
+        "lead-orchestration#LO5a.3",
+        "lead-orchestration#LO9b",
+        "report-editor-hosting#4",
+        "report-editor-hosting#5",
+        "report-editor-hosting#6"
+      ],
+      "next_chunk": {
+        "id": "RPT11",
+        "why": "W3, no listed predecessor; first open chunk in lane G's Zpráva order (prototype-build.md)"
+      }
+    },
+    {
+      "stage": {
+        "name": "Nastavení (Settings)",
+        "phase": "outside the study (global navigation)",
+        "plan": ".planning/plans/settings-redesign.md (+ prototype-build.md lane A PBA3, system-prompts-settings.md #14-#16)",
+        "wave": "W1 (proposed core, every open chunk W1; mvp-execution-contracts.md settings-redesign rows)"
+      },
+      "progress": {
+        "ticked": 39,
+        "total": 42,
+        "ticked_ids": "all but F12, F18, F20"
+      },
+      "built": [
+        "Tab frame, shared inputs, Přístup, Studie a rozpočty, Systémové prompty, Deep Research, AI běh, Audit, Reference, Metodika catalogue and module views (1-12, F1-F11)",
+        "⌘K section menu (F12b); Reference folded into Stav systému, nine sections (F17)",
+        "Naposledy served as last_seen_at (F19); AI běh's last answered call per activity (F14); Upravit bounds from the domain (F13)",
+        "Prostředí a verze and 'Kopírovat diagnostiku' (F21); Správa dat typed-name confirmation (F22); hero component exists (prototype-build#PBA4; apps/web/src/components/aia/Hero.tsx)"
+      ],
+      "backend_gaps": [
+        {
+          "id": "F20",
+          "what": "'Čeká na rozpočet' tile: an organization-scoped count of steps AWAITING_BUDGET, allowed only through WorkQueue; read shape needs an architecture decision",
+          "kind": "new API (architecture decision first)"
+        },
+        {
+          "id": "system-prompts-settings#16",
+          "what": "System prompts edited and activated only with the Metodik mark (server rule); F12's Systémové prompty chips wait on it",
+          "kind": "domain rule / API permission"
+        },
+        {
+          "id": "system-prompts-settings#15",
+          "what": "A researcher reads system prompts 'Jen ke čtení': a member read route; ADR 0020 amendment",
+          "kind": "new API"
+        },
+        {
+          "id": "system-prompts-settings#14",
+          "what": "Remove the draft test from Settings: no paid AI start outside the Lead",
+          "kind": "both (unclear: removing a route or only its UI)"
+        }
+      ],
+      "frontend_gaps": [
+        {
+          "id": "F12",
+          "what": "Colour rules and copy: part 1 built; left: kept-record rows as v99 draws them, Systémové prompty head chips (after system-prompts-settings#16)",
+          "kind": "frontend"
+        },
+        {
+          "id": "F18",
+          "what": "Hero figures: part 1 built (Přístup, Audit); part 2: Metodika, Systémové prompty, Deep Research, AI běh, Studie, Stav systému, Správa dat hand figures up",
+          "kind": "frontend"
+        },
+        {
+          "id": "prototype-build#PBA3",
+          "what": "The Nastavení flyout from the rail item: nine sections in three groups, keyword search, ⌘K, coral total for those who can act (lane A)",
+          "kind": "frontend"
+        }
+      ],
+      "consumes": [
+        "GET /settings, /config, /members, /population, /health, usage ledger aggregates (settings-redesign F14, F19, F21)"
+      ],
+      "produces": [
+        "money settings the stages read: Rozpočet studie, Práh potvrzení, wallet (Studie a rozpočty; domain/money.py)",
+        "methodology versions in force pinned at run start (Metodika; application/research.py pins)",
+        "Deep Research approvals pinned at enqueue (ADR 0022)",
+        "questionnaire_length rule on Metodika for Dotazník (artifact-questionnaire QQ1, not yet entered)"
+      ],
+      "depends_on": [
+        "prototype-build#PBA4 (done)",
+        "system-prompts-settings#16",
+        "settings-redesign#F17 (done)",
+        "settings-redesign#F12b (done)"
+      ],
+      "next_chunk": {
+        "id": "settings-redesign#F18",
+        "why": "W1, its base PBA4 landed; lane A's PBA3 is also unblocked (F12b and F17 done)"
+      }
+    }
+  ],
+  "chain": [
+    {
+      "from": "Zadání",
+      "to": "Návrh",
+      "what": "working content `briefing` (goal, decision_use, context) read by analyze_brief, whose result is the plan",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:270 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Zadání",
+      "to": "Návrh",
+      "what": "plan.objectives as stable-id items shared by both stages; an objective's '→ VO n' link to research questions",
+      "defined_by": "artifact-brief#BRF2 (objectives built); artifact-design#DSN9 (link)",
+      "state": "built (objectives) / planned (objective_ids link)"
+    },
+    {
+      "from": "Zadání",
+      "to": "Analýza",
+      "what": "goal and decision_use in the analysis inputs (Brief)",
+      "defined_by": "packages/aia_core/src/aia_core/application/analysis_results.py:198-205, 463-466 @ 5d2ac5ac (commit 917efa35)",
+      "state": "built"
+    },
+    {
+      "from": "Zadání",
+      "to": "Zpráva",
+      "what": "goal and decision_use printed in ch-design",
+      "defined_by": "packages/aia_core/src/aia_core/application/report_design.py:176-180 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Zadání",
+      "to": "Zpráva / Analýza",
+      "what": "objectives and briefing compiled into the specification as SpecBrief, printed in intro, fingerprinted",
+      "defined_by": "artifact-chain-to-draft-report#CHN2",
+      "state": "planned"
+    },
+    {
+      "from": "Zadání",
+      "to": "every model route",
+      "what": "each brief material's data class (today Class B by rule; Class A unless marked Veřejné)",
+      "defined_by": "apps/api/src/aia_api/routers/workspace.py:2122 @ 5d2ac5ac; artifact-brief#BRF7",
+      "state": "built (B by rule) / planned (A rule)"
+    },
+    {
+      "from": "Návrh",
+      "to": "Dotazník",
+      "what": "research_plan.research_questions, linked by items' research_questions",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:288-294 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Dotazník",
+      "to": "Návrh",
+      "what": "coverage per research question (pokryto / částečně / mezera) from research_trace on the working revision",
+      "defined_by": "artifact-design#DSN2b; GET …/research/readiness/working, routers/research.py:1421 @ 5d2ac5ac (working-copy-edit-ops#WCE7a)",
+      "state": "built"
+    },
+    {
+      "from": "Návrh",
+      "to": "Dotazník",
+      "what": "one comparison set shared by both stages",
+      "defined_by": "artifact-questionnaire#QST10",
+      "state": "planned"
+    },
+    {
+      "from": "Návrh",
+      "to": "Analýza",
+      "what": "ResearchSpecification research questions to every module; hypotheses to HYPOTHESES",
+      "defined_by": "lead_artifacts.py:293 @ 5d2ac5ac; analysis_results.py:455-456 @ 5d2ac5ac (commit 3652d716)",
+      "state": "built"
+    },
+    {
+      "from": "Návrh",
+      "to": "Zpráva",
+      "what": "each RQ traced to its measures, tables and findings in ch-2",
+      "defined_by": "artifact-chain-to-draft-report#CHN3",
+      "state": "planned"
+    },
+    {
+      "from": "Návrh (Design Research)",
+      "to": "Zpráva",
+      "what": "accepted Design Research items labelled external context in ch-design",
+      "defined_by": "artifact-chain-to-draft-report#CHN4",
+      "state": "planned"
+    },
+    {
+      "from": "Návrh (Design Research)",
+      "to": "Dotazník jobs",
+      "what": "every verified finding of the newest Design Research run frozen into build/optimize questionnaire",
+      "defined_by": "artifact-questionnaire#QST13, lead-orchestration#LO27",
+      "state": "planned"
+    },
+    {
+      "from": "Návrh (Design Research)",
+      "to": "Analýza",
+      "what": "the pinned bundle's accepted findings shown to modules as external context",
+      "defined_by": "analysis_results.py:242-243 @ 5d2ac5ac; artifact-analysis#ANL5 (landed part); evidence-integrity#7 unticked",
+      "state": "built (as noted in ANL5)"
+    },
+    {
+      "from": "Dotazník",
+      "to": "Sběr dat",
+      "what": "ResearchSpecification questions and batteries (compile_design)",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:311-316 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Dotazník",
+      "to": "Sociomapa",
+      "what": "tracked sets and declared rating questions as the map's rating_universe",
+      "defined_by": "artifact-questionnaire §5; QST8 readers.ts",
+      "state": "built"
+    },
+    {
+      "from": "Dotazník",
+      "to": "Zpráva",
+      "what": "ch-design, ch-questions, app-questionnaire",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:317 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Dotazník",
+      "to": "Sběr dat",
+      "what": "routing asked only of eligible respondents",
+      "defined_by": "run-qc-and-checkpoint#RQC11 (route_set built: working-copy-edit-ops#WCE13)",
+      "state": "planned"
+    },
+    {
+      "from": "Cílová skupina",
+      "to": "Vzorek / Sběr dat",
+      "what": "ResearchSpecification audience and SpecSelection filters; per-filter preview counts",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:328 @ 5d2ac5ac; artifact-audience#AUD3",
+      "state": "built"
+    },
+    {
+      "from": "Cílová skupina",
+      "to": "Zpráva",
+      "what": "stated description and filters in ch-design; applied filters in ch-method",
+      "defined_by": "artifact-chain-to-draft-report#CHN5; domain/research_design.py:1257-1268 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Cílová skupina",
+      "to": "Zpráva",
+      "what": "tracked assumptions with evidence",
+      "defined_by": "artifact-audience#AUD4, report-delivery#RD9",
+      "state": "planned"
+    },
+    {
+      "from": "Dimenze",
+      "to": "Sběr dat",
+      "what": "SpecSelection dimensions as the persona topic allowlist; dimensions_unmatched in the receipt",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:340 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Dimenze",
+      "to": "Sběr dat",
+      "what": "a client's own dimension materialized and pinned as population_version_id",
+      "defined_by": "artifact-dimensions#DIM4 (read half built), client-knowledge-lifecycle#K5",
+      "state": "planned"
+    },
+    {
+      "from": "Vzorek",
+      "to": "Sběr dat",
+      "what": "ResearchSpecification n (set_n on Vzorek), bounded by /research/limits",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:352 @ 5d2ac5ac; artifact-sample#SMP7",
+      "state": "built"
+    },
+    {
+      "from": "Vzorek",
+      "to": "Sběr dat",
+      "what": "readiness the start reads; a FAIL while the run's ceiling exceeds Rozpočet studie",
+      "defined_by": "artifact-sample#SMP4 (built); artifact-sample#SMP10 + lead-orchestration#LO23",
+      "state": "built (readiness) / planned (budget stop)"
+    },
+    {
+      "from": "Vzorek",
+      "to": "Zpráva",
+      "what": "gaps, answerability and forecast recorded at start, printed in ch-method and intro's gap marks",
+      "defined_by": "artifact-chain-to-draft-report §1 table (report_method.py)",
+      "state": "built"
+    },
+    {
+      "from": "Sběr dat",
+      "to": "Výsledky",
+      "what": "research_fieldwork_dataset -> research_aggregate",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:365 @ 5d2ac5ac; domain/workflow_templates.py:112-118 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Sběr dat",
+      "to": "Sociomapa",
+      "what": "research_fieldwork_dataset -> research_sociomap",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:366 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Sběr dat",
+      "to": "Analýza",
+      "what": "the dataset as admitted evidence",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:367 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Sběr dat",
+      "to": "Zpráva",
+      "what": "run metadata in ch-method and app-audit (dataset, aggregate, map, spec ids + SHA)",
+      "defined_by": "artifact-chain-to-draft-report#CHN6 (done)",
+      "state": "built"
+    },
+    {
+      "from": "Sběr dat",
+      "to": "Zpráva / Výsledky",
+      "what": "QC warnings stored beside the run, shown and printed in methodology",
+      "defined_by": "evidence-integrity#3; artifact-chain-to-draft-report#CHN9b; artifact-fieldwork#FLD5; artifact-results#RES4b",
+      "state": "planned"
+    },
+    {
+      "from": "Výsledky",
+      "to": "Analýza",
+      "what": "research_aggregate; admitted rows served server-side",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:380 @ 5d2ac5ac (built); evidence-integrity#6, artifact-results#RES2 (planned)",
+      "state": "built (aggregate) / planned (admitted-rows API)"
+    },
+    {
+      "from": "Sociomapa",
+      "to": "Zpráva",
+      "what": "research_sociomap contract-3 maps (verified_map) to ch-native-map-<n> and figures",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:392 @ 5d2ac5ac; -5 figure: signed-off-sociomap-method#9",
+      "state": "built (contract 3) / planned (-5 in the report)"
+    },
+    {
+      "from": "Analýza",
+      "to": "Zpráva",
+      "what": "eight modules as ch-1..ch-8 and app-evidence; all eight with a supported finding or no draft",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:404-416 @ 5d2ac5ac; application/report.py:158-197 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Analýza",
+      "to": "Zpráva",
+      "what": "only accepted or edited findings print (finding review)",
+      "defined_by": "artifact-analysis#ANL11, #ANL12; artifact-chain-to-draft-report#CHN13",
+      "state": "planned"
+    },
+    {
+      "from": "Analýza",
+      "to": "Zpráva",
+      "what": "a module with no supported finding blocks composition/approval/export, its diagnostic shown",
+      "defined_by": "evidence-integrity#9b (done); evidence-integrity#9a + artifact-chain-to-draft-report#CHN10",
+      "state": "built (refusal) / planned (diagnostic)"
+    },
+    {
+      "from": "Interpretation Research",
+      "to": "Zpráva",
+      "what": "accepted findings woven into body sections, labelled L, via 'Použít ve zprávě'",
+      "defined_by": "artifact-chain-to-draft-report#CHN8; artifact-report#RPT10",
+      "state": "planned"
+    },
+    {
+      "from": "Lead",
+      "to": "Zadání, Návrh, Dotazník, Dimenze, Vzorek",
+      "what": "edits through the one writer: decide_edits -> apply_edit_ops; applied ops set_text, list_add/replace/remove, question_add/edit/remove, set_n (route_set a person's only)",
+      "defined_by": "packages/aia_core/src/aia_core/application/research_lead.py:942, 1035 @ 5d2ac5ac; packages/aia_core/src/aia_core/domain/edit_ops.py CATALOGUE; lead_artifacts.py edits=True rows (:265, :277, :301, :335, :347)",
+      "state": "built"
+    },
+    {
+      "from": "Lead",
+      "to": "Cílová skupina, Dimenze",
+      "what": "audience_set, dimensions_set, widened vocabulary",
+      "defined_by": "working-copy-edit-ops#WCE10 (ops DECLARED in edit_ops.py)",
+      "state": "planned"
+    },
+    {
+      "from": "Lead",
+      "to": "every stage",
+      "what": "view ops open_stage, focus, inspect, show_diff, select, filter over FOCUS_KINDS targets",
+      "defined_by": "packages/aia_core/src/aia_core/domain/lead_artifacts.py:84-93 @ 5d2ac5ac; packages/aia_core/src/aia_core/domain/research_lead.py:251-265 @ 5d2ac5ac",
+      "state": "built"
+    },
+    {
+      "from": "Lead",
+      "to": "Návrh, Dotazník, Cílová skupina, Dimenze",
+      "what": "design-job cards opening the stage their proposal changes, then review",
+      "defined_by": "apps/web/src/lib/lead-cards.ts:26-35 @ 5d2ac5ac (research-lead-workbench#23 partial, #550)",
+      "state": "built"
+    },
+    {
+      "from": "Lead",
+      "to": "Sběr dat",
+      "what": "research-run card starting through Spuštění's own route",
+      "defined_by": "apps/web/src/lib/lead-cards.ts:126, 193 @ 5d2ac5ac; research-lead-workbench#37 (agree with Průběh)",
+      "state": "built / planned (#37)"
+    },
+    {
+      "from": "Lead",
+      "to": "Návrh, Výsledky, Sociomapa, Analýza, Zpráva",
+      "what": "Deep Research request/running/finished cards and typed starts",
+      "defined_by": "research-lead-workbench#23b, #23c, #26f.1; lead-orchestration#LO5a.2, #LO5a.3",
+      "state": "planned"
+    },
+    {
+      "from": "Lead",
+      "to": "every stage",
+      "what": "proposals inline in the artifact with coverage gained/lost/kept, per-change accept",
+      "defined_by": "research-lead-workbench#7; working-copy-edit-ops#WCE5, #WCE6, #WCE8b",
+      "state": "planned"
+    },
+    {
+      "from": "Lead",
+      "to": "Zpráva",
+      "what": "tracked-change suggestions in the editor",
+      "defined_by": "artifact-report#RPT9; report-delivery#RD6",
+      "state": "planned"
+    },
+    {
+      "from": "Lead (any stage)",
+      "to": "Dotazník / client Data",
+      "what": "a file given to the Lead kept as the client's source; a questionnaire table filed as a no-model proposal",
+      "defined_by": "lead-orchestration#LO18a, #LO18b; artifact-questionnaire#QST12",
+      "state": "planned"
+    },
+    {
+      "from": "working copy",
+      "to": "Sběr dat",
+      "what": "Design Revision submitted from the working copy; explicit accept from the workbench",
+      "defined_by": "working-copy-edit-ops#WCE7d2",
+      "state": "planned (submit exists; explicit accept planned)"
+    },
+    {
+      "from": "working copy",
+      "to": "every stage track",
+      "what": "impact per stage CURRENT / CHANGED / RECHECK against the run's revision",
+      "defined_by": "GET …/research/impact, routers/research.py:1461 @ 5d2ac5ac (working-copy-edit-ops#WCE7c, #WCE7d1)",
+      "state": "built"
+    }
+  ],
+  "shared_backend": [
+    {
+      "piece": "Working-copy edit vocabulary and one writer (edit_ops CATALOGUE, apply_edit_ops, workspace_edit_ops log, Sociomap lock)",
+      "stages": [
+        "Zadání",
+        "Návrh",
+        "Dotazník",
+        "Cílová skupina",
+        "Dimenze",
+        "Vzorek"
+      ],
+      "state": "built (WCE0, WCE1, WCE2; edit_ops.py, application/working_copy.py:53 @ 5d2ac5ac); 8 ops applied, 22 declared"
+    },
+    {
+      "piece": "Web store on the server vocabulary (no POST ops route at 5d2ac5ac; the PUT /workspace/content is still the web's writer, routers/workspace.py:2151)",
+      "stages": [
+        "Zadání",
+        "Návrh (WCE3a)",
+        "Dotazník (WCE3b)",
+        "Cílová skupina, Dimenze, Vzorek (WCE3c)"
+      ],
+      "state": "planned (working-copy-edit-ops#WCE3a-#WCE3c)"
+    },
+    {
+      "piece": "Field-level merge, per-change accept, protected inputs in proposals",
+      "stages": [
+        "Dotazník",
+        "Návrh",
+        "Cílová skupina",
+        "Dimenze"
+      ],
+      "state": "planned (WCE5, WCE6 migration M6, WCE8b W1)"
+    },
+    {
+      "piece": "Lead edit vocabulary widened to audience/dimensions",
+      "stages": [
+        "Cílová skupina",
+        "Dimenze",
+        "Vzorek"
+      ],
+      "state": "planned (WCE10)"
+    },
+    {
+      "piece": "Sociomap declaration editor, hard lock and unlock",
+      "stages": [
+        "Dotazník",
+        "Sociomapa"
+      ],
+      "state": "lock built (WCE2c); editor and unlock planned (WCE8)"
+    },
+    {
+      "piece": "Contract as data: per-stage rows (artifact, edits, view_ops, targets, starts, inputs, hands_off, report_sections) held to tests/fixtures/lead_artifacts/contract.json",
+      "stages": [
+        "all eleven"
+      ],
+      "state": "built (domain/lead_artifacts.py:258-430 @ 5d2ac5ac; lib/workbench-artifacts.ts); research-lead-workbench#14 and #16 unticked"
+    },
+    {
+      "piece": "Pointable ids per artifact (lib/artifacts/*.ts) and FOCUS_KINDS",
+      "stages": [
+        "all eleven"
+      ],
+      "state": "built for brief, design, audience, dimensions, sample, fieldwork, sociomap, analysis, report; no questionnaire.ts or results.ts (QST1, RES1 open; FLD1 open though fieldwork.ts exists)"
+    },
+    {
+      "piece": "View operations (open_stage, focus, inspect, show_diff, select, filter)",
+      "stages": [
+        "all eleven; select/filter Sociomapa only"
+      ],
+      "state": "built (LIVE_VIEW_OPS, lead_artifacts.py:84-93); stage-specific ops (show_coverage, expand_chain, filter_support) planned"
+    },
+    {
+      "piece": "Artifact frame: Pracovní kopie / Historie / Původ, revision stepper, inspector provenance",
+      "stages": [
+        "Zadání (BRF5)",
+        "Sociomapa (SOC2)",
+        "all"
+      ],
+      "state": "planned (research-lead-workbench#15)"
+    },
+    {
+      "piece": "Stage header slot and next-stage primary (StageHeader context, StepSection, WellItem)",
+      "stages": [
+        "Zadání",
+        "Návrh",
+        "Dotazník",
+        "Vzorek",
+        "Sběr dat",
+        "Výsledky"
+      ],
+      "state": "built (research-lead-workbench#36, #936; front-matter lists 36 both ticked and unticked)"
+    },
+    {
+      "piece": "Lead cards (design-job and run cards; Deep Research cards)",
+      "stages": [
+        "Zadání",
+        "Návrh",
+        "Dotazník",
+        "Cílová skupina",
+        "Dimenze",
+        "Sběr dat",
+        "Výsledky",
+        "Sociomapa",
+        "Analýza",
+        "Zpráva"
+      ],
+      "state": "partial: job and run cards built (#550, lib/lead-cards.ts); research-lead-workbench#23, #23b, #23c, #37, #42-#48 open"
+    },
+    {
+      "piece": "Manual AI starts removed behind leadOwnsAiStarts with a static guard",
+      "stages": [
+        "Zadání",
+        "Návrh",
+        "Dotazník",
+        "Cílová skupina",
+        "Dimenze",
+        "Sběr dat",
+        "Výsledky",
+        "Analýza"
+      ],
+      "state": "partial: predicate at apps/web/src/lib/lead-cards.ts:212 @ 5d2ac5ac applied in the workbench; research-lead-workbench#26f (guard) and #26f.1 open"
+    },
+    {
+      "piece": "Money on the cards: ceiling before a start, a job's open hold, a parked step's need, run spend",
+      "stages": [
+        "Vzorek",
+        "Sběr dat",
+        "Analýza",
+        "all Lead cards"
+      ],
+      "state": "partial: run spend and cost_ceiling (FLD4a, FLD4d), budget_need (FLD10, routers/research.py:1121) built; lead-orchestration#LO23 (W1), #LO24 (W2), research-lead-workbench#43, #46, #47 open; input-interactions#6 SpendDialog (W2) open"
+    },
+    {
+      "piece": "Readiness on the working revision and impact",
+      "stages": [
+        "Návrh",
+        "Vzorek",
+        "Sběr dat",
+        "stage track"
+      ],
+      "state": "built (WCE7a-7c, 7d1; routers/research.py:1421, 1461); budget FAIL (SMP10), ?n= ceiling query (SMP9), check names its stage (finding F-FLD-2) planned"
+    },
+    {
+      "piece": "Admitted rows API (suppression decided server-side)",
+      "stages": [
+        "Výsledky",
+        "Analýza",
+        "Lead's ResultsContext"
+      ],
+      "state": "planned (evidence-integrity#6; lead-orchestration#LO8)"
+    },
+    {
+      "piece": "Design links: items' research_questions, research_trace verdicts, objective_ids, hypothesis-to-measure",
+      "stages": [
+        "Návrh",
+        "Dotazník",
+        "Analýza",
+        "Výsledky",
+        "Zpráva"
+      ],
+      "state": "research_questions links and trace built; objective_ids (DSN9), hypothesis link (DSN12b), report trace (CHN3) planned"
+    },
+    {
+      "piece": "Assumption item kind",
+      "stages": [
+        "Zadání",
+        "Návrh",
+        "Cílová skupina",
+        "Zpráva"
+      ],
+      "state": "planned (assumptions-and-open-answer-coding#AOC0-AOC3; plan status planned)"
+    },
+    {
+      "piece": "Run QC stored beside the run",
+      "stages": [
+        "Sběr dat",
+        "Výsledky",
+        "Zpráva"
+      ],
+      "state": "planned (evidence-integrity#2, #3; run-qc-and-checkpoint#RQC1, #RQC4)"
+    },
+    {
+      "piece": "Report document model, section-source manifest and approval ledger reader",
+      "stages": [
+        "Návrh (DSN4)",
+        "Zpráva",
+        "Analýza"
+      ],
+      "state": "built (report-delivery#RD5a, #RD2, #RD7; chain#CHN1)"
+    },
+    {
+      "piece": "Results-worker shape and three new workers (map interpreter, report writer, straight-liner)",
+      "stages": [
+        "Sociomapa",
+        "Analýza",
+        "Zpráva",
+        "Sběr dat"
+      ],
+      "state": "planned (lead-orchestration#LO9c W2, #LO9b W3; report-delivery#RD6)"
+    },
+    {
+      "piece": "Every stage worker gets its declared inputs (accepted Brief by reference etc.)",
+      "stages": [
+        "Návrh",
+        "Dotazník",
+        "Cílová skupina",
+        "Dimenze"
+      ],
+      "state": "planned (lead-orchestration#LO9d, W2)"
+    }
+  ],
+  "critical_path": [
+    {
+      "chunk": "research-lead-workbench#26f",
+      "reason": "The one predicate plus static guard that every stage's 'Lead card instead of button' chunk names as a dependency: BRF4, DSN7, QST6, AUD5, DIM5, DIM8, FLD6, ANL6, RES6 (W1, E26)"
+    },
+    {
+      "chunk": "research-lead-workbench#7 (with working-copy-edit-ops#WCE5, #WCE6, #WCE8b)",
+      "reason": "Proposals inline with per-change accept; blocks BRF4, DSN7, QST5, AUD5, DIM5 and QST10; WCE8b re-waved to W1 for it"
+    },
+    {
+      "chunk": "working-copy-edit-ops#WCE3a",
+      "reason": "Moves the web store onto the server vocabulary (no ops route exists yet); blocks BRF2's close, DSN9, DSN13, QST10 and precedes WCE3b/WCE3c (QST2) and WCE4"
+    },
+    {
+      "chunk": "research-lead-workbench#15",
+      "reason": "The artifact frame (Pracovní kopie / Historie / Původ, inspector provenance); blocks BRF5 and SOC2 (whose other deps sociomap-5-web#6 and signed-off-sociomap-method#8 are done) and the revision stepper every stage shows"
+    },
+    {
+      "chunk": "lead-orchestration#LO23",
+      "reason": "The ceiling before a start, a W1 money API: blocks SMP10 (budget stop, B1 (a)), SMP4b's budget row, research-lead-workbench#47 and #48, ANL6's ceiling"
+    },
+    {
+      "chunk": "evidence-integrity#6",
+      "reason": "Admitted rows served by the API: blocks RES2, RES8 and the Lead's ResultsContext (lead-orchestration#LO8, E11) so the browser stops deciding suppression"
+    },
+    {
+      "chunk": "lead-orchestration#LO5a.3",
+      "reason": "Typed Deep Research starts: blocks research-lead-workbench#26f.1, hence DSN5, QST6, RES6, RPT10, SOC5 and the '+' menu's Rešerše items (#41, #51)"
+    },
+    {
+      "chunk": "assumptions-and-open-answer-coding#AOC1",
+      "reason": "The assumption item kind on the shared vocabulary (E32, W1): blocks BRF2's Předpoklady link, DSN6, AUD4 and report-delivery#RD9; its plan is still 'planned'"
+    }
+  ],
+  "notes": [
+    "All file anchors are at origin/develop 5d2ac5acc766c3e2d452bbb6f7a5271b104c2045 (fetched 2026-10-26); plan text anchors at older SHAs are quoted as the plans give them.",
+    "Progress is from each plan's front-matter. tools/progress.py at this SHA reports research-lead-workbench 22/67: the front-matter lists chunk 35 and 36 twice (once [x], once [ ]) and runs 12a and 13 together on one line. The plan body says 36 landed (feature/stage-header-slot, #936).",
+    "research-lead-workbench#14 (view vocabulary) and #16 (pointing) are unticked, yet LIVE_VIEW_OPS already carries open_stage, focus, inspect, show_diff, select and filter (lead_artifacts.py:84-93) and LIVE_TARGETS is every TargetKind (:137). What is left in them is hypothesis until their owners say.",
+    "Stale plan statements: artifact-brief §5, artifact-analysis §2 and the chain table say the analysis reads the research questions only. At this SHA it also gets hypotheses (3652d716) and the brief's goal and decision_use (917efa35; analysis_results.py:198-205, 455-466), and ch-design prints goal and decision_use (report_design.py:176-180). CHN2 is still open for objectives, briefing and SpecBrief in the fingerprint.",
+    "BRF3's API half exists: GET /studies/{id}/workspace/materials (workspace.py:2122, ebc86cd1) serves data_class and class_source for each brief material. BRF3 stays open for picked client sources.",
+    "RES8 (export from the aggregate) is open, but report-delivery#RD12 is done: GET …/report/tables/{csv|xlsx} (routers/research.py:3487, 841138ed) exports from the report's stored document model. Whether RES8 still has work (exporting a run whose analysis is parked) is for its owner.",
+    "artifact-report RPT8a's notes describe parts 1-3 as landed (through aia-report-document-6) while the front-matter is unticked. RPT8e is described as built, with only the activation check left. Neither should be scheduled as new work before that is checked.",
+    "prototype-build.md lane B lists settings-redesign F8b-F22 as the lane, but only F12, F18 and F20 are open in settings-redesign's front-matter. Lane B's remaining server work is F20 and system-prompts-settings#14-#16.",
+    "prototype-build.md says lead-conversation LC5b and LC10 are 'already on develop through #908', but both are unticked in lead-conversation.md, whose status is 'planned'. routers/lead.py has /lead/turns/queued (:669) and /withdraw (:699).",
+    "input-interactions#1 (shared primitives) is unticked, but InlineText, Stepper, ChoiceChips, InlineCreateRow and UndoToast are used by built stage chunks. BRF2 and QST2 still list it as a dependency.",
+    "Server-side Lead edits: audience edits=False (lead_artifacts.py:323), so the Lead's edits do not land on Cílová skupina until WCE10. Sample edits=True (:347) carries set_n since SMP7.",
+    "docs/architecture/research-journey.md is the 2026-09-27 integration contract and is superseded in places (its own note at §2). Its research graph compile → preflight → run → {aggregate, sociomap} still matches domain/workflow_templates.py:112-118, with the eight analysis nodes and the report node added only when analysis is enabled (:225-238).",
+    "Wave sources: per-chunk rows in .planning/mvp-execution-contracts.md (second table), the 2026-10-26 re-waves (WCE8b and research-lead-workbench#23 to W1), and the plans' 'From the research build spec' sections.",
+    "next_chunk is a reading of each plan's listed dependencies against front-matter ticks. Where a plan lists none, the lane order in prototype-build.md breaks the tie. It does not account for open PRs in flight (PB1)."
+  ]
+}

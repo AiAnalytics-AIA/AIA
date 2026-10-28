@@ -31,22 +31,19 @@ import { isRefusal, objectTarget, pairTarget, readMapOp, readTarget } from "@/li
 import { LEAD_REVEAL, type LeadMapView, mapViewWords } from "@/lib/lead";
 import { MAP_REGISTERS, type MapRegister, displayChanges, stageHeight } from "@/lib/sociomap-display";
 import { num } from "@/lib/sociomapping-view";
-import type { TerrainMode } from "@/lib/object-map-smooth";
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "@/lib/object-map-view";
 import {
   type SegmentLegend, allRelations, objectDetail, objectsNotPlaced, panelObjects, relationDetail, respondentDetail, respondentNote, segmentLegend, storedFrame, storedRespondents,
 } from "@/lib/object-map-signed-off";
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
-  type Hit, type Norm, type PanelCamera, type RelationMode,
+  type Hit, type IdwTerrain, type Norm, type PanelCamera, type RelationMode,
   REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
-  panelNodes, relationPairs, relationStrength, storedGrid, strongestRelation, topCamera, wheelCamera, zoomCamera,
+  panelNodes, relationPairs, relationStrength, storedGrid, storedTerrains, strongestRelation, terrainGrid, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
 import { PhosphorIcon } from "../../icons/PhosphorIcon";
 
 /** The canvas's size before it is measured (and in tests): the panel's own fallback. */
-/** Where the browser remembers Blokový / Hladký. */
-const TERRAIN_KEY = "aia.objectMap.terrain";
 const DEFAULT_SIZE = { width: 900, height: 700 };
 
 const RELATION_MODES: { mode: RelationMode; label: string; help?: string }[] = [
@@ -198,13 +195,13 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
   const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
-  // The stored terrain drawn Hladký (refined and shaded smoothly) or Blokový (flat triangles);
-  // remembered in the browser, smooth by default.
-  const [terrain, setTerrainState] = useState<TerrainMode>(() => {
-    try { return typeof window !== "undefined" && window.localStorage.getItem(TERRAIN_KEY) === "blocky" ? "blocky" : "smooth"; } catch { return "smooth"; }
-  });
-  const setTerrain = (next: TerrainMode) => { setTerrainState(next); try { window.localStorage.setItem(TERRAIN_KEY, next); } catch { /* the choice lasts this page */ } };
-  const grid = people ? density! : absolute ?? relativeGrid;
+  // The terrain switch: the inverse-distance terrains the run stored (plain, or under the hills'
+  // falloff), opened on the plain one; a map that stored one offers that one only.
+  const terrains = useMemo(() => storedTerrains(map), [map]);
+  const [terrainChoice, setTerrain] = useState<IdwTerrain>("framed_relative_idw");
+  const terrain = terrains.includes(terrainChoice) ? terrainChoice : terrains[0];
+  const chosen = useMemo(() => (terrain ? terrainGrid(map, terrain, norm === "absolute" && stored !== null) : null), [terrain, map, norm, stored]);
+  const grid = people ? density! : chosen ?? absolute ?? relativeGrid;
   // Full screen shows the stage alone (the canvas follows its new box through the resize observer).
   const [stage, setStage] = useState<HTMLDivElement | null>(null);
   const [full, setFull] = useState(false);
@@ -264,7 +261,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const latest = useRef<Parameters<typeof drawObjectMap>[1] | null>(null);
   const pending = useRef(0);
   useEffect(() => {
-    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people, smooth: terrain === "smooth" ? { ratio } : undefined };
+    latest.current = { width: size.width, height: size.height, camera, grid, nodes, tones, pairs, selected, hovered, nodeScale: scale, statements: statementsHere, respondents: people, smooth: { ratio } };
     const draw = () => {
       pending.current = 0;
       const node = canvas.current;
@@ -504,7 +501,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   const dock = useRef<HTMLDivElement>(null);
   const [resets, setResets] = useState(0);
   useEffect(() => { if (resets) dock.current?.focus({ preventScroll: true }); }, [resets]);
-  const resetDisplay = () => { showMap("objects"); setNorm("range"); setMode("top"); setResets((n) => n + 1); };
+  const resetDisplay = () => { showMap("objects"); setNorm("range"); setTerrain("framed_relative_idw"); setMode("top"); setResets((n) => n + 1); };
   // The stage fits the pane it is read in (stageHeight): the workbench's artifact pane, else the
   // window less the page's sticky header. The bar, the rail and the legend chip are on the map, so
   // nothing of the panel sits over the stage; measured again whenever the pane or the stage moves.
@@ -551,13 +548,15 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
           </div>
         </div>
       )}
-      <div role="group" aria-label={t(`${p}.terrain`)}>
-        <SectionHead label={t(`${p}.terrain`)} help={t(`${p}.terrainHelp`)} />
-        <div className="omw-row">
-          <button type="button" className="omw-btn" aria-pressed={terrain === "smooth"} onClick={() => setTerrain("smooth")}>{t(`${p}.terrainSmooth`)}</button>
-          <button type="button" className="omw-btn" aria-pressed={terrain === "blocky"} onClick={() => setTerrain("blocky")}>{t(`${p}.terrainBlocky`)}</button>
+      {people || !terrain ? null : (
+        <div role="group" aria-label={t(`${p}.terrain`)}>
+          <SectionHead label={t(`${p}.terrain`)} help={t(`${p}.terrainHelp`)} />
+          <div className="omw-row">
+            <button type="button" className="omw-btn" aria-pressed={terrain === "framed_relative_idw"} disabled={!terrains.includes("framed_relative_idw")} onClick={() => setTerrain("framed_relative_idw")}>{t(`${p}.terrainIdw`)}</button>
+            <button type="button" className="omw-btn" aria-pressed={terrain === "framed_relative_idw_falloff"} disabled={!terrains.includes("framed_relative_idw_falloff")} onClick={() => setTerrain("framed_relative_idw_falloff")}>{t(`${p}.terrainFalloff`)}</button>
+          </div>
         </div>
-      </div>
+      )}
       <SectionHead label={t(`${p}.objectsSection`)} help={t(`${p}.objectsHelp`)} />
       <div className="omw-row"><button type="button" className="omw-btn" onClick={() => openWork("objects")}>{t(`${p}.objectManager`)}</button></div>
       <SectionHead label={t(`${p}.exportSection`)} help={t(`${p}.exportHelp`)} />
@@ -584,7 +583,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
         <div className="omx-body">
           <div className="omx-mapbox">
             <canvas ref={canvas} tabIndex={0} className="block h-full w-full cursor-grab touch-none outline-none" role="img" data-testid="object-map-canvas"
-              data-camera={JSON.stringify(camera)} data-norm={norm} data-terrain={terrain} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
+              data-camera={JSON.stringify(camera)} data-norm={norm} data-terrain={terrain ?? ""} data-map={people ? "respondents" : "objects"} data-person={people && person >= 0 ? dots[person].id : ""}
               data-relations={people ? "" : pairs.map((q) => `${nodes[q.i].id}|${nodes[q.j].id}`).join(" ")} data-selected={selected >= 0 ? nodes[selected].id : ""} data-relation={relation ? `${nodes[relation[0]].id}|${nodes[relation[1]].id}` : ""}
               aria-label={people ? tv(`${p}.respondentCanvas`, { title: battery.title, placed: dots.length, n: nodes.length }) : tv(`${p}.canvas`, { title: battery.title, n: nodes.length })}
               aria-describedby={people ? undefined : described}

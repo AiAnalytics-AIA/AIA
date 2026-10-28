@@ -11,8 +11,9 @@ import { researchAgents, type ResearchAgentJob } from "@/lib/api";
 import { ACTION_LABELS } from "@/lib/research-agent-jobs";
 
 import { BudgetLift } from "./BudgetLift";
+import { errorText } from "@/lib/error-words";
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 export function AgentBudgetWaits({ jobs, studyId, canEdit, onChanged, exclude = [], onLifted }: {
   jobs: ResearchAgentJob[];

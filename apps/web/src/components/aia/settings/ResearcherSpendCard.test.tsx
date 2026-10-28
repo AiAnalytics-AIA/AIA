@@ -61,8 +61,8 @@ describe("ResearcherSpendCard", () => {
     const jana = await screen.findByText("Jana");
     const row = jana.closest("[data-person]") as HTMLElement;
     expect(within(row).getByText("0,50 USD")).toBeTruthy();
-    expect(row.querySelector('[data-part="lead"]')?.textContent).toContain("0,10 USD");
-    expect(row.querySelector('[data-part="deep_research"]')?.textContent).toContain("0,40 USD");
+    expect(row.querySelector('[data-part="lead"]')?.textContent).toContain("0,10 USD");
+    expect(row.querySelector('[data-part="deep_research"]')?.textContent).toContain("0,40 USD");
     expect(row.querySelector('[data-part="fieldwork"]')).toBeNull();
     expect(within(row).getByText("2,00 USD")).toBeTruthy();
     const nobody = document.querySelector('[data-person="__unattributed"]') as HTMLElement;
@@ -131,7 +131,7 @@ describe("ResearcherSpendCard", () => {
     // Jana spent on the Lead and Deep Research only: each amount says which it is in words.
     const shown = [...row.querySelectorAll<HTMLElement>("[data-part]")].map((p) =>
       [...p.childNodes].filter((n) => !(n instanceof HTMLElement && (n.classList.contains("sr-only") || n.getAttribute("aria-hidden") === "true"))).map((n) => n.textContent).join(""));
-    expect(shown).toEqual(["Vedoucí 0,10 USD", "Deep Research 0,40 USD"]);
+    expect(shown).toEqual(["Vedoucí 0,10 USD", "Deep Research 0,40 USD"]);
   });
 
   it("shows a person's share of the organization when its total is known", async () => {

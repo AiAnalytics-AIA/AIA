@@ -8,6 +8,7 @@ import { t, tv } from "@/i18n/t";
 import type { RunEvent } from "./api";
 import { codeWords, codedText, known } from "./reason-words";
 import { isWaiting } from "./research-execution";
+import { formatNumber } from "./number-input";
 import { usdWords } from "./spend";
 
 /** Feed lines kept per step: the latest few, newest last. */
@@ -47,9 +48,6 @@ const str = (v: unknown): string | null => (typeof v === "string" && v ? v : nul
 /** "{node}: {reason}" -> the reason; the engine prefixes its own messages with the node key. */
 const reason = (message: string) => message.replace(/^[a-z0-9_/]+:\s*/, "");
 
-/** As the job panel prints a cost (research/jobs.ts jobMeta): three decimals. */
-const usd = (v: number) => `$${v.toFixed(3)}`;
-export const formatUsd = usd;
 
 const TOOL_PREFIX = "deep_research_tool_";
 
@@ -144,7 +142,7 @@ export function describe(event: RunEvent): ActivityLine | null {
     const cost = num(p.cost_usd);
     const ms = num(p.latency_ms);
     if (cost === null || ms === null) return null;
-    const vars = { cost: usd(cost), seconds: (ms / 1000).toFixed(1) };
+    const vars = { cost: usdWords(cost, 3), seconds: formatNumber(ms / 1000, 1) };
     return tokensIn === null || tokensOut === null
       ? line(tv("research.exec.activity.aiAnsweredNoTokens", vars))
       : line(tv("research.exec.activity.aiAnswered", { ...vars, tokensIn, tokensOut }));

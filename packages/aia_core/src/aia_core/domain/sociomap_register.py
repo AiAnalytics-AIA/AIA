@@ -83,6 +83,24 @@ SOCIOMAP_REGISTER: Final[tuple[MethodApproval, ...]] = (
             "polovin vzorku a poloměr nejistoty."
         ),
     ),
+    MethodApproval(
+        method_id="aia-sociomap-5",
+        spec_fingerprint="b2992c1251ae3e46b69e75928716c24374240474fe5ab3ae50414edf49fc1b8d",
+        status=MethodologyStatus.CLIENT_FACING,
+        decided_by="metodik AIA",
+        decided_on=date(2026, 10, 26),
+        record=(
+            ".planning/plans/signed-off-sociomap-method.md, The terrain under inverse-distance "
+            "weighting: the methodology owner (2026-10-26) signed off the terrain change and "
+            "keeps aia-sociomap-5 client-facing; runs stored before it keep the entry above"
+        ),
+        reader_note=(
+            "Mapa je počítána schválenou metodikou AIA aia-sociomap-5, kterou metodik AIA "
+            "21. 10. 2026 schválil k použití ve zprávách (terén upraven 26. 10. 2026). Zobrazuje "
+            "vztahy mezi hodnocenými objekty, nikoli jejich příčinu; jak spolehlivě je mapa "
+            "určena, uvádí kontrola polovin vzorku a poloměr nejistoty."
+        ),
+    ),
 )
 
 

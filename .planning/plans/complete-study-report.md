@@ -11,7 +11,7 @@ chunks:
   - "[x] B5a. A panel run records the CORE_JOINT_STATUS certificate of the population its respondents were drawn from (text, SHA-256, the panel SHA-256 the loader verified), and its evidence is judged under it, re-hashed on read; every other run stays uncertified"
   - "[x] B5b. The owner's recorded lift of -2's INTERNAL_ONLY for the client report only (2026-10-13): support, intervals, the certificate and the no-predictive-validity rule still apply; client-facing analysis modules stay blocked until the holdout"
   - "[x] B5c. Client report composer: the client recipe over a CLIENT_FACING ledger of admitted modelled numbers, every one labelled 'modelováno: AI respondenti z populace', approved maps only; a route, a stored artifact and the button on Výsledky"
-  - "[ ] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
+  - "[x] B6. Audience filters in a run: AIA_AI_POPULATION_PERSONAS_ENABLED on develop (operator call) once audience-catalogue-cpu chunk 4 has landed; dimensions stay with sociomap-formula-corrections I0/I1"
 ---
 # The complete study report
 
@@ -50,6 +50,14 @@ may appear in the report (B4); modelled data is admitted to the client report, e
 number labelled (B5); stages before backend (done in PR #382).
 
 ## Progress notes
+
+**B6, ticked 2026-10-28 (Nigel: "tick B6").** The operator call is made: develop's SSM
+`/aia/develop/aia_ai_population_personas_enabled` is `true`, version 1, last modified 2026-10-14 14:08 UTC (read
+2026-10-28 with `aws ssm get-parameter`). The chunk's precondition, `audience-catalogue-cpu` chunk 4, was verified on
+develop and closed by #1046 (catalogue recorded in at most 44 s since deploy `02fd6461`, `GET
+/population/audience-catalogue` 200 in 103-668 ms). The switch was set before that verification; no harm followed, as the
+corrected catalogue had been kept since 2026-10-13 11:45 UTC (#1046's MP7 evidence, finding MP7-2). Dimensions stay with
+`sociomap-formula-corrections` I0/I1.
 
 - B1a: `application/report_tables.py` `compose_question_tables(run, items, source=)` makes
   the chapter "Výsledky jednotlivých otázek" (after the methodology): one table per

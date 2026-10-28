@@ -58,7 +58,7 @@ import {
 } from "@/research/persona";
 import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, StepSection } from "../step";
-import { AiButton, Button, Field, TextInput } from "../ui";
+import { AiButton, Button, FaultNote, Field, TextInput } from "../ui";
 import { UndoToast, useUndo } from "@/components/ui/UndoToast";
 import { plural } from "@/lib/format";
 import { dimensionsChosen } from "@/research/lane";
@@ -70,9 +70,10 @@ import { OwnDimensions } from "./OwnDimensions";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
 import { AiFailureCard, useAiStep } from "./useAiStep";
 import { SampleSize } from "./SampleSize";
+import { errorText } from "@/lib/error-words";
 
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 /** The client's approved dimensions, read once per visit through the study; none until they arrive. */
 function useClientDimensions(studyId: string): ActiveDimensions {
@@ -403,9 +404,9 @@ export function PersonaStep() {
             <p key={fieldError.n} id={customErrorId} role="alert" className="mt-2 text-sm text-status-fault">{fieldError.text}</p>
           ) : null}
           {requestError ? (
-            <p role="alert" className="mt-3 rounded-control border border-status-fault/40 bg-status-fault-wash p-3 text-sm text-status-fault">
+            <FaultNote className="mt-3">
               <b>{t("research.persona.requestFailedTitle")}</b> {requestError}
-            </p>
+            </FaultNote>
           ) : null}
           {/* The classic's society-factor card (1793) was computed from 18.6.6's licensed panel, which AIA does not have. */}
           <section className="mt-4 rounded-control border border-status-you-ink/40 bg-status-you-wash p-3" aria-labelledby="per-factors">

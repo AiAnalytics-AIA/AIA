@@ -21,9 +21,10 @@ import { downloadMismatch } from "@/lib/report-variant";
 import type { EditorShown } from "./ReportEditor";
 import { type Ask, AskDialog, Button } from "../ui";
 import { Icon } from "../icons";
+import { errorText } from "@/lib/error-words";
 
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 
 export type EditorDocBarProps = {
   studyId: string;

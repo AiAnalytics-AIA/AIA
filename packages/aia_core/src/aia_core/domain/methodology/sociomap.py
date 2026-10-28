@@ -1579,6 +1579,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             ParameterRef("terrain.kernel_cutoff", "Práh jádra"),
             ParameterRef("terrain.frame_fill", "Podíl rámu vyplněný objekty v"),
             ParameterRef("terrain.relative_height_floor", "Nejnižší relativní výška f"),
+            ParameterRef("terrain.idw_power", "Mocnina vážení vzdáleností p"),
         ),
         evidence=(_rule("AUDIT-F12"), _rule("AUDIT-F13")),
         tests=(
@@ -1589,11 +1590,68 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         note_cs=(
             "Buňka, kam žádný kopec nedosáhne (jádro pod prahem), nemá výšku, ne nulu. "
             "\u03c3 = 0,25 je prozatímní (√0,4 / √(2 ln 20), zaokrouhleno dolů). "
-            "aia-sociomap-5 (metoda framed_relative_envelope) staví kopce v relativních výškách "
+            "aia-sociomap-5 počítá od 26. 10. 2026 terén váženým průměrem výšek objektů podle "
+            "vzdálenosti, jako aplikace Sociomapy (další krok); obálka zůstává volitelná. "
+            "Obálka v rámu (metoda framed_relative_envelope) staví kopce v relativních výškách "
             "t_j na mřížce g_t = c - H + t·2H/N z rámu mapy a práh jádra nemá: dosáhne každý "
             "kopec, každá buňka má výšku. Poloviční rozsah S a práh jádra proto nedeklaruje; "
             "\u03c3 = 0,25 je i šířka metodiky (6,75 k jejích jednotek při 27 k na jednotku "
             "pravítka)."
+        ),
+    ),
+    MethodStep(
+        id="terrain_idw",
+        title_cs="Terén: výšky objektů vážené vzdáleností",
+        formula_latex=(
+            r"z(q) = \frac{\sum_{j} w_j t_j}{\sum_{j} w_j},"
+            r"\quad w_j = \lVert q - y_j\rVert^{-p}"
+        ),
+        implements=f"{_S}.terrain:idw_at",
+        source_sha256="675b582985a20b65d46b554dc673b14393a13f56bb46e7495c58e4f8b5550c87",
+        symbols=(Symbol("p", "mocnina vážení vzdáleností"),),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(
+            f"{_TERRAIN_TEST}test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one",
+            f"{_TERRAIN_TEST}test_every_other_point_is_a_weighted_mean_of_the_objects",
+            _TERRAIN_PARITY_TEST,
+            _TERRAIN_MAP_TEST,
+        ),
+        note_cs=(
+            "Terén aia-sociomap-5 od 26. 10. 2026 (metoda framed_relative_idw), jako ho počítá "
+            "aplikace Sociomapy: v každém bodě mapy vážený průměr relativních výšek objektů, váha "
+            "převrácená vzdálenost na p-tou. Výška u objektu je jeho vlastní t_j, i vedle vyššího "
+            "souseda (obálka ho zvedala až o třetinu stupnice); mezi objekty a kolem nich nese zem "
+            "jejich hodnoty, i daleko od všech. Volitelné zůstávají obálka kopců a tentýž průměr "
+            "pod poklesem kopců (další krok). Stejný rámec a mřížka jako obálka; i vrstva "
+            "Absolutní."
+        ),
+    ),
+    MethodStep(
+        id="terrain_idw_falloff",
+        title_cs="Terén: výšky vážené vzdáleností, pod poklesem kopců",
+        formula_latex=(
+            r"z(q) = \frac{\sum_{j} w_j t_j}{\sum_{j} w_j}\,"
+            r"\max_{j} \exp\!\left(-\frac{\lVert q - y_j\rVert^2}{2\sigma^2}\right),"
+            r"\quad w_j = \lVert q - y_j\rVert^{-p}"
+        ),
+        implements=f"{_S}.terrain:idw_falloff_at",
+        source_sha256="ce55f057dabaa148308143129ba5bde001392f27b70b7e28f5e27517792f408a",
+        symbols=(
+            Symbol("p", "mocnina vážení vzdáleností"),
+            Symbol(r"\sigma", "šířka kopce", "jednotky vzdálenosti"),
+        ),
+        evidence=(_SIGNED_OFF_TERRAIN,),
+        tests=(
+            f"{_TERRAIN_TEST}test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground",
+            _TERRAIN_PARITY_TEST,
+            _TERRAIN_MAP_TEST,
+        ),
+        note_cs=(
+            "Volitelný terén (metoda framed_relative_idw_falloff): vážený průměr výšek z "
+            "předchozího kroku, násobený poklesem kopců o šířce \u03c3. U objektu jeho vlastní "
+            "výška; mezi sousedy se jejich výšky prolínají; daleko od všech objektů je zem. "
+            "Stejný rámec a mřížka jako obálka; i vrstva Absolutní. Mapa pod kterýmkoli z obou "
+            "terénů uloží i ten druhý a nabídne přepínač; otevře se na terénu verze."
         ),
     ),
 )
@@ -1818,6 +1876,17 @@ _CONTEXT: Final[dict[str, _Context]] = {
         inputs=("f6_smacof", "ruler_scale", "f8_height", "relative_heights", "terrain_frame"),
         audit="F12-F13",
     ),
+    "terrain_idw": _Context(
+        role_cs="Krajina aia-sociomap-5, jako v aplikaci Sociomapy: u každého objektu jeho výška, "
+        "jinde vážený průměr výšek objektů.",
+        inputs=("ruler_scale", "relative_heights", "terrain_frame"),
+        audit=_SIGNED_OFF_POINT,
+    ),
+    "terrain_idw_falloff": _Context(
+        role_cs="Volitelná krajina: tentýž průměr, daleko od objektů klesá k zemi.",
+        inputs=("ruler_scale", "relative_heights", "terrain_frame"),
+        audit=_SIGNED_OFF_POINT,
+    ),
     "f10_placement": _Context(
         role_cs="Návrh auditu: kde by na mapě ležel každý respondent. Zatím se nepočítá.",
         inputs=("f6_smacof", "f2_person_minmax"),
@@ -1954,7 +2023,7 @@ _GROUPS: Final = (
     StepGroup(
         "S6",
         "Terén",
-        ("relative_heights", "terrain_frame", "f12_envelope"),
+        ("relative_heights", "terrain_frame", "f12_envelope", "terrain_idw", "terrain_idw_falloff"),
         "Krajina kopců nad mapou, kterou vidí čtenář výsledků.",
     ),
     StepGroup(
@@ -2079,6 +2148,7 @@ _BOUNDS: Final = (
     Bound("terrain.grid_resolution", (at_least(1), at_most(256)), _TERRAIN),
     Bound("terrain.frame_fill", (above(0), at_most(1)), _TERRAIN),
     Bound("terrain.relative_height_floor", (at_least(0), below(1)), _TERRAIN),
+    Bound("terrain.idw_power", (above(0), at_most(10)), _TERRAIN),
     Bound("terrain.half_extent", (at_least(FIXED_RULER_EXTENT),), _TERRAIN),
     Bound("terrain.kernel_cutoff", _OPEN_SHARE, _TERRAIN),
 )

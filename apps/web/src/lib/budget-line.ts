@@ -45,8 +45,3 @@ export async function readBudget(studyId: string): Promise<StudyBudget | null> {
     return null;
   }
 }
-
-/** A cost confirmation's question with the study's remaining budget beside it, read at the moment it asks. */
-export async function withBudget(studyId: string, question: string, ceiling: number | null): Promise<string> {
-  return `${question} ${budgetLine(await readBudget(studyId), ceiling)}`;
-}

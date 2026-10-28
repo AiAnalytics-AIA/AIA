@@ -93,3 +93,17 @@ describe("ChoiceChips (I3, I11)", () => {
     expect(screen.getAllByRole("radio")[0].className).toContain("whitespace-nowrap");
   });
 });
+
+describe("ChoiceChips that save (design system v3, I-Klavesnice)", () => {
+  it("moves on an arrow without choosing, and chooses on a click", () => {
+    const onChange = vi.fn();
+    render(<ChoiceChips saves label="Role" value="a" options={[{ key: "a", label: "Výzkumník" }, { key: "b", label: "Správce" }]} onChange={onChange} />);
+    const [a, b] = screen.getAllByRole("radio");
+    a!.focus();
+    fireEvent.keyDown(a!, { key: "ArrowRight" });
+    expect(document.activeElement).toBe(b);
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.click(b!);
+    expect(onChange).toHaveBeenCalledWith("b");
+  });
+});

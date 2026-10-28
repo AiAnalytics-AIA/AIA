@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Klient – Profil</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="assets/aia-core-v4.3.css">
+<link rel="stylesheet" href="assets/aia-client.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+</style>
+</helmet>
+<div class="aia cl" data-theme="{{theme}}" data-area="profil" style="position: relative">
+  <nav class="asb" aria-label="Hlavní navigace">
+    <a class="as-brand" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><rect width="40" height="40" rx="7.2" fill="#0f1215"></rect><circle cx="8" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="8" r="2.3" fill="#6ac5e8"></circle><circle cx="26" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="26" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="8" cy="32" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="32" r="2.3" fill="#ece9e4"></circle></svg><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+    <div class="as-sec" aria-hidden="true">Pracovní prostor</div>
+    <ul class="as-nav">
+      <li><a href="Clients.dc.html" class="on" aria-current="page"><span class="as-tile blue"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1"/></svg></span><span class="as-l">Klienti</span></a></li>
+      <li><a href="#"><span class="as-tile green"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6"/></svg></span><span class="as-l">Společenská inteligence</span></a></li>
+      <li><a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile slate"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span><span class="as-l">Nastavení</span></a></li>
+    </ul>
+    <div class="as-gap"></div>
+    <a class="as-lead" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile"><span style="width: 18px; height: 18px; display: inline-grid"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle cx="27" cy="16" r="2.40" fill="var(--ai)" fill-opacity="1.00"></circle></svg></span></span><span class="as-l">Můj Vedoucí</span></a>
+    <div class="as-foot"><span class="as-av" aria-hidden="true">JM</span><span class="as-l" style="min-width: 0; flex: 1"><b title="Jana Malá">Jana Malá</b><a href="#">Účet a nastavení</a></span><button class="as-out" type="button" aria-label="Odhlásit se" title="Odhlásit se"><svg width="15" height="15" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg></button></div>
+  </nav>
+  <div class="main">
+    <header class="as-top"><div class="as-bar"><nav aria-label="Kde jste" style="flex: 1"><ol class="as-crumbs"><li><a href="Clients.dc.html">Klienti</a></li><li><span class="sep" aria-hidden="true">/</span><a href="Overview.dc.html">Pivovar Zlatá Hora (fiktivní)</a></li><li><span class="sep" aria-hidden="true">/</span><b aria-current="page">Profil</b></li></ol></nav><details class="v4-cmd"><summary class="v4-cmd-b" aria-label="Hledat nebo spustit (Ctrl K)"><i class="ph ph-magnifying-glass s" aria-hidden="true"></i>Hledat nebo spustit…<span class="kbd">⌘K</span></summary><div class="cmdk" role="dialog" aria-label="Příkazová paleta"><div class="cmdk-in"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input type="text" aria-label="Hledat klienty, výzkumy, znalosti, nastavení a akce" placeholder="Klient, výzkum, znalost, nastavení nebo akce…"><span class="cmdk-scope">Vše</span></div><div class="cmdk-list"><div class="cmdk-grp">Čeká na vás</div><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Posoudit návrh dotazníku <span class="sub">Vnímání značek ležáků 2026 · Dotazník</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Doplnit rozhodnutí do Zadání <span class="sub">Vnímání značek ležáků 2026 · Zadání</span></span></a><a class="cmdk-it you" href="KnowledgeItem.dc.html"><i class="ph ph-pause-circle"></i><span class="grow">Znalosti ke schválení <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it you" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-pause-circle"></i><span class="grow">Pravidla Deep Research ke schválení <span class="sub">Nastavení · Deep Research</span></span></a><div class="cmdk-grp">Přejít</div><a class="cmdk-it " href="Clients.dc.html"><i class="ph ph-buildings"></i><span class="grow">Klienti </span><span class="kbd">G</span><span class="kbd">K</span></a><a class="cmdk-it " href="Overview.dc.html"><i class="ph ph-buildings"></i><span class="grow">Pivovar Zlatá Hora <span class="sub">klient</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-squares-four"></i><span class="grow">Vnímání značek ležáků 2026 <span class="sub">přehled studie · 2 čekají na vás</span></span></a><a class="cmdk-it " href="Knowledge.dc.html"><i class="ph ph-book-open"></i><span class="grow">Znalosti klienta <span class="sub">Pivovar Zlatá Hora</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><i class="ph ph-gear-six"></i><span class="grow">Nastavení </span><span class="kbd">G</span><span class="kbd">N</span></a><div class="cmdk-grp">Akce</div><a class="cmdk-it " href="Studies.dc.html"><i class="ph ph-plus"></i><span class="grow">Nový výzkum <span class="sub">u klienta Pivovar Zlatá Hora</span></span><span class="kbd">N</span></a><a class="cmdk-it " href="Intake.dc.html"><i class="ph ph-upload-simple"></i><span class="grow">Přidat podklady <span class="sub">soubory, tabulky, text</span></span><span class="kbd">U</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-sparkle"></i><span class="grow">Analyzuj zadání <span class="sub">úloha Vedoucího</span></span><span class="amt">≤ 0,40 USD</span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-rocket-launch"></i><span class="grow">Spustit výzkum <span class="sub">Sběr dat · Kontrola a spuštění</span></span></a><a class="cmdk-it " href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><i class="ph ph-file-arrow-down"></i><span class="grow">Stáhnout zprávu <span class="sub">DOCX nebo PDF</span></span></a></div><div class="cmdk-ft"><span><span class="kbd">↑</span><span class="kbd">↓</span> vybrat</span><span><span class="kbd">Enter</span> otevřít</span><span><span class="kbd">Esc</span> zavřít</span><span style="margin-left:auto"><span class="kbd">?</span> všechny zkratky</span></div></div></details><details class="v4-tray"><summary class="v4-tray-b" aria-label="Nic neběží, 2 věci čekají na vás"><span class="n">0</span> běží<span class="v4-dot you" aria-hidden="true" style="margin-left:6px"></span><span class="n">2</span> čekají</summary><div class="tray" role="dialog" aria-label="Probíhá a čeká"><div class="tray-h"><span class="grow">Probíhá a čeká</span><span class="cap">Vnímání značek ležáků 2026</span></div><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Analýza zadání čeká na vás</b><span>úloha Vedoucího · nejvýše 0,40 USD · spustíte na Zadání</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="v4-dot you" aria-hidden="true"></span><span class="tx"><b>Návrh dotazníku čeká na vás</b><span>přijměte nebo zahoďte změny na Dotazníku</span></span></a><a class="tray-it" href="https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ" target="_blank" rel="noopener"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><span class="tx"><b>Běh 1 · hotovo</b><span>400 AI respondentů · 22 měření · návrh se od běhu změnil</span></span></a></div></details></div></header>
+    <div class="clhero-ground">
+      <div class="content" style="padding-bottom: 0">
+        <header class="clhead">
+          <span class="mono-tile" aria-hidden="true">ZH</span>
+          <div class="ch-id"><div class="ch-title"><h1>Pivovar Zlatá Hora (fiktivní)</h1><span class="chip">Aktivní</span></div><p class="ch-sub"><span class="tx">Rodinný pivovar z Vysočiny: tři ležáky a nealko. Výzkum potřebuje k rozhodování o ceně a komunikaci.</span><a href="Profile.dc.html">O klientovi</a></p></div>
+          <a class="ch-you" href="KnowledgeItem.dc.html"><span class="st"><i class="g you sm"></i></span>4 ke schválení</a><div class="hero-acts"><a class="btn" href="Intake.dc.html"><i class="ph ph-upload-simple" aria-hidden="true"></i>Přidat podklady</a><button class="btn primary" type="button"><i class="ph ph-plus" aria-hidden="true"></i>Nový výzkum</button></div>
+        </header>
+        <div class="ch-tabrow"><nav class="ctabs" aria-label="Oblasti klienta">
+          <a href="Overview.dc.html"><i class="ph ph-house-simple" aria-hidden="true"></i>Přehled</a>
+          <a href="Studies.dc.html"><i class="ph ph-magnifying-glass" aria-hidden="true"></i>Výzkumy<span class="cnt">3</span></a>
+          <a href="Knowledge.dc.html"><i class="ph ph-book-open" aria-hidden="true"></i>Znalosti<span class="cnt you">4</span><span class="sr">, čeká na schválení: 4</span></a>
+          <a class="on" href="Profile.dc.html" aria-current="page"><i class="ph ph-user" aria-hidden="true"></i>Profil</a>
+        </nav><dl class="ch-facts"><div><a href="Knowledge.dc.html"><dt>Znalosti</dt><dd>38</dd></a></div><div><a href="Knowledge.dc.html"><dt>Soubory</dt><dd>11</dd></a></div><div><a href="#h-budget"><dt>Rozpočet klienta · zbývá</dt><dd>{{heroBudget}}</dd></a></div></dl></div><p class="ch-area">Kdo klient je, s kým u něj mluvíte a podle jakých pravidel s jeho materiálem a penězi AIA pracuje.</p>
+      </div>
+    </div>
+    <div class="content" style="padding-top: 0">
+      <div class="abody">
+        <div class="cols">
+          <div class="stack">
+            <section class="sec" aria-labelledby="h-det">
+              <div class="sh"><span class="num">01</span><h2 id="h-det">Základní údaje</h2><span class="grow"></span><span class="cap"><i class="ph ph-check" aria-hidden="true" style="width: 12px; height: 12px"></i> {{saved}}</span></div>
+              <div class="sb">
+                <p class="cap">Pro lidi, kteří s klientem pracují. Žádný model je nečte; co mají studie použít, patří do Znalostí. Kliknutím upravíte; ukládá se samo.</p>
+                <div class="ckv" style="grid-template-columns: 120px minmax(0, 1fr); gap: 10px 16px; font-size: 14px">
+                  <sc-for list="{{fields}}" as="f" hint-placeholder-count="4">
+                    <dt style="padding-top: 4px">{{f.l}}</dt>
+                    <dd><sc-if value="{{f.reading}}" hint-placeholder-val="{{ true }}"><button class="{{f.cls}}" type="button" onClick="{{f.edit}}" style="width: 100%">{{f.shown}}</button></sc-if><sc-if value="{{f.editing}}" hint-placeholder-val="{{ false }}"><label class="sr" for="{{f.id}}">{{f.l}}</label><input class="ipt" id="{{f.id}}" type="text" value="{{draft}}" onChange="{{setDraft}}" onBlur="{{f.save}}" autoFocus style="width: 100%"></sc-if></dd>
+                  </sc-for>
+                </div>
+              </div>
+            </section>
+            <section class="sec" aria-labelledby="h-ent">
+              <div class="sh"><span class="num">02</span><h2 id="h-ent">Značky a konkurenti</h2><span class="grow"></span><a class="cap" href="Knowledge.dc.html">ve Znalostech jako Subjekty</a></div>
+              <div class="sb">
+                <div class="cols even" style="gap: 16px">
+                  <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+                    <div class="stack" style="gap: 8px">
+                      <div class="glbl">{{g.l}}</div>
+                      <div class="row" style="gap: 6px"><sc-for list="{{g.items}}" as="e" hint-placeholder-count="2"><span class="lbl-chip" style="height: 28px; padding: 0 9px"><i class="ph ph-buildings" aria-hidden="true" style="width: 14px; height: 14px; color: var(--faint)"></i>{{e.n}}<sc-if value="{{e.wait}}" hint-placeholder-val="{{ false }}"><span class="cap">· čeká na schválení</span></sc-if><button type="button" aria-label="Odebrat {{e.n}}" disabled="disabled" title="Vyřazení znalosti: NO BACKEND"><i class="ph ph-x" aria-hidden="true"></i></button></span></sc-for></div>
+                      <div class="row" style="flex-wrap: nowrap"><label class="sr" for="{{g.id}}">Přidat: {{g.l}}</label><input id="{{g.id}}" type="text" placeholder="{{g.ph}}" value="{{g.draft}}" onChange="{{g.set}}" style="flex: 1"><button class="btn sm" type="button" onClick="{{g.add}}" disabled="{{g.empty}}"><i class="ph ph-plus" aria-hidden="true"></i>Přidat</button></div>
+                    </div>
+                  </sc-for>
+                </div>
+                <p class="cap">Přidáním vznikne znalost druhu Subjekt; když vlastní schvalování neplatí, čeká na schválení někým jiným. Odebrat ji jde až s vyřazením znalosti <span class="nobe">no backend</span></p>
+              </div>
+            </section>
+            <section class="sec" aria-labelledby="h-con">
+              <div class="sh"><span class="num">03</span><h2 id="h-con">Kontakty</h2><span class="grow"></span><button class="btn sm" type="button" onClick="{{addContact}}"><i class="ph ph-plus" aria-hidden="true"></i>Přidat kontakt</button></div>
+              <div class="sb">
+                <p class="cap">Lidé u klienta. Jsou jen na kartě klienta; žádná studie ani model je nečte. V historii se ukáže jméno, nikdy e-mail.</p>
+                <div class="grid" role="table" aria-label="Kontakty" style="grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.3fr) 120px 76px">
+                  <div class="tr" role="row"><span class="th" role="columnheader">Jméno</span><span class="th" role="columnheader">Role</span><span class="th" role="columnheader">E-mail</span><span class="th" role="columnheader">Dostává výsledky</span><span class="th" role="columnheader"><span class="sr">Akce</span></span></div>
+                  <sc-for list="{{contacts}}" as="c" hint-placeholder-count="2">
+                    <div class="tr" role="row"><span class="td" role="cell"><b style="font-weight: 500">{{c.name}}</b></span><span class="td" role="cell">{{c.role}}</span><span class="td" role="cell"><span class="mono" style="font-size: 12px; overflow: hidden; text-overflow: ellipsis">{{c.email}}</span></span><span class="td" role="cell"><button class="{{c.sw}}" type="button" role="switch" aria-checked="{{c.rep}}" aria-label="{{c.name}} dostává výsledky" onClick="{{c.toggle}}"></button></span><span class="td" role="cell"><button class="btn quiet sm" type="button" aria-label="Upravit {{c.name}}"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button><button class="btn quiet sm" type="button" aria-label="Odebrat {{c.name}}" onClick="{{c.remove}}"><i class="ph ph-trash" aria-hidden="true"></i></button></span></div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{noContacts}}" hint-placeholder-val="{{ false }}"><p class="empty">Žádné kontakty.</p></sc-if>
+              </div>
+            </section>
+          </div>
+
+          <div class="stack">
+            <section class="sec" aria-labelledby="h-budget" id="h-budget">
+              <div class="sh"><i class="ph ph-wallet" aria-hidden="true"></i><h2 id="h-budget-t">Rozpočet klienta</h2><span class="grow"></span><span class="seg sm" role="group" aria-label="Prototyp: stav rozpočtu"><button class="{{bSet}}" type="button" aria-pressed="{{hasBudget}}" onClick="{{useSet}}">nastaven</button><button class="{{bUnset}}" type="button" aria-pressed="{{noBudget}}" onClick="{{useUnset}}">nenastaven</button></span></div>
+              <div class="sb">
+                <p class="cap">Platí práci AI přímo na klientovi, např. návrhy znalostí z jeho dokumentů. Rozpočty studií jsou zvlášť.</p>
+                <sc-if value="{{hasBudget}}" hint-placeholder-val="{{ true }}">
+                  <div class="bar" style="height: 8px; border-radius: 4px; background: var(--sunken); overflow: hidden; display: flex"><i style="width: 35%; background: var(--ink); display: block"></i><i style="width: 2%; background: var(--strong); display: block"></i></div>
+                  <dl class="ckv" style="grid-template-columns: minmax(0, 1fr) auto"><dt>Utraceno</dt><dt>Rezervováno (běží)</dt><dd class="mono">17,60 USD</dd><dt>Zbývá</dt><dd class="mono">1,00 USD</dd><dd class="mono" style="font-weight: 600">31,40 USD</dd><dt>Rozpočet</dt><dd class="mono">50,00 USD</dd></dl>
+                </sc-if>
+                <sc-if value="{{noBudget}}" hint-placeholder-val="{{ false }}"><div class="well you"><span class="st"><i class="g you sm"></i></span><div class="tx"><b>Rozpočet není nastaven</b><span class="cap">Práce AI na klientovi počká, až ho někdo nastaví. Utraceno zatím 0,00 USD.</span></div></div></sc-if>
+                <div class="row"><span class="stepper"><button type="button" aria-label="Méně" onClick="{{bDown}}">−</button><span class="val">{{bVal}}</span><button type="button" aria-label="Více" onClick="{{bUp}}">+</button></span><span class="cap">USD · krok 10</span><span class="grow"></span><button class="btn primary sm" type="button" disabled="{{bSame}}" onClick="{{bSave}}">Nastavit rozpočet · {{bVal}} USD</button></div>
+                <p class="cap">Mění, kdo smí spravovat rozpočet klienta.</p>
+              </div>
+            </section>
+            <section class="sec" aria-labelledby="h-rules">
+              <div class="sh"><i class="ph ph-shield-check" aria-hidden="true"></i><h2 id="h-rules">Pravidla</h2></div>
+              <div class="sb" style="gap: 16px">
+                <div class="switchrow"><button class="{{saCls}}" type="button" role="switch" aria-checked="{{sa}}" aria-labelledby="sa-l" onClick="{{toggleSa}}"></button><div class="tx"><b id="sa-l">Vlastní schvalování znalostí</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">{{saText}}</span><span class="cap" style="display: block; margin-top: 2px">{{saSource}}</span></div></div>
+                <div>
+                  <b style="font-weight: 500; display: block">Veřejná rešerše na webu</b>
+                  <span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted); display: block; margin: 2px 0 8px">Smí materiál klienta do veřejné rešerše na webu? Běh si pravidlo připne při spuštění.</span>
+                  <span class="seg sm" role="radiogroup" aria-label="Veřejná rešerše"><button class="{{pClass}}" type="button" role="radio" aria-checked="{{pIsC}}" onClick="{{pickC}}">Nesmí (důvěrné)</button><button class="{{pOpen}}" type="button" role="radio" aria-checked="{{pIsO}}" onClick="{{pickO}}">Smí</button></span>
+                  <span class="cap" style="display: block; margin-top: 6px">{{pLine}}</span>
+                </div>
+                <div>
+                  <b style="font-weight: 500; display: block">Strop peněženky</b>
+                  <span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted); display: block; margin: 2px 0 8px">Horní mez pro peněženky všech studií klienta.</span>
+                  <div class="row"><span class="stepper"><button type="button" aria-label="Méně" onClick="{{cDown}}">−</button><span class="val">{{cVal}}</span><button type="button" aria-label="Více" onClick="{{cUp}}">+</button></span><span class="cap">USD</span><button class="btn quiet sm" type="button" onClick="{{cClear}}">Bez stropu</button></div>
+                  <span class="cap" style="display: block; margin-top: 6px">{{cLine}}</span>
+                </div>
+                <p class="cap">Pravidla mění vlastník nebo správce organizace; ostatní je vidí jen ke čtení. Naposledy změnil Tomáš Dvořák, 21. 10. 2026 <span class="nobe" title="API posílá set_by jako id">jméno</span></p>
+              </div>
+            </section>
+            <section class="sec" aria-labelledby="h-rec">
+              <div class="sh"><i class="ph ph-buildings" aria-hidden="true"></i><h2 id="h-rec">Klient</h2></div>
+              <div class="sb">
+                <dl class="ckv" style="grid-template-columns: 96px minmax(0, 1fr)"><dt>Název</dt><dd>Pivovar Zlatá Hora (fiktivní)</dd><dt>Stav</dt><dd>Aktivní</dd><dt>Vaše role</dt><dd>výzkumník</dd></dl>
+                <p class="cap">Stav klienta mění správce organizace v <a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener">Nastavení → Přístup a schvalování</a>. Archivace klienta skryje, nic nesmaže.</p>
+              </div>
+            </section>
+            <section class="sec" aria-labelledby="h-hist">
+              <div class="sh"><i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i><h2 id="h-hist">Historie profilu</h2></div>
+              <div class="sb">
+                <ul class="hist"><sc-for list="{{hist}}" as="h" hint-placeholder-count="3"><li style="grid-template-columns: 1fr auto"><span>{{h.t}}</span><span class="cap">{{h.w}}</span></li></sc-for></ul>
+                <p class="cap">Změny rozpočtu a pravidel historie dnes neukáže <span class="nobe">no backend</span></p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section class="crit" aria-labelledby="crit-h">
+      <h2 id="crit-h">UX kritika · Profil</h2>
+      <p class="lede">Údaje, značky, kontakty, rozpočet klienta a pravidla. Dnes čtyři různé ovládací prvky pro podobné věci, kódy OPEN/CLASSIFIED, rozpočet „0,00 USD“ tam, kde není nastaven, a kontakt zmizí bez možnosti vrátit. Kód <span class="mono">develop @ a1a9a45c</span>; C/ = …/components/aia/clients/, W/ = apps/api/…/routers/workspace.py.</p>
+      <div class="crit-top">
+        <figure class="shot"><h3><i class="ph ph-eye" aria-hidden="true"></i>Dnes: Profil (1440 px)</h3><img src="assets/5d02bed56f9f61545ba4ff999cb5a290.jpg" alt="Dnešní Profil: Základní údaje s tlačítkem Uložit profil, Značky a konkurenti, Kontakty; vpravo Klient, Rozpočet klienta s 0,00 USD, Pravidla s OPEN a CLASSIFIED, Historie profilu"><figcaption class="cap">Nenastavený rozpočet čte 0,00 / 0,00 / 0,00 USD; pravidla kódy.</figcaption></figure>
+        <div class="cgrid">
+          <sc-for list="{{crit}}" as="c" hint-placeholder-count="5">
+            <div class="{{c.cls}}"><h3><span class="lt">{{c.l}}</span>{{c.t}}</h3><ul><sc-for list="{{c.items}}" as="x" hint-placeholder-count="3"><li>{{x.t}}<span class="anc">{{x.a}}</span></li></sc-for></ul></div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="cb" style="margin-top: 18px">
+        <h3><span class="lt">f</span>Funkce dnes → kde jsou v prototypu</h3>
+        <div class="fnlist"><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div><div class="fnh"><span>#</span><span>Funkce dnes</span><span>V prototypu</span></div>
+          <sc-for list="{{fns}}" as="f" hint-placeholder-count="24"><li><span class="i">{{f.i}}</span><span>{{f.t}}<span class="anc">{{f.a}}</span></span><span class="w">{{f.w}}</span></li></sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+  <sc-if value="{{toast}}" hint-placeholder-val="{{ false }}"><div class="toast" role="status" style="position: absolute; top: 760px; bottom: auto; display: flex; gap: 12px; align-items: center">{{toast}}<sc-if value="{{canUndo}}" hint-placeholder-val="{{ false }}"><button class="btn quiet sm" type="button" onClick="{{undo}}" style="color: var(--surface); text-decoration: underline">Vrátit</button></sc-if></div></sc-if>
+  <sc-if value="{{asking}}" hint-placeholder-val="{{ false }}">
+    <div class="scrim" style="position: absolute; align-items: flex-start; padding-top: 700px"><div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="po-h" aria-describedby="po-d">
+      <h2 id="po-h" style="font-size: 18px; line-height: 24px; font-weight: 600">Povolit veřejnou rešerši pro Pivovar Zlatá Hora?</h2>
+      <p id="po-d" style="margin-top: 8px; font-size: 14px; line-height: 20px; color: var(--muted)">Deep Research smí potom posílat dotazy odvozené z materiálu klienta do veřejného vyhledávání na webu. Platí pro běhy spuštěné od teď; běžící si drží pravidlo, které si připnuly.</p>
+      <div class="row" style="justify-content: flex-end; margin-top: 20px"><button class="btn quiet" type="button" onClick="{{noOpen}}">Zrušit</button><button class="btn primary" type="button" onClick="{{yesOpen}}">Povolit veřejnou rešerši</button></div>
+    </div></div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":3707}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      vals: { short: 'ZH', industry: 'Nápoje · pivovarnictví', market: 'Česko', about: 'Rodinný pivovar z Vysočiny: tři ležáky a nealko. Výzkum potřebuje k rozhodování o ceně a komunikaci.' },
+      edit: null, draft: '', saved: 'Uloženo',
+      own: ['Zlatá Hora 12°', 'Zlatá Hora Nealko'], comp: ['Kozel 11°', 'Bernard 11°'], wait: ['Bernard 11°'], d1: '', d2: '',
+      contacts: [{ id: 'c1', name: 'Eva Svobodová', role: 'marketingová ředitelka', email: 'eva.svobodova@example.invalid', rep: true }, { id: 'c2', name: 'Karel Mareš', role: 'obchod', email: 'k.mares@example.invalid', rep: false }],
+      budget: 50, bEdit: 50, hasBudget: true, sa: true, posture: null, asking: false, ceiling: null, toast: null, undoC: null,
+      hist: [['Změněno: Trh', 'včera'], ['Přidán kontakt Karel Mareš', 'před 3 dny']]
+    };
+  }
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const s = this.state;
+    const money = (n) => n.toFixed(2).replace('.', ',');
+    const say = (t, undoC) => { this.setState({ toast: t, undoC }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: null, undoC: null }), 8000); };
+    const F = [['short', 'Zkratka', 'Např. ZH'], ['industry', 'Odvětví', 'Doplnit odvětví'], ['market', 'Trh', 'Doplnit trh'], ['about', 'O klientovi', 'Několik vět o klientovi: čím se zabývá, co od výzkumu potřebuje']];
+    const posture = s.posture || 'CLASSIFIED';
+    return {
+      theme: this.props.theme ?? 'light',
+      saved: s.saved,
+      heroBudget: s.hasBudget ? money(s.budget - 18.6) + ' USD' : 'nenastaven',
+      fields: F.map(([k, l, ph]) => ({ l, id: 'p-' + k, shown: s.vals[k] || ph, cls: s.vals[k] ? 'inplace' : 'inplace isempty', reading: s.edit !== k, editing: s.edit === k,
+        edit: () => this.setState({ edit: k, draft: s.vals[k] }),
+        save: () => { const v = s.draft.trim(); const changed = v !== s.vals[k]; this.setState({ edit: null, vals: { ...s.vals, [k]: v }, saved: changed ? 'Uloženo teď' : s.saved, hist: changed ? [['Změněno: ' + l, 'teď'], ...s.hist] : s.hist }); } })),
+      draft: s.draft, setDraft: (e) => this.setState({ draft: e.target.value }),
+      groups: [['own', 'Vlastní značky', 'd1', 'Např. Zlatá Hora 11°'], ['comp', 'Konkurenti', 'd2', 'Např. Pilsner Urquell']].map(([k, l, dk, ph]) => ({ l, id: 'g-' + k, ph, draft: s[dk], empty: !s[dk].trim(),
+        items: s[k].map((n) => ({ n, wait: s.wait.includes(n) })), set: (e) => this.setState({ [dk]: e.target.value }),
+        add: () => { const v = s[dk].trim(); if (!v) return; this.setState({ [k]: [...s[k], v], [dk]: '' }); say('„' + v + '“ přidán do Znalostí jako Subjekt.', null); } })),
+      contacts: s.contacts.map((c) => ({ ...c, sw: c.rep ? 'switch on' : 'switch', toggle: () => this.setState({ contacts: s.contacts.map((x) => x.id === c.id ? { ...x, rep: !x.rep } : x) }),
+        remove: () => { this.setState({ contacts: s.contacts.filter((x) => x.id !== c.id), hist: [['Odebrán kontakt ' + c.name, 'teď'], ...s.hist] }); say('Kontakt ' + c.name + ' odebrán.', { c, at: s.contacts.indexOf(c) }); } })),
+      noContacts: !s.contacts.length,
+      addContact: () => this.setState({ contacts: [...s.contacts, { id: 'c' + Date.now(), name: 'Nový kontakt', role: '—', email: '—', rep: false }] }),
+      toast: s.toast, canUndo: !!s.undoC,
+      undo: () => { const u = s.undoC; if (!u) return; const c = [...s.contacts]; c.splice(u.at, 0, u.c); this.setState({ contacts: c, toast: null, undoC: null, hist: [['Přidán kontakt ' + u.c.name, 'teď'], ...s.hist] }); },
+      hasBudget: s.hasBudget, noBudget: !s.hasBudget, bSet: s.hasBudget ? 'on' : '', bUnset: s.hasBudget ? '' : 'on',
+      useSet: () => this.setState({ hasBudget: true, budget: 50, bEdit: 50 }), useUnset: () => this.setState({ hasBudget: false, budget: 0, bEdit: 0 }),
+      bVal: money(s.bEdit), bDown: () => this.setState({ bEdit: Math.max(0, s.bEdit - 10) }), bUp: () => this.setState({ bEdit: s.bEdit + 10 }),
+      bSame: s.bEdit === s.budget, bSave: () => { this.setState({ budget: s.bEdit, hasBudget: s.bEdit > 0 }); say('Rozpočet klienta nastaven na ' + money(s.bEdit) + ' USD.', null); },
+      sa: s.sa, saCls: s.sa ? 'switch on' : 'switch', toggleSa: () => this.setState({ sa: !s.sa }),
+      saText: s.sa ? 'Kdo znalost navrhne, ji smí i schválit.' : 'Návrh musí schválit někdo jiný než navrhovatel.',
+      saSource: s.sa ? 'Nastaveno u klienta · výchozí v organizaci: zapnuto' : 'Nastaveno u klienta · výchozí v organizaci: zapnuto',
+      pIsC: posture === 'CLASSIFIED', pIsO: posture === 'OPEN', pClass: posture === 'CLASSIFIED' ? 'on' : '', pOpen: posture === 'OPEN' ? 'on' : '',
+      pickC: () => this.setState({ posture: 'CLASSIFIED' }), pickO: () => { if (posture !== 'OPEN') this.setState({ asking: true }); },
+      pLine: s.posture ? 'Nastaveno teď.' : 'Nenastaveno: platí „nesmí“, dokud to nezměníte.',
+      asking: s.asking, noOpen: () => this.setState({ asking: false }), yesOpen: () => this.setState({ asking: false, posture: 'OPEN' }),
+      cVal: s.ceiling == null ? '—' : money(s.ceiling), cDown: () => this.setState({ ceiling: Math.max(0, (s.ceiling || 0) - 10) }), cUp: () => this.setState({ ceiling: (s.ceiling || 0) + 10 }), cClear: () => this.setState({ ceiling: null }),
+      cLine: s.ceiling == null ? 'Bez stropu: peněženka studie smí nejvýš do rozpočtu studie.' : 'Žádná peněženka studie klienta nepřesáhne ' + money(s.ceiling) + ' USD.',
+      hist: s.hist.map(([t, w]) => ({ t, w })),
+      crit: [
+        { l: 'a', t: 'Co stránka ukazuje', cls: 'cb', items: [
+          { t: 'Vlevo Základní údaje (formulář s Uložit profil), Značky a konkurenti (pilulky + formulář), Kontakty (tabulka); vpravo Klient, Rozpočet klienta, Pravidla, Historie profilu.', a: 'C/ProfileArea.tsx:38-92, 94-165, 200-279, 324-463' } ] },
+        { l: 'b', t: 'Co sbírá', cls: 'cb', items: [
+          { t: 'Zkratku, odvětví, trh, popis; značku nebo konkurenta (Subjekt); kontakt; rozpočet klienta; vlastní schvalování; postoj dat; strop peněženky.', a: 'C/ProfileArea.tsx:34, 97-118, 167-198, 285-292, 357-370 · C/ClientRules.tsx:55-86' } ] },
+        { l: 'c', t: 'Interakce', cls: 'cb', items: [
+          { t: 'Profil se ukládá tlačítkem; rozpočet přes pole a Uložit rozpočet; OPEN se ptá dialogem, CLASSIFIED hned; strop Stepperem.', a: 'C/ProfileArea.tsx:52-62, 397-408 · C/ClientRules.tsx:66-69, 84-98' } ] },
+        { l: 'd', t: 'Co chybí nebo mate', cls: 'cb d', items: [
+          { t: 'Postoj dat se ukazuje kódy OPEN a CLASSIFIED, i v nápovědě.', a: 'C/ClientRules.tsx:76 · i18n/cs.ts:171-172' },
+          { t: 'Nenastavený rozpočet ukáže Rozpočet 0,00, Utraceno 0,00, Zbývá 0,00 USD: neznámé jako nula.', a: 'C/ProfileArea.tsx:379-396' },
+          { t: 'Čtyři ovladače pro podobné věci: vlastní switch, ChoiceChips, Stepper a nativní pole type=number.', a: 'C/ProfileArea.tsx:304-313, 403 · C/ClientRules.tsx:76, 84' },
+          { t: 'Kontakt se odebere hned, bez Vrátit i bez potvrzení.', a: 'C/ProfileArea.tsx:261' },
+          { t: 'Odkud pravidlo vlastního schvalování je (výchozí, organizace, klient) API posílá, stránka ne.', a: 'W/workspace.py:231-234' },
+          { t: 'Značku ani konkurenta nejde odebrat; „Upravit ve Znalostech“ vede tam, kde to také nejde.', a: 'C/ProfileArea.tsx:162' },
+          { t: 'Tři mechanismy „kdo smí“ s různými větami (správce organizace / vlastník nebo správce).', a: 'C/ProfileArea.tsx:419-427 · i18n/cs.ts' } ] },
+        { l: 'e', t: 'Co prototyp mění', cls: 'cb', items: [
+          { t: 'Údaje upravené na místě (I1), ukládají se samy; historie se hned doplní.', a: 'list 01 · klikněte na hodnotu' },
+          { t: 'Značky a konkurenti: dvě skupiny s řádkem pro přidání; odebrání nakreslené a vypnuté: NO BACKEND.', a: 'list 02' },
+          { t: 'Kontakty: přepínač Dostává výsledky; Odebrat s „Vrátit“ 8 s (znovu přidá).', a: 'list 03 · zkuste koš' },
+          { t: 'Rozpočet: pruh utraceno/rezervováno, nenastavený slovy (korál jen tomu, kdo ho smí nastavit), Stepper a tlačítko s částkou.', a: 'přepínač prototypu nastaven / nenastaven' },
+          { t: 'Pravidla slovy: přepínač vlastního schvalování s původem; Veřejná rešerše Nesmí / Smí s dialogem; strop Stepperem a Bez stropu.', a: 'list Pravidla · zkuste Smí' },
+          { t: 'Kdo pravidla změnil jménem a změny rozpočtu a pravidel v historii: NO BACKEND (API posílá id; historie nese jen profil a kontakty).', a: 'list Historie' } ] }
+      ],
+      fns: [
+        ['Upravit zkratku, odvětví, trh, popis', 'C/ProfileArea.tsx:38-92', 'Na místě, samo se uloží'],
+        ['Číst je bez práva upravit', ':72-82', 'Text bez úpravy'],
+        ['Vlastní značky a konkurenti', ':123-145', 'Dvě skupiny'],
+        ['Přidat značku / konkurenta (Subjekt)', ':105-118', 'Řádek Přidat'],
+        ['Přidání čeká na schválení', ':113, 160', '„čeká na schválení“ u čipu'],
+        ['Do Znalostí upravit subjekty', ':162', 'Odkaz v hlavičce'],
+        ['Kontakty: jméno, role, e-mail, výsledky', ':227-271', 'Tabulka'],
+        ['Přidat kontakt', ':216-226', 'Přidat kontakt'],
+        ['Upravit kontakt', ':242-247', 'Tužka v řádku'],
+        ['Odebrat kontakt', ':261', 'Koš + Vrátit'],
+        ['Klient: název, stav, vaše role', ':440-453', 'List Klient'],
+        ['Rozpočet: limit, utraceno, rezervováno, zbývá', ':379-394', 'Pruh + řádky'],
+        ['Varování: nenastaven / pod utraceným', ':395-396', 'Korálová řádka slovy'],
+        ['Nastavit rozpočet', ':397-408', 'Stepper + tlačítko s částkou'],
+        ['Stav vlastního schvalování', ':296-302', 'Přepínač s větou'],
+        ['Zapnout / vypnout vlastní schvalování', ':303-314', 'Přepínač (správce)'],
+        ['Postoj dat', 'C/ClientRules.tsx:72-78', 'Veřejná rešerše Nesmí / Smí'],
+        ['OPEN s potvrzením', ':66-69, 94-98', 'Dialog Povolit veřejnou rešerši'],
+        ['CLASSIFIED hned', ':68', 'Nesmí, hned'],
+        ['Strop peněženky', ':79-90', 'Stepper'],
+        ['Nastavit strop', ':84-85', 'Stepper'],
+        ['Zrušit strop', ':86', 'Bez stropu'],
+        ['Kdy se pravidla změnila', ':91', 'Pod pravidly'],
+        ['Historie profilu', 'C/ProfileArea.tsx:324-346', 'List Historie']
+      ].map(([t, a, w], i) => ({ i: i + 1, t, a, w }))
+    };
+  }
+}
+</script>
+</body>
+</html>

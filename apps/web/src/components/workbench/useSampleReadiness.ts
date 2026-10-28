@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 
 import { research, type WorkingReadiness } from "@/lib/api";
 import { CONFLICT_MESSAGE, type ResearchStore } from "@/research/store";
+import { errorText } from "@/lib/error-words";
 
 export type SampleReadiness =
   | { kind: "loading" }
@@ -56,7 +57,7 @@ export function useSampleReadiness(store: ResearchStore, studyId: string, canEdi
     let live = true;
     loadSampleReadiness(store, studyId, canEdit).then(
       (s) => live && setState(s),
-      (e: unknown) => live && setState({ kind: "failed", message: e instanceof Error ? e.message : String(e) }),
+      (e: unknown) => live && setState({ kind: "failed", message: errorText(e) }),
     );
     return () => {
       live = false;

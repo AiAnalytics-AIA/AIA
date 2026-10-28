@@ -28,7 +28,7 @@ class SmokeRun:
     run_id: str
     build_sha: str
     ran_at: datetime
-    #: Not ready first (FAIL, NOT_RUNNABLE), then the passes, each in the smoke's order.
+    #: Not ready first (FAIL, NOT_READY, NOT_RUNNABLE), then the passes, in the smoke's order.
     checks: list[SmokeCheck]
 
 

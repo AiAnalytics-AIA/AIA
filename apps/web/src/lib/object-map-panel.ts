@@ -180,6 +180,31 @@ export function absoluteGrid(map: ObjectMapArtifact): PanelGrid | null {
   return panelGrid(terrain.parameters.grid_resolution, terrain.absolute_height);
 }
 
+/** The two inverse-distance terrains a `-5` map stores, one as its own, the other beside it. */
+export const IDW_TERRAINS = ["framed_relative_idw", "framed_relative_idw_falloff"] as const;
+export type IdwTerrain = (typeof IDW_TERRAINS)[number];
+
+/** The inverse-distance terrains this map stored: its switch offers these and no other. */
+export function storedTerrains(map: ObjectMapArtifact): IdwTerrain[] {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed") return [];
+  return IDW_TERRAINS.filter((m) => m === terrain.method || (m === terrain.alternate_method && !!terrain.alternate_height));
+}
+
+/**
+ * The map's terrain switch: the inverse-distance terrain `method` as stored (Relativni, or
+ * Absolutni on the 0-1 scale), whether it is the map's own or the one stored beside it.
+ * Null when the map stored none under that method: a terrain it lacks is never drawn as 0.
+ */
+export function terrainGrid(map: ObjectMapArtifact, method: IdwTerrain, absolute: boolean): PanelGrid | null {
+  const terrain = map.terrain;
+  if (terrain.status !== "computed") return null;
+  const height = method === terrain.method ? (absolute ? terrain.absolute_height : terrain.height)
+    : method === terrain.alternate_method ? (absolute ? terrain.alternate_absolute_height : terrain.alternate_height)
+    : undefined;
+  return height ? panelGrid(terrain.parameters.grid_resolution, height) : null;
+}
+
 /** The drawn elevation under a frame point, bilinear between the grid's samples (`terrainAt66`). */
 export function terrainAt(grid: PanelGrid, x: number, y: number): number {
   const { N, span } = grid;

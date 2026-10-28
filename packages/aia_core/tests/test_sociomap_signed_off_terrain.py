@@ -23,6 +23,8 @@ from typing import Any
 import numpy as np
 import pytest
 
+from aia_core.domain.methodology.sociomap import SOCIOMAP
+from aia_core.domain.methodology.versions import MethodologyVersionInvalid, validate_version
 from aia_core.domain.sociomap.engine_v2 import (
     _baseline_corrected,
     _frame_objects,
@@ -50,7 +52,11 @@ from aia_core.domain.sociomap.terrain import (
     EnvelopeParameters,
     EnvelopeTerrain,
     fit_frame,
+    idw_at,
+    idw_falloff_at,
     object_envelope,
+    object_idw,
+    object_idw_falloff,
 )
 
 FIXTURE = json.loads(
@@ -59,7 +65,15 @@ FIXTURE = json.loads(
 STUDIES = {study["name"]: study for study in FIXTURE["studies"]}
 TERRAIN = AIA_SOCIOMAP_V5.terrain
 assert TERRAIN is not None and TERRAIN.frame_fill is not None
+assert TERRAIN.idw_power is not None
 assert TERRAIN.relative_height_floor is not None
+#: The stored terrain without its absolute and alternate grids: the relative terrain alone.
+_ALONE = {
+    "absolute_height": None,
+    "alternate_method": None,
+    "alternate_height": None,
+    "alternate_absolute_height": None,
+}
 #: The methodology's frame: 62 frame units of half-width, 27 frame units to the ruler unit.
 SPAN, SCALE = 62.0, 27.0
 
@@ -89,11 +103,24 @@ def _known(artifact_status: Any) -> list[list[bool]]:
     return [[s in (PairStatus.RELIABLE, PairStatus.WEAK) for s in row] for row in artifact_status]
 
 
-def _framed(points: Any, relative: Any, framing: Any, ids: Any = None) -> EnvelopeTerrain:
+def _idw(hills: Any, params: EnvelopeParameters) -> EnvelopeTerrain:
+    assert TERRAIN.idw_power is not None
+    return object_idw(hills, params, TERRAIN.idw_power)
+
+
+def _falloff(hills: Any, params: EnvelopeParameters) -> EnvelopeTerrain:
+    assert TERRAIN.idw_power is not None
+    return object_idw_falloff(hills, params, TERRAIN.idw_power)
+
+
+def _framed(
+    points: Any, relative: Any, framing: Any, ids: Any = None, *, falloff: bool = False
+) -> EnvelopeTerrain:
     centre, half = fit_frame(
         [p for p, f in zip(points, framing, strict=True) if f], TERRAIN.frame_fill
     )
-    return object_envelope(
+    terrain = _falloff if falloff else _idw
+    return terrain(
         [
             EnvelopeHill(entity_id=oid, x=p[0], y=p[1], height=t)
             for oid, p, t in zip(
@@ -107,7 +134,6 @@ def _framed(points: Any, relative: Any, framing: Any, ids: Any = None) -> Envelo
             sigma=TERRAIN.sigma,
             centre=centre,
         ),
-        method="framed_relative_envelope",
     )
 
 
@@ -194,12 +220,23 @@ def test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5() -> None
         heights.values, [True] * 7, TERRAIN.relative_height_floor
     )
     framing = _frame_objects(heights.values, _known(artifact.relations.status))
-    relative_only = terrain.model_copy(update={"absolute_height": None})
+    relative_only = terrain.model_copy(update=_ALONE)
     assert relative_only == _framed(layout.points, heights.relative, framing, rated)
-    # The panel's Absolutní view: the same envelope with each hill at its 0-1 height, stored.
+    # The panel's Absolutní view: the same terrain with each object at its 0-1 height, stored.
     absolute = _framed(layout.points, heights.values, framing, rated)
     assert terrain.absolute_height == absolute.height
     assert terrain.absolute_height != terrain.height
+    # The map's terrain switch: the falloff terrain of the same hills on the same grid, stored.
+    assert terrain.alternate_method == "framed_relative_idw_falloff"
+    assert (
+        terrain.alternate_height
+        == _framed(layout.points, heights.relative, framing, rated, falloff=True).height
+    )
+    assert (
+        terrain.alternate_absolute_height
+        == _framed(layout.points, heights.values, framing, rated, falloff=True).height
+    )
+    assert terrain.alternate_height != terrain.height
     assert terrain.source_ids == rated
     assert all(h is not None for row in terrain.height for h in row)
     # The map is the rated objects' own, as if the object were not in the set.
@@ -219,7 +256,7 @@ def test_the_object_map_stores_the_framed_terrain_under_aia_sociomap_5() -> None
         "sigma",
         "centre",
     }
-    assert stored["terrain"]["method"] == "framed_relative_envelope"
+    assert stored["terrain"]["method"] == "framed_relative_idw"
     assert stored["objects_not_placed"] == ["o2"]
     assert "heights are weighted means" in artifact.support.weighting
     assert SociomapArtifactV3.from_payload(artifact.to_payload()) == artifact
@@ -243,7 +280,7 @@ def test_the_object_map_frames_its_terrain_on_the_objects_with_a_known_pair() ->
     framing = _frame_objects(artifact.heights.values, _known(artifact.relations.status))
     assert framing == tuple(j != few for j in range(8))
     assert artifact.objects_not_placed == () and relative[few] is not None
-    relative_only = artifact.terrain.model_copy(update={"absolute_height": None})
+    relative_only = artifact.terrain.model_copy(update=_ALONE)
     assert relative_only == _framed(layout.points, relative, framing)
     assert relative_only != _framed(layout.points, relative, [True] * 8)
     absolute = _framed(layout.points, artifact.heights.values, framing)
@@ -349,9 +386,21 @@ def _with_terrain(**update: Any) -> SociomapSpecV3:
 def test_the_framed_envelope_refuses_what_it_does_not_read() -> None:
     require_supported(AIA_SOCIOMAP_V5)
     assert AIA_SOCIOMAP_V5.terrain is not None
-    assert AIA_SOCIOMAP_V5.terrain.method == TerrainMethod.FRAMED_RELATIVE_ENVELOPE
+    assert AIA_SOCIOMAP_V5.terrain.method == TerrainMethod.FRAMED_RELATIVE_IDW
     assert AIA_SOCIOMAP_V4.terrain is not None
+    # The envelope stays selectable on the framed grid, without a power; IDW under the falloff too.
+    require_supported(_with_terrain(method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE, idw_power=None))
+    require_supported(_with_terrain(method=TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF))
     for spec, field in (
+        (_with_terrain(idw_power=None), "terrain.idw_power"),
+        (_with_terrain(idw_power=0.0), "terrain.idw_power"),
+        (_with_terrain(method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE), "terrain.idw_power"),
+        (
+            AIA_SOCIOMAP_V4.model_copy(
+                update={"terrain": AIA_SOCIOMAP_V4.terrain.model_copy(update={"idw_power": 3.0})}
+            ),
+            "terrain.idw_power",
+        ),
         (_with_terrain(half_extent=2.75), "terrain.half_extent"),
         (_with_terrain(kernel_cutoff=0.0005), "terrain.kernel_cutoff"),
         (_with_terrain(frame_fill=None), "terrain.frame_fill"),
@@ -367,6 +416,40 @@ def test_the_framed_envelope_refuses_what_it_does_not_read() -> None:
         with pytest.raises(UnsupportedMethodology) as refused:
             require_supported(spec)
         assert field in refused.value.unsupported
+
+
+def test_the_inverse_distance_power_is_bounded_where_the_terrain_computes() -> None:
+    # At the bound the terrain computes on every study; just past it, the spec and Metodika's
+    # check both refuse it (a power of 200 underflows 1 / d^p to 0 and the map fails).
+    highest = _with_terrain(idw_power=10.0)
+    require_supported(highest)
+    drawn = 0
+    for name in STUDIES:
+        terrain = compute_object_map(_inputs(name), highest, connectedness_interval=False).terrain
+        if isinstance(terrain, EnvelopeTerrain):
+            drawn += 1
+            assert all(h is not None and 0.0 <= h <= 1.0 for row in terrain.height for h in row)
+    assert drawn >= len(STUDIES) - 2
+    for power in (10.001, 200.0):
+        with pytest.raises(UnsupportedMethodology) as refused:
+            require_supported(_with_terrain(idw_power=power))
+        assert "terrain.idw_power" in refused.value.unsupported
+        with pytest.raises(MethodologyVersionInvalid) as invalid:
+            validate_version(
+                SOCIOMAP,
+                base_preset="aia-sociomap-5",
+                spec=_with_terrain(idw_power=power).model_dump(mode="json"),
+                formulas={},
+                version_name="aia-sociomap-5+e1",
+            )
+        assert any("idw_power" in key for key in invalid.value.problems)
+    validate_version(
+        SOCIOMAP,
+        base_preset="aia-sociomap-5",
+        spec=highest.model_dump(mode="json"),
+        formulas={},
+        version_name="aia-sociomap-5+e1",
+    )
 
 
 def _map(spec: SociomapSpecV3 = AIA_SOCIOMAP_V5, **slots: Any) -> SociomapArtifactV3:
@@ -385,9 +468,71 @@ def test_every_value_and_formula_of_the_stage_changes_the_map_when_edited() -> N
     assert lower.terrain != base.terrain
     finer = _map(_with_terrain(grid_resolution=40))
     assert isinstance(finer.terrain, EnvelopeTerrain) and len(finer.terrain.height) == 41
-    assert _map(_with_terrain(sigma=0.4)).terrain != base.terrain
+    assert _map(_with_terrain(idw_power=2.0)).terrain != base.terrain
+    # The hill width and the kernel shape the selectable rules, not the plain weighted mean.
+    falloff_spec = _with_terrain(method=TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF)
+    falloff = _map(falloff_spec)
+    assert isinstance(falloff.terrain, EnvelopeTerrain)
+    assert falloff.terrain.method == "framed_relative_idw_falloff"
+    assert falloff.terrain.height != base.terrain.height
+    same = _map(_with_terrain(sigma=0.4)).terrain
+    assert isinstance(same, EnvelopeTerrain) and same.height == base.terrain.height
+    wider = _with_terrain(method=TerrainMethod.FRAMED_RELATIVE_IDW_FALLOFF, sigma=0.4)
+    assert _map(wider).terrain != falloff.terrain
+    envelope = _map(_with_terrain(method=TerrainMethod.FRAMED_RELATIVE_ENVELOPE, idw_power=None))
+    assert isinstance(envelope.terrain, EnvelopeTerrain)
+    assert envelope.terrain.method == "framed_relative_envelope"
+    assert envelope.terrain.height != base.terrain.height
+    # Each inverse-distance terrain stores the other one; the envelope stores none.
+    assert envelope.terrain.alternate_method is None and envelope.terrain.alternate_height is None
+    assert falloff.terrain.alternate_method == "framed_relative_idw"
+    assert falloff.terrain.alternate_height == base.terrain.height
+    assert base.terrain.alternate_height == falloff.terrain.height
     # The height formula reads every rater at weight 1; the kernel formula is read as is.
     highest = _map(**{HEIGHT: lambda a, w: max(a)})
     assert highest.heights.values != base.heights.values
-    flat = _map(**{KERNEL: lambda h, d2, sigma: h})
-    assert isinstance(flat.terrain, EnvelopeTerrain) and flat.terrain != base.terrain
+    flat = _map(falloff_spec, **{KERNEL: lambda h, d2, sigma: h})
+    assert isinstance(flat.terrain, EnvelopeTerrain) and flat.terrain != falloff.terrain
+
+
+def _hill(name: str, x: float, height: float) -> EnvelopeHill:
+    return EnvelopeHill(entity_id=name, x=x, y=0.0, height=height)
+
+
+def test_the_terrain_at_an_object_is_its_own_height_beside_a_taller_one() -> None:
+    hills = [_hill("tall", -0.15, 1.0), _hill("low", 0.15, 0.15)]
+    sigma, power = TERRAIN.sigma, TERRAIN.idw_power
+    assert power is not None
+    assert idw_at(-0.15, 0.0, hills, power) == (1.0, 0)
+    assert idw_at(0.15, 0.0, hills, power) == (0.15, 1)
+    assert idw_falloff_at(0.15, 0.0, hills, sigma, power) == (0.15, 1)
+    # The envelope lifted the low object onto the tall one's slope.
+    params = EnvelopeParameters(grid_resolution=2, half_extent=0.15, sigma=sigma)
+    lifted = object_envelope(hills, params, method="framed_relative_envelope")
+    assert lifted.height[1][2] is not None and lifted.height[1][2] > 0.15 + 0.3
+
+
+def test_every_other_point_is_a_weighted_mean_of_the_objects() -> None:
+    hills = [_hill("a", -0.15, 1.0), _hill("b", 0.15, 0.2)]
+    power = TERRAIN.idw_power
+    assert power is not None
+    middle = idw_at(0.0, 0.0, hills, power)
+    assert middle is not None and middle[0] == pytest.approx(0.6, abs=1e-15)
+    # Far from both, still their mean, weighted by 1 / d^3 (the nearer, b, weighs more).
+    wa, wb = 1 / 3.15**3, 1 / 2.85**3
+    far = idw_at(3.0, 0.0, hills, power)
+    assert far is not None and far[1] == 1
+    assert far[0] == pytest.approx((wa * 1.0 + wb * 0.2) / (wa + wb), abs=1e-15)
+    assert idw_at(0.0, 0.0, [], power) is None
+
+
+def test_under_the_falloff_heights_blend_between_objects_and_far_away_is_ground() -> None:
+    hills = [_hill("a", -0.15, 1.0), _hill("b", 0.15, 0.2)]
+    sigma, power = TERRAIN.sigma, TERRAIN.idw_power
+    assert power is not None
+    middle = idw_falloff_at(0.0, 0.0, hills, sigma, power)
+    falloff = float(np.exp(-(0.15**2) / (2 * sigma * sigma)))
+    assert middle is not None and middle[0] == pytest.approx(0.6 * falloff, abs=1e-15)
+    far = idw_falloff_at(3.0, 3.0, hills, sigma, power)
+    assert far is not None and far[0] < 1e-12
+    assert idw_falloff_at(0.0, 0.0, [], sigma, power) is None

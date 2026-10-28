@@ -19,6 +19,7 @@ import { applyEdit, type EditRefusal, type WorkingEdit } from "@/lib/lead";
 import { settleItemIds, withItemIds } from "./item-ids";
 import { restoreLocked } from "./sociomap-lock";
 import { type Json, type ResearchProject, type Template, defaultsMerge } from "./model";
+import { errorText } from "@/lib/error-words";
 
 export const SAVE_DEBOUNCE_MS = 1800;
 
@@ -446,7 +447,7 @@ export class ResearchStore {
           // Closed by someone else while this copy was open: a retry can never succeed.
           this.set({ ...this.state, save: { kind: "closed" } });
         } else {
-          this.set({ ...this.state, save: { kind: "failed", message: e instanceof Error ? e.message : String(e) } });
+          this.set({ ...this.state, save: { kind: "failed", message: errorText(e) } });
         }
         // Nothing was saved: what was owed is owed again, before anything made meanwhile.
         if (whole || this.whole) this.goWhole();

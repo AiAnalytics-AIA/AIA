@@ -9,11 +9,15 @@
 # runbook as a manual acceptance step, because a smoke test holding a user's
 # Google credentials would be worse than the gap it closes.
 #
-# Exit status: 0 only when every check passed. The AI check always reports
-# NOT_RUNNABLE: the smoke makes no paid model call, and the AI runtime -- off by
-# default -- is checked by its own acceptance (ADR 0010), not on each deploy.
-# It is printed as such and never counted as a pass. A WARN row (the Document Server's health)
-# is said and does not fail the smoke either.
+# Exit status: 0 only when every check passed. The MVP's activation profile
+# (aia_executors.activation, mvp-master-plan MP6) is judged from the deployed
+# configuration, each row READY (an ok line) or NOT_READY with its reason: said, kept
+# for Settings and counted at the end, never a failure, because a switch nobody threw
+# is a fact about the product, not a broken deploy. The AI check always reports
+# NOT_RUNNABLE: the smoke makes no paid model call, and a live route probe runs only
+# after the owner's sign-off and a named allocation line (execution contract E05). It
+# is printed as such and never counted as a pass. A WARN row (the Document Server's
+# health) is said and does not fail the smoke either.
 
 # shellcheck source=deploy/develop/bin/lib.sh
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -33,6 +37,8 @@ trap 'rm -f "$RESULTS"' EXIT
 # is kept only when there is a results file, and the helpers behave as before without one.
 pass() { printf 'ok    %s\n' "$1"; if [ -n "${RESULTS:-}" ]; then printf 'ok    %s\n' "$1" >> "$RESULTS"; fi; }
 fail() { printf 'FAIL  %s\n      %s\n' "$1" "${2:-}"; if [ -n "${RESULTS:-}" ]; then printf 'FAIL  %s\n' "$1" >> "$RESULTS"; fi; FAILED=1; }
+# An activation row that is not switched on, its reason in the label: kept, never a failure.
+not_ready() { printf 'NOT_READY  %s\n' "$1"; if [ -n "${RESULTS:-}" ]; then printf 'NOT_READY  %s\n' "$1" >> "$RESULTS"; fi; }
 # Said, never counted as a pass, and not a failure: what is optional by design (bin/smoke-docs.sh).
 warn() { printf 'WARN  %s\n      %s\n' "$1" "${2:-}"; }
 json() { python3 -c "import json,sys; d=json.load(sys.stdin); print($1)"; }
@@ -113,6 +119,12 @@ else fail "web: the sign-in page renders" "GET $BASE/login did not return 200 HT
 web_sha="$(curl -fsS --max-time 10 "$BASE/version" | json 'd["sha"] or ""' || true)"
 if [ "$web_sha" = "$SHA" ]; then pass "web: /version reports $SHA"
 else fail "web: /version reports the deployed SHA" "got '${web_sha}'"; fi
+
+# The research workbench is the web's switch (AIA_WEB_RESEARCH_WORKBENCH), so its activation
+# row is read where the browser reads it, the deployed /config; the worker's rows follow below.
+workbench="$(curl -fsS --max-time 10 "$BASE/config" | json 'd.get("workbench")' 2>/dev/null || true)"
+if [ "$workbench" = "True" ]; then pass "activation: workbench for the research workbench (AC-02) -- /config reports it on"
+else not_ready "activation: workbench for the research workbench (AC-02) -- /config reports workbench '${workbench}' (AIA_WEB_RESEARCH_WORKBENCH)"; fi
 
 redirect="$(code "http://${AIA_PUBLIC_HOSTNAME}/")"
 case "$redirect" in 301|308) pass "web: HTTP redirects to HTTPS ($redirect)" ;;
@@ -204,6 +216,10 @@ else
     "$(printf '%s' "$record_out" | tail -n1)"
 fi
 
+NOT_READY_ROWS="$(grep -c '^NOT_READY ' "$RESULTS" || true)"
 echo
+if [ "${NOT_READY_ROWS:-0}" -gt 0 ]; then
+  echo "smoke: ${NOT_READY_ROWS} activation row(s) NOT_READY: not every MVP switch is on"
+fi
 if [ "$FAILED" -ne 0 ]; then echo "smoke: FAILED"; exit 1; fi
 echo "smoke: all checks passed for $SHA"

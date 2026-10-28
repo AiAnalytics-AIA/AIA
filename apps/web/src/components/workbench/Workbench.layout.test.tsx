@@ -123,7 +123,7 @@ function Opener() {
 function bench(child = <Stage />, step: "questionnaire" | "plan" | "results" = "questionnaire") {
   const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
   return render(
-    <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+    <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       {child}
     </Workbench>,
@@ -277,7 +277,7 @@ describe("the launcher and the drawer (26c)", () => {
     const onOpenJob = vi.fn();
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     render(
-      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[done]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
         <Stage />
       </Workbench>,
@@ -393,7 +393,7 @@ describe("the compact header and stage navigator (26d)", () => {
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     render(
       <Workbench frame={{ ...TEST_FRAME, status: "DRAFT", refreshStudy: async () => { refreshed.push(1); } }} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null}
-        reload={vi.fn()} confirm={vi.fn(async () => true)} onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
+        reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)} onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
         <Stage />
       </Workbench>,
     );
@@ -528,7 +528,7 @@ describe("the item inspector", () => {
     expect(document.querySelector("[data-item-inspector]")).toBeTruthy();
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     const at = (step: "questionnaire" | "audience") => (
-      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
         <Opener />
       </Workbench>
@@ -585,6 +585,19 @@ describe("the item inspector", () => {
 });
 
 describe("Připravenost a pomoc", () => {
+  it("says each thing once: the blocked count in the header from 768 px, the client in its link", () => {
+    bench();
+    const toggle = () => screen.getByRole("button", { name: /Připravenost a pomoc/ });
+    const header = screen.getByText(/Do spuštění zbývá \d+|Návrh splňuje podmínky kroků/);
+    const count = /Do spuštění zbývá (\d+)/.exec(header.textContent ?? "")?.[1];
+    expect(toggle().textContent).not.toMatch(/ · \d/);
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    expect(screen.queryByRole("menuitem", { name: "Pracovní prostor klienta" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Nabídka" }));
+    setWidth(390);
+    if (count) expect(toggle().textContent).toContain(` · ${count}`);
+  });
+
   it("takes the focus when it opens, closes on Escape before the drawer, and gives the focus back (audit)", async () => {
     bench();
     const toggle = screen.getByRole("button", { name: /Připravenost a pomoc/ });
@@ -648,7 +661,7 @@ describe("the stage navigator: a steady, full-width bar (research-lead-workbench
     const current = before.innerHTML;
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     view.rerender(
-      <Workbench frame={TEST_FRAME} step="plan" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step="plan" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}><Stage /></Workbench>,
     );
     expect(slot("Návrh").getAttribute("aria-current")).toBe("page");
@@ -754,7 +767,7 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
   const benchOn = (step: "results" | "questionnaire") => {
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     return render(
-      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step={step} store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
         <Forward />
       </Workbench>,
@@ -788,7 +801,7 @@ describe("a stage's forward action through the frame (FrameNavigation's next)", 
       // not take the focus from where that navigation put it.
       const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
       view.rerender(
-        <Workbench frame={TEST_FRAME} step="audience" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+        <Workbench frame={TEST_FRAME} step="audience" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
           onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
           <Forward />
         </Workbench>,
@@ -824,7 +837,7 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     const onOpenJob = vi.fn();
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     render(
-      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[pending]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
         <Stage />
       </Workbench>,
@@ -847,7 +860,7 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     const onOpenJob = vi.fn();
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     render(
-      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)}
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[]} onOpenJob={onOpenJob} onRefreshJobs={vi.fn(async () => [])}>
         <Stage />
       </Workbench>,
@@ -869,7 +882,7 @@ describe("the Lead's show_diff (research-lead-workbench 14)", () => {
     }));
     const onOpenJob = vi.fn();
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
-    const props = { frame: TEST_FRAME, store, memory: new Map(), save: null, inspector: null, reload: vi.fn(), confirm: vi.fn(async () => true), onAgentStarted: vi.fn(), jobs: [], onOpenJob, onRefreshJobs: vi.fn(async () => []) };
+    const props = { frame: TEST_FRAME, store, memory: new Map(), save: null, inspector: null, reload: vi.fn(), confirm: vi.fn(async () => true), confirmSpend: vi.fn(async () => true), onAgentStarted: vi.fn(), jobs: [], onOpenJob, onRefreshJobs: vi.fn(async () => []) };
     const view = render(<Workbench {...props} step="questionnaire"><Stage /></Workbench>);
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).includes("/research/agent-jobs?"))).toBe(true));
     view.rerender(<Workbench {...props} step="audience"><Stage /></Workbench>);
@@ -1058,7 +1071,7 @@ describe("a typed analysis retry (the PM on #744)", () => {
     const confirm = vi.fn(async () => true);
     const store = new ResearchStore({ revision: 3, project: EMPTY_PROJECT as unknown as ResearchProject, analysis: null, save: { kind: "saved" }, checkEpoch: 0 }, "STU-1");
     render(
-      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={confirm}
+      <Workbench frame={TEST_FRAME} step="questionnaire" store={store} memory={new Map()} save={null} inspector={null} reload={vi.fn()} confirm={confirm} confirmSpend={vi.fn(async () => true)}
         onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
         <Stage />
       </Workbench>,

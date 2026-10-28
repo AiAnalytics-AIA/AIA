@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 
 import type { Readiness, ResearchAgentAction, ResearchAgentJob, ResearchRun, ResearchStep } from "./api";
 import { ACTION_LABELS } from "./research-agent-jobs";
-import { JOB_STAGE, budgetFacts, ceilingWords, conversationTimeline, costWords, jobMovesByItself, leadOwnsAiStarts, pillClass, runCard, runRequestPill, runRequestPlan, workerCard } from "./lead-cards";
+import { JOB_STAGE, budgetFacts, ceilingWords, conversationTimeline, costWords, jobMovesByItself, leadOwnsAiStarts, runCard, runRequestPill, runRequestPlan, workerCard } from "./lead-cards";
 
 const step = (over: Partial<ResearchStep> = {}): ResearchStep => ({
   step_id: "STEP-1", node_key: "agent", kind: "research_agent", stage_type: "x", status: "RUNNING", waiting_reason: null,
@@ -162,8 +162,6 @@ describe("what a card's facts and pill say", () => {
     expect(runRequestPill({ kind: "start", ceiling: 1, confirm: null, source: null }, "open").word).toBe("Připraveno");
     expect(runRequestPill({ kind: "not_ready", reasons: [] }, "open")).toEqual({ word: "Blokuje: připravenost", tone: "fault" });
     expect(runRequestPill({ kind: "start", ceiling: 1, confirm: null, source: null }, "started").word).toBe("Spuštěno");
-    expect(pillClass("fault")).toBe("statepill statepill--fault");
-    expect(pillClass("inert")).toBe("statepill");
   });
 });
 

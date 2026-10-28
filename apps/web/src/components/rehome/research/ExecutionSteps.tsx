@@ -95,7 +95,7 @@ import {
 } from "@/lib/research-execution";
 import { runDestination, runState } from "@/lib/run-state";
 import { codedText, codeWords } from "@/lib/reason-words";
-import { readBudget, withBudget } from "@/lib/budget-line";
+import { readBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
 import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
 import type { Tone } from "@/lib/tone";
@@ -109,7 +109,7 @@ import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { ActionDock, FrameNavigation, Switch } from "../step";
-import { AiButton, Button, Chip } from "../ui";
+import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
 import { VerifiedSourceButton } from "./VerifiedSourceButton";
@@ -131,6 +131,7 @@ import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
 import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { errorText } from "@/lib/error-words";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -156,7 +157,7 @@ function retiredMethodRefusal(e: unknown): NewRunStart | null {
   const body = (e.details as { new_run?: { body?: Partial<NewRunStart> } }).new_run?.body;
   return body && typeof body.design_revision_id === "string" ? (body as NewRunStart) : null;
 }
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
+const message = (e: unknown) => errorText(e);
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("cs-CZ") : "—");
 
 /** A link back to the stage where something is set: the input standard's touch target (I11) and
@@ -554,7 +555,7 @@ function ResearchTraceCard({ trace, outlook, answer, design }: {
           const measures = traceMeasures(q, outlook);
           return (
             <li key={`${i}-${q.text}`} className="flex items-start gap-2 text-sm">
-              <Chip tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</Chip>
+              <StatusPill tone={verdictTone(q.verdict)}>{t(`research.exec.outlook.verdict.${q.verdict}`)}</StatusPill>
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{q.text}</p>
                 {q.comparison ? (
@@ -568,7 +569,7 @@ function ResearchTraceCard({ trace, outlook, answer, design }: {
                   <ul className="mt-1 flex flex-col gap-1">
                     {measures.map((m) => (
                       <li key={m.key} className="flex items-start gap-2 text-[13px]">
-                        <Chip tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</Chip>
+                        <StatusPill tone={verdictTone(m.verdict)}>{t(`research.exec.outlook.verdict.${m.verdict}`)}</StatusPill>
                         <span className="min-w-0 flex-1">{m.code ? <CodedWords inline coded={{ words: m.text, code: m.code }} /> : m.text}</span>
                       </li>
                     ))}
@@ -606,7 +607,7 @@ function QuestionOutlookCard({ items }: { items: readonly QuestionOutlook[] }) {
     const fix = outlookFixStep(item.reasons);
     return (
       <li key={item.question_id} className="flex items-start gap-2 text-sm">
-        <Chip tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</Chip>
+        <StatusPill tone={verdictTone(item.verdict)}>{t(`research.exec.outlook.verdict.${item.verdict}`)}</StatusPill>
         <div className="min-w-0 flex-1">
           <p>{item.text}</p>
           {item.reasons.length ? (
@@ -651,7 +652,7 @@ const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
-  const { store, stepHref, confirm } = useResearch();
+  const { store, stepHref, confirmSpend } = useResearch();
   const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
@@ -762,9 +763,9 @@ export function RunStep() {
     setChoosing(false);
   };
 
-  // The question carries what remains of the study's budget, read as it asks (6d).
-  const ask = async (ceiling: number, limit: number) =>
-    confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: ceiling.toFixed(2), limit: limit.toFixed(2) }), ceiling));
+  // SpendDialog, with what remains of the study's budget read as it asks (6d; design system v3, I-Penize).
+  const ask = (ceiling: number, limit: number) =>
+    confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startRun") });
 
   const start = async () => {
     if (prepared.kind !== "ready") return;
@@ -848,7 +849,7 @@ export function RunStep() {
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
               {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
                 <li key={c.id} className="flex items-start gap-2 text-sm">
-                  <Chip tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></Chip>
+                  <StatusPill tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></StatusPill>
                   <span className="flex-1">{c.message}</span>
                   {c.status !== "PASS" ? (
                     <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
@@ -968,7 +969,7 @@ function PopulationChoice({
               <span className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">{m?.dimension_id ?? v.label}</span>
                 {m ? <span className="text-ink-muted">{tv(`${P}.outcome`, { target: outcomeValue(m.kind, m.target), achieved: outcomeValue(m.kind, m.achieved) })}</span> : null}
-                <Chip tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</Chip>
+                <StatusPill tone={verdict === "met" ? "done" : "fault"}>{t(`aia.intelligence.population.children.verdict.${verdict}`)}</StatusPill>
               </span>
             </label>
           );
@@ -1020,12 +1021,12 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
         <ul className="flex flex-col gap-2">
           {runs.map((r) => (
             <li key={r.run_id} className="flex flex-wrap items-center gap-2 text-sm">
-              <Chip tone={runState(r).tone}>{runState(r).label}</Chip>
+              <StatusPill tone={runState(r).tone}>{runState(r).label}</StatusPill>
               <span>{tv("research.exec.revision", { revision: r.design_revision })}</span>
               <span className="text-ink-muted">{tv("research.exec.startedAt", { when: when(r.created_at) })}</span>
-              {isSynthetic(r) ? <Chip tone="fault">{t("research.exec.fictional")}</Chip> : null}
-              {isModelled(r) ? <Chip tone="neutral">{t("research.exec.modelled")}</Chip> : null}
-              {hasUnknownOrigin(r) ? <Chip tone="fault">{t("research.exec.unknownOrigin")}</Chip> : null}
+              {isSynthetic(r) ? <StatusPill tone="fault">{t("research.exec.fictional")}</StatusPill> : null}
+              {isModelled(r) ? <StatusPill tone="neutral">{t("research.exec.modelled")}</StatusPill> : null}
+              {hasUnknownOrigin(r) ? <StatusPill tone="fault">{t("research.exec.unknownOrigin")}</StatusPill> : null}
               <a className={`underline ${RUN_LINK}`} href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
                 {runDestination(r) === "results" ? t("research.exec.toResults") : t("research.exec.toProgress")}
               </a>
@@ -1155,7 +1156,7 @@ function useRetryableRead(run: ResearchRun | null | undefined): Repairable | nul
  * server asks about are answered here, as a start's are.
  */
 function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) => Promise<void>, busy: boolean) {
-  const { confirm, stepHref } = useResearch();
+  const { confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   const [offer, setOffer] = useState<{ runId: string; body: NewRunStart } | null>(null);
   const [asked, setAsked] = useState<{ runId: string; answer: Answerability } | null>(null);
@@ -1174,7 +1175,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
         } catch (e) {
           const cost = confirmationAsked(e);
           if (!cost) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: cost.ceiling.toFixed(2), limit: cost.limit.toFixed(2) }), cost.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: cost.ceiling, thresholdUsd: cost.limit, act: t("input.spend.research.startRun") });
           if (!yes) return run;
           next = await send(cost.ceiling);
         }
@@ -1223,7 +1224,7 @@ function useNewRunOffer(run: ResearchRun, act: (fn: () => Promise<ResearchRun>) 
 
 /** A finished run whose analysis a model could not complete: the data stands, the modules are asked again. */
 function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: ResearchRun; modules: Repairable; act: (fn: () => Promise<ResearchRun>) => Promise<void>; busy: boolean }) {
-  const { confirm } = useResearch();
+  const { confirmSpend } = useResearch();
   const frame = useFrame();
   const failed = modules.length - stale.filter((m) => modules.includes(m)).length;
   const newRun = useNewRunOffer(run, act, busy);
@@ -1247,7 +1248,7 @@ function AnalysisRepair({ run, modules: { modules, stale }, act, busy }: { run: 
                   // The retry asks a model again, so the study's limit asks again over what it may cost.
                   const asked = confirmationAsked(e);
                   if (!asked) throw e;
-                  const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+                  const yes = await confirmSpend({ summary: t("input.spend.research.retryAnalysis"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryAnalysisAct") });
                   if (!yes) return run;
                   return await research.retryAnalysis(frame.studyId, run.run_id, asked.ceiling);
                 }
@@ -1272,7 +1273,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
   /** Modules an analysis retry would ask again: the whole-run retry then steps back. */
   repairable: Repairable | null;
 }) {
-  const { confirm, stepHref } = useResearch();
+  const { confirm, confirmSpend, stepHref } = useResearch();
   const frame = useFrame();
   // A retry the server refused for its research questions: the gaps, for the run it was refused
   // for, and the person's answer. Shown only while that run is the one followed and retryable.
@@ -1290,7 +1291,7 @@ function ProgressActions({ run, act, busy, refresh, actionError, repairable }: {
           // A retry is a new run, so the study's limit asks again.
           const asked = confirmationAsked(e);
           if (!asked) throw e;
-          const yes = await confirm(await withBudget(frame.studyId, tv("research.exec.cost.confirm", { ceiling: asked.ceiling.toFixed(2), limit: asked.limit.toFixed(2) }), asked.ceiling));
+          const yes = await confirmSpend({ summary: t("input.spend.research.retryRun"), ceilingUsd: asked.ceiling, thresholdUsd: asked.limit, act: t("input.spend.research.retryRunAct") });
           if (!yes) return run;
           next = await research.retry(frame.studyId, run.run_id, asked.ceiling, acknowledge);
         }
@@ -1451,7 +1452,7 @@ export function ProgressStep() {
       <SpendCard run={run} />
       <Card>
         <div className="flex flex-wrap items-center gap-3">
-          <Chip tone={state.tone}>{state.label}</Chip>
+          <StatusPill tone={state.tone}>{state.label}</StatusPill>
           <span className="text-sm">{tv("research.exec.revision", { revision: run.design_revision })}</span>
           <span className="text-sm text-ink-muted">{tv("research.exec.startedAt", { when: when(run.created_at) })}</span>
           {run.finished_at ? <span className="text-sm text-ink-muted">{tv("research.exec.finishedAt", { when: when(run.finished_at) })}</span> : null}
@@ -1506,14 +1507,14 @@ export function ProgressStep() {
             <li key={s.step_id} data-aia={stepTarget(s.node_key) ?? undefined} data-step={s.node_key} data-status={s.status} className="flex flex-col gap-0.5 text-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <span data-step-number aria-hidden="true" className="w-5 shrink-0 text-right font-mono text-xs tabular-nums text-ink-faint">{index + 1}</span>
-                <Chip tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</Chip>
+                <StatusPill tone={stepTone(s, run.is_terminal)}>{stepStatusLabel(s, run.is_terminal)}</StatusPill>
                 <span className="font-medium">{stepLabel(s.node_key)}</span>
                 {researchStepWork(run, s.node_key) ? (
                   <span data-step-work={researchStepWork(run, s.node_key)} className="text-xs text-ink-muted">{t(`research.exec.stepWork.${researchStepWork(run, s.node_key)}`)}</span>
                 ) : null}
                 {stepOriginKind(s) ? (
                   <span title={s.data_origin ?? undefined} data-origin-kind={stepOriginKind(s)}>
-                    <Chip tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</Chip>
+                    <StatusPill tone={stepOriginKind(s) === "MODELLED" ? "neutral" : "fault"}>{t(`research.exec.originKind.${stepOriginKind(s)}`)}</StatusPill>
                   </span>
                 ) : null}
               </div>
@@ -1770,10 +1771,7 @@ function noResultsWords(run: ResearchRun): string {
 function RevisionMoved({ note }: { note: RevisionNote | null }) {
   if (!note) return null;
   return (
-    <section role="note" data-revision-moved className="rounded-md border border-status-you-ink/40 bg-status-you-wash p-4">
-      <p className="text-sm font-semibold">{note.title}</p>
-      <p className="mt-1 text-sm">{note.body}</p>
-    </section>
+    <StaleMark data-revision-moved title={note.title}>{note.body}</StaleMark>
   );
 }
 
@@ -2170,7 +2168,7 @@ function ObjectComparison({ setId, title, comparison, scale, places }: { setId: 
               <tr key={o.id} data-object={objectOf(o.id)} data-withheld={o.reason} className="border-t border-border">
                 <td className="max-w-48 truncate py-1.5 pr-3"><a href={`#${measureAnchor(o.id)}`} className="no-underline hover:underline" title={o.label}>{o.label}</a></td>
                 <td colSpan={2} className="py-1.5 pr-3 text-ink-muted">{o.reason === "suppressed"
-                  ? `Potlačeno · ${o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`}`
+                  ? <Value suppressed={o.donors === null ? "podpora dat nestačí" : `podpora dat nestačí (${o.donors.toLocaleString("cs-CZ")} unikátních dárců)`} />
                   : "Bez průměru"}</td>
                 <td aria-hidden="true" className="hidden @lg:table-cell" />
                 <td className="whitespace-nowrap py-1.5 text-right tabular-nums text-ink-muted">{kish(o.kishN)}</td>
@@ -2304,7 +2302,7 @@ function Deviation({ deviation: d }: { deviation: AggregateDeviation }) {
   const named = d.changed.length + d.formulas.length;
   return (
     <div role="note" data-aggregate-deviation className="flex flex-col gap-1 rounded-sm border border-status-fault p-3 text-sm">
-      <div><Chip tone="fault">{t(`${D}.chip`)}</Chip></div>
+      <div><StatusPill tone="fault">{t(`${D}.chip`)}</StatusPill></div>
       <p>{tv(`${D}.text`, { version: d.version ?? t(`${D}.unknownVersion`) })}</p>
       {named ? (
         <ul className="list-disc pl-5 text-xs">

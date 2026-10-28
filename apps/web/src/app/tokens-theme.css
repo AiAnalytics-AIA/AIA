@@ -26,8 +26,10 @@
   --color-ai-strong: var(--ai-strong);
   --color-ai-wash: var(--ai-wash);
   --color-ai-edge: var(--ai-edge);
-  --color-ai-ink: var(--ai-ink);
   --color-on-ai: var(--on-ai);
+  --color-spark-1: var(--spark-1);
+  --color-spark-2: var(--spark-2);
+  --color-spark-3: var(--spark-3);
   --color-status-running: var(--status-running);
   --color-status-running-wash: var(--status-running-wash);
   --color-status-you: var(--status-you);

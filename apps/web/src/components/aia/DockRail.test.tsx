@@ -202,3 +202,13 @@ describe("the Dock rail", () => {
     expect(CSS).toMatch(/@media \(prefers-reduced-motion: reduce\) \{\s*\.dock,\s*\.dock \* \{\s*transition: none !important;/);
   });
 });
+
+describe("initials", () => {
+  it("takes letters only, never punctuation", async () => {
+    const { initials } = await import("./DockRail");
+    expect(initials("Banka Horizont")).toBe("BH");
+    expect(initials("Klient (fiktivní)")).toBe("KF");
+    expect(initials("jana.mala")).toBe("JM");
+    expect(initials("(—)")).toBe("?");
+  });
+});

@@ -540,7 +540,7 @@ describe("Deep Research settings", () => {
     mode = "fail";
     fireEvent.click(within(await row(RETENTION)).getByRole("button", { name: "Schválit" }));
     dialog = await waitFor(() => { const el = document.querySelector("[data-dr-approve]") as HTMLElement | null; if (!el?.querySelector("[role=alert]")) throw new Error("no failure yet"); return el; });
-    expect(within(dialog).getByRole("alert").textContent).toMatch(/Boom/);
+    expect(within(dialog).getByRole("alert").textContent).toMatch(/^AIA teď neodpovídá/);
     const confirm = within(dialog).getByRole("button", { name: "Schválit" }) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
     fireEvent.click(confirm);

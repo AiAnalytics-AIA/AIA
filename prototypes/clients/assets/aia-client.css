@@ -1,0 +1,292 @@
+/* aia-client.css: the client pages (Klienti, a client's workspace, Projektová paměť), on aia-core.css v3 tokens only.
+   Never redefines a core class. R16 tonal layering as in aia-study.css: soft sheets, a fading header band in the
+   area's wayfinding hue (<= 9 %), wells one tone down, no hard colour edges. */
+body{margin:0}
+.cl{--ar:var(--hslate);--ar-wash:color-mix(in srgb,var(--ar) 8%,var(--raised));--ar-glow:color-mix(in srgb,var(--ar) 5%,var(--surface));--ar-ink:color-mix(in srgb,var(--ar) 72%,var(--ink));--well:color-mix(in srgb,var(--surface) 55%,var(--raised));--well-hover:color-mix(in srgb,var(--surface) 25%,var(--raised))}
+.cl[data-theme=dark]{--ar-wash:color-mix(in srgb,var(--ar) 14%,var(--raised));--ar-glow:color-mix(in srgb,var(--ar) 9%,var(--surface));--ar-ink:color-mix(in srgb,var(--ar) 55%,var(--ink))}
+.cl[data-area=prehled]{--ar:var(--hslate)}
+.cl[data-area=vyzkumy]{--ar:var(--hblue)}
+.cl[data-area=znalosti]{--ar:var(--hviolet)}
+.cl[data-area=data]{--ar:var(--hteal)}
+.cl[data-area=profil]{--ar:var(--hslate)}
+.cl[data-area=pamet]{--ar:var(--hviolet)}
+.cl[data-area=klienti]{--ar:var(--hblue)}
+.cl a{color:var(--signal);text-decoration:none}
+.cl a:hover{color:var(--shover);text-decoration:underline}
+.cl .asb a,.cl .asb a:hover{text-decoration:none}
+:where(.cl) :where(h1,h2,h3,p,ul,ol,dl,dd,figure){margin:0}
+:where(.cl) :where(ul,ol){padding:0;list-style:none}
+.cl .main{min-width:0}
+.cl .content{max-width:1180px;width:100%}
+.cl .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* the hero, as UI-1: a page's ground carries the area's glow, fading */
+.cl .clhero-ground{background:linear-gradient(180deg,var(--ar-glow) 0,var(--surface) 100%)}
+.cl .hero{margin-bottom:0}
+.cl .mono-tile{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:8px;background:var(--ar-wash);color:var(--ar-ink);font:600 14px/1 var(--mono);flex:none;border:1px solid color-mix(in srgb,var(--ar) 18%,var(--border))}
+.cl .hero-name{display:flex;align-items:center;gap:14px;margin-top:6px}
+.cl .hero-name .hero-h{margin:0}
+.cl .hero-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cl .hero-meta dd .unit{font-size:13px;font-weight:500;color:var(--muted)}
+.cl .hero-meta dd.unk{font-size:15px;font-weight:500;color:var(--muted)}
+.cl .hero-meta dt{font-size:12px;color:var(--faint)}
+.cl .hero-meta a.fig{color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:2px;border-radius:6px;padding:2px 6px;margin:-2px -6px}
+.cl .hero-meta a.fig:hover{background:var(--ar-wash)}
+
+/* the client's areas: tabs as a plain underline row, no colour tiles, counts at radius 6 */
+.cl .ctabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-top:20px;flex-wrap:wrap}
+.cl .ctabs a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:500;text-decoration:none}
+.cl .ctabs a:hover{color:var(--ink);background:var(--ar-wash);text-decoration:none}
+.cl .ctabs a.on{color:var(--ink);border-bottom-color:var(--signal)}
+.cl .ctabs a .ph{width:16px;height:16px;color:var(--faint)}
+.cl .ctabs a.on .ph{color:var(--signal)}
+.cl .cnt{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:6px;background:var(--sunken);color:var(--muted);font:500 12px/1 var(--mono)}
+.cl .cnt.you{background:var(--youwash);color:var(--youink);box-shadow:inset 0 0 0 1px var(--you)}
+.cl .cnt.world{background:var(--wwash);color:var(--world)}
+
+/* area body */
+.cl .abody{display:flex;flex-direction:column;gap:20px;padding-top:24px}
+.cl .cols{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:20px;align-items:start}
+.cl .cols.even{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.cl .stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+
+/* R16 section sheets */
+.cl .sec{background:var(--raised);border:1px solid color-mix(in srgb,var(--border) 70%,transparent);border-radius:8px;box-shadow:0 1px 2px rgba(21,26,32,.04),0 4px 14px -8px rgba(21,26,32,.10);min-width:0}
+.cl[data-theme=dark] .sec{box-shadow:0 1px 0 rgba(255,255,255,.03),0 6px 18px -10px rgba(0,0,0,.6)}
+.cl .sh{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:8px 8px 0 0;background:linear-gradient(90deg,var(--ar-wash) 0,var(--raised) 72%)}
+.cl .sh h2{font-size:15px;line-height:20px;font-weight:600}
+.cl .sh .num{font:500 11px/1 var(--mono);color:var(--ar-ink);width:22px}
+.cl .sh .ph{width:16px;height:16px;color:var(--ar-ink)}
+.cl .sb{padding:10px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.cl .sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.cl .sec.need>.sh{background:linear-gradient(90deg,var(--youwash) 0,var(--raised) 72%)}
+.cl .glbl{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.cl .glbl::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+/* wells: a row one tone down inside a sheet */
+.cl .well{display:flex;align-items:center;gap:12px;background:var(--well);border-radius:6px;padding:10px 12px;min-height:44px;box-sizing:border-box;border:1px solid transparent}
+.cl .well:hover{background:var(--well-hover);border-color:var(--border)}
+.cl .well .tx{flex:1;min-width:0}
+.cl .well .tx b{font-weight:500;display:block}
+.cl .well .tx .cap{display:block;margin-top:2px}
+.cl .well .ph{width:16px;height:16px;color:var(--faint);flex:none}
+.cl .well.you{background:color-mix(in srgb,var(--youwash) 55%,var(--raised))}
+.cl .wells{display:flex;flex-direction:column;gap:6px}
+.cl .empty{border:1px dashed var(--border);border-radius:6px;padding:14px 16px;color:var(--muted);font-size:13px}
+
+/* data grid tables, square, header on sunken */
+.cl .grid{display:grid;font-size:13px;border-top:1px solid var(--border)}
+.cl .grid .th{font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.cl .grid .td{padding:8px 10px;border-bottom:1px solid var(--border);min-width:0;display:flex;align-items:center;gap:8px}
+.cl .grid .td.top{align-items:flex-start}
+.cl .grid .tr{display:contents}
+.cl .grid .tr:hover .td{background:var(--stint)}
+.cl .grid .tr.on .td{background:var(--swash)}
+.cl .grid .tr.you .td{background:var(--youwash)}
+.cl .grid .td .t{font-weight:500;color:var(--ink)}
+.cl .grid .td .s{display:block;font-size:12px;color:var(--faint);margin-top:1px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.cl .grid .num{justify-content:flex-end;text-align:right}
+.cl .grid .amt{justify-content:flex-end;font-family:var(--mono);font-size:12px}
+.cl .rowbtn{border:0;background:none;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.cl .rowbtn:hover .t{color:var(--signal);text-decoration:underline}
+
+/* toolbar above a list */
+.cl .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cl .findbox{display:flex;align-items:center;gap:8px;border:1px solid var(--strong);border-radius:6px;background:var(--raised);padding:0 10px;min-height:32px;box-sizing:border-box;flex:1;max-width:420px}
+.cl .findbox .ph{width:16px;height:16px;color:var(--faint)}
+.cl .findbox input{border:0!important;background:none!important;min-height:30px!important;padding:0!important;flex:1;outline:none}
+.cl .seg button .cnt{margin-left:6px;height:18px;min-width:18px}
+.cl .seg button.on .cnt{background:color-mix(in srgb,var(--onsig) 22%,transparent);color:var(--onsig);box-shadow:none}
+
+/* tags: kind words, quiet */
+.cl .kind{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 7px;border-radius:6px;font-size:12px;font-weight:500;background:var(--sunken);color:var(--muted);white-space:nowrap}
+.cl .kind .ph{width:14px;height:14px}
+.cl .ext{display:inline-grid;place-items:center;width:40px;height:28px;border-radius:6px;background:var(--sunken);color:var(--muted);font:500 11px/1 var(--mono);flex:none;border:1px solid var(--border)}
+.cl .lsw{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.cl .lbl-chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 7px;border-radius:6px;font-size:12px;background:var(--raised);border:1px solid var(--border);color:var(--ink);white-space:nowrap}
+.cl .lbl-chip button{border:0;background:none;padding:0;color:var(--faint);cursor:pointer;display:inline-grid}
+.cl .lbl-chip .ph{width:12px;height:12px}
+.cl .h-blue{background:var(--hblue)}.cl .h-teal{background:var(--hteal)}.cl .h-violet{background:var(--hviolet)}.cl .h-orange{background:var(--horange)}.cl .h-slate{background:var(--hslate)}
+
+/* library: side organiser, list, item drawer */
+.cl .lib{display:grid;grid-template-columns:232px minmax(0,1fr);gap:20px;align-items:start}
+.cl .lib.open{grid-template-columns:232px minmax(0,1fr) 380px}
+.cl .org{background:var(--raised);border:1px solid color-mix(in srgb,var(--border) 70%,transparent);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:2px}
+.cl .org .glbl{padding:10px 8px 4px;margin:0}
+.cl .orow{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 8px;border-radius:6px;border:0;background:none;width:100%;text-align:left;color:var(--muted);cursor:pointer;font:inherit;box-sizing:border-box}
+.cl .orow:hover{background:var(--well);color:var(--ink)}
+.cl .orow.on{background:var(--swash);color:var(--ink);font-weight:500}
+.cl .orow .ph{width:16px;height:16px;color:var(--faint)}
+.cl .orow.on .ph{color:var(--signal)}
+.cl .orow .grow{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl .orow .n{font:12px/1 var(--mono);color:var(--faint)}
+.cl .orow.add{color:var(--faint);border:1px dashed var(--border);margin-top:4px}
+.cl .orow .more{opacity:0}
+.cl .orow:hover .more,.cl .orow:focus-within .more{opacity:1}
+.cl .org .foot{font-size:12px;line-height:16px;color:var(--faint);padding:10px 8px 4px;border-top:1px solid var(--border);margin-top:8px}
+.cl .drawer{background:var(--raised);border:1px solid color-mix(in srgb,var(--border) 70%,transparent);border-radius:10px;box-shadow:var(--shadow-overlay);position:sticky;top:16px;display:flex;flex-direction:column;min-width:0}
+.cl .drawer .dh{display:flex;align-items:flex-start;gap:10px;padding:14px 16px 12px;border-radius:10px 10px 0 0;background:linear-gradient(90deg,var(--ar-wash) 0,var(--raised) 72%)}
+.cl .drawer .db{padding:4px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.cl .drawer h3{font-size:16px;line-height:22px;font-weight:600}
+.cl .field{display:flex;flex-direction:column;gap:4px}
+.cl .field input,.cl .field textarea,.cl .field select{width:100%}
+.cl .field textarea{min-height:72px;resize:vertical}
+.cl .ckv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 12px;font-size:13px}
+.cl .ckv dt{color:var(--faint)}
+.cl .ckv dd{color:var(--ink);min-width:0}
+.cl .hist li{display:grid;grid-template-columns:34px minmax(0,1fr);gap:8px;padding:6px 0;border-bottom:1px dashed var(--border);font-size:13px}
+.cl .hist li:last-child{border-bottom:0}
+.cl .hist .r{font:12px/20px var(--mono);color:var(--faint)}
+.cl .quote{border-left:2px solid var(--sedge);background:var(--stint);padding:8px 12px;border-radius:0 6px 6px 0;font-size:13px;line-height:19px}
+.cl .bulk{display:flex;align-items:center;gap:8px;background:var(--inverse);color:var(--oninverse);border-radius:8px;padding:6px 8px 6px 14px;font-size:13px}
+.cl .bulk .btn.quiet{color:var(--oninverse)}
+.cl .bulk .btn.quiet:hover{background:color-mix(in srgb,var(--oninverse) 12%,transparent)}
+
+/* the source card: what a file is, what AIA read, who marked it */
+.cl .src{background:var(--well);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cl .src .top{display:flex;align-items:flex-start;gap:10px}
+.cl .readline{display:flex;align-items:center;gap:6px;font-size:13px}
+.cl .colgrid{display:grid;grid-template-columns:minmax(0,1.2fr) 80px 70px minmax(0,1.4fr);font-size:12px;background:var(--raised);border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.cl .colgrid>span{padding:6px 8px;border-bottom:1px solid var(--border);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl .colgrid>span.h{background:var(--sunken);color:var(--muted);font-weight:500}
+.cl .colgrid>span.you{background:var(--youwash);color:var(--youink)}
+.cl .switchrow{display:flex;align-items:flex-start;gap:12px}
+.cl .switchrow .tx{flex:1;min-width:0}
+.cl .switchrow .tx b{font-weight:500;display:block}
+
+/* sheet (intake): right-side panel over a scrim */
+.cl .sheetwrap{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 10%,transparent);display:flex;justify-content:flex-end;z-index:40}
+.cl .sheet{width:760px;max-width:100%;background:var(--overlay);box-shadow:var(--shadow-overlay);display:flex;flex-direction:column;border-radius:10px 0 0 10px;min-height:100%}
+.cl .sheet .shd{display:flex;gap:12px;align-items:flex-start;padding:20px 24px 16px;border-bottom:1px solid var(--border);border-radius:10px 0 0 0;background:linear-gradient(90deg,var(--ar-wash) 0,var(--overlay) 72%)}
+.cl .sheet .sbd{flex:1;padding:16px 24px;display:flex;flex-direction:column;gap:14px}
+.cl .sheet .sft{display:flex;align-items:center;gap:10px;padding:14px 24px;border-top:1px solid var(--border);background:var(--raised)}
+.cl .drop{border:1.5px dashed var(--strong);border-radius:8px;background:var(--well);padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.cl .drop.over{border-color:var(--signal);background:var(--stint)}
+.cl .frow{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.cl .frow .fh{display:flex;align-items:center;gap:10px}
+.cl .frow .fgrid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:10px}
+
+/* NO BACKEND and proposed marks on the drawn redesign */
+.cl .nobe{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:6px;border:1px dashed var(--strong);color:var(--muted);font:500 10px/1 var(--mono);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:var(--raised)}
+.cl .nobe.prop{border-color:var(--aiedge);color:var(--aiink);background:var(--aiwash)}
+.cl .nobe-box{outline:1px dashed var(--strong);outline-offset:3px;border-radius:6px}
+
+/* the critique block every board ends with, as the research boards draw it */
+.cl .crit{border-top:4px solid var(--ink);background:var(--surface);padding:28px 32px 40px;flex:1 1 100%;box-sizing:border-box}
+.cl .crit h2{font-size:22px;line-height:28px;font-weight:600}
+.cl .crit .lede{max-width:900px;color:var(--muted);margin-top:6px}
+.cl .crit-top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:18px;margin-top:18px}
+.cl .cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px}
+.cl .cb{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:14px 16px;min-width:0}
+.cl .cb h3{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:8px}
+.cl .cb h3 .lt{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--ink);color:var(--surface);font:12px/1 var(--mono)}
+.cl .cb.d h3 .lt{background:var(--you);color:var(--onyou)}
+.cl .cb li{font-size:13px;line-height:19px;padding:5px 0;border-bottom:1px dashed var(--border)}
+.cl .cb li:last-child{border-bottom:0}
+.cl .anc{display:block;font-family:var(--mono);font-size:11px;line-height:15px;color:var(--faint);margin-top:2px;word-break:break-all}
+.cl .shot{align-self:start}
+.cl .shot img{width:100%;display:block;border:1px solid var(--border);border-radius:6px}
+.cl .shot h3{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;margin-bottom:8px}
+.cl .shot figcaption{margin-top:6px}
+.cl .shots2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cl .fnlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin-top:14px}
+.cl .fnlist li{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,.9fr);gap:8px;font-size:12px;line-height:17px;padding:5px 0;border-bottom:1px dashed var(--border)}
+.cl .fnlist li .i{font-family:var(--mono);color:var(--faint)}
+.cl .fnlist li .w{color:var(--ar-ink)}
+.cl .fnh{display:grid;grid-template-columns:22px minmax(0,1fr) minmax(0,.9fr);gap:8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding-bottom:4px;border-bottom:1px solid var(--border)}
+.cl .nblist li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
+
+.cl textarea,.cl input,.cl select{font-family:var(--sans)}
+
+/* Drive-like file browser (Data): a folder tree, a path, folders before files, list or grid, drag to move */
+.cl .drv{display:grid;grid-template-columns:248px minmax(0,1fr) 340px;gap:16px;align-items:start}
+.cl .drv.nodetail{grid-template-columns:248px minmax(0,1fr)}
+.cl .tree{display:flex;flex-direction:column;gap:1px}
+.cl .trow{display:flex;align-items:center;gap:4px;min-height:32px;border-radius:6px;color:var(--muted);cursor:pointer;border:1px solid transparent;box-sizing:border-box;padding-right:6px}
+.cl .trow:hover{background:var(--well);color:var(--ink)}
+.cl .trow.on{background:var(--swash);color:var(--ink);font-weight:500}
+.cl .trow.drop{border-color:var(--signal);background:var(--stint);border-style:dashed}
+.cl .trow .car{width:20px;height:20px;display:inline-grid;place-items:center;border:0;background:none;color:var(--faint);padding:0;cursor:pointer;flex:none;border-radius:4px}
+.cl .trow .car:hover{background:var(--sunken)}
+.cl .trow .car .ph{width:12px;height:12px}
+.cl .trow .lab{flex:1;min-width:0;display:flex;align-items:center;gap:6px;border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left;min-height:30px}
+.cl .trow .lab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl .trow .ph{width:16px;height:16px;flex:none}
+.cl .trow.on .lab .ph{color:var(--signal)}
+.cl .path{display:flex;align-items:center;gap:2px;flex-wrap:wrap;font-size:15px;line-height:20px}
+.cl .path button{border:0;background:none;font:inherit;color:var(--muted);padding:4px 6px;border-radius:6px;cursor:pointer}
+.cl .path button:hover{background:var(--well);color:var(--ink)}
+.cl .path button.cur{color:var(--ink);font-weight:600}
+.cl .path button.drop{outline:1.5px dashed var(--signal);background:var(--stint)}
+.cl .path .sep{color:var(--faint)}
+.cl .frows{display:flex;flex-direction:column}
+.cl .frow2{display:grid;grid-template-columns:28px minmax(0,1.7fr) 150px minmax(0,1fr) 96px 32px;align-items:center;gap:8px;min-height:44px;padding:0 8px;border-bottom:1px solid var(--border);font-size:13px;cursor:default}
+.cl .frow2.head{min-height:34px;background:var(--sunken);color:var(--muted);font-size:12px;font-weight:500;border-radius:6px 6px 0 0}
+.cl .frow2:not(.head):hover{background:var(--stint)}
+.cl .frow2.on{background:var(--swash)}
+.cl .frow2.drop{background:var(--stint);outline:1.5px dashed var(--signal);outline-offset:-2px}
+.cl .frow2.drag{opacity:.45}
+.cl .frow2 .nm{display:flex;align-items:center;gap:10px;min-width:0}
+.cl .frow2 .nm b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cl .frow2 .nm .ph{width:18px;height:18px;flex:none}
+.cl .fold-ic{color:var(--ar-ink)}
+.cl .fgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.cl .tile{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px;display:flex;flex-direction:column;gap:8px;min-height:96px;cursor:default;position:relative}
+.cl .tile:hover{border-color:var(--strong)}
+.cl .tile.on{border-color:var(--signal);background:var(--stint)}
+.cl .tile.drop{border:1.5px dashed var(--signal);background:var(--stint)}
+.cl .tile.fold{min-height:0;flex-direction:row;align-items:center;background:var(--well);border-color:transparent}
+.cl .tile.fold:hover{border-color:var(--border)}
+.cl .tile .tn{font-weight:500;font-size:13px;line-height:18px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.cl .ctx{position:absolute;right:8px;top:36px;z-index:20;width:240px;background:var(--overlay);border-radius:10px;box-shadow:var(--shadow-overlay);padding:6px;display:flex;flex-direction:column}
+.cl .ctx button{display:flex;align-items:center;gap:10px;min-height:32px;border:0;background:none;padding:0 10px;border-radius:6px;font:inherit;font-size:13px;color:var(--ink);cursor:pointer;text-align:left}
+.cl .ctx button:hover{background:var(--well)}
+.cl .ctx button .ph{width:16px;height:16px;color:var(--faint)}
+.cl .ctx hr{border:0;border-top:1px solid var(--border);margin:4px 0}
+.cl .ctx .ai .ph{color:var(--aiink)}
+.cl .dropzone-hint{border:1.5px dashed var(--border);border-radius:8px;padding:14px;text-align:center;color:var(--faint);font-size:12px}
+.cl .lbl-chip button:disabled{opacity:.35;cursor:not-allowed}
+
+/* Compact page header (Nigel, 27. 10.: the hero took too much room and had no hierarchy).
+   One line carries who: tile, name, status, what waits on you, the actions. The figures sit
+   quietly on the tab row, label then value; a figure a tab already counts is not repeated. */
+.cl .clhead{display:flex;align-items:center;gap:14px;padding:2px 0 0}
+.cl .clhead .ch-id{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cl .ch-title{display:flex;align-items:center;gap:10px;min-width:0}
+.cl .clhead h1,.cl .tophead h1{margin:0;font:600 26px/32px var(--serif);letter-spacing:-.01em;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl .ch-sub{margin:0;display:flex;gap:8px;font-size:13px;line-height:18px;color:var(--muted);max-width:92ch;min-width:0}
+.cl .ch-sub .tx{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cl .ch-sub a{flex:none}
+.cl .ch-you{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--you);background:var(--youwash);color:var(--youink);font-size:13px;font-weight:600;white-space:nowrap;text-decoration:none;flex:none}
+.cl .ch-you:hover{text-decoration:none;color:var(--youink);background:color-mix(in srgb,var(--you) 22%,var(--youwash))}
+.cl .clhead .hero-acts{flex:none}
+.cl .ch-tabrow{display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border);margin-top:12px}
+.cl .ch-tabrow .ctabs{border-bottom:0;margin-top:0;flex:1 1 auto}
+.cl .ch-facts{display:flex;align-items:baseline;gap:18px;margin:0 6px 0 0;font-size:13px;line-height:18px;white-space:nowrap;flex:none}
+.cl .ch-facts>div>a,.cl .ch-facts>div{display:inline-flex;align-items:baseline;gap:6px;color:inherit;text-decoration:none}
+.cl .ch-facts>div>a{border-radius:6px;padding:4px 6px;margin:-4px -6px}
+.cl .ch-facts>div>a:hover{background:var(--ar-wash)}
+.cl .ch-facts dt{color:var(--faint)}
+.cl .ch-facts dd{margin:0;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+.cl .ch-facts dd .unit{font-weight:500;color:var(--muted)}
+.cl .ch-facts .you dd{color:var(--youink)}
+.cl .ch-area{margin:10px 0 0;font-size:13px;line-height:19px;color:var(--muted);max-width:96ch}
+/* top-level pages (Klienti, Projektová paměť, the overview board): the same weight, no tabs */
+.cl .tophead{display:flex;align-items:flex-end;gap:24px;padding:2px 0 14px;border-bottom:1px solid var(--border)}
+.cl .tophead .th-id{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:4px}
+.cl .tophead .eyebrow{font-size:11px}
+.cl .th-sub{margin:0;font-size:14px;line-height:20px;color:var(--muted);max-width:80ch}
+.cl .th-cap{display:block;font-size:12px;color:var(--faint)}
+.cl .tophead .ch-facts{padding-bottom:4px}
+.cl .tophead .hero-acts{flex:none;padding-bottom:0}
+.cl .ctx button.danger{color:var(--fault)}
+.cl .ctx button.danger .ph{color:var(--fault)}
+.cl .ctx button.danger:hover{background:var(--fwash)}
+/* Výzkumy's one search (CPR9/CPR14): why a study matches, under its name; a match is marked, never in coral */
+.cl .why{font-size:12px;line-height:17px;color:var(--muted)}
+.cl mark.hitm{background:var(--swash2);color:var(--ink);border-radius:2px;padding:0 1px}
+.cl .ctx a.ctxa{display:flex;align-items:center;gap:10px;min-height:32px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--ink);text-decoration:none}
+.cl .ctx a.ctxa:hover{background:var(--well);text-decoration:none}
+.cl .ctx a.ctxa .ph{width:16px;height:16px;color:var(--faint)}
+/* an empty in-place value shows its prompt in faint ink; never the class .ph, which is core's icon box */
+.cl .inplace.isempty{color:var(--faint)}

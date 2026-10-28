@@ -11,12 +11,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ApiError, Unauthenticated } from "@/lib/api";
+import { errorTechnical, errorWords } from "@/lib/error-words";
 
 export type Resource<T> =
   | { state: "loading" }
   | { state: "ready"; data: T }
   | { state: "not-found" }
-  | { state: "failed"; message: string };
+  | { state: "failed"; message: string; technical?: string | null };
 
 export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[]): [Resource<T>, () => void] {
   const [res, setRes] = useState<Resource<T>>({ state: "loading" });
@@ -40,7 +41,7 @@ export function useResource<T>(load: () => Promise<T>, deps: readonly unknown[])
           return routerRef.current.replace(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search + window.location.hash)}`);
         }
         if (e instanceof ApiError && (e.status === 404 || e.status === 422)) return setRes({ state: "not-found" });
-        setRes({ state: "failed", message: e instanceof Error ? e.message : String(e) });
+        setRes({ state: "failed", message: errorWords(e), technical: errorTechnical(e) });
       },
     );
     return () => {

@@ -68,7 +68,8 @@ const TEXT = [
   ["on-status-fault", "status-fault", 4.5, "label on failed fill"],
   ["on-status-recovery", "status-recovery", 7, "label on recovery fill"],
   ["ink-inverse", "surface-inverse", 7, "inverse text"],
-  ...["surface", "surface-raised", "ai-wash"].map((bg) => ["ai-ink", bg, 4.5, "AI action label (Studio v3)"]),
+  ...["surface", "surface-raised", "ai-wash"].map((bg) => ["ink", bg, 4.5, "text in an AI-authored block"]),
+  ...["spark-1", "spark-2"].flatMap((s) => ["surface", "surface-raised"].map((bg) => [s, bg, 1.8, "spark edge stop (a moving light beside a 3:1 icon and text, never alone)"])),
   ["on-ai", "ai", 4.5, "label on the primary AI action"], ["on-ai", "ai-strong", 4.5, "label on the primary AI action, hover"],
   ...["shell-ink", "shell-item", "shell-muted", "shell-faint"].map((fg) => [fg, "shell", 4.5, "text on the sidebar"]),
   ["shell-avatar-ink", "shell-avatar", 4.5, "initials on the account avatar"],
@@ -151,7 +152,7 @@ const stageRows = STAGE.flatMap(([fg, bg, min, use]) =>
 // ---------- needs you, apart ----------
 // Coral says a person is awaited; it must never pass for failed or for wayfinding. The floors are
 // today's separations rounded down: dark coral vs fault ΔE 11.7, light coral vs orange ΔE 14.7.
-const YOU_FLOOR = { "status-fault": 11, "hue-orange": 14 };
+const YOU_FLOOR = { "status-fault": 11, "hue-orange": 14, "spark-1": 14, "spark-2": 14 };
 const youRows = ["light", "dark"].flatMap((theme) => Object.entries(YOU_FLOOR).map(([other, min]) => {
   const d = dE(hex("status-you", theme), hex(other, theme));
   return { theme, other, min, dE: +d.toFixed(1), pass: d >= min };

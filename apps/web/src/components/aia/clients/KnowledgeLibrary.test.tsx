@@ -261,7 +261,10 @@ describe("the knowledge library", () => {
     });
     window.history.replaceState(null, "", "/app/clients/CLI-a/knowledge?view=review");
     open();
-    fireEvent.click(await screen.findByRole("button", { name: "Schválit" }));
+    // A second click while the decision is on its way sends nothing (the buttons wait).
+    const approve = await screen.findByRole("button", { name: "Schválit" });
+    fireEvent.click(approve);
+    fireEvent.click(approve);
     expect(await screen.findByText(/návrh vychází z revize 1, nyní platí revize 2/)).toBeTruthy();
     const decisions = () => sent("POST", "/proposals/KNP-5/decision").map((c) => c.body);
     expect(decisions()).toEqual([{ approve: true, note: "" }]);
@@ -308,6 +311,20 @@ describe("the knowledge library", () => {
     // Esc leaves the row and gives "+ Nová složka" back.
     fireEvent.keyDown(nav().getByRole("textbox", { name: "Nová složka" }), { key: "Escape" });
     expect(nav().getByRole("button", { name: "Nová složka" })).toBeTruthy();
+  });
+
+  it("moves focus into the opened item, and Esc closes it and returns to its row (design system v3)", async () => {
+    api();
+    open({ ...CLIENT, permissions: ["VIEW_CLIENT", "VIEW_CLIENT_KNOWLEDGE"] });
+    await screen.findByText("Hlavní konkurenti");
+    const row = screen.getByRole("button", { name: /Hlavní konkurenti/ });
+    fireEvent.click(row);
+    const aside = await screen.findByRole("complementary", { name: "Otevřená znalost" });
+    await waitFor(() => expect(document.activeElement?.id).toBe("kn-open"));
+    fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("complementary", { name: "Otevřená znalost" })).toBeNull());
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /Hlavní konkurenti/ })));
+    expect(aside.isConnected).toBe(false);
   });
 
   it("offers a reader without the right to propose nothing that would write", async () => {
@@ -565,7 +582,7 @@ describe("a document's file", () => {
     api();
     open();
     fireEvent.click(await screen.findByRole("button", { name: "Napsat znalost" }));
-    const form = within(screen.getByRole("region", { name: "Napsat znalost klienta" }));
+    const form = within(screen.getByRole("form", { name: "Napsat znalost klienta" }));
     // A fact takes no file; a document is told where its file goes.
     expect(form.queryByText(/Soubor přidáte přes Přidat podklady/)).toBeNull();
     fireEvent.change(form.getByRole("combobox", { name: "Druh" }), { target: { value: "DOCUMENT" } });

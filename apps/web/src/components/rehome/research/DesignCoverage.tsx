@@ -15,7 +15,7 @@ import type { Tone } from "@/lib/tone";
 import type { ResearchState } from "@/research/store";
 import { linkKey } from "@/research/trace";
 import { useSampleReadiness } from "../../workbench/useSampleReadiness";
-import { Chip } from "../ui";
+import { StatusPill } from "../ui";
 import { CodedWords } from "./CodedWords";
 import { useResearch } from "./context";
 
@@ -88,7 +88,7 @@ export function RqCoverageLine({ row, revision }: { row: RqCoverage; revision: n
   return (
     <div data-no-quote className="mt-1 flex flex-col gap-1 text-[13px] leading-5">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <Chip tone={TONE[row.status]}>{t(`${C}.status.${row.status}`)}</Chip>
+        <StatusPill tone={TONE[row.status]}>{t(`${C}.status.${row.status}`)}</StatusPill>
         {!row.checked ? (
           <span className="text-ink-muted">{tv(`${C}.notChecked`, { revision })}</span>
         ) : row.measures.length ? (

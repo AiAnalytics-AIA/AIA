@@ -148,7 +148,8 @@
     white-space: nowrap;
   }
   .dock__client .dock__tile {
-    color: var(--shell-strong);
+    /* The client's accent is dark in both themes: its monogram reads in on-client (≥ 4.5:1). */
+    color: var(--on-client);
     font-size: 11px;
     font-weight: 600;
   }
@@ -312,7 +313,7 @@
     .dock__tile,
     .dock__avatar,
     .dock__brand img {
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+      transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.2s ease;
     }
     .dock__item:hover .dock__tile,
     .dock__brand:hover img {

@@ -38,3 +38,51 @@ body {
     color: inherit;
   }
 }
+
+/*
+ * The spark edge: how AIA marks AI, in place of a colour of its own. The one definition; nothing
+ * else draws it. A 1 px edge in the identity's light (spark-1 cyan, spark-2 sky, spark-3 the glint)
+ * round a neutral ground (--spark-ground, the element's own surface). Still at rest: an AI-authored
+ * block (a proposal, the job panel) and the secondary AI action wear it. It turns on hover and
+ * focus of an AI action, and for as long as a model works ([aria-busy="true"], .ai-spark--working).
+ * Reduced motion keeps the edge and stops the turn.
+ */
+@property --spark-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@layer components {
+  .ai-spark {
+    --spark-ground: var(--surface-raised);
+    border-color: transparent;
+    background:
+      linear-gradient(var(--spark-ground), var(--spark-ground)) padding-box,
+      conic-gradient(from var(--spark-angle), var(--spark-1), var(--spark-2) 38%, var(--spark-3) 47%, var(--spark-1) 53%, var(--spark-2) 75%, var(--spark-1)) border-box;
+  }
+  .ai-spark--wash { --spark-ground: var(--ai-wash); }
+  .ai-spark--solid { --spark-ground: var(--ai); }
+  .ai-spark--solid:hover:not(:disabled) { --spark-ground: var(--ai-strong); }
+  .ai-spark:not(:disabled):is(button, a):is(:hover, :focus-visible) {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--spark-1) 18%, transparent), 0 2px 14px -2px color-mix(in oklab, var(--spark-2) 45%, transparent);
+  }
+  .ai-spark:not(:disabled):is(button, a):is(:hover, :focus-visible),
+  .ai-spark[aria-busy="true"],
+  .ai-spark--working {
+    animation: spark-turn var(--duration-spark) linear infinite;
+  }
+  /* The sparkle beside an AI action's words, painted with the same light. */
+  .ai-sparkle { color: var(--spark-1); }
+  .ai-spark--solid .ai-sparkle { color: var(--spark-3); }
+}
+@keyframes spark-turn {
+  to {
+    --spark-angle: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-spark,
+  .ai-spark--working {
+    animation: none !important;
+  }
+}

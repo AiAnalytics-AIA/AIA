@@ -10,22 +10,36 @@ is ``tests/acceptance/test_acceptance_harness.py``.
 from __future__ import annotations
 
 import asyncio
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
+from aia_core.domain.client_sources import Locator, Segment
+from aia_core.domain.deep_research.agents import PlanProposal, SynthesisProposal
 from aia_core.domain.research_agents import CONTRACTS, ResearchAction
+from aia_core.domain.source_proposals import Batch, SourceProposals, ground, proposal_request
 from aia_core.infrastructure.model_adapters.transport import HttpRequest
 from aia_executors import acceptance_recorded
+from aia_executors import registry as registry_module
+from aia_executors.ai_runtime import AIRuntimeConfigError, AIRuntimeSettings
+from aia_executors.deep_research_recorded import recorded_retrieval
+from aia_executors.deep_research_runtime import deep_research_runtime
 from aia_executors.recorded_models import (
     ANALYSIS_TOOL,
+    DEEP_RESEARCH_PREFIX,
     DESIGN_ANSWERS,
     LEAD_REPLY,
     LEAD_TOOL,
     RECORDING,
     RESPONDENT_TOOL,
+    SOURCE_PROPOSALS_TOOL,
     RecordedModels,
     runtime_env,
 )
+
+#: The acceptance harness's recordings: the recorded web and the agents' script.
+RECORDINGS = Path(__file__).resolve().parents[3] / "tests" / "acceptance" / "recordings"
 
 
 def _request(tool: str, schema: dict[str, Any] | None = None, text: str = "{}") -> HttpRequest:
@@ -63,10 +77,76 @@ def test_the_composition_builds_in_local_and_test(environment: str) -> None:
 
 def test_the_composition_refuses_deep_research_it_has_no_recording_for() -> None:
     """Its search and fetch would be the live routes beside recorded models."""
-    with pytest.raises(RuntimeError, match="AIA_DEEP_RESEARCH_ENABLED"):
+    with pytest.raises(RuntimeError, match=acceptance_recorded.RECORDINGS_KEY):
         acceptance_recorded.refuse_outside_tests(
             {"AIA_ENV": "test", "AIA_DEEP_RESEARCH_ENABLED": "true"}
         )
+    acceptance_recorded.refuse_outside_tests(
+        {
+            "AIA_ENV": "test",
+            "AIA_DEEP_RESEARCH_ENABLED": "true",
+            acceptance_recorded.RECORDINGS_KEY: str(RECORDINGS),
+        }
+    )
+
+
+def _deep_research_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key, value in runtime_env("CLI-fictional", []).items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setenv("AIA_STORAGE_BACKEND", "memory")
+    monkeypatch.setenv("AIA_DEEP_RESEARCH_ENABLED", "true")
+    monkeypatch.setenv(acceptance_recorded.RECORDINGS_KEY, str(RECORDINGS))
+    for key in ("AIA_DEEP_RESEARCH_WEB_SEARCH", "AIA_DEEP_RESEARCH_WIKIPEDIA_ENABLED"):
+        monkeypatch.delenv(key, raising=False)
+
+
+def test_deep_research_is_composed_over_the_recorded_web(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The six Deep Research steps in the registry, their search and fetch the recordings'."""
+    _deep_research_env(monkeypatch)
+    recorded: list[Any] = []
+    real = registry_module.compose_registry
+
+    def spy(**kwargs: Any) -> Any:
+        recorded.append(kwargs)
+        return real(**kwargs)
+
+    monkeypatch.setattr(acceptance_recorded, "compose_registry", spy)
+    registry = acceptance_recorded.build_registry()
+    assert {"deep_research_plan", "deep_research_publish"} <= set(registry)
+    (kwargs,) = recorded
+    retrieval, table = kwargs["deep_research_retrieval"]
+    assert retrieval.search_route.adapter_id.startswith("recorded-search-v1:")
+    assert retrieval.fetch_route.price_usd_per_call == 0.0
+    assert "+recorded-" in table.version
+    assert kwargs["transport"].deep_research is not None
+
+
+@pytest.mark.parametrize(
+    ("change", "refusal"),
+    [
+        ({"AIA_ENV": "develop"}, "local and test only"),
+        ({"AIA_ENV": "production"}, "local and test only"),
+        ({"AIA_DEEP_RESEARCH_ENABLED": "false"}, "needs AIA_DEEP_RESEARCH_ENABLED"),
+        ({"AIA_DEEP_RESEARCH_PUBLIC_FETCH_CONTACT": "ops@example.test"}, "replaces the"),
+    ],
+)
+def test_a_composed_retrieval_is_a_test_s_alone(change: dict[str, str], refusal: str) -> None:
+    """The production runtime takes a composed retrieval only in local and test, with Deep
+    Research on and no route of the environment's beside it -- never dropped unseen."""
+    env = {**runtime_env("CLI-fictional", []), "AIA_DEEP_RESEARCH_ENABLED": "true", **change}
+    settings = AIRuntimeSettings.from_env({**env, "AIA_ENV": "test"})
+    with pytest.raises(AIRuntimeConfigError, match=refusal):
+        deep_research_runtime(
+            settings, env=env, retrieval=recorded_retrieval(RECORDINGS / "web.json")
+        )
+
+
+def test_a_live_route_beside_the_recordings_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A recording never stands beside a live search: the runtime refuses both, by name."""
+    _deep_research_env(monkeypatch)
+    monkeypatch.setenv("AIA_DEEP_RESEARCH_WEB_SEARCH", "wikipedia")
+    with pytest.raises(AIRuntimeConfigError, match="replaces the environment's routes"):
+        acceptance_recorded.build_registry()
 
 
 def test_the_factory_is_production_composition_over_the_recorded_wire(
@@ -115,13 +195,89 @@ def test_every_recorded_answer_says_it_is_a_recording() -> None:
 def test_a_contract_with_no_recording_is_refused_by_name_never_invented() -> None:
     """An answered 400 (Bedrock's ValidationException: permanent, never retried, not billed):
     the step fails naming the contract, and nothing is made up for it."""
-    reply = asyncio.run(
-        RecordedModels().send(_request("aia_knowledge_source_proposals"), timeout_s=5)
+    for tool in ("aia_unrecorded_contract", f"{DEEP_RESEARCH_PREFIX}planner"):
+        # A Deep Research agent is unrecorded until the wire is given a script.
+        reply = asyncio.run(RecordedModels().send(_request(tool), timeout_s=5))
+        assert reply.status == 400
+        assert reply.headers["x-amzn-errortype"] == "ValidationException"
+        assert reply.headers["x-aia-recording"] == RECORDING
+        assert tool in reply.body["message"]
+
+
+def test_the_source_proposals_answer_is_kept_by_the_step_s_own_grounding() -> None:
+    """Every recorded proposal quotes its segment literally, so ``ground`` drops none."""
+    batch = Batch(
+        index=0,
+        segments=tuple(
+            (n, Segment(locator=Locator(paragraph=n + 1), text=text))
+            for n, text in enumerate(
+                [
+                    "Knihovna má čtyři pobočky. Hlavní je v centru.",
+                    "V roce 2025 evidovala 6 840 čtenářů.",
+                ]
+            )
+        ),
     )
-    assert reply.status == 400
-    assert reply.headers["x-amzn-errortype"] == "ValidationException"
-    assert reply.headers["x-aia-recording"] == RECORDING
-    assert "aia_knowledge_source_proposals" in reply.body["message"]
+    request = proposal_request(batch, policy_version="p", max_output_tokens=1024)
+    text = request.messages[0].content
+    reply = asyncio.run(
+        RecordedModels().send(_request(SOURCE_PROPOSALS_TOOL, text=text), timeout_s=5)
+    )
+    assert reply.headers["x-amzn-requestid"].startswith("recorded-source-proposals-")
+    output = SourceProposals.model_validate(
+        reply.body["output"]["message"]["content"][0]["toolUse"]["input"]
+    )
+    grounding = ground(batch, output)
+    assert [g.quote for g in grounding.kept] == [
+        "Knihovna má čtyři pobočky.",
+        "V roce 2025 evidovala 6 840 čtenářů.",
+    ]
+    assert grounding.dropped == {}
+
+
+def test_the_deep_research_agents_answer_from_the_recorded_script() -> None:
+    script = json.loads((RECORDINGS / "agents.json").read_text("utf-8"))
+    models = RecordedModels(deep_research=script)
+    plan = asyncio.run(
+        models.send(
+            _request(
+                f"{DEEP_RESEARCH_PREFIX}planner",
+                text=json.dumps({"tracks": [{"track_id": "t1", "subject": "Proč?"}]}),
+            ),
+            timeout_s=5,
+        )
+    )
+    assert plan.headers["x-amzn-requestid"].startswith("recorded-deep-research-planner-")
+    proposal = PlanProposal.model_validate(
+        plan.body["output"]["message"]["content"][0]["toolUse"]["input"]
+    )
+    assert proposal.tracks[0].queries == script["default_queries"]
+    synthesis = asyncio.run(
+        models.send(
+            _request(
+                f"{DEEP_RESEARCH_PREFIX}synthesizer",
+                text=json.dumps(
+                    {
+                        "evidence": [
+                            {"subject_key": "s1", "claim": "Fiktivní tvrzení.", "evidence_id": "e1"}
+                        ],
+                        "subjects": [
+                            {"subject_key": "s1", "text": "Proč?"},
+                            {"subject_key": "s2", "text": "Kdo?"},
+                        ],
+                    }
+                ),
+            ),
+            timeout_s=5,
+        )
+    )
+    answer = SynthesisProposal.model_validate(
+        synthesis.body["output"]["message"]["content"][0]["toolUse"]["input"]
+    )
+    assert [f.evidence_ids for f in answer.findings] == [["e1"]]
+    assert answer.gaps == ["Kdo?"]
+    unknown = asyncio.run(models.send(_request(f"{DEEP_RESEARCH_PREFIX}unknown_role"), timeout_s=5))
+    assert unknown.status == 400
 
 
 @pytest.mark.parametrize("action", list(ResearchAction))

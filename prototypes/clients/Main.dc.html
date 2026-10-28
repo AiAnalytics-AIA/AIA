@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Klienti – přehled prototypu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="assets/aia-core-v4.3.css">
+<link rel="stylesheet" href="assets/aia-client.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.mapgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.mapcard{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:8px;background:var(--well);text-decoration:none!important;color:inherit!important;border:1px solid transparent;min-height:118px;box-sizing:border-box}
+.mapcard:hover{border-color:var(--border);background:var(--well-hover)}
+.mapcard b{font-weight:600;font-size:15px;line-height:20px;color:var(--ink)}
+.mapcard .pth{font:500 11px/1 var(--mono);color:var(--faint)}
+.mapcard.new{background:var(--stint);border-color:var(--sedge)}
+.nbrow{display:grid;grid-template-columns:28px minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.2fr);gap:12px;padding:9px 0;border-bottom:1px dashed var(--border);font-size:13px;line-height:19px;align-items:start}
+.nbrow.h{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--border)}
+.qcard{background:var(--raised);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+.qcard b{font-weight:600}
+</style>
+</helmet>
+<div class="aia cl" data-theme="{{theme}}" data-area="klienti">
+  <div class="main" style="flex: 1 1 100%">
+    <div class="clhero-ground">
+      <div class="content" style="max-width: 1240px; padding-bottom: 8px">
+        <header class="tophead">
+          <div class="th-id"><span class="eyebrow"><i class="ph ph-buildings" aria-hidden="true"></i> Prototyp · stránky klienta</span><h1>AIA Klienti – prototyp</h1><p class="th-sub">Všechny stránky klienta: jak dnes vypadají na develop, co dělají (s odkazem do kódu) a jak je překreslit v systému, který už platí pro Nastavení a výzkumné kroky. <span class="th-cap">develop @ a1a9a45c · 27. 10. 2026 · fiktivní data, nic placeného</span></p></div>
+          <dl class="ch-facts"><div><dt>Desky</dt><dd>7</dd></div><div><dt>Funkcí dnes, zachovaných</dt><dd>184</dd></div><div><dt>NO BACKEND</dt><dd>11</dd></div><div><dt>Otevřené otázky</dt><dd>0</dd></div></dl>
+        </header>
+      </div>
+    </div>
+    <div class="content" style="max-width: 1240px; padding-top: 8px">
+      <div class="abody">
+        <section class="sec" aria-labelledby="h-map">
+          <div class="sh"><span class="num">01</span><h2 id="h-map">Mapa stránek klienta</h2><span class="grow"></span><span class="cap">každá karta otevře svou desku</span></div>
+          <div class="sb">
+            <div class="mapgrid">
+              <a class="mapcard" href="Clients.dc.html"><span class="pth">/app/clients</span><b>Klienti</b><span class="cap">Adresář: tabulka místo karet, poctivé hledání, řazení, Nový klient.</span></a>
+              <a class="mapcard" href="Overview.dc.html"><span class="pth">…/&lt;klient&gt;</span><b>Přehled klienta</b><span class="cap">Kompaktní hlavička: jméno, co čeká na vás, akce; čísla tiše u záložek. Čeká na vás, výstupy slovy.</span></a>
+              <a class="mapcard" href="Studies.dc.html"><span class="pth">…/research</span><b>Výzkumy</b><span class="cap">Jedno hledání v názvech i designech, „Použít jako základ nového výzkumu“ u každé studie (paměť sloučena). Simulace dál skrytá (K12).</span></a>
+              <a class="mapcard new" href="Knowledge.dc.html"><span class="pth">…/knowledge (Data sloučena)</span><b>Znalosti jako Disk</b><span class="cap">Nigel 27. 10.: složky ve složkách, přetažení, cesta, seznam/mřížka; datové sady jako druh; složka každé studie se Vstupy a Výstupy.</span></a>
+              <a class="mapcard" href="KnowledgeItem.dc.html"><span class="pth">…/knowledge?view=review · ?item=</span><b>Znalosti · schvalování a položka</b><span class="cap">Čeká na vás / Rozhodnuté, důvod zamítnutí, diff úpravy, historie revizí.</span></a>
+              <a class="mapcard" href="Profile.dc.html"><span class="pth">…/profile</span><b>Profil</b><span class="cap">Úpravy na místě, kontakty s Vrátit, rozpočet bez falešné nuly, pravidla slovy.</span></a>
+              <a class="mapcard" href="Intake.dc.html"><span class="pth">sešit z každé oblasti</span><b>Přidat podklady</b><span class="cap">Cílová složka stromem, neutrální typy souborů, AI s cenou, jedno zavření.</span></a>
+            </div>
+          </div>
+        </section>
+
+        <div class="cols even">
+          <section class="sec" aria-labelledby="h-pr">
+            <div class="sh"><span class="num">02</span><h2 id="h-pr">Principy, které desky drží</h2></div>
+            <div class="sb">
+              <ul class="wells" style="gap: 6px">
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Kompaktní hlavička s jasnou hierarchií</b><span class="cap">Nigel 27. 10.: hero zabíralo moc místa. Jeden řádek nese kdo (jméno, stav), co čeká na vás (korál) a akce; čísla z API tiše u záložek, popis oblasti jednou větou pod nimi. Číslo, které už nese záložka, se neopakuje.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Barva jen podle významu</b><span class="cap">Signál výběr a hlavní akce; korál jen co čeká na vás; břidlice čeká na jiné; chyba jen chyba; zelená žádná; odstín oblasti jen 8% pás listu.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>R16 tónové vrstvy</b><span class="cap">Měkké listy s blednoucím pásem v hlavičce, studny o tón níž, žádné tvrdé barevné hrany; číslované listy tam, kde je pořadí.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Neznámé nikdy jako nula</b><span class="cap">Nenastavený rozpočet slovy, cena „nejvýše“ jen když ji API řekne, jméno místo id jen když ho API pošle.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Jedna hlavní akce na oblast</b><span class="cap">V hlavičce klienta vždy Přidat podklady (vedlejší) a Nový výzkum (hlavní), na každé záložce stejně.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Nic nevratného bez Vrátit nebo potvrzení</b><span class="cap">Složka, štítek, kontakt: hned a „Vrátit“ 8 s; smazání znalosti, veřejná rešerše a zamítnutí s potvrzením.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Vstupní standard</b><span class="cap">Úpravy na místě, Stepper pro částky, přepínač 40×24, segment místo pilulek, menu místo rozbalovacího seznamu s akcí.</span></div></li>
+                <li class="well"><i class="ph ph-check" aria-hidden="true"></i><div class="tx"><b>Žádná funkce se neztrácí</b><span class="cap">Každá deska končí tabulkou f: funkce dnes s odkazem do kódu → kde je v prototypu.</span></div></li>
+              </ul>
+            </div>
+          </section>
+          <section class="sec" aria-labelledby="h-q">
+            <div class="sh"><span class="num">03</span><h2 id="h-q">Rozhodnutí Nigela</h2></div>
+            <div class="sb">
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Data sloučena do Znalostí</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Datová sada je druh znalosti, Data jsou filtr; jeden strom složek. „Sdílená data AIA“ patří Společenské inteligenci. Záložka Data zmizela (tím odpadla i otázka „Data, nebo Soubory“).</span></div>
+              
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Složka studie: Vstupy a Výstupy</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Soubor daný Vedoucímu je zdroj klienta ve Studie / &lt;studie&gt; / Vstupy; každý stažený soubor studie (i koncept) a odpovědi AI respondentů (XLSX, JSON) jdou do Výstupů; schválení nic neukládá; přesunout jde kamkoli. Předáno z výzkumné session (lead.md 3.4, v6); na desce Znalosti.</span></div>
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Projektová paměť pryč</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Globální navigace má tři položky: Klienti, Společenská inteligence, Nastavení. Výzkumy klienta hledají i v designech; každá studie má „Použít jako základ nového výzkumu“ s citací; staré adresy přesměrují (CPR9, CPR14; předáno PM koordinátorem, potvrzeno zde).</span></div>
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Přejmenovat soubor = jen název</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Jako na Disku: název se změní bez nové revize a bez schválení; změna jde do auditu.</span></div>
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Zelená ze štítků pryč</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Paleta štítků zelenou nenabízí; existující zelené štítky se samy přebarví na tyrkysovou. Zelená zůstává jen verzi v platnosti.</span></div>
+              <div class="qcard" style="background: var(--well)"><b>Rozhodnuto 27. 10. · Znalost se maže</b><span class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Smazat natrvalo, po potvrzení (bez Vrátit); platí i pro značku a konkurenta. Studie, které ji použily, si drží svou zmrazenou kopii; smazání jde do auditu.</span></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="sec" aria-labelledby="h-nb">
+          <div class="sh"><span class="num">04</span><h2 id="h-nb">NO BACKEND: co prototyp kreslí a API dnes neumí</h2><span class="grow"></span><span class="cap">kotvy na develop @ a1a9a45c</span></div>
+          <div class="sb">
+            <div class="nbrow h"><span>#</span><span>Co</span><span>Deska</span><span>Proč a co by bylo potřeba</span></div>
+            <sc-for list="{{nb}}" as="n" hint-placeholder-count="11"><div class="nbrow"><span class="mono cap">{{n.i}}</span><span>{{n.t}}</span><span><a href="{{n.href}}">{{n.b}}</a></span><span class="cap" style="font-size: 12px; line-height: 17px">{{n.w}}<span class="anc">{{n.a}}</span></span></div></sc-for>
+            <p class="cap" style="margin-top: 8px">Navíc: API je, webový klient ne (nejde o NO BACKEND): seznam souborů klienta GET /clients/{id}/sources (client_sources.py:295) a Přečíst znovu POST …/reading (:378); rozhodnuté návrhy GET …/proposals?status= (workspace.py:1924).</p>
+          </div>
+        </section>
+
+        <section class="sec" aria-labelledby="h-how">
+          <div class="sh"><span class="num">05</span><h2 id="h-how">Jak desky vznikly</h2></div>
+          <div class="sb">
+            <p class="cap" style="font-size: 13px; line-height: 19px; color: var(--muted)">Dnešní stav: AIA na tomto stroji (make ui-workbench, make ui-fixtures), fiktivní klient, dva fiktivní soubory přidané přes Přidat podklady bez AI; snímky Playwrightem na 1440 px. Analýza: soupis funkcí čtený z kódu, každá kotva ověřena znovu přímo v souboru; kde kotva neseděla, je opravená. Vzhled: aia-core.css v3 (SHA-256 bedd953f…, stejný jako Nastavení a kroky) + aia-client.css jen na proměnných core. Repozitář se nezměnil.</p>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2551}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      theme: this.props.theme ?? 'light',
+      nb: [
+        ['Složky ve složkách (strom, přesun složky do složky, mazání podstromu)', 'Knowledge.dc.html', 'Znalosti', 'Složky nemají rodiče a název je jedinečný v celém klientovi. Potřeba: parent_id, jedinečnost v rámci rodiče, přesun složky, mazání s podsložkami, cesta v odpovědi.', 'tables.py:1336-1355 · workspace.py:268-300'],
+        ['Cena „nejvýše“ návrhů AI z dokumentu', 'Knowledge.dc.html', 'Znalosti · Přidat podklady', 'Běh návrhů ani start neříká strop ceny; dnes je jen rozpočet klienta.', 'client_sources.py:493-538'],
+        ['Smazat znalost (i značku a konkurenta), s potvrzením', 'KnowledgeItem.dc.html', 'Znalosti · Profil', 'DELETE existuje jen pro kontakt, složku a štítek; potřeba DELETE znalosti, zápis do auditu, studie drží zmrazenou kopii.', 'workspace.py:1588, 1748, 1832'],
+        ['Štítky bez zelené: existující GREEN přebarvit na tyrkysovou', 'Knowledge.dc.html', 'Znalosti', 'API barvu GREEN přijímá; potřeba ji z výčtu vyřadit a uložené přepsat (migrace).', 'knowledge-library.ts:52 · domain/knowledge.py:353'],
+        ['Jména lidí místo id (schválil, navrhl, označil Interní, změnil pravidla)', 'KnowledgeItem.dc.html', 'Znalosti · Profil', 'Odpovědi nesou approved_by, proposed_by, decided_by, internal.by, set_by jako id.', 'workspace.py:363, 404, 406 · client_sources.py:102-120'],
+        ['Vložit odkaz do podkladů', 'Intake.dc.html', 'Přidat podklady', 'Žádná route pro web jako zdroj klienta; dnes zástupce „v AIA zatím není“.', 'IntakeSheet.tsx:307-308'],
+        ['Stav klienta (archivovaný) v adresáři', 'Clients.dc.html', 'Klienti', 'ClientCard nenese status.', 'workspace.py:189-201'],
+        ['Změny rozpočtu a pravidel v historii profilu', 'Profile.dc.html', 'Profil', 'Historie vrací jen akce profilu a kontaktů.', 'ProfileArea.tsx:324-346'],
+        ['Složky studií (Vstupy, Výstupy) zakládané samy; soubor z chatu Vedoucího do Vstupů; stažení a odpovědi AI respondentů do Výstupů', 'Knowledge.dc.html', 'Znalosti', 'TurnPost nemá přílohu; stažení zprávy nic neukládá; odpovědi respondentů se jako zdroj klienta neukládají; složky jsou ploché (nouzově „<studie> · Vstupy“).', 'routers/lead.py:99-106 · routers/report_editor.py:658-677 · lead.md 3.4 (v6)'],
+        ['Přetažení souboru z počítače přímo do podsložky', 'Knowledge.dc.html', 'Znalosti', 'Příjem ukládá a pak zařadí (placement); funguje, až budou složky vnořené.', 'IntakeSheet.tsx:193-258'],
+        ['Čísla „Soubory“ v heru klienta', 'Overview.dc.html', 'všechny záložky', 'Route seznamu zdrojů je, ale počet ne v GET /clients/{id}; dnes jen counts.datasets.', 'workspace.py:204-234 · client_sources.py:295']
+      ].map(([t, href, b, w, a], i) => ({ i: i + 1, t, href, b, w, a }))
+    };
+  }
+}
+</script>
+</body>
+</html>

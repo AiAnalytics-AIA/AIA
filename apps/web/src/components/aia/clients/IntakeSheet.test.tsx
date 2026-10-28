@@ -141,7 +141,9 @@ describe("the intake sheet", () => {
     fireEvent.change(sheet().getByRole("textbox", { name: "Název znalosti pro Zadání výzkumu.pdf" }), { target: { value: "Zadání 2026" } });
     fireEvent.change(sheet().getByRole("combobox", { name: "Složka pro všechny" }), { target: { value: "KNF-1" } });
     fireEvent.change(sheet().getByRole("combobox", { name: "Složka pro odpovedi.xlsx" }), { target: { value: "KNF-2" } });
-    fireEvent.change(sheet().getByRole("combobox", { name: "Přidat štítek…" }), { target: { value: "KNL-1" } });
+    // Labels are added from a menu: moving through it adds nothing, a choice adds one (I3).
+    fireEvent.click(sheet().getByRole("button", { name: "Přidat štítek…" }));
+    fireEvent.click(sheet().getByRole("menuitem", { name: "2025" }));
     expect(sheet().getByText("Přidá se 2 dokumenty. 1 soubor nelze přidat.")).toBeTruthy();
 
     fireEvent.click(sheet().getByRole("button", { name: "Přidat 2 podklady" }));

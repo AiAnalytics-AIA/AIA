@@ -24,19 +24,20 @@ import "./dock-rail.css";
 
 export type RailClient = { id: string; name: string };
 
-// Wayfinding tints (tokens hue-*, shell-hue-*): an active item's tile is filled with its hue, an
-// inactive one shows the hue on the graphite. Never a status.
+// The quiet rail (design system v3): inactive items are the shell's grey, the active one the
+// signal mark on its wash. No wayfinding hue on the rail; colour there would read as a status.
 const NAV: { key: string; icon: RailIconName; href: string; tile: string; idle: string; match: (path: string) => boolean }[] = [
-  { key: "navClients", icon: "client", href: appRoutes.clients(), tile: "bg-hue-blue text-shell-strong", idle: "text-shell-hue-blue", match: (p) => p === "/app" || p.startsWith("/app/clients") },
-  { key: "navIntelligence", icon: "intelligence", href: appRoutes.intelligence(), tile: "bg-hue-green text-shell-strong", idle: "text-shell-hue-green", match: (p) => p.startsWith("/app/intelligence") },
-  { key: "navMemory", icon: "memory", href: appRoutes.memory(), tile: "bg-hue-violet text-shell-strong", idle: "text-shell-hue-violet", match: (p) => p.startsWith("/app/memory") },
-  { key: "navSettings", icon: "settings", href: appRoutes.settings(), tile: "bg-hue-slate text-shell-strong", idle: "text-shell-hue-slate", match: (p) => p.startsWith("/app/settings") },
+  { key: "navClients", icon: "client", href: appRoutes.clients(), tile: "bg-signal-wash text-signal", idle: "text-shell-item", match: (p) => p === "/app" || p.startsWith("/app/clients") },
+  { key: "navIntelligence", icon: "intelligence", href: appRoutes.intelligence(), tile: "bg-signal-wash text-signal", idle: "text-shell-item", match: (p) => p.startsWith("/app/intelligence") },
+  { key: "navMemory", icon: "memory", href: appRoutes.memory(), tile: "bg-signal-wash text-signal", idle: "text-shell-item", match: (p) => p.startsWith("/app/memory") },
+  { key: "navSettings", icon: "settings", href: appRoutes.settings(), tile: "bg-signal-wash text-signal", idle: "text-shell-item", match: (p) => p.startsWith("/app/settings") },
 ];
 
-/** Up to two letters: the first of the first two words ("Banka Horizont" → "BH"). */
+/** Up to two letters: the first letter or digit of the first two words that have one ("Banka
+ *  Horizont" → "BH"); punctuation never becomes an initial ("Klient (fiktivní)" → "KF", not "K("). */
 export function initials(name: string): string {
-  const words = name.trim().split(/[\s@._-]+/).filter(Boolean);
-  return words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "?";
+  const firsts = name.trim().split(/[\s@._-]+/).map((w) => w.match(/[\p{L}\p{N}]/u)?.[0]).filter((c): c is string => !!c);
+  return firsts.slice(0, 2).map((c) => c.toLocaleUpperCase("cs")).join("") || "?";
 }
 
 /** GET /lead's hatched state for the rail: unknown until read, unknown when the read fails. */

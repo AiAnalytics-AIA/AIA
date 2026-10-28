@@ -105,7 +105,7 @@ describe("ResearchStore", () => {
     const store = new ResearchStore({ ...newResearch(TEMPLATE), revision: 2 }, "STU-1", { save });
     store.update(({ project }) => ({ project: { ...project, goal: "x" } }));
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
-    expect(store.get().save).toEqual({ kind: "failed", message: "Disk plný." });
+    expect(store.get().save).toEqual({ kind: "failed", message: expect.stringContaining("Disk plný.") });
     fail = false;
     await store.flush("retry");
     expect(store.get()).toMatchObject({ revision: 3, save: { kind: "saved" } });
@@ -656,7 +656,7 @@ describe("edits saved as the vocabulary's operations (working-copy-edit-ops WCE3
     const store = new ResearchStore(start, "STU-1", { save: aia(() => saved(9)).save, applyOps, editOps: true });
     store.apply([title("A")]);
     await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS);
-    expect(store.get().save).toEqual({ kind: "failed", message: "Disk plný." });
+    expect(store.get().save).toEqual({ kind: "failed", message: expect.stringContaining("Disk plný.") });
     store.apply([objective("Poznat")]);
     fail = false;
     await store.flush();

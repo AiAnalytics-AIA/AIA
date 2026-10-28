@@ -8,11 +8,11 @@ chunks:
   - "[x] 4a. Before activation, in a PR: smoke rows for docs.<hostname> (when aia_onlyoffice_enabled), and bin/deploy.sh stopping the Document Server when the switch is false"
   - "[x] 4b. Before activation, in a PR: api.js under a fixed cache tag, so the integrity Zpráva loads it under (RPT8e) holds after every restart; the smoke compares the running file with it"
   - "[ ] 4. Activation on develop (operations, the owner's word; precondition: F1 fixed, __Host-aia_session in deployed environments, RPT8e's integrity set, and the page loaded once against the real Document Server): the host resized, docs.<hostname> in Route 53, the JWT secret in SSM, the flag on, the editor's own checks"
-  - "[ ] 5. The AIA editor theme, its icons and their generator in the repository, with a token drift check; the icons wait on legal (OQ13) and the editor goes live with ONLYOFFICE's own icons until then (spec szz T1; W3)"
-  - "[ ] 6. The theme and icons mounted read-only; api.js's SRI unchanged (spec szz T2; W3, the icons after OQ13)"
+  - "[ ] 5. The AIA editor theme, its icons and their generator in the repository, with a token drift check; legal approved the icons (OQ13, Nigel 2026-10-28) (spec szz T1; W3)"
+  - "[ ] 6. The theme and icons mounted read-only; api.js's SRI unchanged (spec szz T2; W3; OQ13 approved 2026-10-28)"
   - "[ ] 7. The brand fonts installed on the editor server, required, no longer optional (spec szz T3; W3)"
   - "[ ] 8. The docs gate seeds the theme in localStorage (/__aia/theme) (spec szz T4; W3)"
-  - "[ ] 9. NOTICE names the mounts, and the AGPL §13 source offer for the redrawn sprites (spec szz T6; W3, blocked on legal OQ13)"
+  - "[ ] 9. NOTICE names the mounts, and the AGPL §13 source offer for the redrawn sprites (spec szz T6; W3; legal approved OQ13, 2026-10-28)"
 ---
 # Report editor hosting: ONLYOFFICE Docs beside the develop stack
 
@@ -749,7 +749,7 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**5. Theme, icons, generator** (spec `szz/T1`; W3, lane G). Open, legal (OQ13): the AIA icons are redrawn from ONLYOFFICE's AGPL sprites, a modified covered work. The editor goes live with ONLYOFFICE's own icons until legal decides; the theme alone may land first.
+**5. Theme, icons, generator** (spec `szz/T1`; W3, lane G). Legal approved (OQ13; Nigel on the PM status page, 2026-10-28 00:29 UTC (W0Q8): "legal approved"): the AIA icons are redrawn from ONLYOFFICE's AGPL sprites, a modified covered work, and ship with chunk 9's NOTICE and source offer.
 
 **6. Mounted read-only** (spec `szz/T2`; W3, lane G).
 
@@ -757,7 +757,7 @@ follow-up chunk below.
 
 **8. Theme seeded** (spec `szz/T4`; W3, lane G). After 6.
 
-**9. NOTICE and source offer** (spec `szz/T6`; W3, lane G). Blocked on legal (OQ13); rewrites this plan's AGPL paragraph.
+**9. NOTICE and source offer** (spec `szz/T6`; W3, lane G). Legal approved OQ13 (2026-10-28); rewrites this plan's AGPL paragraph.
 
 **Notes.**
 - Chunk 4 (activation) with `artifact-report#RPT8e` carries `szz/T8`. This plan stays SUPPORT; its waves above are informational.

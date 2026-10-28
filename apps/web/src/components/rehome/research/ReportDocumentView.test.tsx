@@ -454,7 +454,7 @@ describe("approved on the document being read, in the doc bar (RPT3a)", () => {
   it("still offers the internal draft's approval when its document could not be read", async () => {
     vi.mocked(research.reportDocument).mockRejectedValue(new ApiError(503, "unavailable", "Služba nedostupná.", null));
     show();
-    await screen.findByText("Služba nedostupná.");
+    await screen.findByText(/Služba nedostupná\./);
     expect(screen.getByRole("button", { name: "Schválit pro interní použití" })).toBeTruthy();
   });
 

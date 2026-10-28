@@ -667,9 +667,10 @@ describe("guided methodology editing", () => {
     const form = await editor();
     const rows = [...form.querySelectorAll<HTMLElement>("[data-edit-row]")];
     const references = rows.map((r) => r.getAttribute("data-edit-row"));
-    // Every field the domain lets a version change (71 in aia-sociomap-5), but not the version's
+    // Every field the domain lets a version change (72 in aia-sociomap-5), but not the version's
     // own name, which the store writes; none twice, though several steps read some of them.
-    expect(references.length).toBe(70);
+    expect(references.length).toBe(71);
+    expect(references).toContain("terrain.idw_power");
     expect(new Set(references).size).toBe(references.length);
     expect(references).not.toContain("methodology_version");
     // Computation order: the scale's normalisation first, the terrain late.
