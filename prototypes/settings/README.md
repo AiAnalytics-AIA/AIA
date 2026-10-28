@@ -9,7 +9,7 @@ from the first account's canvas (<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmi
   (artifact version `1793114802-6ae6`): every file byte-identical, and every board's render matching
   `reference/`. Change the design there, and export it here. Don't edit the first account's canvas any more.
 
-- **Version:** v119, the second account's artifact version `1793222357-c07a` (28 Oct 2026), on core v4.3.
+- **Version:** v119, the second account's artifact version `1793223735-c383` (28 Oct 2026), on core v4.3.
   It is v118 (`1793147967-5454`) with the Lead's tools drawn as ADR 0026's amendment of 28 Oct sets them
   (see below). v118 was v117 (first account, `1793098752-b063`) with every hero drawn as core v4.3 draws it.
 - **How to read it:** as in [`../README.md`](../README.md) § How to read a `.dc.html` file. Each
@@ -66,8 +66,8 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
     - what a tool returns is data, not instructions (R8);
     - the Lead says what it did not read.
   - **Heights.** `canvas.json`: Prompts 1182, AI běh 1401 and Můj Vedoucí 2433.
-  - **Not changed.** A gap that predates this change: the chat preview's timeline (`ol.tlx`) still shows
-    list numbers behind the Lead's marks.
+  - **The chat preview's timeline** (`ol.tlx`) no longer shows list numbers behind the Lead's marks. This
+    gap predated v119 (the owner: "fix the timeline list numbers too").
 
 ## What changed in v118
 
