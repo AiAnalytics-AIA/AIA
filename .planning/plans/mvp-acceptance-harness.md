@@ -699,4 +699,8 @@ test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
    fieldwork replays every respondent (`sent 0`) and its fieldwork, aggregate, Sociomap and
    analysis artifacts are run 1's by id.
 
-AC-07 lists no test until that decision is taken and built.
+**Decision (Nigel Blount, about 21:40 UTC 2026-10-28, relayed by the PM coordinator): "AC-07:
+(a) Build reuse".** A run whose fieldwork is `CURRENT` starts at the first reopened stage, over the
+earlier run's frozen dataset, with no respondent paid twice. It is planned under
+`working-copy-edit-ops` (nearest WCE7d2 / WCE17) and built by the E06 session. AC-07 lists no
+test, and stays NOT_RUNNABLE, until that reuse lands; the test in point 6 then wires it.
