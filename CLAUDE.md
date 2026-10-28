@@ -1212,7 +1212,11 @@ apps/
                             (together or not at all) and AIA_BEDROCK_EFFORT; a capability's own effort,
                             AIA_AI_FIELDWORK_EFFORT (SIMULATION) and AIA_AI_RESEARCH_EFFORT (RESEARCH_REASONING,
                             CRITIC, RESEARCH_LEAD), through ModelPolicy.efforts; unset, the bytes sent are unchanged
-                            (sonnet-5-5-switch)
+                            (sonnet-5-5-switch). No key covers STUDY_LEAD: on the route binding (no Lead model of its
+                            own) the Lead takes AIA_BEDROCK_EFFORT. A Lead model id equal to the route's stops the
+                            worker (leave the Lead keys unset instead). AIA_AI_RESEARCH_MAX_OUTPUT_TOKENS also bounds
+                            each Deep Research kind's output (request_limits.kind_budgets), so raising it raises
+                            Deep Research's ceilings
     workbench.py            The ONLY composition with fictional fieldwork; refuses unless AIA_ENV is
                             local/test, and no deployment may name it (layer_check); with AIA_AI_ANALYSIS_ENABLED
                             its analysis modules are answered by RecordedModels behind the real gateway at zero
