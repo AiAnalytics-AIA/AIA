@@ -16,10 +16,6 @@ body{margin:0}
 a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
 .ovw{flex:1;overflow:auto;background:var(--surface)}
 .ovw-in{max-width:1200px;margin:0 auto;padding:24px 32px 48px;display:flex;flex-direction:column;gap:20px}
-.ovw-h{display:flex;align-items:flex-end;gap:24px}
-.ovw-h .ey{font-size:12px;font-weight:500;color:var(--faint)}
-.ovw-h h1{margin:2px 0 6px;font:600 28px/34px var(--serif);color:var(--ink)}
-.ovw-h .lede{margin:0;max-width:72ch;font-size:14px;line-height:21px;color:var(--muted)}
 .ovw-acts{display:flex;gap:8px;flex:none}
 .ovw-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
 .ovw-side{display:flex;flex-direction:column;gap:20px}
@@ -45,12 +41,6 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 .chk li{display:flex;gap:10px;align-items:center;min-height:30px;font-size:13px}
 .mbar{display:flex;height:8px;border-radius:4px;background:var(--sunken);overflow:hidden;margin-bottom:12px}
 .mbar .sp{background:var(--signal)}.mbar .hd{background:var(--sedge)}
-.ovs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid var(--border);border-radius:8px;background:var(--raised);overflow:hidden}
-.ovs>div{padding:10px 14px;border-right:1px solid var(--border);min-width:0}
-.ovs>div:last-child{border-right:0}
-.ovk{font:400 12px/16px var(--sans);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ovv{font:600 16px/22px var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
-.ovv.you{color:var(--youink)}
 .money{display:flex;flex-direction:column;margin-bottom:10px}
 .money .mr{display:flex;justify-content:space-between;gap:16px;padding:5px 0;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border)}
 .money .mr:last-child{border-bottom:0}
@@ -101,26 +91,20 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
     <div class="v4-pb" role="region" aria-label="Přehled studie"><span class="stp">Přehled studie<span class="of">11 kroků</span></span><span class="sep" aria-hidden="true"></span><span class="lbl">Čeká na vás</span><a class="wt" href="Brief.dc.html"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>Doplnit rozhodnutí</a><a class="wt" href="Questionnaire.dc.html"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>Posoudit návrh Vedoucího</a><span class="grow"></span><a class="gate" href="Fieldwork.dc.html"><i class="ph ph-flag s" aria-hidden="true"></i>Návrh se změnil od běhu 1 · nový běh na Sběru dat</a></div>
     <div class="ovw">
       <div class="ovw-in">
-        <header class="ovw-h">
-          <div class="grow">
-            <div class="ey">Přehled studie</div>
-            <h1>Vnímání značek ležáků 2026</h1>
-            <p class="lede">Měříme znalost a vnímání Zlaté Hory 12° proti konkurenci, aby klient rozhodl, zda zvednout cenu o 3 Kč. Běh 1 je hotov; návrh se od něj změnil, takže Sociomapa, Analýza a Zpráva stojí na starších výsledcích.</p>
-          </div>
-          <div class="ovw-acts">
+        <header class="hero">
+          <div class="hero-top"><span class="eyebrow"><i class="ph ph-squares-four" aria-hidden="true"></i> Přehled studie</span><div class="ovw-acts">
             <a class="btn sm" href="Questionnaire.dc.html"><i class="ph ph-pencil-simple s"></i>Pokračovat v Dotazníku</a>
             <a class="btn primary sm" href="Fieldwork.dc.html"><i class="ph ph-flag s"></i>Ke spuštění běhu 2</a>
-          </div>
+          </div></div>
+          <h1 class="hero-h">Vnímání značek ležáků 2026</h1>
+          <p class="hero-lede">Měříme znalost a vnímání Zlaté Hory 12° proti konkurenci, aby klient rozhodl, zda zvednout cenu o 3 Kč. Běh 1 je hotov; návrh se od něj změnil, takže Sociomapa, Analýza a Zpráva stojí na starších výsledcích.</p>
+          <dl class="hero-meta" aria-label="Studie v číslech"><div><dt>Krok</dt><dd>3 z 11 · Dotazník</dd></div>
+          <div><dt>Čeká na vás</dt><dd class="you">2</dd></div>
+          <div><dt>Běhy</dt><dd>1 hotov</dd></div>
+          <div><dt>Respondenti posledního běhu</dt><dd>400 AI</dd></div>
+          <div><dt>Rozpočet studie</dt><dd>11,20 / 50,00 USD</dd></div>
+          <div><dt>Změna od běhu 1</dt><dd>Návrh</dd></div></dl>
         </header>
-
-        <div class="ovs" role="list" aria-label="Studie v číslech">
-          <div role="listitem"><div class="ovk">Krok</div><div class="ovv">3 z 11 · Dotazník</div></div>
-          <div role="listitem"><div class="ovk">Čeká na vás</div><div class="ovv you">2</div></div>
-          <div role="listitem"><div class="ovk">Běhy</div><div class="ovv">1 hotov</div></div>
-          <div role="listitem"><div class="ovk">Respondenti posledního běhu</div><div class="ovv">400 AI</div></div>
-          <div role="listitem"><div class="ovk">Rozpočet studie</div><div class="ovv">11,20 / 50,00 USD</div></div>
-          <div role="listitem"><div class="ovk">Změna od běhu 1</div><div class="ovv">Návrh</div></div>
-        </div>
 
         <div class="ovw-grid">
           <section class="sec" aria-labelledby="ov-flow">

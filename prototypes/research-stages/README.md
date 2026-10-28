@@ -8,11 +8,30 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 6, artifact version `1793147720-69aa` |
+| Version | version 9, artifact version `1793203710-fb9a` |
 | Exported | 28 Oct 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
 | Previous versions | in git history: v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in version 9 (28 Oct)
+
+**The page heroes as core v4.3's** (the product owner: "Make the research stages hero match core v4.3 too", as
+Settings v118 and Klienti v21). Each board that opens with a page header now draws core's hero:
+- `Overview.dc.html`:
+  - the eyebrow "Přehled studie" and its two actions in one row;
+  - the serif title and the lede;
+  - the six figures beneath them, "Čeká na vás" in coral, in place of the bordered six-tile strip. Its
+    `.ovw-h` and `.ovs` rules are removed with it.
+- `Main.dc.html`, `Cards.dc.html`, `CardsF.dc.html`, `Marks.dc.html` and `ReportEditor.dc.html`:
+  - an eyebrow, the back link where the board had one;
+  - the 28/34 serif title, the lede and the rule under them;
+  - what sat beside the old header (the tags, the status legend, the orb note) in the eyebrow row.
+
+The eleven stage boards keep their compact study header: core's Hero is for top-level pages, and inside a study
+the stage header is used instead (`../design-system/components/Hero/README.md`). Every render has no new script
+error or failed request; Report's and ReportEditor's `{{shot}}` placeholders are as before. The canvas heights
+are unchanged.
 
 ## What changed since v95
 

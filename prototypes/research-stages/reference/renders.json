@@ -44,7 +44,7 @@
   "title": "Karty Vedoucího v chatu (nové)",
   "w": 1440,
   "h": 5200,
-  "text_chars": 12629,
+  "text_chars": 12627,
   "errors": [],
   "failed_requests": [],
   "image": "05-CardsF.webp"
@@ -114,7 +114,7 @@
   "title": "Značka Vedoucího · 5 variant",
   "w": 1440,
   "h": 1240,
-  "text_chars": 1075,
+  "text_chars": 1091,
   "errors": [],
   "failed_requests": [],
   "image": "12-Marks.webp"

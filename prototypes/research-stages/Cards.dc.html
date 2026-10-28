@@ -18,20 +18,17 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 </helmet>
 <div class="aia wb" data-theme="{{theme}}" style="display: block">
   <div style="max-width: 1320px; margin: 0 auto; padding: 36px 32px 64px; display: flex; flex-direction: column; gap: 24px">
-    <header class="between">
-      <div style="display: flex; flex-direction: column; gap: 6px; max-width: 860px">
-        <a href="Main.dc.html" class="cap row" style="gap: 4px"><i class="ph ph-caret-left s"></i>Přehled prototypu</a>
-        <h1 style="font-size: 28px; line-height: 34px; font-weight: 600">Karty Vedoucího</h1>
-        <p class="muted">Co jeden tah Vedoucího vrátí (LeadOutput): odpověď, pohled, návrhy změn, jedna žádost, navázání a změna jeho vlastních souborů. Nic z toho nic nemění samo. Jedna karta je jedna akce; plán je jedna akce s viditelnými kroky. Karty v tomto pořadí vyvolávají i jednotlivé kroky studie.</p>
-      </div>
-      <div class="row" style="flex-wrap: wrap">
+    <header class="hero" style="margin-bottom: 0">
+      <div class="hero-top"><a class="eyebrow" href="Main.dc.html"><i class="ph ph-caret-left" aria-hidden="true"></i> Přehled prototypu</a><div class="row" style="flex-wrap: wrap">
         <span class="row cap"><span class="stg done" aria-hidden="true"><i class="ph ph-check"></i></span>hotovo / platí</span>
         <span class="row cap"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span>potřebuje vás</span>
         <span class="row cap"><span class="stg run" aria-hidden="true"></span>běží</span>
         <span class="row cap"><span class="stg park" aria-hidden="true"><i class="ph ph-pause"></i></span>zaparkováno</span>
         <span class="row cap"><span class="stg fault" aria-hidden="true"><i class="ph ph-x"></i></span>selhalo</span>
         <span class="row cap"><span class="stg inert" aria-hidden="true"></span>čeká na předchozí</span>
-      </div>
+      </div></div>
+      <h1 class="hero-h">Karty Vedoucího</h1>
+      <p class="hero-lede">Co jeden tah Vedoucího vrátí (LeadOutput): odpověď, pohled, návrhy změn, jedna žádost, navázání a změna jeho vlastních souborů. Nic z toho nic nemění samo. Jedna karta je jedna akce; plán je jedna akce s viditelnými kroky. Karty v tomto pořadí vyvolávají i jednotlivé kroky studie.</p>
     </header>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr)); gap: 20px; align-items: start">
