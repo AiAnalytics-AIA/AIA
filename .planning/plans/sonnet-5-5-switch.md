@@ -127,6 +127,26 @@ switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the f
   unknown write price once writes are possible. Test that would catch it:
   `test_ai_runtime_route_profile.py::test_a_cache_write_is_charged_at_its_own_price`, with the price
   unset.
+- **A run that fails leaves its other ready steps RUNNABLE for good.** A run's status is FAILED as
+  soon as any step has failed. FAILED outranks RUNNABLE (`domain/workflow.py:852-861 @ e53fddbd`,
+  `derive_run_status` at `:864`), and `claim_next` takes no step whose run is FAILED
+  (`infrastructure/workflow_repository.py:1013-1031 @ e53fddbd`). So a step that was already
+  RUNNABLE, on a branch the failure does not depend on, stays RUNNABLE: nothing claims it, cancels
+  it or skips it.
+  - **Seen on develop**, read 2026-10-28 13:20 UTC, before the route switch: 6 `research_sociomapping`
+    steps (`domain/workflow_templates.py:245 @ e53fddbd`, depending only on `run`) were RUNNABLE in
+    FAILED runs, with no cancel flag and no `runnable_after`.
+  - **Reproduction:** a run of two independent steps, both RUNNABLE. Fail one terminally;
+    `claim_next` then returns nothing, and the other stays RUNNABLE.
+  - **Consequence:** no cost, since the experimental Sociomapping calls no model. A failed run's step
+    list shows a step as waiting in the queue that will never run. A sweep for "RUNNABLE work" (such as
+    the precondition before this switch) counts it as live and has to be explained away.
+  - **Smallest fix:** when a run's derived status becomes FAILED, move its RUNNABLE and BLOCKED steps
+    to SKIPPED with the reason `run_failed`, in the same transaction.
+  - **Test that would catch it:**
+    `test_workflow_repository.py::test_a_failed_run_leaves_no_step_runnable`.
+  - This is a hypothesis about intent until the workflow plan's owner says whether a FAILED run's
+    siblings are meant to stay offered.
 
 ## Doc follow-up (for the docs PR)
 
