@@ -647,3 +647,28 @@ the doubles' tests each kept.
 5. *Smallest fix.* Map the slug's unique violation to 409 `client_slug_taken` in
    `ScopeRepository.create_client`, answered by the route as a refusal by name.
 6. *Test.* An API test: the second create answers 409 naming the slug, and nothing is written.
+
+## Chunk 5: AC-06 wired (2026-10-28)
+
+Branch `feature/acceptance-ac06`, on `feature/acceptance-wiring` (#1090); the same words.
+
+**AC-06, two tests in `test_mvp_acceptance.py`, listed under AC-06.**
+- `test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work`: the past study runs with the
+  fieldwork checkpoint on (`AIA_AI_FIELDWORK_CHECKPOINT`); the recorded wire answers twenty calls
+  and holds the next, so the worker, killed (`SIGKILL`) once respondents are reported and the
+  next call is held, dies inside a call. (A first draft slowed every answer by 60 ms instead: one
+  run in three killed between calls, which the worker correctly recovers on its own, so the run
+  never stopped for a person.) A second worker finds the lapsed lease: the fieldwork step stops `RECOVERY_REQUIRED`,
+  `paid_call_uncertain`, the run's spend counts one uncertain call, and nothing sends it again.
+  The person cancels and retries; the retry answers every respondent, replaying at least the
+  respondents reported before the kill and sending only the rest (`sent + replayed = of`).
+- `test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset`: the recorded wire answers
+  `research_questions` with no supported finding, so the report refuses
+  (`report_inputs_refused`) and the run ends FAILED at its report. The module is offered for a
+  retry; the analysis retry's fieldwork step is the original's dataset by artifact id, and its
+  feed reports no respondent asked.
+
+**Two knobs on the recorded wire**, read only by `aia_executors.acceptance_recorded` (local and
+test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
+`AIA_ACCEPTANCE_RECORDED_NO_FINDINGS` (analysis module ids); a value outside either is refused by name at start
+(`test_acceptance_recorded.py`). The conftest's `Process.kill` is the harness's SIGKILL.

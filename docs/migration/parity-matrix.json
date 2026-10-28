@@ -4052,7 +4052,10 @@
     ],
     "tier_a": "A worker process killed mid-fieldwork resumes after the last checkpointed respondent; a possibly-billed recorded call goes to RECOVERY_REQUIRED; an analysis-only retry reuses the frozen dataset.",
     "tier_b": "An analysis-only retry on develop (allocation line A09). The kill is not repeated live: until RQC0 a restart repays fieldwork (OI-64), and the record says so.",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset"
+    ]
    },
    {
     "id": "AC-07",
