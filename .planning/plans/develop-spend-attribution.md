@@ -439,9 +439,7 @@ since 11:40 UTC. The chunk is ticked once the following is seen after the next d
   `…/xz0r7v8bizok` for the route's calls. Until now the field has held the `eu.` id.
 - A `SUCCEEDED` row in `ai_usage_events` for each model.
 
-### Findings (chunk 2)
+### For chunk 3
 
-- **F-SA2-1. The account's Bedrock bill is not AIA's alone.** Over 2026-10-26/28, CloudTrail shows
-  488 `Converse` calls on `eu.anthropic.claude-haiku-4-5-20251001-v1:0` by IAM user
-  `makli-bedrock`. That is not AIA's role, and those calls are untagged. Chunk 3 must read the
-  `Environment=develop` cost, never the account's Bedrock total.
+Chunk 3 must read the `Environment=develop` cost, never the account's Bedrock total, because the
+account's Bedrock spend is not AIA's alone.
