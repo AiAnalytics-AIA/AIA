@@ -250,6 +250,15 @@ agent ships them to the log group `/aia/develop` (`infra/develop`).
 
 Host: `journalctl -u docker`, `journalctl -u aia-backup.service`, `df -h /`.
 
+**The status line, without a shell.** After every deploy and after the nightly backup,
+`python -m aia_executors.status_report` writes one line, `aia-status {json}`, to the deploy log
+(CloudWatch stream `<instance>/deploy`): the worker's switches, runs and steps by status, every
+failed or parked step with its reason code, model calls and their cost, open holds, and each
+organization's Deep Research approvals. It holds codes, counts and ids only, never text, names or
+secrets (plan `ops-status-report`). In Logs Insights on `/aia/develop`:
+`filter @message like /aia-status / | sort @timestamp desc | limit 1`. Run it by hand with
+`docker compose run --rm --no-deps -T worker python -m aia_executors.status_report --days 30`.
+
 ## Error tracking
 
 GlitchTip (self-hosted, `errors/docker-compose.yml`) collects what broke, grouped into
@@ -430,8 +439,23 @@ configures it. ADR 0010 is accepted for fictional Class C on develop only
 (2026-09-26); the one authorised acceptance run is recorded in
 [`bedrock-develop-activation-2026-09-26.md`](../../docs/architecture/bedrock-develop-activation-2026-09-26.md).
 The smoke test's AI check is `NOT_RUNNABLE` by design: the smoke makes no paid
-model call, so it proves nothing about whether the runtime is on for a given
-deploy.
+model call, and a live route probe runs only after the owner's sign-off and a named
+allocation line (execution contract E05).
+
+**The activation profile** (mvp-master-plan MP6) says what *is* switched on. Every
+smoke judges each switch the MVP needs (`apps/executors/src/aia_executors/activation.py`,
+`PROFILE`, after §4 of the master plan) from the deployed configuration. That is the
+worker's environment, read by the parsers the worker starts with, plus the web's
+`/config` for the workbench. The smoke prints each row `ok` when it is READY and
+`NOT_READY` with its reason otherwise; the rows are the runtime, the route's classes,
+research agents, the Lead, panel personas, analysis, client-source proposals, Deep
+Research with Brave, its connectors, Common Crawl, agent-directed mode, Deep Research's
+lead, report PDFs, the two switches not built yet, the population's files (every file the
+Czech contract pins, at its pinned size) and error tracking.
+A NOT_READY row never fails the deploy. The last line counts them, and Settings → Stav
+systému lists them as *Nezapnuto*. No row makes a call. The ADR 0022 approvals and each
+client's data posture are organization decisions, so their evidence is in Settings and
+the client's profile, not in the smoke.
 
 What the environment provides:
 

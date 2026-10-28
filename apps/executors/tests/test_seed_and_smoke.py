@@ -461,10 +461,27 @@ def test_the_ai_check_is_not_runnable_and_says_why_without_claiming_a_live_route
     assert report.failed is False
     assert lines == [
         "NOT_RUNNABLE  ai: governed model call through ModelGateway -> bedrock-eu-primary",
-        "      the smoke makes no paid model call; the AI runtime is off by default "
-        "and is checked by its own acceptance, not on each deploy (ADR 0010, "
-        "docs/architecture/bedrock-develop-activation-2026-09-26.md)",
+        "      the smoke makes no paid model call; a live probe runs only after the owner's "
+        "sign-off and a named allocation line (E05). What the runtime is configured to do "
+        "is the activation rows",
     ]
+
+
+def test_the_activation_rows_say_ready_or_not_ready_and_never_fail_the_smoke() -> None:
+    """MP6: with nothing switched on every row is said NOT_READY with its reason, one line per
+    row of the profile, and the smoke has not failed."""
+    from aia_executors.activation import PROFILE
+
+    lines: list[str] = []
+    report = smoke.Report(lines.append)
+    smoke.activation_check(report, {"AIA_ENV": "develop"})
+    assert report.failed is False
+    assert len(lines) == len(PROFILE)
+    assert all(line.startswith("NOT_READY  activation: ") for line in lines)
+    assert (
+        "NOT_READY  activation: analysis for the eight analysis modules (AC-08) -- "
+        "AIA_AI_RUNTIME_ENABLED is not true"
+    ) in lines
 
 
 def test_slice_check_passes_when_a_worker_executes_the_run(

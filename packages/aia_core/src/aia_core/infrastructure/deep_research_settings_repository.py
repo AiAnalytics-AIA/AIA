@@ -83,6 +83,7 @@ __all__ = [
     "SettingOverview",
     "SettingRefused",
     "StoredSettingVersion",
+    "approved_versions_by_organization",
     "erase_client_test_policies",
     "settings_in_force_for_study",
     "test_approval_receipt_for_study",
@@ -191,6 +192,31 @@ def _newest_approvals(session: Session, org: str) -> dict[str, DeepResearchSetti
         )
     )
     return {r.setting_key: r for r in rows}
+
+
+def approved_versions_by_organization(session: Session) -> dict[str, dict[str, int | None]]:
+    """Every organization's settings in force, each the newest approval's version (None: the
+    code's proposed default), in one query. For the operator's status report (plan
+    ops-status-report), acting as no one: ids, keys and version numbers only, never a value."""
+    newest = (
+        select(func.max(DeepResearchSettingApprovalRow.approval_id).label("approval_id"))
+        .group_by(
+            DeepResearchSettingApprovalRow.organization_id,
+            DeepResearchSettingApprovalRow.setting_key,
+        )
+        .subquery()
+    )
+    approvals: dict[str, dict[str, int | None]] = {}
+    for row in session.scalars(
+        select(DeepResearchSettingApprovalRow)
+        .join(newest, DeepResearchSettingApprovalRow.approval_id == newest.c.approval_id)
+        .order_by(
+            DeepResearchSettingApprovalRow.organization_id,
+            DeepResearchSettingApprovalRow.setting_key,
+        )
+    ):
+        approvals.setdefault(row.organization_id, {})[row.setting_key] = row.version_number
+    return approvals
 
 
 def _version_row(

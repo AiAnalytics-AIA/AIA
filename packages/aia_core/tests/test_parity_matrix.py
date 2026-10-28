@@ -514,6 +514,38 @@ def test_the_acceptance_document_and_the_matrix_list_the_same_criteria(
     assert matrix["mvp_acceptance"]["test"] in text
 
 
+def _cell(text: str) -> str:
+    """A table cell as the matrix words it: the trailing period dropped, pipes escaped."""
+    return text.rstrip(".").replace("|", "\\|")
+
+
+def test_the_acceptance_document_words_each_criterion_as_the_matrix_does(
+    matrix: dict[str, Any],
+) -> None:
+    """§3 says "the same list": each criterion's row and each tier's cell is the matrix's
+    statement, ``tier_a`` and ``tier_b`` word for word, so the document a person reads cannot
+    drift from the wording the tools judge (mvp-acceptance-harness chunk 14)."""
+    text = ACCEPTANCE_DOC.read_text(encoding="utf-8")
+    criteria, tiers = text.split("## 3. Acceptance criteria", 1)[1].split("### 3.1", 1)
+    tiers = tiers.split("## 4.", 1)[0]
+    stated = dict(re.findall(r"^\| (AC-\d\d) \| (.+?) \| [^|]+ \|$", criteria, re.M))
+    proved = {
+        cid: (a, b) for cid, a, b in re.findall(r"^\| (AC-\d\d) \| (.+?) \| (.+?) \|$", tiers, re.M)
+    }
+    for crit in matrix["mvp_acceptance"]["criteria"]:
+        cid = crit["id"]
+        assert stated[cid] == _cell(crit["statement"]), cid
+        assert proved[cid] == (_cell(crit["tier_a"]), _cell(crit["tier_b"])), cid
+
+
+def test_ac15_holds_the_aws_record_to_the_owner_s_usd_0_01(matrix: dict[str, Any]) -> None:
+    """The owner kept USD 0.01 as the gap allowed between AIA's ledger and the AWS tagged cost
+    (2026-10-28, W0Q5, "Keep USD 0.01"): stated in the criterion and its tier-B projection."""
+    ac15 = next(c for c in matrix["mvp_acceptance"]["criteria"] if c["id"] == "AC-15")
+    assert "agrees with the develop-tagged AWS cost record within USD 0.01" in ac15["statement"]
+    assert "AWS cost record within USD 0.01" in ac15["tier_b"]
+
+
 def test_every_high_risk_behaviour_is_owned_by_a_capability(
     capabilities: dict[str, dict[str, Any]],
 ) -> None:

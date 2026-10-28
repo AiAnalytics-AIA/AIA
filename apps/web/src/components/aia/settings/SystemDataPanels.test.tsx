@@ -42,18 +42,23 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 describe("Stav systému", () => {
   it("lists the smoke run's checks, the failed ones first in words, and its time and build", async () => {
     fake({
-      "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc1234def", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_runnable: 1, checks: [
+      "GET /api/v1/settings/system-status": () => ({ latest: { run_id: "r1", build_sha: "abc1234def", ran_at: new Date().toISOString(), all_ok: false, failed: 1, not_ready: 1, not_runnable: 1, checks: [
         { check: "Bedrock fieldwork", status: "FAIL" }, { check: "Population LIVE", status: "NOT_RUNNABLE" }, { check: "Sign-in", status: "ok" },
+        { check: "activation: analysis -- AIA_AI_ANALYSIS_ENABLED is not true", status: "NOT_READY" },
       ] } }),
       "GET /api/v1/settings/error-tracking": () => ({ configured: false, dashboard_url: null, project: null, project_url: null, alerts: [], uptime: [], uptime_enabled: null, issues_7d: [], error: null }),
     });
     render(<SystemPanel mayAdminister />);
-    await waitFor(() => expect(document.querySelectorAll("[data-smoke-check]")).toHaveLength(3));
-    expect(screen.getByText("1 z 3 připraveno")).toBeTruthy();
+    await waitFor(() => expect(document.querySelectorAll("[data-smoke-check]")).toHaveLength(4));
+    expect(screen.getByText("1 z 4 připraveno")).toBeTruthy();
     expect(screen.getByText(/sestava abc1234/)).toBeTruthy();
     const failed = document.querySelector('[data-smoke-check="FAIL"]') as HTMLElement;
     expect(within(failed).getByText("Selhalo")).toBeTruthy();
     expect(within(document.querySelector('[data-smoke-check="NOT_RUNNABLE"]') as HTMLElement).getByText("Nešlo ověřit")).toBeTruthy();
+    // An activation row not switched on (MP6): said as such, not as a failure.
+    const notReady = document.querySelector('[data-smoke-check="NOT_READY"]') as HTMLElement;
+    expect(within(notReady).getByText("Nezapnuto")).toBeTruthy();
+    expect(notReady.innerHTML).not.toMatch(/status-fault/);
     // Coral says a person is awaited: neither a failure nor an unknown check is coral.
     expect(document.querySelector("[data-system-readiness]")?.innerHTML).not.toMatch(/status-you/);
     // No token yet: said, never as an error.

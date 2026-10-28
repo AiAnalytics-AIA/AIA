@@ -471,5 +471,5 @@ other open item until its named owner answers.
 | HATCH | `LEAD_HATCH` Class C; the acceptance step stays; wording vypěstovat / zkumavka | "grow their own from a test tube" | Decided | `lead-identity#LI9` |
 | RIR-5 | The literature check is paid, capped by the study budget | — | Decided | `research-integrity-report` 5 (its 2026-10-26 note), `artifact-report#RPT10` |
 | LANE-A | Lane A (the look and the frame) built by "the second account" | Nigel's art-chain organisation account | Decided | `prototype-build#PBA1` to `#PBA7` |
-| OQ13 | The AGPL sprites (legal) | the editor goes live with ONLYOFFICE's own icons until legal decides | Open (legal) | `report-editor-hosting#5`, `#9` |
+| OQ13 | The AGPL sprites (legal) | the redrawn icons ship with the NOTICE and the AGPL §13 source offer | Decided: legal approved (Nigel, 2026-10-28, W0Q8) | `report-editor-hosting#5`, `#9` |
 | OQ8/OQ9 | Kish n on Výsledky; a set's scale by the board's presets | — | Open (methodology owner) | `artifact-results#RES3`, `artifact-questionnaire#QST10` |

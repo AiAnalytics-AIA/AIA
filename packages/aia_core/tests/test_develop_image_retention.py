@@ -171,6 +171,7 @@ ecr_login(){ printf 'ecr-login\\n' >> "$CALLS"; }
 postgres_running(){ return 1; }
 unit_volume_exists(){ return 1; }
 retire_product_unit(){ :; }
+status_report(){ printf 'status-report\\n' >> "$CALLS"; }
 """)
     for name, content in [
         ("population.sh", "exit 0"),
@@ -260,6 +261,8 @@ def test_actual_deploy_cleans_before_pull_and_records_only_after_smoke(tmp_path:
     assert remove in calls
     assert calls.index(remove) < calls.index("ecr-login") < calls.index("pull --quiet")
     assert f"image rm --no-prune sha256:{1:064x}" not in calls
+    # The status line is written after the smoke passed, as the deploy's last act.
+    assert calls.index("smoke.sh") < calls.index("status-report")
     assert f"image rm --no-prune sha256:{2:064x}" not in calls
     assert "image prune" not in calls and "volume" not in calls and "--force" not in calls
     assert retention.history(tmp_path / "host/.deploy-state/successful-releases.json") == [

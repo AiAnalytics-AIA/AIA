@@ -22,10 +22,13 @@ Every response states that it is a recording: its provider request id is ``recor
 the provider's validation refusal naming it -- an answered, unbilled 400, so the call fails by
 name and nothing is invented for a contract this double has no recording of.
 
-Not yet recorded here (``mvp-acceptance-harness`` chunk 4, listed in the plan): the
-client-source extraction contract (``aia_knowledge_source_proposals``) and the five Deep
-Research agents; the suites that drive
-those keep their own doubles until they move here.
+* ``aia_knowledge_source_proposals`` -- a client document's knowledge proposals: one FACT per
+  segment the request carries (at most three), its quote the segment's first sentence copied
+  literally, so the step's grounding keeps it by its own rule;
+* ``aia_deep_research_<role>`` -- the five Deep Research agents (planner, web and internal
+  investigator, verifier, synthesizer), answered from a recorded script given to the wire
+  (``deep_research``, the workbench's ``agents.json`` format: :func:`deep_research_answer`);
+  without one, refused by name like any other unrecorded contract.
 
 Only test compositions use this module: the acceptance harness's worker composition
 (:mod:`aia_executors.acceptance_recorded`, local and test only) and the executor suites. No
@@ -35,6 +38,7 @@ production composition imports it and no deployment names it (``make layer_check
 from __future__ import annotations
 
 import json
+import re
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -50,17 +54,22 @@ from aia_core.infrastructure.model_adapters.transport import (
 
 __all__ = [
     "ANALYSIS_TOOL",
+    "DEEP_RESEARCH_PREFIX",
+    "DEEP_RESEARCH_ROLES",
     "DESIGN_ANSWERS",
     "LEAD_REPLY",
     "LEAD_TOOL",
     "PROFILE",
     "RECORDING",
     "RESPONDENT_TOOL",
+    "SOURCE_PROPOSALS_TOOL",
     "RecordedModels",
     "RecordedSigner",
+    "deep_research_answer",
     "grounded_draft",
     "invented_draft",
     "runtime_env",
+    "source_proposals_answer",
 ]
 
 #: What every recorded answer says it is.
@@ -69,6 +78,13 @@ PROFILE: Final = "eu.example.analysis-model-v1:0"  # a test id; the real one is 
 ANALYSIS_TOOL: Final = "aia_analysis_module"
 RESPONDENT_TOOL: Final = "aia_research_respondent"
 LEAD_TOOL: Final = "aia_research_lead"
+SOURCE_PROPOSALS_TOOL: Final = "aia_knowledge_source_proposals"
+#: Every Deep Research agent's output tool is this prefix and its role.
+DEEP_RESEARCH_PREFIX: Final = "aia_deep_research_"
+#: The roles :func:`deep_research_answer` has a recorded answer for.
+DEEP_RESEARCH_ROLES: Final = frozenset(
+    {"planner", "web_investigator", "internal_investigator", "verifier", "synthesizer"}
+)
 #: The Lead's recorded reply: no number, so the number guard has nothing to refuse.
 LEAD_REPLY: Final = "Zaznamenaná odpověď vedoucího výzkumu: návrh si přečtu a navrhnu další krok."
 
@@ -155,12 +171,20 @@ _USAGE: Final[Mapping[str, Mapping[str, int]]] = {
         tool: {"inputTokens": 3000, "outputTokens": 600, "totalTokens": 3600}
         for tool in DESIGN_ANSWERS
     },
+    SOURCE_PROPOSALS_TOOL: {"inputTokens": 2000, "outputTokens": 300, "totalTokens": 2300},
+}
+#: A Deep Research agent's usage, whichever its role.
+_DEEP_RESEARCH_USAGE: Final[Mapping[str, int]] = {
+    "inputTokens": 1500,
+    "outputTokens": 250,
+    "totalTokens": 1750,
 }
 _KIND: Final[Mapping[str, str]] = {
     ANALYSIS_TOOL: "analysis",
     RESPONDENT_TOOL: "respondent",
     LEAD_TOOL: "lead",
     **{tool: tool.removeprefix("aia_research_") for tool in DESIGN_ANSWERS},
+    SOURCE_PROPOSALS_TOOL: "source-proposals",
 }
 
 
@@ -288,6 +312,109 @@ def _respondent(schema: Mapping[str, Any]) -> dict[str, Any]:
     return out
 
 
+_SENTENCE_END: Final = re.compile(r"(?<=[.!?])\s")
+#: The proposals one recorded extraction answers with, at most.
+_PROPOSALS: Final = 3
+
+
+def source_proposals_answer(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """One FACT per carried segment (at most three), quoting its first sentence literally."""
+    proposals = []
+    for entry in payload["segments"]:
+        text = str(entry["text"]).strip()
+        quote = _SENTENCE_END.split(text, maxsplit=1)[0].strip()[:800]
+        if not quote:
+            continue
+        proposals.append(
+            {
+                "kind": "FACT",
+                "title": quote.lstrip("# ")[:120] or "Fiktivní záznam",
+                "summary": _FICTIONAL + "věta z dokumentu klienta.",
+                "quote": quote,
+                "segment": int(entry["segment"]),
+            }
+        )
+        if len(proposals) == _PROPOSALS:
+            break
+    return {"proposals": proposals}
+
+
+def deep_research_answer(
+    role: str, payload: Mapping[str, Any], script: Mapping[str, Any]
+) -> dict[str, Any] | None:
+    """A Deep Research agent's answer from what it was shown and a recorded script.
+
+    ``script`` is the ``agents.json`` format: ``planner`` (sub-questions and queries per
+    subject text), ``default_queries``, and ``web`` (each page's evidence by URL, its quotes
+    literally on the recorded page, so grounding passes by its own rules). Every item is
+    supported by the verifier; one finding per subject cites its first accepted evidence; an
+    internal track finds nothing. ``None`` for a role the script has no answer for.
+    """
+    if role == "planner":
+        plans: Mapping[str, Any] = script.get("planner") or {}
+        default = list(script.get("default_queries") or [])
+        tracks = []
+        for track in payload["tracks"]:
+            plan: Mapping[str, Any] = plans.get(track["subject"]) or {}
+            tracks.append(
+                {
+                    "track_id": track["track_id"],
+                    "sub_questions": list(plan.get("sub_questions") or []),
+                    "queries": list(plan.get("queries") or default),
+                }
+            )
+        return {"tracks": tracks, "notes": ""}
+    if role == "web_investigator":
+        web: Mapping[str, Any] = script.get("web") or {}
+        evidence = [
+            {"source_id": s["source_id"], **e}
+            for s in payload["sources"]
+            for e in web.get(s["url"], [])
+        ]
+        return {"evidence": evidence, "gaps": []}
+    if role == "internal_investigator":
+        return {"evidence": [], "gaps": []}
+    if role == "verifier":
+        return {
+            "verdicts": [
+                {
+                    "evidence_id": item["evidence_id"],
+                    "verdict": "supported",
+                    "reason": "záznam: podloženo citací",
+                }
+                for item in payload["items"]
+            ]
+        }
+    if role == "synthesizer":
+        by_subject: dict[str, list[Mapping[str, Any]]] = {}
+        for evidence in payload["evidence"]:
+            by_subject.setdefault(evidence["subject_key"], []).append(evidence)
+        first = payload["evidence"][0]["claim"] if payload["evidence"] else ""
+        return {
+            "summary": first or "Záznam: nic nebylo nalezeno.",
+            "findings": [
+                {"subject_key": k, "text": v[0]["claim"], "evidence_ids": [v[0]["evidence_id"]]}
+                for k, v in by_subject.items()
+            ],
+            "gaps": [s["text"] for s in payload["subjects"] if s["subject_key"] not in by_subject],
+            "limitations": ["Zaznamenané fiktivní stránky, nikoli živý web."],
+        }
+    return None
+
+
+def _message(request: HttpRequest) -> dict[str, Any]:
+    """The request's first message, the JSON the step sent."""
+    loaded: dict[str, Any] = json.loads(request.body["messages"][0]["content"][0]["text"])
+    return loaded
+
+
+def _kind(tool: str) -> str:
+    """The kind a request id names: ``deep-research-<role>`` for a Deep Research agent."""
+    if tool.startswith(DEEP_RESEARCH_PREFIX):
+        return "deep-research-" + tool.removeprefix(DEEP_RESEARCH_PREFIX).replace("_", "-")
+    return _KIND[tool]
+
+
 def _no_recording(tool: str, number: int) -> HttpResponse:
     """The provider's own refusal of a request it cannot serve: answered, never billed."""
     return HttpResponse(
@@ -323,6 +450,8 @@ class RecordedModels:
     failures: dict[tuple[str, int], HttpResponse | TransportFailure] = field(default_factory=dict)
     #: called with (module, n) before an analysis call is answered
     hook: Callable[[str, int], None] | None = None
+    #: the Deep Research agents' recorded script (:func:`deep_research_answer`); none, unrecorded
+    deep_research: Mapping[str, Any] | None = None
     requests: list[HttpRequest] = field(default_factory=list)
     asked: list[tuple[str, int]] = field(default_factory=list)
     lock: threading.Lock = field(default_factory=threading.Lock)
@@ -346,7 +475,7 @@ class RecordedModels:
             number = len(self.requests)
             payload: dict[str, Any] = {}
             if name == ANALYSIS_TOOL:
-                payload = json.loads(request.body["messages"][0]["content"][0]["text"])
+                payload = _message(request)
                 key = (payload["module"], len(self.calls(payload["module"])) + 1)
                 self.asked.append(key)
                 self._index[key] = number - 1
@@ -380,12 +509,24 @@ class RecordedModels:
             answer = {"reply": LEAD_REPLY}
         elif name in DESIGN_ANSWERS:
             answer = json.loads(json.dumps(DESIGN_ANSWERS[name]))
+        elif name == SOURCE_PROPOSALS_TOOL:
+            answer = source_proposals_answer(_message(request))
+        elif name.startswith(DEEP_RESEARCH_PREFIX) and self.deep_research is not None:
+            role = name.removeprefix(DEEP_RESEARCH_PREFIX)
+            found = (
+                deep_research_answer(role, _message(request), self.deep_research)
+                if role in DEEP_RESEARCH_ROLES
+                else None
+            )
+            if found is None:
+                return _no_recording(name, number)
+            answer = found
         else:
             return _no_recording(name, number)
         return HttpResponse(
             status=200,
             headers={
-                "x-amzn-requestid": f"recorded-{_KIND[name]}-{number:05d}",
+                "x-amzn-requestid": f"recorded-{_kind(name)}-{number:05d}",
                 "x-aia-recording": RECORDING,
             },
             body={
@@ -404,7 +545,9 @@ class RecordedModels:
                     }
                 },
                 "stopReason": "tool_use",
-                "usage": dict(_USAGE[name]),
+                "usage": dict(
+                    _DEEP_RESEARCH_USAGE if name.startswith(DEEP_RESEARCH_PREFIX) else _USAGE[name]
+                ),
                 "metrics": {"latencyMs": 900},
             },
         )
