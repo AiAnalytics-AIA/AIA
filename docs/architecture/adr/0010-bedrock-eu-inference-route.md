@@ -226,3 +226,26 @@ mode to `none`, which writes nothing to durable storage. Revisit if AWS states a
 models, if the account's mode changes from `inherit`, or if a model on the route joins the
 `aws_review` list.
 
+## Amendment note, 2026-10-28: the route model is Claude Sonnet 5.5 (develop)
+
+`sonnet-5-5-switch` 4 landed. On develop, the route `bedrock-eu-primary` is bound to
+`eu.anthropic.claude-sonnet-5-5`, the one pinned model, with no fallback. The § Decision is unchanged:
+one route, one model, EU processing.
+
+| | Value (SSM `/aia/develop/`, set 2026-10-28 19:26-19:30 UTC) |
+|---|---|
+| Model | `eu.anthropic.claude-sonnet-5-5`, through the tagged application profile `…:application-inference-profile/hnpij62nm89g` (`aia_bedrock_invocation_target`), the same six EU destinations |
+| Prices, USD per million tokens | 2.20 input, 11.00 output, 0.11 cache read, 2.75 cache write (read 2026-10-25) |
+| Limits | 128,000 output; a configured window of 200,000 (the product owner, 2026-10-25) |
+| Request profile | `auto_tool`, `adaptive` thinking, no sampling; route effort `medium`, research effort `high`, fieldwork effort `low` |
+| Policy version | `aia-bedrock-develop-2026-10-28-route-sonnet55` |
+
+- **The worker read it at 19:42:33 UTC.** A first Lead turn succeeded at 19:45:44 UTC, its `Converse` on
+  the tagged profile (CloudTrail).
+- **The study Lead has no model of its own on develop now.** Its id would equal the route's, which the
+  worker refuses. The Lead runs on the route binding.
+- **Sonnet 4.5 takes no calls on develop.** Its tagged profile `xz0r7v8bizok` and its grant stay until
+  the plan's chunk 3 retires them, as the one-step rollback.
+- **Retention:** § Retention, 2026-10-28 above already covers both models.
+
+Evidence: `.planning/plans/sonnet-5-5-switch.md` § Chunk 4 and § Chunk 5 (#1077).

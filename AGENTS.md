@@ -2753,3 +2753,54 @@ content_at = _lastsave(payload.get("lastsave"))
 # RIGHT -- min(lastsave, receipt): a clock ahead can make an edit look later, never held early
 content_at = _held_through(_lastsave(payload.get("lastsave")), now)
 ```
+
+## Bedrock application inference profiles and SSM on develop (2026-10-27/28)
+
+**Bedrock checks a profile's description only at apply.** `terraform plan` accepts any string;
+`CreateInferenceProfile` then answers 400 unless it matches `([0-9a-zA-Z:.][ _-]?)+`: letters, digits,
+`:` and `.`, each followed by at most one separator. No commas, parentheses or `=`.
+
+```hcl
+# WRONG -- plans cleanly, 400 at apply
+description = "AIA develop route model (tagged Environment=develop)"
+# RIGHT
+description = "AIA develop route model tagged Environment develop for cost attribution"
+```
+
+**`model_source` is never read back.** An imported `aws_bedrock_inference_profile` plans a replacement
+on every run, because the provider cannot see what it copies. Ignore the field, and hold the profile
+to its model with a postcondition on `self.models` instead, so that a changed model id fails the plan
+until someone runs `-replace` (`infra/develop/main.tf:430-447 @ b52ee648`). A worker cannot tell a
+stale target: it never asks AWS which model a profile copies.
+
+```hcl
+# WRONG -- replaces the profile (and changes its ARN) on every plan after an import
+model_source { copy_from = local.system_profile_arn }
+# RIGHT
+lifecycle {
+  ignore_changes = [model_source]
+  postcondition {
+    condition     = alltrue([for m in self.models : endswith(m.model_arn, "/${local.foundation_model}")])
+    error_message = "…: terraform apply -replace='aws_bedrock_inference_profile.route'."
+  }
+}
+```
+
+**`aws ssm delete-parameters` takes at most 10 names.** An 11th is a `ValidationException` ("Member must
+have length less than or equal to 10"), and nothing is deleted. On 2026-10-28 that stopped a switch
+script after its writes had landed, leaving SSM in a state the worker refuses at start
+(`.planning/plans/sonnet-5-5-switch.md` § Findings).
+
+```bash
+# WRONG -- 11 names: ValidationException, none deleted
+aws ssm delete-parameters --names $K1 $K2 $K3 $K4 $K5 $K6 $K7 $K8 $K9 $K10 $K11
+# RIGHT -- at most 10 per call
+aws ssm delete-parameters --names $K1 $K2 $K3 $K4 $K5 $K6 $K7 $K8 $K9 $K10
+aws ssm delete-parameters --names $K11
+```
+
+**No order of SSM writes is safe to start between when keys depend on each other.** The worker checks
+its keys together at start (a Lead model id equal to the route's, a reservation against the model's
+prices). A half-done change can be refused whichever order it runs in, so the guard is that nothing
+reads SSM until every write and delete is done: only `bin/write-env.sh` reads it, run by a deploy or
+by hand, so hold deploys until the change is complete and restart once.

@@ -7513,3 +7513,58 @@ gets whichever rule it asks.
 asserted against both rules.
 
 **Status.** Open, for the methodology owner (Aram).
+
+---
+
+## OI-265 · Finding · A run that fails leaves its other ready steps RUNNABLE for good
+
+**Claim.** A run's status is FAILED as soon as any step has failed, and `claim_next` takes no step of a
+FAILED run. So a step that was already RUNNABLE, on a branch the failure does not depend on, is never
+claimed, cancelled or skipped.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/workflow.py:852-861 @ b52ee648` (FAILED outranks
+RUNNABLE in `_STEP_TO_RUN_PRECEDENCE`); `packages/aia_core/src/aia_core/infrastructure/workflow_repository.py:1013-1031 @ b52ee648`
+(the claim excludes FAILED runs).
+
+**Reproduction.** Seen on develop on 2026-10-28, 13:20 UTC: 6 `research_sociomapping` steps RUNNABLE in
+runs FAILED between 2026-10-09 and 2026-10-18, with no cancel flag and no `runnable_after`. A test: a run of
+two independent steps, both RUNNABLE; fail one terminally, and `claim_next` returns nothing while the
+other stays RUNNABLE.
+
+**Consequence.** No spend: the experimental Sociomapping calls no model. A failed run shows a step queued
+for ever, and any sweep for live work (the precondition before develop's route switch) counts it and has
+to explain it away.
+
+**Smallest fix.** When a run's derived status becomes FAILED, move its RUNNABLE and BLOCKED steps to
+SKIPPED with the reason `run_failed`, in the same transaction.
+
+**Test.** `test_workflow_repository.py::test_a_failed_run_leaves_no_step_runnable`.
+
+**Status.** Open: the workflow engine's owner decides whether a failed run's siblings are meant to stay
+offered (`sonnet-5-5-switch` § Findings, #1077).
+
+---
+
+## OI-266 · Finding · An SSM delete of more than 10 names stops a configuration change half-done
+
+**Claim.** `aws ssm delete-parameters` takes at most 10 names. The sonnet-5-5-switch prompt passed 11,
+after its 15 writes had landed. That left SSM half-written, in a state the worker refuses at start:
+route and Lead model both `eu.anthropic.claude-sonnet-5-5`.
+
+**Anchor.** `apps/executors/src/aia_executors/ai_runtime.py:821-825 @ b52ee648` (the refused pair);
+`.planning/plans/sonnet-5-5-switch.md` § Findings.
+
+**Reproduction.** `aws ssm delete-parameters --names` with 11 names answers `ValidationException` ("Member
+must have length less than or equal to 10"), and nothing is deleted (2026-10-28, 19:26 UTC).
+
+**Consequence.** None that night: only `bin/write-env.sh` reads SSM, merges into develop were held, and
+the deletes were finished in two calls before the restart. A deploy in that window would have stopped
+the worker.
+
+**Smallest fix.** Split deletes into calls of at most 10 names. Hold deploys until a multi-key change is
+complete, because no order of single writes is safe to start between.
+
+**Test.** None: an operator prompt, not product code. The rule is in `AGENTS.md` § Bedrock application
+inference profiles and SSM on develop.
+
+**Status.** Closed (2026-10-28): the change was completed, and the rule recorded.

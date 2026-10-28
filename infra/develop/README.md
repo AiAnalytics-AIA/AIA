@@ -8,10 +8,11 @@ What it creates, and why each piece exists:
 | EC2 `t3a.medium`, Ubuntu 24.04, 80 GB gp3 encrypted, IMDSv2 only, no key pair | The one host. Management is SSM Session Manager, so no port 22 |
 | Elastic IP (+ optional Route 53 `A` record) | The stable address behind `dev.<domain>` |
 | Security group: 80/tcp, 443/tcp, 443/udp in; all out | Caddy's two ports; nothing else is reachable |
-| Instance role | The host's only credential: S3 (artifacts, ops), ECR pull, SSM parameters under `/aia/develop/`, `bedrock:InvokeModel` on **one** pinned EU model, SSM agent, CloudWatch agent |
+| Instance role | The host's only credential: S3 (artifacts, ops), ECR pull, SSM parameters under `/aia/develop/`, `bedrock:InvokeModel` on the route's pinned EU model (and the Lead's, when `bedrock_lead_model_id` is set) and the two application profiles, SSM agent, CloudWatch agent |
 | S3 `aia-develop-artifacts-<account>` | The `ArtifactStore`. Versioned, SSE-S3, private, TLS-only |
 | S3 `aia-develop-ops-<account>` | `backups/` (pg_dump, expire after 30 days) and `deploy/` (bundles, 90 days) |
 | ECR `aia-api`, `aia-worker`, `aia-web`, `aia-legacy-panel` | Images by git SHA; 30 kept; scan on push. The list (`local.images`) is also the deploy role's push grant: an image a workflow pushes without it here is refused with 403 (OI-41). `aia-legacy-panel` is pushed only by the hand-dispatched *Reference unit* workflow (`deploy/reference`, ADR 0018 decision 5); the product's deploy builds the other three |
+| Bedrock application inference profiles `aia-develop-route`, `aia-develop-lead` | Each copies one model's EU system profile under the `Environment` tag, so Bedrock spend lands in the tagged cost record (AC-15). A changed model id fails the plan until `terraform apply -replace='aws_bedrock_inference_profile.route'` (or `.lead[0]`) |
 | SSM parameters `/aia/develop/*` | Configuration for the host's env file; the PostgreSQL password is a generated `SecureString` |
 | Cognito user pool + Google IdP + hosted domain + public app client | Authentication only ([ADR 0003](../../docs/architecture/adr/0003-cognito-identity-boundary.md)); PKCE; no self sign-up |
 | GitHub OIDC provider + `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys |
