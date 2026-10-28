@@ -14,7 +14,7 @@ chunks:
   - "[x] 8. design_items, the working revision on every Design Revision writer (web submit, reuse, accepts), the item-level stale rule"
   - "[x] 9. Accept in one transaction: merged Design Revision, working copy, ledger; the web reloads"
   - "[x] 10. Dismiss and rebuild through the ledger and rebuild_of; the pending-proposals projection"
-  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a)"
+  - "[ ] 11. The command registry: the workers the Lead may call, each with its prompt and price, behind approve_request (ledger and spend limit already built); the route-class refusal says who fixes it (lead-orchestration LO12a, then LO12b); first deliverable: the worker row (lead-orchestration LO9a); each row also yields the Lead's request definition (ADR 0026 Amendment 2026-10-28 R7, lead-orchestration LO8e)"
   - "[ ] 12. Workbench journey: four widths, keyboard, focus modes, a Lead turn on recorded answers, zero unintended paid jobs"
   - "[x] 12a. The UI workbench runs Deep Research on recorded web with no paid calls (DRL-1, F-DRL-6): the six steps and the track kind over deep_research_recorded with a scripted model transport, one fictional design exchange and deep_research_journey.mjs; local and test only"
   - "[x] 13. Design V3 in the repository (prototypes/research-lead-v3, its text) and its chunks in this plan"
