@@ -4018,7 +4018,11 @@
     ],
     "tier_a": "On recorded calls at test prices: the ceiling shown before the start, reservations under the study-row lock, an exhausted budget parked in AWAITING_BUDGET with nothing spent, concurrent starts held to the budget, the spend-limit confirmation in the approval ledger.",
     "tier_b": "The same on live prices, inside the allocation's lines (tests/acceptance/allocation.json).",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_the_ceiling_is_shown_and_a_start_at_the_limit_is_confirmed_in_the_ledger",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_concurrent_starts_are_held_to_the_study_budget"
+    ]
    },
    {
     "id": "AC-05",

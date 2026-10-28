@@ -714,7 +714,7 @@ is observable over HTTP. Read from the code, each blocker:
 |---|---|
 | AC-02 | browser line (chunk 10); approved plans (`lead-orchestration#LO3`, `#LO4`); no HTTP read of approval-ledger rows |
 | AC-03 | tracked assumptions (`assumptions-and-open-answer-coding`, 0 of 10) |
-| AC-04 | **only** the ledger read: the spend-limit confirmation's `SPEND` row is written (`infrastructure/workflow_repository.py:2481-2520 @ 9c1883b2`) but no route reads approval-ledger rows (`grep -rn approval_decisions apps/api/src/aia_api/routers` finds none) |
+| AC-04 | wired below; was **only** the ledger read: the spend-limit confirmation's `SPEND` row is written (`infrastructure/workflow_repository.py:2481-2520 @ 9c1883b2`) but no route reads approval-ledger rows (`grep -rn approval_decisions apps/api/src/aia_api/routers` finds none) |
 | AC-05 | no worker composition joins the recorded wire and the population double (`compose_registry` takes both, `registry.py:171-178`; no factory passes them); a removed weight cannot be staged over HTTP; the weight identity is not served (F-5) |
 | AC-08 | open-answer coding (AOC) |
 | AC-09 | `segment-maps-and-drilldown` (0 of 13); the drag is the browser line |
@@ -726,3 +726,25 @@ is observable over HTTP. Read from the code, each blocker:
 Two pieces would unblock more than one: a read of a run's approval-ledger rows (AC-04 at once,
 AC-02 later), and a local/test worker composition of the recorded wire over the population double
 (AC-05 and AC-10, with their other gaps).
+
+## Chunk 5: AC-04 wired (2026-10-28)
+
+Branch `feature/acceptance-ac04`, on `feature/acceptance-ac06` and `feature/run-approvals-read`.
+The owner's decision, "Add the approvals read" (Nigel Blount, about 21:46 UTC, relayed by the PM
+coordinator), and his words in this session, "go ahead with the approvals read and AC-04".
+
+`GET /studies/{id}/research/runs/{run_id}/approvals` (its own PR) reads a run's approval-ledger
+rows. On it, three tests list under AC-04:
+- `test_ac04_the_ceiling_is_shown_and_a_start_at_the_limit_is_confirmed_in_the_ledger`: the
+  ceiling on readiness before the start; at the study's spend limit a start without the yes is
+  409 `cost_confirmation_required` and creates no run; with it the run starts, the yes is the
+  run's `spend` / `confirm` row by the researcher, and the finished run spent within the ceiling
+  with nothing left held.
+- `test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing`: a budget below one call's
+  hold parks the fieldwork in `AWAITING_BUDGET`, nothing spent or held, no respondent asked.
+- `test_ac04_concurrent_starts_are_held_to_the_study_budget`: two runs of one study on two
+  workers at once; what they hold and spend together never passes the budget, sampled while they
+  run, and both stop for budget.
+
+The wallet clause of AC-04's statement ("held to the wallet when an approved plan starts it") is
+not in its tier-A projection; approved plans are `lead-orchestration#LO3`/`#LO4`.
