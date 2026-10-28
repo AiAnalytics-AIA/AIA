@@ -2397,7 +2397,12 @@ deploy/reference/           The 18.6.6 unit beside the product, never part of it
                             .github/workflows/reference-unit.yml builds its image and bundle
   bin/backup-legacy-state.py The unit's SQLite databases copied WAL-safe (backup API), for the
                             migration's copy and backup-state.sh
-infra/develop/              Terraform for the develop AWS resources (one root, no modules)
+infra/develop/              Terraform for the develop AWS resources (one root, no modules);
+                            aws_bedrock_inference_profile.route / .lead: tagged application inference profiles
+                            copying each model's EU system profile, so Bedrock spend carries Environment=develop;
+                            the instance role is granted both; model_source is never read back (ignore_changes),
+                            and a postcondition fails the plan when bedrock_model_id or bedrock_lead_model_id moves
+                            until `terraform apply -replace=…` (develop-spend-attribution 1-2)
 docs/architecture/          System design + the ADRs; ai-step-executor-contract.md;
                             research-journey.md (the research journey: stage owners, interfaces, acceptance)
 docs/design/                Brand and UI direction; the design-system brief

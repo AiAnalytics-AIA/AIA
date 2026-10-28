@@ -607,6 +607,11 @@ Each is off when unset and absent from the develop Compose file; turning one on 
   application inference profile ARN in the route's own EU region) stops the worker at start, by name.
   **Who:** the operator who created the profile (develop-spend-attribution 1), after checking with
   `aws bedrock get-inference-profile` that it copies the identity's system profile.
+  - **On develop since 2026-10-28.** Both were set at 11:42 UTC and read by the worker from 12:08 UTC
+    (develop-spend-attribution 2): the route to `aia-develop-route`, the Lead to `aia-develop-lead`.
+  - **A target names one model.** Changing `bedrock_model_id` or `bedrock_lead_model_id` in Terraform
+    needs `terraform apply -replace='aws_bedrock_inference_profile.route'` (or `.lead[0]`), and the new
+    ARN replaces the matching target in the same change.
 - **`AIA_STUDY_WALLET_ENABLED`** (API): the study wallet, Peněženka (`application/wallet.py`, ADR 0028
   decision 2, `lead-orchestration#LO1`, #544). Off, nothing reads or writes a wallet row and
   `/studies/{id}/wallet` answers 409 `wallet_disabled`; a person's start on the Run stage never
