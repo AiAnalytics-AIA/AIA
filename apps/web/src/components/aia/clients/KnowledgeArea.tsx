@@ -25,7 +25,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { locatorWords, takesFile } from "@/lib/client-sources";
 import { relative } from "@/lib/format";
 import { LABEL_DOT, type LibraryView, type StaleEdit, folderOf, folderView, nextLabelColour, staleEdit, undoable } from "@/lib/knowledge-library";
-import { Button, Chip, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
+import { Button, StatusPill, FaultNote, Field, Select, TextArea, TextInput } from "../../rehome/ui";
 import { InlineCreateRow } from "../../ui/InlineCreateRow";
 import { UndoToast, useUndo } from "../../ui/UndoToast";
 import { CARD, EYEBROW, Empty, Loaded } from "../states";
@@ -117,7 +117,7 @@ function Pending({ clientId, mayApprove, onDecided }: { clientId: string; mayApp
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {/* An AI proposal is the AI's words, not its starter's. */}
-                      {p.yours && !p.from_source ? <Chip tone="neutral">{t("aia.knowledge.yours")}</Chip> : null}
+                      {p.yours && !p.from_source ? <StatusPill tone="neutral">{t("aia.knowledge.yours")}</StatusPill> : null}
                       {mayApprove ? (
                         <>
                           <Button small variant="primary" disabled={deciding !== null} aria-busy={deciding === p.proposal_id || undefined} onClick={() => void decide(p, true)}>{t("aia.knowledge.approve")}</Button>

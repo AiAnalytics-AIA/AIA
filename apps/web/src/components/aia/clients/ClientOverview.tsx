@@ -14,7 +14,7 @@ import { appRoutes } from "@/lib/app-routes";
 import { relative } from "@/lib/format";
 import { type StepKey, isStepKey } from "@/research/steps";
 import { Icon } from "../../rehome/icons";
-import { Chip, Tag } from "../../rehome/ui";
+import { StatusPill, Tag } from "../../rehome/ui";
 import { CARD, Empty, Loaded } from "../states";
 import { useResource } from "../useResource";
 import { ClientPage, useClient } from "./ClientContext";
@@ -116,7 +116,7 @@ function YourTurn({ clientId, o }: { clientId: string; o: Overview }) {
     <ul className="flex flex-col divide-y divide-border rounded-md border border-border bg-surface-raised">
       {waiting ? (
         <li className="flex flex-wrap items-start gap-3 px-5 py-3">
-          <Chip tone="you">{t("aia.library.views.review")}</Chip>
+          <StatusPill tone="you">{t("aia.library.views.review")}</StatusPill>
           <span className="min-w-0 flex-1">
             <span className="block font-medium">{tv("aia.overview.youProposals", { n: waiting })}</span>
             <span className="block text-sm text-ink-muted">
@@ -130,7 +130,7 @@ function YourTurn({ clientId, o }: { clientId: string; o: Overview }) {
       {inReview.map((s) => (
         <li key={s.study_id}>
           <Link href={studyHref(clientId, s)} className="flex flex-wrap items-center gap-3 px-5 py-3 no-underline hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring">
-            <Chip tone="you">{t("aia.overview.youReview")}</Chip>
+            <StatusPill tone="you">{t("aia.overview.youReview")}</StatusPill>
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium text-ink">{s.name}</span>
               <span className="block text-sm text-ink-muted">{studyWhere(s)}</span>
@@ -143,7 +143,7 @@ function YourTurn({ clientId, o }: { clientId: string; o: Overview }) {
   );
 }
 
-function Changes({ clientId, o }: { clientId: string; o: Overview }) {
+function Changes({ o }: { o: Overview }) {
   const changes = o.recent_changes ?? [];
   if (!changes.length) return <Empty>{t("aia.overview.changesEmpty")}</Empty>;
   return (
@@ -182,7 +182,7 @@ export function ClientOverview() {
               {o.knowledge ? (
                 <section aria-labelledby="ov-changes">
                   <h2 id="ov-changes" className="mb-3 text-base font-semibold">{t("aia.overview.changesTitle")}</h2>
-                  <Changes clientId={client.client_id} o={o} />
+                  <Changes o={o} />
                 </section>
               ) : null}
               <section aria-labelledby="ov-outputs">

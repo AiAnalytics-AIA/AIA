@@ -13,7 +13,7 @@ import { type DragEvent, type ReactNode, createContext, useCallback, useContext,
 import { t, tv } from "@/i18n/t";
 import { type ClientWorkspace, type StudyKind, workspace } from "@/lib/api";
 import { type ClientArea, appRoutes } from "@/lib/app-routes";
-import { type Ask, AskDialog, Button, Chip, FaultNote } from "../../rehome/ui";
+import { type Ask, AskDialog, Button, StatusPill, FaultNote } from "../../rehome/ui";
 import { AppShell, type Crumb, type Tab } from "../AppShell";
 import { Loaded } from "../states";
 import { useResource } from "../useResource";
@@ -176,7 +176,7 @@ export function ClientPage({ children, sub, crumbs = [], actions }: { children: 
       title={client.name}
       sub={sub}
       client={{ id: client.client_id, name: client.name }}
-      status={<Chip tone="neutral">{t(`aia.client.status.${client.status}`)}</Chip>}
+      status={<StatusPill tone="neutral">{t(`aia.client.status.${client.status}`)}</StatusPill>}
       action={actions ?? defaultActions}
       tabs={clientTabs(client, area)}
     >

@@ -15,7 +15,8 @@ import { FOCUS, TOUCH } from "@/components/ui/parts";
 import { t, tv } from "@/i18n/t";
 import type { Orb } from "@/lib/activity-orb";
 import { fmtTime } from "@/research/jobs";
-import { formatUsd, type StepActivity } from "@/lib/step-activity";
+import { usdWords } from "@/lib/spend";
+import type { StepActivity } from "@/lib/step-activity";
 
 /** The panel's close transition, as tokens.css --duration-panel. */
 const PANEL_MS = 180;
@@ -78,7 +79,7 @@ export function StepActivityPanel({
       ? tv("research.exec.activity.modelSummary", {
           answered: activity.model.answered,
           tokens: activity.model.tokens ?? t("research.exec.activity.tokensUnknown"),
-          cost: formatUsd(activity.model.costUsd),
+          cost: usdWords(activity.model.costUsd, 3),
         })
       : null,
     activity && activity.toolCalls > 0 ? tv("research.exec.activity.toolSummary", { calls: activity.toolCalls }) : null,

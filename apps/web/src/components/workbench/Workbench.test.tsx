@@ -136,7 +136,7 @@ function bench({ store, memory = new Map(), step = "questionnaire" }: Bench = {}
   // The stage's reload after a click; an automatic accept reads the copy in place instead.
   const reload = vi.fn();
   const view = render(
-    <Workbench frame={TEST_FRAME} step={step} store={s} memory={memory} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)}
+    <Workbench frame={TEST_FRAME} step={step} store={s} memory={memory} save={null} inspector={null} reload={reload} confirm={vi.fn(async () => true)} confirmSpend={vi.fn(async () => true)}
       onAgentStarted={vi.fn()} jobs={[]} onOpenJob={vi.fn()} onRefreshJobs={vi.fn(async () => [])}>
       <div>Dotazník</div>
     </Workbench>,
