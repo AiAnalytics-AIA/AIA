@@ -1,4 +1,4 @@
-# AIA Klienti – prototyp (client pages), 27 Oct 2026
+# AIA Klienti – prototyp (client pages), 28 Oct 2026
 
 A snapshot of the client-pages Design canvas: the current develop screens, an anchored analysis of
 each, and a redesign in the AIA design system. Design reference only: nothing here is imported by
@@ -9,7 +9,7 @@ number in it is fictional.
 |---|---|
 | Live canvas, owned by the second account since 28 Oct 2026 (private to it) | <https://claude.ai/artifact/76oZLbQk8Gt28qYahSHAs4>: edit this one, and export from it |
 | Earlier canvas, first account (no longer edited) | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> |
-| Exported version | v20, artifact version `1793100519-580b` in the first account, 27 Oct 2026; rebuilt unchanged in the second account as `1793114838-e58b` (every board matched against `reference/`) |
+| Exported version | v21, the second account's artifact version `1793192746-7213`, 28 Oct 2026: v20 (first account `1793100519-580b`, rebuilt unchanged as `1793114838-e58b`) with every page header drawn as core v4.3's hero |
 | Code the analysis is anchored to | `develop` @ `a1a9a45c` (anchors re-checked @ `dbaa7720`) |
 | Core stylesheet | `assets/aia-core-v4.3.css`: core v4.3 (Petrol), owned by the design-system session; SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`. It is not `../shared/aia-core.css` (core v3) |
 | Client stylesheet | `assets/aia-client.css`: scoped under `.cl`, built only on core variables, redefines no core class |
@@ -40,7 +40,13 @@ with `file:line`, mapped to where it is in the prototype.
 - **Data folded into Znalosti.** A dataset is a kind of knowledge; one folder tree; the Data tab is gone; "Sdílená data AIA" belongs to Společenská inteligence.
 - **A study's folder: Vstupy and Výstupy.** A file given to the Lead is a client source in Studie / <studie> / Vstupy; every downloaded study file and the AI respondents' answers (XLSX, JSON) go to Výstupy.
 - **Knowledge organised like Google Drive,** keeping the folder and label logic, with folders inside folders.
-- **Compact page headers.** The hero took too much room and had no hierarchy: one line carries who, what waits on you and the actions; the figures sit on the tab row.
+- **Headers as core v4.3's hero** (28 Oct, replacing 27 Oct's compact headers; the owner: "Make the Klienti hero match core v4.3 too", as Settings v118):
+  - the eyebrow (Klient, Pracovní prostor) and the actions in one row;
+  - the client's tile, name and status, the serif title at 28/34;
+  - the one-sentence lede in full, no longer cut with an ellipsis;
+  - the figures beneath it. "Ke schválení" is the first, in coral, where the "4 ke schválení" pill was; Znalosti, Soubory and Rozpočet moved there from the tab row.
+  
+  The tab row now carries only the tabs. Seven boards grow by 68 to 149 px, and Intake keeps its height. `aia-client.css` loses the compact-header rules (`clhead`, `ch-id`, `ch-title`, `ch-sub`, `ch-you`, `ch-facts`, `tophead`, `th-id`, `th-sub`), which nothing uses any more.
 - **Renaming a file changes only its name:** no new knowledge revision, no approval; recorded in the audit.
 - **Green leaves the label palette;** existing green labels become teal. Green stays reserved for the version in force.
 - **A knowledge item is deleted** (also a brand or a competitor), permanently, after a confirmation, no undo; studies that used it keep their frozen copy; recorded in the audit.
