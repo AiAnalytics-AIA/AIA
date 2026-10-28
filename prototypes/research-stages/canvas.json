@@ -42,52 +42,12 @@
       "x": 3120,
       "y": -3925
     },
-    "ChatA.dc.html": {
-      "h": 900,
-      "is_interactive": true,
-      "title": "Chat A · Přepis",
-      "w": 440,
-      "x": 0,
-      "y": 17500
-    },
-    "ChatB.dc.html": {
-      "h": 900,
-      "is_interactive": true,
-      "title": "Chat B · Bubliny",
-      "w": 440,
-      "x": 520,
-      "y": 17500
-    },
-    "ChatC.dc.html": {
-      "h": 900,
-      "is_interactive": true,
-      "title": "Chat C · Časová osa",
-      "w": 440,
-      "x": 1040,
-      "y": 17500
-    },
-    "ChatD.dc.html": {
-      "h": 900,
-      "is_interactive": true,
-      "title": "Chat D · Kompaktní záznam",
-      "w": 440,
-      "x": 1560,
-      "y": 17500
-    },
-    "ChatE.dc.html": {
-      "h": 900,
-      "is_interactive": true,
-      "title": "Chat E · Rozhodnutí nahoře",
-      "w": 440,
-      "x": 2080,
-      "y": 17500
-    },
     "ChatF.dc.html": {
       "h": 900,
       "is_interactive": true,
-      "title": "Chat F · Bubliny na časové ose (nový)",
+      "title": "Chat Vedoucího · bubliny na časové ose",
       "w": 440,
-      "x": 2600,
+      "x": 0,
       "y": 17500
     },
     "Design.dc.html": {
@@ -196,8 +156,8 @@
     }
   },
   "createdOnFiles": {
-    "at": "2026-10-23T00:12:00Z",
-    "v": 1
+    "v": 1,
+    "at": "2026-10-27T16:00:00Z"
   },
   "designSystems": [],
   "launch": {
@@ -243,14 +203,6 @@
       "w": 240,
       "x": 0,
       "y": 13100
-    },
-    "t5": {
-      "kind": "title1",
-      "maxW": 3040,
-      "text": "Chat Vedoucího – varianty",
-      "w": 240,
-      "x": 0,
-      "y": 17200
     }
   },
   "order": [
@@ -271,11 +223,6 @@
     "Analysis.dc.html",
     "Report.dc.html",
     "ReportEditor.dc.html",
-    "ChatA.dc.html",
-    "ChatB.dc.html",
-    "ChatC.dc.html",
-    "ChatD.dc.html",
-    "ChatE.dc.html",
     "ChatF.dc.html",
     "Marks.dc.html"
   ],

@@ -1,0 +1,39 @@
+{
+ "about": "The five Deep Research agents' recorded script for the acceptance harness (mvp-acceptance-harness chunk 4; the format of tools/ui_workbench/fixtures/deep_research/agents.json, answered by aia_executors.recorded_models.deep_research_answer). Every quote is literally on the recorded page, tests/acceptance/inputs/web-page.html.",
+ "planner": {},
+ "default_queries": [
+  "služby knihoven v malých městech"
+ ],
+ "web": {
+  "https://knihovna-kvitkov.example/sluzby-knihoven": [
+   {
+    "quote": "Podle fiktivního přehledu z roku 2025 mělo 42 % knihoven v obcích do 20 000 obyvatel otevřeno alespoň jeden den v týdnu po 18. hodině.",
+    "claim": "Podle fiktivního přehledu z roku 2025 mělo 42 % knihoven v obcích do 20 000 obyvatel otevřeno alespoň jeden den v týdnu po 18. hodině.",
+    "evidence_type": "industry_report",
+    "source_date": "2025-06-01",
+    "geography": "CZ",
+    "population": "knihovny v obcích do 20 000 obyvatel",
+    "topics": [
+     "služby knihoven"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.6
+   },
+   {
+    "quote": "Rozvoz knih domů nabízela pětina sledovaných knihoven, obvykle jednou za dva týdny a zdarma.",
+    "claim": "Rozvoz knih domů nabízela pětina sledovaných knihoven, obvykle jednou za dva týdny a zdarma.",
+    "evidence_type": "industry_report",
+    "source_date": "2025-06-01",
+    "geography": "CZ",
+    "population": "knihovny v obcích do 20 000 obyvatel",
+    "topics": [
+     "služby knihoven"
+    ],
+    "outcome_overlap": false,
+    "recommended_use": "context_only",
+    "source_quality": 0.6
+   }
+  ]
+ }
+}
