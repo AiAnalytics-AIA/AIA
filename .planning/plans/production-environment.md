@@ -146,149 +146,32 @@ request.
 
 ### The person's steps (no agent may do these: IAM, an apply, GitHub settings)
 
-1. Add the role below to `infra/develop/github.tf`, and set `github_plan_oidc_subject` in
-   `terraform.tfvars` to the exact subject GitHub issues for the `terraform-plan` environment: the
-   tfvars' `github_oidc_subject` with `:environment:develop` replaced by `:environment:terraform-plan`
-   (the organization issues immutable subjects, with owner and repository ids; GitHub → Settings →
-   Actions → OIDC shows the form). Unset, the role trusts the repository-name subject, which this
-   organization's tokens never carry, and the plan job cannot assume it. Then `terraform plan` and
-   `terraform apply` in `infra/develop`. Apply after #1046 merges, or from its branch, so that its two
-   profiles are not destroyed.
-2. GitHub → Settings → Environments → **New environment** `terraform-plan`. Required reviewers:
-   Nigel Blount. Prevent self-review: off (a single reviewer).
-3. In that environment: the variable `AWS_PLAN_ROLE_ARN` = `terraform output -raw github_plan_role_arn`,
-   and the secret `TFVARS_DEVELOP` = the contents of `infra/develop/terraform.tfvars`.
-4. Repository → Settings → Variables → `TERRAFORM_PLAN_ENABLED` = `true`. This must be the last step,
-   so the job is never started without its reviewer.
-5. Open (or re-run) a pull request that touches `infra/develop`, approve the job, and read the plan
-   in the job summary. If a refresh is refused (`AccessDenied` naming an action), add that read to
-   the policy. The list below has not been run against AWS.
-6. Optional: make `Terraform (format, validate)` a required check on `develop`.
+Updated 2026-10-28 after #1065 merged: the role is now Terraform in `infra/develop/github.tf`
+(`aws_iam_role.github_plan`, merged by the follow-up PR), and the plan job reads its tfvars from SSM
+`/aia/terraform/develop/tfvars`, the parameter an operator's apply reads, so GitHub keeps no copy of
+them and no secret is set.
 
-### The role (not applied)
+1. **The subject.** Add `github_plan_oidc_subject` to the tfvars in SSM `/aia/terraform/develop/tfvars`:
+   the value of its `github_oidc_subject` with `:environment:develop` replaced by
+   `:environment:terraform-plan`. The organization issues immutable subjects (develop-deployment, run
+   35863981545); unset, the role trusts a subject its tokens never carry.
+2. **The apply**, from CloudShell on a clean checkout of `develop` (after the follow-up PR merges), with
+   that tfvars: `terraform plan` must read **2 to add, 0 to change, 0 to destroy** (`aws_iam_role.github_plan`,
+   `aws_iam_role_policy.github_plan`) and one new output, `github_plan_role_arn`. Anything else, in
+   particular a change to `aws_bedrock_inference_profile.route` / `.lead` or to
+   `aws_iam_role_policy.instance`, means the tfvars or the state is not what develop's code expects:
+   stop, apply nothing. Then `terraform apply` that plan.
+3. **The environment.** GitHub → Settings → Environments → New environment `terraform-plan`; required
+   reviewer Nigel Blount; Prevent self-review off (a single reviewer).
+4. **Its variable.** In that environment, the variable `AWS_PLAN_ROLE_ARN` =
+   `terraform output -raw github_plan_role_arn`. Then the repository variable
+   `TERRAFORM_PLAN_ENABLED` = `true`, **last**, so the job never starts before its reviewer exists.
+5. **One run.** A pull request that touches `infra/develop` (the docs of this role in
+   `infra/develop/README.md`); approve the job and read the plan in its summary. An `AccessDenied` that
+   names an action is a read to add to `data.aws_iam_policy_document.github_plan`. PE3 is ticked in that
+   pull request once the plan has run.
+6. Optional: `Terraform (format, validate)` a required check on `develop`.
 
-```hcl
-variable "github_plan_oidc_subject" {
-  description = "Exact GitHub OIDC sub for this repository's terraform-plan environment, when the organization issues immutable subjects (it does); otherwise the repository-name subject is used."
-  type        = string
-  default     = null
-}
-
-data "aws_iam_policy_document" "github_plan_assume" {
-  statement {
-    actions = ["sts:AssumeRoleWithWebIdentity"]
-    principals {
-      type        = "Federated"
-      identifiers = [local.github_oidc_arn]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:aud"
-      values   = ["sts.amazonaws.com"]
-    }
-    # Only a job in the terraform-plan environment, which a person approves (PE3). The
-    # organization issues immutable subjects (develop-deployment, run 35863981545), so the
-    # exact subject is set, as github_oidc_subject is for the deploy role.
-    condition {
-      test     = "StringEquals"
-      variable = "token.actions.githubusercontent.com:sub"
-      values   = [var.github_plan_oidc_subject != null ? var.github_plan_oidc_subject : "repo:${var.github_repository}:environment:terraform-plan"]
-    }
-  }
-}
-
-resource "aws_iam_role" "github_plan" {
-  name                 = "${local.name}-github-plan"
-  assume_role_policy   = data.aws_iam_policy_document.github_plan_assume.json
-  max_session_duration = 3600
-}
-
-data "aws_iam_policy_document" "github_plan" {
-  statement {
-    sid       = "ReadDevelopState"
-    actions   = ["s3:GetObject"]
-    resources = ["arn:${data.aws_partition.current.partition}:s3:::aia-terraform-state-${local.account_id}/develop/terraform.tfstate"]
-  }
-  statement {
-    sid       = "ListDevelopState"
-    actions   = ["s3:ListBucket"]
-    resources = ["arn:${data.aws_partition.current.partition}:s3:::aia-terraform-state-${local.account_id}"]
-    condition {
-      test     = "StringLike"
-      variable = "s3:prefix"
-      values   = ["develop/*"]
-    }
-  }
-  # Bucket settings, never an object: the artifacts, ops and population buckets' contents stay
-  # out of reach.
-  statement {
-    sid = "RefreshBuckets"
-    actions = [
-      "s3:ListBucket", "s3:GetBucketAcl", "s3:GetBucketCORS", "s3:GetBucketLocation",
-      "s3:GetBucketLogging", "s3:GetBucketObjectLockConfiguration", "s3:GetBucketOwnershipControls",
-      "s3:GetBucketPolicy", "s3:GetBucketPublicAccessBlock", "s3:GetBucketRequestPayment",
-      "s3:GetBucketTagging", "s3:GetBucketVersioning", "s3:GetBucketWebsite",
-      "s3:GetAccelerateConfiguration", "s3:GetEncryptionConfiguration",
-      "s3:GetLifecycleConfiguration", "s3:GetReplicationConfiguration",
-    ]
-    resources = [for b in values(local.buckets) : b.arn]
-  }
-  statement {
-    sid = "RefreshEverythingElse"
-    actions = [
-      "ec2:Describe*",
-      "iam:GetRole", "iam:GetRolePolicy", "iam:GetInstanceProfile", "iam:GetOpenIDConnectProvider",
-      "iam:ListAttachedRolePolicies", "iam:ListRolePolicies", "iam:ListInstanceProfilesForRole",
-      "iam:ListOpenIDConnectProviders",
-      "ecr:DescribeRepositories", "ecr:GetLifecyclePolicy", "ecr:ListTagsForResource",
-      "cognito-idp:DescribeUserPool", "cognito-idp:DescribeUserPoolClient",
-      "cognito-idp:DescribeUserPoolDomain", "cognito-idp:DescribeIdentityProvider",
-      "cognito-idp:GetUserPoolMfaConfig", "cognito-idp:ListTagsForResource",
-      "sns:GetTopicAttributes", "sns:GetSubscriptionAttributes", "sns:ListTagsForResource",
-      "cloudwatch:DescribeAlarms", "cloudwatch:ListTagsForResource",
-      "logs:DescribeLogGroups", "logs:ListTagsForResource", "logs:ListTagsLogGroup",
-      "dlm:GetLifecyclePolicy", "dlm:GetLifecyclePolicies",
-      "budgets:ViewBudget", "budgets:ListTagsForResource",
-      "route53:GetHostedZone", "route53:ListResourceRecordSets", "route53:GetChange",
-      "bedrock:GetInferenceProfile", "bedrock:ListTagsForResource",
-      "ssm:DescribeParameters",
-    ]
-    resources = ["*"]
-  }
-  # The three parameters develop manages and the public AMI id; the SecureString through SSM alone.
-  statement {
-    sid     = "RefreshParameters"
-    actions = ["ssm:GetParameter", "ssm:GetParameters", "ssm:ListTagsForResource"]
-    resources = [
-      "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}:${local.account_id}:parameter${local.ssm_prefix}/*",
-      "arn:${data.aws_partition.current.partition}:ssm:${var.aws_region}::parameter/aws/service/canonical/*",
-    ]
-  }
-  statement {
-    sid       = "DecryptThroughSsmOnly"
-    actions   = ["kms:Decrypt"]
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "kms:ViaService"
-      values   = ["ssm.${var.aws_region}.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role_policy" "github_plan" {
-  name   = "${local.name}-github-plan"
-  role   = aws_iam_role.github_plan.id
-  policy = data.aws_iam_policy_document.github_plan.json
-}
-
-output "github_plan_role_arn" {
-  description = "The read-only role the Terraform plan job assumes (CI, PE3)."
-  value       = aws_iam_role.github_plan.arn
-}
-```
-
-Not done here: no `.terraform.lock.hcl` is committed, so CI resolves `~> 5.70` to the newest 5.x
-on each run (5.100.0 on 2026-10-28). Committing one (`terraform providers lock -platform=linux_amd64
--platform=darwin_arm64`) would pin CI and the operator's apply to the same provider. That is the
-operator's call, because it changes their `init`.
+Correction (2026-10-28): `infra/develop/.terraform.lock.hcl` **is** committed (since #525, AWS provider
+5.100.0). #1065 said otherwise from a directory listing that hid dotfiles. CI's `init -backend=false`
+honours it, so CI and the operator's apply already use the same provider.
