@@ -7,7 +7,7 @@ chunks:
   - "[ ] 3. ScenarioPersonaInput: pure function, FS_* columns -> persona facts, under the same policy gates panel_persona already enforces"
   - "[ ] 4. The per-world respondent run: one ai_respondent/panel_persona call per sampled row per world, answers folded into WorldOutcome"
   - "[ ] 5. Origin and evidence: DataOrigin.SCENARIO_MODELLED_PANEL, instrument policy -3, client-facing gated on a recorded forecast score, never on chunk 7's validation"
-  - "[ ] 6. Sociomap compatibility guard: a sociomap run refuses a dataset whose respondents answered more than one world, and refuses cross-world aggregation silently"
+  - "[ ] 6. Sociomap compatibility guard: the sociomap step refuses, before any statistic, a scenario dataset that does not name exactly one world by its content fingerprint (InoculatedWorld.sha256), for both the canonical Sociomap and the experimental Sociomapping"
   - "[ ] 7. Cost and workflow wiring: SIMULATION workflow step that calls the bridge, budget reservation at n x worlds x variants, parks like any fieldwork step"
   - "[ ] 8. Scoring loop: freeze_prediction already exists; wire the per-world respondent answers into WorldOutcome -> ensemble_worlds -> score_prediction once truth is recorded"
 ---
@@ -58,9 +58,16 @@ once, in writing, before either system changes again.
 respondent call is byte-for-byte the same contract as a production panel-grounded respondent
 call (`panel_personas` -> `ai_respondent`/`AgentDefinition`/`ModelRequest` -> code-side answer
 drawing), with one addition: the persona's input facts are extended with the sampled row's
-`FS_*` values for one world, read through the same `RuntimePopulation.decide` /
-`decide_joint(FieldUse.PERSONA_CONSTRUCTION, ...)` gates every other persona field already
-passes. No new model-call mechanism, no new prompt format, no new response contract.
+`FS_*` values for one world, read through the same `RuntimePopulation.decide(name,
+FieldUse.PERSONA_CONSTRUCTION)` and `decide_joint(names, client_facing=...)` gates every other
+persona field already passes. No new model-call mechanism, no new prompt format, no new response
+contract.
+
+**The `FS_*` columns are not fields of any population view today**, so those gates cannot
+answer for them yet: `decide` returns `unknown_field` for a name the view does not carry, and
+`decide_joint` does the same for a name with no policy entry
+(`domain/population/runtime.py:131-152 @ 8d9d1299`). Chunk 2 therefore declares them, so that
+"the same gates" is true by construction rather than by a parallel table.
 
 **Keep its evidence entirely separate from chunk 7.** Chunk 7 validates: "on a question not in
 its persona, this respondent system's answers are close to the *same, already-measured* people's
@@ -123,18 +130,30 @@ same layer as `domain/simulation/*` and `domain/panel_persona.py`):
 - Input: one `SampledRespondent` (from `PanelSample`, the same sampler panel-grounded-respondents
   built), one `InoculatedWorld`'s row for that respondent (the `FS_*` columns
   `inoculation.apply_world` already produces), the `WorldModel` the row was inoculated under.
+- The `FS_*` field declaration (a decision this chunk makes, nothing to reuse): each world's
+  `FS_*` columns are declared as fields of the respondent's population view, with one fixed
+  `FieldPolicyEntry` per field, following the materialized-dimension precedent
+  (`domain/population/materialized.py:1-17`, `materialized_policy_entry` at `:196 @ 8d9d1299`:
+  a hash-pinned contract extension, a fixed policy rather than a dictionary row). The entry
+  states the uses a hypothesized value may serve (persona construction; never measured, never
+  weighting) and its dictionary block, so `decide` and `decide_joint` answer for it by the same
+  rules as every other field. **Not** `domain/simulation/reference.py`'s `FIELD_POLICY`
+  (`reference.py:230 @ 8d9d1299`): that table records how the 18.6.6 reference repaired
+  invalid world-model JSON (clip, truncate, top up) beside production's rejection; it has no
+  notion of persona eligibility and must not grow one.
 - Output: a `ScenarioPersonaInput` — the same `Persona` shape `ai_respondent.Persona` already
-  defines, with its `facts` extended by exactly the `FS_*` fields `WorldModel.FIELD_POLICY`
-  (or its simulation-side equivalent) marks as persona-eligible, each stamped
-  `EXPERIMENTAL_HYPOTHESIZED_JOINT` in the persona text itself, never silently blended with the
-  respondent's real panel facts without that marker.
+  defines (`domain/ai_respondent.py:203 @ 8d9d1299`), with its `facts` extended by exactly the
+  `FS_*` fields the declaration above allows for `PERSONA_CONSTRUCTION`, each stamped
+  `EXPERIMENTAL_HYPOTHESIZED_JOINT` (`FS_EPISTEMIC_STATUS`, `reference.py:108`) in the persona
+  text itself, never silently blended with the respondent's real panel facts without that marker.
 - A respondent is never told: the world's id, seed, or that it is one of several ensembled
   worlds — only the hypothesized state itself, as "suppose X", matching how 18.6.6's own
   scenario framing worked (`full_simulation.py` `FS_SIMULATION_PROFILE`, noted as absent from
   the ported core in `population.md`).
-- Refusals, each named: `scenario_field_not_persona_eligible` (an `FS_*` column with no
-  `FIELD_POLICY` persona entry), `scenario_joint_refused` (the combined panel + `FS_*` fields
-  fail `decide_joint`), `scenario_world_uncalibrated` (a row the world model was not applied to).
+- Refusals, each named: `scenario_field_not_persona_eligible` (`decide(name,
+  PERSONA_CONSTRUCTION)` refuses an `FS_*` column: undeclared, so `unknown_field`, or declared
+  without that use), `scenario_joint_refused` (the combined panel + `FS_*` fields fail
+  `decide_joint`), `scenario_world_uncalibrated` (a row the world model was not applied to).
 
 **3. `ScenarioPersonaInput` implementation.** Pure function, parity-tested the same way
 `panel_persona.py` is: given a fixed `SampledRespondent`, `InoculatedWorld` row and
@@ -148,7 +167,9 @@ unchanged**: the deterministic numeric read of a world's `FS_*` columns, no mode
 The respondent run is a second, parallel consumer of the same `InoculatedWorld`: its answers
 assemble into a `FieldworkDataset` exactly as production fieldwork's `assemble_dataset` does
 today (one dataset per `(world, variant)` pair, stamped with the new origin from chunk 5 and the
-world's id/seed/sha256 recorded in its provenance), never merged into or mistaken for
+world's content fingerprint, `InoculatedWorld.sha256` (`domain/simulation/inoculation.py:411`,
+verified on read at `:486 @ 8d9d1299`), recorded in its metadata beside the world's display id
+and seed; chunk 6 reads the fingerprint, never the id), never merged into or mistaken for
 `WorldOutcome`/`EnsembleOutcome`, which stay the deterministic factor-level read. The two can be
 reported side by side (what the deterministic chain says the factors do; what grounded people
 say they would do under that world) but are never combined into one statistic. *Done when:* a
@@ -165,10 +186,27 @@ facing claims require a disclosure naming the scoring record and its forecast ho
 wording from "modelováno: AI respondenti z populace" (something in the shape "modelováno: scénář
 nad AI respondenty, skóre k datu…").
 
-**6. Sociomap compatibility guard.** `research_sociomapping.py`'s dataset reader refuses (not
-warns) a `FieldworkDataset` whose respondents carry more than one distinct `FS_WORLD_ID`, and a
-request to combine two `WorldOutcome`-derived datasets into one Sociomap run. Test: a dataset
-built from two worlds raises `sociomap_mixed_worlds_refused` before any statistic is computed.
+**6. Sociomap compatibility guard.** One pure check, `require_single_world`, beside
+`validate_dataset` in `domain/fieldwork.py` (`:218 @ 8d9d1299`), refuses (not warns) a
+`SCENARIO_MODELLED_PANEL` dataset unless it names exactly one world by its content fingerprint
+(`InoculatedWorld.sha256`, recorded by chunk 4): more than one fingerprint is
+`sociomap_mixed_worlds_refused`, none recorded is `sociomap_world_unrecorded` (unknown is never
+read as one world). Datasets of any other origin pass untouched.
+
+- **Keyed on the fingerprint, never `FS_WORLD_ID`.** `world_id()` derives the id from the
+  world's index alone (`domain/simulation/reference.py:83-87 @ 8d9d1299`): the first world of
+  every ensemble is `world_001`, whatever its seed or world model, so two different worlds from
+  two simulation runs share an id and a check on distinct ids passes them.
+- **Both map engines.** The sociomap step calls the check after `validate_dataset` and before
+  either engine: the canonical Sociomap (`research_sociomaps`, `domain/research_sociomap.py:600`,
+  called at `apps/executors/src/aia_executors/research.py:882`) and the experimental
+  Sociomapping (`research_sociomappings`, `domain/research_sociomapping.py`, called at
+  `research.py:955 @ 8d9d1299`). A guard in the experimental reader alone would leave the map a
+  run actually reports unguarded.
+- **Test:** a dataset whose respondents carry the same `FS_WORLD_ID` but two different world
+  fingerprints raises `sociomap_mixed_worlds_refused` before any statistic is computed; a
+  scenario dataset with no recorded fingerprint raises `sociomap_world_unrecorded`; a
+  `MODELLED_AI_PANEL` dataset is unaffected.
 
 **7. Cost and workflow wiring.** A `SIMULATION` workflow's respondent-run step reserves budget
 at `n (respondents) x worlds x variants x blocks` requests, through the same `reserve_budget`
@@ -215,4 +253,21 @@ None yet; this is a design plan, not a landed chunk.
 
 ## Review outcome
 
-Not yet reviewed.
+First pass, 2026-10-28, anchors checked against `develop` @ 8d9d1299 (the Codex review of #1038
+and a reading of the cited code):
+
+- Chunk 6 keyed the mixed-world guard on `FS_WORLD_ID`, which is index-derived and collides
+  across runs (`reference.py:83-87`); it now keys on `InoculatedWorld.sha256`, and chunk 4
+  records that fingerprint.
+- Chunk 6 named `research_sociomapping.py`, the experimental Sociomapping; the guard now runs
+  before both it and the canonical `research_sociomap.py`.
+- Chunk 2 relied on `WorldModel.FIELD_POLICY` for persona eligibility; that table is the
+  18.6.6 repair record and has none, and `decide` / `decide_joint` refuse undeclared names as
+  `unknown_field`. Chunk 2 now declares the `FS_*` fields with a fixed policy entry, on the
+  materialized-dimension precedent.
+
+Still open from that reading (smaller, not yet corrected): chunk 1 calls the Sociomap
+`INTERNAL_ONLY` under D6, though `aia-sociomap-3` and `-5` are approved in the register; chunk 7
+anchors budget parking at `workflow_repository.py:1017-1059`, which is the step claim query
+(`reserve_budget` is at `:1244`) and cites `CLAUDE.md` §10 for the parking rules; the Approach
+cites `hmodel.md`, whose file is `docs/architecture/sociomapping-hmodel.md`.
