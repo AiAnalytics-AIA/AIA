@@ -1169,13 +1169,13 @@ jobs:
 
       - name: Plan
         working-directory: infra/develop
-        env:
-          TFVARS: ${{ secrets.TFVARS_DEVELOP }}
         run: |
           umask 077
           # The tfvars and the saved plan hold secrets: gone however the step ends.
           trap 'rm -f "$RUNNER_TEMP/develop.tfvars" "$RUNNER_TEMP/develop.tfplan"' EXIT
-          printf '%s\n' "$TFVARS" > "$RUNNER_TEMP/develop.tfvars"
+          # The tfvars an operator's apply reads, from SSM: GitHub keeps no copy of them.
+          aws ssm get-parameter --name /aia/terraform/develop/tfvars --with-decryption \
+            --query Parameter.Value --output text > "$RUNNER_TEMP/develop.tfvars"
           terraform init -input=false -no-color
           terraform plan -lock=false -input=false -no-color \
             -var-file="$RUNNER_TEMP/develop.tfvars" -out="$RUNNER_TEMP/develop.tfplan"
