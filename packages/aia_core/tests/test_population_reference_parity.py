@@ -31,6 +31,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from aia_core.application.population import PopulationRuntime
+from aia_core.domain.evidence import FieldPolicyBook
 from aia_core.domain.population import (
     CZ_SYNTHETIC_V17,
     ClaimRule,
@@ -282,6 +283,17 @@ def test_client_measured_claims_are_never_more_permissive_than_the_reference(
         assert entry.recommended_use == "PERSONA_OR_ANALYSIS_WITH_SCOPE"
     # Pinned so a policy change is a visible diff, not a silent widening.
     assert len(ours) == 115
+
+
+def test_the_evidence_book_of_the_real_dictionary_is_the_contracts_115(
+    cz_policy: FieldPolicy,
+) -> None:
+    """One field-policy authority (MVP-29, OI-24 (a)): the claim gate's book is the contract's."""
+    book = FieldPolicyBook.from_population_policy(cz_policy)
+    assert len(book) == 400
+    measurable = {n for n, p in book.fields.items() if p.eligibility.client_facing_measured_claim}
+    assert measurable == set(cz_policy.permitted(FieldUse.CLIENT_MEASURED_CLAIM))
+    assert len(measurable) == 115
 
 
 @pytest.mark.parametrize(

@@ -8,12 +8,18 @@ they run everywhere.
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from aia_core.domain.evidence import (
+    ClaimBasis,
+    ClaimLevel,
+    ClaimRequest,
     ClaimRule,
+    ClaimSurface,
+    Disclosure,
     EvidenceStatus,
     FieldPolicyBook,
     FieldPolicyError,
@@ -22,6 +28,7 @@ from aia_core.domain.evidence import (
     GateBlocked,
     ProductionGrade,
     ProvenanceClass,
+    QuestionFactMetadata,
     UndeclaredField,
     Violation,
     ViolationCode,
@@ -29,10 +36,15 @@ from aia_core.domain.evidence import (
     block,
     claim_rules_for,
     combine,
+    derive_eligibility,
     derive_field_policy,
+    evaluate_claim,
     mandated_weight_scheme,
     provenance_class_for,
+    resolve_factual_contract,
 )
+from aia_core.domain.population.policy import FieldUse as ContractUse
+from aia_core.domain.population.policy import build_field_policy
 
 SHA = "a" * 64
 
@@ -258,21 +270,127 @@ def test_runtime_column_without_dictionary_entry_is_still_undeclared(field_book:
 def test_duplicate_row_is_refused(dictionary_rows: list[dict[str, str]]) -> None:
     with pytest.raises(FieldPolicyError, match="declared twice"):
         FieldPolicyBook.from_dictionary_rows(
-            [*dictionary_rows, dictionary_rows[0]], source_sha256=SHA
+            [*dictionary_rows, dictionary_rows[0]], source_sha256=SHA, weight_columns=()
         )
 
 
 def test_book_must_name_its_dictionary_hash(dictionary_rows: list[dict[str, str]]) -> None:
     with pytest.raises(FieldPolicyError, match="SHA-256"):
-        FieldPolicyBook.from_dictionary_rows(dictionary_rows, source_sha256="")
+        FieldPolicyBook.from_dictionary_rows(dictionary_rows, source_sha256="", weight_columns=())
 
 
 def test_empty_book_is_refused() -> None:
     with pytest.raises(FieldPolicyError, match="no fields"):
-        FieldPolicyBook.from_dictionary_rows([], source_sha256=SHA)
+        FieldPolicyBook.from_dictionary_rows([], source_sha256=SHA, weight_columns=())
+
+
+# --- one authority: the population contract (MVP-29, OI-24 (a)) ---------------------
+
+#: Synthetic fields the reference's derivation lets back a measured client claim and the
+#: population contract refuses: matched politics read as historical, a matched block's
+#: "persona/context with provenance", calibrated values and derived ones.
+TIGHTENED = {
+    "vote_2021",
+    "religious_affiliation",
+    "has_savings",
+    "tv_daily_minutes",
+    "life_stage",
+    "is_procurement_buyer_current",
+}
+
+
+def _contract(dictionary_rows: list[dict[str, str]]) -> Any:
+    return build_field_policy(
+        dictionary_rows, dictionary_sha256=SHA, weight_columns=["vaha_strukturalni_2025"]
+    )
+
+
+def test_a_population_book_is_eligible_for_exactly_what_its_contract_permits(
+    field_book: Any, dictionary_rows: list[dict[str, str]]
+) -> None:
+    contract = _contract(dictionary_rows)
+    uses = {
+        FieldUse.ANALYSIS: ContractUse.AGGREGATE_ANALYSIS,
+        FieldUse.CLIENT_FACING_MEASURED_CLAIM: ContractUse.CLIENT_MEASURED_CLAIM,
+        FieldUse.FILTERING: ContractUse.AUDIENCE_FILTERING,
+        FieldUse.SIMULATION: ContractUse.SIMULATION,
+        FieldUse.PERSONA_CONSTRUCTION: ContractUse.PERSONA_CONSTRUCTION,
+        FieldUse.WEIGHTING: ContractUse.WEIGHTING,
+    }
+    for name, policy in field_book.fields.items():
+        for use, contract_use in uses.items():
+            assert policy.eligibility.permits(use) is contract.decide(name, contract_use).allowed, (
+                name,
+                use,
+            )
+
+
+def test_the_reference_reading_stays_wider_than_the_book(field_book: Any) -> None:
+    """The reference's derivation is kept, exact, for parity; the book does not follow it."""
+    widened = {
+        name
+        for name, policy in field_book.fields.items()
+        if _reference(policy).client_facing_measured_claim
+        and not policy.eligibility.client_facing_measured_claim
+    }
+    assert widened == TIGHTENED
+
+
+@pytest.mark.parametrize("name", sorted(TIGHTENED))
+def test_a_measured_claim_the_contract_refuses_is_refused(
+    field_book: Any, joint_status: Any, name: str
+) -> None:
+    request = ClaimRequest(
+        fields=(name,),
+        basis=ClaimBasis.MEASURED,
+        surface=ClaimSurface.CLIENT_FACING,
+        level=ClaimLevel.AGGREGATE,
+        disclosures=frozenset(Disclosure),
+    )
+    decision = evaluate_claim(request, field_book, joint_status)
+    assert ViolationCode.NOT_MEASURED_EVIDENCE in decision.codes
+
+
+def test_a_derived_field_answers_as_modelled_not_measured(field_book: Any) -> None:
+    contract = resolve_factual_contract(
+        QuestionFactMetadata(fact_source_field="life_stage"), field_book
+    )
+    assert contract.basis is ClaimBasis.MODELED
+
+
+def test_a_runtime_field_the_contract_has_not_classified_stays_undeclared(
+    dictionary_rows: list[dict[str, str]],
+) -> None:
+    contract = build_field_policy(
+        dictionary_rows,
+        dictionary_sha256=SHA,
+        weight_columns=["_analysis_weight"],
+        derived_fields=[("_analysis_weight", True)],
+    )
+    book = FieldPolicyBook.from_population_policy(contract)
+    assert book.source_sha256 == SHA
+    with pytest.raises(UndeclaredField) as caught:
+        book.get("_analysis_weight")
+    assert caught.value.known_runtime_column
+
+
+def test_a_contract_with_an_unmapped_field_refuses_the_book(
+    dictionary_rows: list[dict[str, str]],
+) -> None:
+    rows = [*dictionary_rows, dict(dictionary_rows[0], field="new_f", recommended_use="reworded")]
+    contract = build_field_policy(rows, dictionary_sha256=SHA, weight_columns=())
+    with pytest.raises(FieldPolicyError, match="new_f"):
+        FieldPolicyBook.from_population_policy(contract)
 
 
 # --- policy documents ----------------------------------------------------------------
+
+
+def _reference(p: Any) -> Any:
+    """A field's eligibility as the reference's export states it: its own derivation."""
+    return derive_eligibility(
+        p.field, p.provenance_class, p.claim_rules, p.recommended_use_verbatim, p.persona_eligible
+    )
 
 
 def _document(book: Any) -> dict[str, Any]:
@@ -292,7 +410,7 @@ def _document(book: Any) -> dict[str, Any]:
                 "description": p.description,
                 "persona_eligible": p.persona_eligible,
                 "claim_rules": [r.value for r in p.claim_rules],
-                "eligibility": p.eligibility.as_dict(),
+                "eligibility": _reference(p).as_dict(),
             }
             for p in book.fields.values()
         ],
@@ -301,7 +419,10 @@ def _document(book: Any) -> dict[str, Any]:
 
 def test_document_round_trips(field_book: Any) -> None:
     loaded = FieldPolicyBook.from_policy_document(_document(field_book))
-    assert loaded.fields == field_book.fields
+    # The same fields, read with the reference's eligibility: the parity reading.
+    assert loaded.fields == {
+        name: replace(p, eligibility=_reference(p)) for name, p in field_book.fields.items()
+    }
     assert loaded.undeclared_runtime_columns == frozenset({"_analysis_weight"})
 
 
