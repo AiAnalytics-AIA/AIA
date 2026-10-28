@@ -95,13 +95,16 @@ def test_knowledge_lineage_is_the_recorded_datasets_else_the_placeholder() -> No
     # CR-4: the union of the items' recorded datasets; the placeholder for each
     # dataset-derived item that records none, which the data owner cleared for the EU Bedrock
     # route alone (Q60, licence_determinations.CLIENT_KNOWLEDGE_DATASET): this route refuses it.
-    from aia_core.domain.knowledge import recorded_datasets
+    from aia_core.domain.knowledge import (
+        UNRECORDED_KNOWLEDGE_LINEAGE,
+        knowledge_lineage,
+        recorded_datasets,
+    )
     from aia_core.domain.licence import LicenceDenied
     from aia_core.domain.licence_determinations import (
         SYNTHETIC_FIXTURE_DATASET,
         recorded_policy,
     )
-    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE, knowledge_lineage
     from aia_core.domain.residency import ProviderRoute
 
     def item(kind: KnowledgeKind, datasets: tuple[str, ...] | None) -> KnowledgeItem:

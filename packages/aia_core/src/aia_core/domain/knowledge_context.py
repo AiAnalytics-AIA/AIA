@@ -19,6 +19,12 @@ entry's item, revision and the revision's SHA-256 -- so a consumer that records 
 exactly the text it read, and the identity does not move when only an item's state since does
 (a newer revision elsewhere is not text this context holds).
 
+Each entry also carries the datasets its chosen revision records (``datasets``, CR-4), the
+lineage the licence gate judges a request by, and :meth:`FrozenKnowledgeContext.lineage` reads
+them through the one rule every request's knowledge is judged by
+(:func:`~.knowledge.knowledge_lineage`). It is the chosen revision's lineage, never the
+item's current one: a superseded entry sends the older text, so it declares the older lineage.
+
 Formal eligibility for a computational use stays with the population and evidence rules. A
 selection is a person's statement that the text is context for this study, nothing more.
 
@@ -34,9 +40,16 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .knowledge import KnowledgeAuthor, KnowledgeKind, RevisionEvidence, revision_sha256
+from .knowledge import (
+    KnowledgeAuthor,
+    KnowledgeKind,
+    RevisionEvidence,
+    knowledge_lineage,
+    revision_sha256,
+)
+from .licence import DataLineage
 
 __all__ = [
     "CONTEXT_VERSION",
@@ -51,7 +64,7 @@ __all__ = [
 ]
 
 #: The frozen context's shape; part of its hash, so a change of shape is a new identity.
-CONTEXT_VERSION = "knowledge-context-v1"
+CONTEXT_VERSION = "knowledge-context-v2"
 
 
 class StaleKnowledgeSelection(Exception):
@@ -118,6 +131,22 @@ class FrozenKnowledgeEntry(BaseModel):
     state: ContextEntryState
     #: The item's revision when frozen: equal to ``revision`` unless ``SUPERSEDED``.
     current_revision: int
+    #: The datasets the chosen revision's provenance records (``recorded_datasets``), sorted;
+    #: ``None`` when it records none, which is unrecorded, never "derived from no dataset".
+    #: Hashed with the entry, so :meth:`FrozenKnowledgeContext.verify` refuses a stored copy
+    #: whose lineage was changed: it is what the licence gate judges.
+    datasets: tuple[str, ...] | None = None
+
+    @field_validator("datasets")
+    @classmethod
+    def _one_spelling(cls, value: tuple[str, ...] | None) -> tuple[str, ...] | None:
+        """``recorded_datasets``' one spelling: sorted and distinct; an empty tuple is refused,
+        as unrecorded is ``None`` alone, and so is a blank name."""
+        if value is None:
+            return None
+        if not value or any(not d.strip() for d in value):
+            raise ValueError("datasets is None when unrecorded, else nonempty names")
+        return tuple(sorted(set(value)))
 
 
 class OmittedKnowledge(BaseModel):
@@ -142,7 +171,8 @@ class FrozenKnowledgeContext(BaseModel):
     entries: tuple[FrozenKnowledgeEntry, ...] = ()
     omitted: tuple[OmittedKnowledge, ...] = ()
     #: :func:`context_sha256` of what is read: the version, study, client and each entry's
-    #: item, revision and SHA-256. State and omissions are reported beside it, not hashed.
+    #: item, revision, SHA-256 and lineage. State and omissions are reported beside it, not
+    #: hashed.
     sha256: str
 
     @classmethod
@@ -167,6 +197,18 @@ class FrozenKnowledgeContext(BaseModel):
             entries=ordered,
             omitted=left_out,
             sha256=context_sha256(study_id=study_id, client_id=client_id, entries=ordered),
+        )
+
+    def lineage(self) -> DataLineage:
+        """The licence lineage of the knowledge this context gives a request: each entry's
+        recorded datasets, and the unrecorded placeholder for a dataset-derived entry that
+        records none, by :func:`~.knowledge.knowledge_lineage`'s rule."""
+        return knowledge_lineage(
+            [
+                {"kind": e.kind.value}
+                | ({"datasets": list(e.datasets)} if e.datasets is not None else {})
+                for e in self.entries
+            ]
         )
 
     def verify(self) -> bool:
@@ -195,16 +237,22 @@ def context_sha256(
     version: str = CONTEXT_VERSION,
 ) -> str:
     """The SHA-256 of what a frozen context gives its reader: its version, study, client and
-    each entry's item id, revision and revision SHA-256, in item order, canonical JSON (sorted
-    keys, no spaces, UTF-8). An entry's words are covered through its revision's SHA-256; its
-    state (``SUPERSEDED``) and the omissions are not what is read, so they are not hashed."""
+    each entry's item id, revision, revision SHA-256 and recorded datasets (the lineage it is
+    sent under), in item order, canonical JSON (sorted keys, no spaces, UTF-8). An entry's words
+    are covered through its revision's SHA-256; its state (``SUPERSEDED``) and the omissions are
+    not what is read, so they are not hashed."""
     payload = json.dumps(
         {
             "version": version,
             "study_id": study_id,
             "client_id": client_id,
             "entries": [
-                {"item_id": e.item_id, "revision": e.revision, "sha256": e.sha256}
+                {
+                    "item_id": e.item_id,
+                    "revision": e.revision,
+                    "sha256": e.sha256,
+                    "datasets": list(e.datasets) if e.datasets is not None else None,
+                }
                 for e in sorted(entries, key=lambda e: e.item_id)
             ],
         },

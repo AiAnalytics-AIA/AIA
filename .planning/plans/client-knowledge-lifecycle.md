@@ -20,6 +20,7 @@ chunks:
   - "[x] K3. Implement typed knowledge revisions and decisions against the reviewed base revision"
   - "[ ] K4. Resolve a study's selected, eligible client knowledge into an immutable context snapshot"
   - "[x] K4a. A study's chosen revisions (use in this study) and their frozen context: selection, freeze, hash, migration"
+  - "[x] K4d. Each frozen entry carries its chosen revision's recorded lineage, and the context its licence lineage by knowledge_lineage's rule (the eligibility the licence gate judges; Q60 (a) supersedes D-4's omission)"
   - "[ ] K4b. The study's consumers read the frozen context behind a switch (agent jobs, the Lead, Design and Deep Research), and the selection's API"
   - "[ ] K4c. Web: Použít v této studii on the client's items and in a study; a superseded or omitted entry said where it is read"
   - "[ ] K5. Define and materialize executable dimensions through the existing population authority"
@@ -714,6 +715,42 @@ Three slices:
   lands it is one more `OmittedReason`.
 - F093's silent 200-item truncation ends for a K4b consumer when the switch is on: a selection
   has no window. Under the switch off it stays as it is.
+
+## K4d: the lineage a frozen entry carries (2026-10-28)
+
+K4a deferred licence-lineage omission to D-4 (above). Q60 (a), 2026-10-21, settled it the other way:
+knowledge with an unrecorded dataset lineage reaches `bedrock-eu-primary` alone, judged by the licence
+gate (`licence_determinations.py`, `CLIENT_KNOWLEDGE_DATASET`), so nothing is omitted from the context
+for its lineage. What was missing is the input the gate judges. `for_study` gives each item the
+datasets its **current** revision records (`client_knowledge_repository.py:359-379 @ 28406c46`); a
+frozen entry recorded none, so a K4b consumer would either have declared every dataset-derived entry
+unrecorded, or read the current revision's lineage for a superseded entry whose older text it sends.
+
+- `FrozenKnowledgeEntry.datasets`: `recorded_datasets` of the **chosen** revision's provenance, read
+  from the revision row `freeze_for_study` already reads (no extra query); `None` is unrecorded.
+  It has one spelling: sorted and distinct, an empty tuple or a blank name refused.
+- `FrozenKnowledgeContext.lineage()`: the context's licence lineage through `knowledge_lineage`, the
+  one rule the agent jobs and the Lead declare by; K4b calls it. The rule (`knowledge_lineage`,
+  `DATASET_DERIVED_KINDS`, `UNRECORDED_KNOWLEDGE_LINEAGE`) moves from `domain/research_agents.py` to
+  `domain/knowledge.py`, beside `recorded_datasets`, so the knowledge context does not import the
+  agent contracts; `research_agents` and `research_lead` import it from there.
+- The hash covers each entry's datasets: the lineage is what the gate judges, so `verify()` refuses a
+  stored copy whose lineage was changed. Rebuilt from the database it cannot differ for the same
+  (item, revision), a revision row being append-only. `CONTEXT_VERSION` is `knowledge-context-v2`;
+  no v1 context was ever stored: `freeze_for_study` has no caller outside the tests
+  (`git grep freeze_for_study @ 28406c46`: the repository and `test_knowledge_context.py` alone).
+- The entry's kind, which decides the unrecorded placeholder, is the item's: a revision keeps its
+  item's kind (`client_knowledge_repository.py:1138-1139 @ 28406c46`).
+- No switch, no migration: no model sees anything different until K4b.
+
+Tests (`test_knowledge_context.py`): `test_a_frozen_entry_carries_the_datasets_its_chosen_revision_records`,
+`test_a_superseded_entry_keeps_the_lineage_of_the_revision_chosen_not_the_newer_one`,
+`test_an_unrecorded_lineage_is_none_and_the_context_names_the_placeholder`,
+`test_a_contexts_lineage_is_the_one_the_agent_jobs_would_declare`,
+`test_a_stored_context_whose_lineage_was_changed_does_not_verify`, `test_an_entrys_lineage_has_one_spelling`;
+all failed before the change.
+Not here: Deep Research's `knowledge_access` still names every dataset-derived item unresolved without
+reading its recorded lineage (K4b, or K8 with the "Interní dokument" mark, G64).
 
 ## Findings
 

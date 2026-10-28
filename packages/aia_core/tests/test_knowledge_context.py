@@ -15,7 +15,13 @@ import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from aia_core.domain.knowledge import KnowledgeAuthor, KnowledgeKind, revision_sha256
+from aia_core.domain.knowledge import (
+    UNRECORDED_KNOWLEDGE_LINEAGE,
+    KnowledgeAuthor,
+    KnowledgeKind,
+    knowledge_lineage,
+    revision_sha256,
+)
 from aia_core.domain.knowledge_context import (
     CONTEXT_VERSION,
     ContextEntryState,
@@ -342,3 +348,117 @@ def test_a_choice_changed_while_freezing_does_not_reach_the_freeze(
     assert (entry.revision, entry.title) == (2, "Dealeři: 134")
     assert frozen.omitted == ()
     assert frozen.verify()
+
+
+# ------------------------------------------- the lineage a frozen entry carries (K4d)
+
+
+def _dataset(
+    knowledge: ClientKnowledgeRepository,
+    scope: ClientContext,
+    title: str,
+    datasets: list[str] | None,
+    item_id: str | None = None,
+) -> str:
+    provenance = {"datasets": datasets} if datasets is not None else None
+    added = knowledge.add(
+        scope,
+        kind=KnowledgeKind.DATASET,
+        title=title,
+        provenance=provenance,
+        item_id=item_id,
+    )
+    assert added.item_id is not None
+    return added.item_id
+
+
+def test_a_frozen_entry_carries_the_datasets_its_chosen_revision_records(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """The licence gate judges what the frozen revision derives from, so the context says it."""
+    item_id = _dataset(knowledge, client_scope(scoped), "Návštěvy 2025", ["panel_b", "panel_a"])
+    study = scoped.scope(user="researcher")
+    knowledge.select_for_study(study, item_id=item_id, revision=1)
+    [entry] = knowledge.freeze_for_study(study).entries
+    assert entry.datasets == ("panel_a", "panel_b")
+
+
+def test_a_superseded_entry_keeps_the_lineage_of_the_revision_chosen_not_the_newer_one(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    person = client_scope(scoped)
+    item_id = _dataset(knowledge, person, "Návštěvy 2025", ["panel_a"])
+    study = scoped.scope(user="researcher")
+    knowledge.select_for_study(study, item_id=item_id, revision=1)
+    _dataset(knowledge, person, "Návštěvy 2026", ["panel_c"], item_id=item_id)
+
+    frozen = knowledge.freeze_for_study(study)
+    [entry] = frozen.entries
+    assert entry.state is ContextEntryState.SUPERSEDED
+    assert entry.datasets == ("panel_a",)
+    assert frozen.lineage().datasets == {"panel_a"}
+
+
+def test_an_unrecorded_lineage_is_none_and_the_context_names_the_placeholder(
+    scoped: Any, knowledge: ClientKnowledgeRepository
+) -> None:
+    """Unknown is never "derived from no dataset" (§8): the gate keeps judging it (Q60)."""
+    person = client_scope(scoped)
+    dataset_id = _dataset(knowledge, person, "Návštěvy bez původu", None)
+    fact_id = _fact(knowledge, person, "Dealeři: 120")
+    study = scoped.scope(user="researcher")
+    knowledge.select_for_study(study, item_id=dataset_id, revision=1)
+    knowledge.select_for_study(study, item_id=fact_id, revision=1)
+
+    frozen = knowledge.freeze_for_study(study)
+    assert {e.item_id: e.datasets for e in frozen.entries} == {dataset_id: None, fact_id: None}
+    assert frozen.lineage().datasets == {UNRECORDED_KNOWLEDGE_LINEAGE}
+
+
+def test_a_contexts_lineage_is_the_one_the_agent_jobs_would_declare() -> None:
+    """One rule for the lineage of knowledge sent: the frozen context reads through it."""
+    entries = [
+        _entry("a", "1" * 64, ContextEntryState.CURRENT).model_copy(
+            update={"kind": KnowledgeKind.DATASET, "datasets": ("panel_a",)}
+        ),
+        _entry("b", "2" * 64, ContextEntryState.CURRENT).model_copy(
+            update={"kind": KnowledgeKind.FINDING}
+        ),
+        _entry("c", "3" * 64, ContextEntryState.CURRENT),
+    ]
+    frozen = FrozenKnowledgeContext.freeze(
+        study_id="study", client_id="client", entries=entries, omitted=()
+    )
+    as_sent = [
+        {"kind": e.kind.value, **({"datasets": list(e.datasets)} if e.datasets is not None else {})}
+        for e in entries
+    ]
+    assert frozen.lineage() == knowledge_lineage(as_sent)
+    assert frozen.lineage().datasets == {"panel_a", UNRECORDED_KNOWLEDGE_LINEAGE}
+    empty = FrozenKnowledgeContext.freeze(study_id="s", client_id="c", entries=(), omitted=())
+    assert empty.lineage() == knowledge_lineage([])
+
+
+def test_a_stored_context_whose_lineage_was_changed_does_not_verify() -> None:
+    """The lineage is what the licence gate judges, so a stored copy cannot change it unseen."""
+    entry = _entry("a", revision_sha256("t", "", {}), ContextEntryState.CURRENT).model_copy(
+        update={"kind": KnowledgeKind.DATASET}
+    )
+    frozen = FrozenKnowledgeContext.freeze(
+        study_id="study", client_id="client", entries=[entry], omitted=()
+    )
+    assert frozen.verify()
+    stored = frozen.model_dump(mode="json")
+    stored["entries"][0]["datasets"] = ["panel_a"]
+    assert not FrozenKnowledgeContext.model_validate(stored).verify()
+
+
+def test_an_entrys_lineage_has_one_spelling() -> None:
+    entry = _entry("a", "1" * 64, ContextEntryState.CURRENT)
+    as_read = FrozenKnowledgeEntry.model_validate(
+        entry.model_dump() | {"datasets": ("panel_b", "panel_a", "panel_b")}
+    )
+    assert as_read.datasets == ("panel_a", "panel_b")
+    for unrecorded_twice in ((), ("",), (" ",)):
+        with pytest.raises(ValueError):
+            FrozenKnowledgeEntry.model_validate(entry.model_dump() | {"datasets": unrecorded_twice})
