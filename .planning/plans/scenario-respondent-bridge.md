@@ -83,7 +83,11 @@ is what keeps them apart (`ARCHITECTURE.md` A6: one definition, checked by code)
 
 **Keep Sociomap's independence assumption intact.** Sociomap's confidence gates (Kish effective
 n, the 95% Fisher interval, `n_min=30`) assume each respondent's relation judgment is an
-independent observation (`sociomapa-methodology-decision.md` v3; `hmodel.md` §2). A
+independent observation: the Fisher-z interval is `tanh(atanh(r) ± z / sqrt(n - 3))` over the
+pair's raters and Kish's n is computed from their weights alone
+(`domain/sociomap/relations.py:438-473`, `kish_effective_n` at `:540 @ 8d9d1299`). No
+architecture document states the assumption in words; the code that relies on it is the
+anchor. A
 scenario-conditioned respondent answering under one `WorldModel` is still answering alone, with
 no visibility into any other respondent's answer or any other world's outcome — independence
 within a world is preserved, so a Sociomap run *within one world* is statistically identical in
@@ -121,8 +125,12 @@ second modelled-evidence origin, structurally distinct from `MODELLED_AI_PANEL`;
 scenario respondent's answer may be used for (per-world Sociomap, ensembled forecast ranges,
 never a measured or chunk-7-validated claim); the write-once truth/scoring path as the only
 route to a lifted disclosure; the explicit non-goal of agent interaction. Covers the interaction
-with D6 (Sociomap `INTERNAL_ONLY` while still true) and with ADR 0024 (this ADR does not amend
-it; it adds beside it).
+with the Sociomap register (`domain/sociomap_register.py @ 8d9d1299`): D6's global switch is
+gone, a map's status is the register's for the exact method that computed it, and
+`aia-sociomap-3` and `aia-sociomap-5` are approved for reports (`:54`, `:70`). Whether a map
+computed over scenario respondents may carry that approval, or reads `INTERNAL_ONLY` whatever
+its method, is this ADR's decision, not a consequence of the register. Also covers ADR 0024
+(this ADR does not amend it; it adds beside it).
 
 **2. The bridge contract.** `domain/simulation/respondent_bridge.py` (pure, stdlib + Pydantic,
 same layer as `domain/simulation/*` and `domain/panel_persona.py`):
@@ -210,8 +218,11 @@ than one fingerprint is `sociomap_mixed_worlds_refused`, none recorded is
 
 **7. Cost and workflow wiring.** A `SIMULATION` workflow's respondent-run step reserves budget
 at `n (respondents) x worlds x variants x blocks` requests, through the same `reserve_budget`
-path research fieldwork uses; it parks in `AWAITING_BUDGET` under the same rules
-(`CLAUDE.md` §10, `workflow_repository.py:1017-1059`), never a silent partial run across worlds
+path research fieldwork uses (`workflow_repository.py:1244 @ 8d9d1299`, which raises
+`BudgetExceeded` rather than proceed); it parks in `AWAITING_BUDGET` under the same rules (the
+worker records the failure as `BUDGET_EXCEEDED`, `apps/worker/src/aia_worker/worker.py:389-393`,
+and recovery parks it without spending an attempt, `domain/workflow.py:579-584 @ 8d9d1299`),
+never a silent partial run across worlds
 (mirrors the ablation budget-exhaustion refusal `panel-grounded-respondents.md` §7 already
 documents for arms).
 
@@ -266,8 +277,12 @@ first answered in 40c4ea04, and a reading of the cited code):
   `unknown_field`. Chunk 2 now declares the `FS_*` fields with a fixed policy entry, on the
   materialized-dimension precedent.
 
-Still open from that reading (smaller, not yet corrected): chunk 1 calls the Sociomap
-`INTERNAL_ONLY` under D6, though `aia-sociomap-3` and `-5` are approved in the register; chunk 7
-anchors budget parking at `workflow_repository.py:1017-1059`, which is the step claim query
-(`reserve_budget` is at `:1244`) and cites `CLAUDE.md` §10 for the parking rules; the Approach
-cites `hmodel.md`, whose file is `docs/architecture/sociomapping-hmodel.md`.
+- Chunk 1 called the Sociomap `INTERNAL_ONLY` under D6; D6's switch is gone and the register
+  approves `aia-sociomap-3` and `-5`. Chunk 1 now names the register and leaves scenario maps'
+  status to the ADR.
+- Chunk 7 anchored budget parking at `workflow_repository.py:1017-1059`, the step claim query,
+  and cited `CLAUDE.md` §10, the done-checklist. It now anchors `reserve_budget`, the worker's
+  `BUDGET_EXCEEDED` and the recovery rule that parks it.
+- The Approach cited `hmodel.md` §2 (the file is `sociomapping-hmodel.md`, and §2 is the
+  reported accuracy) and the methodology decision v3 for the independence assumption; neither
+  states it. It now anchors the Fisher interval and Kish's n in `sociomap/relations.py`.
