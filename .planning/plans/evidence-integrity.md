@@ -6,7 +6,7 @@ chunks:
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[x] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
-  - "[ ] 5b. One joint-certificate authority: the claim gate and admission take the population's JointStatus, and layer_check's companions.py exemption is dropped (OI-24, the joint half)"
+  - "[x] 5b. One joint-certificate authority: the claim gate and admission take the population's JointStatus, and layer_check's companions.py exemption is dropped (OI-24, the joint half)"
   - "[ ] 5c. A client MODELLED claim on a field whose phrase permits none (HISTORICAL_OR_EXPLORATORY, persona/context with provenance, …) refused at the evidence gate, as the contract's CLIENT_MODELLED_CLAIM refuses it; wave left for the methodology owner"
   - "[x] 6. Results serves admitted claims: an API over the evidence table with suppression decided server-side (the screen moves onto it in artifact-results RES2)"
   - "[ ] 7. Wire the sealed-bundle external-context producer into module preparation and the Lead; preserve the existing prompt/fingerprint context field and context-not-evidence boundary"
@@ -164,6 +164,42 @@ named when chunk 1 starts.** Chunks 1, 7 and 9a: the Analýza screen session (20
    2026-10-28). The claim gate and admission take the population's `JointStatus` in place of
    `evidence/joint_status.py`'s; `layer_check`'s `companions.py` exemption is dropped. Touches the
    analysis, report tables and the population loader.
+   *Landed (2026-10-28; the product owner in the session: "Go ahead with 5b as proposed").*
+   - Proven first: the same certificate bytes were judged twice by different checks. The loader
+     (`population/companions.py` `evaluate_joint_certificate`) required a known `status` and ignored
+     the prediction status, `production_panel`, `runtime_identity_contract` and empty block names;
+     the claim gate (`evidence/joint_status.py` `load_joint_status`, over the copy a panel dataset
+     records, `analysis_results._joint_certificate`) required those and ignored `status`. A
+     certificate one refused, the other certified.
+   - One evaluator: `evaluate_joint_certificate`, every check either side made, so nothing either
+     refused is certified; `panel_sha256` measured by the caller, and one not measured refuses
+     (`NOT_THIS_PANEL`). One type: the population's `JointStatus`, now issued only by the evaluator
+     and `fallback` (the evidence type's issuance check) and carrying its `fingerprint()`.
+     `load_joint_status`, `JointDegradation`, `StructureStatus` and `PredictionValidationStatus`
+     are gone; `native_evidence` asks the one evaluator with the panel SHA-256 its dataset recorded,
+     and a run with none is the `MISSING` fallback.
+   - The stored vocabulary is the registry's: `JointState`, under its check constraint
+     (`run_population_joint_state_known`, `population_companion_joint_state_known`), so no migration.
+     The claim gate's "malformed" reads `UNPARSEABLE` (the loader's word for it), its hash mismatch
+     `NOT_THIS_PANEL`; an analysis record's `joint_degradation` stores those words from now on.
+   - Stored identities kept: the `MISSING` status and a certified one fingerprint exactly as the claim
+     gate's did (`test_a_stored_module_keeps_its_certificate_identity`, pinned to the values on
+     develop @ 1f633e5b). A module judged under another degraded certificate would read stale under
+     the new word; no stored run has one (native runs are `MISSING`, develop's certificate certified).
+   - Both joint-claim rule sets stay, each over the one status: the loader's `JointStatus.decide`
+     (persona construction, sampling) and the claim gate's `evaluate_joint_structure`. They answer
+     different questions and disagree (a core-only client-facing joint); merging them is the
+     methodology owner's (Findings F3).
+   - `layer_check`: `JointStatus(` only in `companions.py`, the exemption gone; the apps rule names
+     `evaluate_joint_certificate` and `from_population_policy` beside the other authority builders.
+   - Tests (each failed on develop @ 1f633e5b, passes here): `test_evidence_joint_status.py` "the
+     loader and the claim gate read one status", "a certificate either side refused refuses a client
+     claim" (four), "a permissive status cannot be built by hand", the evaluator's new refusals
+     (prediction status, `production_panel`, an empty block name); "a stored module keeps its
+     certificate identity", "a byte order mark is read as the certificate". The deleted loader's cases
+     are kept against the one evaluator, by the stored word. Test certificates carry what the real one
+     does: `status` in the claim gate's synthetic certificate, `production_panel` in the loader's
+     and in M03's rebuild (`m03["constants"]["production_panel"]`).
 5c. **A client modelled claim the contract permits none for** (split from 5 by the coordinator, 2026-10-28).
    The evidence gate refuses a client-facing modelled claim on a field whose `recommended_use` permits no
    client claim, as `population.policy.FieldPolicy.decide(…, CLIENT_MODELLED_CLAIM)` does. Its wave is the
@@ -190,6 +226,17 @@ fields take their eligibility from the population contract (`FieldPolicyBook.fro
 115 client-measurable v17 fields); the reference's derivation (287) is the parity reading only".
 `open-items.md` OI-24: the field-policy half closed by evidence-integrity#5; the joint-certificate half
 open, owned by #5b.
+
+Chunk 5b: `CLAUDE.md`'s map, `domain/evidence/joint_status.py`: "the claim gate's joint units and
+`evaluate_joint_structure`, over the population's `JointStatus`" (no longer "certificate, hash-bound");
+`domain/population/companions.py`: "the one fail-closed joint certificate evaluator
+(`evaluate_joint_certificate`), for the loader and the claim gate; `JointStatus` issued only there";
+`ARCHITECTURE.md`'s evidence capability paragraph: "only `evaluate_joint_certificate` issues a
+`JointStatus`" in place of `load_joint_status` (`ARCHITECTURE.md:280`). `docs/architecture/analysis.md:48`:
+"a native run's status is the `MISSING` fallback" in place of "`load_joint_status(None)` answers
+`MISSING`"; `docs/architecture/research-journey.md` J3's "`load_joint_status` is bound to the measured
+panel's hash" reads "`evaluate_joint_certificate`". `open-items.md` OI-24 closed by evidence-integrity#5
+and #5b; Findings F3 to the register.
 
 ## Added by the master plan (2026-10-19)
 
@@ -375,3 +422,16 @@ draft report.
     builds only the instrument book.
   - Test: `test_evidence_claims.py` "client facing disclosures" (the internal surface's
     `NOT_MEASURED_EVIDENCE`).
+- **F3. Two joint-claim rules over one certificate** (evidence-integrity#5b, 2026-10-28; for the
+  methodology owner, Aram).
+  - Anchor: `domain/population/companions.py` `JointStatus.decide` (read through
+    `RuntimePopulation.decide_joint` by `panel_persona.py` and `population/sampling.py`) and
+    `domain/evidence/joint_status.py` `evaluate_joint_structure` (the claim gate).
+  - Consequence: the loader refuses every client-facing joint of two fields unless
+    `client_joint_outputs_allowed` (false at v17), core-only included; the claim gate allows a
+    core-only joint claim client-facing under `core_same_person_joint` and
+    `descriptive_core_outputs_allowed` (both true at v17). Today the loader asks only internally
+    (`client_facing=False`), so no output differs; the rule a future client-facing caller meets
+    depends on which it asks.
+  - Kept as two (5b does not change what may be claimed jointly). Merging them is a methodology
+    decision.

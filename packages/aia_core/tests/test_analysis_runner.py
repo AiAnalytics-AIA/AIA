@@ -177,13 +177,14 @@ def test_a_revoked_certificate_permission_reruns_completed_modules(
     inputs: AnalysisInputs, certificate_bytes: Any
 ) -> None:
     """Same panel, narrower certificate: a result the new one would refuse is not reused."""
-    from aia_core.domain.evidence import load_joint_status
+    from aia_core.domain.population import evaluate_joint_certificate
 
-    narrower = load_joint_status(
+    panel = inputs.joint_status.certified_panel_sha256
+    narrower = evaluate_joint_certificate(
         certificate_bytes(matched_block_outputs_allowed=False, matched_blocks=[]),
-        measured_panel_sha256=inputs.joint_status.panel_sha256,
+        panel_sha256=panel,
     )
-    assert narrower.certified and narrower.panel_sha256 == inputs.joint_status.panel_sha256
+    assert narrower.certified and narrower.certified_panel_sha256 == panel
     changed = AnalysisInputs(**{**_fields(inputs), "joint_status": narrower})
     for module_id in AnalysisModuleId:
         assert input_fingerprint(module_id, changed) != input_fingerprint(module_id, inputs)

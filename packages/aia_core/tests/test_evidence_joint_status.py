@@ -1,4 +1,4 @@
-"""CORE_JOINT_STATUS: hash-bound loading, explicit degradation, joint-unit decisions."""
+"""CORE_JOINT_STATUS: one hash-bound evaluator, explicit degradation, joint-unit decisions."""
 
 from __future__ import annotations
 
@@ -6,30 +6,27 @@ from typing import Any
 
 import pytest
 
+from aia_core.domain import evidence, population
 from aia_core.domain.evidence import (
     CORE_UNIT,
-    JointDegradation,
     JointStatus,
     JointUnitKind,
-    PredictionValidationStatus,
-    StructureStatus,
     ViolationCode,
     evaluate_joint_structure,
     joint_unit,
     joint_unit_kind,
-    load_joint_status,
 )
+from aia_core.domain.population import JointState, evaluate_joint_certificate
 
 PANEL = "b" * 64
 
 
 def test_certificate_bound_to_the_loaded_panel_is_honoured(certificate_bytes: Any) -> None:
-    status = load_joint_status(certificate_bytes(), measured_panel_sha256=PANEL)
-    assert status.certified and status.degradation is None
-    assert status.structure_status is StructureStatus.QC_PASSED
-    assert (
-        status.prediction_validation_status is PredictionValidationStatus.EXTERNAL_HOLDOUT_PENDING
-    )
+    status = evaluate_joint_certificate(certificate_bytes(), panel_sha256=PANEL)
+    assert status.certified and status.state is JointState.CERTIFIED
+    assert status.structure_status == "QC_PASSED"
+    assert status.prediction_validation_status == "EXTERNAL_HOLDOUT_PENDING"
+    assert status.production_panel == "synthetic_panel.csv.gz"
     assert not status.cross_block_same_person_joint
     assert not status.client_joint_outputs_allowed
     assert not status.cross_block_joint_claims_allowed
@@ -38,54 +35,51 @@ def test_certificate_bound_to_the_loaded_panel_is_honoured(certificate_bytes: An
 
 
 @pytest.mark.parametrize(
-    ("certificate", "measured", "reason"),
+    ("certificate", "reason"),
     [
-        (None, PANEL, JointDegradation.MISSING),
-        (b"{not json", PANEL, JointDegradation.UNPARSEABLE),
-        (b"\xff\xfe", PANEL, JointDegradation.UNPARSEABLE),
-        (b"[1, 2]", PANEL, JointDegradation.MALFORMED),
+        (None, JointState.MISSING),
+        (b"{not json", JointState.UNPARSEABLE),
+        (b"\xff\xfe", JointState.UNPARSEABLE),
+        (b"[1, 2]", JointState.UNPARSEABLE),
     ],
 )
-def test_unreadable_certificates_degrade(
-    certificate: bytes | None, measured: str, reason: JointDegradation
-) -> None:
-    status = load_joint_status(certificate, measured_panel_sha256=measured)
-    assert status.degradation is reason and not status.certified
+def test_unreadable_certificates_degrade(certificate: bytes | None, reason: JointState) -> None:
+    status = evaluate_joint_certificate(certificate, panel_sha256=PANEL)
+    assert status.state is reason and not status.certified
 
 
 @pytest.mark.parametrize(
     ("overrides", "reason"),
     [
-        ({"structure_status": "QC_PENDING"}, JointDegradation.UNKNOWN_STATUS),
-        ({"structure_status": None}, JointDegradation.UNKNOWN_STATUS),
-        ({"prediction_validation_status": "HOLDOUT_VALIDATED"}, JointDegradation.UNKNOWN_STATUS),
-        ({"client_joint_outputs_allowed": "false"}, JointDegradation.MALFORMED),
-        ({"cross_block_same_person_joint": 0}, JointDegradation.MALFORMED),
-        ({"descriptive_core_outputs_allowed": None}, JointDegradation.MALFORMED),
-        ({"panel_sha256": "abc"}, JointDegradation.MALFORMED),
-        ({"production_panel": ""}, JointDegradation.MALFORMED),
-        ({"matched_blocks": "politics"}, JointDegradation.MALFORMED),
-        ({"matched_blocks": ["politics", ""]}, JointDegradation.MALFORMED),
-        ({"runtime_identity_contract": 7}, JointDegradation.MALFORMED),
+        # Checked by the claim gate's own loader before the two were one (evidence-integrity 5b).
+        ({"structure_status": "QC_PENDING"}, JointState.UNKNOWN_STATUS),
+        ({"structure_status": None}, JointState.UNKNOWN_STATUS),
+        ({"prediction_validation_status": "HOLDOUT_VALIDATED"}, JointState.UNKNOWN_STATUS),
+        ({"prediction_validation_status": None}, JointState.UNKNOWN_STATUS),
+        ({"client_joint_outputs_allowed": "false"}, JointState.UNPARSEABLE),
+        ({"cross_block_same_person_joint": 0}, JointState.UNPARSEABLE),
+        ({"descriptive_core_outputs_allowed": None}, JointState.UNPARSEABLE),
+        ({"panel_sha256": "abc"}, JointState.UNPARSEABLE),
+        ({"production_panel": ""}, JointState.UNPARSEABLE),
+        ({"production_panel": None}, JointState.UNPARSEABLE),
+        ({"matched_blocks": "politics"}, JointState.UNPARSEABLE),
+        ({"matched_blocks": ["politics", ""]}, JointState.UNPARSEABLE),
+        ({"runtime_identity_contract": 7}, JointState.UNPARSEABLE),
+        # Checked by the population loader's alone.
+        ({"status": "SOMETHING_NEWER"}, JointState.UNKNOWN_STATUS),
+        ({"status": None}, JointState.UNKNOWN_STATUS),
     ],
 )
 def test_malformed_or_unknown_certificates_degrade(
-    certificate_bytes: Any, overrides: dict[str, Any], reason: JointDegradation
+    certificate_bytes: Any, overrides: dict[str, Any], reason: JointState
 ) -> None:
-    status = load_joint_status(certificate_bytes(**overrides), measured_panel_sha256=PANEL)
-    assert status.degradation is reason
+    status = evaluate_joint_certificate(certificate_bytes(**overrides), panel_sha256=PANEL)
+    assert status.state is reason
 
 
 def test_panel_hash_mismatch_degrades(certificate_bytes: Any) -> None:
-    status = load_joint_status(certificate_bytes(), measured_panel_sha256="c" * 64)
-    assert status.degradation is JointDegradation.PANEL_HASH_MISMATCH
-
-
-def test_unmeasured_panel_degrades_rather_than_trusting_the_certificate(
-    certificate_bytes: Any,
-) -> None:
-    status = load_joint_status(certificate_bytes(), measured_panel_sha256=None)
-    assert status.degradation is JointDegradation.PANEL_HASH_UNVERIFIED
+    status = evaluate_joint_certificate(certificate_bytes(), panel_sha256="c" * 64)
+    assert status.state is JointState.NOT_THIS_PANEL
 
 
 def test_degraded_status_permits_nothing(degraded_joint_status: JointStatus) -> None:
@@ -105,15 +99,68 @@ def test_degraded_status_permits_nothing(degraded_joint_status: JointStatus) -> 
 
 
 def test_a_permissive_status_cannot_be_built_by_hand(joint_status: JointStatus) -> None:
-    with pytest.raises(ValueError, match="issued only by load_joint_status"):
-        JointStatus(
-            **{
-                name: getattr(joint_status, name)
-                for name in JointStatus.__dataclass_fields__
-                if name != "_issuer"
-            },
-            _issuer=object(),
-        )
+    fields = {
+        name: getattr(joint_status, name)
+        for name in JointStatus.__dataclass_fields__
+        if name != "_issuer"
+    }
+    with pytest.raises(ValueError, match="issued only by evaluate_joint_certificate"):
+        JointStatus(**fields)
+    with pytest.raises(ValueError, match="issued only by evaluate_joint_certificate"):
+        JointStatus(**fields, _issuer=object())
+
+
+# --- one evaluator for the loader and the claim gate (OI-24, evidence-integrity 5b) -----
+
+
+def test_the_loader_and_the_claim_gate_read_one_status() -> None:
+    assert evidence.JointStatus is population.JointStatus
+    assert not hasattr(evidence, "load_joint_status")
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        # Each certified by one side and refused by the other before they were one.
+        {"status": "SOMETHING_NEWER"},
+        {"prediction_validation_status": "HOLDOUT_VALIDATED"},
+        {"production_panel": None},
+        {"matched_blocks": ["politics", ""]},
+    ],
+)
+def test_a_certificate_either_side_refused_refuses_a_client_claim(
+    certificate_bytes: Any, field_book: Any, overrides: dict[str, Any]
+) -> None:
+    status = evaluate_joint_certificate(certificate_bytes(**overrides), panel_sha256=PANEL)
+    decision = evaluate_joint_structure(
+        [field_book.get("vek")], status, joint=False, measured=True, client_facing=True
+    )
+    assert decision.codes == {ViolationCode.JOINT_CERTIFICATE_DEGRADED}
+
+
+#: The fingerprints the claim gate's own status had for these two before the two were one.
+#: Every stored analysis module's input fingerprint carries one, so they must not move.
+MISSING_FINGERPRINT = "f535ed2ecbbd90fc4dfc729f1861e18ab1b1618003f366a05c8edc57f1b7eb2e"
+CERTIFIED_FINGERPRINT = "0d874b236e1f5aadb6ec5e584aa81ec73f4fef1a316c3cc81543079ae4787802"
+
+
+def test_a_stored_module_keeps_its_certificate_identity(certificate_bytes: Any) -> None:
+    missing = evaluate_joint_certificate(None, panel_sha256=PANEL)
+    assert missing.fingerprint() == MISSING_FINGERPRINT
+    certified = evaluate_joint_certificate(certificate_bytes(), panel_sha256=PANEL)
+    assert certified.fingerprint() == CERTIFIED_FINGERPRINT
+
+
+def test_a_certificate_permitting_more_has_another_identity(certificate_bytes: Any) -> None:
+    wider = evaluate_joint_certificate(
+        certificate_bytes(client_joint_outputs_allowed=True), panel_sha256=PANEL
+    )
+    assert wider.certified and wider.fingerprint() != CERTIFIED_FINGERPRINT
+
+
+def test_a_byte_order_mark_is_read_as_the_certificate(certificate_bytes: Any) -> None:
+    status = evaluate_joint_certificate(b"\xef\xbb\xbf" + certificate_bytes(), panel_sha256=PANEL)
+    assert status.certified
 
 
 # --- joint units --------------------------------------------------------------------
@@ -195,24 +242,24 @@ def test_degraded_certificate_refuses_internal_core_joints(
 
 
 def test_certificate_flags_are_read_not_assumed(field_book: Any, certificate_bytes: Any) -> None:
-    no_core = load_joint_status(
-        certificate_bytes(descriptive_core_outputs_allowed=False), measured_panel_sha256=PANEL
+    no_core = evaluate_joint_certificate(
+        certificate_bytes(descriptive_core_outputs_allowed=False), panel_sha256=PANEL
     )
     assert _decide(field_book, no_core, "vek", joint=False).codes == {
         ViolationCode.CORE_OUTPUTS_NOT_CERTIFIED
     }
-    no_matched = load_joint_status(
-        certificate_bytes(matched_block_outputs_allowed=False), measured_panel_sha256=PANEL
+    no_matched = evaluate_joint_certificate(
+        certificate_bytes(matched_block_outputs_allowed=False), panel_sha256=PANEL
     )
     assert _decide(field_book, no_matched, "vote_2021", joint=False).codes == {
         ViolationCode.MATCHED_BLOCK_NOT_CERTIFIED
     }
-    open_joint = load_joint_status(
+    open_joint = evaluate_joint_certificate(
         certificate_bytes(
             cross_block_joint_claims_allowed=True,
             client_joint_outputs_allowed=True,
         ),
-        measured_panel_sha256=PANEL,
+        panel_sha256=PANEL,
     )
     # Even a certificate allowing cross-block claims does not make them same-person truth.
     assert _decide(field_book, open_joint, "vote_2021", "wellbeing_index").codes == {
@@ -222,12 +269,12 @@ def test_certificate_flags_are_read_not_assumed(field_book: Any, certificate_byt
 
 
 def test_fingerprint_identifies_everything_the_certificate_permits(certificate_bytes: Any) -> None:
-    base = load_joint_status(certificate_bytes(), measured_panel_sha256=PANEL)
-    again = load_joint_status(certificate_bytes(), measured_panel_sha256=PANEL)
+    base = evaluate_joint_certificate(certificate_bytes(), panel_sha256=PANEL)
+    again = evaluate_joint_certificate(certificate_bytes(), panel_sha256=PANEL)
     assert base.fingerprint() == again.fingerprint() and len(base.fingerprint()) == 64
-    reordered = load_joint_status(
+    reordered = evaluate_joint_certificate(
         certificate_bytes(matched_blocks=sorted(base.matched_blocks, reverse=True)),
-        measured_panel_sha256=PANEL,
+        panel_sha256=PANEL,
     )
     assert reordered.fingerprint() == base.fingerprint()
     for change in (
@@ -236,12 +283,12 @@ def test_fingerprint_identifies_everything_the_certificate_permits(certificate_b
         {"matched_blocks": ["politics"]},
         {"runtime_identity_contract": "a different contract"},
     ):
-        narrower = load_joint_status(certificate_bytes(**change), measured_panel_sha256=PANEL)
-        assert narrower.panel_sha256 == base.panel_sha256
+        narrower = evaluate_joint_certificate(certificate_bytes(**change), panel_sha256=PANEL)
+        assert narrower.certified_panel_sha256 == base.certified_panel_sha256
         assert narrower.fingerprint() != base.fingerprint(), change
 
 
 def test_degraded_fingerprints_differ_by_reason(certificate_bytes: Any) -> None:
-    missing = load_joint_status(None, measured_panel_sha256=PANEL)
-    moved = load_joint_status(certificate_bytes(), measured_panel_sha256="c" * 64)
+    missing = evaluate_joint_certificate(None, panel_sha256=PANEL)
+    moved = evaluate_joint_certificate(certificate_bytes(), panel_sha256="c" * 64)
     assert missing.fingerprint() != moved.fingerprint()
