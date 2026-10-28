@@ -4179,8 +4179,9 @@ def _agent_with_state(
 
 
 def stale_proposal(exc: StaleProposal) -> HTTPException:
-    """409 ``stale_proposal``: why (``design_moved``, ``unknown_baseline``, ``items_changed``,
-    ``lineage_changed``) and, for an edit, each item it touched that the proposal changes."""
+    """409 ``stale_proposal``: why (``design_moved``: not the proposal's own design;
+    ``unknown_baseline``, ``items_changed``, ``lineage_changed``) and, for an edit, each item it
+    touched that the proposal changes, with the fields (``conflicting_fields``)."""
     return HTTPException(
         status_code=409,
         detail={"code": "stale_proposal", "message": str(exc), "details": exc.details()},

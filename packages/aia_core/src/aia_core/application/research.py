@@ -2074,15 +2074,31 @@ class ResearchAgentJobs:
         transaction (:func:`~.proposal_accept.accept_into_working_copy`): the stale rule, the
         merge into the working copy at ``expected_workspace_revision``, the working revision, the
         Design Revision naming it, and the approval-ledger row naming both. Refused as
-        :class:`~.proposal_accept.StaleProposal` when the head moved, the baseline is unknown or
-        an item it changes was edited since.
+        :class:`~.proposal_accept.StaleProposal` when ``expected_revision_id`` is not the job's
+        own design, the baseline is unknown or a field it changes was edited since (D-06); a newer
+        Design Revision alone stales nothing. An accepted proposal is refused
+        (``proposal_already_accepted``), and so is one a rebuild replaces (``proposal_superseded``).
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
+        # The Study row lock the accept writes under: the decision read here is the one it
+        # writes beside, never one a concurrent accept is about to change.
+        StudyDesignRepository(self.session, self.scope).lock()
         run = self.get(run_id)
         if expected_revision_id != run["metadata"]["design_revision_id"]:
             raise StaleProposal("proposal baseline does not match", why="design_moved")
+        # A newer Design Revision no longer stales a proposal (WCE5), so what it was decided
+        # stands on its own: an accepted proposal is in the design, a rebuilt one is replaced.
+        state = self.proposal_states([run])[run_id]
+        if state is ProposalState.ACCEPTED:
+            raise DesignRejected(
+                "an accepted proposal is in the design", reason="proposal_already_accepted"
+            )
+        if state is ProposalState.SUPERSEDED:
+            raise DesignRejected(
+                "a rebuild of this proposal replaces it", reason="proposal_superseded"
+            )
         action = ResearchAction(run["metadata"]["action"])
         if action not in DESIGN_ACTIONS:
             raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")
