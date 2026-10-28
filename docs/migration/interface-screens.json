@@ -117,7 +117,7 @@
    "status": "REBUILDING",
    "react_path": "/app/clients/<client>/research/<id>/run",
    "unit_routes": [],
-   "notes": "The AIA run stage (ADR 0016): the design the person sees is submitted as a Design Revision, AIA's structural readiness checks are shown, and one run starts over that revision through /api/v1/studies/<study>/research/runs. Not the classic stage: its single AI check and the 18.6.6 technical preflight are not carried; they stay in /classic.",
+   "notes": "The AIA run stage (ADR 0016): the design the person sees is submitted as a Design Revision, AIA's readiness and question outlook are shown, the persona source is chosen, and one run starts over that revision through /api/v1/studies/<study>/research/runs. The classic stage's single AI check and the 18.6.6 technical preflight are not carried.",
    "fixture": "persona"
   },
   {
@@ -143,7 +143,7 @@
    "status": "REBUILDING",
    "react_path": "/app/clients/<client>/research/<id>/results",
    "unit_routes": [],
-   "notes": "The AIA results stage (ADR 0016): the run's aggregate (suppression and intervals) and its INTERNAL_ONLY Sociomap, each with provenance; fictional data is labelled on every view. The 18.6.6 analytical report stays in /classic (the stage links to it).",
+   "notes": "The AIA results stage (ADR 0016): the run's admitted results (suppression decided on the server, intervals), its Sociomap with the register's status, the analysis and the report (Zpráva), each with provenance; fictional data is labelled on every view. The 18.6.6 analytical report is not linked: AIA composes its own internal and client reports.",
    "fixture": "persona"
   },
   {
@@ -192,11 +192,10 @@
    },
    "title": "Data Library",
    "area": "A7",
-   "status": "NOT_IN_AIA",
-   "react_path": null,
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/knowledge",
    "unit_routes": [],
-   "notice": "/app/intelligence",
-   "notes": "Společenská inteligence says the 18.6.6 Data Library is not in AIA."
+   "notes": "The 18.6.6 Data Library is re-homed per client (ADR 0015): a client's sources and their reading on Data, its knowledge, proposals and their decisions on Znalosti; nothing is a global pool. Its society insights, project links and system catalogue are not in AIA."
   },
   {
    "id": "route-settings",
@@ -320,11 +319,11 @@
    },
    "title": "Sociomapa",
    "area": "A8",
-   "status": "NOT_IN_AIA",
-   "react_path": null,
+   "status": "SUPERSEDED",
+   "react_path": "/app/clients/<client>/research/<id>/results",
    "unit_routes": [],
-   "notice": "/app/clients/<client>/research/<id>/results",
-   "notes": "Results shows the computed Sociomap to editors, INTERNAL_ONLY while D6 is open; the interactive 18.6.6 map tool (dragging, scenarios) is not in AIA."
+   "notes": "The run's computed Sociomap (aia-sociomap-5, its status the Sociomap register's) is a stage of its own in the research workbench and the Sociomapa view of Výsledky otherwise, drawn as the panel draws it (apps/web/src/lib/object-map-panel.ts). The interactive 18.6.6 map tool (dragging, scenarios, compare, dialogue) is not in AIA.",
+   "fixture": "persona"
   },
   {
    "id": "demo-complete",
@@ -388,7 +387,7 @@
    "id": "aia-clients",
    "path": "/app/clients",
    "title": "Klienti",
-   "notes": "The application home: the clients the caller holds a grant in."
+   "notes": "The application home: the organization's clients; membership is the access (ADR 0019)."
   },
   {
    "id": "aia-client-overview",
@@ -421,6 +420,12 @@
    "fixture_client": true
   },
   {
+   "id": "aia-client-profile",
+   "path": "/app/clients/<client>/profile",
+   "title": "Profil",
+   "fixture_client": true
+  },
+  {
    "id": "aia-intelligence",
    "path": "/app/intelligence",
    "title": "Společenská inteligence"
@@ -434,6 +439,11 @@
    "id": "aia-settings",
    "path": "/app/settings",
    "title": "Nastavení"
+  },
+  {
+   "id": "aia-lead",
+   "path": "/app/lead",
+   "title": "Můj Vedoucí"
   }
  ]
 }
