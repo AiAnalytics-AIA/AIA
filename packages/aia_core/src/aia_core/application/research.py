@@ -107,7 +107,8 @@ from ..domain.research_trace import (
 )
 from ..domain.respondent_behavior import AIA_RESPONSE_V1, ResponseProcessSpec
 from ..domain.run_cost import CeilingUnknown, RunCostCeiling, run_cost_ceiling
-from ..domain.scope import Permission, StudyContext
+from ..domain.run_start import StartRun
+from ..domain.scope import Permission, ScopeDenied, StudyContext
 from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
@@ -137,6 +138,7 @@ from .proposal_accept import (
 )
 from .report_export import exports_stamped
 from .researcher_spend import run_spend_of
+from .spend_confirmation import SpendConfirmation
 from .workflows import StartedRun, start_workflow
 
 __all__ = [
@@ -155,6 +157,7 @@ __all__ = [
     "ResearchStepNotFound",
     "RunOutlook",
     "RunReservations",
+    "RunStartSettings",
     "WorkingImpact",
     "WorkingRevisionNotFound",
     "readiness_in_force",
@@ -467,6 +470,34 @@ class RunReservations:
     analysis_usd: float | None
 
 
+@dataclass(frozen=True, slots=True)
+class RunStartSettings:
+    """What a research run's start takes from the deployment, never from the request: the
+    values every way of starting a run passes (``routers/research.py`` ``run_start_settings``;
+    the Run stage, the typed chat start and, from LO3, a plan step), beside the run its caller
+    names (:class:`~aia_core.domain.run_start.StartRun`)."""
+
+    fieldwork_source: FieldworkSource
+    analysis_enabled: bool
+    sociomapping_enabled: bool
+    reservations: RunReservations
+    #: The deployment's default persona source; a caller that offers no choice names it.
+    persona_source: PersonaSource
+    require_answerability: bool
+    population_contract: PopulationImportContract
+    population_id: str
+    #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
+    #: (evidence-integrity 7)
+    external_context: bool = False
+    #: Draws a panel run's sample, as readiness does (RQC6b); ``None``: unknown, as before.
+    panel_sampler: PanelSampler | None = None
+    #: The artifact store an analysis retry reads the run's stored outcomes from; without it a
+    #: typed analysis retry is refused (``run_start_unavailable``).
+    store: ArtifactStore | None = None
+    #: AIA_ROUTING_ENABLED: a valid display condition passes and the run pins it (WCE13 (d))
+    routing_enabled: bool = False
+
+
 def _population_note(binding: PopulationBinding, *, read_by_fieldwork: bool) -> dict[str, Any]:
     """What the run says about its population: the version it names, and whether fieldwork
     draws its respondents from it.
@@ -521,6 +552,23 @@ class ResearchRuns:
     #: passes readiness and a new run pins it (``routing``), which its preflight reads. Off until
     #: fieldwork routes by it (run-qc-and-checkpoint RQC11).
     routing_enabled: bool = False
+    #: The deployment's run start (:meth:`for_settings`), which :meth:`start_run` reads.
+    start_settings: RunStartSettings | None = None
+
+    @classmethod
+    def for_settings(
+        cls, session: Session, scope: StudyContext, settings: RunStartSettings
+    ) -> ResearchRuns:
+        """The runs of the Study in scope, composed as the deployment's run start composes them."""
+        return cls(
+            session,
+            scope,
+            population_contract=settings.population_contract,
+            population_id=settings.population_id,
+            panel_sampler=settings.panel_sampler,
+            routing_enabled=settings.routing_enabled,
+            start_settings=settings,
+        )
 
     def _panel_draw(self, spec: ResearchSpecification) -> PanelDraw | None:
         """The sample a panel run of ``spec`` would draw: the design's filters, its n and the
@@ -606,6 +654,35 @@ class ResearchRuns:
             analysis_modules=analysis_modules,
         )
 
+    def start_run(
+        self,
+        command: StartRun,
+        *,
+        confirmation: SpendConfirmation | None = None,
+        _probe: bool = False,
+    ) -> StartedRun:
+        """The typed run start (ADR 0028 decision 3, lead-orchestration LO2): the run its caller
+        names (``command``) under the deployment's settings these runs were composed with
+        (:meth:`for_settings`), through :meth:`start`. The command names no confirmation; a
+        person's is passed beside it (``confirmation``)."""
+        settings = self.start_settings
+        if settings is None:
+            raise TypeError("start_run needs runs composed by ResearchRuns.for_settings")
+        return self.start(
+            design_revision_id=command.design_revision_id,
+            fieldwork_source=settings.fieldwork_source,
+            analysis_enabled=settings.analysis_enabled,
+            external_context=settings.external_context,
+            sociomapping_enabled=settings.sociomapping_enabled,
+            reservations=settings.reservations,
+            confirmation=confirmation,
+            persona_source=command.persona_source,
+            population_version_id=command.population_version_id,
+            acknowledge=command.acknowledge,
+            require_answerability=settings.require_answerability,
+            _probe=_probe,
+        )
+
     def start(
         self,
         *,
@@ -616,7 +693,7 @@ class ResearchRuns:
         external_context: bool = False,
         sociomapping_enabled: bool = False,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
         support: SupportSpec | None = None,
         aggregation: Mapping[str, Any] | None = None,
@@ -727,11 +804,13 @@ class ResearchRuns:
         When this would create a run, its cost ceiling is worked out here, never taken from the
         request, and recorded in the run's metadata as ``cost_ceiling`` (artifact-fieldwork
         FLD4d). When the study has a spend limit (``Study.spend_confirm_usd``), a ceiling
-        at or above the limit needs ``confirm_cost_usd`` to cover it
+        at or above the limit needs a person's ``confirmation`` to cover it
         (:class:`CostConfirmationRequired` otherwise) and the yes is recorded in the approval
-        ledger with the run. A ceiling that cannot be worked out is not let by
-        (:class:`CostCeilingUnknown`). A start that finds its run already there spends
-        nothing and asks nothing.
+        ledger with the run. A confirmation is issued only by
+        :func:`~.spend_confirmation.confirm_spend` (lead-orchestration LO2), to the person and
+        Study it names; another person's or Study's is refused (``ScopeDenied``). A ceiling
+        that cannot be worked out is not let by (:class:`CostCeilingUnknown`). A start that
+        finds its run already there spends nothing and asks nothing.
         """
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
@@ -904,11 +983,22 @@ class ResearchRuns:
                 raise ResearchQuestionsUnanswerable(answer)
             else:
                 answer_note = {**answerability_note(trace, answer), "enforced": False}
-        confirmation: tuple[float, float] | None = None
+        confirmed_ceiling: tuple[float, float] | None = None
         # A run this start would create records the ceiling it started under (artifact-fieldwork
         # FLD4d); a run it finds keeps what it recorded.
         ceiling: RunCostCeiling | None = None
         limit = self.spend_limit()
+        if confirmation is not None and (
+            confirmation.confirmed_by != self.scope.actor_id
+            or confirmation.study_id != self.scope.study_id
+        ):
+            # A yes is the person's who gave it, in the Study they gave it in: anything else
+            # is a wiring fault, refused by name, never read as no yes.
+            raise ScopeDenied(
+                "a spend confirmation is the person's and Study's it was issued to",
+                reason="confirmation_not_yours",
+            )
+        confirmed = confirmation.usd if confirmation is not None else None
         if not exists:
             assert _spec is not None  # a ready design compiles
             ceiling = self.cost_ceiling(
@@ -921,7 +1011,7 @@ class ResearchRuns:
             )
         if limit is not None and ceiling is not None:
             # The confirmation threshold's one rule (domain/money.py; ADR 0019 gate 2).
-            verdict = threshold_verdict(ceiling.total_usd, limit, confirm_cost_usd)
+            verdict = threshold_verdict(ceiling.total_usd, limit, confirmed)
             if verdict is ThresholdVerdict.CEILING_UNKNOWN:
                 assert ceiling.unknown is not None
                 raise CostCeilingUnknown(ceiling.unknown, limit_usd=limit)
@@ -929,7 +1019,7 @@ class ResearchRuns:
             if verdict is ThresholdVerdict.ASK:
                 raise CostConfirmationRequired(ceiling_usd=ceiling.total_usd, limit_usd=limit)
             if verdict is ThresholdVerdict.CONFIRMED:
-                confirmation = (ceiling.total_usd, limit)
+                confirmed_ceiling = (ceiling.total_usd, limit)
         started = start_workflow(
             self.session,
             self.scope,
@@ -1044,13 +1134,13 @@ class ResearchRuns:
                 rules=ANSWERABILITY_RULES,
                 design_revision_id=revision.revision_id,
             )
-        if confirmation is not None and started.created:
-            assert confirm_cost_usd is not None
+        if confirmed_ceiling is not None and started.created:
+            assert confirmed is not None
             self._workflows().record_spend_confirmation(
                 started.run_id,
-                ceiling_usd=confirmation[0],
-                limit_usd=confirmation[1],
-                confirmed_usd=confirm_cost_usd,
+                ceiling_usd=confirmed_ceiling[0],
+                limit_usd=confirmed_ceiling[1],
+                confirmed_usd=confirmed,
             )
         return started
 
@@ -1060,7 +1150,7 @@ class ResearchRuns:
         *,
         fieldwork_source: FieldworkSource,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         acknowledge: Acknowledgement | None = None,
         require_answerability: bool = False,
     ) -> StartedRun:
@@ -1082,7 +1172,7 @@ class ResearchRuns:
             run,
             fieldwork_source=fieldwork_source,
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             acknowledge=acknowledge,
             require_answerability=require_answerability,
         )
@@ -1093,7 +1183,7 @@ class ResearchRuns:
         *,
         frozen_dataset: FrozenDataset,
         reservations: RunReservations | None = None,
-        confirm_cost_usd: float | None = None,
+        confirmation: SpendConfirmation | None = None,
         acknowledge: Acknowledgement | None = None,
     ) -> StartedRun:
         """Start ``run_id`` again over its own collected data: an analysis retry.
@@ -1112,7 +1202,7 @@ class ResearchRuns:
             run,
             fieldwork_source=FieldworkSource(str(run["metadata"]["fieldwork_source"])),
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             analysis_enabled=True,
             frozen_dataset=frozen_dataset,
             acknowledge=acknowledge,
@@ -1124,7 +1214,7 @@ class ResearchRuns:
         *,
         fieldwork_source: FieldworkSource,
         reservations: RunReservations | None,
-        confirm_cost_usd: float | None,
+        confirmation: SpendConfirmation | None,
         analysis_enabled: bool | None = None,
         frozen_dataset: FrozenDataset | None = None,
         acknowledge: Acknowledgement | None = None,
@@ -1160,7 +1250,7 @@ class ResearchRuns:
             else analysis_enabled,
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
             reservations=reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
             sociomap_methods=pinned,
             support=read_support_pin(run["metadata"].get("support")),
             aggregation=_aggregation_of(run["metadata"]),
