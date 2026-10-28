@@ -16,7 +16,7 @@ import { saveBlob } from "@/lib/download";
 import { canPropose } from "@/lib/source-proposals";
 import { plural, relative } from "@/lib/format";
 import { fileToBase64 } from "@/research/brief";
-import { Button, Chip, Tag } from "../../rehome/ui";
+import { Button, StatusPill, Tag } from "../../rehome/ui";
 import { useResource } from "../useResource";
 import { type AiRights, SourceProposals } from "./SourceProposals";
 import { errorText } from "@/lib/error-words";
@@ -142,7 +142,7 @@ export function SourceCard({
         </span>
         <Button small variant="quiet" icon="download" onClick={() => void download()}>{t("aia.sources.download")}</Button>
       </div>
-      <span><Chip tone={line.tone}>{line.text}</Chip></span>
+      <span><StatusPill tone={line.tone}>{line.text}</StatusPill></span>
       <InternalMark
         clientId={clientId}
         sourceId={s.source_id}

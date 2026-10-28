@@ -15,14 +15,13 @@ import { relative } from "@/lib/format";
 import { ChoiceChips } from "../../ui/ChoiceChips";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Stepper } from "../../ui/Stepper";
-import { Button } from "../../rehome/ui";
+import { Button, Value } from "../../rehome/ui";
 import { said } from "./KnowledgeLibrary";
 
 const R = "aia.profile.clientRules";
 type Posture = "OPEN" | "CLASSIFIED";
 const POSTURES: readonly Posture[] = ["OPEN", "CLASSIFIED"];
 const MAX_CEILING_USD = 1_000_000;
-const usd = (n: number) => `${n.toLocaleString("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD`;
 
 /** A read, and the client it is of: another client's rules are never shown, and never acted on. */
 type Read = { of: string | null } & ({ state: "loading" } | { state: "not_yet" } | { state: "refused"; message: string } | { state: "ready"; rules: ClientRulesOf });
@@ -85,7 +84,7 @@ export function ClientRulesEditor({ clientId, clientName, mayAdminister }: { cli
               onCommit={(v) => send({ wallet_ceiling_usd: v })} />
             {rules.wallet_ceiling_usd !== null ? <Button small disabled={busy} onClick={() => void send({ wallet_ceiling_usd: null }).catch(() => {})}>{t(`${R}.clear`)}</Button> : null}
           </div>
-        ) : rules.wallet_ceiling_usd !== null ? <p className="mt-1 font-mono text-sm">{usd(rules.wallet_ceiling_usd)}</p> : null}
+        ) : rules.wallet_ceiling_usd !== null ? <p className="mt-1 font-mono text-sm"><Value of={rules.wallet_ceiling_usd} usd /></p> : null}
         {rules.wallet_ceiling_usd === null ? <p data-no-ceiling className="mt-1 text-xs text-ink-muted">{t(`${R}.noCeiling`)}</p> : null}
       </div>
       {rules.set_at ? <p className="text-xs text-ink-faint">{tv(`${R}.changed`, { when: relative(rules.set_at) ?? rules.set_at })}</p> : null}

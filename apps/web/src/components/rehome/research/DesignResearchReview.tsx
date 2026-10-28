@@ -17,7 +17,8 @@ import {
 import { staleDetails } from "@/research/proposal-items";
 import type { ResearchStore } from "@/research/store";
 import { Sparkle } from "../icons";
-import { Button } from "../ui";
+import { Button, StaleMark } from "../ui";
+import { ItemReview } from "../ItemReview";
 import { errorText } from "@/lib/error-words";
 
 const message = (e: unknown) => errorText(e);
@@ -121,44 +122,33 @@ export function DesignResearchReview({ studyId, runId, store, project, canApply 
       {open ? (
         <>
           <div className="flex flex-col gap-3 px-4 py-3">
-            {stale ? <p role="alert" data-proposal-stale className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-[13px] leading-5 text-ink">{stale}</p> : null}
+            {stale ? <StaleMark alert data-proposal-stale>{stale}</StaleMark> : null}
             {!reading.admissible ? <p role="note" className="rounded-sm border border-border p-3 text-[13px] leading-5">{INADMISSIBLE}</p> : null}
             {reading.spent ? <p role="note" className="text-[13px] leading-5 text-ink-muted">{SPENT}</p> : null}
-            <ul className="flex flex-col gap-3">
-              {reading.items.map((item) => {
-                const box = `dr-item-${item.itemId}`;
-                return (
-                  <li key={item.itemId} data-design-research-item={item.kind} className="rounded-sm border border-border p-3 text-[13px] leading-5">
-                    <div className="flex items-start gap-2">
-                      {item.kind === "EVIDENCE" && canApply ? (
-                        <input id={box} type="checkbox" className="mt-1" checked={item.accepted || chosen.has(item.itemId)}
-                          disabled={!item.selectable || !mayAccept || busy} onChange={() => toggle(item.itemId)} />
-                      ) : null}
-                      <label htmlFor={item.kind === "EVIDENCE" && canApply ? box : undefined} className="flex-1">
-                        <span className="block text-xs text-ink-muted">{subjectWords(item.subjectKind)}</span>
-                        <span className="font-semibold">{item.subjectText}</span>
-                      </label>
-                      {item.accepted ? <span className="text-xs font-medium text-signal">V návrhu</span> : null}
-                    </div>
-                    {item.kind === "GAP" ? (
-                      <p className="mt-1 text-ink-muted">Výzkum k tomu nic nenašel. Je dobré to vědět, než návrh zmrazíte; přijmout tu není co.</p>
-                    ) : (
-                      <ul className="mt-2 flex flex-col gap-2">
-                        {item.findings.map((f) => (
-                          <li key={f.evidence_id}>
-                            <p>{f.claim}</p>
-                            <blockquote className="mt-1 border-l-2 border-border-strong pl-3 text-ink-muted">{f.quote}</blockquote>
-                            <p className="mt-1 text-xs text-ink-muted">
-                              Zdroj: {isUrl(f.source) ? <a href={f.source} target="_blank" rel="noopener noreferrer" className="underline">{f.source_title || f.source}</a> : (f.source_title || f.source)}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            <ItemReview mode="select" label="Položky návrhu" canEdit={mayAccept} busy={busy}
+              selected={chosen} onToggle={toggle} footer={null}
+              items={reading.items.map((item) => ({
+                id: item.itemId,
+                where: <><span className="block text-xs font-normal text-ink-muted">{subjectWords(item.subjectKind)}</span><span className="font-semibold">{item.subjectText}</span></>,
+                selectable: item.kind === "EVIDENCE" && canApply ? item.selectable : undefined,
+                decided: item.accepted ? "V návrhu" : null,
+                data: { "data-design-research-item": item.kind },
+                body: item.kind === "GAP" ? (
+                  <p className="mt-1 text-ink-muted">Výzkum k tomu nic nenašel. Je dobré to vědět, než návrh zmrazíte; přijmout tu není co.</p>
+                ) : (
+                  <ul className="mt-2 flex flex-col gap-2">
+                    {item.findings.map((f) => (
+                      <li key={f.evidence_id}>
+                        <p>{f.claim}</p>
+                        <blockquote className="mt-1 border-l-2 border-border-strong pl-3 text-ink-muted">{f.quote}</blockquote>
+                        <p className="mt-1 text-xs text-ink-muted">
+                          Zdroj: {isUrl(f.source) ? <a href={f.source} target="_blank" rel="noopener noreferrer" className="underline">{f.source_title || f.source}</a> : (f.source_title || f.source)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ),
+              }))} />
           </div>
           {canApply ? (
             <div className="flex flex-wrap items-center gap-2 border-t border-ai-edge px-4 py-2.5">

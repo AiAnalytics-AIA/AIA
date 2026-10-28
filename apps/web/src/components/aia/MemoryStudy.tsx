@@ -28,7 +28,7 @@ import { PERSONA_DIM_LABELS } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
 import { RunResults } from "../rehome/research/ExecutionSteps";
 import { type StudyFrame, StudyFrameProvider } from "../rehome/research/frame";
-import { Button, Chip, Field, Select, Tag, TextInput } from "../rehome/ui";
+import { Button, StatusPill, Field, Select, Tag, TextInput } from "../rehome/ui";
 import { AppShell } from "./AppShell";
 import { useClient } from "./clients/ClientContext";
 import { CARD, Empty, Loaded, NotFound } from "./states";
@@ -308,9 +308,9 @@ function RevisionRuns({ studyId, revision }: { studyId: string; revision: Design
 function LabelChips({ labels, brief = false }: { labels: RunLabels; brief?: boolean }): ReactNode {
   return (
     <span className="flex flex-wrap gap-2">
-      <Chip tone={labels.data === "synthetic" ? "fault" : "neutral"}>{t(`${S}.data.${labels.data}`)}</Chip>
-      {brief ? null : <Chip tone={labels.report === "approved_internal" ? "done" : "neutral"}>{t(`${S}.report.${labels.report}`)}</Chip>}
-      {!brief && labels.internal ? <Chip tone="you">{t(`${S}.internal`)}</Chip> : null}
+      <StatusPill tone={labels.data === "synthetic" ? "fault" : "neutral"}>{t(`${S}.data.${labels.data}`)}</StatusPill>
+      {brief ? null : <StatusPill tone={labels.report === "approved_internal" ? "done" : "neutral"}>{t(`${S}.report.${labels.report}`)}</StatusPill>}
+      {!brief && labels.internal ? <StatusPill tone="you">{t(`${S}.internal`)}</StatusPill> : null}
     </span>
   );
 }

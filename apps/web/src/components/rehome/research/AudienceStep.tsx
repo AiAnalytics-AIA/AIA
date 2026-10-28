@@ -80,7 +80,7 @@ import {
 import type { Json, ResearchProject } from "@/research/model";
 import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, RadioCard, StepSection } from "../step";
-import { AiButton, Button, Chip, Field, Tag, TextInput } from "../ui";
+import { AiButton, Button, StatusPill, Field, Tag, TextInput } from "../ui";
 import { useResearch } from "./context";
 import { InspectorSlot } from "./Inspector";
 import { AskLead, useLeadOwnsAiStarts } from "./AskLead";
@@ -100,7 +100,7 @@ function NotInAia({ title, children }: { title: string; children: string }) {
     <section className={NOT_IN_AIA}>
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold">{title}</h3>
-        <Chip tone="you">{t("research.audience.notInAiaChip")}</Chip>
+        <StatusPill tone="you">{t("research.audience.notInAiaChip")}</StatusPill>
       </div>
       <p className="mt-1 text-sm leading-6">{children}</p>
     </section>
