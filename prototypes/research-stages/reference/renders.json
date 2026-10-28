@@ -50,64 +50,14 @@
   "image": "05-CardsF.webp"
  },
  {
-  "board": "ChatA.dc.html",
-  "title": "Chat A · Přepis",
-  "w": 440,
-  "h": 900,
-  "text_chars": 432,
-  "errors": [],
-  "failed_requests": [],
-  "image": "06-ChatA.webp"
- },
- {
-  "board": "ChatB.dc.html",
-  "title": "Chat B · Bubliny",
-  "w": 440,
-  "h": 900,
-  "text_chars": 356,
-  "errors": [],
-  "failed_requests": [],
-  "image": "07-ChatB.webp"
- },
- {
-  "board": "ChatC.dc.html",
-  "title": "Chat C · Časová osa",
-  "w": 440,
-  "h": 900,
-  "text_chars": 374,
-  "errors": [],
-  "failed_requests": [],
-  "image": "08-ChatC.webp"
- },
- {
-  "board": "ChatD.dc.html",
-  "title": "Chat D · Kompaktní záznam",
-  "w": 440,
-  "h": 900,
-  "text_chars": 265,
-  "errors": [],
-  "failed_requests": [],
-  "image": "09-ChatD.webp"
- },
- {
-  "board": "ChatE.dc.html",
-  "title": "Chat E · Rozhodnutí nahoře",
-  "w": 440,
-  "h": 900,
-  "text_chars": 392,
-  "errors": [],
-  "failed_requests": [],
-  "image": "10-ChatE.webp"
- },
- {
   "board": "ChatF.dc.html",
-  "title": "Chat F · Bubliny na časové ose (nový)",
+  "title": "Chat Vedoucího · bubliny na časové ose",
   "w": 440,
   "h": 900,
   "text_chars": 296,
   "errors": [],
   "failed_requests": [],
-  "image": "11-ChatF.webp"
+  "image": "06-ChatF.webp"
  },
  {
   "board": "Design.dc.html",
@@ -117,7 +67,7 @@
   "text_chars": 6257,
   "errors": [],
   "failed_requests": [],
-  "image": "12-Design.webp"
+  "image": "07-Design.webp"
  },
  {
   "board": "Dimensions.dc.html",
@@ -127,7 +77,7 @@
   "text_chars": 4742,
   "errors": [],
   "failed_requests": [],
-  "image": "13-Dimensions.webp"
+  "image": "08-Dimensions.webp"
  },
  {
   "board": "Fieldwork.dc.html",
@@ -137,7 +87,7 @@
   "text_chars": 5799,
   "errors": [],
   "failed_requests": [],
-  "image": "14-Fieldwork.webp"
+  "image": "09-Fieldwork.webp"
  },
  {
   "board": "FieldworkDisc.dc.html",
@@ -147,7 +97,7 @@
   "text_chars": 787,
   "errors": [],
   "failed_requests": [],
-  "image": "15-FieldworkDisc.webp"
+  "image": "10-FieldworkDisc.webp"
  },
  {
   "board": "Main.dc.html",
@@ -157,7 +107,7 @@
   "text_chars": 13270,
   "errors": [],
   "failed_requests": [],
-  "image": "16-Main.webp"
+  "image": "11-Main.webp"
  },
  {
   "board": "Marks.dc.html",
@@ -167,7 +117,7 @@
   "text_chars": 1075,
   "errors": [],
   "failed_requests": [],
-  "image": "17-Marks.webp"
+  "image": "12-Marks.webp"
  },
  {
   "board": "Questionnaire.dc.html",
@@ -177,7 +127,7 @@
   "text_chars": 6384,
   "errors": [],
   "failed_requests": [],
-  "image": "18-Questionnaire.webp"
+  "image": "13-Questionnaire.webp"
  },
  {
   "board": "Report.dc.html",
@@ -189,9 +139,9 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7Bshot%7D%7D"
+   "404 http://127.0.0.1:45621/research-stages/%7B%7Bshot%7D%7D"
   ],
-  "image": "19-Report.webp"
+  "image": "14-Report.webp"
  },
  {
   "board": "Results.dc.html",
@@ -201,7 +151,7 @@
   "text_chars": 5012,
   "errors": [],
   "failed_requests": [],
-  "image": "20-Results.webp"
+  "image": "15-Results.webp"
  },
  {
   "board": "Sample.dc.html",
@@ -211,7 +161,7 @@
   "text_chars": 4141,
   "errors": [],
   "failed_requests": [],
-  "image": "21-Sample.webp"
+  "image": "16-Sample.webp"
  },
  {
   "board": "Sociomap.dc.html",
@@ -221,7 +171,7 @@
   "text_chars": 3424,
   "errors": [],
   "failed_requests": [],
-  "image": "22-Sociomap.webp"
+  "image": "17-Sociomap.webp"
  },
  {
   "board": "ReportEditor.dc.html",
@@ -234,10 +184,10 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotDef%7D%7D",
-   "404 http://127.0.0.1:44063/research-stages-2026-10-27/%7B%7BshotAia%7D%7D"
+   "404 http://127.0.0.1:45621/research-stages/%7B%7BshotDef%7D%7D",
+   "404 http://127.0.0.1:45621/research-stages/%7B%7BshotAia%7D%7D"
   ],
-  "image": "23-ReportEditor.webp"
+  "image": "18-ReportEditor.webp"
  },
  {
   "board": "Overview.dc.html",
@@ -247,6 +197,6 @@
   "text_chars": 2771,
   "errors": [],
   "failed_requests": [],
-  "image": "24-Overview.webp"
+  "image": "19-Overview.webp"
  }
 ]

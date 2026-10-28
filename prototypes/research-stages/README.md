@@ -1,4 +1,4 @@
-# AIA Výzkumné kroky – prototyp, 27 Oct 2026
+# AIA Výzkumné kroky – prototyp, 28 Oct 2026
 
 A snapshot of the research-stages Design canvas, for use from another account. It is design reference,
 not product code: nothing here is imported by `apps/web`, and every client, study, person and number is
@@ -7,15 +7,24 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 
 | | |
 |---|---|
-| Live canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> (private to the owner's account) |
-| Version | v95, artifact version `1793099019-3a7d` |
-| Exported | 27 Oct 2026 |
-| Previous versions | in git history: v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
+| Version | version 6, artifact version `1793147720-69aa` |
+| Exported | 28 Oct 2026 |
+| Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
+| Previous versions | in git history: v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed since v95
+
+The second account's canvas was rebuilt from the v95 export on 27 Oct, board for board (each render matched
+`reference/` within animation). Then, on 28 Oct, the product owner made **Chat F canonical**: "we leave chat f,
+the rest we dont need". Chat A–E are gone, and `ChatF.dc.html` keeps its file name under the new title "Chat
+Vedoucího · bubliny na časové ose", alone in the chat row with no row title. Nothing else changed: every other
+board, stylesheet and asset is byte-identical to v95. Nothing is known to be wrong in it.
 
 ## What is in this folder
 
-- **24 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
+- **19 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
   holds each board's size and position on the canvas.
 - **`assets/aia-core.css`**: core v4.3, the "Petrol" shared stylesheet (SHA-256 `bd0c156e…4a2b0e`). It is
   owned by the design-system session and is newer than `../shared/aia-core.css` (core v3), which this
@@ -24,12 +33,12 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 - **`assets/thinking-orbs.js`**: the Lead's orb (thinking-orbs 0.3.2, MIT, Jakub Antalik).
 - **`assets/<id>.png|jpg`**: the screenshots of today's AIA that the boards' "UX kritika" sections show.
 
-Every `/_blob/<id>` reference was rewritten to its file under `assets/`. Board links (`href="Design.dc.html"`)
-resolve inside the folder. `./support.js` is the canvas runtime and is not exported.
-
-Two files on the canvas are not exported:
-- `Hatch.dc.html` and `LeadSettings.dc.html` are not boards of this canvas, and no board links to them.
-- "Můj Vedoucí" opens the Settings canvas, which is exported in [`../settings/`](../settings/).
+The canvas keeps these files as they are here: `canvas.json`, the boards and `assets/` at the same relative
+paths, so nothing is rewritten on export or rebuild. Board links (`href="Design.dc.html"`) resolve inside the
+folder. `./support.js` is the canvas runtime and is not exported. "Můj Vedoucí" opens the Settings canvas, which
+is exported in [`../settings/`](../settings/). (The first account's canvas also held `Hatch.dc.html` and
+`LeadSettings.dc.html`, which were not boards and were never exported; the second account's canvas does not have
+them.)
 
 | Board | Title |
 |---|---|
@@ -50,11 +59,12 @@ Two files on the canvas are not exported:
 | `Analysis.dc.html` | 10 · Analýza |
 | `Report.dc.html` | 11 · Zpráva |
 | `ReportEditor.dc.html` | 11b · Editor zprávy: vzhled a ověření |
-| `ChatA.dc.html` … `ChatF.dc.html` | Six variants of the Lead's chat |
+| `ChatF.dc.html` | Chat Vedoucího · bubliny na časové ose (the Lead's chat; canonical since 28 Oct) |
 | `Marks.dc.html` | Značka Vedoucího · 5 variant |
 
-## What is decided (the product owner, 26–27 Oct 2026)
+## What is decided (the product owner, 26–28 Oct 2026)
 
+- **The Lead's chat is Chat F**, bubbles on a timeline (28 Oct). The other five variants are dropped.
 - **Zpráva: the document editor is the page.** The header carries:
   - the state;
   - two chips, "Zjištění 3/4" and "1 ruční úprava", each with its detail in a popover;
