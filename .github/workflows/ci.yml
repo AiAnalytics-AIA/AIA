@@ -47,6 +47,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       code: ${{ steps.filter.outputs.code }}
+      # The Terraform roots or this workflow changed: the Terraform jobs run. A push
+      # to main or develop always runs them; they take seconds and need no AWS access.
+      infra: ${{ steps.filter.outputs.infra }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,8 +62,10 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           code=true
+          infra=true
           if [ "$EVENT" = "pull_request" ]; then
             files="$(git diff --name-only HEAD^1 HEAD)"
+            infra=false
             if [ -n "$files" ]; then
               code=false
               while IFS= read -r f; do
@@ -68,12 +73,16 @@ jobs:
                   .planning/*|docs/architecture/adr/*|CLAUDE.md|AGENTS.md|ARCHITECTURE.md) ;;
                   *) code=true ;;
                 esac
+                case "$f" in
+                  infra/*|.github/workflows/ci.yml) infra=true ;;
+                esac
               done <<< "$files"
             fi
             printf 'Changed files:\n%s\n' "$files"
           fi
           echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "code=$code"
+          echo "infra=$infra" >> "$GITHUB_OUTPUT"
+          echo "code=$code infra=$infra"
 
   docs-checks:
     # What a documentation-only change can still break: a client-identifying
@@ -1080,6 +1089,102 @@ jobs:
 
       - name: Host Python scripts parse
         run: python3 -m py_compile deploy/develop/bin/*.py
+
+  terraform:
+    # Every Terraform root under infra/ as written: formatted, and valid against its
+    # providers' schemas (production-environment PE3). No backend and no AWS
+    # credentials: `init -backend=false` reads no state, and `validate` calls no API.
+    # A new root (infra/production, PE1) is checked without an edit here.
+    name: Terraform (format, validate)
+    runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.infra == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1.10.5: the lowest release infra/*/versions.tf accepts (its S3 backend takes
+      # use_lockfile), so CI never passes what an operator's minimum would refuse.
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - name: Format
+        run: terraform fmt -check -recursive -diff infra
+
+      - name: Validate every root
+        run: |
+          status=0
+          for root in infra/*/; do
+            [ -f "$root/versions.tf" ] || continue
+            echo "::group::$root"
+            terraform -chdir="$root" init -backend=false -input=false -no-color || status=1
+            terraform -chdir="$root" validate -no-color || status=1
+            echo "::endgroup::"
+          done
+          exit "$status"
+
+      - name: Say whether the plan runs
+        if: vars.TERRAFORM_PLAN_ENABLED != 'true'
+        run: |
+          {
+            echo "### Terraform plan: not configured"
+            echo "The plan job runs once a person has created its read-only role and the"
+            echo "\`terraform-plan\` environment and set the repository variable"
+            echo "\`TERRAFORM_PLAN_ENABLED=true\` (.planning/plans/production-environment.md, PE3)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  terraform-plan:
+    # What `terraform apply` would change in develop, on a pull request that touches
+    # infra/. The state it reads holds develop's secrets, and anyone who can push a
+    # branch can change this job, so it runs in the `terraform-plan` environment,
+    # which requires a person's approval before the job starts; its role may be
+    # assumed from that environment alone and reads, never writes (-lock=false: not
+    # even the state's lock file). It stays off until TERRAFORM_PLAN_ENABLED is set,
+    # so the environment is not created on a first run without its reviewer.
+    name: Terraform plan (develop)
+    runs-on: ubuntu-latest
+    needs: [changes, terraform]
+    if: >-
+      github.event_name == 'pull_request'
+      && needs.changes.outputs.infra == 'true'
+      && vars.TERRAFORM_PLAN_ENABLED == 'true'
+    environment: terraform-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: eu-central-1
+          role-session-name: terraform-plan-${{ github.run_id }}
+
+      - name: Plan
+        working-directory: infra/develop
+        env:
+          TFVARS: ${{ secrets.TFVARS_DEVELOP }}
+        run: |
+          umask 077
+          # The tfvars and the saved plan hold secrets: gone however the step ends.
+          trap 'rm -f "$RUNNER_TEMP/develop.tfvars" "$RUNNER_TEMP/develop.tfplan"' EXIT
+          printf '%s\n' "$TFVARS" > "$RUNNER_TEMP/develop.tfvars"
+          terraform init -input=false -no-color
+          terraform plan -lock=false -input=false -no-color \
+            -var-file="$RUNNER_TEMP/develop.tfvars" -out="$RUNNER_TEMP/develop.tfplan"
+          {
+            echo "### Terraform plan: develop"
+            echo '```'
+            terraform show -no-color "$RUNNER_TEMP/develop.tfplan" | head -c 900000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   security:
     name: Security and dependency scan
