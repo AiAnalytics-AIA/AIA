@@ -1803,6 +1803,10 @@ and pin):
   - `test_client_rules.py::test_the_posture_is_in_the_engine_request_a_retry_refreezes_from`,
     `test_a_retry_of_a_run_frozen_without_a_posture_stays_classified`.
   - The three that need the change fail on develop @ 947686c0.
+- **Decided: an explicit Class A operator record does not refuse an OPEN run's web egress.** It leaves
+  at Class C like the rest, as ADR 0032 decision 3 has it ("the posture in place of a class"). Nigel,
+  2026-10-28 22:25 UTC, relayed by the PM coordinator: "For mvp i wanted to retire the data gates".
+  His wider remark is a separate decision and is not acted on here.
 - **Not here:** chunk 57 (Class B on Brave for CLASSIFIED clients) and the Reach panel's per-run
   posture (chunk 62).
 
