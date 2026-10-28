@@ -2,10 +2,10 @@
 status: planned
 chunks:
   - "[ ] LK0. Prerequisite, built in its own fix PR: the licence determination for the unclassified-client-knowledge lineage, approved for bedrock-eu-primary only (Q60 a, 2026-10-21); closes Finding 1"
-  - "[ ] LK1. The knowledge index as data, always in the context (ADR 0041 A2): every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's share, paged past it, never silent; ADR 0042 written as ADR 0041 A3 (accepted by the owner, 2026-10-26) amends ADR 0026 decision 3 for the search-and-read round"
+  - "[ ] LK1. The knowledge index as data, always in the context (ADR 0041 A2): every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's share, paged past it, never silent; ADR 0042 folded into ADR 0026 Amendment 2026-10-28 (Q4, accepted 2026-10-28), whose R2 knowledge tools are the search-and-read round"
   - "[ ] LK2. The index frozen at enqueue: study-scoped repository reads (no silent 200-row cap), reading pins per source and revisions per item in the frozen context, each entry classed by material_rules, the lineage declared"
-  - "[ ] LK3. The search and read in the closed contract (ADR 0041 A3): LeadOutput.search (at most 2 word-search queries over the study's chosen knowledge) and LeadOutput.read (at most 3 page reads a turn), a searching or reading turn holds nothing else, at most three model calls a turn, the answering request's contract forbids another search or read; the reads layer sized as a share of the token budget (lead-conversation LC4); quotes grounded in the segment read and cited by page, numbers through lead_contract"
-  - "[ ] LK4. The read round in the worker behind AIA_AI_RESEARCH_LEAD_KNOWLEDGE_READS (off by default, off in test): pinned, study-scoped fetches from ClientSourceRepository and ClientKnowledgeRepository, the first answer checkpointed, a second STUDY_LEAD request with its own reservation, the class re-read before it; cost and latency per read measured"
+  - "[ ] LK3. The search and read (ADR 0041 A3; since ADR 0026 Amendment 2026-10-28 the native read tools knowledge_search and knowledge_read, same limits, bound USD 0.50 or 8 rounds): LeadOutput.search (at most 2 word-search queries over the study's chosen knowledge) and LeadOutput.read (at most 3 page reads a turn), a searching or reading turn holds nothing else, at most three model calls a turn, the answering request's contract forbids another search or read; the reads layer sized as a share of the token budget (lead-conversation LC4); quotes grounded in the segment read and cited by page, numbers through lead_contract"
+  - "[ ] LK4. The read round in the worker (on lead-orchestration LO8c's tool conversation) behind AIA_AI_RESEARCH_LEAD_KNOWLEDGE_READS (off by default, off in test): pinned, study-scoped fetches from ClientSourceRepository and ClientKnowledgeRepository, the first answer checkpointed, a second STUDY_LEAD request with its own reservation, the class re-read before it; cost and latency per read measured"
   - "[ ] LK5. Datasets: a DATASET is read as its preview (columns, kinds, fill, masked samples), never its rows (Q62 a); the turn with a dataset item answered on bedrock-eu-primary under LK0's determination, refused by name on any other route"
   - "[ ] LK6. What the Lead read, in the API and on screen: the turn's reads in GET /studies/{id}/lead, and the \"Přečteno: …\" line in LeadPane linking to each item (LeadPane.tsx and lib/lead.ts by the integration coordinator session)"
   - "[ ] LK7. Switched on for develop after the measurement: Compose and env.example carry the key, the runbook section, the acceptance on a fictional client with the cost per read recorded"
@@ -281,6 +281,11 @@ defect, so the determination Q60 (a) settled, `unclassified-client-knowledge` ap
 on its own fix PR now, not under this plan. This plan's chunks LK2, LK4 and LK5 build on it; its
 tick here records that PR once merged. It is the one chunk without a journey step: it is a
 policy record, tested by the licence gate's own tests.
+
+*ADR 0026 Amendment 2026-10-28 (accepted, #1085; the owner's Q4 "Fold it in"):* ADR 0042 is not written. Search and read
+are the native read tools `knowledge_search` and `knowledge_read` (its R2), keeping LK3's limits (2 searches, 3 page
+reads a turn) inside its bound (USD 0.50 or 8 rounds a turn); `LeadOutput.search` / `.read` below become those tools'
+arguments, and LK4's round runs on `lead-orchestration#LO8c`.
 
 **LK1. The index as data, and ADR 0042** (the index is always in the context, ADR 0041 A2; ADR
 0042 is written as ADR 0041 A3, accepted by the owner 2026-10-26, so it is filed Accepted). `domain/lead_knowledge.py`: `IndexEntry` (item,
