@@ -85,6 +85,7 @@ from aia_core.domain.residency import EgressDecision, EgressDenied, EgressPolicy
 from aia_core.domain.workflow import FailureClass
 
 __all__ = [
+    "CONTAINER_HINT_VERSION",
     "REPAIR_PROMPT_VERSION",
     "REPAIR_TOOL_PROMPT_VERSION",
     "TEXT_INSTEAD_OF_TOOL",
@@ -99,6 +100,9 @@ REPAIR_PROMPT_VERSION: Final = "schema-repair-v1"
 #: The repair instruction of a call that must answer through the tool (a thinking
 #: call, or a call to an ``auto_tool`` model).
 REPAIR_TOOL_PROMPT_VERSION: Final = "schema-repair-tool-v1"
+#: The line a repair adds when a list or object field arrived as a string; recorded on
+#: the repair's ledger note only when it was sent.
+CONTAINER_HINT_VERSION: Final = "container-as-string-v1"
 #: Identity of the instruction a thinking call's system prompt ends with. With
 #: thinking on, the output tool cannot be forced (only ``auto`` is allowed), so
 #: the call is told to answer through it, and an answer in text is off-contract.
@@ -140,19 +144,31 @@ def _schema_name(agent_id: str) -> str:
     return _UNSAFE_NAME.sub("_", agent_id)[:64] or "structured_output"
 
 
-def _repair_message(violations: tuple[str, ...], *, tool: str | None = None) -> str:
-    """The repair instruction; ``tool`` names the output tool of a thinking call."""
+def _repair_message(
+    violations: tuple[str, ...], *, tool: str | None = None, container_as_string: bool = False
+) -> str:
+    """The repair instruction; ``tool`` names the output tool of a thinking call.
+
+    ``container_as_string``: a list or object field arrived as a string, and the
+    instruction says to send the list or object itself (``CONTAINER_HINT_VERSION``).
+    """
     listed = "\n".join(f"- {v}" for v in violations)
+    hint = (
+        "A field that must be an array or an object must be that array or object "
+        "itself, never a string holding JSON.\n"
+        if container_as_string
+        else ""
+    )
     if tool is not None:
         return (
             "Your previous answer did not satisfy the required output schema:\n"
-            f"{listed}\n"
+            f"{listed}\n{hint}"
             f"Call the tool {tool} exactly once with one object that satisfies its "
             "input schema exactly. Do not answer in text."
         )
     return (
         "Your previous answer did not satisfy the required output schema:\n"
-        f"{listed}\n"
+        f"{listed}\n{hint}"
         "Return one JSON object that satisfies the schema exactly. "
         "Return only the JSON object."
     )
@@ -457,6 +473,8 @@ class GovernedModelGateway:
         messages = request.messages
         purpose = CallPurpose.FALLBACK if lane.fallback_from else CallPurpose.PRIMARY
         repairs_left = agent.schema_repair_attempts
+        # Whether the repair this lane sends next carries the container hint.
+        hinted = False
         schema_name = _schema_name(agent.agent_id) if schema is not None else ""
         thinking = request.thinking_budget_tokens is not None
         profile = lane.resolution.request_profile
@@ -521,7 +539,9 @@ class GovernedModelGateway:
                     reason="cancelled_before_dispatch",
                 )
 
-            note = _note(repair=purpose is CallPurpose.SCHEMA_REPAIR, tool_answer=tool_answer)
+            note = _note(
+                repair=purpose is CallPurpose.SCHEMA_REPAIR, tool_answer=tool_answer, hinted=hinted
+            )
             started = context.clock()
             dispatched = self._event(
                 request,
@@ -622,6 +642,7 @@ class GovernedModelGateway:
             cost, basis = self._price(lane.resolution, response.usage, ceiling)
 
             violations: tuple[str, ...] = ()
+            container_as_string = False
             output = None
             if agent.output_contract is not None:
                 if response.finish_reason is FinishReason.TRUNCATED:
@@ -637,6 +658,7 @@ class GovernedModelGateway:
                         text=response.text,
                     )
                     violations, output = verdict.violations, verdict.value
+                    container_as_string = verdict.container_as_string
 
             self._close(
                 context,
@@ -702,6 +724,7 @@ class GovernedModelGateway:
                 )
             repairs_left -= 1
             purpose = CallPurpose.SCHEMA_REPAIR
+            hinted = container_as_string
             answer = (
                 response.text
                 if response.structured is None
@@ -717,7 +740,11 @@ class GovernedModelGateway:
                 Message(role="assistant", content=answer),
                 Message(
                     role="user",
-                    content=_repair_message(violations, tool=schema_name if tool_answer else None),
+                    content=_repair_message(
+                        violations,
+                        tool=schema_name if tool_answer else None,
+                        container_as_string=hinted,
+                    ),
                 ),
             )
 
@@ -909,7 +936,7 @@ class GovernedModelGateway:
         )
 
 
-def _note(*, repair: bool, tool_answer: bool) -> str:
+def _note(*, repair: bool, tool_answer: bool, hinted: bool = False) -> str:
     """The runtime's own prompts a call carried, by version; empty when none."""
     parts = []
     if tool_answer:
@@ -917,6 +944,8 @@ def _note(*, repair: bool, tool_answer: bool) -> str:
     if repair:
         version = REPAIR_TOOL_PROMPT_VERSION if tool_answer else REPAIR_PROMPT_VERSION
         parts.append(f"repair_prompt={version}")
+        if hinted:
+            parts.append(f"repair_hint={CONTAINER_HINT_VERSION}")
     return " ".join(parts)
 
 

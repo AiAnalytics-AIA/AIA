@@ -360,6 +360,9 @@ class StructuredValidation:
     ok: bool
     value: BaseModel | None
     violations: tuple[str, ...] = ()
+    #: A list or object field arrived as a string (perhaps one holding JSON). Still a
+    #: violation; the repair turn says to send the list or object itself.
+    container_as_string: bool = False
 
 
 def validate_structured_output(
@@ -389,12 +392,62 @@ def validate_structured_output(
     try:
         value = contract.model_validate_json(payload, strict=True)
     except ValidationError as exc:
+        errors = exc.errors()
         violations = tuple(
             f"{'.'.join(str(p) for p in error['loc']) or '<root>'}: {error['msg']}"
-            for error in exc.errors()
+            f"{_received(error)}"
+            for error in errors
         )
-        return StructuredValidation(ok=False, value=None, violations=violations)
+        return StructuredValidation(
+            ok=False,
+            value=None,
+            violations=violations,
+            container_as_string=any(
+                error["type"] in _CONTAINER_TYPE_ERRORS and isinstance(error.get("input"), str)
+                for error in errors
+            ),
+        )
     return StructuredValidation(ok=True, value=value)
+
+
+#: Pydantic's wrong-type errors for a field declared a list, tuple, object or map.
+_CONTAINER_TYPE_ERRORS: Final = frozenset(
+    {
+        "list_type",
+        "tuple_type",
+        "set_type",
+        "frozen_set_type",
+        "model_type",
+        "dict_type",
+        "model_attributes_type",
+    }
+)
+
+
+def _received(error: Mapping[str, Any]) -> str:
+    """``, received <JSON type>`` for a wrong-type error, else nothing.
+
+    Pydantic says the same for a list field given a string, null or an object; the
+    repair turn and the attempt's error say which arrived. The type only, never the value.
+    """
+    if "input" not in error or not str(error.get("type", "")).endswith("_type"):
+        return ""
+    found = error["input"]
+    if found is None:
+        name = "null"
+    elif isinstance(found, str):
+        name = "string"
+    elif isinstance(found, bool):  # before int, which bool subclasses
+        name = "boolean"
+    elif isinstance(found, int | float):
+        name = "number"
+    elif isinstance(found, Mapping):
+        name = "object"
+    elif isinstance(found, list):
+        name = "array"
+    else:
+        return ""
+    return f", received {name}"
 
 
 # --------------------------------------------------------------------------- #
