@@ -38,6 +38,126 @@ Total for the methodology owner: **24 decisions (MQ-01 – MQ-24) and one eviden
 
 ---
 
+## The methodology owner's answers, saved 2026-10-28
+
+Recorded from the Sociomapa method decision page (this packet, page dated 2026-10-26). The answers
+were saved there on 2026-10-28 and relayed by the product owner in the PM coordinator's chat the same
+day. **20 of 41 items are answered (MQ-01 to MQ-20).** FINAL is a decision; TENTATIVE is a leaning
+that must be confirmed before the work that depends on it starts. A number the methodology owner
+called "a proposal" is a **proposed default**, not yet signed off. Carrying these into the affected
+plans (and into `mvp-cohesion.md` under each MVPQ id) is a follow-up; this section is the record.
+
+### Tier 1
+
+- **MQ-01, the register entry: FINAL (b).** Approve the object map now; the respondent map and
+  segments after the web and report draw them (E-3, E-4). Unblocks client-facing `-5` maps, AC-09
+  client snapshots and AC-13. **Still needed:** the reader note's Czech text (RN-1, unanswered).
+- **MQ-02, which segments the MVP shows: FINAL (a), both.** Defined segments are the default; `-5`'s
+  taste segments are the clustering option, internal until MQ-01's condition is met. The labels become
+  „podle znaků respondentů" and „podle hodnocení objektů", so each says what it is built from. Unblocks
+  `segment-maps-and-drilldown` 0, 1, 3, 9, 10.
+- **MQ-03, segment support and suppression: FINAL (a).** 30 on Kish n for both maps and claims, the
+  same as min_cell. Taste segments are counted by their coloured members. Maps are additionally subject
+  to `-5`'s own checks. Below the floor a segment is named, not ordered. Unblocks segment item 10 and
+  the Segments module's finding.
+- **MQ-04, BB1's platform dependence: FINAL, own rule combining (a) and (b).** The stored map, computed
+  in the production worker image, is the record and is never recomputed for display. Maps computed
+  elsewhere are internal only. Re-derivations compare statuses, decisions, heights and relations, not
+  coordinates. Unblocks E-7 and I5's replay test.
+- **MQ-05, what `-5` leaves open of the audit: FINAL.** (i) (a) The F8/F9 scores and connectedness are
+  not part of `-5`: not computed or shown for a `-5` map. (ii) (a) The misfit is not shown. Unblocks
+  MQ-22 and what the report prints beside a `-5` map.
+- **MQ-06, runtime: FINAL (a).** 70-90 s per set at 20,000 respondents is acceptable as signed off; the
+  worst case occurs only when a set really has segments, the price of the false-segment protection. No
+  spec change.
+- **MQ-07, survey-weighted relations: FINAL (a).** Unweighted, labelled "vzorek" in the method note.
+  Weighted relations would need an effective n inside every test (Fisher, BH, the noise rule) and in
+  BB1, so they become a separate, benchmarked decision later. Unblocks the method note. No spec change.
+- **MQ-08, the relative-height legend: FINAL, own rule.** Relative height becomes truly 0 to 1;
+  stretching the range is the point of the relative scale. The 0.15 guardrail existed to avoid no hill
+  in blocky terrain and is not needed with IDW. The scale shows real numbers when relative is on.
+  Unblocks the web and report legend (E-3, E-4). *Coordinator's note:* `relative_height_floor=0.15`
+  is a spec value (`packages/aia_core/src/aia_core/domain/sociomap/specification.py:1686 @ 947686c0`)
+  and the spec's fingerprint covers the whole spec (`specification.py:841-843`), so this changes the
+  `-5` fingerprint and needs a new register entry, as the 2026-10-26 terrain change did
+  (`domain/sociomap_register.py:86-100`).
+- **MQ-09, context (SECONDARY) objects: TENTATIVE, leaning (a).** Off for the MVP, said under the map:
+  „Kontextové objekty nejsou v mapě; chcete-li je vidět, zařaďte je do sady." A client who wants
+  competitors on the map declares them PRIMARY. (b) may come later as a tested decision; not
+  recommended now. Blocks context-object display only.
+- **MQ-10, F16, the preference map: FINAL (a).** Closed for the MVP; `-5`'s respondent map is the
+  canonical way people are placed. Unblocks `sociomap-formula-corrections` 4c.
+
+### Segments, own dimensions, coding, replacement, client data
+
+- **MQ-11, which descriptor combinations define a segment: TENTATIVE (b).** Pairs at most, marked
+  "undecided yet". Blocks segment items 1 and 10.
+- **MQ-12, how an accepted own dimension takes part: TENTATIVE (b).** A filter only, labelled modelled
+  (modelled is not observed). Recommended, no decision made. Blocks the own-dimension consumer only.
+- **MQ-13, register granularity and respondent points: FINAL.** (a) One register entry per method.
+  (ii) Density only for clients; dots stay internal, because on client data a dot is a real individual.
+  Exception: if the document stays internal to the client, (i) dots shown is possible. Unblocks segment
+  items 4 and 9 and `report-delivery#RD4`'s client figures.
+- **MQ-14, the open-answer coding method (AOC4): FINAL, own rule.**
+  - Codebook: a model may propose; only the researcher approves.
+  - Multi-label: each code counts at most once per answer, so percentages may sum to over 100 %.
+  - Denominator: respondents who answered, with the number asked and the number blank also shown
+    (e.g. Cena = 74 of 212 = 34.9 %).
+  - Small codes: fewer than **5** mentions merge into "Ostatní" (**a proposal**: proposed default,
+    needs sign-off).
+  - Model and review: the model proposes codes; the researcher's assignment is final. A second,
+    independent coding of a random 50 answers (or all, if fewer) must reach **Cohen's κ ≥ 0.70**
+    (tracked for sign-off with the 5).
+  - Modelled (persona) answers: internal until validation lifts them.
+  - Unblocks AOC5's runtime, AOC6 to AOC8 and `report-delivery#RD10`.
+- **MQ-15, replaced respondents (RQC5): FINAL (b).** Keep the other weights; each replacement takes the
+  weight of the one it replaces. No silent renormalisation. Refuse when the cell has no unused donors,
+  or when more than **10 %** of the run would be replaced (the run itself is then suspect; **10 % is a
+  proposal**: proposed default, needs sign-off). Unblocks RQC5's behaviour and its ADR (ADR 0036, still
+  unanswered).
+- **MQ-16, the benchmark interval when supports differ: FINAL (a).** Both intervals, no difference
+  claimed. Modelled is not observed; this holds until validation (ADR 0024's P1 to P8) lifts modelled
+  answers. Unblocks `client-data-in-analysis` 4 and 5.
+- **MQ-17, may a client survey ground AI respondents: FINAL.** Never in the MVP, because grounding
+  would send client rows into the AI prompts. Revisit only after the MVP. Nothing to build.
+- **MQ-18, the support, metric and interval of a client number: FINAL, own rule.**
+  - Survey rows: n is the row count, or Kish n when weighted, with an interval.
+  - Records or census counts (e.g. „4 812 návštěv"): labelled "not a sample", exact figure, no
+    interval, no tests.
+  - Supplied aggregates without rows: as reported, no interval.
+  - Allowed metrics: mean, pct, n, plus count, amount and rate.
+  - Unblocks `client-data-in-analysis` 0 and 5, and AC-10.
+- **MQ-19, scientific checks before a client deliverable: FINAL (b) + (c).** The interval-order rule
+  (MQ-20) and multiple-comparison control (BH) on segment differences, both deterministic. Unblocks
+  `report-delivery#RD0`'s final policy.
+- **MQ-20, "an order only where 95 % intervals part" in analysis prose (F061): FINAL (a).** Enforced
+  server-side and in the prompt. Unblocks the analysis harness change.
+
+### Still unanswered (21 items)
+
+MQ-21 (the tracked-set size rule, F058); MQ-22 (connectedness K100 under `-5`, partly settled by
+MQ-05: not part of `-5`); MQ-23 (presets Metodika offers as a base, F135); MQ-24 (analysis modules
+that never receive inputs, F062); R-1 (the evidence request, the audit's check script); OQ8 (Výsledky's
+"Efektivní n" as Kish's n); OQ9 (the rated-set scale: board presets or fixed 1-10); I5 (what a
+"dimension" is); S-1 (whether the map shows the Lead's refusals); S-2 (the "segments only describe"
+sentence in the `-5` legend); RN-1 (the Czech reader note beside every `-5` map; needed for MQ-01);
+ADR 0023 (the Metodika tab) and its Q1, Q5, Q7; ADR 0024 Q1 (holdout thresholds P1 to P8); ADR 0027
+(client survey data in analysis); ADR 0036 (replacing straight-liners) and its Q7, Q8; ADR 0037
+(field policy from a client's data contract).
+
+### Open checks (the coordinator's, 2026-10-28)
+
+- **MQ-08 moves the fingerprint MQ-01 approves.** Make MQ-08's spec change first; register the object
+  map once, at the final fingerprint, with RN-1's text.
+- **MQ-01 against today's register.** `aia-sociomap-5` is already `CLIENT_FACING` as a whole method
+  (`domain/sociomap_register.py:69-100 @ 947686c0`). Under MQ-01 (b) and MQ-13 (a), confirm that no
+  client document shows a `-5` respondent map or segments until E-3 and E-4 draw them.
+- **Confirm the tentative MQ-09, MQ-11 and MQ-12** before their dependent work starts.
+- **Sign-off on the proposed numbers:** 5 mentions and κ ≥ 0.70 (MQ-14); the 10 % replacement cap
+  (MQ-15).
+
+---
+
 ## Recorded: MVPQ-13. The MVP ships `aia-sociomap-5` (DECIDED, the product owner, 2026-10-20)
 
 **Decision.** The MVP's Sociomap is the methodology owner's signed-off `aia-sociomap-5`
