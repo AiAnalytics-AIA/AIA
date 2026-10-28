@@ -166,9 +166,9 @@ def _tuple_as_array(node: dict[str, Any]) -> None:
 
 
 def _defs(schema: dict[str, Any]) -> dict[str, Any]:
-    """The schema's definitions; a ``$ref`` naming none is refused."""
+    """The schema's definitions; a ``$ref`` naming none, anywhere in the schema, is refused."""
     defs: dict[str, Any] = dict(schema.get("$defs") or {})
-    for name in _refs(schema):
+    for name in [*_refs(schema), *(ref for body in defs.values() for ref in _refs(body))]:
         if name not in defs:
             raise _Refused("dangling_ref")
     return defs

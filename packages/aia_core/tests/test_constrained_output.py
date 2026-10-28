@@ -190,6 +190,13 @@ def _object(props: dict[str, Any], **extra: Any) -> dict[str, Any]:
         (_object({"x": {"type": ["object", "null"]}}), "open_object"),
         (_object({"x": {"type": "array", "prefixItems": []}}), "empty_tuple"),
         (_object({"x": {"$ref": "#/$defs/Missing"}}), "dangling_ref"),
+        (
+            _object(
+                {"x": {"$ref": "#/$defs/A"}},
+                **{"$defs": {"A": _object({"y": {"$ref": "#/$defs/Missing"}})}},
+            ),
+            "dangling_ref",
+        ),
         (_object({"x": {"$ref": "#/properties/y"}, "y": {"type": "string"}}), "ref_outside_defs"),
         (_object({"x": {"type": "string", "pattern": "(?P<n>a)(?P=n)"}}), "pattern"),
         (_object({"x": {"type": "string", "pattern": "a{1000}"}}), "pattern"),
