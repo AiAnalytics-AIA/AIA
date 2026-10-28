@@ -484,7 +484,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+        source_sha256="3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -938,7 +938,11 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             f"{_T}/test_sociomap_primary_scores.py::test_the_scores_are_the_audits_formula_on_a_hand_computed_example",
             f"{_T}/test_sociomap_primary_scores.py::test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic",
         ),
-        note_cs="Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+        note_cs=(
+            "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda "
+            "aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, "
+            "28. 10. 2026)."
+        ),
     ),
     MethodStep(
         id="f8_height",

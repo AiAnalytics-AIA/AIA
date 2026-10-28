@@ -3843,7 +3843,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -5125,7 +5125,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -8638,7 +8638,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9920,7 +9920,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -13433,7 +13433,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -14719,7 +14719,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -18235,7 +18235,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -19517,7 +19517,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
