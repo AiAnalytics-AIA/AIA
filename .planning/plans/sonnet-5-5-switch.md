@@ -4,7 +4,7 @@ chunks:
   - "[x] 1. The code: the route model's id and request profile, the respondent's temperature, Deep Research's thinking budget, a capability's effort (feature/sonnet-5-5-readiness)"
   - "[x] 2. Nigel accepts the Bedrock Marketplace agreement for Claude Sonnet 5.5 on develop's account"
   - "[ ] 3. Terraform: bedrock_model_id swapped to eu.anthropic.claude-sonnet-5-5 (infra session)"
-  - "[ ] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
+  - "[x] 4. SSM writes under /aia/develop/: the id, prices, limits, profile and efforts below (infra session)"
   - "[ ] 5. Deploy and probe: about 20 paid fieldwork calls, about USD 0.25, measuring truncation and output tokens (infra session)"
   - "[ ] 6. The acceptance study re-run on Sonnet 5.5, within the existing USD 25 allocation"
 ---
@@ -102,6 +102,37 @@ needs its own reading: with the budget dropped, each agent kind's answer limit
 (`request_limits.REQUEST_LIMITS`) no longer carries the 2,048 tokens of thinking headroom it had, while
 adaptive thinking still counts inside it, so its truncation is measured before Deep Research is
 switched on for Sonnet 5.5 (and `AIA_AI_RESEARCH_EFFORT` is the lever, not the frozen engine).
+
+## Chunk 4: done (2026-10-28)
+
+Nigel ran it from prompts the infra session prepared, relayed by the PM coordinator. Nothing was applied by an agent. The route now runs on `eu.anthropic.claude-sonnet-5-5` through the tagged profile `application-inference-profile/hnpij62nm89g`, so spend keeps the `Environment=develop` tag.
+
+- **Chunk 3 (Terraform) did not gate this.** The tagged 5.5 profile and its IAM grant already existed (`aia-develop-lead`, develop-spend-attribution 1 and 2), and Terraform owns none of these SSM values (`infra/develop/main.tf:286-316`). Chunk 3 becomes a cleanup: one profile per model, keeping hnpij by a `moved` block, then the 4.5 profile `xz0r7v8bizok` and its grants removed after chunk 6.
+- **SSM, set 19:26-19:30 UTC.**
+  - The route's values are as § Chunk 4 lists them.
+  - `aia_bedrock_effort=medium` and `aia_ai_research_effort=high`. The product owner chose to keep the Lead at medium: on the route binding, `STUDY_LEAD` takes the route's effort, since no capability key covers it (`ai_runtime.py:515-521`).
+  - `aia_ai_fieldwork_effort=low`.
+  - `aia_bedrock_invocation_target` points at hnpij.
+  - `aia_ai_policy_version=aia-bedrock-develop-2026-10-28-route-sonnet55`.
+  - The Lead's 11 own-model keys were deleted, because the worker refuses a Lead model equal to the route's (`ai_runtime.py:821-825`). `aia_ai_research_lead_max_output_tokens` (8000) and `_reservation_usd` (1.10) stay.
+  - The values before are saved in CloudShell as `~/aia-s55-rollback-20261028T192600Z.json`: 23 values, route `eu.anthropic.claude-sonnet-4-5-20250929-v1:0` at 3.30 / 16.50 through `xz0r7v8bizok`, and policy `aia-bedrock-develop-2026-09-26-lead-sonnet55-20261026`.
+- **Start-time checks**, computed beforehand with the code's `reservation_usd`. Each holds with the reservations unchanged:
+  - research: 1.1901 needed, 2.00 set;
+  - Lead: 1.0259 needed (window 154,519), 1.10 set;
+  - client source: 0.3573 needed, 0.50 set.
+- **The switch.** At 2026-10-28T19:42:33Z, `bin/write-env.sh` then `docker compose up -d api web worker`, image `1f633e5b` unchanged.
+  - The worker logged "worker started" at 19:42:27 with no `AIRuntimeConfigError`.
+  - Its environment shows every value above, and the deleted keys empty.
+- **The smoke.** One Lead turn on a fictional study at 19:45:44 UTC:
+  - the ledger row reads `STUDY_LEAD`, `eu.anthropic.claude-sonnet-5-5`, `SUCCEEDED`, `COMPLETED`;
+  - 23,918 input and 570 output tokens, 6,212 ms, USD 0.0588896 (exactly 2.20 / 11.00 per Mtok);
+  - under the new policy version.
+
+  CloudTrail, read for the instance role's session alone: one `Converse` at 19:45:44 UTC, `modelId` `arn:aws:bedrock:eu-central-1:311141567391:application-inference-profile/hnpij62nm89g`, `maxTokens` 8000, no error.
+- **Before the switch, nothing could resume on 5.5 by itself.**
+  - Every `WAITING_PROVIDER` step was `ai_runtime_unavailable`: unpaid, no `runnable_after`, never timer-resumed (`domain/workflow.py:797-798`).
+  - The 2 `AWAITING_BUDGET` steps wait for a person.
+  - The 6 RUNNABLE sociomapping steps sit in FAILED runs (§ Findings).
 
 ## Chunk 2: done (2026-10-27)
 
