@@ -9,7 +9,7 @@ number in it is fictional.
 |---|---|
 | Live canvas, owned by the second account since 28 Oct 2026 (private to it) | <https://claude.ai/artifact/76oZLbQk8Gt28qYahSHAs4>: edit this one, and export from it |
 | Earlier canvas, first account (no longer edited) | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> |
-| Exported version | v21, the second account's artifact version `1793192746-7213`, 28 Oct 2026: v20 (first account `1793100519-580b`, rebuilt unchanged as `1793114838-e58b`) with every page header drawn as core v4.3's hero |
+| Exported version | v21, the second account's artifact version `1793203341-37ea`, 28 Oct 2026 (the same files as `1793192746-7213`, the version first exported; checked file by file and against `reference/`): v20 (first account `1793100519-580b`, rebuilt unchanged as `1793114838-e58b`) with every page header drawn as core v4.3's hero |
 | Code the analysis is anchored to | `develop` @ `a1a9a45c` (anchors re-checked @ `dbaa7720`) |
 | Core stylesheet | `assets/aia-core-v4.3.css`: core v4.3 (Petrol), owned by the design-system session; SHA-256 `bd0c156ee4ef23d2dcaef0f7f10fc1a82e675a9eb3e1c9d45a3ed198d54a2b0e`. It is not `../shared/aia-core.css` (core v3) |
 | Client stylesheet | `assets/aia-client.css`: scoped under `.cl`, built only on core variables, redefines no core class |
