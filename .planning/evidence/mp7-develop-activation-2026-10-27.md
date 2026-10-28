@@ -125,3 +125,18 @@ holds USD 33.15 untagged. Two tagged application inference profiles exist since 
 
 MP7 stays open on MP7-1 alone, which needs the Bedrock console and a person; MP7-3 is a known
 blocked gate, recorded, not a defect of the run. Neither is fixed by repeating this read.
+
+## MP7-1 closed, 2026-10-28
+
+The product owner read the Bedrock console and AWS's user guide on 2026-10-28, 11:35-11:47 UTC. The
+coordinator read the account's mode through the API (`get-account-data-retention`: `inherit`). The
+evidence and the decision are recorded in ADR 0010 § Activation evidence, "Retention, 2026-10-28
+(develop only)". In short:
+
+- The provider sees nothing.
+- AWS may keep traffic for abuse detection; the only period it states is up to 30 days, for the Fable
+  models.
+- The product owner kept `30` as that stated maximum, for develop only ("Keep 30 as upper bound").
+
+No parameter changed. MP7 is done; MP7-3 (Common Crawl) stays a recorded, known gate.
+

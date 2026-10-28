@@ -103,6 +103,10 @@ for this model, per the current service terms, with the link and date. ADR 0008 
 only Class C material travel over a route with unspecified retention, which is all
 this route is proposed for.
 
+*Superseded for develop on 2026-10-28* (§ Activation evidence, retention): the account is still
+`inherit`, and develop's route records 30 days as AWS's stated maximum, accepted by the product owner
+for develop only.
+
 ### Cost attribution
 
 AIA's own ledger (`ai_usage_events`) prices every call from its reported usage and the
@@ -197,3 +201,28 @@ refused (`apps/executors/src/aia_executors/ai_runtime.py` `_eu_profile @ 7e3b413
 `.planning/plans/sonnet-5-5-switch.md`). The route model is still Claude Sonnet 4.5 here. Claude
 Sonnet 5.5 is recorded as the route model, with its 2026-10-25 prices and limits, once that plan's
 chunk 4 lands.
+
+### Retention, 2026-10-28 (develop only)
+
+Read on 2026-10-28, 11:35-11:47 UTC, by the product owner in the AWS console and AWS's Bedrock user
+guide (account `311141567391`, `eu-central-1`), and by the PM coordinator through the CLI. Nothing was
+changed.
+
+| Check | Source | Result |
+|---|---|---|
+| The account's data-retention mode | `aws bedrock get-account-data-retention` (eu-central-1), 2026-10-28 | `inherit`: no mode set at this scope, as on 2026-09-26. The mode is set per region through the API only; the console's Settings page has no retention control |
+| Invocation logging | Bedrock → Settings | off: no CloudWatch or S3 destination |
+| Model terms, Sonnet 4.5 and 5.5 | "View EULA" on each model's page: [Serverless Third-Party Models on Amazon Bedrock](https://aws.amazon.com/legal/bedrock/third-party-models/), "Anthropic on Bedrock - Commercial Terms of Service" | "Anthropic may not train models on Customer Content from Services." The section says nothing about keeping or deleting prompts or outputs |
+| Provider access | [Data protection](https://docs.aws.amazon.com/bedrock/latest/userguide/data-protection.html), Model Deployment Account | model providers "don't have access to Amazon Bedrock logs or to customer prompts and completions" |
+| What AWS keeps | [Abuse detection](https://docs.aws.amazon.com/bedrock/latest/userguide/abuse-detection.html), [Data retention](https://docs.aws.amazon.com/bedrock/latest/userguide/data-retention.html) | AWS may store or review inputs and outputs only in limited cases, never sharing them with the provider. The one period stated is "up to 30 days", for the models that need `aws_review` (Claude Fable 5 and 5.1). For a model in `default` handling, data may be kept for abuse detection with no period stated. Sonnet 4.5 and 5.5 are not on the model-specific list |
+| Model access | Bedrock → Model access | the page is retired: serverless models are enabled on first call |
+
+**Decision (the product owner, 2026-10-28, in the PM coordinator's chat: "Keep 30 as upper bound").**
+`aia_ai_route_retention_days = 30` stands for develop, as AWS's stated maximum retention for any
+model's abuse detection. It is not a figure AWS states for Sonnet 4.5 or 5.5. This holds for develop
+only, whose clients are fictional and whose class gates are advisory (ADR 0008, Amendment
+2026-10-21). Production decides its retention afresh in its own account, for instance by setting the
+mode to `none`, which writes nothing to durable storage. Revisit if AWS states a period for these
+models, if the account's mode changes from `inherit`, or if a model on the route joins the
+`aws_review` list.
+
