@@ -124,7 +124,8 @@
       "run-recovery-and-truth",
       "connected-research-assurance",
       "desktop-ux-overhaul-handoff",
-      "design-system-v2"
+      "design-system-v2",
+      "ops-status-report"
     ]
   },
   "done_keywords": [
