@@ -75,7 +75,8 @@
       "lead-conversation",
       "lead-identity",
       "lead-client-knowledge",
-      "research-agent-workflows"
+      "research-agent-workflows",
+      "brief-analysis-schema-repair"
     ],
     "client": [
       "client-knowledge-lifecycle",
