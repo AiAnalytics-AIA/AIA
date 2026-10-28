@@ -14,14 +14,14 @@ account, and changes only when a folder is added or retired.
 
 | Folder | What | Kind | First account (nigelblount@art-chain.io) | Second account |
 |---|---|---|---|---|
-| [`clients/`](clients/) | "AIA Klienti – prototyp": the client pages (Klienti, Přehled, Výzkumy, Znalosti and item, Přidat podklady, Profil) | Design canvas, 8 boards | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> | not rebuilt yet |
-| [`research-stages/`](research-stages/) | "AIA Výzkumné kroky – prototyp": the eleven stages, the respondent disc, the Lead's cards and chat | Design canvas, 24 boards | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | not rebuilt yet |
+| [`clients/`](clients/) | "AIA Klienti – prototyp": the client pages (Klienti, Přehled, Výzkumy, Znalosti and item, Přidat podklady, Profil) | Design canvas, 8 boards | <https://claude.ai/artifact/4dP7Y43dtHcJFkJLD31hFo> | <https://claude.ai/artifact/76oZLbQk8Gt28qYahSHAs4> |
+| [`research-stages/`](research-stages/) | "AIA Výzkumné kroky – prototyp": the eleven stages, the respondent disc, the Lead's cards and chat | Design canvas, 24 boards | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5> |
 | [`research-stages/spec/`](research-stages/spec/) | The research stages build spec: the prototype mapped onto develop, stage by stage | page + Markdown | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy> | not rebuilt yet |
-| [`settings/`](settings/) | "AIA Nastavení – prototyp": the eleven Settings pages | Design canvas, 11 boards | <https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7> | not rebuilt yet |
+| [`settings/`](settings/) | "AIA Nastavení – prototyp": the eleven Settings pages | Design canvas, 11 boards | <https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7> | <https://claude.ai/artifact/8bHnTkAJNiPNgGcYTzQqLS> |
 | [`design-system/`](design-system/) | The AIA Design System: every component's preview and rules, tokens, the shared core stylesheet | page and components | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> | not rebuilt yet |
 | [`ux-upgrade/`](ux-upgrade/) | The UX upgrade's before/after page and audits | page | <https://claude.ai/artifact/6duL5pNSVfiqqBz6V16Tfo> | not rebuilt yet |
 | [`palettes/`](palettes/) | The palette study behind Petrol | page | <https://claude.ai/artifact/CcT6HoxR4EHpao5rXYrda7> | not rebuilt yet |
-| [`../tools/build_map/`](../tools/build_map/) | The AIA Build Map, built from the repo by `build.py` | generated page | <https://claude.ai/artifact/XdjCNHdYnvcjYiijJpwrL3> | not rebuilt yet |
+| [`../tools/build_map/`](../tools/build_map/) | The AIA Build Map, built from the repo by `build.py` | generated page | <https://claude.ai/artifact/XdjCNHdYnvcjYiijJpwrL3> | <https://claude.ai/artifact/SHi9i7hDJMFTEbArivLS95> |
 
 Each canvas and page folder has a `reference/` folder of images of every board as it stood at that version; the
 scripts that draw them are in [`../tools/prototype_renders/`](../tools/prototype_renders/). Rebuilding a canvas in

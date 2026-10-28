@@ -275,7 +275,7 @@ describe("the settings control panel", () => {
     const row = (await screen.findByText("Vnímání značky")).closest("[data-study]") as HTMLElement;
     await waitFor(() => expect(row.getAttribute("data-near")).toBe("true"));
     // "92 % · ⚠" to the eye, the whole sentence to a screen reader; grey, never the fault's colour.
-    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno");
+    expect(row.querySelector("[data-spend-line]")?.textContent).toBe("92 % rozpočtu · zbývá 8,00 USD · téměř vyčerpáno");
     expect(row.querySelector("[data-spend-line] svg")).not.toBeNull(); // the warning is Phosphor's icon, not a glyph
     expect(row.className).toContain("bg-surface-sunken");
     expect(row.className).not.toMatch(/status-(you|fault)/);

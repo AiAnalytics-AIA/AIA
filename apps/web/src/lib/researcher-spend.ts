@@ -7,6 +7,7 @@
 // rows is zero), and reads 0,00 USD.
 
 import type { PersonSpend, ResearcherSpend, SpendActivity, SpendFigures, SpendPeriod } from "./api";
+import { usdWords } from "./spend";
 
 export const SPEND_PERIODS: readonly SpendPeriod[] = ["this_month", "last_month", "year_to_date"];
 
@@ -29,13 +30,10 @@ const ACTIVITY_LABEL: Record<SpendActivity, string> = {
 // by name. Never attributed by guess (the product owner, 2026-10-22: "Neznámý").
 const UNATTRIBUTED = "Neznámý";
 
-const NUMBER = new Intl.NumberFormat("cs-CZ", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** An amount in USD as Czech print reads it; a positive amount under a cent is not rounded to 0. */
+/** An amount in USD as Czech print reads it (spend.ts usdWords: a positive amount under a cent is
+ *  not rounded to 0); a figure that is not a number is the spend's own "neznámá". */
 export function usd(amount: number): string {
-  if (!Number.isFinite(amount)) return "neznámá";
-  if (amount > 0 && amount < 0.005) return "< 0,01 USD";
-  return `${NUMBER.format(amount)} USD`;
+  return Number.isFinite(amount) ? usdWords(amount) : "neznámá";
 }
 
 /** "1 volání", "2 volání" -- Czech "volání" does not decline; the count is said as a number. */

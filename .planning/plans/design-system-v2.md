@@ -30,6 +30,13 @@ chunks:
   - "[x] DS26. One interaction behaviour: SAVED_MS everywhere, ChoiceChips saves, Stepper deferred, Vrátit for a contact and a client status (PR #1022)"
   - "[x] DS27. A Czech 404 with a way back (app/not-found.tsx; PR #1022)"
   - "[x] DS28. Quiet chrome: rail and client tabs without hue, no header strip, on-client monogram, no bounce easing, Phosphor for the last glyphs, the 12 px floor (PR #1022)"
+  - "[x] DS29. AI without a colour: graphite and the spark edge (spark-1..3, .ai-spark in globals.css), ai-ink retired (PR #1022)"
+  - "[x] DS30. Each thing said once on a screen (Přehled, Klienti, the workbench header, Settings' search, Profil, Výzkumy) and one FaultNote (PR #1022)"
+  - "[x] DS31. StatusPill: Chip, LeadCards' Pill, pillClass and .statepill as one pill drawn by Glyph's shapes (DS6's pill; the 14/16/20 sizes still open)"
+  - "[x] DS32. Value and usdWords: every figure known, unknown or suppressed one way; the six money formatters one; confirmSpend required, withBudget gone"
+  - "[x] DS33. StaleMark: a stale proposal and an older run's results in coral with the reopened glyph, never the fault's red"
+  - "[x] DS34. AiJobCard: the Lead's job and run cards on one card with the spark edge; the .act/.kvgrid CSS removed (JobPanel still its own)"
+  - "[x] DS35. ItemReview: the Lead's edits (each) and Design Research (select) on one list; an agent job's proposal stays whole until its accept takes items (WCE8b)"
 ---
 # Design system v2: from the approved look to apps/web
 

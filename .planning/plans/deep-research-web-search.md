@@ -54,10 +54,10 @@ chunks:
   - "[x] 48. Verifier calibration: a gold set of claims and excerpts, miss and false-alarm rates with thresholds, NOT_CALIBRATED until measured live"
   - "[x] 49. Search playbooks: where each kind of subject is best found, from the register, as hints the investigator may use"
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
-  - "[ ] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
+  - "[x] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
   - "[x] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition (#844 @ 170823e4)"
   - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py not built yet)"
-  - "[ ] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
+  - "[x] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[x] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
   - "[ ] 56. A quick single-track lookup for the Lead's Hledat na webu: several search hits and parallel fetches of the top pages through RetrievalGate, captured snapshots, per-call cost against the wallet; OPEN without a card, CLASSIFIED behind a plan card (Q6, Q24)"
@@ -1190,6 +1190,54 @@ in code calls Gemini; the arm runs when chunk 26 does.
   live before chunk 1 records § 4's extraction items and 27 activates.
 
 ## 13. Measurements and decisions log
+
+**Chunk 54, ticked with Wayback left on and unverified (the owner, 2026-10-28).** Nigel added the seven
+hosts to the second account's environment ("i added the domains"), then answered: "1a, leave wayback on".
+
+- **The probes.** One live request each on 27-28 Oct, of the shape each connector sends, from the second
+  account's cloud environment through its egress proxy. Public inputs only: a ČSÚ selection, a Eurostat
+  dataset, a public DOI, a public IČO, a catalogue record, a public URL.
+
+  | Connector | Request | Answer | Parser |
+  |---|---|---|---|
+  | DataStat (`dataset_datastat.py:41`) | `GET data.csu.gov.cz/api/dotaz/v1/data/vybery/CEN0101HT01` | 200 `application/json`, 1.1 s | shape as documented (JSON-stat 2.0 `dataset`); parser result lost in a container restart |
+  | NKOD (`dataset_nkod.py:46`) | `GET data.gov.cz/sparql?query=…` (the module's catalogue query) | 503 once, then 200 `application/sparql-results+json`, 1.1 s | not run |
+  | Eurostat (`dataset_eurostat.py:58`) | `GET ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_a?…` | 200 `application/json`, 0.8-2.2 s | accepted, 1 row |
+  | OpenAlex (`dataset_openalex.py:70`) | `GET api.openalex.org/works/doi:10.1038/nature12373?select=…` | 200 `application/json`, 0.2 s | parser result lost in a container restart |
+  | ARES (`dataset_ares.py:64`) | `GET ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/00006947` | 200 `application/json`, 0.7 s | accepted (Ministerstvo financí, právní forma 325) |
+  | Crossref (`dataset_crossref.py:53`) | `GET api.crossref.org/works/10.1038/nature12373` | 200 `application/json`, 0.1-0.4 s; `x-rate-limit-limit: 5` per 1 s, `x-concurrency-limit: 1` | accepted, no update listed |
+  | Wayback (`dataset_wayback.py:60`) | `GET web.archive.org/cdx/search/cdx?url=https://www.czso.cz/&output=json…` | no answer: the tunnel opens, then closes after 39 bytes, every attempt (the proxy's log: `ws_closed_mid_exchange`) | not run |
+
+  Anchors @ 7107c1f0.
+- **Wayback stays on, unverified.** Develop's SSM lists all seven connectors, Wayback included. The failure is
+  between the cloud environment's proxy and the archive; the develop host has no proxy and was not probed from
+  (agents may not run commands there). Wayback is rung 9 of the acquisition ladder, asked only with a permit
+  for a dead, moved or changed page (`acquisition_ladder.py:24-25`); a failed lookup ends as an acquisition
+  gap, never a finding. Its first real lookup on develop is its probe.
+- **The activation matrix.** `AIA_DEEP_RESEARCH_AGENT_DIRECTED` is a row of MP6's activation profile
+  (`aia_executors.activation`, #1050), merged before this tick.
+- **Common Crawl** is kept out of the first activation (chunk 51's entry below); its AWS side is not in
+  Terraform.
+- **Crossref's limit.** One request in flight and five a second, as its headers state; not yet checked against the ladder's per-host pacing (a hypothesis, no failure seen).
+
+**Chunk 51, ticked without Common Crawl (the owner, 2026-10-27).** Nigel: "tick #51 without Common Crawl,
+yes to #54".
+
+- **What is on.** Develop's SSM, read-only on 27 Oct, has every switch of this chunk except Common Crawl:
+  `aia_deep_research_enabled`, web search `brave`, the 7 connectors (datastat, nkod, eurostat, openalex, ares,
+  crossref, wayback), `aia_deep_research_agent_directed=true`, `aia_deep_research_lead=true`, fan-out.
+- **Approvals in force.** The approvals were in force (a priced quote answered 200 on 26 Oct; see chunk 1's
+  entry below).
+- **Common Crawl stays off.** There is no `AIA_DEEP_RESEARCH_COMMON_CRAWL*` key. Its priced us-east-1 Athena
+  route is a later switch, and chunk 54's Common Crawl clause is met by keeping it out of the first
+  activation.
+- **Not verified by an agent.** The chunk's test, a recorded run whose `GET …/deep-research/runs/{id}` names
+  Brave, a connector and the archive, was not read: run records are in AIA's database, and the container logs
+  do not name the routes a run used.
+- **Chunk 54 stays open.** Nigel approved the live probes, but the second account's container could not run
+  them: its network policy refused all seven hosts (403 on CONNECT). AIA's own connectors also refuse a proxy
+  by design (`HostScopedClient`). The probes need the hosts allowed in that environment, or a run from the
+  develop host.
 
 **Chunk 1, the owner's sign-off, 2026-10-27.** Nigel kept Deep Research on, and signed off Brave and the
 Deep Research values: "these should all be settled". He was answering the second account's PM coordinator,

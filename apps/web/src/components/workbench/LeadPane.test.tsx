@@ -451,7 +451,7 @@ describe("LeadPane", () => {
     expect(startRun).not.toHaveBeenCalled();
     // The ceiling is the card's key fact, labelled; the state pill says it is ready.
     const key = await screen.findByText("4,2 USD");
-    expect(key.className).toContain("card__key");
+    expect(key.hasAttribute("data-fact-key")).toBe(true);
     expect(key.closest("dd")?.previousElementSibling?.textContent).toBe("Cena nejvýše");
     expect(screen.getByText("Připraveno")).toBeTruthy();
     expect(screen.getByText("Rozpočet studie")).toBeTruthy();

@@ -19,7 +19,7 @@ import { proposedTrace } from "@/research/trace";
 import { proposalAnalysis } from "@/research/plan-edit";
 import type { ResearchState } from "@/research/store";
 import { Sparkle } from "../icons";
-import { Button } from "../ui";
+import { Button, StaleMark } from "../ui";
 import { AgentProposalContent } from "./AgentProposalDialog";
 import type { ProposalDecision, StaleNotice } from "./useResearchAgents";
 
@@ -76,7 +76,7 @@ export function ProposalReview({ result, action, state, onDecision, canApply = t
         <span className="text-xs text-ink-muted">Nic se nezmění, dokud návrh nepoužijete.</span>
       </div>
       <div className="flex flex-col gap-4 px-4 py-3">
-        {stale ? <p role="alert" data-proposal-stale className="rounded-sm border border-status-fault/40 bg-status-fault-wash p-3 text-[13px] leading-5 text-ink">{stale.message}</p> : null}
+        {stale ? <StaleMark alert data-proposal-stale>{stale.message}</StaleMark> : null}
         {diff.summary ? (
           <div>
             <h3 className="text-xs font-medium text-ink-muted">Shrnutí problému</h3>
