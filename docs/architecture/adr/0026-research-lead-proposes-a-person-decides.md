@@ -17,9 +17,9 @@ code, pinned in `tests/fixtures/lead_commands/commands.json` (`domain/lead_comma
 is not yet refused with `403 human_gate_required`: no code raises it
 (`git grep human_gate_required 5d5ed250` finds only this ADR and the evidence trace). That gap is
 tracked as an open item. The status is unchanged.
-**Amendment 2026-10-28 (Proposed, not accepted; its five questions answered by the product owner):** [read tools inside a turn; paid work stays an
-approved job](#amendment-2026-10-28-proposed-the-lead-reads-through-tools-inside-a-turn-paid-work-stays-an-approved-job),
-amending decision 3. Until the product owner accepts it, decision 3 stands as written.
+**Amendment 2026-10-28 (Accepted 2026-10-28 by the product owner):** [read tools inside a turn; paid work stays an
+approved job](#amendment-2026-10-28-the-lead-reads-through-tools-inside-a-turn-paid-work-stays-an-approved-job),
+amending decision 3; where the amendment and decision 3 differ, the amendment wins.
 **Date:** 2026-10-19
 
 ## Context
@@ -580,15 +580,17 @@ recorded from the Bedrock console and pricing page by an operator
 **Not changed.** The route, its approved data classes and retention; every evidence gate;
 decision 3's closed output; the one repair; and the rule that the API never calls a model.
 
-## Amendment 2026-10-28 (Proposed): the Lead reads through tools inside a turn; paid work stays an approved job
+## Amendment 2026-10-28: the Lead reads through tools inside a turn; paid work stays an approved job
 
-**Status:** Proposed, 2026-10-28, not yet accepted. Drafted at the product owner's request ("yes,
+**Status:** Accepted — 2026-10-28, by the product owner, in his words "accept ADR 0026
+amendment" (the PM coordinator's chat, about 21:00 UTC, relayed by the coordinator). Proposed the
+same day. Drafted at the product owner's request ("yes,
 have a session draft the amendment", the PM coordinator's chat, about 20:45 UTC), from his question
 "I feel like our current system prompts architecture would work better as tools for the lead agent,
 or no?". **His answers to the draft's five questions** (the coordinator's chat, 20:52-20:55 UTC,
 relayed by the coordinator): Q1 "Read tools + workers as defs"; Q2 "USD 0.50 or 8 rounds", whichever
 comes first; Q3 "Native tool use first"; Q4 "Fold it in" (ADR 0042); Q5 "B, raised to A with client
-data". They are written in below. Acceptance of the amendment as a whole is still his.
+data". They are written in below.
 **Amends** decision 3 ("The Lead's output is closed; it holds no tools"), its last paragraph ("The
 Lead calls no tool, reads no table … Everything it knows is in its frozen context") and decision 9's
 "Calls per turn: one, plus at most one repair". **Replaces** ADR 0041 Amendment 1 A3's
@@ -938,11 +940,11 @@ output and reasoning:
 ### Open for Nigel
 
 The five questions are answered (Status, above), and so is G2's capture ("ok to record G2",
-2026-10-28, about 20:57 UTC; *Build*, G2). Left for him: **acceptance** of the amendment as a whole.
+2026-10-28, about 20:57 UTC; *Build*, G2), and the amendment is accepted (Status). Nothing remains open.
 
 ### Doc follow-up
 
-For the docs PR after acceptance; no other shared document is edited here.
+For the docs PR; no other shared document is edited here.
 
 - **`docs/architecture/adr/README.md`:** ADR 0026's line notes "Amendment 2026-10-28: native read
   tools in a turn, USD 0.50 or 8 rounds; paid work stays a job".
