@@ -1106,14 +1106,18 @@ apps/
     snapshot.py             develop_snapshot: a project revision as a JSON artifact (S3)
     registry.py             The composition root AIA_WORKER_EXECUTORS names; store + build;
                             population_store: the one store the materialize step and the panel
-                            loader share; compose_registry(transport=, signer=, population=): production's
-                            composition, which the acceptance and population-double workers reuse
+                            loader share; compose_registry(transport=, signer=, population=,
+                            deep_research_retrieval=): production's composition, which the acceptance and
+                            population-double workers reuse
     recorded_models.py      The recorded Converse wire the suites and the acceptance harness share:
                             respondent, analysis and Lead answers, recorded-<kind>-<n>; the eight design workers too
-                            (DESIGN_ANSWERS, one fixed answer per contract, #570); unrecorded: client-source
-                            extraction and the Deep Research agents; any other contract refused by name
+                            (DESIGN_ANSWERS, one fixed answer per contract, #570); client-source extraction (one
+                            grounded FACT per segment) and the five Deep Research agents from a given script
+                            (deep_research_answer, shared with the workbench's scripted wire); any other contract
+                            refused by name
     acceptance_recorded.py  The acceptance harness's worker: production's composition over the recorded
-                            wire; local and test only; refuses Deep Research
+                            wire; local and test only; Deep Research only over AIA_ACCEPTANCE_RECORDINGS (web.json,
+                            agents.json), refused without them
     population_double.py    LOCAL AND TEST ONLY: the production registry with the panel loader
                             replaced by the population double's (RQC10); refused outside local and test, and no
                             deployment may name it (layer_check)
@@ -1252,9 +1256,11 @@ apps/
                             AIA_DEEP_RESEARCH_FAN_OUT (off by default) needs
                             AIA_DEEP_RESEARCH_MODEL_CONCURRENCY: no default, 1-256, model requests in
                             flight across every worker on the route; an adaptive route model is sent no thinking
-                            budget; the API prices it the same from AIA_BEDROCK_THINKING
-    deep_research_recorded.py  The ONLY composition with recorded web retrieval; the workbench
-                            composition alone composes it beside itself (local and test); refuses unless
+                            budget; the API prices it the same from AIA_BEDROCK_THINKING. retrieval=: a search and
+                            fetch the caller composed (the acceptance harness's recorded web), local and test only,
+                            refused with Deep Research off or beside any route the environment names
+    deep_research_recorded.py  The ONLY composition with recorded web retrieval; the workbench and acceptance
+                            compositions alone compose it beside themselves (local and test); refuses unless
                             AIA_ENV is local/test, and no deployment may name it (layer_check)
     materialize.py          population_materialize: a client's dimension made into its owned child
                             (PopulationRuntime.materialize_child); parks without a population store or
@@ -2351,7 +2357,11 @@ packages/aia_core/src/aia_core/
                             cookies, queries, locals, user or model input; no tracing
 
 tests/acceptance/           MVP-ACCEPT-2 tier A over HTTP: the stack (the API and an acceptance_recorded
-                            worker as processes), the declared bootstrap, allocation.json (the approved USD 25)
+                            worker as processes), the declared bootstrap, allocation.json (the approved USD 25);
+                            inputs/: the representative study's fixed inputs (brief, concepts, annual summary,
+                            visits dataset with one personal column, a fictional public page, a past study),
+                            fictional, pinned by SHA-256 in index.json (test_acceptance_inputs.py); recordings/: the
+                            recorded web and agents' script tier A's Deep Research runs on
 migrations/                 Alembic
 deploy/docker/              python.Dockerfile (api + worker targets; the worker build arg AIA_WORKER_PDF
                             installs LibreOffice Writer, ~300 MB, on for develop; NUMBA_CACHE_DIR=/tmp/numba,
@@ -2411,7 +2421,10 @@ tools/film_frame0.py        Checks the launch film's frame 0 is the mark the han
 tools/report_preview.py     A report as a reader sees it: DOCX -> PDF -> PNG via LibreOffice,
                             lint, greyscale, +35 % Czech stress (manual)
 tools/parity_status.py      Parity verdict per capability, from JUnit XML; the acceptance verdict per
-                            criterion from the acceptance step's JUnit, path parity beside it
+                            criterion from the acceptance step's JUnit, path parity beside it; --report-only (CI):
+                            a capability's FAIL reported, never blocking (MVP-21), an acceptance FAIL still blocks
+tools/parity_report_only.py An 18.6.6 comparison suite run so that a comparison that differed reports and never
+                            blocks, judged by its JUnit (MVP-21); an error or a suite that could not run fails
 tools/progress.py           Every plan's status from its front-matter; `--check` validates it
 tools/master_check.py       The MVP master plan's register against the plan files: every plan#ID resolves,
                             every gap, interface and criterion has a chunk, every open core chunk a wave
@@ -2727,7 +2740,7 @@ ungated fixture.
 | **MVP register** | `python tools/master_check.py` (the master plan against every plan file and `mvp-execution-contracts.md`) |
 | **Report PDFs** | The worker renders each report's PDF with `AIA_REPORT_PDF_ENABLED=true`, in an image built with `AIA_WORKER_PDF=true` (both on for develop: `.github/workflows/deploy-develop.yml`, `deploy/develop/docker-compose.yml`); on without `soffice` the worker stops at start |
 | **Report preview** | `make report-preview` — the four sample reports as pages, in colour, greyscale and +35 % stress (needs `libreoffice-writer`, `poppler-utils`) |
-| **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability |
+| **Parity verdicts** | `make parity-status` — `PASS` / `FAIL` / `NOT_EXECUTED` / `NOT_RUNNABLE` per capability; CI passes `--report-only` (a capability's `FAIL` reported, never blocking, MVP-21) |
 | Lint | `make lint` (ruff, one configuration: the root `pyproject.toml`; `packages/aia_core` and `apps/api` extend it) |
 | Format | `make format` |
 | Types | `make typecheck` (mypy `--strict --no-incremental` + `tsc --noEmit`; ~45 s, the check CI runs; a stale incremental cache reports errors CI does not, `AGENTS.md` § mypy) |

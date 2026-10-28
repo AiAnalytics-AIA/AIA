@@ -1201,6 +1201,26 @@ Two consequences to carry:
   file missing from that list will not fire. OI-37 records the first time this
   was learned here.
 
+**A job's `success()` looks through its whole `needs` chain, not only its direct needs.**
+Dropping a job from `needs:` does not stop it gating: if a job still in the list needs it
+(and runs under `!cancelled()`), a failure upstream still makes `success()` false
+downstream. Found when `dispatch-develop` stopped needing the 18.6.6 comparison jobs
+(MVP-21, #1060) but still needed `parity-status`, which needs them.
+
+```yaml
+# WRONG -- parity and oracle-parity still block the deploy through parity-status
+needs: [backend, parity-status, ...]
+if: success() && github.event_name == 'push'
+
+# RIGHT -- each direct need's own result, by name
+needs: [backend, parity-status, ...]
+if: >-
+  !cancelled() && github.event_name == 'push'
+  && needs.backend.result == 'success' && needs.parity-status.result == 'success' && ...
+```
+
+`test_parity_reports_never_blocks.py::test_the_deploy_waits_for_no_comparison_job` holds it.
+
 ## Caddy
 
 **Inside `handle`, Caddy re-sorts directives into its fixed order.** The
