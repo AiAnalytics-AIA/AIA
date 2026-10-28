@@ -1435,7 +1435,7 @@ def test_a_dataset_in_the_knowledge_declares_its_lineage() -> None:
 
 
 def test_a_turn_declares_recorded_datasets_and_the_placeholder_for_an_unrecorded_one() -> None:
-    # CR-4: the same rule as the design jobs (research_agents.knowledge_lineage).
+    # CR-4: the same rule as the design jobs (knowledge.knowledge_lineage).
     from aia_core.domain.knowledge import UNRECORDED_KNOWLEDGE_LINEAGE
     from aia_core.domain.licence_determinations import SYNTHETIC_FIXTURE_DATASET
 
