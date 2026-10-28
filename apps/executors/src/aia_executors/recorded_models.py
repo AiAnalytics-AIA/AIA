@@ -37,6 +37,7 @@ production composition imports it and no deployment names it (``make layer_check
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import threading
@@ -74,6 +75,8 @@ __all__ = [
 
 #: What every recorded answer says it is.
 RECORDING: Final = "aia-recorded-models-1"
+#: How long a stalled call is held: longer than any test waits for it.
+STALL_SECONDS: Final = 3600.0
 PROFILE: Final = "eu.example.analysis-model-v1:0"  # a test id; the real one is configuration
 ANALYSIS_TOOL: Final = "aia_analysis_module"
 RESPONDENT_TOOL: Final = "aia_research_respondent"
@@ -452,6 +455,9 @@ class RecordedModels:
     hook: Callable[[str, int], None] | None = None
     #: the Deep Research agents' recorded script (:func:`deep_research_answer`); none, unrecorded
     deep_research: Mapping[str, Any] | None = None
+    #: calls answered before every later one is held until the process stops, so a test can
+    #: stop a worker inside a call; none, every call answered
+    stall_after: int | None = None
     requests: list[HttpRequest] = field(default_factory=list)
     asked: list[tuple[str, int]] = field(default_factory=list)
     lock: threading.Lock = field(default_factory=threading.Lock)
@@ -468,6 +474,8 @@ class RecordedModels:
         self._index: dict[tuple[str, int], int] = {}
 
     async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+        if self.stall_after is not None and len(self.requests) >= self.stall_after:
+            await asyncio.sleep(STALL_SECONDS)
         tool = request.body["toolConfig"]["tools"][0]["toolSpec"]
         name = str(tool["name"])
         with self.lock:
