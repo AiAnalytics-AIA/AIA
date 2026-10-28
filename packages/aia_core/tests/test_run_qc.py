@@ -72,8 +72,10 @@ def _unit_metrics(metrics: Any) -> Any:
 @pytest.mark.parametrize("case_id", sorted(CASES))
 def test_a_runs_qc_is_the_units_finding_for_finding(case_id: str) -> None:
     unit, ours = UNIT[case_id], _ours(CASES[case_id])
-    assert [(f.level.value, f.where, f.text, f.value) for f in ours.findings] == [
-        (f["uroven"], f["kde"], f["nalez"], f["hodnota"]) for f in unit["nalezy"]
+    # Each finding is the unit's: its level, place and value, and the check the unit's own
+    # sentence names (CHECK_OF_TEXT), in the unit's order.
+    assert [(f.level.value, f.where, f.check, f.value) for f in ours.findings] == [
+        (f["uroven"], f["kde"], CHECK_OF_TEXT[f["nalez"]], f["hodnota"]) for f in unit["nalezy"]
     ]
     assert ours.level.value == unit["uroven"]
     assert ours.verdict == unit["verdikt"]
@@ -84,7 +86,8 @@ def test_a_runs_qc_metrics_are_the_units_key_for_key(case_id: str) -> None:
     assert dict(_ours(CASES[case_id]).metrics) == _unit_metrics(UNIT[case_id]["metriky"])
 
 
-#: The unit's words for each ported check: the id each finding carries is pinned to them.
+#: The unit's sentence for each ported check (``qc.py``), to which each finding's id is pinned.
+#: The domain carries the id alone; its words are the screen's.
 CHECK_OF_TEXT = {
     "vic nez 20 % respondentu neodpovedelo": QcCheck.MISSING_ANSWERS,
     "temer nikdo neodpovedel 'nevim' — nerealne rozhodne": QcCheck.DONT_KNOW_RARE,
@@ -100,12 +103,6 @@ CHECK_OF_TEXT = {
         QcCheck.PERSONA_EFFECT_UNVERIFIED
     ),
 }
-
-
-@pytest.mark.parametrize("case_id", sorted(CASES))
-def test_each_finding_carries_the_id_of_the_check_that_wrote_it(case_id: str) -> None:
-    for finding in _ours(CASES[case_id]).findings:
-        assert CHECK_OF_TEXT[finding.text] is finding.check
 
 
 def test_the_fixtures_reach_every_ported_check() -> None:
@@ -136,7 +133,7 @@ def test_the_thresholds_are_a_parameter_and_recorded() -> None:
     assert QcCheck.STRAIGHT_LINING not in {f.check for f in _ours(case).findings}
 
 
-def test_the_missing_answers_finding_names_the_threshold_in_force() -> None:
+def test_the_missing_answers_check_reads_the_threshold_in_force() -> None:
     rows: list[dict[str, Any]] = [{"q": None}] + [{"q": "Ano"}] * 6  # 14.3 % not answered
     question = [QcQuestion("q", "vyber", ("Ano", "Ne"))]
     lower = replace(UNIT_THRESHOLDS, missing_max=0.10)
@@ -145,8 +142,12 @@ def test_the_missing_answers_finding_names_the_threshold_in_force() -> None:
         for f in run_qc(question, rows, dry=True, ablation=False, thresholds=lower).findings
         if f.check is QcCheck.MISSING_ANSWERS
     ]
-    assert finding.text == "vic nez 10 % respondentu neodpovedelo"
     assert finding.value == 0.143
+    assert not [
+        f
+        for f in run_qc(question, rows, dry=True, ablation=False).findings
+        if f.check is QcCheck.MISSING_ANSWERS
+    ]
 
 
 @pytest.mark.parametrize("bad", ["4", True])

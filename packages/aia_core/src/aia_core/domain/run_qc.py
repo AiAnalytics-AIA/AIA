@@ -156,13 +156,13 @@ class QcQuestion:
 
 @dataclass(frozen=True, slots=True)
 class QcFinding:
-    """One finding: its level and check, where (a question id or ``beh``), the unit's own words
-    and the value it read (``None`` where the unit reads none)."""
+    """One finding: its level and check, where (a question id or ``beh``) and the value it read
+    (``None`` where the unit reads none). Its words are the screen's, by its check; the unit's own
+    sentence for each check is pinned in the test that holds this port to the unit."""
 
     level: QcLevel
     check: QcCheck
     where: str
-    text: str
     value: float | None
 
 
@@ -219,8 +219,8 @@ def run_qc(
     t = thresholds
     findings: list[QcFinding] = []
 
-    def flag(level: QcLevel, check: QcCheck, where: str, text: str, value: float | None) -> None:
-        findings.append(QcFinding(level, check, where, text, value))
+    def flag(level: QcLevel, check: QcCheck, where: str, value: float | None) -> None:
+        findings.append(QcFinding(level, check, where, value))
 
     columns = {q.id: [row.get(q.id) for row in answers] for q in questions}
     per_question: dict[str, dict[str, object]] = {}
@@ -234,7 +234,6 @@ def run_qc(
                 QcLevel.VAROVANI,
                 QcCheck.MISSING_ANSWERS,
                 q.id,
-                f"vic nez {t.missing_max * 100:.6g} % respondentu neodpovedelo",
                 missing,
             )
         if q.typ == "vyber":
@@ -249,7 +248,6 @@ def run_qc(
                     QcLevel.VAROVANI,
                     QcCheck.DONT_KNOW_RARE,
                     q.id,
-                    "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
                     dont_know,
                 )
             if dont_know > t.dont_know_max:
@@ -257,7 +255,6 @@ def run_qc(
                     QcLevel.VAROVANI,
                     QcCheck.DONT_KNOW_FREQUENT,
                     q.id,
-                    "prilis mnoho 'nevim' — otazka je nejasna",
                     dont_know,
                 )
             if concentration is not None and concentration > t.concentration_max:
@@ -265,7 +262,6 @@ def run_qc(
                     QcLevel.VAROVANI,
                     QcCheck.CONCENTRATED,
                     q.id,
-                    "jedna kategorie pohltila skoro vse",
                     concentration,
                 )
         elif q.typ == "skala":
@@ -275,9 +271,7 @@ def run_qc(
             m["prumer"] = mean
             m["sd"] = sd
             if sd is not None and sd < t.scale_sd_min:
-                flag(
-                    QcLevel.VAROVANI, QcCheck.FLAT_SCALE, q.id, "temer nulovy rozptyl na skale", sd
-                )
+                flag(QcLevel.VAROVANI, QcCheck.FLAT_SCALE, q.id, sd)
         elif q.typ == "otevrena":
             texts = [str(v).strip().lower() for v in given]
             if texts:
@@ -289,7 +283,6 @@ def run_qc(
                         QcLevel.VAROVANI if dry else QcLevel.KRITICKE,
                         QcCheck.REPEATED_OPEN_ANSWERS,
                         q.id,
-                        "synteticke verbatimy se opakuji — model recykluje formulace",
                         unique,
                     )
         per_question[q.id] = m
@@ -310,7 +303,6 @@ def run_qc(
                 QcLevel.VAROVANI,
                 QcCheck.STRAIGHT_LINING,
                 RUN,
-                "cast respondentu odpovida na vsechny skaly stejne",
                 share,
             )
 
@@ -334,7 +326,6 @@ def run_qc(
                 QcLevel.VAROVANI,
                 QcCheck.IDENTICAL_VECTORS,
                 RUN,
-                "hodne respondentu ma uplne stejnou sadu odpovedi i pres velky prostor odpovedi",
                 duplicates,
             )
 
@@ -344,7 +335,6 @@ def run_qc(
             QcLevel.VAROVANI,
             QcCheck.PERSONA_EFFECT_UNVERIFIED,
             RUN,
-            "efekt plne persony nebyl v tomto behu overen ablation testem",
             None,
         )
 

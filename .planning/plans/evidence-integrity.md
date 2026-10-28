@@ -485,7 +485,10 @@ The thresholds are the unit's `PRAHY`, which the file calls "my calibration, not
 - `packages/aia_core/src/aia_core/domain/run_qc.py`: `run_qc(questions, answers, *, dry, ablation,
   thresholds=UNIT_THRESHOLDS)` and `dataset_qc(spec, dataset, *, dry)`, pure. Each finding carries
   its level (the unit's word), a stable `QcCheck` id (what RQC4a's flags and the screens will name),
-  where, the unit's own text and the value; `metrics` keeps the unit's keys, its NaN as `None`;
+  where and the value, never the unit's sentence: the screens word a finding by its check, and the
+  test pins each of the unit's sentences to its id (`CHECK_OF_TEXT`); the domain naming the word
+  "verbatimy" would also trip `test_open_answers_stay_internal.py`, which keeps the aggregate the only
+  module that names raw open answers; `metrics` keeps the unit's keys, its NaN as `None`;
   `not_applicable` names the five checks without an input and why. Straight-lining counts a
   respondent through RQC1's `answer_spread` (`ONE` or `NO_SPREAD`, the unit's `nunique == 1`).
   Version `aia-run-qc-1`. Nothing calls it yet: RQC2 wires it behind `AIA_RUN_QC_ENABLED`.
