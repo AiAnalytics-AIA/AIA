@@ -146,9 +146,14 @@ request.
 
 ### The person's steps (no agent may do these: IAM, an apply, GitHub settings)
 
-1. Add the role below to `infra/develop/github.tf`, then `terraform plan` and `terraform apply` in
-   `infra/develop`. Apply after #1046 merges, or from its branch, so that its two profiles are not
-   destroyed.
+1. Add the role below to `infra/develop/github.tf`, and set `github_plan_oidc_subject` in
+   `terraform.tfvars` to the exact subject GitHub issues for the `terraform-plan` environment: the
+   tfvars' `github_oidc_subject` with `:environment:develop` replaced by `:environment:terraform-plan`
+   (the organization issues immutable subjects, with owner and repository ids; GitHub → Settings →
+   Actions → OIDC shows the form). Unset, the role trusts the repository-name subject, which this
+   organization's tokens never carry, and the plan job cannot assume it. Then `terraform plan` and
+   `terraform apply` in `infra/develop`. Apply after #1046 merges, or from its branch, so that its two
+   profiles are not destroyed.
 2. GitHub → Settings → Environments → **New environment** `terraform-plan`. Required reviewers:
    Nigel Blount. Prevent self-review: off (a single reviewer).
 3. In that environment: the variable `AWS_PLAN_ROLE_ARN` = `terraform output -raw github_plan_role_arn`,
@@ -163,6 +168,12 @@ request.
 ### The role (not applied)
 
 ```hcl
+variable "github_plan_oidc_subject" {
+  description = "Exact GitHub OIDC sub for this repository's terraform-plan environment, when the organization issues immutable subjects (it does); otherwise the repository-name subject is used."
+  type        = string
+  default     = null
+}
+
 data "aws_iam_policy_document" "github_plan_assume" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
@@ -175,11 +186,13 @@ data "aws_iam_policy_document" "github_plan_assume" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Only a job in the terraform-plan environment, which a person approves (PE3).
+    # Only a job in the terraform-plan environment, which a person approves (PE3). The
+    # organization issues immutable subjects (develop-deployment, run 35863981545), so the
+    # exact subject is set, as github_oidc_subject is for the deploy role.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:environment:terraform-plan"]
+      values   = [var.github_plan_oidc_subject != null ? var.github_plan_oidc_subject : "repo:${var.github_repository}:environment:terraform-plan"]
     }
   }
 }
