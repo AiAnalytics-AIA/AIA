@@ -4,6 +4,11 @@ A snapshot of the Design canvas "AIA Nastavení – prototyp"
 (<https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7>, private to the owner's account), exported on
 27 Oct 2026 at about 11:15 UTC. It replaces the 26 Oct snapshot, `prototypes/settings-v99/` (v99), which is in git history. Design reference only, no product code; every client, person and number is fictional.
 
+- **Owner:** the second account's canvas, <https://claude.ai/artifact/8bHnTkAJNiPNgGcYTzQqLS>, since 28 Oct
+  2026 (the owner: "This account now owns the Settings prototype"). It was rebuilt from these files on 27 Oct
+  (artifact version `1793114802-6ae6`): every file byte-identical, and every board's render matching
+  `reference/`. Change the design there, and export it here. Don't edit the first account's canvas any more.
+
 - **Version:** v117, artifact version `1793098752-b063`, on core v4.3. It includes the owner's own canvas
   edit renaming the hatch start button to "Vypěstovat" and the design-system session's v4.3 pass (the owner,
   27 Oct 11:10 UTC: "i need these to be included").
