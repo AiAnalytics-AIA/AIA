@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
-  - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
+  - "[x] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
   - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
@@ -430,14 +430,42 @@ replaces any invocation target set before.
 isn't: a target changes only the Converse URL's `modelId`. The identity, prices and route stay as
 they are (`domain/model_invocation.py`; 5a).
 
-**Not yet in effect, so not ticked.** The worker reads the targets from `.env`, which
-`bin/write-env.sh` writes on every deploy (`deploy-develop.yml:203`). No develop deploy has run
-since 11:40 UTC. The chunk is ticked once the following is seen after the next deploy:
+**Ticked on the proof, not on the configuration.** The worker reads the targets from `.env`, which
+`bin/write-env.sh` writes on every deploy (`deploy-develop.yml:203`) or by hand. The chunk was ticked
+once CloudTrail showed the worker's `Converse` calls naming the profile ARNs (below).
 
-- CloudTrail `Converse` events by `assumed-role/aia-develop-instance/…` with
-  `requestParameters.modelId` set to the profile ARN, `…/hnpij62nm89g` for a Lead turn and
-  `…/xz0r7v8bizok` for the route's calls. Until now the field has held the `eu.` id.
-- A `SUCCEEDED` row in `ai_usage_events` for each model.
+### Chunk 2 in effect (2026-10-28, 12:08 UTC)
+
+The targets reached the worker without a deploy. At 12:08:24 UTC Nigel ran `bin/write-env.sh` and
+recreated the worker on `aia-worker:be69a343`, as the coordinator relayed:
+- the worker came up with no restart and no `AIRuntimeConfigError`;
+- `printenv` shows both targets.
+
+**The proof**, from CloudTrail `Converse` events by `assumed-role/aia-develop-instance`. None of the
+three carries an `errorCode`:
+
+| Time (UTC) | `requestParameters.modelId` | Tokens in / out | Landed in |
+|---|---|---|---|
+| 12:13:40 | `…:application-inference-profile/hnpij62nm89g` (the Lead) | 23,946 / 575 | eu-west-1 |
+| 12:14:25 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 6,723 / 1,951 | eu-south-2 |
+| 12:14:40 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 8,530 / 1,891 | eu-south-2 |
+
+Before the targets were set, the same field held the `eu.` profile id. Both regions above are
+among the six destinations. **The first tagged call, at 12:13:40 UTC, is chunk 3's window start
+for model spend.**
+
+**The steps behind those calls**, from the worker log:
+- `research_lead_turn` (12:13:36) `SUCCEEDED`.
+- `research_agent` (12:13:54) `FAILED`. Its two route calls were a first answer and its one schema
+  repair; the repair's input grew by about the refused answer. Bedrock answered both, under the
+  4,096 cap. So the job failed in AIA's check of the model's answer, after the provider had
+  answered. The profile changes only the URL, and the adapter parses a reply and records the model
+  by its identity, never by the target (`bedrock.py:298, 378` @ `be69a343`).
+- The last three design jobs before the switch (2026-10-21) succeeded, so one failure says nothing
+  about the route. The attempt's `error_json` is on the host, which this session cannot read.
+
+**Not read from here:** the two `ai_usage_events` rows, since this session cannot query the host's
+database. The Lead step's `SUCCEEDED` and CloudTrail's error-free calls stand in for them.
 
 ### For chunk 3
 
