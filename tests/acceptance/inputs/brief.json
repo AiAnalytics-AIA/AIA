@@ -1,0 +1,23 @@
+{
+  "about": "The representative study's brief (docs/migration/mvp-acceptance.md section 1), fictional. Each key of `content` replaces the research template's own (a nested object merged into it) and is saved to the study's working copy through PUT /studies/{id}/workspace/content, as the web client saves Zadání.",
+  "content": {
+    "title": "Služby městské knihovny (fiktivní)",
+    "study_type": "custom",
+    "goal": "Jak hodnotí čeští dospělí ve věku 18–65 let pět navrhovaných změn služeb městské knihovny a které skupiny by je využívaly?",
+    "decision_use": "Rozhodnutí, které ze tří změn knihovna zavede v příštím roce a pro koho je bude propagovat.",
+    "briefing": {
+      "product_description": "Pět navrhovaných změn služeb fiktivní Městské knihovny Kvítkov: delší otevírací doba, samoobslužná výdejní schránka, rozvoz knih seniorům, čtenářská kavárna a půjčování nástrojů.",
+      "situation": "Návštěvnost poboček je stabilní, ale knihovna chce oslovit pracující dospělé, kteří ji dnes navštěvují méně.",
+      "what_is_known": "Výroční zpráva za rok 2025 a přehled návštěv podle poboček a měsíců (obojí fiktivní).",
+      "constraints": "Rozpočet stačí na nejvýše tři změny; žádná změna nesmí zkrátit stávající otevírací dobu."
+    },
+    "audience": {
+      "source_mode": "population",
+      "strategy": "filters",
+      "dataset_name": "ČR 18–65",
+      "description": "Dospělí ve věku 18–65 let",
+      "filters": {"vek": {"min": 18, "max": 65}}
+    },
+    "n": 300
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "about": "The five tracked objects of the representative study (docs/migration/mvp-acceptance.md section 1): fictitious service concepts of a fictional library, rated on one scale. The recorded design workers (mvp-acceptance-harness chunk 4) answer from them.",
+  "set": {
+    "title": "Navrhované změny služeb",
+    "object_type": "služba",
+    "object_question": "Jak užitečná by pro vás byla {object}?",
+    "scale": [1, 10],
+    "scale_labels": ["vůbec", "velmi"]
+  },
+  "objects": [
+    {"id": "service_a", "name": "Delší otevírací doba", "description": "Pobočky otevřené ve všední dny do 21:00 a v sobotu do 18:00."},
+    {"id": "service_b", "name": "Výdejní schránka", "description": "Samoobslužná schránka u nádraží, kde si čtenář vyzvedne a vrátí rezervované knihy kdykoli."},
+    {"id": "service_c", "name": "Rozvoz knih seniorům", "description": "Knihovník jednou za dva týdny doveze objednané knihy domů čtenářům starším 70 let."},
+    {"id": "service_d", "name": "Čtenářská kavárna", "description": "Kavárna v hlavní budově s místy k práci a čtení, otevřená i mimo výpůjční dobu."},
+    {"id": "service_e", "name": "Půjčovna nástrojů", "description": "Půjčování nářadí, hudebních nástrojů a deskových her na průkaz čtenáře."}
+  ]
+}
