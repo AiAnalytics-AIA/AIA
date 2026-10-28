@@ -126,6 +126,7 @@ Links to `https://claude.ai/artifact/…` point at the live sibling canvases (re
   - the flyout's Můj Vedoucí card;
   - the collapsed rail's dot and ring;
   - the hero on the hatch page.
-- **The sibling links still point at the first account's canvases** (research stages
-  `3dkKPTDoa1yvK4GCV7PLtJ`, Klienti `4dP7Y43dtHcJFkJLD31hFo`), which this account cannot open. They will be
-  repointed once those canvases are rebuilt here.
+- **The sibling links point at the first account's canvases** (research stages
+  `3dkKPTDoa1yvK4GCV7PLtJ`, Klienti `4dP7Y43dtHcJFkJLD31hFo`), which this account cannot open. They stay as
+  they are (the owner, 27 Oct: "as long as i can edit them here and see the changes im making i dont need
+  them to link properly").
