@@ -276,9 +276,11 @@ can grant approval or supply deployment prices.
 - **Evidence is a capability, not a flag.** A number enters an analysis result
   only as an `AdmittedClaim`, which only `aia_core.domain.evidence.admit_numeric_claims`
   can mint, after the field policy, the `CORE_JOINT_STATUS` certificate, support,
-  the interval rule and the tier gate have all passed. The certificate itself is an
-  `aia_core.domain.evidence.JointStatus` only `load_joint_status` can issue, bound to the loaded panel's
-  hash. A prompt may state a rule; it is never the only thing enforcing it. Every key finding of
+  the interval rule and the tier gate have all passed. The certificate itself is a
+  `JointStatus` only `aia_core.domain.population.evaluate_joint_certificate` can issue, bound to the
+  loaded panel's hash; the population loader and the claim gate read the one evaluator's status
+  (evidence-integrity 5b). A population's fields take their claim eligibility from the population
+  contract's field policy alone (MVP-29, evidence-integrity 5). A prompt may state a rule; it is never the only thing enforcing it. Every key finding of
   an analysis module cites at least one admitted claim (MVP-23, `evidence-integrity#1`):
   `FINDING_UNCITED` refuses it (`domain/analysis/draft.py:281 @ 5d5ed250`,
   `domain/evidence/gate.py:84 @ 5d5ed250`), `AnalysisModuleResult` cannot hold it
