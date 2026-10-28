@@ -19,9 +19,9 @@ things the evidence gate needs -- nothing more, and nothing it has to guess:
   :func:`aia_core.domain.evidence.instrument_policy_book` from these items and the
   dataset's origin -- internal only, aggregate only, never measured.
 * **the joint status.** A native run has no population panel, so it has no
-  ``CORE_JOINT_STATUS`` certificate: :func:`load_joint_status` is asked with none and
-  answers ``MISSING``, which permits nothing client-facing. That is the honest status,
-  not a stand-in for one.
+  ``CORE_JOINT_STATUS`` certificate: its status is the ``MISSING`` fallback, which permits
+  nothing client-facing. That is the honest status, not a stand-in for one. A modelled run is
+  judged under the certificate its dataset recorded, by the population's one evaluator.
 
 :func:`research_questions_of` reads the questions the analysis must answer from the
 Design Revision the way the unit does (``analysis_agent._research_questions``), and
@@ -66,11 +66,11 @@ from ..evidence import (
     assess_support,
     instrument_field,
     instrument_policy_book,
-    load_joint_status,
 )
 from ..evidence.report_lift import ModelledReportLift
 from ..fieldwork import CLIENT_ADMISSIBLE_ORIGINS, NON_EVIDENCE_ORIGINS, DataOrigin
 from ..pipeline import fingerprint
+from ..population.companions import evaluate_joint_certificate
 from ..research_aggregate import (
     AGGREGATE_VERSION,
     AIA_AGGREGATE_V1,
@@ -557,7 +557,7 @@ def native_evidence(
     # drawn from, checked against the panel hash the loader measured (B5a); anything else has
     # none, and its evidence is uncertified: nothing client-facing.
     certificate, panel_sha256 = joint_certificate if joint_certificate is not None else (None, None)
-    joint = load_joint_status(certificate, measured_panel_sha256=panel_sha256)
+    joint = evaluate_joint_certificate(certificate, panel_sha256=panel_sha256)
     return NativeEvidence(
         table=table,
         book=book,
@@ -638,7 +638,7 @@ def native_preflight(
                 Violation(
                     ViolationCode.JOINT_CERTIFICATE_DEGRADED,
                     "preflight",
-                    f"{joint.degradation}: {joint.detail}; no client claim can be admitted",
+                    f"{joint.state.value}: {joint.detail}; no client claim can be admitted",
                 )
             )
     if not evidence.table.rows:
