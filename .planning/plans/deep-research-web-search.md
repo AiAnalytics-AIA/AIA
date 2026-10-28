@@ -56,7 +56,7 @@ chunks:
   - "[x] 50. A commercial comparison arm in chunk 26: Gemini Deep Research on the public fictional topics only"
   - "[x] 51. Switch on now: the Class C routes, the connector list and Common Crawl on develop for fictional and public-topic runs, inside ADR 0022's guards (does not wait for 25-27)"
   - "[x] 52. Reach is stated by code: Settings lists every route and connector as built, approved, active or refused, with the reason, read from the composition (#844 @ 170823e4)"
-  - "[ ] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py not built yet)"
+  - "[x] 53. Open posture (owner, 2026-10-19): `clients.data_posture` OPEN or CLASSIFIED replaces classification for Deep Research in the MVP; a run pins it at enqueue, a retry copies it (storage, setter, pin at enqueue and the retry copy built: #853 @ 0eda121e; OPEN lowering the queries' class in plan.py and web_retrieval.py: feature/deep-research-open-posture)"
   - "[x] 54. Before the first activation: each connector probed live once (every interface is UNVERIFIED), AIA_DEEP_RESEARCH_AGENT_DIRECTED named in the activation matrix, Common Crawl's AWS side (workgroup, results bucket, grants, us-east-1 exception) in Terraform or kept out of the first activation"
   - "[x] 55. The start's cost ceiling function moves from the API router to the application layer, so a plan step in the worker and the router use one; always computed and stored on create, threshold or not (F-DRL-2); a read-only POST …/deep-research/quote priced by the same function as the start (DRL-0, 2026-10-21)"
   - "[ ] 51a. A run's routes on its record: by_route in CoverageLedger (sent, succeeded, refused) and composed_routes from the plan artifact (G67)"
@@ -1765,6 +1765,46 @@ Classification is asked in six places for Deep Research (`plan.py:163`; five `cl
   posture. ADR 0008 (a frozen invariant) is amended by the owner in W0 to record this and the deferral.
 - Cost: an OPEN client's queries carry no confidentiality check, and Brave (US, logs up to 90 days)
   can see them, names included. Marking a client OPEN is the only guard.
+
+**Landed: OPEN lowers web egress** (`feature/deep-research-open-posture`, after #853's storage, setter
+and pin):
+- **In the request** (ADR 0032 decision 2). `DeepResearchRequest.posture` is `"OPEN"` or absent.
+  Absent, the stored form and the fingerprint are what they were before, so a CLASSIFIED run is
+  byte-identical. It is set in `DeepResearchRuns._frozen_request` from `_posture(retry_of)`: a retry
+  re-freezes with its original's posture, read from that run's own pinned request: never the client
+  row's now and never the run's metadata label. A run frozen before this chunk carries none, ran
+  CLASSIFIED, and retries CLASSIFIED (security review of this chunk, P2). The run's
+  `metadata.client_posture` is now read from the request, so the two cannot disagree. The plan step
+  checks the request's fingerprint, so the posture cannot be altered after enqueue, and nothing a
+  query or a model writes reaches it. `method_identity` carries it, so an OPEN run never reuses a
+  CLASSIFIED run's refused tracks, nor the reverse.
+- **The gate** (decision 3). `RetrievalGate(open_posture=)` comes from the run's own request in all
+  three constructions (plan, investigate, standing). Under OPEN, `_classify` answers Class C with the
+  reason `posture:OPEN` (`classification.OPEN_POSTURE_REASON`) for every search, index statement, URL
+  and dataset query. Residency, scope, the archive's permit, host checks and the approved settings
+  are unchanged.
+  - Searches and dataset queries record that reason, as their `class_reasons` recorded a class.
+  - Fetches, Common Crawl index statements and archive fetches keep only their class (Class C), as
+    before; their authority is the run's pinned request.
+  - Recording the reason on those three would change the frozen engine's record contracts, which
+    is not done here (security review of this chunk, P3).
+- **The plan step.** Under OPEN, a design no operator classified takes the design rule's class
+  (Class B) for its model requests instead of failing `egress_unclassified_material`, and the web
+  gate is judged at Class C. `fictional_client` is still the operator's record.
+- **CLASSIFIED or unset: unchanged.** An unclassified design parks the run whole, as before.
+- **Tests:**
+  - `test_deep_research_open_posture.py`:
+    - an OPEN client's unclassified design completes and Brave (recorded) is asked, the model
+      calls staying Class B in the usage ledger;
+    - CLASSIFIED and unset still park, with nothing sent;
+    - a client switched to OPEN after enqueue changes nothing for that run;
+    - the gate lowers a query holding the client's name and Class A text only on the pinned
+      posture.
+  - `test_client_rules.py::test_the_posture_is_in_the_engine_request_a_retry_refreezes_from`,
+    `test_a_retry_of_a_run_frozen_without_a_posture_stays_classified`.
+  - The three that need the change fail on develop @ 947686c0.
+- **Not here:** chunk 57 (Class B on Brave for CLASSIFIED clients) and the Reach panel's per-run
+  posture (chunk 62).
 
 ## Added by the master plan (2026-10-19)
 
