@@ -787,15 +787,19 @@ def _rating_ends(artifact: SociomapArtifactV3) -> tuple[float, float] | None:
 
 
 def signed_off_snapshots(
-    artifact: SociomapArtifactV3, labels: Mapping[str, str], *, only: str | None = None
+    artifact: SociomapArtifactV3,
+    labels: Mapping[str, str],
+    *,
+    only: str | None = None,
+    respondents: bool = True,
 ) -> dict[str, bytes]:
     """The report's figures of a signed-off map: the object map from above (``top``) and from the
-    side (``3d``), and the respondent map (``respondents``) where it is stored. ``only``: that
-    figure alone, the rest not drawn (a map snapshot, report-delivery RD4)."""
+    side (``3d``), and the respondent map (``respondents``) where it is stored and asked for.
+    ``only``: that figure alone, the rest not drawn (a map snapshot, report-delivery RD4)."""
     names = [labels.get(o, o) for o in artifact.object_ids]
     images: dict[str, bytes] = {}
     views: list[tuple[str, str, bool]] = [("top", "top", False), ("3d", "side", False)]
-    if isinstance(artifact.respondents, RespondentMap):
+    if respondents and isinstance(artifact.respondents, RespondentMap):
         views.append(("respondents", "side", True))
     for key, view, respondents in views:
         if only is not None and key != only:

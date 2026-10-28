@@ -78,7 +78,9 @@ CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE = "research_client_document"
 # -5: a ledger number in prose, a table or a caption is a locked, tagged control (RPT8a, part 1).
 # -6: KPI tiles, figures, the evidence appendix and suppressed counts locked too (RPT8a, part 2).
 # -7: the map's numbers locked under their stored map (map:<battery>/<method>; RPT8a, part 3).
-CLIENT_REPORT_CONTRACT = "aia-client-report-7"
+# -8: a -5 map's respondent map and taste segments left out (MQ-01 (b)); a -7 draft that printed
+# them is never served again.
+CLIENT_REPORT_CONTRACT = "aia-client-report-8"
 CLIENT_REPORT_STAGE = "REPORT"
 
 
@@ -167,7 +169,10 @@ def compose_client_report(
         specification_fingerprint=sources.refs.specification_fingerprint,
     )
     maps = compose_map_sections(
-        mapped.body, object_map_snapshots(mapped.body), source=scope_line, client=True
+        mapped.body,
+        object_map_snapshots(mapped.body, respondents=False),
+        source=scope_line,
+        client=True,
     )
     # Unlocked: the client report never opens in the editor, and a control's tag would carry the
     # specification's fingerprint into the client's file, which holds no identifier.
@@ -430,7 +435,8 @@ def client_report_document(
     docx: Artifact | None = None,
 ) -> tuple[Artifact, Artifact | None] | None:
     """The run's client report as stored, and the document model beside it, composing
-    nothing: the approved version when a person approved one, else the newest stored draft.
+    nothing: the approved version when a person approved one, else the newest stored draft of
+    the current composition (CLIENT_REPORT_CONTRACT).
     ``None`` while no client report was stored; the model ``None`` for a version stored before
     RD5a (an approved one keeps its bytes and gets none). ``docx``: that version's document
     instead, the one its download hands over."""
@@ -453,7 +459,12 @@ def client_report_document(
         return None
     if docx is None:
         approved = [a for a in drafts if a.is_approved]
-        docx = approved[-1] if approved else drafts[-1]
+        # A draft of an earlier composition is never shown for approval: a -7 draft printed a
+        # -5 respondent map a client may not see (MQ-01 (b)); the next download composes anew.
+        current = [a for a in drafts if a.metadata.get("report_contract") == CLIENT_REPORT_CONTRACT]
+        if not approved and not current:
+            return None
+        docx = approved[-1] if approved else current[-1]
     return docx, _document_of(stored, docx)
 
 
