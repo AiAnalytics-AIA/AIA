@@ -17,6 +17,9 @@ code, pinned in `tests/fixtures/lead_commands/commands.json` (`domain/lead_comma
 is not yet refused with `403 human_gate_required`: no code raises it
 (`git grep human_gate_required 5d5ed250` finds only this ADR and the evidence trace). That gap is
 tracked as an open item. The status is unchanged.
+**Amendment 2026-10-28 (Accepted 2026-10-28 by the product owner):** [read tools inside a turn; paid work stays an
+approved job](#amendment-2026-10-28-the-lead-reads-through-tools-inside-a-turn-paid-work-stays-an-approved-job),
+amending decision 3; where the amendment and decision 3 differ, the amendment wins.
 **Date:** 2026-10-19
 
 ## Context
@@ -576,3 +579,408 @@ recorded from the Bedrock console and pricing page by an operator
 
 **Not changed.** The route, its approved data classes and retention; every evidence gate;
 decision 3's closed output; the one repair; and the rule that the API never calls a model.
+
+## Amendment 2026-10-28: the Lead reads through tools inside a turn; paid work stays an approved job
+
+**Status:** Accepted — 2026-10-28, by the product owner, in his words "accept ADR 0026
+amendment" (the PM coordinator's chat, about 21:00 UTC, relayed by the coordinator). Proposed the
+same day. Drafted at the product owner's request ("yes,
+have a session draft the amendment", the PM coordinator's chat, about 20:45 UTC), from his question
+"I feel like our current system prompts architecture would work better as tools for the lead agent,
+or no?". **His answers to the draft's five questions** (the coordinator's chat, 20:52-20:55 UTC,
+relayed by the coordinator): Q1 "Read tools + workers as defs"; Q2 "USD 0.50 or 8 rounds", whichever
+comes first; Q3 "Native tool use first"; Q4 "Fold it in" (ADR 0042); Q5 "B, raised to A with client
+data". They are written in below.
+**Amends** decision 3 ("The Lead's output is closed; it holds no tools"), its last paragraph ("The
+Lead calls no tool, reads no table … Everything it knows is in its frozen context") and decision 9's
+"Calls per turn: one, plus at most one repair". **Replaces** ADR 0041 Amendment 1 A3's
+three-call round (the bound is R4's) and the ADR 0042 that `lead-client-knowledge` LK1 planned:
+client-knowledge search and read are two of R2's tools (Q4). **Leaves unchanged** ADR 0040 (a web
+lookup stays a paid job answered by a continuation turn), ADR 0028 (every paid start is a card, a
+plan step or a person's typed command), ADR 0020 (each worker's system prompt stays data the
+methodologist edits), ADR 0005 (the governed gateway is the only model path), ADR 0008 (data classes
+and the egress boundary), the edit gate and every evidence gate. Code anchors are at `develop` @
+`28406c46` unless stated.
+
+### Context
+
+**What the Lead cannot answer.** On develop, 2026-10-28, in the Sonnet 5.5 probe, the Lead was asked
+"Shrň mi, co běh zjistil" and answered that the values were not in its context. That is what the
+code gives it: the runs layer carries each run's id, status and Design Revision id and nothing of
+its results (`packages/aia_core/src/aia_core/application/research_lead.py:1528-1535`), and
+`freeze_context` has no results, readiness detail or execution state layer
+(`domain/research_lead.py:1170-1256`). LO8 (`ResultsContext`, execution row E11) is about to add
+results as one more frozen layer. ADR 0041 gives that layer 4 KB to 16 KB (decision 2, layer 7). A
+frozen layer must therefore either hold every number of a run on every turn, paid for whether or
+not anyone asks, or hold a slice and leave the Lead saying "nevím" about the rest.
+
+**What the Lead must not do** is unchanged: spend money, start work, approve anything or change the
+study without a person's decision in the ledger. Decision 3 held no tools because "a tool call that
+mutates would sit beside the gates instead of behind them" (*Alternatives considered*). A read that
+changes nothing and costs nothing outside the turn's own model calls sits beside no gate.
+
+**What the gateway can carry today.** One structured request and its one schema repair, nothing
+else:
+
+- a message is text only: `Message.content: str` (`domain/ai_contracts.py:523-527`);
+- an adapter request carries one `output_schema` (`ai_contracts.py:664-690`), which the Bedrock
+  adapter sends as a single tool, forced or `auto` (`infrastructure/model_adapters/bedrock.py:236-248`);
+- the response keeps only that tool's input (`bedrock.py:348-363`). Any other `toolUse` block is
+  dropped, and thinking blocks (`reasoningContent`) are skipped, signature included (`bedrock.py:33`,
+  `:352`);
+- a call's purpose is `PRIMARY`, `SCHEMA_REPAIR` or `FALLBACK` (`ai_contracts.py:789-794`). There is
+  no tool round;
+- `ToolRegistry` exists, takes scope never from arguments and requires a result class
+  (`domain/ai_tools.py:1-21`, `:148-172`), but nothing outside the tests constructs one
+  (`git grep "ToolRegistry(" -- packages apps ':!*/tests/*'` finds none at `28406c46`).
+
+What exists to build on: `StepModelCaller.invoke` takes a reservation per request, so one step can
+make several metered requests (`apps/executors/src/aia_executors/ai_step.py:195-207`). The analysis
+step checkpoints each model turn the moment it returns, keyed by what was sent, so a retry replays it
+and never pays twice (`aia_executors/analysis.py:17-20`, `:326-358`).
+
+### Decision
+
+**The rule: free and internal is read inside the turn; paid or external is a job.** A read costs
+nothing beyond the turn's own model calls, sends nothing outside AIA and changes nothing, so it is a
+*read tool* the Lead calls inside its turn. Anything paid, anything that reaches outside AIA (ADR
+0040) and anything that changes the study stays an approved job, card or plan step, as today.
+
+#### R1. Reads are provider-native tool use (Q3: "Native tool use first")
+
+A Lead turn is a multi-round Converse conversation inside its one worker step:
+
+1. The request offers the model the read tools of R2 and the output tool (`LeadOutput`).
+2. The model answers with one or more `toolUse` blocks. Code validates each through
+   `ToolRegistry.invoke` (strict arguments, scope never from arguments, `ai_tools.py:247-315`), runs
+   it under the turn's own study scope and lease, and sends the results back as `toolResult` blocks.
+   The model's reasoning blocks are returned unchanged, signature included, as Converse requires of
+   a thinking model in a tool loop.
+3. The turn ends when the model calls the output tool in a response holding no read call. Its input
+   is validated as today's `LeadOutput` is (one schema repair).
+4. A response that calls the output tool beside a read call is a read round. Its output is
+   discarded, never applied, and the model is told to answer after the reads. So nothing is
+   decided on an answer given before the data was seen.
+
+The frozen context stays the first message (R5). There is no `read` field in `LeadOutput`.
+
+**The gateway work this needs** is built first, as its own chunks (*Build* below), behind the same
+switch:
+
+- **`ai_contracts`:** `Message.content` becomes text or a closed tuple of content blocks (`text`,
+  `tool_use`, `tool_result`, `reasoning`, the last kept as opaque provider bytes with its
+  signature). A new `CallPurpose.TOOL_ROUND`. `ModelResult` carries the response's tool calls and
+  reasoning blocks. The defaults stay byte for byte what every other caller sends.
+- **The Bedrock adapter:** several tools in `toolConfig`, every `toolUse` block kept in order, the
+  `reasoningContent` and `redactedReasoningContent` blocks kept and sent back untouched. A request
+  that offers a tool loop to a model or adapter that cannot carry one is refused unsent, by name.
+- **`GovernedModelGateway`:** a tool round is a call of its own, with its own ledger row,
+  reservation, fingerprint of exactly what was sent (blocks included) and `TOOL_ROUND` purpose. The
+  egress, class and licence gates run before **every** round on the round's own content, so a read
+  that raises the class is judged before it leaves.
+- **`StepModelCaller`:** the turn's ceiling and round cap (R4), and every round journaled and
+  replayed (R6).
+- **The first product `ToolRegistry`,** built in the executors' composition root with R2's tools, and
+  an import contract that keeps the read-tool module away from any start, enqueue, reservation or
+  ledger-write entry point.
+
+#### R2. The read-tool set, closed and versioned
+
+Each tool is a `ToolDefinition` with `effect = READS_STUDY_DATA`, a version, a required
+`result_data_class`, and argument and result models that forbid undeclared fields. Every id an
+argument names must be in the turn's frozen context (a run id from the runs layer, a question id
+from the design, a ref from the knowledge index). This is checked as `request_refusal` checks a
+card's ids today (`domain/research_lead.py:637-658`), and anything else is refused `not_in_context`
+by name. The study is the invocation's, never an argument (`ai_tools.py:56-77`). A refused call goes
+back to the model as an error `toolResult` with its code and counts as a call.
+
+| Tool | Returns | Reads through | Class by rule | Bound per call |
+|---|---|---|---|---|
+| `run_results` (`run_id`, optional `question_ids`, at most 10) | Admitted rows only: each `AdmittedClaim`'s ref, metric, value, interval, support and Kish n. A suppressed row's ref and reason codes, **no number**; a refused question's violation codes, no rows | `application/admitted_results.py:104` (`admitted_results`, `VIEW_RESULTS`, held by the worker's scope, `domain/scope.py:202-213`) | B, raised to A when the run's analysis input carries client data (`evidence-integrity#8a`); the run's dataset lineage declared, so panel-derived results stay on `bedrock-eu-primary` (OI-61) (Q5) | 8 KB; questions past it named, never cut mid-question |
+| `run_findings` (`run_id`, `module`) | A module's stored outcome: COMPLETED findings with the evidence refs they cite, BLOCKED with its refusal codes, holding; module prose labelled unapproved | `application/analysis_results.py:1152` (`stored_analysis`, as stored, judges nothing) | as `run_results` | 8 KB |
+| `readiness` (none) | Readiness checks, the question outlook and the research-question trace **on the frozen working revision** | `ResearchRuns.outlook_working` (`application/research.py:1390`), as `GET …/research/readiness/working` reads it | B (`rule:design`) | 8 KB |
+| `run_status` (`run_id`) | Status, steps with park codes, spend (spent, held, uncertain calls; unknown never zero), cost ceiling, selection receipt | `domain/spend_attribution.py:360` (`run_spend`) over the repository; `VIEW_COSTS` | B (`rule:design`, a study's own figures) | 4 KB |
+| `changes_since` (none) | The working copy's edit-log rows and the ledger's decisions since the Lead's previous turn in this conversation, by item and person | `infrastructure/workspace_edit_repository.py:89` (`rows(after_revision=)`); `lead_digest`'s ledger read | B; a person named as the API already names them, never by e-mail | 6 KB |
+| `knowledge_search` (`query`) | Ranked hits over the study's chosen knowledge: ref, page, the matching segment's first 300 characters | `lead-client-knowledge` §2: the project-memory matcher, word search only (ADR 0041 REV-0041-EMBED) | A; C for an internal document (`domain/material_rules.py:91-93`) | that plan's |
+| `knowledge_read` (`ref`, `page`) | One page of a source or item, at most 8,000 bytes of whole segments with their locators; a proposal marked unapproved | that plan's §3: `reading_for_study`, `item_for_study`, pinned to the frozen index | as `knowledge_search` | 8 KB |
+
+The knowledge tools keep LK3's limits inside a turn: at most 2 searches and 3 page reads (Q4).
+Maps and report text join as rows when LO8's providers for them exist (E11). None is declared
+before it exists, as `lead_workers.py` says of workers. A paid tool cannot be registered:
+`ToolEffect` has no metered member (`ai_tools.py:105-117`), and this amendment keeps it so.
+
+#### R3. The number rule, extended to what the turn read
+
+Decision 3 says any number in the reply "must be one of the context's admitted claims". As built,
+`lead_contract` allows a number the frozen context holds (`domain/research_lead.py:660-716`). After
+this amendment, a number in the reply must come from the frozen context **or from a tool result
+this turn recorded** (R6). The output tool's contract is built from both, with identifiers blanked
+on both sides as today. A suppressed row carries no number to quote, and a number found only in the
+external-context layer stays refused (LO8 DRL-11).
+
+#### R4. The bound: USD 0.50 or 8 rounds, whichever comes first (Q2)
+
+- **A round** is one model request: a tool round, the answer, or a schema repair. A turn makes at
+  most **8**.
+- **The turn's ceiling** is **USD 0.50**, all its rounds included. It is a deployment key with no
+  default, `AIA_AI_RESEARCH_LEAD_TURN_CEILING_USD`, with `AIA_AI_RESEARCH_LEAD_MAX_ROUNDS` (8)
+  beside it. Unset, the turn parks `research_lead_unconfigured`, as the Lead's keys do today.
+- **The hold comes from the ceiling.** At the turn's start, the turn holds its ceiling against the
+  study's budget. A ceiling that does not fit parks the turn `AWAITING_BUDGET`, as today. Each round
+  takes its reservation from that hold and settles at its metered cost. The turn's hold replaces
+  today's two-call reservation (`AIA_AI_RESEARCH_LEAD_RESERVATION_USD`).
+- **Before each round**, code takes the spend settled so far, adds this round's worst case and the
+  answer's worst case, and sends a tool-offering round only if the sum fits the ceiling. A worst case
+  is the request's counted input (tokens once `lead-conversation#LC4` counts them, bytes until then)
+  at the model's dearest input rate, plus the output cap at its output rate. **Unknown is never
+  zero:** an unpriced model refuses the turn (`cost_ceiling_unknown`), and a round whose outcome is
+  uncertain counts at its whole worst case.
+- **At the bound** (the 8th round, or a round that would not leave the answer's worst case inside
+  the ceiling), code sends the answer round. It offers the output tool alone, with the gateway's
+  instruction to answer through it. The Lead answers with what it has and says what it did not read
+  ("Nepřečetl jsem …", the honest "nevím" that ADR 0041 A5 scores). The validator refuses an answer
+  at the bound that names no unread item while reads were refused or cut.
+- **A repair counts.** A schema repair is a round against both the 8 and the USD 0.50. If the
+  answer round has nothing left for its repair, it fails by name (`lead_turn_ceiling_reached`) and
+  is never sent over the ceiling.
+- **Parallel calls.** A round may carry at most 4 read calls. The knowledge limits (2 searches,
+  3 reads a turn) hold inside the 8 rounds.
+- **Off by default:** `AIA_AI_RESEARCH_LEAD_READS`, off in test and by default. Off, no read tool is
+  offered and the request is byte for byte today's.
+
+#### R5. What stays frozen at enqueue, and what is fetched
+
+These stay frozen, as today, and hashed with the turn: the pinned prompt, the Lead's files and
+notes, the stage's contract, the view and the message, the conversation and its digest, the design
+at the turn's working revision, the knowledge index, the runs list and the Interpretation
+candidates. The detail behind those ids is fetched in the turn.
+
+A read is pinned to what was frozen wherever the thing can move:
+
+- `readiness` computes on the frozen working revision, not a newer copy;
+- `knowledge_read` refuses a reading that moved since the turn froze (`changed_since_turn`);
+- a completed run's results do not move.
+
+Live state (`run_status`, `changes_since`) is read at call time and recorded with its read time, and
+the reply may say "k <time>". The always-in layers keep a one-line summary of each (the newest
+run's state, readiness's verdict, the number of changes since the last turn), so the Lead knows what
+to read.
+
+#### R6. Every round and every read journaled; a retry replays
+
+- **Rounds.** Each round's response (its blocks, reasoning included) is checkpointed the moment it
+  returns. The key is the turn, the round and the SHA-256 of exactly what was sent, as the analysis
+  step does (`analysis.py:17-20`). A retry replays every round it finds and never pays twice; a
+  checkpoint whose bytes do not match is not replayed.
+- **Reads.** Each read is journaled in the same transaction as its round's checkpoint: tool, version,
+  arguments, the result as sent, `args_fingerprint` and `result_fingerprint`
+  (`ai_tools.py:175-186`), class and read time. A retry **replays the recorded result** and never
+  reads again, so the answer is checked against exactly what the model was shown.
+- **Reasoning blocks are kept now.** They used to be discarded (`bedrock.py:33`). They are kept in
+  the journal under the turn's class, read only to replay the turn, shown to no one, and erased with
+  the turn (`study_lead_repository.py` `erase_member_turns`, `erase_client_lead_turns`).
+- **The manifest.** The turn's manifest (ADR 0041 decision 3, LC1/LC2) gains a `reads` section: per
+  read, its tool, the ids it returned and left out, its bytes and class, and the rounds and spend
+  against the ceiling. "Co Vedoucí vidí" shows it, and LK6's "Přečteno: …" line is that section on
+  screen.
+- **The class.** The turn's class is the most restrictive of the frozen context and every result so
+  far, judged again by the gateway before each round. A read that would raise the class past the
+  route's approval is refused before the round is sent, never sent under a lower class (ADR 0008).
+
+#### R7. Paid work: the workers as tool definitions, never called in the turn (Q1)
+
+The Lead's `request` stays one of three things: a card (decision 7, *Accepted with* 4 and 8), a plan
+step (ADR 0028 decision 4) or a person's typed command (ADR 0028 decision 3). What changes is where
+its shape comes from:
+
+- Each `LeadWorkerSpec` row (`domain/lead_workers.py:88-128`) generates one request definition in
+  the output tool's schema. Its arguments, description, card kind and the ceiling key it is priced
+  from are read from the row, so the Lead picks a worker by schema rather than from a hand-written
+  class per kind (`domain/research_lead.py:340-394`).
+- A worker added as a row is offered to the Lead without new contract code. A worker switched off
+  is not offered.
+- These definitions are part of the output, never callable tools. Choosing one prepares a card and
+  calls nothing: a person approves the card (or approved the plan), the job runs durably with its
+  lease, checkpoints and reservation, and its result returns as a continuation turn (LO6), which may
+  then read through R2.
+- The workers' system prompts stay what they are (ADR 0020): the inside of each worker, edited by
+  the methodologist.
+
+#### R8. Text read is data, never instructions
+
+A `toolResult` is data. Knowledge text keeps the instruction screen that ADR 0040 decision 6 names,
+and its hits are named in the result. Whatever a read returns, the Lead's output stays closed: an
+edit is a proposal, paid work is a card, and nothing a result says can approve, spend or start.
+
+### Build
+
+The work is ordered, and each chunk ships with a test that failed before it:
+
+1. **G1, contracts:** content blocks, `TOOL_ROUND`, tool calls and reasoning on `ModelResult`; the
+   golden request bodies of every existing caller unchanged.
+2. **G2, recorded Converse fixtures first:** the tool-use wire as Bedrock answers it for the Lead's
+   model (several `toolUse` blocks, reasoning with signature, a redacted reasoning block, an answer
+   in text instead of the tool), captured once on develop's Lead route with fictional content, at
+   most 10 requests and under USD 1. *Allowed by the product owner, 2026-10-28, about 20:57 UTC,
+   relayed by the PM coordinator: "ok to record G2".* That is permission for the recording when G2
+   is built, not before; the run's steps go to him as a prompt through the coordinator, because
+   it touches develop. Then the Bedrock adapter against those fixtures.
+3. **G3, gateway and caller:** a round per call in the ledger, the gates run before every round,
+   the turn's ceiling and round cap, the round checkpoints and the read journal, replay.
+4. **G4, the read tools and the product `ToolRegistry`:** R2's seven tools with their providers,
+   the import contract, the manifest's `reads` section.
+5. **G5, the workers as definitions** (R7), from `WorkerRegistry`.
+6. **G6, measured and switched on:** cost and latency per round on recorded turns, then on a
+   fictional develop study, stated before the switch goes on (CLAUDE.md § 8).
+
+**What it costs to build** is an estimate, not a measurement. G1-G3 touch the one model call path
+that every paid step uses, about 1,500-2,500 lines with tests over three or four PRs. G4-G5 are
+about 1,000-1,500 lines over two PRs. Fixtures and the CI suites cost nothing; the one capture in G2
+costs under USD 1. The code-run round over today's gateway (the earlier draft's option) would have
+skipped G1-G3 and saved roughly half of that work. The owner chose native tool use first (Q3).
+
+### Costs per turn
+
+Measured on develop, 2026-10-28: one Lead turn on Sonnet 5.5 took 23,918 input and 570 output tokens
+and cost USD 0.0589. That turn is consistent with USD 2.20 per million input tokens and USD 11.00
+per million output tokens, if output costs five times input. The real prices are in Parameter
+Store, not the repository, so everything below is an estimate on those inferred prices and is
+unmeasured.
+
+Each round resends the whole conversation so far: the frozen context, every earlier call and
+result, and the reasoning. If a round adds about 2,500 tokens of results and about 600 tokens of
+output and reasoning:
+
+| Rounds (uncached) | Input tokens, all rounds | Cost (est.) |
+|---|---|---|
+| 1, a turn that reads nothing (today) | 23,918 | USD 0.059 (measured) |
+| 2: one read round and the answer | ~50,000 | ~USD 0.12 |
+| 4 | ~112,000 | ~USD 0.27 |
+| 6 | ~190,000 | ~USD 0.46 |
+| 7 | ~232,000 | ~USD 0.56: over the ceiling |
+| 8 | ~278,000 | ~USD 0.67: over the ceiling |
+
+- **Without prompt caching, the USD 0.50 binds first,** at about six rounds (five read rounds and the
+  answer). The worst-case check of R4 stops earlier still while worst cases are counted in bytes
+  rather than tokens, since bytes overstate tokens: about four rounds.
+- **With prompt caching** of the restated prefix (ADR 0041 A1, `lead-conversation#LC4`), a round
+  pays the cache-read rate on what it repeats, and the 8-round cap binds first. Its saving is
+  unmeasured until LC4.
+- **The comparison:** a frozen results layer at ADR 0041's 16 KB ceiling, about 5,500 tokens, costs
+  about USD 0.012 on every turn, asked or not. A turn that reads once costs about as much as five
+  turns carrying that layer. Most turns are about the design and read nothing.
+- **Money held:** USD 0.50 a turn while it runs, below today's develop reservation of USD 1.02
+  (`deploy/develop/docker-compose.yml:282`; `deploy/develop/README.md:685-693`).
+- **Latency:** each round adds one model answer and the reads, which are database reads with no
+  network and no queue hop. Measured in G6.
+
+### Alternatives considered
+
+- **Frozen layers only** (today, and LO8 as planned). Deterministic and one call a turn, but every
+  turn pays for results nobody asked about, a 16 KB layer still cannot hold a large run, and the
+  Lead says "nevím" about the rest. Kept as the always-in summary (R5), not as the only source.
+- **A code-run round over today's gateway** (a `read` field in the closed output, code fetching,
+  the next request built by code: the earlier draft, and ADR 0041 A3's shape). It costs less to
+  build. It was rejected by the owner's Q3 for native tool use: the model interleaves reasoning and
+  reads as it was trained to, and parallel calls come without a field AIA invents.
+- **Synchronous paid tools** (the Lead starts a design job, a run or Deep Research inside its turn).
+  Rejected:
+  - a paid start needs a person's approval or an approved plan with its ceiling shown (this ADR's
+    decision 7, ADR 0028), a lease, checkpoints and never paying twice;
+  - a turn cannot wait minutes for a run;
+  - a model's call is not a person's approval.
+- **A full agent loop without a bound.** Rejected: the hold and the ceiling need a known maximum.
+  Each round resends the growing context, a turn could loop without stopping, and the journal and
+  its hold must stay bounded. Hence R4.
+- **A read as a continuation turn** (the Lead asks, the turn ends, the next turn answers, as ADR
+  0040's lookup does). That is two turns, a queue hop and a re-frozen context for a free database
+  read. Kept for what is paid or external, where the job boundary earns its cost.
+
+### Consequences
+
+- The gateway carries a tool conversation for the first time. Its contracts, adapter, ledger and
+  fingerprints change for this one caller; every other caller's bytes stay as they are, held by
+  their golden tests.
+- Reasoning blocks are stored for the first time, under the turn's class, and erased with the turn.
+- The first constructed `ToolRegistry` in the product, with seven tools, each with a test file.
+- LO8 is built as providers for the read tools plus a small always-in index, not as one large frozen
+  layer.
+- A Lead answer about results can cite every admitted number of a run, and never a suppressed one.
+- A worker added to `WorkerRegistry` reaches the Lead's output schema without new contract code.
+
+### What enforces it
+
+- `ToolEffect` has no paid member, and the read tools are registered only with
+  `READS_STUDY_DATA`. An import contract keeps the read-tool module from importing a start, enqueue,
+  reservation or ledger-write entry point.
+- Tests, each failing before the change:
+  - every existing caller's request body is byte-identical (the golden bodies);
+  - a recorded Converse tool-use exchange round-trips: every `toolUse` kept in order, reasoning and
+    redacted reasoning sent back untouched;
+  - an argument naming a run, question or ref not in the frozen context is refused `not_in_context`;
+    an argument carrying a study, client or organization is refused `scope_in_model_arguments`;
+  - `run_results` returns no number for a suppressed row and no row for a refused question;
+  - a reply number found only in a recorded tool result of this turn passes; one in no result and
+    not in the context is refused; one only in the external layer is refused;
+  - an output call beside a read call is not applied;
+  - the 8th round offers the output tool alone; a round that would leave the answer's worst case
+    outside USD 0.50 is not sent, the answer is, and it names what it did not read;
+  - a repair counts against both bounds; an unpriced model refuses the turn; an uncertain round
+    counts at its worst case;
+  - a turn whose ceiling does not fit the budget parks before any round;
+  - a retry after round 3 replays rounds 1-3 and every read from the journal, sends the rest, and
+    reads nothing again;
+  - the gates run before every round: a read result that raises the class past the route's approval
+    stops the next round unsent; a panel-derived run's results reach no route but
+    `bedrock-eu-primary`;
+  - erasing a member's turns erases their reasoning blocks and reads;
+  - switched off, no tool is offered and the request is byte-identical to today's;
+  - every `LeadWorkerSpec` row yields one request definition, and a switched-off worker yields none.
+
+### Open for Nigel
+
+The five questions are answered (Status, above), and so is G2's capture ("ok to record G2",
+2026-10-28, about 20:57 UTC; *Build*, G2), and the amendment is accepted (Status). Nothing remains open.
+
+### Doc follow-up
+
+For the docs PR; no other shared document is edited here.
+
+- **`docs/architecture/adr/README.md`:** ADR 0026's line notes "Amendment 2026-10-28: native read
+  tools in a turn, USD 0.50 or 8 rounds; paid work stays a job".
+- **ADR 0041:** the *Leaves unchanged* line's "the Lead calls no tool" reads "the Lead calls no paid
+  or external tool (ADR 0026 Amendment 2026-10-28)". A3's round is replaced by that amendment's R4
+  bound.
+- **`docs/architecture/ai-runtime.md` and `ai-step-executor-contract.md`:** content blocks, the
+  `TOOL_ROUND` purpose, the turn's ceiling, reasoning blocks kept for replay.
+- **`.planning/plans/lead-orchestration.md`** (owned by the E07 session now; text proposed, not
+  applied):
+  - **LO7** becomes: "The Lead's always-in state summary (one line each: readiness verdict,
+    question-outlook counts, each run's state with park code, changes since the last turn) frozen
+    per ADR 0026 decision 2; the detail through the read tools `readiness`, `run_status` and
+    `changes_since` (ADR 0026 Amendment 2026-10-28 R2). Test: 'Kde jsme?' answered from the summary
+    with no read; 'Proč běh stojí?' answered after one `run_status` read, its park code cited."
+  - **LO8** becomes: "`ResultsContext` as providers for the read tools `run_results` and
+    `run_findings` (admitted rows only, suppressed refs with reason codes and no number), plus a
+    frozen index of the newest run (question ids with their status, modules with their state, maps
+    with their register status, no number); type, `MaterialRule` for results (B, raised to A when
+    the analysis input carries client data, the lineage declared: Q5), bound per read, the L slot
+    unchanged. The read-tool decision against ADR 0026 decision 3 is taken by its Amendment
+    2026-10-28. Test: 'Shrň mi, co běh zjistil' is answered with admitted numbers cited by ref
+    after one read, a suppressed row named without its number."
+  - **LO6:** a continuation turn may read through R2 like any turn.
+  - **New LO8a-LO8f** = the amendment's G1-G6, behind `AIA_AI_RESEARCH_LEAD_READS` (off by default,
+    off in test), G1-G3 before LO8's providers are wired.
+- **`.planning/mvp-execution-contracts.md` E11:** append "the bounded ResultsContext is served
+  through the Lead's read tools (ADR 0026 Amendment 2026-10-28); a frozen results layer is only its
+  index; it depends on G1-G3".
+- **`.planning/plans/lead-client-knowledge.md`:** LK1's "ADR 0042 … amends ADR 0026 decision 3"
+  becomes "ADR 0026 Amendment 2026-10-28 (R2's knowledge tools; ADR 0042 folded in, Q4)". LK3's
+  `LeadOutput.search` / `.read` fields become the `knowledge_search` / `knowledge_read` tools with
+  the same limits, and LK4's round runs on G3.
+- **`.planning/plans/research-lead-workbench.md` 11:** the command registry's worker rows also yield
+  the Lead's request definitions (R7).
+- **`CLAUDE.md` § 2**, when built: `aia_executors/research_lead.py`'s "one STUDY_LEAD request and one
+  repair" becomes "a native tool conversation of at most 8 rounds and USD 0.50, behind
+  `AIA_AI_RESEARCH_LEAD_READS`"; the Bedrock adapter line notes several tools and reasoning kept for
+  replay.
