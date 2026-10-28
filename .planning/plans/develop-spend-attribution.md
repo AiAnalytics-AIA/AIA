@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] 1. Terraform: an application inference profile, tagged Environment=develop, for every live model the acceptance run uses (main, the Lead's, the light model)"
-  - "[ ] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
+  - "[x] 2. IAM and the model policy follow the profiles; the cost-allocation tag is activated (a billing action)"
   - "[ ] 3. A reconciliation: AIA's usage ledger against the AWS cost record for the tag over a window"
   - "[ ] 4. The runbook states the check, its lag and its tolerance"
   - "[x] 5a. The worker accepts what the plan creates (W0): a tagged profile ARN or an `eu.` id, decided as a model identity versus an invocation target; and the statement "no Environment tag" corrected"
@@ -401,3 +401,73 @@ replaces any invocation target set before.
    and one fieldwork call read back in `ai_usage_events`.
 3. Chunk 3's reconciliation counts only calls made after step 2; AWS's tagged cost lags (stated in
    chunk 4).
+
+## Chunk 2 configured (2026-10-28, the product owner in the console; checked by the infra session)
+
+**Done by Nigel in the AWS console**, from the steps prepared for Claude in Chrome:
+
+- **The IAM grant.** The inline policy `aia-develop-instance` on role `aia-develop-instance` now has
+  the two application profile ARNs in `InvokeTheOneApprovedModel`: 16 resources, with the system
+  profiles and the foundation models in the six regions kept. This is exactly the policy that
+  `develop`'s Terraform renders (#1046, `988d0e62`).
+- **The two targets, set in SSM (`String`).**
+  - `aia_bedrock_invocation_target` = `…:application-inference-profile/xz0r7v8bizok`, at 11:42:21 UTC.
+  - `aia_ai_research_lead_invocation_target` = `…:application-inference-profile/hnpij62nm89g`, at
+    **11:42:45 UTC on 2026-10-28**. This is chunk 3's window start.
+- **The cost-allocation tag**, chunk 2's billing half, has been `Active` since 2026-09-25
+  (`ce list-cost-allocation-tags`).
+
+**Checked read-only by the infra session (2026-10-28):**
+
+- **SSM.** `get-parameter-history`: version 1 of each parameter, with the values and times above.
+- **IAM.** `iam simulate-principal-policy` for the role gives `bedrock:InvokeModel` **allowed** on
+  both profiles. On 2026-10-27 it gave `implicitDeny` on `xz0r7v8bizok`.
+- **Terraform.** A `terraform plan` of `develop` @ `be69a343` against develop's state shows **no
+  resource change**. Its one difference is the stored output `bedrock_model_arns_granted`, which an
+  apply would bring up to date. So the console edit equals the code, and no apply reverts it.
+
+**No new `aia_ai_policy_version`.** The "What chunk 2 needs" list above said one was needed. It
+isn't: a target changes only the Converse URL's `modelId`. The identity, prices and route stay as
+they are (`domain/model_invocation.py`; 5a).
+
+**Ticked on the proof, not on the configuration.** The worker reads the targets from `.env`, which
+`bin/write-env.sh` writes on every deploy (`deploy-develop.yml:203`) or by hand. The chunk was ticked
+once CloudTrail showed the worker's `Converse` calls naming the profile ARNs (below).
+
+### Chunk 2 in effect (2026-10-28, 12:08 UTC)
+
+The targets reached the worker without a deploy. At 12:08:24 UTC Nigel ran `bin/write-env.sh` and
+recreated the worker on `aia-worker:be69a343`, as the coordinator relayed:
+- the worker came up with no restart and no `AIRuntimeConfigError`;
+- `printenv` shows both targets.
+
+**The proof**, from CloudTrail `Converse` events by `assumed-role/aia-develop-instance`. None of the
+three carries an `errorCode`:
+
+| Time (UTC) | `requestParameters.modelId` | Tokens in / out | Landed in |
+|---|---|---|---|
+| 12:13:40 | `…:application-inference-profile/hnpij62nm89g` (the Lead) | 23,946 / 575 | eu-west-1 |
+| 12:14:25 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 6,723 / 1,951 | eu-south-2 |
+| 12:14:40 | `…:application-inference-profile/xz0r7v8bizok` (the route) | 8,530 / 1,891 | eu-south-2 |
+
+Before the targets were set, the same field held the `eu.` profile id. Both regions above are
+among the six destinations. **The first tagged call, at 12:13:40 UTC, is chunk 3's window start
+for model spend.**
+
+**The steps behind those calls**, from the worker log:
+- `research_lead_turn` (12:13:36) `SUCCEEDED`.
+- `research_agent` (12:13:54) `FAILED`. Its two route calls were a first answer and its one schema
+  repair; the repair's input grew by about the refused answer. Bedrock answered both, under the
+  4,096 cap. So the job failed in AIA's check of the model's answer, after the provider had
+  answered. The profile changes only the URL, and the adapter parses a reply and records the model
+  by its identity, never by the target (`bedrock.py:298, 378` @ `be69a343`).
+- The last three design jobs before the switch (2026-10-21) succeeded, so one failure says nothing
+  about the route. The attempt's `error_json` is on the host, which this session cannot read.
+
+**Not read from here:** the two `ai_usage_events` rows, since this session cannot query the host's
+database. The Lead step's `SUCCEEDED` and CloudTrail's error-free calls stand in for them.
+
+### For chunk 3
+
+Chunk 3 must read the `Environment=develop` cost, never the account's Bedrock total, because the
+account's Bedrock spend is not AIA's alone.
