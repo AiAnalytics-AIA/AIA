@@ -819,8 +819,10 @@ The work is ordered, and each chunk ships with a test that failed before it:
 2. **G2, recorded Converse fixtures first:** the tool-use wire as Bedrock answers it for the Lead's
    model (several `toolUse` blocks, reasoning with signature, a redacted reasoning block, an answer
    in text instead of the tool), captured once on develop's Lead route with fictional content, at
-   most 10 requests and under USD 1, on the product owner's word for that capture. Then the Bedrock
-   adapter against those fixtures.
+   most 10 requests and under USD 1. *Allowed by the product owner, 2026-10-28, about 20:57 UTC,
+   relayed by the PM coordinator: "ok to record G2".* That is permission for the recording when G2
+   is built, not before; the run's steps go to him as a prompt through the coordinator, because
+   it touches develop. Then the Bedrock adapter against those fixtures.
 3. **G3, gateway and caller:** a round per call in the ledger, the gates run before every round,
    the turn's ceiling and round cap, the round checkpoints and the read journal, replay.
 4. **G4, the read tools and the product `ToolRegistry`:** R2's seven tools with their providers,
@@ -935,13 +937,8 @@ output and reasoning:
 
 ### Open for Nigel
 
-The five questions are answered (Status, above). Left for him:
-
-1. **Acceptance** of the amendment as a whole.
-2. **G2's capture:** up to 10 requests on develop's Lead route with fictional content, under USD 1,
-   to record the Converse tool-use wire the fixtures are cut from. (a) Yes, when G2 starts —
-   *recommended*; (b) build from the provider's documentation alone, recording on the first live
-   turn.
+The five questions are answered (Status, above), and so is G2's capture ("ok to record G2",
+2026-10-28, about 20:57 UTC; *Build*, G2). Left for him: **acceptance** of the amendment as a whole.
 
 ### Doc follow-up
 
