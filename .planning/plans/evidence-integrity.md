@@ -3,6 +3,9 @@ status: in-progress
 chunks:
   - "[x] 1. Every key finding cites an admitted claim (MVP-23): a new rule, not a tightening, since AIA has no 95 % threshold (that is the unit's)"
   - "[ ] 2. Run QC as a pure function over a run's stored dataset, EXACT against the unit's qc.kontrola (MVP-24)"
+  - "[x] 2a. The checks a run's stored dataset and specification answer, EXACT against the unit's own qc.kontrola on captured fictional runs (fixture tools/run_qc_capture.py)"
+  - "[ ] 2b. The checks that read the respondents' demographics (Cramér's V, segment ranges, the persona's strength), over a panel run's recorded sample"
+  - "[ ] 2c. The probability diagnostics (entropy, max probability, the behaviour layer's shift), once fieldwork stores each draw's record with the dataset"
   - "[ ] 3. A run's QC stored beside it and shown as warnings on Fieldwork and Results, never a gate"
   - "[ ] 4. The straight-liner check: flags by code, no pause, the worker proposes keep or flag; replace is a new linked run (F18, settled); the one definition is run-qc-and-checkpoint RQC1"
   - "[x] 5. One field-policy authority per evidence source: the population contract's list for panel respondents (MVP-29)"
@@ -435,3 +438,78 @@ draft report.
     depends on which it asks.
   - Kept as two (5b does not change what may be claimed jointly). Merging them is a methodology
     decision.
+
+## Chunk 2, split (2026-10-28, the E08 session; the product owner: "Yes, E08 builds it", relayed by the PM coordinator)
+
+`qc.kontrola` (`legacy/npc-panel-18.6.6/app/qc.py:70-255`) is a dozen checks over the unit's run dict
+(`v["detail"]`, a respondent x column frame, and `v["otazky"]`). Each check is placed by what its
+input is in AIA. AIA's stored input is the run's `FieldworkDataset` (`domain/fieldwork.py:184`: per
+respondent answers, weight, donor) and its `ResearchSpecification`.
+
+| The unit's check | Its input | In AIA | Sub-chunk |
+|---|---|---|---|
+| Per question: share not answered (`podil_chybi` > 0.20) | the answers | the dataset; a scale's "don't know" is `None` in both (`dotaznik.py:83`, `fieldwork.py` `Answer`) | 2a |
+| Choice: "nevím" share (`nevim_min` 0.02, `nevim_max` 0.35), concentration (`koncentrace_max` 0.90) | the answers | the dataset; the option is the same string (`research_design.py:95` `DONT_KNOW`) | 2a |
+| Scale: mean, sd, sd < 0.5 | the answers | the dataset | 2a |
+| Open: unique share (`verbatim_unikaty_min` 0.70), words | the answers, the run's mode | the dataset; see "dry" below | 2a |
+| Straight-lining on scales (`straightline_max` 0.15, three or more scale questions) | the answers | the dataset, per respondent through `straight_lining.answer_spread` (RQC1) | 2a |
+| Identical answer vectors (`duplicity_max` 0.10, response space) | the answers, the options | the dataset and the specification | 2a |
+| Persona effect not verified by ablation | `v["ablation"]`, the mode | AIA runs no ablation; see below | 2a |
+| Cramér's V by segment, segment ranges on a scale, mean max V over the run | demographic columns (`SEGMENTY_QC`) | not in the dataset; a panel run's recorded sample has them, a roster run has none | 2b |
+| Entropy, max probability, behaviour shift (`mean_maxprob_max`, `mean_entropy_min`, `behavior_shift_warn`) | each draw's record (`_entropy_`, `_maxprob_`, `_behavior_l1_`) | computed by fieldwork (`ai_fieldwork.Answered.details`) but not stored for a research run (only `validation.py:308` reads them) | 2c |
+| Technical error rate (`chybovost_max` 0.05) | `_chyba`, failed parses kept as blank rows | none: an AI respondent's failed block fails or parks the step, never a blank row (`ai_respondent.py`, "no blank answer") | not applicable, recorded so |
+| Custom segment's ESS and confidence class | `v["segment"]` | AIA has no segment mode | not applicable, recorded so |
+
+A check without an input reads `not_applicable` with its reason, never passed (unknown is never good).
+The thresholds are the unit's `PRAHY`, which the file calls "my calibration, not an industry standard"
+(`qc.py:30`): declared as parameters, recorded with every result as the unit's.
+
+**2a, its divergences for the methodology owner (ported as the unit runs; none chosen here).**
+- *Dry mode.* The unit rates repeated open answers VAROVANI in a dry run and KRITICKE otherwise, and
+  skips the ablation flag in a dry run (`qc.py:177-180`, `:247-249`). AIA has no dry mode; the port
+  takes `dry` as the caller's argument. RQC2's caller reads it from the dataset's origin
+  (`NON_EVIDENCE_ORIGINS`: fictional respondents) unless the methodology owner says otherwise.
+- *Severity.* KRITICKE stopped the unit's client report (`prototype_server.py:385`); in AIA nothing
+  gates (MVP-24). The unit's level is kept as data, a warning on screen.
+- *Ablation.* The unit flags every live run whose persona effect no ablation verified. AIA has none;
+  the respondent system's holdout validation is the nearest thing and is not the same test. Ported as
+  the unit flags it (`ablation=False`), which is true of every AIA run today.
+- *A choice without "nevím".* The unit flags every choice question whose answers hold under 2 %
+  "Nevím / neodpovím", so a question that offers no such option (Ano / Ne) is flagged on every run
+  (`qc.py:126`; the fixture's `q_plain` in every case). Ported as the unit flags it.
+- *Tracked sets.* The unit's straight-lining reads scale questions only; AIA's tracked-set ratings are
+  not questions there (`dotaznik.py` has no sets). Ported over scale questions only, the unit's scope
+  (F-RQC1-1 in `run-qc-and-checkpoint`).
+
+**2a, delivered (2026-10-28, branch `feature/ei2-run-qc`, stacked on RQC1's `feature/rqc1-straight-lining`).**
+- `packages/aia_core/src/aia_core/domain/run_qc.py`: `run_qc(questions, answers, *, dry, ablation,
+  thresholds=UNIT_THRESHOLDS)` and `dataset_qc(spec, dataset, *, dry)`, pure. Each finding carries
+  its level (the unit's word), a stable `QcCheck` id (what RQC4a's flags and the screens will name),
+  where, the unit's own text and the value; `metrics` keeps the unit's keys, its NaN as `None`;
+  `not_applicable` names the five checks without an input and why. Straight-lining counts a
+  respondent through RQC1's `answer_spread` (`ONE` or `NO_SPREAD`, the unit's `nunique == 1`).
+  Version `aia-run-qc-1`. Nothing calls it yet: RQC2 wires it behind `AIA_RUN_QC_ENABLED`.
+- `tools/run_qc_capture.py`: `inputs` (19 fictional runs, every 2a check and both levels reached),
+  `capture` (the unit's unmodified `kontrola`, in a venv with pandas 3.1.0 and NumPy 2.5.4, on
+  `detail` built as `run_dotaznik` allocates it), `verify`; pinned in
+  `tests/fixtures/run_qc/index.json` with `qc.py`'s SHA-256.
+- `docs/migration/parity-matrix.json` `analysis.qc`: PARTIAL, gated by `test_run_qc.py` and
+  `test_straight_lining.py`; `module-dispositions.json` `qc.py`: partial
+  (`test_module_inventory.py`'s list, with the evidence named).
+- Tests (`packages/aia_core/tests/test_run_qc.py`; each fails on the base, where the module does not
+  exist): every case finding for finding (level, where, text, value), level and verdict, and metric
+  for metric against the unit's run; the fixtures reach every ported check; the not-applicable checks
+  named and never among the findings; thresholds a parameter and recorded; an empty run refused; a
+  stored `FieldworkDataset` read through its compiled specification, a tracked set rated with one
+  value not a straight-liner.
+
+## Doc follow-up (2a)
+
+- `CLAUDE.md` §2, under `domain/`: `run_qc.py` -- a run's QC from its stored answers (evidence-integrity
+  2a, MVP-24): the unit's `qc.kontrola` checks that the dataset and specification answer, EXACT against
+  the unit (`tools/run_qc_capture.py`, fixtures `run_qc`); each finding a warning with its `QcCheck` id,
+  the unit's level kept as data; the checks without an input in AIA named not applicable
+  (`NOT_APPLICABLE`); thresholds the unit's `PRAHY` (`UNIT_THRESHOLDS`), a parameter. Under `tools/`:
+  `run_qc_capture.py` (`inputs` / `capture` in a venv with pandas / `verify`).
+- `.planning/open-items.md`: 2a's divergences above, for the methodology owner (dry mode, severity,
+  ablation, a choice without "nevím", tracked sets).
