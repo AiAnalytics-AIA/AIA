@@ -3634,7 +3634,8 @@ class WorkflowRepository:
         )
 
     def last_attempt_errors(self, step_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
-        """Each step's newest attempt's failure class and error, by step id, in one query.
+        """Each step's newest attempt's failure class, error and finish time, by step id, in one
+        query.
 
         For a listing that says why a step is waiting or failed without each step's whole
         history. Only steps of runs in this scope are read; a step with no attempt is absent.
@@ -3653,6 +3654,8 @@ class WorkflowRepository:
             last[a.step_id] = {
                 "failure_class": FailureClass(a.failure_class) if a.failure_class else None,
                 "error": dict(a.error_json or {}),
+                # When the worker decided it, by the worker's clock; None while undecided.
+                "finished_at": as_utc(a.finished_at) if a.finished_at else None,
             }
         return last
 

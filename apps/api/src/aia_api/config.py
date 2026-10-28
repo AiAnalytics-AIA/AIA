@@ -196,6 +196,14 @@ class Settings(BaseSettings):
     # by default, off in test, absent from the develop Compose file.
     study_wallet_enabled: bool = False
 
+    # The Lead pane's pre-flight read of the AI route (lead-orchestration LO12b,
+    # ``AIA_AI_ROUTE_PREFLIGHT_ENABLED``): on, GET /studies/{id}/lead reads the newest worker
+    # start's recorded route (one indexed row) and says which refusal a turn would meet
+    # (``worker_ready_source: composition``), and a turn parked on the route's own terms counts
+    # as the worker not ready. Off: the conversation's newest turn alone, as before. Off by
+    # default, off in test, absent from the develop Compose file.
+    ai_route_preflight_enabled: bool = False
+
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
     # from the same keys the worker composes it from. Each kind of model request reserves
     # what its own window and output limit can cost (domain/deep_research/request_limits.py),
