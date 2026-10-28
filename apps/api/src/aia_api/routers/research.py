@@ -1869,6 +1869,50 @@ def run_events(
     return [_event(e) for e in events]
 
 
+class RunApprovalResponse(BaseModel):
+    """One approval-ledger row about a run: what a person decided on it, and when."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    decision_id: int
+    #: What was decided on (``ApprovalSubject``: ``spend``, ``report``, ``chat_start``, ...).
+    subject: str
+    subject_id: str
+    decision: str
+    #: The approver's display name, ``None`` when the person has none; never an e-mail.
+    by: str | None
+    self_approved: bool
+    at: datetime
+
+
+@router.get(
+    "/research/runs/{run_id}/approvals",
+    response_model=list[RunApprovalResponse],
+    summary="The approval-ledger rows about a run, oldest first",
+)
+def run_approvals(
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+) -> list[RunApprovalResponse]:
+    """Read only: what people decided on this run (a spend confirmation, a report's approval, a
+    typed start), each with who decided and when. The run is found only through the Study."""
+    try:
+        rows = ResearchRuns(session, scope).approvals(run_id)
+    except ResearchRunNotFound as exc:
+        raise _not_found("run") from exc
+    return [
+        RunApprovalResponse(
+            decision_id=entry.decision_id,
+            subject=entry.subject.value,
+            subject_id=entry.subject_id,
+            decision=entry.decision,
+            by=name,
+            self_approved=entry.self_approved,
+            at=entry.created_at,
+        )
+        for entry, name in rows
+    ]
+
+
 def _event(e: dict[str, Any]) -> RunEventResponse:
     return RunEventResponse(
         event_id=e["event_id"],

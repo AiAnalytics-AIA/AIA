@@ -34,6 +34,7 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.approval_ledger import LedgerEntry
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
@@ -116,7 +117,7 @@ from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptResolver
-from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.scope_repository import ScopeRepository, member_display_names
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -1662,6 +1663,17 @@ class ResearchRuns:
         """The run's append-only events after ``since``."""
         self.get(run_id)
         return self._workflows().events(run_id, since=since, limit=limit)
+
+    def approvals(self, run_id: str) -> list[tuple[LedgerEntry, str | None]]:
+        """The approval-ledger rows about this run, oldest first, each with its approver's
+        display name (``None`` when the person has none, never an e-mail). Found only through the
+        Study: a run of another study is :class:`ResearchRunNotFound`, as everywhere."""
+        self.get(run_id)
+        entries = [e for e in self._workflows().ledger() if run_id in (e.run_id, e.subject_id)]
+        names = member_display_names(
+            self.session, self.scope.organization_id, sorted({e.approver_user_id for e in entries})
+        )
+        return [(e, names.get(e.approver_user_id)) for e in entries]
 
     def artifact_ids(self, run_id: str) -> list[str]:
         """The artifacts this run's steps produced, in step order."""
