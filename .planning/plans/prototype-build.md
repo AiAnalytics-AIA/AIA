@@ -1,7 +1,7 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] PB1. Finish what is open and decide: the open PRs in flight landed or closed, Nigel's decisions of 25-26 Oct 2026 recorded in the plans (this docs PR), OQ13 to legal and the methodology owner's two items asked (W0)"
+  - "[x] PB1. Finish what is open and decide: the open PRs in flight landed or closed, Nigel's decisions of 25-26 Oct 2026 recorded in the plans (this docs PR), OQ13 to legal and the methodology owner's two items asked (W0)"
   - "[ ] PB2. The look and the frame in apps/web: lane A's PBA1-PBA7 and lane B's Settings frame (W1)"
   - "[ ] PB3. W1: the design stages (Zadání, Návrh, Dotazník, Vzorek, Sběr dat), the working copy, the first Lead cards, money on the cards, the remaining Settings pages (W1)"
   - "[ ] PB4. W2: the audience and results stages (Cílová skupina, Dimenze, Výsledky, Sociomapa), the Lead's money and actions (W2)"
@@ -273,7 +273,10 @@ setting.
 
 - **The methodology owner.** Výsledky's "Efektivní n" is Kish's, as `artifact-results#RES3` says (OQ8); a set's
   scale follows the board's presets (OQ9, `artifact-questionnaire#QST10`). Both await the methodology owner's
-  confirmation.
+  confirmation. Nigel sent him both on 2026-10-28, with evidence-integrity 5's two questions (internal measured
+  claims on the contract's 115 fields; refusing a modelled client claim on a field whose wording permits none).
+  PB1 asked for them to be asked, so it is ticked; the answers are needed by `artifact-results#RES3` and
+  `artifact-questionnaire#QST10` (W1), not by PB1.
 
 ## Decided on 28 Oct 2026 (the PM status page, W0Q7-W0Q8)
 
