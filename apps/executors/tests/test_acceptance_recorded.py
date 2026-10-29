@@ -29,6 +29,7 @@ from aia_executors.recorded_models import (
     ANALYSIS_TOOL,
     DEEP_RESEARCH_PREFIX,
     DESIGN_ANSWERS,
+    HELD_MARK,
     LEAD_REPLY,
     LEAD_TOOL,
     RECORDING,
@@ -328,7 +329,9 @@ def test_an_unknown_module_is_refused_by_name() -> None:
         acceptance_recorded.recorded_wire({acceptance_recorded.NO_FINDINGS_KEY: "objects,nonsense"})
 
 
-def test_calls_after_the_stall_are_held_and_the_ones_before_answered() -> None:
+def test_calls_after_the_stall_are_held_and_the_ones_before_answered(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
     wire = RecordedModels(stall_after=1)
     request = _request(RESPONDENT_TOOL, {"type": "object", "properties": {}})
 
@@ -341,3 +344,4 @@ def test_calls_after_the_stall_are_held_and_the_ones_before_answered() -> None:
         return False
 
     assert asyncio.run(two()), "the second call is held"
+    assert capsys.readouterr().err.splitlines() == [HELD_MARK], "and says so as it is held"
