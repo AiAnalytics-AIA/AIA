@@ -280,7 +280,7 @@ def request_sha256(request: ModelRequest) -> str:
                 "prompt": [request.agent.prompt_id, request.agent.prompt_version],
                 "schema": schema_fingerprint(request.agent.schema or {}),
                 "system": request.system,
-                "messages": [[m.role, m.content] for m in request.messages],
+                "messages": [[m.role, m.text] for m in request.messages],
                 "max_output_tokens": request.output_token_limit,
                 "data_class": request.data_classification.value
                 if request.data_classification
