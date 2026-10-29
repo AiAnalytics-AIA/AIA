@@ -1,0 +1,90 @@
+{
+  "analysis": {
+    "refusal": null,
+    "sha256": "e77da231d88ae7a0bb06108c31eeedb96cdac833a19a8518678d96f1d043bd13"
+  },
+  "client_source_proposals": {
+    "refusal": null,
+    "sha256": "11ebbb8bd0fbb0bd28b0dc8d286972a531169615c8332644191cb93a88e8e658"
+  },
+  "deep_research:brief_synthesizer": {
+    "refusal": null,
+    "sha256": "6b1640eaebe4508ddcf450d0524875a3a651e4ee74699135297a43c7e87039a2"
+  },
+  "deep_research:independent_verifier": {
+    "refusal": null,
+    "sha256": "808933d27baa8065b958414a05f90d070349ac6c53003ca963679737569a21ea"
+  },
+  "deep_research:internal_investigator": {
+    "refusal": null,
+    "sha256": "22c01322c3784badaf30375ac885c8fc07a92c6d92c74b3f59ffbd52e35eeba7"
+  },
+  "deep_research:investigator": {
+    "refusal": "union_properties:18>16",
+    "sha256": null
+  },
+  "deep_research:lead": {
+    "refusal": null,
+    "sha256": "33dd8b3f999e39190dfe610900d9fad7ddc15a74525778d05ce9f842f138a25a"
+  },
+  "deep_research:lead_replan": {
+    "refusal": null,
+    "sha256": "04b0b51d218ff21214285fd44e3c455ade8f445ff6c9a0529ebb7d6402950e95"
+  },
+  "deep_research:planner": {
+    "refusal": null,
+    "sha256": "d8f5e389e7b581d3953eb51c8e9afd874d77062e86dab8266dd4de73bdfc3a88"
+  },
+  "deep_research:synthesizer": {
+    "refusal": null,
+    "sha256": "97e2e7d21b673d870f4ef50735b9c0c3c5f39d45de262fb1f3ac70933462a010"
+  },
+  "deep_research:triage": {
+    "refusal": null,
+    "sha256": "cc66248a716f55e93504363eb4f23eef3a93feee38fa5766c26b8d7306c7c7ba"
+  },
+  "deep_research:verifier": {
+    "refusal": null,
+    "sha256": "d111a0ea8759205ce7eeb7d554376e1c76107f285fb6d79e0060695551b90d2d"
+  },
+  "deep_research:web_investigator": {
+    "refusal": null,
+    "sha256": "22c01322c3784badaf30375ac885c8fc07a92c6d92c74b3f59ffbd52e35eeba7"
+  },
+  "research:analyze_brief": {
+    "refusal": null,
+    "sha256": "1898a42d2dd38b32903fe93853fcc078e34ef7889b7e72f91af44bd0c3d63e9b"
+  },
+  "research:answer_memory": {
+    "refusal": null,
+    "sha256": "31bed17f53a474bb2bbd1f48664415aab747ecc78e788a665d23ea9210293eb3"
+  },
+  "research:build_questionnaire": {
+    "refusal": null,
+    "sha256": "eaa9129881c99d320da07c6977c0a8bfe6b4713ef333bf58ba63f64d0b08d62d"
+  },
+  "research:critique_design": {
+    "refusal": null,
+    "sha256": "31bed17f53a474bb2bbd1f48664415aab747ecc78e788a665d23ea9210293eb3"
+  },
+  "research:design_copilot": {
+    "refusal": null,
+    "sha256": "31bed17f53a474bb2bbd1f48664415aab747ecc78e788a665d23ea9210293eb3"
+  },
+  "research:optimize_questionnaire": {
+    "refusal": null,
+    "sha256": "eaa9129881c99d320da07c6977c0a8bfe6b4713ef333bf58ba63f64d0b08d62d"
+  },
+  "research:propose_audience": {
+    "refusal": null,
+    "sha256": "4bc5bfde79128d446a3eec52bdf576aea73bcafd6522890d25942bff3713a9f2"
+  },
+  "research:suggest_dimensions": {
+    "refusal": null,
+    "sha256": "2e6ff135f52ac854d0c565da324d2a9fc5991f4ab3af4025bec38c8cc6f6d980"
+  },
+  "study_lead": {
+    "refusal": "keyword:discriminator",
+    "sha256": null
+  }
+}
