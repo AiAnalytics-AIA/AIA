@@ -9,6 +9,7 @@ Interpretation card names; no Deep Research runtime runs, so nothing is sent.
 
 from __future__ import annotations
 
+import base64
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -247,6 +248,47 @@ def test_a_design_card_starts_one_run_on_its_focus_and_a_second_approval_returns
     )
     assert stage.status_code == 200 and stage.json()["run_id"] == body["run_id"]
     assert stage.json()["run_spec_fingerprint"] == run["run_spec_fingerprint"]
+
+
+def test_with_document_text_on_a_cards_run_is_still_the_stages_run(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """client-knowledge-lifecycle K8b: AIA_DEEP_RESEARCH_DOCUMENT_TEXT reaches the card's start
+    as it reaches the stage's, so both freeze a document's words and find the same run."""
+    app.state.settings = app.state.settings.model_copy(update={"deep_research_document_text": True})
+    client = world.client_id("primary")
+    kept = researcher.post(
+        f"{API}/clients/{client}/sources",
+        json={
+            "filename": "vyrocni-zprava.md",
+            "data_b64": base64.b64encode("Tržby vzrostly o 12 %.".encode()).decode(),
+        },
+    )
+    assert kept.status_code == 201, kept.text
+    item = researcher.post(
+        f"{API}/clients/{client}/knowledge/proposals",
+        json={
+            "kind": "DOCUMENT",
+            "title": "Zpráva",
+            "content": {"source_id": kept.json()["source_id"]},
+        },
+    )
+    assert item.status_code == 201, item.text
+    _save(app, world)
+    card = {"kind": "design_research", "why": WHY, "preset": "QUICK", "focus": []}
+    approved = _approve(researcher, world, _turn(researcher, world, app, card))
+    assert approved.status_code == 200, approved.text
+    body = approved.json()
+    stage = researcher.post(
+        f"{_study(world)}/deep-research/runs",
+        json={
+            "design_revision_id": body["design_revision_id"],
+            "preset_name": "QUICK",
+            "channels": ["WEB"],
+            "focus": [],
+        },
+    )
+    assert stage.status_code == 200 and stage.json()["run_id"] == body["run_id"]
 
 
 def test_a_card_on_a_run_another_person_started_keeps_its_attribution(
