@@ -111,14 +111,20 @@ from ..infrastructure.study_workspace_repository import (
 from ..infrastructure.workflow_repository import WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
 from .deep_research import DeepResearchRuns
-from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
+from .lead_chat_start import approve_chat_start, chat_start_decisions
 from .lead_deep_research import (
     DeepResearchCardRequest,
     DeepResearchCardSettings,
     DeepResearchCardUnavailable,
     approve_deep_research_card,
 )
-from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
+from .research import (
+    ResearchAgentJobs,
+    ResearchRuns,
+    RunStartSettings,
+    readiness_in_force,
+    research_artifacts,
+)
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
 

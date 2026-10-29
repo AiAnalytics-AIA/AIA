@@ -70,13 +70,13 @@ from .edit_ops import (
     refusal,
 )
 from .item_ids import SIDECAR_KEYS, list_ids, with_item_ids
+from .knowledge import knowledge_lineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
-    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )

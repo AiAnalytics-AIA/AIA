@@ -571,7 +571,8 @@ def test_a_typed_analysis_retry_starts_the_stage_retry_on_the_newest_analysed_ru
     turn_id = _type(researcher, world, "Zopakuj analýzu").json()["turns"][0]["turn_id"]
     approved = _approve(researcher, world, turn_id, confirm_cost_usd=3.0)
     assert approved.status_code == 200, approved.text
-    assert [(a["run_id"], a["confirm_cost_usd"]) for a in asked] == [(run_id, 3.0)]
+    # The person's yes is passed on as their issued confirmation (lead-orchestration LO2).
+    assert [(a["run_id"], a["confirmation"].usd) for a in asked] == [(run_id, 3.0)]
     retry_row = _chat_starts(app)[-1]
     comment = json.loads(retry_row.comment)
     assert (comment["start"], comment["turn_id"], comment["ceiling_usd"]) == (

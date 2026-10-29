@@ -742,6 +742,7 @@ class WorkflowRepository:
         limit: int = 50,
         workflow_type: str | None = None,
         key_prefix: str | None = None,
+        key_contains: str | None = None,
         steps: bool = False,
         run_ids: Sequence[str] | None = None,
         exclude_workflow_types: Sequence[str] = (),
@@ -750,7 +751,8 @@ class WorkflowRepository:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
         A listing for a screen; :meth:`get_run` returns one run in full. ``key_prefix``
-        keeps the runs whose idempotency key starts with it (matched literally).
+        keeps the runs whose idempotency key starts with it, ``key_contains`` those whose key
+        holds it anywhere (both matched literally).
         ``steps`` adds each run's steps from one more query for the page, without their
         attempt history: no ``attempts`` key, so nothing read from attempts (a start
         time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
@@ -769,6 +771,8 @@ class WorkflowRepository:
             filters.append(WorkflowRunRow.status.in_([s.value for s in statuses]))
         if key_prefix is not None:
             filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
+        if key_contains is not None:
+            filters.append(WorkflowRunRow.idempotency_key.contains(key_contains, autoescape=True))
         rows = self._session.scalars(
             select(WorkflowRunRow)
             .where(*filters)
@@ -2626,7 +2630,7 @@ class WorkflowRepository:
         Needs ``APPROVE_GATE``, which the worker's scope does not hold (ADR 0019 decision 6).
         Returns ``False`` and writes nothing when this job's accept is already recorded: an
         unchanged proposal can be accepted again, and that is not a second decision. The caller
-        holds the Study row lock (``StudyDesignRepository.submit_if_current``), so two accepts
+        holds the Study row lock (``accept_into_working_copy``), so two accepts
         cannot both pass the check.
 
         ``workspace_revision`` and ``workspace_revision_id`` name the working revision the accept
@@ -3209,6 +3213,22 @@ class WorkflowRepository:
         self._session.flush()
         return int(row.decision_id)
 
+    def design_research_accepted(self, run_id: str) -> bool:
+        """Whether a person has accepted any items of this Design Research run in this Study."""
+        return (
+            self._session.scalar(
+                select(ApprovalDecisionRow.decision_id)
+                .where(
+                    ApprovalDecisionRow.study_id == self.scope.study_id,
+                    ApprovalDecisionRow.subject_type == ApprovalSubject.DESIGN_RESEARCH,
+                    ApprovalDecisionRow.run_id == run_id,
+                    ApprovalDecisionRow.decision == "accept",
+                )
+                .limit(1)
+            )
+            is not None
+        )
+
     def record_design_research_acceptance(
         self,
         run_id: str,
@@ -3231,7 +3251,7 @@ class WorkflowRepository:
 
         Needs ``APPROVE_GATE``, which the worker's scope does not hold. Returns ``False`` and
         writes nothing when this selection is already recorded. The caller holds the Study row
-        lock (``StudyDesignRepository.submit_if_current``).
+        lock (``accept_into_working_copy``).
         """
         self.scope.require(Permission.APPROVE_GATE)
         run = self._run(run_id)

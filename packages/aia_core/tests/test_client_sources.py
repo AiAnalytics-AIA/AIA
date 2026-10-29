@@ -244,6 +244,26 @@ def test_a_source_is_found_only_within_its_client(
     assert created and theirs.source_id != kept.source_id
 
 
+def test_a_client_counts_its_own_sources_and_the_count_needs_the_read_permission(
+    scoped: Any, sources: ClientSourceRepository
+) -> None:
+    """CPR1: the file count the client's header shows; every source, this client only."""
+    lead = client_scope(scoped, "lead")
+    for name in ("a.txt", "b.txt", "c.txt"):
+        sources.add(lead, filename=name, data=name.encode())
+    sources.add(lead, filename="a-kopie.txt", data=b"a.txt")
+    other = client_scope(scoped, "other_lead", "other")
+    assert (sources.count(lead), sources.count(other)) == (3, 0)
+    blind = dataclasses.replace(
+        lead,
+        permissions=frozenset(
+            p for p in lead.permissions if p is not ClientPermission.VIEW_CLIENT_KNOWLEDGE
+        ),
+    )
+    with pytest.raises(ScopeDenied):
+        sources.count(blind)
+
+
 def test_a_refused_file_stores_nothing(
     scoped: Any, sources: ClientSourceRepository, store: InMemoryArtifactStore
 ) -> None:
