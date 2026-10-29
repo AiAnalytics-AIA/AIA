@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 
 from aia_core.application import report_maps
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure
+from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure, Text
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V3,
     ObjectMapInputs,
@@ -425,7 +425,12 @@ def test_the_respondent_alt_text_names_segment_colours_only_when_they_are_shown(
     assert "barva bodu chuťový segment" not in respondent_alt(plain)
 
 
-def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_client_report_shows_the_object_map_never_the_respondent_map_or_segments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The register approves -5's object map for clients; its respondent map and taste segments
+    wait until the web and the report draw them (the methodology owner, 2026-10-28, MQ-01 (b)),
+    and a dot is one person (MQ-13). The internal report keeps all three."""
     # The register's entry for aia-sociomap-5, as the stored map's method recorded it.
     method = AIA_SOCIOMAP_V5.methodology_version
     entry = next(a for a in SOCIOMAP_REGISTER if a.method_id == method)
@@ -433,20 +438,26 @@ def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.Monk
     assert entry.status is MethodologyStatus.CLIENT_FACING
     frozen = tastes()
     images = object_map_snapshots(frozen)
-    client = [
-        b
-        for b in compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
-        if isinstance(b, SociomapFigure)
-    ]
-    views = ["Pohled shora", "Prostorový pohled", "Mapa respondentů"]
-    assert [f.title.split(" · ")[1] for f in client] == views
+    blocks = compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
+    client = [b for b in blocks if isinstance(b, SociomapFigure)]
+    assert [f.title.split(" · ")[1] for f in client] == ["Pohled shora", "Prostorový pohled"]
     assert all(f.methodology_status == "CLIENT_FACING" for f in client)
-    internal = [
-        b
-        for b in compose_map_sections(frozen, images, source="Frozen")[0].blocks
-        if isinstance(b, SociomapFigure)
-    ]
+    words = " ".join(
+        i.text for b in blocks for i in getattr(b, "content", ()) if isinstance(i, Text)
+    )
+    assert "Mapa respondentů" not in words and "segment" not in words
+    internal_blocks = compose_map_sections(frozen, images, source="Frozen")[0].blocks
+    internal = [b for b in internal_blocks if isinstance(b, SociomapFigure)]
     assert len(internal) == 3
+    # The fixture shows segments, so the client's "not in words" above is meaningful.
+    internal_words = " ".join(
+        i.text for b in internal_blocks for i in getattr(b, "content", ()) if isinstance(i, Text)
+    )
+    assert "Barva bodu ukazuje chuťový segment" in internal_words
+    # The client report draws no respondent figure it would throw away.
+    client_images = object_map_snapshots(frozen, respondents=False)
+    assert not any(view == "respondents" for (_b, _m, view) in client_images)
+    assert compose_map_sections(frozen, client_images, source="Frozen", client=True)
 
 
 def _tiny() -> dict:

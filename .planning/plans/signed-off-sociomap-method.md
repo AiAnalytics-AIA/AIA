@@ -15,6 +15,7 @@ chunks:
   - "[ ] 11. Metodika shows -5 in full: the comparison (MapSummary) carries credibility, the respondent map and taste segments, and the -5 steps are what in force describes (Q8)"
   - "[x] 12. The -5 terrain by inverse-distance weighting: framed_relative_idw (terrain.idw_power in (0, 10]) the method's terrain, the falloff variant stored beside it in every -5 run, the envelope no longer drawn; the register approves the new -5 fingerprint b2992c12… beside 959a5877… (the methodology owner 2026-10-26, Nigel 2026-10-27; #1015)"
   - "[ ] 13. The report's map terrain chosen by the study's lead researcher: each map figure of the internal and the client report drawn in the terrain chosen from those the run stored (plain IDW by default), the figure saying which; the choice recorded with the study (Nigel 2026-10-27: 'editable and configurable by the lead researcher'; whether that is the person running the study or the AI Lead is open)"
+  - "[x] 14. The client report draws -5's object map only, never its respondent map or taste segments: the register approves the object map for clients, the respondent map and segments after the web and the report draw them (the methodology owner 2026-10-28, MQ-01 (b), MQ-13 (ii))"
 ---
 # aia-sociomap-5 — the signed-off AIA Sociomapa methodology as a method
 
@@ -373,3 +374,61 @@ Shipped by #823 (merged into develop 2026-10-23, `58a272b4`), the Settings backe
   the role, not which).
 
 Chunk 12 ticked: #1015 merged into develop on 2026-10-27 (`aabb37e2`), after Codex and a second review found nothing blocking. Five follow-ups (a near-zero distance in the IDW weight, the alternate terrain's three fields required together, Metodika's note on where the map opens, the kernel slot's help, timing the four IDW grids) are on the PR for Aram.
+
+## Chunk 14: the client report's respondent map (2026-10-28)
+
+**Finding (check A, the PM coordinator's open check on MQ-01).** The client report of a modelled
+`-5` run printed the respondent map: every placed respondent as a dot coloured by taste segment, its
+segment legend and the reading text. `compose_map_sections` added the `respondents` view to any
+signed-off map with a stored respondent map, client or not
+(`packages/aia_core/src/aia_core/application/report_maps.py:372-373 @ 947686c0`). The client report
+calls it with `client=True` (`application/client_report.py:169-170 @ 947686c0`), and the register
+approves `-5` as a whole (`domain/sociomap_register.py:69-100 @ 947686c0`). The methodology owner
+approved the object map for clients and the respondent map and segments only after the web and the
+report draw them (2026-10-28, MQ-01 (b)); a dot is one person, internal only (MQ-13 (ii)). The map
+snapshots (RD4) were clean: their views are `top` and `3d` (`application/map_snapshots.py:43`).
+
+**Fix.** The `respondents` view is added only when `client` is false; the client report keeps the top
+and 3D views of the object map, and the internal report all three; its respondent figure is no longer
+drawn for it (`object_map_snapshots(respondents=False)`). A draft stored before the fix is never served
+again: the client report's contract moves to `aia-client-report-8` (its reuse key), the document read
+skips an unapproved draft of an earlier contract, and its approval is refused (`ReportNotApprovable`);
+the next download composes anew. A version saved in the editor carries its composition's contract
+(`report_editor_saves.py`), so an unapproved edited client version of an earlier contract is refused
+too (`client_report.of_current_composition`, Codex P2 on #1109). A draft recording no contract is not
+current: every client draft has recorded one since the first composition (`ab913735`, 2026-10-13),
+and the respondent map reached the report later (`23ac1b46`, 2026-10-20). **A client report approved before the fix keeps its bytes** (D2: an
+approved version is never replaced): any approved `-5` client report on develop still holds the
+respondent map. **Decided: leave them** (the product owner, 2026-10-28, relayed by the PM
+coordinator): develop holds only fictional data, so they stay as recorded history. Tests:
+`test_report_signed_off_map_figure.py::test_the_client_report_shows_the_object_map_never_the_respondent_map_or_segments`
+(failed on `947686c0`: the client figures were top, 3D and the respondent map) and
+`test_sociomap_register.py::test_the_client_report_shows_a_new_runs_object_map_never_its_respondent_map`,
+which replace the two tests that asserted the respondent map in the client report.
+`apps/executors/tests/test_ai_fieldwork.py::test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved`
+(failed before: the document read returned the `-7` draft, and its approval passed).
+`apps/api/tests/test_report_editor_api.py::test_an_edited_client_version_of_an_earlier_composition_is_never_approved`
+(failed before: the edited version was approved, 200).
+
+**Decision: MQ-04's "maps computed elsewhere are internal only" gets no gate for the MVP** (the
+product owner, 2026-10-28, relayed by the PM coordinator). Only the worker computes a map
+(`apps/executors/src/aia_executors/research.py:898 @ 947686c0`); the report never re-derives one:
+`verified_map` checks the stored map's lineage, the run's dataset and specification, and reads it
+(`application/report_chapters.py:83-120`), so no coordinates are compared anywhere. A map records its
+numerical libraries (`numerical_runtime`), not the image that computed it. Revisit if a second
+compute path appears.
+
+**Findings (design notes, not built).**
+- **F-SOSM-14a.** The `-5` respondent map is kept from clients by a check in the composer
+  (`report_maps.py`, `not client`), not by the register, which approves `aia-sociomap-5` as a whole
+  (`domain/sociomap_register.py:69-100`). A per-view approval on `MethodApproval` (for example the
+  client views `top`, `3d`), read by `compose_map_sections`, would keep the decision in the register
+  as data; approving the respondent map later (MQ-01 (b)) is a code change until then.
+- **F-SOSM-14b** (to the methodology owner with RN-1, by the PM coordinator). The `-5` reader note
+  printed in the client report says how reliably the map is determined is given by the split-half
+  check and the uncertainty radius (`sociomap_register.py:96`), which the client report never prints
+  (`_credibility_note` is internal only, `report_maps.py:333-352`).
+
+**Doc follow-up.** `CLAUDE.md` §2, `application/report_maps.py`: "client=True: approved maps only, as
+figures" becomes "client=True: approved maps only, as figures, the object map alone (a `-5` respondent
+map and its segments internal, MQ-01 (b))".
