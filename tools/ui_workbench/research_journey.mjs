@@ -134,6 +134,10 @@ const card = page.locator(`.conv [data-card="run"][data-aia="run.${runId}"]`);
 if (workbench) {
   await card.waitFor({ timeout: 60000 }).catch(() => fail(`the Lead's conversation shows no card for run ${runId}`));
   ok("Progress: the run is a card in the Lead's conversation");
+  // Sběr dat is one stage with two views (FLD9): the start opened its Průběh.
+  const selected = await page.getByRole("tablist", { name: "Pohled" }).getByRole("tab", { name: "Průběh" }).getAttribute("aria-selected");
+  if (selected !== "true") fail("after the start, Sběr dat's Pohled does not show Průběh selected");
+  ok("Progress: Sběr dat's Pohled shows Průběh");
 }
 
 // 2. Progress: labelled fictional; polls until the worker has finished the chain.
@@ -174,7 +178,8 @@ const originCode = await page.locator('[data-aia="receipt:respondents"] [data-or
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
-const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+// Money is written with a no-break space before the currency (Intl's cs-CZ): read as a plain space.
+const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.replace(/\s/g, " ").trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
 // The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
 const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();

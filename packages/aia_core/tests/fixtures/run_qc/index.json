@@ -1,0 +1,13 @@
+{
+ "captured_with": {
+  "numpy": "2.5.4",
+  "pandas": "3.1.0"
+ },
+ "fixtures": {
+  "cases.json": "4b298a1f9fe6abcdcf30b5334014afde819f77ada6907f9ccc374cc375080a6f",
+  "kontrola.json": "805de0dcd198180a7f0b19f913862003cd969e5552ca51e1b16e06b455d6fdf9"
+ },
+ "unit_source": {
+  "qc.py": "aae297baebf547481627391af1ecb0338552bccf299de9419eb62c1308bcd28a"
+ }
+}

@@ -45,15 +45,18 @@ from aia_core.domain.deep_research.workflow import (
 )
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.knowledge import KnowledgeKind
+from aia_core.domain.residency import DataClass
 from aia_core.domain.scope import ClientContext, ScopeDenied, StudyStatus
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.domain.workflow_templates import WORKFLOW_TYPES
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from aia_core.infrastructure.client_source_repository import ClientSourceRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
     StudyDesignRepository,
 )
+from aia_core.infrastructure.tables import ClientKnowledgeItemRow, ClientSourceRow
 from aia_core.infrastructure.workflow_repository import WorkflowRepository
 
 DESIGN: dict[str, Any] = {
@@ -447,3 +450,164 @@ def test_interpretation_needs_a_result_of_this_study(runs: Any, design: Any) -> 
             preset_name="QUICK",
             store=store,
         )
+
+
+# ---------------------------------------- a document item's text (lifecycle K8b)
+
+
+def _document(
+    session: Any,
+    scoped: Any,
+    store: InMemoryArtifactStore,
+    *,
+    filename: str,
+    data: bytes,
+    kind: KnowledgeKind = KnowledgeKind.DOCUMENT,
+    client: str = "primary",
+    source_client: str | None = None,
+) -> tuple[str, str]:
+    """A client source kept and read, and a knowledge item naming it: (item id, source id)."""
+    owner = "researcher" if client == "primary" else "other_lead"
+    source_owner = owner if source_client in (None, client) else "other_lead"
+    kept, _ = ClientSourceRepository(session, store).add(
+        _client(scoped, source_owner, source_client or client), filename=filename, data=data
+    )
+    added = ClientKnowledgeRepository(session).add(
+        _client(scoped, owner, client),
+        kind=kind,
+        title=filename,
+        content={"source_id": kept.source_id},
+    )
+    assert added.item_id is not None
+    return added.item_id, kept.source_id
+
+
+def test_a_document_items_file_text_is_frozen_from_its_reading(
+    session: Any, scoped: Any, design: Any
+) -> None:
+    """Without the store (the switch off) the run holds the item's title alone, as before."""
+    store = InMemoryArtifactStore()
+    item_id, source_id = _document(
+        session,
+        scoped,
+        store,
+        filename="vyrocni-zprava.md",
+        data="Tržby za ovesné nápoje vzrostly o 12 %.".encode(),
+    )
+    pin = ClientSourceRepository(session, store).reading_pin(
+        _client(scoped, "researcher"), source_id
+    )
+    revision_id = design()
+
+    with_text = DeepResearchRuns(session, scoped.scope(), document_store=store)
+    [source] = with_text.freeze(design_revision_id=revision_id, preset_name="QUICK").knowledge.items
+    assert source.item_id == item_id
+    assert "Tržby za ovesné nápoje vzrostly o 12 %." in source.text
+    assert source.reading_sha256 == pin.reading_sha256 and source.internal is False
+
+    off = DeepResearchRuns(session, scoped.scope())
+    [plain] = off.freeze(design_revision_id=revision_id, preset_name="QUICK").knowledge.items
+    assert "Tržby" not in plain.text and plain.reading_sha256 is None
+
+
+def test_a_source_marked_internal_is_frozen_marked_and_stays_class_a(
+    session: Any, scoped: Any, design: Any
+) -> None:
+    store = InMemoryArtifactStore()
+    _, source_id = _document(
+        session, scoped, store, filename="metodika.md", data="Interní postup.".encode()
+    )
+    ClientSourceRepository(session, store).mark_internal(
+        _client(scoped, "researcher"), source_id, internal=True
+    )
+    runs = DeepResearchRuns(session, scoped.scope(), document_store=store)
+    [source] = runs.freeze(design_revision_id=design(), preset_name="QUICK").knowledge.items
+    assert source.internal is True
+    assert source.data_class is DataClass.CLASS_A_CLIENT_CONFIDENTIAL
+
+
+def test_a_reading_that_fails_verification_is_skipped_never_a_refused_start(
+    session: Any, scoped: Any, design: Any
+) -> None:
+    """One unreadable document does not block the study's Deep Research: its item is held as it
+    was without document text, and the rest are read."""
+    store = InMemoryArtifactStore()
+    _, broken = _document(session, scoped, store, filename="poskozena.md", data=b"Poskozeny text.")
+    _document(session, scoped, store, filename="cela.md", data="Celá zpráva.".encode())
+    row = session.get(ClientSourceRow, broken)
+    assert row is not None and row.reading_key is not None
+    store.put(row.reading_key, b'{"tampered": true}')
+    runs = DeepResearchRuns(session, scoped.scope(), document_store=store)
+    request = runs.freeze(design_revision_id=design(), preset_name="QUICK")
+    by_title = {k.title: k for k in request.knowledge.items}
+    assert by_title["poskozena.md"].reading_sha256 is None
+    # Held without the file it names, so it says it stops short, never that it is whole.
+    assert by_title["poskozena.md"].truncated is True
+    assert "Celá zpráva." in by_title["cela.md"].text
+
+
+def test_a_source_with_nothing_read_or_a_malformed_name_is_never_fetched(
+    session: Any, scoped: Any, design: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The row says a reading holds no text: it is not fetched. An item whose stored source id
+    is malformed (written before the check) is held as it was, never a refused start."""
+    store = InMemoryArtifactStore()
+    _, empty = _document(session, scoped, store, filename="sken.md", data=b"Sken.")
+    malformed, _ = _document(session, scoped, store, filename="stara.md", data=b"Stara.")
+    row = session.get(ClientSourceRow, empty)
+    assert row is not None
+    row.outcome, row.segment_count = "UNREADABLE", 0
+    stored = session.get(ClientKnowledgeItemRow, malformed)
+    assert stored is not None
+    stored.content = {"source_id": "abc"}
+    session.flush()
+    fetched: list[str] = []
+    real = InMemoryArtifactStore.get
+    monkeypatch.setattr(
+        InMemoryArtifactStore,
+        "get",
+        lambda self, key, **kw: fetched.append(key) or real(self, key, **kw),
+    )
+    runs = DeepResearchRuns(session, scoped.scope(), document_store=store)
+    request = runs.freeze(design_revision_id=design(), preset_name="QUICK")
+    assert not [k for k in fetched if "reading" in k]
+    assert all(k.reading_sha256 is None for k in request.knowledge.items)
+
+
+def test_a_datasets_rows_and_another_clients_source_are_never_read(
+    session: Any, scoped: Any, design: Any
+) -> None:
+    """A dataset's rows may hold personal data (``require_extractable``); a source of another
+    client is not this study's to read, whatever an item names."""
+    store = InMemoryArtifactStore()
+    _document(
+        session,
+        scoped,
+        store,
+        filename="navstevy.csv",
+        data=b"jmeno;email\nJana;jana@example.cz\n",
+        kind=KnowledgeKind.DATASET,
+    )
+    # A SOURCE item may name a table too: the reading's family refuses it, not the item's kind.
+    _document(
+        session,
+        scoped,
+        store,
+        filename="kontakty.csv",
+        data=b"jmeno;telefon\nPetr;+420 601 234 567\n",
+        kind=KnowledgeKind.SOURCE,
+    )
+    _document(
+        session,
+        scoped,
+        store,
+        filename="cizi.md",
+        data="Tajemství jiného klienta.".encode(),
+        source_client="other",
+    )
+    runs = DeepResearchRuns(session, scoped.scope(), document_store=store)
+    request = runs.freeze(design_revision_id=design(), preset_name="QUICK")
+    assert all(k.reading_sha256 is None for k in request.knowledge.items)
+    held = request.model_dump_json()
+    assert "jana@example.cz" not in held and "601 234 567" not in held
+    assert "Tajemství" not in held

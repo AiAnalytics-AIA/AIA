@@ -34,6 +34,7 @@ from enum import StrEnum
 from statistics import NormalDist
 from typing import Final
 
+from ..straight_lining import AnswerSpread, answer_spread
 from .slots import INTERVAL_HIGH, INTERVAL_LOW, NO_SLOTS, PERSON, Slots
 
 __all__ = [
@@ -333,7 +334,8 @@ def person_minmax(
     stamp. Non-finite ratings are refused.
 
     ``slots`` may replace the rescaling (``f2.person``, ADR 0023); which rows are excluded
-    stays this rule.
+    stays this rule, the one straight-liner rule (``domain/straight_lining.py``, RQC1):
+    none rated, one rated, or every rating one value.
     """
     replaced = slots.get(PERSON)
     rows: list[tuple[float | None, ...]] = []
@@ -342,11 +344,11 @@ def person_minmax(
         rated = [float(v) for v in row if v is not None]
         if any(not math.isfinite(v) for v in rated):
             raise ValueError(f"respondent row {k} holds a non-finite rating")
-        low, high = (min(rated), max(rated)) if rated else (0.0, 0.0)
-        if not rated or high == low:
+        if answer_spread(rated) is not AnswerSpread.SPREAD:
             excluded.append(k)
             rows.append(tuple(None for _ in row))
             continue
+        low, high = min(rated), max(rated)
         if replaced is not None:
             rows.append(
                 tuple(

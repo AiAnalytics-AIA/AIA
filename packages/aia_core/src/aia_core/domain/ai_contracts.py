@@ -55,6 +55,7 @@ __all__ = [
     "AgentDefinition",
     "CallProvenance",
     "CallPurpose",
+    "ContentBlock",
     "CostBasis",
     "Delivery",
     "FallbackPolicy",
@@ -67,7 +68,11 @@ __all__ = [
     "ProviderAdapter",
     "ProviderError",
     "ProviderErrorKind",
+    "ReasoningBlock",
     "StructuredValidation",
+    "TextBlock",
+    "ToolResultBlock",
+    "ToolUseBlock",
     "UsageOutcome",
     "canonical_json",
     "check_thinking_budget",
@@ -214,7 +219,7 @@ def input_fingerprint(request: AdapterRequest) -> str:
     """
     content: dict[str, Any] = {
         "system": request.system,
-        "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+        "messages": [{"role": m.role, "content": m.wire_content()} for m in request.messages],
         "output_schema": dict(request.output_schema) if request.output_schema else None,
         "max_output_tokens": request.max_output_tokens,
     }
@@ -520,11 +525,193 @@ class AgentDefinition:
 
 
 @dataclass(frozen=True, slots=True)
+class TextBlock:
+    """Text inside a message of content blocks."""
+
+    text: str
+
+    def wire(self) -> dict[str, Any]:
+        """The block as fingerprinted and measured: provider-neutral JSON."""
+        return {"type": "text", "text": self.text}
+
+
+@dataclass(frozen=True, slots=True)
+class ToolUseBlock:
+    """A tool the model called: its id, the tool's name and the arguments it passed.
+
+    ``arguments`` is the canonical JSON of the object the model passed, so the block is
+    immutable and hashable; :meth:`of` builds it from the object.
+    """
+
+    tool_use_id: str
+    name: str
+    arguments: str
+
+    def __post_init__(self) -> None:
+        if not self.tool_use_id.strip() or not self.name.strip():
+            raise ValueError("a tool call names its id and its tool")
+        try:
+            value = json.loads(self.arguments)
+        except ValueError as exc:
+            raise ValueError("a tool call's arguments are JSON") from exc
+        if not isinstance(value, dict):
+            raise ValueError("a tool call's arguments are one JSON object")
+        # One call, one block: however the JSON was spaced or ordered.
+        object.__setattr__(self, "arguments", canonical_json(value))
+
+    @classmethod
+    def of(cls, tool_use_id: str, name: str, arguments: Mapping[str, Any]) -> ToolUseBlock:
+        """The block for a call with these arguments."""
+        return cls(tool_use_id, name, canonical_json(dict(arguments)))
+
+    @property
+    def input(self) -> dict[str, Any]:
+        """The arguments as an object (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.arguments)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {"type": "tool_use", "id": self.tool_use_id, "name": self.name, "input": self.input}
+
+
+@dataclass(frozen=True, slots=True)
+class ToolResultBlock:
+    """What AIA answers one tool call with: data, never instructions (ADR 0026 R8)."""
+
+    tool_use_id: str
+    content: str
+    is_error: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.tool_use_id.strip():
+            raise ValueError("a tool result names the call it answers")
+
+    def wire(self) -> dict[str, Any]:
+        return {
+            "type": "tool_result",
+            "tool_use_id": self.tool_use_id,
+            "content": self.content,
+            "is_error": self.is_error,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ReasoningBlock:
+    """A model's reasoning, kept as the provider returned it and sent back unchanged.
+
+    Opaque: ``block`` is the canonical JSON of the provider's own block, signature
+    included, and only the adapter of ``provider`` reads it. A provider requires a
+    thinking model's reasoning returned untouched within a tool conversation; nothing
+    in AIA shows it or reads its text. ``redacted`` is the adapter's reading of it.
+    """
+
+    provider: Provider
+    block: str
+    redacted: bool = False
+
+    def __post_init__(self) -> None:
+        try:
+            value = json.loads(self.block)
+        except ValueError as exc:
+            raise ValueError("a reasoning block is the provider's JSON") from exc
+        if not isinstance(value, dict) or not value:
+            raise ValueError("a reasoning block is the provider's JSON object")
+        object.__setattr__(self, "block", canonical_json(value))
+
+    @classmethod
+    def of(
+        cls, provider: Provider, block: Mapping[str, Any], *, redacted: bool = False
+    ) -> ReasoningBlock:
+        """The block for the provider's own reasoning object."""
+        return cls(provider, canonical_json(dict(block)), redacted)
+
+    @property
+    def provider_block(self) -> dict[str, Any]:
+        """The provider's block as it came (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.block)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {
+            "type": "reasoning",
+            "provider": self.provider.value,
+            "block": self.provider_block,
+            "redacted": self.redacted,
+        }
+
+
+#: A block of a message's content, beside plain text (ADR 0026 Amendment 2026-10-28).
+ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | ReasoningBlock
+
+#: The blocks each role may hold: the model calls tools and reasons, AIA answers calls.
+_ROLE_BLOCKS: Final[dict[str, tuple[type, ...]]] = {
+    "user": (TextBlock, ToolResultBlock),
+    "assistant": (TextBlock, ToolUseBlock, ReasoningBlock),
+}
+
+
+def _check_blocks(role: str, blocks: tuple[ContentBlock, ...]) -> None:
+    allowed = _ROLE_BLOCKS.get(role)
+    if allowed is None:
+        raise ValueError(f"a message's role is user or assistant, not {role!r}")
+    for block in blocks:
+        if not isinstance(block, allowed):
+            other = "assistant" if role == "user" else "user"
+            raise ValueError(f"a {type(block).__name__} comes from the {other}, not the {role}")
+
+
+def _tool_calls(blocks: tuple[ContentBlock, ...]) -> tuple[ToolUseBlock, ...]:
+    return tuple(b for b in blocks if isinstance(b, ToolUseBlock))
+
+
+def _reasoning(blocks: tuple[ContentBlock, ...]) -> tuple[ReasoningBlock, ...]:
+    return tuple(b for b in blocks if isinstance(b, ReasoningBlock))
+
+
+@dataclass(frozen=True, slots=True)
 class Message:
-    """One conversational turn sent to a model."""
+    """One conversational turn sent to a model.
+
+    ``content`` is text, as every caller has sent it, or a non-empty tuple of content
+    blocks the role may hold (a tool conversation). A text-only consumer reads
+    :attr:`text`, which refuses a message of blocks rather than guess a string.
+    """
 
     role: Literal["user", "assistant"]
-    content: str
+    content: str | tuple[ContentBlock, ...]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.content, str | tuple):
+            raise ValueError("a message's content is text or a tuple of content blocks")
+        if isinstance(self.content, tuple):
+            if not self.content:
+                raise ValueError("a message of content blocks holds at least one block")
+            _check_blocks(self.role, self.content)
+
+    @property
+    def has_blocks(self) -> bool:
+        """True for a message of content blocks."""
+        return isinstance(self.content, tuple)
+
+    @property
+    def text(self) -> str:
+        """The message's text; raises for a message of content blocks."""
+        if isinstance(self.content, tuple):
+            raise ValueError("a message of content blocks has no single text")
+        return self.content
+
+    @property
+    def blocks(self) -> tuple[ContentBlock, ...]:
+        """The message as blocks: a text message is one text block."""
+        if isinstance(self.content, tuple):
+            return self.content
+        return (TextBlock(self.content),)
+
+    def wire_content(self) -> str | list[dict[str, Any]]:
+        """What is fingerprinted and measured: the text as it is, or every block."""
+        if isinstance(self.content, tuple):
+            return [b.wire() for b in self.content]
+        return self.content
 
 
 @dataclass(frozen=True, slots=True)
@@ -749,6 +936,22 @@ class AdapterResponse:
     reported_cost_usd: float | None = None
     #: The provider-native structured object, when the provider returned one.
     structured: Mapping[str, Any] | None = None
+    #: The response's content blocks in order (tool calls and reasoning among them), when
+    #: the adapter keeps them; empty from an adapter that keeps only text and the object.
+    blocks: tuple[ContentBlock, ...] = ()
+
+    def __post_init__(self) -> None:
+        _check_blocks("assistant", self.blocks)
+
+    @property
+    def tool_calls(self) -> tuple[ToolUseBlock, ...]:
+        """Every tool the model called, in order."""
+        return _tool_calls(self.blocks)
+
+    @property
+    def reasoning(self) -> tuple[ReasoningBlock, ...]:
+        """The model's reasoning blocks, in order."""
+        return _reasoning(self.blocks)
 
 
 class ProviderAdapter(Protocol):
@@ -792,6 +995,9 @@ class CallPurpose(StrEnum):
     PRIMARY = "PRIMARY"
     SCHEMA_REPAIR = "SCHEMA_REPAIR"
     FALLBACK = "FALLBACK"
+    #: One round of a tool conversation that is not its answer (ADR 0026 Amendment
+    #: 2026-10-28): the model's tool calls answered by AIA's reads.
+    TOOL_ROUND = "TOOL_ROUND"
 
 
 class UsageOutcome(StrEnum):
@@ -947,6 +1153,18 @@ class ModelResult:
     text: str
     output: BaseModel | None
     usage_events: tuple[AIUsageEvent, ...]
+    #: The answering response's content blocks, as :attr:`AdapterResponse.blocks`.
+    blocks: tuple[ContentBlock, ...] = ()
+
+    @property
+    def tool_calls(self) -> tuple[ToolUseBlock, ...]:
+        """Every tool the model called in the answering response, in order."""
+        return _tool_calls(self.blocks)
+
+    @property
+    def reasoning(self) -> tuple[ReasoningBlock, ...]:
+        """The answering response's reasoning blocks, in order."""
+        return _reasoning(self.blocks)
 
     @property
     def total_cost_usd(self) -> float:

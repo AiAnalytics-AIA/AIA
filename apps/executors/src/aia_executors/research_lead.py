@@ -38,6 +38,7 @@ from aia_core.domain.prompts import PromptPin
 from aia_core.domain.providers import Provider
 from aia_core.domain.research_lead import (
     ARTIFACT_TYPE,
+    GREETING_UNFUNDED,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
     LeadOutput,
@@ -62,7 +63,15 @@ from aia_core.infrastructure.researcher_lead_repository import (
 )
 from aia_core.infrastructure.storage import ArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-from aia_worker.executor import Failed, StepContext, StepInput, StepOutcome, Succeeded
+from aia_worker.executor import (
+    BudgetExceeded,
+    Failed,
+    StepContext,
+    StepFailed,
+    StepInput,
+    StepOutcome,
+    Succeeded,
+)
 from pydantic import ValidationError
 
 from .ai_step import StepModelCaller, class_advisory_fields
@@ -156,8 +165,9 @@ class ResearchLeadExecutor:
         context: StepContext,
         frozen: Mapping[str, Any],
         pin: PromptPin,
-    ) -> LeadAnswer | Failed:
-        """One model request over the frozen context, and its one repair."""
+    ) -> LeadAnswer | Failed | Succeeded:
+        """One model request over the frozen context, and its one repair. A greeting the study's
+        budget cannot pay for ends here, unpaid and never parked (:data:`GREETING_UNFUNDED`)."""
         cfg, gateway = self._config, self._gateway
         assert cfg is not None and gateway is not None
         payload = step.payload
@@ -174,7 +184,7 @@ class ResearchLeadExecutor:
         # Fail before reserving or sending, never trim.
         request_bytes = len(
             (
-                request.system + request.messages[0].content + canonical_json(request.agent.schema)
+                request.system + request.messages[0].text + canonical_json(request.agent.schema)
             ).encode()
         )
         if request_bytes + 5 * cfg.max_output_tokens + 2048 > cfg.context_window_tokens:
@@ -186,6 +196,7 @@ class ResearchLeadExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            refused_answers=lambda session: research_artifacts(session, context.scope, self._store),
         )
         try:
             caller.preflight(request)
@@ -198,7 +209,21 @@ class ResearchLeadExecutor:
                 },
             )
         context.progress("Vedoucí výzkumu odpovídá", turn=str(payload.get("turn_id")))
-        result = caller.invoke(request)
+        greeting = layer(frozen, "view").get("kind") == "greeting"
+        try:
+            result = caller.invoke(request)
+        except BudgetExceeded:
+            # A greeting is the Lead's own overview, which nobody asked for: it never waits at
+            # the budget for a person to pay (F-LO-PARK-1; Nigel, 2026-10-28, W1Q11). A
+            # message still parks, and is sent on the current design once the budget is set.
+            if greeting:
+                return Succeeded(output={"skipped": GREETING_UNFUNDED})
+            raise
+        except StepFailed as failed:
+            # Its own reservation used up by a repair (reservation_exhausted) parks the same way.
+            if greeting and failed.failure is FailureClass.BUDGET_EXCEEDED:
+                return Succeeded(output={"skipped": GREETING_UNFUNDED})
+            raise
         assert result.output is not None
         # The class the gateway sent it as: the request's, or -- an unknown class passed under
         # advisory class gates (where set) -- the class it was judged as, with the advisory.
@@ -294,7 +319,7 @@ class ResearchLeadExecutor:
                     return Succeeded(output={**result, "artifact_id": existing.artifact_id})
 
         answer = self._answer(step, context, frozen, pin)
-        if isinstance(answer, Failed):
+        if isinstance(answer, Failed | Succeeded):
             return answer
         design = layer(frozen, "design")
         grounded, dropped = ground_edits(

@@ -4,6 +4,7 @@
 // API's Pydantic models (apps/api/src/aia_api/schemas); the client renders what
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
+import type { AiRoute } from "@/lib/ai-route";
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
@@ -284,7 +285,16 @@ export type ClientWorkspace = {
 export type ClientProfileFields = { short_code: string; industry: string; market: string; description: string };
 export type ClientContact = { contact_id: string; name: string; role: string; email: string; receives_reports: boolean };
 export type ContactWrite = Omit<ClientContact, "contact_id">;
-export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
+/** A profile history entry; `changes`: a budget or rule field from what to what (CPR3), `before_known` false where
+ *  the audit did not record the earlier value; `actor_name` a member's display name, never an e-mail. */
+export type ProfileChange = {
+  action: string;
+  at: string | null;
+  actor_name: string | null;
+  fields: string[];
+  contact_name: string | null;
+  changes: { field: string; before: string | number | boolean | null; after: string | number | boolean | null; before_known: boolean }[];
+};
 export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
 /** What the client's own AI work may cost (client-budget CB1); never its studies' budgets. */
 export type ClientBudget = { budget_usd: number; spent_usd: number; reserved_usd: number; available_usd: number };
@@ -2041,6 +2051,8 @@ export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
   aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
+  /** The AI route the newest worker start recorded (LO12b): any member; 404 with the read off. */
+  aiRoute: () => request<AiRoute>("GET", "/api/v1/settings/ai-route"),
 };
 
 /** A client's rules (#853, SB7), read by any member; set on the client's Profil → Pravidla. */
@@ -2190,7 +2202,7 @@ export type MethodPanel = {
   in_force: MethodMapSummary; draft: MethodMapSummary;
   status_changes: { a: string; b: string; in_force: string; draft: string }[];
   shifts: Record<string, number>; alignment_rmsd: number | null;
-  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
+  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]> | null;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
 /** One fixed fictional cell of the support draft check (plan G1d). Statuses are

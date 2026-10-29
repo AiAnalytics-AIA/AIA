@@ -148,6 +148,7 @@ def worker(
     approvals: tuple[MaterialApproval, ...] = APPROVALS,
     route_approved_for: str | None = None,
     class_gates: str = "",
+    reservation_usd: float | None = None,
 ) -> Worker:
     gates = {"AIA_DATA_CLASS_GATES": class_gates}
     cfg = (
@@ -166,7 +167,7 @@ def worker(
             policy_version=cfg.policy_version,
             max_output_tokens=cfg.study_lead_max_output_tokens,
             context_window_tokens=cfg.context_window_tokens,
-            reservation_usd=cfg.study_lead_reservation_usd,
+            reservation_usd=reservation_usd or cfg.study_lead_reservation_usd,
             material_approvals=approvals,
         )
         if configured
@@ -396,6 +397,58 @@ def test_unconfigured_the_turn_parks_and_nothing_is_sent(
     assert transport.requests == []
     turn = lead_turn(ready, turn_id)
     assert (turn["status"], turn["reason"]) == ("WAITING", "research_lead_unconfigured")
+
+
+def _no_budget(world: Any) -> None:
+    from aia_core.infrastructure.scope_repository import ScopeRepository
+
+    with world.sessions() as session:
+        ScopeRepository(session).set_study_budget(world.lead_scope(session), 0.0)
+        session.commit()
+
+
+def test_a_greeting_the_budget_cannot_pay_for_ends_unpaid_and_never_parks(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): on develop a new study with no budget showed a
+    turn parked at the budget nobody had written; it was the greeting the pane sends by itself.
+    A greeting is ended, with no request sent, and said in one quiet line; a message still parks
+    until a person sets the budget."""
+    _no_budget(ready)
+    greeting = post(ready, message=None)
+    transport = RecordedBedrock([REPLY])
+    assert worker(ready, database_url, store, build, transport).run_once()
+    assert transport.requests == []
+    turn = lead_turn(ready, greeting)
+    assert (turn["status"], turn["reason"], turn["output"]) == (
+        "COMPLETED",
+        "greeting_unfunded",
+        None,
+    )
+    assert state(ready)["busy"] is False
+
+    message = post(ready)
+    assert worker(ready, database_url, store, build, transport).run_once()
+    assert transport.requests == []
+    assert (lead_turn(ready, message)["status"], lead_turn(ready, message)["reason"]) == (
+        "WAITING",
+        "budget_exceeded",
+    )
+
+
+def test_a_greeting_its_own_reservation_cannot_cover_ends_unpaid_too(
+    ready: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """The review of F-LO-PARK-1: the gateway's own refusal (``reservation_exhausted``, a call
+    that does not fit what the turn holds) reaches the executor as a failed step, not the
+    reservation's BudgetExceeded; a greeting ends there too, rather than park for ever."""
+    greeting = post(ready, message=None)
+    transport = RecordedBedrock([REPLY])
+    w = worker(ready, database_url, store, build, transport, reservation_usd=0.000001)
+    assert w.run_once()
+    assert transport.requests == []
+    turn = lead_turn(ready, greeting)
+    assert (turn["status"], turn["reason"]) == ("COMPLETED", "greeting_unfunded")
 
 
 def _undeclared_prompt(ready: Any) -> None:

@@ -58,6 +58,7 @@ def start_workflow(
     owner: str | None = None,
     analysis_enabled: bool = False,
     sociomapping_enabled: bool = False,
+    qc_enabled: bool = False,
     population: PopulationBinding | None = None,
 ) -> StartedRun:
     """Create a run of ``workflow_type`` against a revision of the project.
@@ -88,6 +89,7 @@ def start_workflow(
         project_type=project.project_type,
         analysis_enabled=analysis_enabled,
         sociomapping_enabled=sociomapping_enabled,
+        qc_enabled=qc_enabled,
     )
 
     # The step's input fingerprint is the content it will describe, so a re-run

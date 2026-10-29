@@ -554,8 +554,8 @@ def compose_internal_report(
 
 def beside_outputs(steps: Iterable[Mapping[str, Any]]) -> tuple[BesideOutput, ...]:
     """The run's steps the report does not stand on (the experimental Sociomapping and its
-    draft): what the manifest names as made beside it (CHN1). By the graph, never by whether
-    the step has finished, so the same run composes the same document."""
+    draft, the run QC): what the manifest names as made beside it (CHN1). By the graph, never by
+    whether the step has finished, so the same run composes the same document."""
     return tuple(
         BesideOutput(str(s["node_key"]), str(s["kind"]))
         for s in steps

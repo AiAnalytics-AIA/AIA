@@ -66,7 +66,7 @@ Done is quiet ink, never green. There is no amber anywhere. The only other green
 
 IBM Plex Sans for the interface, IBM Plex Mono for ids, amounts in tables and formulas, Source Serif 4 for the hero title only. Weights 400, 500 and 600; never 700. Figures are tabular.
 
-- `hero-title` serif 40/46 on top-level pages only (UI-1); `studio-title` 20/26 for the stage title inside a study; `studio-heading` 15/20 for sections; `studio-body` 14/20; `studio-body-compact` 13/18 in tables; `lede` 16/24 muted under a hero, 62ch at most; `studio-caption` 12/16 and `studio-label` 12/16 500; `eyebrow` 12, 600, .06em, uppercase by CSS; `figure` 20/26 to `figure-xl` 44/50, 600; `mono-sm` 12.
+- `hero-title` serif 28/34 on top-level pages only (UI-1, core v4.3); `studio-title` 20/26 for the stage title inside a study; `studio-heading` 15/20 for sections; `studio-body` 14/20; `studio-body-compact` 13/18 in tables; `lede` 14/20 muted under a hero, 68ch at most; `studio-caption` 12/16 and `studio-label` 12/16 500; `eyebrow` 12, 600, .06em, uppercase by CSS; `figure` 20/26 to `figure-xl` 44/50, 600; `mono-sm` 12.
 - 12 px is the floor.
 
 ## Space, radius, depth, motion

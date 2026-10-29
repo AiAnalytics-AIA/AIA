@@ -78,7 +78,7 @@ from aia_core.domain.deep_research.request_limits import REQUEST_LIMITS, Request
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.run_cost import CeilingUnknown, DeepResearchPrices
 from aia_core.domain.scope import Permission, ScopeDenied, StudyContext
-from aia_core.infrastructure.storage import IntegrityError, ObjectNotFound
+from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
 from aia_core.infrastructure.study_design_repository import DesignRevisionNotFound
 from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from pydantic import (
@@ -443,6 +443,17 @@ def deep_research_start_errors(session: SessionDep) -> Iterator[None]:
         raise artifact_corrupt(session) from exc
 
 
+def _enqueuing(
+    session: SessionDep, scope: StudyContext, settings: Settings, store: ArtifactStore
+) -> DeepResearchRuns:
+    """The Study's runs as an enqueue freezes them: a DOCUMENT or SOURCE item's file text read
+    from the store only under ``AIA_DEEP_RESEARCH_DOCUMENT_TEXT`` (client-knowledge-lifecycle
+    K8b); off, the request is the one it always was."""
+    return DeepResearchRuns(
+        session, scope, document_store=store if settings.deep_research_document_text else None
+    )
+
+
 @contextmanager
 def _errors(session: SessionDep) -> Iterator[None]:
     try:
@@ -594,7 +605,7 @@ def quote(
     """
     settings = request.app.state.settings
     with _errors(session):
-        runs = DeepResearchRuns(session, scope)
+        runs = _enqueuing(session, scope, settings, store)
         # The start's own order: its permission and an open study before anything is frozen
         # or read, so a closed study is 403 study_closed and nothing is touched.
         runs.require_start()
@@ -643,11 +654,12 @@ def start(
     request: Request,
     scope: StudyScopeDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
     response: Response,
 ) -> DeepResearchRun:
     settings = request.app.state.settings
     with _errors(session):
-        runs = DeepResearchRuns(session, scope)
+        runs = _enqueuing(session, scope, settings, store)
         started = runs.start(
             design_revision_id=body.design_revision_id,
             preset_name=body.preset_name,
@@ -688,7 +700,7 @@ def start_interpretation(
     """
     settings = request.app.state.settings
     with _errors(session):
-        runs = DeepResearchRuns(session, scope)
+        runs = _enqueuing(session, scope, settings, store)
         started = runs.start_interpretation(
             target=body.target,
             preset_name=body.preset_name,
@@ -789,7 +801,7 @@ def retry(
 ) -> DeepResearchRun:
     settings = request.app.state.settings
     with _errors(session):
-        runs = DeepResearchRuns(session, scope)
+        runs = _enqueuing(session, scope, settings, store)
         started = runs.retry(
             run_id,
             prices=study_prices(settings, session, scope),
