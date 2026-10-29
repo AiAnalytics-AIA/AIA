@@ -1,10 +1,12 @@
-"""What this worker's Deep Research composition reaches, recorded at start
-(deep-research-web-search 52, settings-backends SB6).
+"""What this worker's Deep Research composition reaches, and the AI route it composed,
+recorded at start (deep-research-web-search 52, settings-backends SB6; lead-orchestration LO12b).
 
 :func:`reach_of` reads the composed :class:`DeepResearchRuntime` itself -- its retrieval, its
 connectors, its archives and Common Crawl, each a ``ToolRoute`` with its classes and price --
 and names every route the code builds that it does not compose, with the switch that decides
-it. :func:`record_reach` keeps that at worker start (``build_registry``), best effort: a worker
+it. :func:`ai_route_of` reads the AI runtime's route as ``AIRuntimeSettings`` validated it
+(``route()``, the facts the gateway judges) and whether the study Lead can answer a turn.
+:func:`record_reach` keeps both at worker start (``build_registry``), best effort: a worker
 that cannot write it starts anyway and says so in its log.
 """
 
@@ -16,12 +18,15 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Final
 
+from aia_core.domain.ai_route_reach import AiRouteReach, LeadComposition
 from aia_core.domain.deep_research.tooling import ToolKind, ToolRoute
 from aia_core.domain.deep_research_reach import ReachKind, ReachState, RouteReach, order_reach
+from aia_core.domain.deployment import DataClassGates
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.db import create_app_engine, create_session_factory
 from aia_core.infrastructure.deep_research_composition_repository import record_composition
 
+from .ai_runtime import AIRuntimeSettings
 from .deep_research import DeepResearchRuntime
 from .deep_research.standing import STANDING_CONNECTORS
 from .deep_research_live import (
@@ -46,7 +51,7 @@ from .deep_research_runtime import (
     web_search,
 )
 
-__all__ = ["reach_of", "record_reach"]
+__all__ = ["ai_route_of", "reach_of", "record_reach"]
 
 log = logging.getLogger(__name__)
 
@@ -171,9 +176,28 @@ def reach_of(runtime: DeepResearchRuntime | None, env: Mapping[str, str]) -> lis
     return order_reach(out)
 
 
+def ai_route_of(env: Mapping[str, str]) -> AiRouteReach:
+    """The AI route this environment composes, as the gateway will judge it: the validated
+    settings' ``route()`` (no price, no invocation target) and the study Lead's state."""
+    settings = AIRuntimeSettings.from_env(env)
+    if settings is None:
+        # No route: every class is refused whatever the gates, so they are not read (a value the
+        # runtime never validated must not cost Dosah its record).
+        return AiRouteReach(False, None, None, DataClassGates.ENFORCE, LeadComposition.OFF)
+    lead = (
+        LeadComposition.CONFIGURED
+        if settings.study_lead_configured
+        else LeadComposition.UNCONFIGURED
+        if settings.study_lead_enabled
+        else LeadComposition.OFF
+    )
+    return AiRouteReach(True, settings.route(), settings.region, settings.data_class_gates, lead)
+
+
 def record_reach(runtime: DeepResearchRuntime | None, env: Mapping[str, str] | None = None) -> bool:
-    """Keep this worker's reach for Settings; ``False`` (and a log line) when it cannot. Never
-    raises: what Settings shows is not a reason for a worker not to start."""
+    """Keep this worker's reach and AI route for Settings and the Lead pane; ``False`` (and a
+    log line) when it cannot. Never raises: what Settings shows is not a reason for a worker not
+    to start."""
     values = os.environ if env is None else env
     url = values.get("DATABASE_URL", "").strip()
     if not url or url.startswith("sqlite"):
@@ -191,6 +215,7 @@ def record_reach(runtime: DeepResearchRuntime | None, env: Mapping[str, str] | N
                     agent_directed=agent_directed(values),
                     class_gates=(runtime.config.class_gates.value if runtime is not None else None),
                     routes=routes,
+                    ai_route=ai_route_of(values),
                 )
                 session.commit()
         finally:

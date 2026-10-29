@@ -75,9 +75,12 @@ def _height_sentence(maps: list[tuple[str, SociomapArtifactV3]]) -> str:
         f"Výška a barva ukazují průměrné hodnocení {scale} vůči ostatním objektům sady: "
         "nejvýše hodnocený objekt má plnou výšku"
         + (
-            f", nejníže hodnocený {number(round(100 * floor), 0)} % výšky. "
-            if floor is not None
-            else ". "
+            ". "
+            if floor is None
+            # A floor of 0 (the methodology owner, 2026-10-28, MQ-08): the scale runs 0 to 1.
+            else ", nejníže hodnocený nulovou. "
+            if round(100 * floor) == 0
+            else f", nejníže hodnocený {number(round(100 * floor), 0)} % výšky. "
         )
     )
     if len(signed) == len(maps):
@@ -234,7 +237,9 @@ def compose_map_sections(
 
     ``client`` (B5c) keeps only approved maps, and only their figures and reading guide: the
     support counts and the pair table print numbers outside the evidence ledger, which a
-    client page never does. Each figure still prints its fit.
+    client page never does. Each figure still prints its fit. Of a signed-off map it keeps the
+    object map's top and 3D views: its respondent map and taste segments stay internal (MQ-01 (b)),
+    and ``images`` need not hold them.
     """
     approvals = recorded_statuses(result)
     sections: list[Section] = []
@@ -364,12 +369,14 @@ def compose_map_sections(
                 "framed_relative_idw_falloff",
             )
             # A signed-off map is drawn as the AIA panel draws it, labelled on the map, with its
-            # respondent map where it is stored.
+            # respondent map where it is stored -- internally only: the register approves the
+            # object map for clients, the respondent map and segments not yet (the methodology
+            # owner, 2026-10-28, MQ-01 (b); MQ-13: a dot is one person, never a client's).
             panel = _is_signed_off(artifact)
             views: tuple[str, ...] = (
                 ("top", "3d") if isinstance(artifact.terrain, EnvelopeTerrain) else ("top",)
             )
-            if panel and isinstance(artifact.respondents, RespondentMap):
+            if panel and not client and isinstance(artifact.respondents, RespondentMap):
                 views += ("respondents",)
             for view in views:
                 key = (battery["battery_id"], method, view)

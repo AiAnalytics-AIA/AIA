@@ -603,3 +603,126 @@ and AC-15's separate lines (#503) were already reconciled and are unchanged in s
 (`legacy-route-ledger.json`, `legacy-ui-functions.json`, `interface-screens.json`), whose LEGACY /
 NOT_STARTED rows include built work. That is an audit of 157 routes, 89 functions and 28 screens
 with their tests. It is a different kind of work from wording, and not in this PR.
+
+## Chunk 5: AC-12 wired (2026-10-28)
+
+Branch `feature/acceptance-wiring`, from `develop` @ `b52ee648`; the product owner's words in the
+session, "go ahead with harness chunk 5". Chunk 5 stays open: a criterion lands when its work does.
+
+**AC-12, two tests in `test_mvp_acceptance.py`, listed under AC-12 in `parity-matrix.json`.**
+- `test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels`: the
+  committed past study (`inputs/past-study.json`) is submitted and run once on the recorded wire.
+  Project memory finds it by words of its design that its name does not hold. Its Design Revision
+  starts a new study of the same client, whose citation names the source study and revision and
+  carries the labels its run gave it (`run_ids` the run, `never_run` false, `synthetic` true:
+  fictional AI respondents). `GET …/design/source` reads the same citation back, and the new
+  study's sections are the source's.
+- `test_ac12_another_client_s_studies_cannot_be_found_or_reused`: two clients of one organization,
+  each with a study the same words find. Each client's search finds its own and not the other's,
+  and a reuse naming the other client's study gets the same 404 an absent study gets.
+
+`Stack.wait_for_run` (conftest) replaces the two copies of the run-polling loop the harness and
+the doubles' tests each kept.
+
+**The rest of chunk 5's first batch, as it stands on `b52ee648`:**
+- **AC-14: not runnable.** Its statement needs each run's composition digest served with the run
+  (`lead-orchestration#LO12c`, open). Listing only the start refusal would make AC-14 read PASS
+  on half its statement, so it lists no test until LO12c lands.
+- **AC-06:** RQC0's checkpoint is built (`run-qc-and-checkpoint#RQC0`); a tier-A kill test is
+  next.
+- **AC-07:** WCE7c's impact read is built; whether a run after an edit reuses every other
+  stage's artifacts by fingerprint across Design Revisions is to be established before wiring.
+
+### Findings
+
+**F-8. A client slug already taken answers 500, not a refusal by name.**
+1. *Claim.* `POST /clients` with a slug the organization already holds is an unhandled error.
+2. *Anchor.* `apps/api/src/aia_api/routers/scope.py:371-385 @ b52ee648` catches `ValueError`
+   only; the unique slug constraint's error reaches the handler as a 500.
+3. *Reproduction.* Over the acceptance stack: two `POST /clients` with the same slug, as the same
+   researcher: the first 201, the second 500 `internal_error` (found when AC-12's first draft
+   reused one slug for two clients).
+4. *Consequence.* A person who names a client as an existing one is told "an unexpected error
+   occurred" instead of that the name is taken; the error tracker records a defect for it.
+5. *Smallest fix.* Map the slug's unique violation to 409 `client_slug_taken` in
+   `ScopeRepository.create_client`, answered by the route as a refusal by name.
+6. *Test.* An API test: the second create answers 409 naming the slug, and nothing is written.
+
+## Chunk 5: AC-06 wired (2026-10-28)
+
+Branch `feature/acceptance-ac06`, on `feature/acceptance-wiring` (#1090); the same words.
+
+**AC-06, two tests in `test_mvp_acceptance.py`, listed under AC-06.**
+- `test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work`: the past study runs with the
+  fieldwork checkpoint on (`AIA_AI_FIELDWORK_CHECKPOINT`); the recorded wire answers twenty calls
+  and holds the next, so the worker, killed (`SIGKILL`) once respondents are reported and the
+  next call is held, dies inside a call. (A first draft slowed every answer by 60 ms instead: one
+  run in three killed between calls, which the worker correctly recovers on its own, so the run
+  never stopped for a person.) A second worker finds the lapsed lease: the fieldwork step stops `RECOVERY_REQUIRED`,
+  `paid_call_uncertain`, the run's spend counts one uncertain call, and nothing sends it again.
+  The person cancels and retries; the retry answers every respondent, replaying at least the
+  respondents reported before the kill and sending only the rest (`sent + replayed = of`).
+- `test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset`: the recorded wire answers
+  `research_questions` with no supported finding, so the report refuses
+  (`report_inputs_refused`) and the run ends FAILED at its report. The module is offered for a
+  retry; the analysis retry's fieldwork step is the original's dataset by artifact id, and its
+  feed reports no respondent asked.
+
+**Two knobs on the recorded wire**, read only by `aia_executors.acceptance_recorded` (local and
+test): `AIA_ACCEPTANCE_RECORDED_STALL_AFTER` (a count of calls) and
+`AIA_ACCEPTANCE_RECORDED_NO_FINDINGS` (analysis module ids); a value outside either is refused by name at start
+(`test_acceptance_recorded.py`). The conftest's `Process.kill` is the harness's SIGKILL.
+
+### AC-07 is not runnable: F-9
+
+**F-9. A run after an edit pays for every stage again, whatever the impact read says.**
+1. *Claim.* After a report-only edit, `GET …/research/impact` answers FIELDWORK, AGGREGATION and
+   ANALYSIS `CURRENT` and only REPORT and DELIVERY `CHANGED`. A run started on the edited Design
+   Revision still asks every respondent again and recomputes aggregation, the Sociomap and all
+   eight analysis modules; of its artifacts only the preflight's is reused.
+2. *Anchor.* A fieldwork dataset is fingerprinted with its attempt id, "never reused over another
+   attempt's" (`apps/executors/src/aia_executors/research.py:564-566 @ b52ee648`), so no later
+   run can reuse it, and everything downstream reads the new dataset.
+3. *Reproduction.* Over the acceptance stack (a probe, not committed): the past study run once;
+   the working copy saved with `report_style` changed; the impact read as above; the edited copy
+   submitted as revision 2 and run. Run 2's last `fieldwork_progress` is `sent 200, replayed 0`,
+   and 13 of its 14 step artifacts differ from run 1's (all but `research_preflight`).
+4. *Consequence.* AC-07 ("exactly the stages the impact preview names reopen, every other stage's
+   artifacts reused by fingerprint") cannot pass. The impact read tells a person that fieldwork is
+   current, but the run they then start pays for all of it again.
+5. *Smallest fix: a product decision first, not a patch.* Either a run on a revision whose
+   fieldwork stage is `CURRENT` starts from the first reopened stage over the earlier run's frozen
+   dataset (the analysis retry's `FrozenDataset` path generalized: `working-copy-edit-ops#WCE7d2`
+   and `#WCE17` are the nearest chunks), or AC-07 is reworded to the analysis-only retry, which
+   AC-06 already proves.
+6. *Test.* The AC-07 tier-A test: a report-only edit after recorded fieldwork; the next run's
+   fieldwork replays every respondent (`sent 0`) and its fieldwork, aggregate, Sociomap and
+   analysis artifacts are run 1's by id.
+
+**Decision (Nigel Blount, about 21:40 UTC 2026-10-28, relayed by the PM coordinator): "AC-07:
+(a) Build reuse".** A run whose fieldwork is `CURRENT` starts at the first reopened stage, over the
+earlier run's frozen dataset, with no respondent paid twice. It is planned under
+`working-copy-edit-ops` (nearest WCE7d2 / WCE17) and built by the E06 session. AC-07 lists no
+test, and stays NOT_RUNNABLE, until that reuse lands; the test in point 6 then wires it.
+
+### The rest of the criteria, audited (2026-10-28, on `9c1883b2`)
+
+Nothing else is runnable yet; a criterion is wired only when every clause of its tier-A projection
+is observable over HTTP. Read from the code, each blocker:
+
+| Criterion | Blocked by |
+|---|---|
+| AC-02 | browser line (chunk 10); approved plans (`lead-orchestration#LO3`, `#LO4`); no HTTP read of approval-ledger rows |
+| AC-03 | tracked assumptions (`assumptions-and-open-answer-coding`, 0 of 10) |
+| AC-04 | **only** the ledger read: the spend-limit confirmation's `SPEND` row is written (`infrastructure/workflow_repository.py:2481-2520 @ 9c1883b2`) but no route reads approval-ledger rows (`grep -rn approval_decisions apps/api/src/aia_api/routers` finds none) |
+| AC-05 | no worker composition joins the recorded wire and the population double (`compose_registry` takes both, `registry.py:171-178`; no factory passes them); a removed weight cannot be staged over HTTP; the weight identity is not served (F-5) |
+| AC-08 | open-answer coding (AOC) |
+| AC-09 | `segment-maps-and-drilldown` (0 of 13); the drag is the browser line |
+| AC-10 | a web page's intake (`client-knowledge-lifecycle#K2e`); data contracts (`client-data-in-analysis`, 1 of 15); the AC-05 composition |
+| AC-11 | a CLASSIFIED client's run refused whole (`deep-research-web-search#53`; the pinned posture is read by nothing, `domain/client_rules.py:7-8`) |
+| AC-13 | the "Interní dokument" check (RD0b), map snapshot approval (RD4), and refusing an unapproved or stale download (both download a draft today) |
+| AC-15 | the per-number provenance walk (chunk 16) and per-call usage over HTTP (F-5) |
+
+Two pieces would unblock more than one: a read of a run's approval-ledger rows (AC-04 at once,
+AC-02 later), and a local/test worker composition of the recorded wire over the population double
+(AC-05 and AC-10, with their other gaps).

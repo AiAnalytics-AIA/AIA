@@ -236,6 +236,7 @@ class ResearchAgentExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            refused_answers=lambda session: research_artifacts(session, context.scope, self._store),
         )
         try:
             caller.preflight(request)

@@ -23,7 +23,7 @@ from aia_core.domain.sociomap.engine_v2 import compute_object_map
 from aia_core.domain.sociomap.metrics import ObjectRole
 from aia_core.domain.sociomap.models_v3 import ObjectMapInputs, RatingItem, SociomapArtifactV3
 from aia_core.domain.sociomap.signed_off_inputs import PreparedInputs, prepare
-from aia_core.domain.sociomap.slots import PERSON
+from aia_core.domain.sociomap.slots import ALIGNMENT, CONNECTEDNESS, PERSON
 from aia_core.domain.sociomap.specification import (
     AIA_SOCIOMAP_V4,
     AIA_SOCIOMAP_V5,
@@ -158,11 +158,14 @@ def test_the_object_map_records_the_baseline_corrected_relations_under_aia_socio
         f"o{k}" for k in study["sparse"]["weakly_connected"]
     )
     assert artifact.connectedness_100["status"] == "not_computed"
+    # Nor the F8 scores: not part of -5 (the methodology owner, 2026-10-28, MQ-05 (i)).
+    assert artifact.scores["status"] == "not_computed" and "objects" not in artifact.scores
     assert artifact.support.weighting.startswith("the relations are unweighted")
     assert SociomapArtifactV3.from_payload(artifact.to_payload()) == artifact
     # Earlier presets record no note: their stored maps read byte for byte as before.
     v4 = compute_object_map(_inputs(name), AIA_SOCIOMAP_V4, connectedness_interval=False)
     assert "sparse_design" not in v4.model_dump(mode="json")
+    assert "objects" in v4.scores
 
 
 def test_a_pair_whose_two_halves_differ_in_the_last_bit_is_recorded_once(
@@ -259,3 +262,12 @@ def test_the_baseline_corrected_relation_is_declared_whole_and_only_by_itself() 
             slots={PERSON: lambda **_: 0.0},
         )
     assert set(refused.value.unsupported) == {PERSON}
+    # Nor the F8 scores, which -5 no longer computes (MQ-05): a replaced one would do nothing.
+    with pytest.raises(UnsupportedMethodology) as refused:
+        compute_object_map(
+            _inputs("complete"),
+            AIA_SOCIOMAP_V5,
+            connectedness_interval=False,
+            slots={ALIGNMENT: lambda **_: 0.0, CONNECTEDNESS: lambda **_: 0.0},
+        )
+    assert set(refused.value.unsupported) == {ALIGNMENT, CONNECTEDNESS}

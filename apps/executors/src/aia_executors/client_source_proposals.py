@@ -196,6 +196,9 @@ class ClientSourceProposalsExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            # Not kept: the artifact store is study-scoped, and widening it to client work
+            # waits until a client-work failure is seen (the product owner, 2026-10-28).
+            refused_answers=None,
         )
         # A client's source is Class A; one a person marked "Interní dokument" is Class C
         # (the owner's rule, 2026-10-19), raised by an operator's classification of a batch's

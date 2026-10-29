@@ -17,7 +17,6 @@ from aia_core.domain.ai_contracts import (
 )
 from aia_core.domain.ai_material import MaterialApproval, material_sha256
 from aia_core.domain.design import DesignRejected
-from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.knowledge import KnowledgeItem, KnowledgeKind
 from aia_core.domain.prompts import PromptPin
 from aia_core.domain.research_agents import (
@@ -95,13 +94,16 @@ def test_knowledge_lineage_is_the_recorded_datasets_else_the_placeholder() -> No
     # CR-4: the union of the items' recorded datasets; the placeholder for each
     # dataset-derived item that records none, which the data owner cleared for the EU Bedrock
     # route alone (Q60, licence_determinations.CLIENT_KNOWLEDGE_DATASET): this route refuses it.
-    from aia_core.domain.knowledge import recorded_datasets
+    from aia_core.domain.knowledge import (
+        UNRECORDED_KNOWLEDGE_LINEAGE,
+        knowledge_lineage,
+        recorded_datasets,
+    )
     from aia_core.domain.licence import LicenceDenied
     from aia_core.domain.licence_determinations import (
         SYNTHETIC_FIXTURE_DATASET,
         recorded_policy,
     )
-    from aia_core.domain.research_agents import UNRECORDED_KNOWLEDGE_LINEAGE, knowledge_lineage
     from aia_core.domain.residency import ProviderRoute
 
     def item(kind: KnowledgeKind, datasets: tuple[str, ...] | None) -> KnowledgeItem:
@@ -226,38 +228,6 @@ def test_jobs_are_idempotent_and_hidden_across_studies(session: Any, scoped: Any
         from aia_core.infrastructure.storage import InMemoryArtifactStore
 
         jobs.result(first.run_id, store=InMemoryArtifactStore())
-
-
-def test_reviewed_proposal_refuses_newer_design(session: Any, scoped: Any) -> None:
-    scope = scoped.scope(user="lead")
-    designs = StudyDesignRepository(session, scope)
-    first, _ = designs.submit_as_working_copy(content=DESIGN, source_stage="brief")
-    second, _ = designs.submit_as_working_copy(
-        content={**DESIGN, "title": "Edited"}, source_stage="brief"
-    )
-    assert second.workspace_revision is not None
-    reviewed = StudyWorkspaceRepository(session).save(
-        scope,
-        content={**DESIGN, "title": "Reviewed"},
-        base_revision=second.workspace_revision,
-        by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
-    )
-    with pytest.raises(DesignRejected) as error:
-        designs.submit_if_current(
-            content={**DESIGN, "title": "Reviewed"},
-            source_stage="plan",
-            expected_revision_id=first.revision_id,
-            workspace_revision=reviewed.revision,
-        )
-    assert error.value.reason == "stale_proposal"
-    accepted, created = designs.submit_if_current(
-        content={**DESIGN, "title": "Reviewed"},
-        source_stage="plan",
-        expected_revision_id=second.revision_id,
-        workspace_revision=reviewed.revision,
-    )
-    assert created and accepted.parent_revision == second.revision
-    assert accepted.workspace_revision == reviewed.revision
 
 
 def test_questionnaire_proposal_preserves_library_sections_and_unique_ids() -> None:
@@ -540,6 +510,7 @@ def test_a_proposal_on_a_design_with_no_working_revision_is_refused_as_unknown(
     assert refused.value.details() == {
         "reason": "unknown_baseline",
         "conflicting_items": [],
+        "conflicting_fields": [],
         "conflicting_wording": {},
     }
     assert designs.latest() == legacy

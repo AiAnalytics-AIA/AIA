@@ -394,7 +394,11 @@ the job engine, AI runtime, the research lifecycle, the simulation lifecycle bey
 its deterministic core (`aia_core.domain.simulation`), analysis,
 validation and methodology gates, reporting, Data Library, Society Intelligence,
 population and audience, Sociomapa, demos, ingestion, exports and scheduling.
-128 of the prototype's 136 API routes and its entire frontend remain.
+By the route ledger ([legacy-route-ledger.json](legacy-route-ledger.json), 153 routes), 95
+remain LEGACY and 58 are PORTING; none is PORTED. By the UI function ledger
+([legacy-ui-functions.json](legacy-ui-functions.json), 88 functions from the reference ledger and 1
+recorded addition), 9 are PORTING and none is
+PORTED (#1081).
 See [parity-matrix.md](parity-matrix.md) for the component inventory.
 
 `src/server.js` (44-line Fastify login stub) is **still retained deliberately**.

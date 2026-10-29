@@ -225,6 +225,7 @@ class _Step:
             # any kind holds, never one a request would take unasked.
             reservation_usd=runtime.config.largest_reservation_usd,
             limiter=runtime.model_slots,
+            refused_answers=lambda session: self._repo(session, context),
         )
 
     def _ask(

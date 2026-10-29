@@ -4,6 +4,7 @@
 // API's Pydantic models (apps/api/src/aia_api/schemas); the client renders what
 // the server computed and decides nothing (ARCHITECTURE.md §2).
 
+import type { AiRoute } from "@/lib/ai-route";
 import type { RegisterEntry } from "@/lib/object-map-view";
 import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
@@ -2041,6 +2042,8 @@ export const settingsStatus = {
   system: () => request<SystemStatus>("GET", "/api/v1/settings/system-status"),
   aiActivity: () => request<AiActivityAnswered>("GET", "/api/v1/settings/ai-activity"),
   errorTracking: () => request<ErrorTracking>("GET", "/api/v1/settings/error-tracking"),
+  /** The AI route the newest worker start recorded (LO12b): any member; 404 with the read off. */
+  aiRoute: () => request<AiRoute>("GET", "/api/v1/settings/ai-route"),
 };
 
 /** A client's rules (#853, SB7), read by any member; set on the client's Profil → Pravidla. */
@@ -2190,7 +2193,7 @@ export type MethodPanel = {
   in_force: MethodMapSummary; draft: MethodMapSummary;
   status_changes: { a: string; b: string; in_force: string; draft: string }[];
   shifts: Record<string, number>; alignment_rmsd: number | null;
-  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
+  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]> | null;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
 /** One fixed fictional cell of the support draft check (plan G1d). Statuses are
