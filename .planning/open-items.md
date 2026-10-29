@@ -856,6 +856,16 @@ fields) is the one authority." Open until the evidence claim gate and admission 
 population's `FieldPolicy` and `JointStatus` (the smallest fix above) and the `companions.py`
 exemption is dropped; no plan chunk builds it yet. No owner yet; the coordinator is finding one.
 **2026-10-25:** owned by `evidence-integrity#5` (S2, W0; "One field-policy authority per evidence source"), agreed by the coordinator 2026-10-25.
+**2026-10-28:** closed by evidence-integrity #5 and #5b.
+- #1069 (merged as `e53fddbd`): a population's fields take every eligibility from the population contract
+  (`FieldPolicyBook.from_population_policy`, `packages/aia_core/src/aia_core/domain/evidence/field_policy.py`
+  @ `e53fddbd`). The real dictionary's client-measurable fields are the contract's 115: test
+  `test_population_reference_parity.py::test_the_evidence_book_of_the_real_dictionary_is_the_contracts_115`.
+- #1082 (merged as `28406c46`): one certificate evaluator and one `JointStatus`, the population's
+  (`evaluate_joint_certificate`, `packages/aia_core/src/aia_core/domain/population/companions.py` @ `28406c46`),
+  for the loader and the claim gate. `load_joint_status` is gone, and so is `layer_check`'s `companions.py`
+  exemption. Test: `test_evidence_joint_status.py::test_the_loader_and_the_claim_gate_read_one_status`.
+- Left open from it: OI-263 and OI-264 (methodology, Aram), and `evidence-integrity#5c`.
 
 ---
 
@@ -7445,3 +7455,61 @@ counts as held, while a model call in the same state counts as uncertain.
 **Test.** The reproduction above.
 
 **Status.** Open (backend, the spend fold's).
+
+---
+
+## OI-263 · Finding · The contract's client list also narrows internal measured claims
+
+**Claim.** The claim gate refuses a measured claim on any surface without
+`eligibility.client_facing_measured_claim`. Since #1069 that flag is the population contract's
+`CLIENT_MEASURED_CLAIM`, so the client list also narrows *internal* measured claims.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/evidence/claims.py` `_field_rules` and
+`domain/evidence/field_policy.py` `_contract_eligibility` @ `e53fddbd`. The plan's source is
+`evidence-integrity.md` Findings F2.
+
+**Reproduction.** On the real dictionary, 172 fields lose measured eligibility (287 to 115). 40 of them are
+measured on a person: 26 politics, 9 core, 5 RELIGION. They are refused only for grade D (27) or for a
+phrase that permits no client claim (13). Test: `test_evidence_claims.py::test_client_facing_disclosures`, the
+internal surface's `NOT_MEASURED_EVIDENCE`.
+
+**Consequence.** No production path builds a population-dictionary book yet
+(`domain/analysis/native.py` builds only the instrument book), so nothing changes today. Once one is built,
+an internal analysis cannot call those 40 fields measured.
+
+**Smallest fix.** A decision. Kept fail closed (the coordinator, 2026-10-28). The alternative is to judge
+internal measured claims by the contract's provenance (`ProvenanceClass.is_measured`) and its forbidding
+rules, and keep the 115 for client-facing claims only.
+
+**Test.** Whichever is decided: a measured INTERNAL claim on a grade-D politics field, asserted allowed or
+refused.
+
+**Status.** Open, for the methodology owner (Aram).
+
+---
+
+## OI-264 · Finding · Two joint-claim rules over one certificate
+
+**Claim.** The loader's `JointStatus.decide` and the claim gate's `evaluate_joint_structure` answer "may these
+fields be claimed together?" differently, over the same certificate.
+
+**Anchor.** `packages/aia_core/src/aia_core/domain/population/companions.py` `JointStatus.decide` (read
+through `RuntimePopulation.decide_joint` by `panel_persona.py:194` and `population/sampling.py:583`) and
+`domain/evidence/joint_status.py` `evaluate_joint_structure` @ `28406c46`. The plan's source is
+`evidence-integrity.md` Findings F3.
+
+**Reproduction.** At v17:
+- `decide` refuses every client-facing joint of two fields unless `client_joint_outputs_allowed`, which is
+  false. That includes a joint within the core.
+- `evaluate_joint_structure` allows a joint within the core, client-facing, under `core_same_person_joint`
+  and `descriptive_core_outputs_allowed`, which are both true.
+
+**Consequence.** None today: the loader asks with `client_facing=False` only. A future client-facing caller
+gets whichever rule it asks.
+
+**Smallest fix.** A decision on the one rule, then one implementation.
+
+**Test.** One joint-claim case per kind (core only, core + matched block, two matched blocks), each surface,
+asserted against both rules.
+
+**Status.** Open, for the methodology owner (Aram).

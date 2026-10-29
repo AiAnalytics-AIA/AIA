@@ -1005,8 +1005,11 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/run_qc.py",
+    "packages/aia_core/src/aia_core/domain/straight_lining.py"
+   ],
    "reference_modules": [
     "pricing_engine.py",
     "qc.py"
@@ -1018,7 +1021,17 @@
     "F11_analysis_weight_fallback_chains",
     "U08_keyInsights"
    ],
-   "gates": [],
+   "gates": [
+    {
+     "id": "analysis.qc/unit-kontrola",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_run_qc.py",
+      "packages/aia_core/tests/test_straight_lining.py"
+     ]
+    }
+   ],
    "recorded_evidence": [],
    "intentional_difference": null,
    "documented_deviations": [],
@@ -1028,7 +1041,7 @@
     "blocking": false,
     "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
-   "notes": ""
+   "notes": "Run QC (evidence-integrity 2a): the checks a run's stored dataset and specification answer are ported from qc.kontrola and compared finding for finding and metric for metric with the unit's own run on captured fictional runs (tools/run_qc_capture.py, fixtures/run_qc). The demographic checks (2b), the probability diagnostics (2c) and pricing_engine.py are not ported; the technical error rate and the segment ESS have no input in AIA and are named not applicable. Not yet run by any step (run-qc-and-checkpoint RQC2)."
   },
   "api.http": {
    "family": "api",

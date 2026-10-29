@@ -592,6 +592,8 @@ class AnalysisModuleExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            # Analysis keeps its refused answer in its own turn artifact (the owner's choice).
+            refused_answers=None,
         )
         turns = _Turns(
             executor=self,

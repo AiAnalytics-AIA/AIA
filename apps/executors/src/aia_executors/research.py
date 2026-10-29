@@ -120,7 +120,12 @@ class AIDatasetProducer(Protocol):
     """The ``ai_runtime`` source: it needs the attempt's context, to meter and ledger calls."""
 
     def produce(
-        self, spec: ResearchSpecification, step: StepInput, context: StepContext
+        self,
+        spec: ResearchSpecification,
+        step: StepInput,
+        context: StepContext,
+        *,
+        refused_answers: Callable[[Session], ArtifactRepository] | None = None,
     ) -> ProducedDataset | Failed: ...
 
 
@@ -541,7 +546,12 @@ class FieldworkExecutor(_Step):
         certificate: dict[str, str] | None = None
         if source is FieldworkSource.AI_RUNTIME:
             assert self._ai is not None
-            produced = self._ai.produce(spec, step, context)
+            produced = self._ai.produce(
+                spec,
+                step,
+                context,
+                refused_answers=lambda session: _artifacts(session, context, self._store),
+            )
             if isinstance(produced, Failed):
                 return produced
             dataset, provenance = produced.dataset, produced.provenance
