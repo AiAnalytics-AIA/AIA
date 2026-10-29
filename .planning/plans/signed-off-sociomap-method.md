@@ -393,7 +393,11 @@ and 3D views of the object map, and the internal report all three; its responden
 drawn for it (`object_map_snapshots(respondents=False)`). A draft stored before the fix is never served
 again: the client report's contract moves to `aia-client-report-8` (its reuse key), the document read
 skips an unapproved draft of an earlier contract, and its approval is refused (`ReportNotApprovable`);
-the next download composes anew. **A client report approved before the fix keeps its bytes** (D2: an
+the next download composes anew. A version saved in the editor carries its composition's contract
+(`report_editor_saves.py`), so an unapproved edited client version of an earlier contract is refused
+too (`client_report.of_current_composition`, Codex P2 on #1109). A draft recording no contract is not
+current: every client draft has recorded one since the first composition (`ab913735`, 2026-10-13),
+and the respondent map reached the report later (`23ac1b46`, 2026-10-20). **A client report approved before the fix keeps its bytes** (D2: an
 approved version is never replaced): any approved `-5` client report on develop still holds the
 respondent map. **Decided: leave them** (the product owner, 2026-10-28, relayed by the PM
 coordinator): develop holds only fictional data, so they stay as recorded history. Tests:
@@ -403,6 +407,8 @@ coordinator): develop holds only fictional data, so they stay as recorded histor
 which replace the two tests that asserted the respondent map in the client report.
 `apps/executors/tests/test_ai_fieldwork.py::test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved`
 (failed before: the document read returned the `-7` draft, and its approval passed).
+`apps/api/tests/test_report_editor_api.py::test_an_edited_client_version_of_an_earlier_composition_is_never_approved`
+(failed before: the edited version was approved, 200).
 
 **Decision: MQ-04's "maps computed elsewhere are internal only" gets no gate for the MVP** (the
 product owner, 2026-10-28, relayed by the PM coordinator). Only the worker computes a map

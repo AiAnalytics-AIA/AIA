@@ -986,7 +986,11 @@ def test_a_client_report_stored_before_its_document_still_gets_its_pdf(
 ) -> None:
     """A client report stored before RD5a has no document model; its PDF renders its DOCX all
     the same, so asking for it is never refused for the document it lacks."""
-    from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, CLIENT_REPORT_STAGE
+    from aia_core.application.client_report import (
+        CLIENT_REPORT_ARTIFACT_TYPE,
+        CLIENT_REPORT_CONTRACT,
+        CLIENT_REPORT_STAGE,
+    )
 
     run_id = _client_run(app, researcher, world, monkeypatch)
     with create_session_factory(app.state.engine)() as session:
@@ -1000,7 +1004,12 @@ def test_a_client_report_stored_before_its_document_still_gets_its_pdf(
             artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
             data=b"PK fictional client report stored before RD5a",
             input_fingerprint="fictional-client-before-rd5a",
-            metadata={"run_id": run_id, "report_kind": "client"},
+            # Of today's composition: an unapproved draft of an earlier one is never shown.
+            metadata={
+                "run_id": run_id,
+                "report_kind": "client",
+                "report_contract": CLIENT_REPORT_CONTRACT,
+            },
         )
         session.commit()
     base = f"{_study(world)}/research/runs/{run_id}/report/client"

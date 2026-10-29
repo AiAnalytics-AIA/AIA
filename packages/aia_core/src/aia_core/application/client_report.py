@@ -461,11 +461,19 @@ def client_report_document(
         approved = [a for a in drafts if a.is_approved]
         # A draft of an earlier composition is never shown for approval: a -7 draft printed a
         # -5 respondent map a client may not see (MQ-01 (b)); the next download composes anew.
-        current = [a for a in drafts if a.metadata.get("report_contract") == CLIENT_REPORT_CONTRACT]
+        current = [a for a in drafts if of_current_composition(a)]
         if not approved and not current:
             return None
         docx = approved[-1] if approved else current[-1]
     return docx, _document_of(stored, docx)
+
+
+def of_current_composition(artifact: Artifact) -> bool:
+    """Whether a stored client report, composed or saved in the editor (which copies its
+    composition's contract), is of today's composition (CLIENT_REPORT_CONTRACT). One recorded no
+    contract is not: unknown, never current. An unapproved one that is not is never shown for
+    approval nor approved (MQ-01 (b): a -7 draft printed a -5 respondent map)."""
+    return artifact.metadata.get("report_contract") == CLIENT_REPORT_CONTRACT
 
 
 def _document_of(stored: list[Artifact], docx: Artifact) -> Artifact | None:
