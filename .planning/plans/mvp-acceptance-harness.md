@@ -603,3 +603,47 @@ and AC-15's separate lines (#503) were already reconciled and are unchanged in s
 (`legacy-route-ledger.json`, `legacy-ui-functions.json`, `interface-screens.json`), whose LEGACY /
 NOT_STARTED rows include built work. That is an audit of 157 routes, 89 functions and 28 screens
 with their tests. It is a different kind of work from wording, and not in this PR.
+
+## Chunk 5: AC-12 wired (2026-10-28)
+
+Branch `feature/acceptance-wiring`, from `develop` @ `b52ee648`; the product owner's words in the
+session, "go ahead with harness chunk 5". Chunk 5 stays open: a criterion lands when its work does.
+
+**AC-12, two tests in `test_mvp_acceptance.py`, listed under AC-12 in `parity-matrix.json`.**
+- `test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels`: the
+  committed past study (`inputs/past-study.json`) is submitted and run once on the recorded wire.
+  Project memory finds it by words of its design that its name does not hold. Its Design Revision
+  starts a new study of the same client, whose citation names the source study and revision and
+  carries the labels its run gave it (`run_ids` the run, `never_run` false, `synthetic` true:
+  fictional AI respondents). `GET …/design/source` reads the same citation back, and the new
+  study's sections are the source's.
+- `test_ac12_another_client_s_studies_cannot_be_found_or_reused`: two clients of one organization,
+  each with a study the same words find. Each client's search finds its own and not the other's,
+  and a reuse naming the other client's study gets the same 404 an absent study gets.
+
+`Stack.wait_for_run` (conftest) replaces the two copies of the run-polling loop the harness and
+the doubles' tests each kept.
+
+**The rest of chunk 5's first batch, as it stands on `b52ee648`:**
+- **AC-14: not runnable.** Its statement needs each run's composition digest served with the run
+  (`lead-orchestration#LO12c`, open). Listing only the start refusal would make AC-14 read PASS
+  on half its statement, so it lists no test until LO12c lands.
+- **AC-06:** RQC0's checkpoint is built (`run-qc-and-checkpoint#RQC0`); a tier-A kill test is
+  next.
+- **AC-07:** WCE7c's impact read is built; whether a run after an edit reuses every other
+  stage's artifacts by fingerprint across Design Revisions is to be established before wiring.
+
+### Findings
+
+**F-8. A client slug already taken answers 500, not a refusal by name.**
+1. *Claim.* `POST /clients` with a slug the organization already holds is an unhandled error.
+2. *Anchor.* `apps/api/src/aia_api/routers/scope.py:371-385 @ b52ee648` catches `ValueError`
+   only; the unique slug constraint's error reaches the handler as a 500.
+3. *Reproduction.* Over the acceptance stack: two `POST /clients` with the same slug, as the same
+   researcher: the first 201, the second 500 `internal_error` (found when AC-12's first draft
+   reused one slug for two clients).
+4. *Consequence.* A person who names a client as an existing one is told "an unexpected error
+   occurred" instead of that the name is taken; the error tracker records a defect for it.
+5. *Smallest fix.* Map the slug's unique violation to 409 `client_slug_taken` in
+   `ScopeRepository.create_client`, answered by the route as a refusal by name.
+6. *Test.* An API test: the second create answers 409 naming the slug, and nothing is written.

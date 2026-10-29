@@ -620,12 +620,10 @@ describe("what a click shows in the detail window", () => {
     fireEvent.click(openList().getByRole("button", { name: "Vybrat objekt Rock" }));
     expect(card().textContent).toContain("Detail objektu / vztahu");
     expect(screen.getByTestId("object-map-detail-label").textContent).toBe("Rock");
-    const k = map.object_ids.indexOf(canvas().getAttribute("data-selected")!);
     const text = card().textContent!;
     expect(text).toContain("Průměrné hodnocení");
-    expect(text).toContain("Provázanost (0–100)");
-    expect(text).toContain(num(100 * map.scores!.objects[k].connectedness!, 1));
-    // The alignment says nothing on this map (every object PRIMARY, each respondent's mean removed).
+    // Neither connectedness nor alignment is part of -5, though this stored map carries them (MQ-05).
+    expect(text).not.toContain("Provázanost");
     expect(text).not.toContain("Soulad s rodinou");
     const rows = within(screen.getByTestId("object-map-detail-relations")).getAllByText(/^[+−-]?\d,\d\d$/);
     expect(rows.length).toBeGreaterThan(0);
@@ -796,7 +794,9 @@ describe("what a click shows in the detail window", () => {
     expect(card().textContent).toContain("Profil respondenta");
     const text = card().textContent!;
     expect(text).toContain("Poloha z odpovědí");
-    expect(text).toContain(`Mapa vysvětluje ${Math.round(100 * (1 - r.misfit[k]!))} % rozdílů v jeho hodnoceních`);
+    // The misfit is stored, never shown (the methodology owner, 2026-10-28, MQ-05 (ii)).
+    expect(r.misfit[k]).not.toBeNull();
+    expect(text).not.toContain("Mapa vysvětluje");
     expect(text.includes("slabě umístěn")).toBe(r.placement[k] === "FADED");
     const seg = r.segments!;
     expect(text).toContain(seg.coloured![k] ? `Chuťový segment ${seg.label![k] + 1}` : "Není jasně v jednom chuťovém segmentu");

@@ -16,8 +16,6 @@ export type ExplainedObject = {
   label: string;
   /** The mean rating on the declared scale (the stored 0-1 mean read back); null when not stored. */
   rating: number | null;
-  /** 0-100; null when not stored. */
-  connectedness: number | null;
   /** The object's hill colour on the map, so a row reads as its place on the map. */
   colour: string;
 };
@@ -62,7 +60,6 @@ export function explainMap(battery: BatteryWithMaps, map: ObjectMapArtifact): Ma
       id,
       label: d.label,
       rating: d.height === null ? null : originalRating(d.height, battery.rating_scale) ?? d.height,
-      connectedness: d.connectedness,
       colour: color66(map.heights.relative?.[k] ?? floor ?? REL_FLOOR),
     };
   });

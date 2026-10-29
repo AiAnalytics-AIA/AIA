@@ -28,7 +28,7 @@ describe("explainMap", () => {
     expect(ratings).toEqual([...ratings].sort((a, b) => b - a));
     const k = map.object_ids.indexOf(x.objects[0].id);
     expect(x.objects[0].rating).toBe(originalRating(map.heights.values[k], [1, 10]));
-    for (const o of x.objects) expect(o.connectedness).toBe(100 * map.scores!.objects.find((s) => s.id === o.id)!.connectedness!);
+    for (const o of x.objects) expect(o).not.toHaveProperty("connectedness"); // not part of -5 (MQ-05)
   });
 
   it("lists the strongest reliable relations by |r|, at most six, and counts the rest", () => {

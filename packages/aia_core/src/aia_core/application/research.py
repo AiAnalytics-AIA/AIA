@@ -34,6 +34,7 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
@@ -112,11 +113,11 @@ from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
-from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
+from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptResolver
-from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.scope_repository import ScopeRepository, member_display_names
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -1663,6 +1664,31 @@ class ResearchRuns:
         self.get(run_id)
         return self._workflows().events(run_id, since=since, limit=limit)
 
+    def approvals(self, run_id: str, store: ArtifactStore) -> list[tuple[LedgerEntry, str | None]]:
+        """The approval-ledger rows about this run, oldest first, each with its approver's
+        display name (``None`` when the person has none, never an e-mail). A row names the run
+        itself, or an artifact the run made: an approved report or map snapshot is recorded by
+        its artifact, whose metadata names its run. Found only through the Study: a run of
+        another study is :class:`ResearchRunNotFound`, as everywhere."""
+        self.get(run_id)
+        artifacts = research_artifacts(self.session, self.scope, store)
+
+        def about_run(entry: LedgerEntry) -> bool:
+            if run_id in (entry.run_id, entry.subject_id):
+                return True
+            if entry.subject is not ApprovalSubject.ARTIFACT:
+                return False
+            try:
+                return artifacts.get(entry.subject_id).metadata.get("run_id") == run_id
+            except ArtifactNotFound:
+                return False
+
+        entries = [e for e in self._workflows().ledger() if about_run(e)]
+        names = member_display_names(
+            self.session, self.scope.organization_id, sorted({e.approver_user_id for e in entries})
+        )
+        return [(e, names.get(e.approver_user_id)) for e in entries]
+
     def artifact_ids(self, run_id: str) -> list[str]:
         """The artifacts this run's steps produced, in step order."""
         run = self.get(run_id)
@@ -1954,6 +1980,21 @@ class ResearchAgentJobs:
             for r in runs
         }
 
+    def _rebuilt(self, run_id: str) -> bool:
+        """Whether a job of this Study rebuilds ``run_id``, looked up for this run alone: the
+        listing's projection (:meth:`proposal_states`) sees only the Study's newest jobs."""
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        if project_id is None:
+            return False
+        rebuilds = WorkflowRepository(self.session, self.scope).list_runs(
+            project_id=project_id,
+            workflow_type=RESEARCH_AGENT,
+            # A rebuild's key carries the job it rebuilds (start); its metadata says so exactly.
+            key_contains=f":rebuild-of:{run_id}",
+            limit=200,
+        )
+        return any(r["metadata"].get("rebuild_of") == run_id for r in rebuilds)
+
     def dismiss(self, run_id: str) -> bool:
         """A person sets a proposal aside: a ``dismiss`` row in the approval ledger, nothing else.
 
@@ -2074,15 +2115,33 @@ class ResearchAgentJobs:
         transaction (:func:`~.proposal_accept.accept_into_working_copy`): the stale rule, the
         merge into the working copy at ``expected_workspace_revision``, the working revision, the
         Design Revision naming it, and the approval-ledger row naming both. Refused as
-        :class:`~.proposal_accept.StaleProposal` when the head moved, the baseline is unknown or
-        an item it changes was edited since.
+        :class:`~.proposal_accept.StaleProposal` when ``expected_revision_id`` is not the job's
+        own design, the baseline is unknown or a field it changes was edited since (D-06); a newer
+        Design Revision alone stales nothing. An accepted proposal is refused
+        (``proposal_already_accepted``), and so is one a rebuild replaces (``proposal_superseded``).
         """
         self.scope.require(Permission.EDIT_STUDY)
         self.scope.require(Permission.APPROVE_GATE)
         self.scope.require_open_study()
+        # The Study row lock the accept writes under: the decision read here is the one it
+        # writes beside, never one a concurrent accept is about to change.
+        StudyDesignRepository(self.session, self.scope).lock()
         run = self.get(run_id)
         if expected_revision_id != run["metadata"]["design_revision_id"]:
             raise StaleProposal("proposal baseline does not match", why="design_moved")
+        # A newer Design Revision no longer stales a proposal (WCE5), so what it was decided
+        # stands on its own: an accepted proposal is in the design, a rebuilt one is replaced.
+        state = self.proposal_states([run])[run_id]
+        if state is ProposalState.ACCEPTED:
+            raise DesignRejected(
+                "an accepted proposal is in the design", reason="proposal_already_accepted"
+            )
+        if state is ProposalState.SUPERSEDED or (
+            state is ProposalState.PENDING and self._rebuilt(run_id)
+        ):
+            raise DesignRejected(
+                "a rebuild of this proposal replaces it", reason="proposal_superseded"
+            )
         action = ResearchAction(run["metadata"]["action"])
         if action not in DESIGN_ACTIONS:
             raise DesignRejected("an advice answer is not a design mutation", reason="advice_only")

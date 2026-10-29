@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
-  - "[ ] RQC1. One straight-liner definition in `domain/`, called by the Sociomap engine, the run QC and the worker"
+  - "[x] RQC1. One straight-liner definition in `domain/` (`straight_lining.answer_spread`), called by the Sociomap engine; the run QC (`evidence-integrity` 2) and the worker (RQC4a) call it when they land"
   - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
@@ -433,3 +433,69 @@ re-scoped it. The title now says so.
 **RQC7d's sum rule.** The sectors are the quota cells grouped by one field; their answered counts sum to the run's
 answered total (the disc's `done`), and a cell answered past its n is drawn full and said. Test: two cells of one age
 band sum into one sector; the sectors' answered counts sum to `progress.done`.
+
+## RQC1, delivered (2026-10-28, branch `feature/rqc1-straight-lining`)
+
+**Ownership** (the product owner, relayed by the PM coordinator, 2026-10-28): RQC1 is the
+per-respondent rule alone; `evidence-integrity` 2 is the run-level QC port (the share, the unit's
+`straightline_max` 0.15, the ">= 3 scale questions" gate and the other `qc.kontrola` checks, EXACT
+against the unit, over this rule), built by the same session next; `evidence-integrity` 3 stores and
+shows it; RQC2 wires that function as the node. Order: RQC1, `evidence-integrity` 2, RQC2.
+
+**The rule.** `packages/aia_core/src/aia_core/domain/straight_lining.py` `answer_spread(answers)`:
+one respondent's answers over the items a caller names read `NONE`, `ONE`, `NO_SPREAD` or
+`SPREAD`; `None` is not answered; two answers are the same only when equal; a non-finite answer is
+refused, never dropped. Each caller keeps its item set and its reading of `ONE` (F-RQC1-1), so no
+stored number moves and no engine version changes.
+
+- The v2 engine's `_placeability` (`domain/sociomap/engine.py`) and the v3 rescaling's
+  `person_minmax` (`domain/sociomap/relations.py`, audit F2/F11) call it. Their Metodika steps
+  (`placeability`, `f2_person_minmax`, `f11_not_placed`) were re-read against the code (their
+  formulas still say exactly what it does) and re-pinned.
+- `aia-sociomap-5` is signed off and ported as written, so it is not changed; it is held to the rule
+  by test on every integer scale it is fed (rescaled to 0-1).
+- The unit's run QC rule (`qc.py:202-203`, `nunique(axis=1) == 1`) is `ONE` or `NO_SPREAD`, held by
+  test to a hand transcription of that line (the unit's own run needs its environment and is
+  `evidence-integrity` 2's EXACT fixture); `evidence-integrity` 2 ports the rest over it, and the
+  straight-liner worker (RQC4a) reads the same rule. Neither calls it yet.
+- Metodika pins `_placeability` and `person_minmax` by their source, and the rule moved out of them:
+  `answer_spread`'s own source is pinned
+  (`::test_the_rule_is_pinned_so_the_methodology_steps_that_read_it_are_re_read`), so a change to it
+  fails until the three steps are re-read. A text or boolean answer is refused, never parsed.
+
+**Tests** (`packages/aia_core/tests/test_straight_lining.py`; each fails on `origin/develop` @
+28406c46, where the module does not exist): the four readings and the refusal of a non-finite answer;
+`::test_the_units_run_qc_is_one_or_no_spread`, `::test_the_v2_engine_places_only_a_spread` and
+`::test_the_v3_rescaling_keeps_only_a_spread` over every row of up to four items on a three-point
+scale with gaps (341 rows); `::test_the_signed_off_tolerance_agrees_on_rescaled_integer_scales`
+(`centre` and `place_respondents` against the rule on 1-5, 1-7, 0-10, 1-10 and 0-100). The Sociomap,
+methodology and golden suites pass unchanged (2,465 passed; the parity suites need the reference
+checkouts and were not run here).
+
+## Findings
+
+- **F-RQC1-1 (for the methodology owner; not decided here).** Five functions in four places decided
+  who is a straight-liner (`-5` holds two of them), and they differ in three ways the code cannot settle:
+  - **Item scope.** The unit's QC reads every scale question of the run, and only when there are
+    three or more (`legacy/npc-panel-18.6.6/app/qc.py:200-207`). The v2 engine reads the mapped
+    objects (`domain/sociomap/engine.py:86-109 @ 28406c46`). The v3 rescaling reads every item the
+    respondent rated (`domain/sociomap/relations.py:323-360 @ 28406c46`). `aia-sociomap-5` reads the
+    mapped objects (`signed_off_inputs.py:55-66`, `signed_off_respondents.py:81 @ 28406c46`).
+  - **One answer.** The unit counts a respondent who answered one scale as a straight-liner. The v2
+    engine gives it its own reason ("fewer than 2"). The v3 rescaling and `-5` exclude it.
+  - **Exact or tolerance.** The unit, v2 and v3 compare exactly; `-5` reads a spread above `1e-12`.
+    On ratings rescaled from an integer scale the two agree
+    (`test_straight_lining.py::test_the_signed_off_tolerance_agrees_on_rescaled_integer_scales`); on a
+    continuous input they could differ by rounding.
+  RQC1 shares the rule and keeps each caller's scope and reading of one answer. Whether the scope and
+  the count rule become one is the methodology owner's (Aram's) question, on his list through the PM
+  coordinator (2026-10-28).
+
+## Doc follow-up (RQC1)
+
+- `CLAUDE.md` §2, under `domain/`: `straight_lining.py` -- the one straight-liner rule
+  (`answer_spread`: NONE / ONE / NO_SPREAD / SPREAD over the items a caller names, exact, a non-finite
+  answer refused), called by the Sociomap's v2 `_placeability` and v3 `person_minmax`, `-5` held to it by
+  test; the run QC (`evidence-integrity` 2) and the straight-liner worker read it (RQC1).
+- `.planning/open-items.md`: F-RQC1-1 (the three differences above), for the methodology owner.
+

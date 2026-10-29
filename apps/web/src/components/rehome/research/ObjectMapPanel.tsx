@@ -1016,8 +1016,6 @@ export function ObjectCard({ battery, map, selected, relation, onRelation }: { b
       {o.primary ? null : <p className="omw-tip mb-2">{t(`${p}.detailSecondary`)}</p>}
       <div className="omw-facts">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />
-        <Fact label={t(`${p}.detailConnectedness`)} help={t(`${p}.detailConnectednessHelp`)} value={panelNumber(o.connectedness)} />
-        {o.alignment !== null ? <Fact label={t(`${p}.detailAlignment`)} help={t(`${p}.detailAlignmentHelp`)} value={(o.alignment >= 0 ? "+" : "") + panelNumber(o.alignment)} /> : null}
       </div>
       <h3 className="omw-h3 !mt-[15px]"><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h3>
       {o.relations.length ? (
@@ -1083,7 +1081,7 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
         <b data-testid="object-map-detail-person">{d.id}</b>
         <p className="omw-tip">
           {t(`${p}.personPosition`)}
-          {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
+          {d.faded ? <><br />{t(`${p}.personFaded`)}</> : null}
           {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
         </p>
       </div>
