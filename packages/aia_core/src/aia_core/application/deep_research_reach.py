@@ -14,14 +14,14 @@ from sqlalchemy.orm import Session
 
 from ..domain.deep_research_reach import RouteReach, for_organization
 from ..domain.residency import DataClass
-from ..domain.scope import OrganizationContext
+from ..domain.scope import OrganizationContext, StudyContext
 from ..infrastructure.deep_research_composition_repository import (
     Composition,
     DeepResearchCompositions,
 )
 from ..infrastructure.deep_research_settings_repository import DeepResearchSettingsReader
 
-__all__ = ["Reach", "deep_research_reach"]
+__all__ = ["Reach", "deep_research_reach", "newest_composition"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,3 +51,11 @@ def deep_research_reach(
             class_gates_advisory=composition.class_gates == "advisory",
         ),
     )
+
+
+def newest_composition(
+    session: Session, reader: OrganizationContext | StudyContext
+) -> Composition | None:
+    """The newest worker start's composition, its AI route among it (lead-orchestration LO12b:
+    Settings → AI běh and the Lead pane); ``None`` when no worker recorded one."""
+    return DeepResearchCompositions(session, reader).latest()

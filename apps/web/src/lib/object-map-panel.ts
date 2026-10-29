@@ -25,6 +25,22 @@ export const FRAME_SPAN = 62;
 const RELIEF = 26;
 /** On Relativni the lowest object keeps a hill 15 % of the top's (`REL_FLOOR66`). */
 export const REL_FLOOR = 0.15;
+
+/** The lowest relative height the map's own spec declares (`terrain.relative_height_floor`), or
+ *  null when it declares none (unknown, never a guess). Every map stored so far declares 0.15; the
+ *  methodology owner set the floor to 0 (2026-10-28, MQ-08), for maps computed once that is pinned. */
+export function relativeFloor(map: ObjectMapArtifact): number | null {
+  return map.spec.terrain?.relative_height_floor ?? null;
+}
+
+/** Which words say the relative scale's floor: the floor in whole per cent, "from 0 to 1" when that
+ *  rounds to 0 (MQ-08), or neither when the map declares none. One rule for the legend and the text
+ *  under the map. */
+export function floorWords(floor: number | null): { kind: "floor"; percent: number } | { kind: "full" | "unknown" } {
+  if (floor === null) return { kind: "unknown" };
+  const percent = Math.round(100 * floor);
+  return percent > 0 ? { kind: "floor", percent } : { kind: "full" };
+}
 /** The panel's map background (`draw66`). */
 const BACKGROUND = "#07090c";
 /** Relation colours: warm = move together, cool = opposite (`drawObjects66`). */
@@ -62,7 +78,9 @@ export type Normalizer = { t: (x: number) => number; lo: number; hi: number; kin
 /**
  * The panel's height normalisation (`normalizer66`, its Relativni and Absolutni branches):
  * Relativni stretches the shown values from the lowest (at the 15 % floor) to the highest;
- * Absolutni reads them on the declared scale's bounds.
+ * Absolutni reads them on the declared scale's bounds. Kept as the panel's (its golden draw pins
+ * it): the product reads only `lo`, `hi` and `kind`; the nodes and terrain read the stored relative
+ * heights, at the floor the map declares (`relativeFloor`).
  */
 export function normalizer(values: number[], mode: Norm, bounds?: [number, number] | null): Normalizer {
   const v = values.filter(Number.isFinite);
@@ -281,10 +299,11 @@ export function panelNodes(battery: BatteryWithMaps, map: ObjectMapArtifact, fra
 /**
  * Each node's colour position t: on Relativni the stored relative height, on Absolutni the
  * stored 0-1 mean on the declared scale. An object without one takes the panel's `?? 0`
- * through its normaliser (the floor on Relativni, 0 on Absolutni).
+ * through its normaliser (the map's declared floor on Relativni, the panel's 15 % where it
+ * declares none; 0 on Absolutni). A colour only: no number is shown for it.
  */
-export function nodeTones(nodes: PanelNode[], norm: Norm): number[] {
-  return nodes.map((n) => (norm === "absolute" ? clamp(n.value ?? 0, 0, 1) : n.relative ?? REL_FLOOR));
+export function nodeTones(nodes: PanelNode[], norm: Norm, floor: number | null): number[] {
+  return nodes.map((n) => (norm === "absolute" ? clamp(n.value ?? 0, 0, 1) : n.relative ?? floor ?? REL_FLOOR));
 }
 
 /** The node radius factor for a set of M objects: unchanged up to 30, half size at 120 (`node_scale`). */

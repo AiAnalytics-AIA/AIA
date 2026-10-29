@@ -38,7 +38,7 @@ import {
 import {
   CLICK_SLOP, COOL, drawLegendCard, INITIAL_CAMERA, SECONDARY, SEGMENT_COLOURS, SEGMENT_GREY, TOP_PITCH, WARM, ZOOM_IN, ZOOM_OUT,
   type Hit, type IdwTerrain, type Norm, type PanelCamera, type RelationMode,
-  REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, nodeScale, nodeTones, normalizer,
+  REL_FLOOR, absoluteGrid, densityGrid, mapStatements, panelDots, camera3d, color66, dragCamera, drawObjectMap, hitTest, floorWords, nodeScale, nodeTones, normalizer, relativeFloor,
   panelNodes, relationPairs, relationStrength, storedGrid, storedTerrains, strongestRelation, terrainGrid, topCamera, wheelCamera, zoomCamera,
 } from "@/lib/object-map-panel";
 import { PhosphorIcon } from "../../icons/PhosphorIcon";
@@ -88,7 +88,7 @@ export function ObjectMapPanel({ battery, map, facts }: { battery: BatteryWithMa
               <li key={o.id}>
                 <button type="button" disabled aria-label={tv("research.exec.objectMap.selectObject", { label: o.label })}
                   className="grid w-full grid-cols-[12px_minmax(0,1fr)_auto] items-center gap-2 rounded px-1.5 py-[5px] text-left text-xs">
-                  <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color66(o.relative ?? REL_FLOOR) }} />
+                  <span aria-hidden className="h-3 w-3 rounded-full" style={{ background: color66(o.relative ?? relativeFloor(map) ?? REL_FLOOR) }} />
                   <span className="truncate">{o.label}</span>
                   <span className="tabular-nums">{panelNumber(originalRating(o.height, battery.rating_scale) ?? o.height)}</span>
                 </button>
@@ -194,7 +194,8 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
   // Absolutni draws the stored envelope of the absolute means; a map that stores none offers only Relativni.
   const stored = useMemo(() => absoluteGrid(map), [map]);
   const absolute = norm === "absolute" ? stored : null;
-  const tones = useMemo(() => nodeTones(nodes, norm), [nodes, norm]);
+  const floor = useMemo(() => relativeFloor(map), [map]);
+  const tones = useMemo(() => nodeTones(nodes, norm, floor), [nodes, norm, floor]);
   // The terrain switch: the inverse-distance terrains the run stored (plain, or under the hills'
   // falloff), opened on the plain one; a map that stored one offers that one only.
   const terrains = useMemo(() => storedTerrains(map), [map]);
@@ -659,7 +660,7 @@ function PanelView({ battery, map, facts }: { battery: BatteryWithMaps; map: Obj
             {/* 3. The legend: a chip, opened on demand; closed again when a sheet or a popover opens. */}
             {legendOpen ? (
               <div className="omx-legendwrap">
-                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} />}
+                {people ? <DensityLegend segments={segments} /> : <Legend battery={battery} values={nodes.map((n) => (n.primary ? n.value : null))} norm={norm} strongest={strongest} floor={floor} />}
                 <button type="button" className="omx-legendclose" aria-label={t(`${p}.legendClose`)} title={`${t(`${p}.legendClose`)} (L)`} onClick={() => setLegendOpen(false)}><PhosphorIcon name="x" size={14} /></button>
               </div>
             ) : (
@@ -714,6 +715,13 @@ function panelNumber(v: number | null): string {
   return Math.abs(v) >= 100 ? num(v, 0) : num(v, Math.abs(v) < 10 ? 2 : 1);
 }
 
+/** The legend's words for the relative scale: its floor as the map declares it (floorWords). */
+function scaleWords(floor: number | null): string {
+  const w = floorWords(floor);
+  const p = "research.exec.objectMap.panel";
+  return w.kind === "floor" ? tv(`${p}.infoScaleRange`, { floor: w.percent }) : t(w.kind === "full" ? `${p}.infoScaleRangeFull` : `${p}.infoScaleRangeUnknown`);
+}
+
 /** The legend's three marks under the ramp: the lowest and highest PRIMARY mean on the declared
  *  scale and the scale's word (rozsah, absolutní, bez dat). */
 function legendMarks(battery: BatteryWithMaps, stored: (number | null)[], norm: Norm): [string, string, string] {
@@ -725,7 +733,7 @@ function legendMarks(battery: BatteryWithMaps, stored: (number | null)[], norm: 
 
 /** The panel's legend (`updateLegend66`, `relationKeyHtml66`): the height scale at a glance, its
  *  meaning behind an ⓘ, and what the lines mean folded out. */
-function Legend({ battery, values: stored, norm, strongest }: { battery: BatteryWithMaps; values: (number | null)[]; norm: Norm; strongest: number }) {
+function Legend({ battery, values: stored, norm, strongest, floor }: { battery: BatteryWithMaps; values: (number | null)[]; norm: Norm; strongest: number; floor: number | null }) {
   const [open, setOpen] = useState(false);
   // The scale reads the PRIMARY objects' stored means; the numbers print on the declared scale.
   const [lo, word, hi] = legendMarks(battery, stored, norm);
@@ -740,7 +748,7 @@ function Legend({ battery, values: stored, norm, strongest }: { battery: Battery
           <div className="my-1 block text-[11px] font-normal normal-case leading-[1.4] tracking-normal opacity-85" data-testid="object-map-legend-info">
             {row("infoHeight", "infoHeightText")}
             {row("infoBetween", "infoBetweenText")}
-            {row("infoScale", norm === "absolute" ? "infoScaleAbsolute" : "infoScaleRange")}
+            <div><span className="font-semibold">{t("research.exec.objectMap.panel.infoScale")}</span> {norm === "absolute" ? t("research.exec.objectMap.panel.infoScaleAbsolute") : scaleWords(floor)}</div>
           </div>
         </details>
       </b>
@@ -1008,8 +1016,6 @@ export function ObjectCard({ battery, map, selected, relation, onRelation }: { b
       {o.primary ? null : <p className="omw-tip mb-2">{t(`${p}.detailSecondary`)}</p>}
       <div className="omw-facts">
         <Fact label={t(`${p}.detailHeight`)} help={t(`${p}.detailHeightHelp`)} value={panelNumber(o.height === null ? null : originalRating(o.height, battery.rating_scale) ?? o.height)} />
-        <Fact label={t(`${p}.detailConnectedness`)} help={t(`${p}.detailConnectednessHelp`)} value={panelNumber(o.connectedness)} />
-        {o.alignment !== null ? <Fact label={t(`${p}.detailAlignment`)} help={t(`${p}.detailAlignmentHelp`)} value={(o.alignment >= 0 ? "+" : "") + panelNumber(o.alignment)} /> : null}
       </div>
       <h3 className="omw-h3 !mt-[15px]"><Tip label={t(`${p}.detailRelations`)} help={t(`${p}.detailRelationsHelp`)} /></h3>
       {o.relations.length ? (
@@ -1075,7 +1081,7 @@ function PersonCard({ detail: d }: { detail: ReturnType<typeof respondentDetail>
         <b data-testid="object-map-detail-person">{d.id}</b>
         <p className="omw-tip">
           {t(`${p}.personPosition`)}
-          {d.explained !== null ? <><br />{tv(`${p}.personExplained`, { pct: d.explained })}{d.faded ? ` · ${t(`${p}.personFaded`)}` : ""}</> : null}
+          {d.faded ? <><br />{t(`${p}.personFaded`)}</> : null}
           {d.segment !== null ? <><br />{d.segment >= 0 ? tv(`${p}.personSegment`, { n: d.segment + 1 }) : t(`${p}.personNoSegment`)}</> : null}
         </p>
       </div>

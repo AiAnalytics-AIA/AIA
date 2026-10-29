@@ -35,6 +35,7 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.ai_route_reach import AiRouteReach, lead_preflight
 from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
@@ -54,8 +55,10 @@ from ..domain.lead_research_targets import (
 from ..domain.research_agents import ResearchAction, design_material, knowledge_entries
 from ..domain.research_lead import (
     FOCUS_ID,
+    GREETING_UNFUNDED,
     LEAD_HARNESS_VERSION,
     LEAD_PROMPT_ID,
+    LEAD_TURN_RELEASED,
     MESSAGE_MAX_BYTES,
     MESSAGE_MAX_CHARS,
     MESSAGES_NOTE,
@@ -106,17 +109,24 @@ from ..infrastructure.study_workspace_repository import (
     StudyWorkspaceRepository,
     WorkspaceConflict,
 )
-from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
+from ..infrastructure.workflow_repository import WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
 from .deep_research import DeepResearchRuns
-from .lead_chat_start import RunStartSettings, approve_chat_start, chat_start_decisions
+from .deep_research_reach import newest_composition
+from .lead_chat_start import approve_chat_start, chat_start_decisions
 from .lead_deep_research import (
     DeepResearchCardRequest,
     DeepResearchCardSettings,
     DeepResearchCardUnavailable,
     approve_deep_research_card,
 )
-from .research import ResearchAgentJobs, ResearchRuns, readiness_in_force, research_artifacts
+from .research import (
+    ResearchAgentJobs,
+    ResearchRuns,
+    RunStartSettings,
+    readiness_in_force,
+    research_artifacts,
+)
 from .workflows import start_workflow
 from .working_copy import apply_edit_ops
 
@@ -216,28 +226,66 @@ WORKER_NOT_READY_REASONS: Final = frozenset(
 )
 
 
+@dataclass(frozen=True, slots=True)
+class WorkerPreflight:
+    """The newest worker start's composition, as the Lead's readiness reads it (LO12b).
+    ``ai_route`` ``None``: no worker recorded one, or it was recorded before LO12b."""
+
+    ai_route: AiRouteReach | None
+    composed_at: datetime | None = None
+    build_sha: str | None = None
+
+
+def worker_preflight(session: Session, scope: StudyContext) -> WorkerPreflight:
+    """The newest worker start's recorded composition, for :func:`worker_readiness`."""
+    latest = newest_composition(session, scope)
+    if latest is None:
+        return WorkerPreflight(None)
+    return WorkerPreflight(latest.ai_route, latest.composed_at, latest.build_sha)
+
+
 def worker_readiness(
     turns: Sequence[Mapping[str, Any]],
+    preflight: WorkerPreflight | None = None,
 ) -> tuple[bool | None, str | None, str | None]:
-    """Whether the worker can answer a Lead turn, as far as the caller's own turns show: the
-    answer, where it was read, and the reason when it is ``False``.
+    """Whether the worker can answer a Lead turn: the answer, where it was read, and the reason
+    when it is ``False``.
 
-    There is no worker composition record yet (lead-orchestration LO12b), so the one honest
-    source the API holds is this conversation's newest Lead turn a worker has decided. Parked
-    or failed for a reason that names the worker's composition
-    (:data:`WORKER_NOT_READY_REASONS`), the worker is not ready:
-    ``(False, "newest_turn", <reason>)``. Nothing here can say a worker *is* ready -- a turn
-    answered yesterday proves nothing about the worker running today -- so the answer is
-    otherwise ``(None, None, None)``: unknown, never ``True``. LO12b's record replaces this.
+    The conversation's newest Lead turn a worker has decided is read first: parked or failed
+    for a reason that names the worker's composition (:data:`WORKER_NOT_READY_REASONS`), the
+    worker is not ready, ``(False, "newest_turn", <reason>)``. A turn refused for its own
+    material (a class its knowledge raised it to) says nothing about the worker; its pane shows
+    that turn's own reason.
+
+    With ``preflight`` (``AIA_AI_ROUTE_PREFLIGHT_ENABLED``) and a recorded route, the newest
+    worker start's composition decides (``"composition"``), unless such a parked turn was decided
+    at or after that start (``decided_at``, the attempt's finish, against ``composed_at``; both
+    the worker's clock), which is the newer evidence: ``False`` with the reason every turn would
+    park for on it (``ai_route_reach.lead_preflight``), else ``True``. ``True`` means the newest
+    worker start was composed to answer a Lead turn -- not that a worker runs now; the caller
+    shows the record's time and build beside it (Nigel, 2026-10-28 ~21:02 UTC, through the PM
+    coordinator: "Yes, with its time"). Without either, never ``True``.
     """
+    parked: str | None = None
+    decided: object = None
     for turn in reversed(turns):
         if turn["actor"] != "lead" or turn["status"] in ("QUEUED", "RUNNING", "CANCELLED"):
             continue
-        reason = turn["reason"]
-        if turn["status"] in ("WAITING", "FAILED") and reason in WORKER_NOT_READY_REASONS:
-            return False, "newest_turn", str(reason)
-        return None, None, None
-    return None, None, None
+        if turn["status"] in ("WAITING", "FAILED") and turn["reason"] in WORKER_NOT_READY_REASONS:
+            parked, decided = str(turn["reason"]), turn.get("decided_at")
+        break
+    if preflight is None or preflight.ai_route is None:
+        return (False, "newest_turn", parked) if parked else (None, None, None)
+    if parked and (
+        preflight.composed_at is None
+        or not isinstance(decided, datetime)
+        or decided >= preflight.composed_at
+    ):
+        return False, "newest_turn", parked
+    refusal = lead_preflight(preflight.ai_route)
+    if refusal is not None:
+        return False, "composition", refusal
+    return True, "composition", None
 
 
 class LeadBusy(Exception):
@@ -418,6 +466,9 @@ def _view(
         "self_update_base": None,
         # Parked on the study's budget (see _holds); never sent to the browser.
         "awaiting_budget": False,
+        # When a worker decided the turn's newest attempt, by its clock (worker_readiness);
+        # never sent to the browser.
+        "decided_at": None,
         # What waits for the researcher's yes, as the step stored it; read by
         # decide_self_update, never sent to the browser.
         "pending_self_update": None,
@@ -453,8 +504,12 @@ def _view(
         status=status,
         reason=reason,
         awaiting_budget=step["status"] is StepRunStatus.AWAITING_BUDGET,
+        decided_at=(last or {}).get("finished_at"),
     )
     out = step.get("output") or {}
+    if status == "COMPLETED" and out.get("skipped") == GREETING_UNFUNDED:
+        # A greeting the budget could not pay for: no answer, one quiet line (F-LO-PARK-1).
+        base["reason"] = GREETING_UNFUNDED
     if status == "COMPLETED" and isinstance(out.get("lead_output"), dict):
         base.update(
             output=out["lead_output"],
@@ -474,26 +529,36 @@ def _view(
 
 
 def release_lead_budget_waits(
-    session: Session, scope: StudyContext, *, budget_before: float, note: str = ""
+    session: Session, scope: StudyContext, *, budget_before: float
 ) -> list[str]:
-    """Send the Lead turns of this Study parked at the budget cap, once a person set or raised
-    the budget (the product owner, 2026-10-21, Q39: "once the budget is set or raised, it should
-    automatically resend the message the researcher attempted to send in the first place").
+    """Release the Lead turns of this Study parked at the budget cap, once a person set or
+    raised the budget (the product owner, 2026-10-21, Q39: "once the budget is set or raised, it
+    should automatically resend the message the researcher attempted to send in the first
+    place").
 
-    Called in the transaction that changed the budget, after the change. The person who set it
-    is the consent: each released turn's wait is lifted through
-    :meth:`WorkflowRepository.resume_budget_waits`, one approval row in the ledger naming that
-    person, as every other budget lift is. Nothing is released unless the budget went up, the
-    person holds ``APPROVE_BUDGET`` and the Study is open. A turn is released only when the hold
-    its attempt asked for (the parked attempt's ``requested_usd``) now fits what remains; one
-    whose hold would still pass the budget, or whose hold was not recorded (unknown is never
-    taken to fit), stays parked with its words. Oldest first, each released turn's hold counted
-    against the rest. Returns the released runs' ids.
+    A released turn is never sent the context it froze when it was queued: the working copy may
+    have moved since (F-LO-PARK-1; Nigel, 2026-10-28, W1Q11). Its run is cancelled, never paid,
+    with :data:`~aia_core.domain.research_lead.LEAD_TURN_RELEASED`, and the messages it held
+    wait again (:meth:`ResearchLead._released`). Their owner's own Lead pane sends them, as it
+    sends any message that waits, in a new turn frozen on the current design: nothing here reads
+    or writes another researcher's Lead. A parked greeting held no message, so nothing follows it.
+
+    Called in the transaction that changed the budget, after the change. Nothing is released
+    unless the budget went up, the person holds ``APPROVE_BUDGET`` and the Study is open. A turn
+    is released only when the hold its attempt asked for (the parked attempt's
+    ``requested_usd``) now fits what remains; one whose hold would still pass the budget, or
+    whose hold was not recorded (unknown is never taken to fit), stays parked with its words.
+    Oldest first, each released turn's hold counted against the rest. Returns the released runs'
+    ids.
 
     The study row is already locked by the change; a parked Lead run has no attempt in flight,
     so taking its lock after the study's waits on nothing that holds the study.
     """
-    if not scope.has(Permission.APPROVE_BUDGET) or not scope.study_status.accepts_work:
+    if (
+        not scope.has(Permission.APPROVE_BUDGET)
+        or not scope.has(Permission.CANCEL_WORKFLOW)
+        or not scope.study_status.accepts_work
+    ):
         return []
     project_id = StudyDesignRepository(session, scope).project_id()
     if project_id is None:
@@ -516,15 +581,9 @@ def release_lead_budget_waits(
         if requested is None or requested > remaining + 1e-9:
             continue
         workflows.lock_run(run_id)
-        try:
-            workflows.resume_budget_waits(
-                [step_id],
-                note=note,
-                budget_before=budget_before,
-                budget_after=budget_after,
-            )
-        except BudgetWaitNotLiftable:
-            continue  # superseded or cancelled since it was listed
+        if not workflows.awaits_budget(step_id):
+            continue  # superseded, or cancelled, since it was listed
+        workflows.request_cancel(run_id, reason=LEAD_TURN_RELEASED)
         remaining -= requested
         released.append(run_id)
     return released
@@ -549,9 +608,7 @@ def set_study_budget(
     scopes = ScopeRepository(session)
     before = float(scopes.get_study(scope, for_update=True).budget_usd)
     study = scopes.set_study_budget(scope, budget_usd)
-    released = release_lead_budget_waits(
-        session, scope, budget_before=before, note="budget set in Nastavení → Studie"
-    )
+    released = release_lead_budget_waits(session, scope, budget_before=before)
     return study, released
 
 
@@ -576,6 +633,23 @@ class ResearchLead:
 
     def _workflows(self) -> WorkflowRepository:
         return WorkflowRepository(self.session, self.scope)
+
+    def _released(self) -> tuple[str | None, list[LeadTurn]]:
+        """The newest Lead turn when a budget set released it (:func:`release_lead_budget_waits`;
+        F-LO-PARK-1), and the messages it held, oldest first, less any withdrawn since. They
+        wait again, for a turn frozen on the current design; once a later turn has answered
+        them, the released one is no longer the newest: ``(None, [])``."""
+        turns = self._turns()
+        latest = turns.latest_lead_turn()
+        if latest is None or latest.run_id is None:
+            return None, []
+        if self._workflows().cancel_reason(latest.run_id) != LEAD_TURN_RELEASED:
+            return None, []
+        held = turns.answers([latest.turn_id]).get(latest.turn_id, [])
+        withdrawn = turns.withdrawn(held)
+        waiting = [t for t in (turns.get(i) for i in held if i not in withdrawn) if t is not None]
+        # A released greeting, or one whose messages were all withdrawn, promises nothing.
+        return (latest.turn_id, waiting) if waiting else (None, [])
 
     # -- reading ----------------------------------------------------------------
 
@@ -608,7 +682,8 @@ class ResearchLead:
         lead_ids = [t.turn_id for t in turns if t.actor == "lead"]
         answers = self._turns().answers(lead_ids)
         person_ids = [t.turn_id for t in turns if t.actor == "person" and t.kind == "message"]
-        queued = {t.turn_id for t in self._turns().queued()} if person_ids else set()
+        released_turn, released = self._released() if turns else (None, [])
+        queued = {t.turn_id for t in [*released, *self._turns().queued()]} if person_ids else set()
         withdrawn = self._turns().withdrawn(person_ids)
         views = []
         for turn in turns:
@@ -621,6 +696,8 @@ class ResearchLead:
                 decisions=decisions.get(turn.turn_id),
             )
             # What waits and what was answered, derived from the rows (ADR 0041 decision 7).
+            if turn.turn_id == released_turn:
+                view["reason"] = LEAD_TURN_RELEASED
             view["queued"] = turn.turn_id in queued
             view["withdrawn"] = turn.turn_id in withdrawn
             view["answers"] = answers.get(turn.turn_id, [])
@@ -735,6 +812,11 @@ class ResearchLead:
                 if kind == "greeting":
                     return []
                 superseded = latest
+        released = [] if busy else self._released()[1]
+        if kind == "greeting" and released:
+            # The messages a budget set released are answered next, never passed over for a
+            # greeting (their owner's pane sends them, :meth:`answer_queued`).
+            return []
         if busy and len(turns.queued()) >= QUEUE_MAX:
             # A free Lead answers what waits with this message; only a busy one fills up.
             raise LeadQueueFull(f"{QUEUE_MAX} of your messages already wait for the Lead")
@@ -766,7 +848,7 @@ class ResearchLead:
             self._workflows().request_cancel(superseded.run_id, reason="lead_turn_superseded")
             held = turns.answers([superseded.turn_id]).get(superseded.turn_id, [])
             resent = [t for t in (turns.get(i) for i in held) if t is not None]
-        messages = [*resent, *turns.queued()] if kind == "message" else []
+        messages = [*resent, *released, *turns.queued()] if kind == "message" else []
         return self._annotated([*stored, self._start_turn(lead, kind, stage, focus_, messages)])
 
     def answer_queued(self) -> list[dict[str, Any]]:
@@ -789,7 +871,8 @@ class ResearchLead:
             current = self._annotated([latest])[0]
             if _holds(current) or current["awaiting_budget"]:
                 return []
-        messages = turns.queued()
+        # Messages a budget set released first (F-LO-PARK-1): they were written before the rest.
+        messages = [*self._released()[1], *turns.queued()]
         if not messages:
             return []
         newest = messages[-1]
@@ -807,7 +890,7 @@ class ResearchLead:
         message = turns.get(turn_id)
         if message is None or message.actor != "person":
             raise LeadTurnNotFound(turn_id)
-        if turn_id not in {t.turn_id for t in turns.queued()}:
+        if turn_id not in {t.turn_id for t in [*self._released()[1], *turns.queued()]}:
             raise LeadMessageNotQueued("this message no longer waits for the Lead")
         turns.append(
             actor="person",

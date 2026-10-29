@@ -139,6 +139,7 @@ from .research import (
     RunReservations,
     research_artifacts,
 )
+from .spend_confirmation import SpendConfirmation
 from .workflows import StartedRun
 
 __all__ = [
@@ -1256,7 +1257,7 @@ def retry_failed_modules(
     *,
     run_id: str,
     reservations: RunReservations | None = None,
-    confirm_cost_usd: float | None = None,
+    confirmation: SpendConfirmation | None = None,
     acknowledge: Acknowledgement | None = None,
 ) -> StartedRun:
     """Ask a finished run's failed analysis modules again, without collecting data again.
@@ -1338,6 +1339,6 @@ def retry_failed_modules(
         run_id,
         frozen_dataset=frozen,
         reservations=reservations,
-        confirm_cost_usd=confirm_cost_usd,
+        confirmation=confirmation,
         acknowledge=acknowledge,
     )

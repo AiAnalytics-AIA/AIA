@@ -867,6 +867,9 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   egress_unclassified_material: "Tuto zprávu zatím nelze poslat modelu: materiál studie není klasifikovaný. Rozhoduje o tom správce AIA.",
   egress_no_approved_route: "Vedoucí výzkumu čeká: pro model AI není schválená trasa.",
   egress_route_not_approved_for_class: "Tuto studii nelze poslat modelu: trasa AI není schválena pro třídu jejích dat.",
+  egress_retention_unspecified: "Tuto studii nelze poslat modelu: trasa AI nemá stanovenou dobu uchování dat u poskytovatele.",
+  egress_residency_violation: "Tuto studii nelze poslat modelu: trasa AI nemá potvrzené zpracování v EU.",
+  egress_training_exclusion_missing: "Tuto studii nelze poslat modelu: trasa AI nemá smluvně vyloučené trénování na datech.",
   research_lead_unconfigured: "Vedoucí výzkumu čeká: model AI není pro pracovníka nastavený.",
   ai_runtime_unavailable: "Vedoucí výzkumu čeká: AI v tomto prostředí neběží.",
   licence_undetermined: "Tuto studii nelze poslat modelu: licence dat panelu to neumožňuje.",
@@ -892,6 +895,10 @@ export const LEAD_REASON_WORDS: Readonly<Record<string, string>> = {
   budget_exceeded: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   reservation_exhausted: "Na odpověď nezbývá rozpočet studie. Nastavte ho v Nastavení → Studie a zpráva se odešle sama.",
   CANCELLED: "Na tuto zprávu Vedoucí neodpověděl zvlášť: přečetl ji s vaší další zprávou.",
+  // F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): a greeting the budget could not pay for ends unpaid,
+  // one quiet line; a turn a budget set released is answered again on the design as it is now.
+  greeting_unfunded: "Přehled studie čeká na rozpočet.",
+  lead_turn_released: "Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je teď.",
 };
 
 /** Asked when a card is approved after the design moved past what its turn read (LO10). */

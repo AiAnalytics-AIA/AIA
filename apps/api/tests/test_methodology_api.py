@@ -354,8 +354,9 @@ def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
     small = panels["small"]
     assert small["status_changes"] and all(c["draft"] == "unknown" for c in small["status_changes"])
     assert set(small["heights"]) == set(small["objects"])
-    assert all(len(pair) == 2 for pair in small["k100"].values())
-    assert any("interval" in n for n in small["notes"])
+    # -5 computes no object scores (MQ-05): K100 is unknown, never "no change".
+    assert small["k100"] is None
+    assert not any("interval" in n for n in small["notes"])
 
 
 def test_compare_refuses_an_invalid_edit_with_its_problems_and_computes_nothing(

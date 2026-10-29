@@ -133,7 +133,7 @@ def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
     # "unclassified-client-knowledge", so every AI design job for it was refused
     # licence_dataset_unknown. The seed records the fictional fixture dataset; an item nobody
     # recorded a dataset for is still refused, by name.
-    from aia_core.domain.knowledge import KnowledgeKind
+    from aia_core.domain.knowledge import UNRECORDED_KNOWLEDGE_LINEAGE, KnowledgeKind
     from aia_core.domain.licence import LicenceDenied
     from aia_core.domain.licence_determinations import (
         PANEL_APPROVED_ROUTE,
@@ -141,7 +141,6 @@ def test_a_design_job_over_the_seeded_client_declares_its_recorded_datasets(
         recorded_policy,
     )
     from aia_core.domain.research_agents import (
-        UNRECORDED_KNOWLEDGE_LINEAGE,
         ResearchAction,
         agent_request,
         context_snapshot,

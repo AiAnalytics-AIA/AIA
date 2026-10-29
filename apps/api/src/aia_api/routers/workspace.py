@@ -54,6 +54,7 @@ from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
     ClientPermission,
+    ClientStatus,
     Permission,
     ScopeDenied,
     SeparationOfDutiesViolation,
@@ -187,13 +188,18 @@ class MemoryHitResponse(BaseModel):
 
 
 class ClientCard(BaseModel):
-    """One client in the directory."""
+    """One client in the directory.
+
+    ``status`` is the client's: an archived client is never listed, as
+    :meth:`ScopeResolver.accessible_clients` leaves it out (ADR 0019).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     client_id: str
     name: str
     slug: str
+    status: Literal["ACTIVE", "DORMANT"]
     your_role: str | None
     active_count: int
     study_count: int
@@ -202,10 +208,11 @@ class ClientCard(BaseModel):
 
 
 class ClientCounts(BaseModel):
-    """What the client's tabs count: open studies, and knowledge waiting or held.
+    """What the client's tabs count: open studies, knowledge waiting or held, and files.
 
-    Archived studies are not counted. The knowledge counts are null for a caller
-    who may not read the client's knowledge: unknown, never zero.
+    Archived studies are not counted. The knowledge counts and ``sources`` (the files the
+    client keeps) are null for a caller who may not read the client's knowledge: unknown,
+    never zero.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -214,6 +221,7 @@ class ClientCounts(BaseModel):
     simulations: int
     pending_proposals: int | None
     datasets: int | None
+    sources: int | None
 
 
 class ClientWorkspace(BaseModel):
@@ -912,6 +920,9 @@ def my_clients(
     for client_id in resolver.accessible_clients(principal):
         scope = _client_scope(principal, resolver, client_id)
         client = repo.get_client_in_scope(scope)
+        if client.status is ClientStatus.ARCHIVED:
+            # Archived after its scope was resolved: left out, as it would have been before.
+            continue
         studies = repo.studies_in_client(scope, include_archived=False)
         active = [s for s in studies if s.status in OPEN_STATUSES]
         cards.append(
@@ -919,6 +930,7 @@ def my_clients(
                 client_id=client.client_id,
                 name=client.name,
                 slug=client.slug,
+                status="DORMANT" if client.status is ClientStatus.DORMANT else "ACTIVE",
                 your_role=scope.client_role.value if scope.client_role else None,
                 active_count=len(active),
                 study_count=len(studies),
@@ -940,6 +952,7 @@ def client_workspace(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
 ) -> ClientWorkspace:
     """The client, the caller's role in it, what they may do, and what its tabs count.
 
@@ -949,15 +962,18 @@ def client_workspace(
     studies = repo.studies_in_client(scope, include_archived=False)
     pending: int | None = None
     datasets: int | None = None
+    sources: int | None = None
     if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
         summary = ClientKnowledgeRepository(session).summary(scope)
         pending = summary.pending_proposals
         datasets = summary.items_by_kind.get(KnowledgeKind.DATASET, 0)
+        sources = ClientSourceRepository(session, store).count(scope)
     counts = ClientCounts(
         research=sum(1 for s in studies if s.kind is StudyKind.RESEARCH),
         simulations=sum(1 for s in studies if s.kind is StudyKind.SIMULATION),
         pending_proposals=pending,
         datasets=datasets,
+        sources=sources,
     )
     return _workspace(scope, repo).model_copy(update={"counts": counts})
 
