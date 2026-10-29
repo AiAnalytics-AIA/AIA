@@ -1375,13 +1375,14 @@ function SpendCard({ run }: { run: ResearchRun }) {
   return (
     <Card title={t("research.exec.spend.title")}>
       {rows ? (
-        // The prototype's KPI tiles (FLD4e): four, the unpriced calls a fifth only when there are any.
-        <dl data-run-spend className="grid grid-cols-[repeat(auto-fit,minmax(min(10rem,100%),1fr))] gap-2">
+        // The board's compact panel (FLD20, Fieldwork.dc.html "Náklady"): label and value in one row each,
+        // what is spent first and strongest; the unpriced calls a row only when there are any.
+        <dl data-run-spend className="flex max-w-xl flex-col divide-y divide-border text-sm">
           {rows.map((r) => (
-            <div key={r.key} data-spend={r.key} className="flex min-w-0 flex-col gap-1 rounded-control border border-border px-3 py-2">
-              <dt className="text-xs text-ink-muted">{r.label}</dt>
-              <dd className="min-w-0">
-                <span data-spend-value className="block font-mono text-lg tabular-nums text-ink">{r.value}</span>
+            <div key={r.key} data-spend={r.key} className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-2 first:pt-0 last:pb-0">
+              <dt className="text-ink-muted">{r.label}</dt>
+              <dd className="min-w-0 text-right">
+                <span data-spend-value className={`block tabular-nums text-ink ${r.key === "spent" ? "text-base font-semibold" : ""}`}>{r.value}</span>
                 {r.note ? <span data-spend-note className="mt-0.5 block text-xs text-ink-muted">{r.note}</span> : null}
               </dd>
             </div>
