@@ -2531,6 +2531,7 @@ export const cs = {
       dataClassAside: "třída dat určuje, kam smí",
       dataClassRule: "Třída podle pravidla {rule}; přísněji ji může zařadit jen operátor.",
       readyNote: "AI z toho sestaví návrh výzkumu a doptá se jen na mezery, které mění návrh. Nic se nepoužije bez vaší kontroly.",
+      dockReady: "Připraveno · AI navrhne výzkum a doptá se",
       dockMissing: "Napište cíl, nebo co přesně zkoumáme",
       typesHelp: "Můžete vybrat více možností. AI je spojí do jednoho návrhu výzkumu.",
       titleLabel: "Název studie",
