@@ -137,6 +137,9 @@ def test_only_ported_modules_claim_progress(inventory: dict[str, dict[str, Any]]
         # Deep Research: the leakage screen and merge, exact against captures of the
         # unit's own research_context.py (test_deep_research_legacy.py).
         "research_context.py",
+        # Evidence integrity 2a: qc.kontrola's checks a run's stored dataset answers, exact
+        # against captures of the unit's own run (test_run_qc.py); 2b and 2c still open.
+        "qc.py",
     }, (
         "The set of modules claiming progress changed. Update this assertion "
         "deliberately, with the parity or behavioural evidence for the new entry."
