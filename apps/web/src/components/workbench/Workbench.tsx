@@ -35,7 +35,7 @@ import {
 } from "@/lib/workbench-layout";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { type FocusMode, readSplit, writeSplit } from "@/lib/workbench-split";
-import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
+import { PHASES, STAGES, STAGE_ORDER, openFieldwork, stageHref, stageOf, stageState, type WorkbenchStage } from "@/lib/workbench-stages";
 import { impactBase, impactMarks, type ImpactMark } from "@/lib/working-impact";
 import { blockers, designLane, runLane } from "@/research/lane";
 import { submitWorkingDesign, type ResearchState, type ResearchStore } from "@/research/store";
@@ -48,6 +48,7 @@ import { FrameNavigation, StageHeader, type StageHeaderSlots } from "@/component
 import { ItemInspector } from "../rehome/research/ItemInspector";
 import { ItemReview } from "../rehome/ItemReview";
 import { Glyph, type GlyphTone } from "./Glyph";
+import { FieldworkViews } from "./FieldworkViews";
 import { Icon, Mark } from "./Icons";
 import { ItemInspectBody } from "./ItemInspectBody";
 import { ItemInspectorContext, type ItemInspectorApi } from "./item-inspector-context";
@@ -411,6 +412,11 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
   /** Opens a stage; true when it moved now, false when a stage's leave guard stopped it. */
   const go = useCallback((target: WorkbenchStage): boolean => {
     const s = STAGES[target];
+    // Sběr dat is one stage on two routes (FLD9); the Lead's run card and open_stage come here too.
+    if (target === "fieldwork") {
+      const to = openFieldwork(stage === "fieldwork" ? (step === "progress" ? "progress" : "run") : null, lane);
+      return to === null || guardedNavigate(frame.stepHref(to), (url) => router.push(url));
+    }
     // Within one route the stage is its hash (a result view, or Vzorek on Dimenze's route).
     if (s.step === step) {
       window.location.hash = s.view ?? "";
@@ -418,7 +424,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     }
     // Through a link's click, so a stage's leave guard (Návrh's unsaved edits) can stop it.
     return guardedNavigate(stageHref(target, frame.stepHref), (url) => router.push(url));
-  }, [router, step, frame.stepHref]);
+  }, [router, step, stage, lane, frame.stepHref]);
 
   // A stage's forward action (FrameNavigation's `next`): the stage after this one in the workbench's
   // order, opened as the navigator opens it, then the focus on the new stage's heading. The pressed
@@ -877,7 +883,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
             <div className="art" aria-label={`Artefakt ${STAGES[stage].label}`}>
               <div className="arthead">
                 <div style={{ minWidth: 0, flex: "1 1 240px" }}>
-                  <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{save}</div>
+                  <div className="row"><h1 className="arthead__title" tabIndex={-1}>{STAGES[stage].label}</h1>{stage === "fieldwork" ? <FieldworkViews current={step === "progress" ? "progress" : "run"} open={(v) => guardedNavigate(frame.stepHref(v), (url) => router.push(url))} /> : null}{save}</div>
                   {/* The revision only: whether the copy is saved, new or read only is the save state's to say, beside the title. */}
                   {state.revision === null && (frame.canEdit || state.save.kind === "readonly") ? null : <div className="arthead__sub">{state.revision === null ? "Pracovní kopie zatím neuložena" : `Pracovní kopie · revize ${state.revision}`}{frame.canEdit || state.save.kind === "readonly" ? "" : " · jen ke čtení"}</div>}
                 </div>
