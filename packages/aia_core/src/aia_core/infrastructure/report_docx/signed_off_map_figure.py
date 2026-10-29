@@ -93,6 +93,8 @@ class FigureTexts:
     indicative: Callable[[int, int], str]  # objects, the declared minimum
     unplaceable: Callable[[int, int], str]  # objects, the ratings a respondent needs
     segments_hint: str  # {k}
+    #: Beside segments shown: they describe, never explain or compare (S-2).
+    segments_describe: str
     decimal_comma: bool
 
 
@@ -139,6 +141,7 @@ CZECH: Final = FigureTexts(
         f"umístit (potřeba aspoň {r} hodnocení)"
     ),
     segments_hint="Náznak {k} skupin · nejisté, body nejsou obarvené",
+    segments_describe="Segmenty jen popisují, jak se respondenti na této mapě liší.",
     decimal_comma=True,
 )
 
@@ -742,6 +745,7 @@ def render_respondents(
             k = len(seg.shares)
             ax.add_patch(Circle((18 * s, (29 + 12 * k) * s), 3.2 * s, color=SEG_GREY, zorder=9))
             ax.text(26 * s, (25 + 12 * k) * s, texts.segment_grey, color="#8b96a3", **tx2)
+            ax.text(14 * s, (37 + 12 * k) * s, texts.segments_describe, color="#8b96a3", **tx2)
         else:
             if seg.decision == "BORDERLINE" and seg.hint is not None:
                 line = texts.segments_hint.format(k=seg.hint.k)

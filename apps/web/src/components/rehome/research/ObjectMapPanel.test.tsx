@@ -554,7 +554,10 @@ describe("taste segments", () => {
       render(<ObjectMapView battery={sources[name]} dataOrigin={null} />);
       fireEvent.click(screen.getByRole("button", { name: "Respondenti" }));
       openLegend();
-      expect(screen.getByTestId("object-map-segments").textContent).toBe(scene.legend);
+      // The 18.6.6 panel's legend as recorded, then AIA's one addition beside segments shown: they
+      // only describe (the methodology owner, 2026-10-29, S-2). A borderline hint shows none.
+      const after = ["hudba", "distinct"].includes(name) ? "Segmenty jen popisují, jak se respondenti na této mapě liší." : "";
+      expect(screen.getByTestId("object-map-segments").textContent).toBe(scene.legend + after);
       openInfo();
       const row = screen.getByTestId("object-map-segments-row");
       expect(row.textContent).toBe(`Segmenty: ${scene.row!.value}`);
@@ -826,7 +829,9 @@ describe("Export PNG", () => {
     expect(saved.map((x) => x.name)).toEqual(["Sociomapa_respondenti.png"]);
     expect(texts.slice(0, 4)).toEqual(["VÝŠKA · SHLUKY RESPONDENTŮ", "0,00", "hustota", "1,00"]);
     expect(texts).toContain("CHUŤOVÉ SEGMENTY · PŘEKRÝVAJÍ SE");
-    expect(texts.at(-1)).toBe("není jasně v jednom segmentu");
+    expect(texts).toContain("není jasně v jednom segmentu");
+    // S-2: the exported legend says the segments only describe, wrapped to the card's width.
+    expect(texts.slice(texts.indexOf("není jasně v jednom segmentu") + 1).join(" ")).toBe("Segmenty jen popisují, jak se respondenti na této mapě liší.");
   });
 });
 

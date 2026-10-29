@@ -4241,6 +4241,7 @@ export const cs = {
           segmentGrey: "není jasně v jednom segmentu",
           hintTitle: "Náznak {k} skupin · nejisté",
           hintNote: "Body nejsou obarvené: rozdělení není jisté.",
+          segmentsDescribe: "Segmenty jen popisují, jak se respondenti na této mapě liší.",
           segmentsTooFew: "Chuťové segmenty se nehledají (málo dat)",
           segmentsTooFewObjects: "Chuťové segmenty se nehledají (méně než {n} objektů)",
           segmentsNone: "Žádné zřetelné chuťové segmenty",
