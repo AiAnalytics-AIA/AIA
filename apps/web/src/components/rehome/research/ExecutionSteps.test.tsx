@@ -25,6 +25,7 @@ import { sendLeadMapView, takeLeadMapView, takeLeadMapViews } from "@/lib/lead";
 import { measureAnchor } from "@/lib/result-reading";
 import { parseAiaId } from "@/lib/workbench-artifacts";
 import { CONFLICT_MESSAGE } from "@/research/store";
+import { FrameNavigation } from "../step";
 import { RunResults, checkHref, fixStep } from "./ExecutionSteps";
 import { StudyFrameProvider } from "./frame";
 import { ResearchScreen, ResearchSession } from "./ResearchScreen";
@@ -247,7 +248,10 @@ describe("Run", () => {
     expect(screen.getByText("Výsledky jsou hotové")).toBeTruthy();
     expect(screen.queryByText("Dokončeno")).toBeNull();
     const links = screen.getAllByRole("link", { name: /Zobrazit (průběh|výsledky)/ }).map((a) => [a.textContent, a.getAttribute("href")?.split("?run=")[1]]);
-    expect(links).toEqual([["Zobrazit průběh", "RUN-2"], ["Zobrazit výsledky", "RUN-1"]]);
+    // Every run's Průběh opens from the list, a finished one's too (FLD21); results only once ready.
+    expect(links).toEqual([["Zobrazit průběh", "RUN-2"], ["Zobrazit průběh", "RUN-1"], ["Zobrazit výsledky", "RUN-1"]]);
+    const hrefs = screen.getAllByRole("link", { name: "Zobrazit průběh" }).map((a) => a.getAttribute("href")?.split("?")[0]);
+    expect(hrefs).toEqual([stagePath("progress"), stagePath("progress")]);
   });
 
   it("reads the checks on the working copy, submits nothing on a visit, and on Start submits the design and runs it (FLD22)", async () => {
@@ -872,6 +876,30 @@ describe("Run: what a run can cost (5b.2)", () => {
     await waitFor(() => expect((start as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(start);
     await waitFor(() => expect(push).toHaveBeenCalledWith(`${stagePath("progress")}?run=RUN-1&found=1`));
+  });
+
+  it("opens a finished run's Průběh with no run named, as Kontrola's switch opens it (FLD21)", async () => {
+    window.history.replaceState(null, "", "/");
+    api(listed(COMPLETED));
+    render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="progress" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    expect((await screen.findAllByText(tv("research.exec.revision", { revision: COMPLETED.design_revision }))).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(runState(COMPLETED as unknown as ResearchRun).label).length).toBeGreaterThan(0);
+    expect(screen.queryByText(t("research.exec.noRunTitle"))).toBeNull();
+  });
+
+  it("says on the workbench's Průběh where a run is started when the study has none, and links Kontrola (FLD21)", async () => {
+    window.history.replaceState(null, "", "/");
+    api();
+    render(<FrameNavigation.Provider value={{ next: null }}><ResearchScreen step="progress" frame={TEST_FRAME} /></FrameNavigation.Provider>);
+    expect(await screen.findByText(t("research.exec.noRunTitle"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.noRunBody"))).toBeTruthy();
+    expect(screen.getByRole("link", { name: t("research.exec.toCheck") }).getAttribute("href")).toBe(stagePath("run"));
+    cleanup();
+    // The classic layout keeps its one line: Spuštění is a stage of its own there.
+    api();
+    render(<ResearchScreen step="progress" frame={TEST_FRAME} />);
+    expect(await screen.findByText(t("research.exec.noRuns"))).toBeTruthy();
+    expect(screen.queryByText(t("research.exec.noRunTitle"))).toBeNull();
   });
 
   it("says on Průběh that the run was found, not started, only for the run the start found", async () => {
@@ -2295,7 +2323,8 @@ describe("Results", () => {
     const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
     await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
     // The round is the Lead's to prepare: no way to Průběh, one button sending the person's typed command.
-    expect(hypotheses.textContent).toContain("Vedoucí výzkumu");
+    // The way out is known before GET /lead answers; the Lead's words follow it (a loaded runner, #1125).
+    await waitFor(() => expect(hypotheses.textContent).toContain("Vedoucí výzkumu"));
     expect(within(blocked).queryByRole("link", { name: "Zobrazit průběh běhu" })).toBeNull();
     // A module without a supported finding, with the server's reason and ways out, never a finding.
     const unsupported = screen.getByRole("region", { name: "Bez doloženého zjištění" });

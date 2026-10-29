@@ -481,6 +481,10 @@ try {
     // The switch stays where the person pressed it: the focus is not dropped by the route change.
     assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role") === "tab" && document.activeElement.textContent.trim()), "Průběh", `the focus stays on Průběh @${width}`);
     assert.equal(await views.getByRole("tab", { name: "Průběh" }).getAttribute("aria-selected"), "true", `Průběh is the open view @${width}`);
+    // The fixture study has no run: Průběh says where one is started (FLD21).
+    await page.getByRole("heading", { name: "Ve studii zatím běh není" }).waitFor({ timeout: 60000 });
+    const back = (await page.getByRole("link", { name: "Kontrola a spuštění" }).boundingBox())?.height ?? 0;
+    assert(back >= floor, `Průběh's way to Kontrola is a ${floor} px target @${width}: ${back}`);
     await noOverflow(`progress @${width}`);
     await shot(`${width}-progress`);
     await views.getByRole("tab", { name: "Kontrola a spuštění" }).click();
@@ -500,6 +504,7 @@ try {
   assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Kontrola visit submits no design (FLD22)");
   check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow; four Kontrola visits submitted no design (FLD22)");
   check("Sběr dat one stage with two views (FLD9): Pohled switches Kontrola and Průběh at 1440, 1100, 768 and 390, no overflow; with no run moving the navigator opens Kontrola");
+  check("Průběh with no run says where a run is started, its way to Kontrola a touch target, at 1440, 1100, 768 and 390 (FLD21)");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
   // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).
