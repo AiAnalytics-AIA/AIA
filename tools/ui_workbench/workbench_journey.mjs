@@ -446,9 +446,11 @@ try {
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("run"));
-    const edit = page.getByRole("link", { name: "Upravit", exact: true });
-    await edit.first().waitFor({ timeout: 60000 });
-    assert((await edit.count()) > 0, `Co spustíte names its stages @${width}`);
+    // "Co spustíte" (FLD23): one summary with its way to Dotazník and Start inside it.
+    const what = page.getByRole("region", { name: "Co spustíte" });
+    await what.waitFor({ timeout: 60000 });
+    assert((await what.getByRole("link", { name: "Dotazník", exact: true }).count()) === 1, `Co spustíte links Dotazník @${width}`);
+    assert((await what.getByRole("button", { name: "Spustit výzkum", exact: true }).count()) === 1, `Start is in Co spustíte @${width}`);
     const floor = width < 640 ? 44 : 32;
     // Every shown link of the stage's own but one inside a sentence, which WCAG 2.5.8 exempts: a link
     // with text of its parent's beside it.
