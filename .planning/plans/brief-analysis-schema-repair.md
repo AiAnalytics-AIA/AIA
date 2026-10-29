@@ -6,7 +6,8 @@ chunks:
   - "[ ] 3. Deferred: (b) narrow typed decoding, only if an observed failure shows `received string`"
   - "[x] 4a. Schema-enforced output, the reduced schema: domain/constrained_output.py reduces a contract's schema to Bedrock's grammar subset or refuses it by name; a golden fixture pins every contract's verdict (20 of 22 reduce); no client text reaches a sent schema"
   - "[ ] 4b. Schema-enforced output, sent: RequestProfile's declared constrained capabilities behind AIA_BEDROCK_CONSTRAINED_OUTPUT (off by default and in test; fieldwork refused), the gateway sends the reduced schema with toolSpec.strict through the Bedrock adapter, recorded Converse fixtures first; the paid probe on the product owner's ok"
-  - "[ ] 5. Keep refused answers: a material_rules entry (Class B, as the design it answers), bounded, stored on the failed attempt's run, erased with the client; the draft rule put to the product owner before building"
+  - "[x] 5. Keep refused answers, every study step: one hook in StepModelCaller, REFUSED_ANSWER_SOURCE (the request's class; unclassified recorded as null), a refused_answer artifact on the failing step's own project (design workers, Lead, Deep Research, fieldwork, validation); analysis left as it is; operator-only"
+  - "[ ] 5b. Deferred (the product owner, 2026-10-28 ~20:35 UTC, option C): client-source proposals keep no refused answer until a client-work failure is seen; the artifact store stays study-scoped"
 ---
 # A brief analysis refused for `tracked_sets: Input should be a valid array`
 
@@ -122,6 +123,53 @@ work on whichever route model is in force.
    type answers the diagnostic question without storing text. If the text is wanted, it belongs in a
    classified artifact of the run, not error_json. That is a decision for the product owner.
 6. **Test.** One that asserts what a failed design job's attempt keeps.
+
+### F3. A second brief-analysis failure, with two array fields refused in one answer (recorded only)
+
+1. **Claim.** A second `research_agent` attempt failed `structured_output_invalid` on
+   **two** top-level array fields at once.
+   - When: 2026-10-28 19:23:52 UTC, on develop.
+   - Model: Sonnet 4.5, still on the route. Develop switched the route to Sonnet 5.5 at 19:42:33.
+   - Calls: CALL-09c1a688708e42688005 and CALL-0f62317eb64743f28519, the primary and its repair.
+   - Provider request id: 697d30ef-78c6-4e88-946f-08e1b0653222.
+   - `error_json`, as the product owner pasted it (relayed by the PM coordinator):
+     `"violations": ["tracked_sets: Input should be a valid array", "questions_for_user: Input should be a valid array"]`.
+2. **Anchor.** The same contract and validator as F1:
+   - `packages/aia_core/src/aia_core/domain/research_agents.py:92`
+     (`tracked_sets`) and `:94` (`questions_for_user`) `@ b7a0231e`;
+   - `validate_structured_output`.
+   - Develop still ran 1f633e5b, which is before #1075 (`fed99aa2`), so the violations carry no
+     `received <type>`. The develop CI runs after the merge were each cancelled by the next merge
+     before they finished.
+3. **Reproduction.** As F1. Both fields' violation text is the same for a string, null or an
+   object (`test_a_wrong_json_type_is_named_in_the_violation`).
+4. **Consequence.** Another "Analyzuj zadání" failed after two paid calls.
+   - Two independent array fields failed in one answer: a list of objects (`tracked_sets`) and a
+     list of strings (`questions_for_user`).
+   - That fits the string-encoded-array hypothesis: a model that serializes array fields as JSON
+     strings does it across fields, where a null or an object would more likely be one-off.
+   - **Still a hypothesis.** The type was not recorded, because #1075 was not deployed.
+5. **Smallest fix.** None now: record only, as the coordinator asked.
+   - The first failure after #1075 deploys will name the received type.
+   - If it reads `received string`, that is the observed shape chunk 3 (narrow typed decoding)
+     waits for, and chunk 4 (schema-enforced output) would prevent it on the model's side.
+   - Unrecorded: whether the same happens on Sonnet 5.5.
+6. **Test.** Already covered for the wording (F1's test). A two-field case would add nothing the
+   per-field tests do not hold.
+
+**Sonnet 5.5 reading** (recorded only; the PM coordinator, from the infra session's probe on
+develop, 2026-10-28 20:20-20:22 UTC, policy `aia-bedrock-develop-2026-10-28-route-sonnet55`).
+Schema refusals happen on 5.5 too, in analysis as well as design:
+
+- **Analysis.** 2 of the 10 analysis calls failed their schema on the first answer and were
+  repaired: ledger outcome FAILED, finish COMPLETED, max_out 2,141. CloudTrail shows 10 analysis
+  Converse calls at maxTokens 8192, the 8 modules plus the 2 repairs.
+- **Design.** The design job's primary (`aia.research.build_questionnaire`, 20:23:57) was
+  TRUNCATED at its 4,096-token output limit, and its repair answered. That is a truncation, not a
+  type error.
+
+The reading does not say which violations the 5.5 analysis failures had. This strengthens the case
+for chunk 4 (schema-enforced output) on whichever route model is in force; it changes no build.
 
 ## Chunk 4 research: schema-enforced output (read-only, 2026-10-28)
 
@@ -397,6 +445,82 @@ answers were about 1,900 output tokens, roughly 8 KB.
 4. **Scope.** Design jobs only (chunk 5 as chosen)? Or every structured agent that fails the same
    way: the Lead, client-source proposals, Deep Research? Recommended: design jobs first, and the
    rest when one of them meets the same failure.
+
+### Decisions (the product owner, 2026-10-28 19:11-19:13 UTC, PM status page, relayed by the coordinator)
+
+- **W1Q2, class:** the request's class, never a fixed B.
+- **W1Q3, which answer:** the last only, the repair's. No gateway change.
+- **W1Q4, who reads it:** operators only. No API route and no screen.
+- **W1Q5, scope: every structured agent**, not the recommended "design jobs only". That covers the
+  design workers, the Lead, client-source proposals and Deep Research's agents, each answer stored
+  on its own run with the same class rule and operator-only reading. Any agent that needs a
+  different storage home or class source is proposed before it is built.
+
+### Storage for every agent (the product owner, 2026-10-28 ~20:20 UTC, relayed: approved)
+
+- **One hook** in `StepModelCaller.invoke`'s `except ModelCallFailed` (`apps/executors/src/aia_executors/ai_step.py`).
+  Every worker-step agent fails through it: the design workers, the Lead turn, Deep Research,
+  fieldwork, validation and client-source proposals all call `caller.invoke` and let `StepFailed`
+  propagate.
+- **One record type:** `refused_answer`, on the failing step's own project.
+  - The client's deletion erases it with that project
+    (`packages/aia_core/src/aia_core/infrastructure/repositories.py:722 @ df1377f7`, `erase_client_projects`).
+- **Different homes, for approval:**
+  - Client-source proposals: the client's `client_sources` work project, not a study.
+  - Analysis: already keeps its refused answer in its turn artifact
+    (`domain/analysis/artifact.py:300-303`), with no class. Proposed: leave it as it is.
+- **Not reachable yet:** the Lead hatch's model call and Deep Research triage
+  (`application/deep_research_triage.py`). No executor calls either today. Each takes the same
+  sink once it does.
+- **Null class:** under advisory gates a request can be unclassified. It is recorded as
+  `data_class: null` with `class_source: "unclassified"`, never a guessed class.
+
+### What chunk 5 built (study steps), and what is left (5b)
+
+- **The record.** `refused_answer(request, failure)`, in `domain/ai_execution.py`. It is made only
+  for `structured_output_invalid` carrying the answer. It keeps the ids, the violations, the last
+  answer and the request's class (`REFUSED_ANSWER_SOURCE`, `domain/material_rules.py`). An
+  unclassified request is recorded as `data_class: null`, `class_source: "unclassified"`.
+- **The hook.** `StepModelCaller(refused_answers=…)` in `apps/executors/src/aia_executors/ai_step.py`.
+  - It keeps the record once the attempt is settled and checkpointed and any model slot is
+    released, before the step fails.
+  - A failure to keep it is logged without the answer, and the step fails with its own error. A
+    lost lease (`StopExecution`, a `BaseException`) still stops the step.
+  - The record is stored through the repository the executor already uses, named by
+    `refused_answers`.
+- **Wired:** the design workers, the Lead turn, Deep Research steps (`_shared._caller`), fieldwork
+  (`AIFieldwork.produce` / `answer_plans(refused_answers=)`) and validation arms.
+- **Not wired:**
+  - Analysis, as the product owner chose.
+  - The hatch and triage calls, which no executor makes yet.
+  - Client-source proposals: deferred (chunk 5b). Their approved home, the client's work project,
+    would need `ArtifactRepository` to take a `ClientWorkContext`. Today it takes a `StudyContext`
+    only (`artifact_repository.py:203-207`), and its storage key needs a study
+    (`storage.py:123-145`). Put to the product owner as (A) mirror `ProjectRepository`'s rule
+    (`repositories.py:158-165`), (B) the client's work journal, or (C) skip. **Decision
+    (2026-10-28 ~20:35 UTC, relayed by the PM coordinator): "(C) Skip it for now … this seems the
+    safest".** The artifact store stays study-scoped. Widening it waits until a client-work failure
+    is actually seen; until then, a refused client-source proposal keeps only its violations
+    (now naming the received type, #1075).
+- **Bound:** a step fails on its first refused answer, so at most one per attempt. The exception
+  is Deep Research's lead step, which catches a refused plan and carries on
+  (`deep_research/lead.py:99-109`), so it can keep one per refused plan.
+
+### Review outcomes (`/code-review`, chunk 5, 2026-10-28)
+
+- **Fixed.** `REFUSED_ANSWER` is a plain source constant (`material_rules.REFUSED_ANSWER_SOURCE`),
+  not a `MaterialRule` member. A member broke `RULE_CLASSES` lookups and
+  `test_a_rule_classifies_any_bytes_with_no_operator_step`.
+- **Fixed.** `StepModelCaller(refused_answers=…)` is a required repository. A caller now states
+  where refused answers go, or `None` with its reason (analysis, client-source proposals), so a
+  missing home is visible. The caller builds the record from its own context and runtime version,
+  so five copies of a keeper became five one-line repositories.
+- **Fixed.** The answer is kept after any model slot is released, never while holding one.
+- **Left.** A respondent answer that passes the contract and is then refused by
+  `interpret_block` (`respondent_output_invalid`) is not kept. It is outside the scope chosen
+  (`structured_output_invalid`); a follow-up if the product owner wants it.
+- **Not a defect.** The kept answer is bounded: `ModelCallFailed` cuts `rejected_output` to
+  `MAX_REJECTED_OUTPUT_CHARS` (65,536) when it is built (`ai_contracts.py:948-950`).
 
 ### Tests the build starts with (red first)
 

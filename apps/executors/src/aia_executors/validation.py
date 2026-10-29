@@ -294,6 +294,9 @@ class ArmExecutor(_ValidationStep):
             data_class=data_class,
             lineage=lineage,
             require_binding=str(payload["model_binding"]),
+            refused_answers=lambda session: validation_artifacts(
+                session, context.scope, self._store
+            ),
             # The preregistered system's prompt is the one without scale labels: its start
             # pins ``pinned_components`` with the switch off (application/validation.py).
             scale_labels_in_prompt=False,
