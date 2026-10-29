@@ -14,7 +14,8 @@ from typing import Any
 
 import pytest
 from aia_core.application.scope import ScopeResolver
-from aia_core.domain.scope import ClientContext, ClientPermission
+from aia_core.domain.scope import ClientContext, ClientPermission, ClientStatus
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -55,6 +56,42 @@ def test_the_directory_lists_every_client_to_every_member(
         if x["client_id"] == world.client_id("primary")
     )
     assert primary["active_count"] == 2
+
+
+def test_the_directory_says_each_clients_status(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    """CPR2: a dormant client says so on its card; an archived one is not listed at all."""
+    dormant = owner.put(
+        f"{API}/clients/{world.client_id('other')}/status", json={"status": "DORMANT"}
+    )
+    assert dormant.status_code == 200, dormant.text
+    status = {c["client_id"]: c["status"] for c in lead.get(f"{API}/workspace/clients").json()}
+    assert status == {world.client_id("primary"): "ACTIVE", world.client_id("other"): "DORMANT"}
+    archived = owner.put(
+        f"{API}/clients/{world.client_id('other')}/status", json={"status": "ARCHIVED"}
+    )
+    assert archived.status_code == 200, archived.text
+    listed = lead.get(f"{API}/workspace/clients").json()
+    assert [c["client_id"] for c in listed] == [world.client_id("primary")]
+
+
+def test_a_client_archived_while_the_directory_is_read_is_left_out(
+    lead: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CPR2: archived between its scope check and its row's read, a client is not listed."""
+    read = ScopeRepository.get_client_in_scope
+
+    def archived_meanwhile(self: ScopeRepository, scope: ClientContext) -> Any:
+        client = read(self, scope)
+        if client.client_id != world.client_id("other"):
+            return client
+        return client.model_copy(update={"status": ClientStatus.ARCHIVED})
+
+    monkeypatch.setattr(ScopeRepository, "get_client_in_scope", archived_meanwhile)
+    listed = lead.get(f"{API}/workspace/clients")
+    assert listed.status_code == 200, listed.text
+    assert [c["client_id"] for c in listed.json()] == [world.client_id("primary")]
 
 
 def test_a_researcher_starts_a_client_and_every_member_can_open_it(
