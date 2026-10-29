@@ -129,7 +129,7 @@ class ProviderRoute:
 class ClassAdvisory:
     """A refusal made solely because of a data class, passed under advisory class gates.
 
-    ``AIA_DATA_CLASS_GATES=advisory`` (develop only).
+    ``AIA_DATA_CLASS_GATES=advisory`` (ADR 0008, Amendments 2026-10-21, 2026-10-28).
 
     Written where the refusal would have been (a ledger row's note, a call's provenance, a tool
     event, a step event), so that nothing advisory mode lets through is silent. ``rule`` is the
@@ -249,7 +249,7 @@ def evaluate_egress(
     and cost attribution are owed for every paid call regardless of what it
     carried.
 
-    ``class_gates`` advisory (develop only, ``deployment.data_class_gates_problem``) turns
+    ``class_gates`` advisory (wherever a deployment sets it, ADR 0008) turns
     checks 2 and 4 -- the two that refuse solely because of the class -- into recorded passes
     (:attr:`EgressDecision.advisories`). Unclassified material is then judged as Class A by
     checks 5-7, so unknown is never the permissive answer and EU residency still holds.

@@ -1,9 +1,10 @@
 """Advisory data class gates (plan ``develop-class-advisory``; the product owner, 2026-10-21).
 
-``AIA_DATA_CLASS_GATES=advisory`` -- develop only -- turns every refusal made solely because of
-a data class into a recorded pass. These tests hold each gate in both modes: enforce refuses
-exactly as before (the existing suites are unchanged), advisory passes and records what enforce
-would have refused, and EU residency, licences, budgets and scope refuse in both.
+``AIA_DATA_CLASS_GATES=advisory`` -- wherever a deployment sets it (ADR 0008, Amendment
+2026-10-28) -- turns every refusal made solely because of a data class into a recorded pass.
+These tests hold each gate in both modes: enforce refuses exactly as before (the existing suites
+are unchanged), advisory passes and records what enforce would have refused, and EU residency,
+licences, budgets and scope refuse in both.
 """
 
 from __future__ import annotations
@@ -38,8 +39,6 @@ from aia_core.domain.deep_research.tooling import (
 )
 from aia_core.domain.deployment import (
     DataClassGates,
-    DeploymentEnvironment,
-    data_class_gates_problem,
     parse_data_class_gates,
 )
 from aia_core.domain.licence import DataLineage
@@ -176,25 +175,6 @@ def test_the_switch_is_enforce_unless_it_says_advisory(raw: str | None, gates: A
 def test_a_value_that_is_not_a_mode_is_refused_by_name() -> None:
     with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES='lenient' is not one of"):
         parse_data_class_gates("lenient")
-
-
-@pytest.mark.parametrize(
-    "environment",
-    [DeploymentEnvironment.LOCAL, DeploymentEnvironment.TEST, DeploymentEnvironment.DEVELOP],
-)
-def test_advisory_is_allowed_in_local_test_and_develop(environment: Any) -> None:
-    assert data_class_gates_problem(environment, ADVISORY) is None
-
-
-@pytest.mark.parametrize(
-    "environment", [DeploymentEnvironment.STAGING, DeploymentEnvironment.PRODUCTION, None]
-)
-def test_advisory_is_refused_in_staging_production_and_an_unknown_environment(
-    environment: Any,
-) -> None:
-    problem = data_class_gates_problem(environment, ADVISORY)
-    assert problem is not None and "AIA_DATA_CLASS_GATES=advisory is refused" in problem
-    assert data_class_gates_problem(environment, ENFORCE) is None
 
 
 def test_an_advisory_says_its_gate_rule_and_class() -> None:

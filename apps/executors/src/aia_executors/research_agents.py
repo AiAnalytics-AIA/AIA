@@ -255,7 +255,7 @@ class ResearchAgentExecutor:
         except ValueError as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         # The class the gateway sent it as: the request's or, when a part's class is unknown
-        # and the class gates are advisory (develop only), the class it was judged as, with the
+        # and the class gates are advisory (where set), the class it was judged as, with the
         # advisory recorded. Under enforce an unknown class was refused at the preflight above.
         prompt_class = prompt_data_class(pin, cfg.material_approvals)
         instruction_rule = instruction_classification(

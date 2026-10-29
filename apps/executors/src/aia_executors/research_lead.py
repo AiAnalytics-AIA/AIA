@@ -201,7 +201,7 @@ class ResearchLeadExecutor:
         result = caller.invoke(request)
         assert result.output is not None
         # The class the gateway sent it as: the request's, or -- an unknown class passed under
-        # advisory class gates (develop only) -- the class it was judged as, with the advisory.
+        # advisory class gates (where set) -- the class it was judged as, with the advisory.
         sent_class = result.provenance.data_class.value
         classification = context_classification(frozen, cfg.material_approvals, pin)
         return LeadAnswer(

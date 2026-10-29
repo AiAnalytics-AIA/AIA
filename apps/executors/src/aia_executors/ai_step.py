@@ -90,7 +90,7 @@ def class_advisory_fields(advisories: tuple[str, ...]) -> dict[str, Any]:
     """What a step's provenance records of a call's class advisories (``CallProvenance``).
 
     Nothing under enforce, so a record is exactly what it was before advisory gates existed;
-    ``{"class_advisory": [...]}`` when a class-only refusal was passed (develop only, plan
+    ``{"class_advisory": [...]}`` when a class-only refusal was passed (advisory gates, plan
     develop-class-advisory), each entry ``residency.ClassAdvisory.note()``.
     """
     return {"class_advisory": list(advisories)} if advisories else {}

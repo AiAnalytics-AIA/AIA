@@ -22,7 +22,6 @@ from dataclasses import dataclass, field
 from aia_core.domain.deployment import (
     DataClassGates,
     DeploymentEnvironment,
-    data_class_gates_problem,
     parse_data_class_gates,
     parse_environment,
 )
@@ -76,9 +75,9 @@ class WorkerSettings:
     #: only where ``AIA_ENV`` is local or test, for the suites' doubles. Unset or
     #: unknown counts as deployed.
     executors_from_any_package: bool = False
-    #: ``AIA_DATA_CLASS_GATES``: ``advisory`` only where ``AIA_ENV`` is local, test or develop
-    #: (``deployment.data_class_gates_problem``, the rule the API asks too). The executors
-    #: read the same variable for the gates themselves; this process logs it at start.
+    #: ``AIA_DATA_CLASS_GATES``: ``enforce`` unless it says ``advisory``, in any environment
+    #: (ADR 0008, Amendment 2026-10-28). The executors read the same variable for the gates
+    #: themselves; this process logs it at start.
     data_class_gates: DataClassGates = DataClassGates.ENFORCE
 
     def __post_init__(self) -> None:
@@ -150,9 +149,6 @@ class WorkerSettings:
             gates = parse_data_class_gates(source.get("AIA_DATA_CLASS_GATES"))
         except ValueError as error:
             problems.append(str(error))
-        gates_problem = data_class_gates_problem(environment, gates)
-        if gates_problem:
-            problems.append(gates_problem)
         if problems:
             raise ValueError("invalid worker configuration: " + "; ".join(problems))
 

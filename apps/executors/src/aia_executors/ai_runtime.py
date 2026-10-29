@@ -122,7 +122,6 @@ from aia_core.domain.ai_models import (
 from aia_core.domain.deep_research.request_limits import ModelPrices, reservation_usd
 from aia_core.domain.deployment import (
     DataClassGates,
-    data_class_gates_problem,
     fictional_material_problem,
     parse_data_class_gates,
     parse_environment,
@@ -627,8 +626,9 @@ class AIRuntimeSettings:
     #: ``AIA_BEDROCK_INVOCATION_TARGET`` (develop-spend-attribution 5a): the application
     #: inference profile the route model's calls go through; ``None``: ``model_id`` itself.
     invocation_target: str | None = None
-    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): ``advisory`` on develop only,
-    #: where a refusal made solely because of a data class is recorded and passed.
+    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): ``advisory`` wherever a deployment
+    #: sets it (ADR 0008, Amendment 2026-10-28): a refusal made solely because of a data class is
+    #: recorded and passed.
     data_class_gates: DataClassGates = DataClassGates.ENFORCE
     #: ``AIA_BEDROCK_STRUCTURED_OUTPUT`` / ``_THINKING`` / ``_ACCEPTS_SAMPLING`` / ``_EFFORT``
     #: (sonnet-5-5-switch): what the route model's requests may carry. The default is the shape
@@ -1036,19 +1036,13 @@ def _with_study_lead(settings: AIRuntimeSettings, env: Mapping[str, str]) -> AIR
 
 
 def data_class_gates_from_env(env: Mapping[str, str]) -> DataClassGates:
-    """``AIA_DATA_CLASS_GATES``, checked against ``AIA_ENV`` by the rule the API asks too.
-
-    Unset is ``enforce``. A value that is not a mode, or ``advisory`` outside local, test and
-    develop (``deployment.data_class_gates_problem``), stops the worker by name.
+    """``AIA_DATA_CLASS_GATES``: unset is ``enforce``; a value that is not a mode stops the
+    worker by name. Advisory is allowed in any environment (ADR 0008, Amendment 2026-10-28).
     """
     try:
-        gates = parse_data_class_gates(env.get("AIA_DATA_CLASS_GATES"))
+        return parse_data_class_gates(env.get("AIA_DATA_CLASS_GATES"))
     except ValueError as exc:
         raise AIRuntimeConfigError(str(exc)) from exc
-    problem = data_class_gates_problem(parse_environment(env.get("AIA_ENV")), gates)
-    if problem:
-        raise AIRuntimeConfigError(problem)
-    return gates
 
 
 def build_gateway(

@@ -18,7 +18,6 @@ from aia_core.application.deep_research_pricing import DeepResearchPricingSettin
 from aia_core.domain.deployment import (
     DataClassGates,
     DeploymentEnvironment,
-    data_class_gates_problem,
     fictional_material_problem,
     parse_data_class_gates,
 )
@@ -166,8 +165,7 @@ class Settings(BaseSettings):
 
     # Whether a refusal made solely because of a data class stops a call or is recorded and
     # passed (``AIA_DATA_CLASS_GATES``, the worker's key; plan develop-class-advisory). Enforce
-    # by default; advisory only in local, test and develop, refused in staging and production by
-    # the same rule the worker applies (aia_core.domain.deployment).
+    # by default; advisory in any environment that sets it (ADR 0008, Amendment 2026-10-28).
     data_class_gates: DataClassGates = DataClassGates.ENFORCE
 
     # What the worker reserves per model request (``AIA_AI_FIELDWORK_RESERVATION_USD``,
@@ -474,11 +472,6 @@ class Settings(BaseSettings):
         Raised at startup rather than on first request, so a bad deploy fails its
         health check instead of serving traffic in an unsafe state.
         """
-        if self.data_class_gates.advisory and "env" not in self.model_fields_set:
-            # ``env`` defaults to local, but advisory needs an environment that says so: an
-            # unset AIA_ENV is unknown, as the worker and the executors read it, and refused.
-            problem = data_class_gates_problem(None, self.data_class_gates)
-            raise RuntimeError(f"invalid configuration: {problem}")
         if not self.is_production:
             return
 
@@ -522,9 +515,6 @@ class Settings(BaseSettings):
         fictional = fictional_material_problem(self.env, self.fictional_client_ids)
         if fictional:
             problems.append(fictional)
-        gates = data_class_gates_problem(self.env, self.data_class_gates)
-        if gates:
-            problems.append(gates)
 
         # Fictional respondents must never become a deployed study's fieldwork (D1).
         if self.research_fieldwork_source is FieldworkSource.SYNTHETIC_FIXTURE:

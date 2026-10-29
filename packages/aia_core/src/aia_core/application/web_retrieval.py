@@ -648,7 +648,7 @@ class RetrievalGate:
     ) -> str | None:
         """Why this call may not leave, or None.
 
-        Under enforce, exactly :meth:`_judge`. Under advisory class gates (develop only) a
+        Under enforce, exactly :meth:`_judge`. Under advisory class gates (where set) a
         refusal made solely because of the class is lifted: the class rules are not applied
         and egress judges the class advisory, so residency still decides -- except on a route
         that declares ``any_class_when_advisory`` (Brave's search, the owner's one stated

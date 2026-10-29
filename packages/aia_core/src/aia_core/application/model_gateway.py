@@ -209,7 +209,7 @@ class GovernedModelGateway:
     ) -> None:
         """``adapters`` is keyed by **route id**, not by provider.
 
-        ``class_gates`` is the deployment's ``AIA_DATA_CLASS_GATES``: advisory (develop only)
+        ``class_gates`` is the deployment's ``AIA_DATA_CLASS_GATES``: advisory (where set)
         lets a class-only egress refusal pass, written on every ledger row of the call and in
         its provenance; residency, licence and budget are judged exactly as under enforce.
 
@@ -242,7 +242,7 @@ class GovernedModelGateway:
 
     @property
     def class_gates(self) -> DataClassGates:
-        """``AIA_DATA_CLASS_GATES`` as this gateway applies it (enforce unless develop says)."""
+        """``AIA_DATA_CLASS_GATES`` as this gateway applies it (enforce unless set)."""
         return self._class_gates
 
     # ------------------------------------------------------------ entry point --

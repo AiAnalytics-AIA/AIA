@@ -162,22 +162,21 @@ def test_the_develop_deploy_workflow_checks_the_gates_are_advisory() -> None:
     )
 
 
-def test_advisory_gates_under_staging_are_refused_by_both(
+def test_advisory_gates_under_staging_and_production_start_both(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Develop's configuration moved to staging or production does not start either process."""
+    """The product owner, 2026-10-28 (ADR 0008, Amendment 2026-10-28): advisory in every
+    environment for the MVP. Develop's gates moved to staging or production start both
+    processes advisory."""
+    from aia_core.domain.deployment import DataClassGates
+
     clean = {k: v for k, v in HOST_ENV.items() if k != "AIA_AI_FICTIONAL_CLIENT_IDS"}
     for env in ("staging", "production"):
-        api = {**_container("api", clean), "AIA_ENV": env}
-        with pytest.raises(
-            RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env}"
-        ):
-            _api_settings(api, monkeypatch).validate_for_production()
-        worker = {**_container("worker", clean), "AIA_ENV": env}
-        with pytest.raises(
-            RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env}"
-        ):
-            AIRuntimeSettings.from_env(worker)
+        api = _api_settings({**_container("api", clean), "AIA_ENV": env}, monkeypatch)
+        assert api.data_class_gates is DataClassGates.ADVISORY
+        api.validate_for_production()
+        runtime = AIRuntimeSettings.from_env({**_container("worker", clean), "AIA_ENV": env})
+        assert runtime is not None and runtime.data_class_gates is DataClassGates.ADVISORY
 
 
 #: The route widened as deploy/develop/README.md § AI route classes sets it (ADR 0010,

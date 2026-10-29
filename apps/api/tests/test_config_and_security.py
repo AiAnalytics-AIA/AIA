@@ -76,43 +76,22 @@ def test_the_data_class_gates_are_enforced_unless_they_say_advisory(
         Settings(_env_file=None)
 
 
-@pytest.mark.parametrize("env", [Environment.STAGING, Environment.PRODUCTION])
-def test_staging_and_production_refuse_advisory_data_class_gates(env: Environment) -> None:
-    """Develop only (the product owner, 2026-10-21); the worker asks the same rule."""
-    settings = Settings(**{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"})
-    with pytest.raises(
-        RuntimeError, match=f"AIA_DATA_CLASS_GATES=advisory is refused in {env.value}"
-    ):
-        settings.validate_for_production()
-    Settings(
-        **{**PRODUCTION_OK, "env": env, "data_class_gates": "enforce"}
-    ).validate_for_production()
+@pytest.mark.parametrize("env", list(Environment))
+@pytest.mark.parametrize("gates", ["advisory", "enforce"])
+def test_every_environment_accepts_either_data_class_gates(env: Environment, gates: str) -> None:
+    """The product owner, 2026-10-28 (ADR 0008, Amendment 2026-10-28): advisory in every
+    environment for the MVP; the worker reads the same key."""
+    Settings(**{**PRODUCTION_OK, "env": env, "data_class_gates": gates}).validate_for_production()
 
 
-def test_an_unset_environment_refuses_advisory_data_class_gates(
+def test_an_unset_environment_accepts_advisory_data_class_gates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """``env`` defaults to local, but advisory needs AIA_ENV to say so, as the worker does."""
     monkeypatch.delenv("AIA_ENV", raising=False)
     monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
     settings = Settings(_env_file=None)
-    assert settings.env is Environment.LOCAL and "env" not in settings.model_fields_set
-    with pytest.raises(
-        RuntimeError, match="AIA_DATA_CLASS_GATES=advisory is refused in an unknown environment"
-    ):
-        settings.validate_for_production()
-    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "enforce")
-    Settings(_env_file=None).validate_for_production()
-    monkeypatch.setenv("AIA_ENV", "local")
-    monkeypatch.setenv("AIA_DATA_CLASS_GATES", "advisory")
-    Settings(_env_file=None).validate_for_production()
-
-
-@pytest.mark.parametrize("env", [Environment.DEVELOP, Environment.LOCAL, Environment.TEST])
-def test_develop_local_and_test_accept_advisory_data_class_gates(env: Environment) -> None:
-    Settings(
-        **{**PRODUCTION_OK, "env": env, "data_class_gates": "advisory"}
-    ).validate_for_production()
+    assert "env" not in settings.model_fields_set
+    settings.validate_for_production()
 
 
 def test_production_refuses_debug_mode() -> None:

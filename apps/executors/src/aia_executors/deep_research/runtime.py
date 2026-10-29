@@ -100,7 +100,7 @@ class DeepResearchConfig:
     #: (``request_limits.REQUEST_LIMITS``). A run's own come from the settings it pinned,
     #: through :meth:`under` (chunk 43c).
     limits: Mapping[CallKind, RequestLimits] | None = None
-    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): advisory on develop only, where
+    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory): advisory where set, where
     #: a design no operator classified takes the design rule's class and every retrieval gate
     #: passes a class-only refusal, recorded. Recorded nowhere else: no fingerprint moves.
     class_gates: DataClassGates = DataClassGates.ENFORCE

@@ -111,7 +111,7 @@ class ToolRoute:
     adapter_id: str
     retrieval_mode: RetrievalMode
     price_usd_per_call: float
-    #: Under ``AIA_DATA_CLASS_GATES=advisory`` (develop only) this search route takes a query of
+    #: Under ``AIA_DATA_CLASS_GATES=advisory`` (where set) this search route takes a query of
     #: any class, residency included: the product owner's one stated exception to EU residency,
     #: for search queries only (2026-10-21, plan develop-class-advisory; Brave's route). Every
     #: such query is recorded on its tool event. Under enforce it changes nothing.

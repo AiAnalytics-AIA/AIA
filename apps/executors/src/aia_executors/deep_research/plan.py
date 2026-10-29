@@ -174,7 +174,7 @@ class PlanExecutor(_Step):
                         "message": "Zadání nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
                     },
                 )
-            # OI-129 under advisory class gates (develop only): a design no operator classified
+            # OI-129 under advisory class gates (where set): a design no operator classified
             # takes the owner's design rule (Class B, ``material_rules``) instead of parking the
             # run, and the step's event says so; residency then decides each route as for B.
             dclass = classify_by_rule(

@@ -164,8 +164,8 @@ class AIFieldworkConfig:
     #: on (input-interactions 3b). On, it changes the respondent prompt's identity, so the
     #: dataset's respondent system and provenance say so.
     scale_labels_in_prompt: bool = False
-    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory), the gateway's own: advisory on
-    #: develop only, where the validation's arms send an unclassified specification.
+    #: ``AIA_DATA_CLASS_GATES`` (plan develop-class-advisory), the gateway's own: advisory
+    #: where set, where the validation's arms send an unclassified specification.
     class_gates: DataClassGates = DataClassGates.ENFORCE
     #: ``AIA_AI_FIELDWORK_CHECKPOINT`` (off by default, run-qc-and-checkpoint RQC0): each
     #: answered respondent block is kept under the lease the moment it returns, and an
