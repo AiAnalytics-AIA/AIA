@@ -93,6 +93,9 @@ describe("Zadání", () => {
     expect((screen.getByPlaceholderText("Např. Nové balení produktu") as HTMLInputElement).value).toBe("");
     expect((screen.getByRole("button", { name: NEXT }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("Napište cíl, nebo co přesně zkoumáme")).toBeTruthy();
+    // A goal written, the readiness says so in words, never its key (Codex on #1127).
+    fireEvent.change(screen.getByLabelText("Cíl výzkumu"), { target: { value: "Zjistit, co lidé pijí ráno." } });
+    expect(await screen.findByText("Připraveno · AI navrhne výzkum a doptá se")).toBeTruthy();
   });
 
   it("a problem type is a toggle that fills an empty goal with its default", async () => {
