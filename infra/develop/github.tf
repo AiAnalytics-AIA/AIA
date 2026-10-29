@@ -5,28 +5,20 @@
 # images in local.images, upload one deploy bundle, and run one SSM command on
 # one instance. It cannot read the database, the artifacts or a parameter.
 
+# The account's GitHub OIDC provider is owned by infra/account (ADR 0031 §2): one per account,
+# trusted by develop's and production's roles, so no environment's destroy may take it. Develop
+# created it until 2026-10-28; the `removed` block drops it from develop's state without
+# destroying it, after infra/account has imported it (infra/account/README.md).
 data "aws_iam_openid_connect_provider" "github" {
-  count = var.create_github_oidc_provider ? 0 : 1
-  url   = "https://token.actions.githubusercontent.com"
+  url = "https://token.actions.githubusercontent.com"
 }
 
-resource "aws_iam_openid_connect_provider" "github" {
-  count          = var.create_github_oidc_provider ? 1 : 0
-  url            = "https://token.actions.githubusercontent.com"
-  client_id_list = ["sts.amazonaws.com"]
-  # AWS validates GitHub's OIDC issuer against its own trust store; the
-  # thumbprint list is required by the API but not consulted for this issuer.
-  # These are GitHub's published intermediate thumbprints, for completeness.
-  thumbprint_list = [
-    "6938fd4d98bab03faadb97b34396831e3780aea1",
-    "1c58a3a8518e8759bf075b76b750d4f2df264fcd",
-  ]
-}
+removed {
+  from = aws_iam_openid_connect_provider.github
 
-variable "create_github_oidc_provider" {
-  description = "An account holds at most one GitHub OIDC provider. Set false if it already exists; it is then looked up."
-  type        = bool
-  default     = true
+  lifecycle {
+    destroy = false
+  }
 }
 
 variable "github_oidc_subject" {
@@ -36,7 +28,7 @@ variable "github_oidc_subject" {
 }
 
 locals {
-  github_oidc_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+  github_oidc_arn = data.aws_iam_openid_connect_provider.github.arn
 }
 
 data "aws_iam_policy_document" "github_assume" {
