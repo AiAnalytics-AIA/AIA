@@ -305,6 +305,7 @@ class InvestigateExecutor(_Step):
             datasets=runtime.datasets,
             archives=runtime.archives,
             class_gates=runtime.config.class_gates,
+            open_posture=plan.request.open_posture,
         )
 
     def _stored(

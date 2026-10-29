@@ -1,0 +1,1860 @@
+[
+ {
+  "id": "clean",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.3,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.033,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.917,
+      "prum_slov": 3.7
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.583,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 2.71,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.37
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.96,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.46
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 2.84,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.46
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.32
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.033
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "straight_liners_above",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.283,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.05,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.883,
+      "prum_slov": 3.6
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.533,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 3.4,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.46
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 3.22,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "prumer": 3.08,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.43
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 3.02,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.49
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.15,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.417
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.417,
+     "kde": "beh",
+     "nalez": "cast respondentu odpovida na vsechny skaly stejne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.15,
+     "kde": "beh",
+     "nalez": "hodne respondentu ma uplne stejnou sadu odpovedi i pres velky prostor odpovedi",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "straight_liners_below",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.333,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.117,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.95,
+      "prum_slov": 3.5
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.517,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 2.92,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 2.95,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.43
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.95,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.47
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 55,
+      "podil_chybi": 0.083,
+      "prumer": 3.16,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.3
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.1
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "two_scales_no_straight_lining_read",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.35,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.05,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.95,
+      "prum_slov": 3.4
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.567,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 2.9,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.37
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 3.03,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.39
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.317,
+    "response_space_lower_bound": 250
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "three_scales",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.333,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.05,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.95,
+      "prum_slov": 3.9
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.5,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 55,
+      "podil_chybi": 0.083,
+      "prumer": 3.09,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.34
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.91,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.49
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "prumer": 3.1,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.42
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.05,
+    "response_space_lower_bound": 1250,
+    "straightlining": 0.25
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.25,
+     "kde": "beh",
+     "nalez": "cast respondentu odpovida na vsechny skaly stejne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "no_dont_know",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.317,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.867,
+      "prum_slov": 3.4
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.533,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 2.93,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.46
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 2.8,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.26
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 2.98,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.44
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 3.21,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.39
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.017
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_choice",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "too_much_dont_know",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.383,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.383,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.867,
+      "prum_slov": 3.3
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.517,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 2.95,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.52
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 53,
+      "podil_chybi": 0.117,
+      "prumer": 2.72,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.41
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.98,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.41
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 3.14,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.49
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.017
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.383,
+     "kde": "q_choice",
+     "nalez": "prilis mnoho 'nevim' — otazka je nejasna",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "concentrated",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.95,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.967,
+      "prum_slov": 3.9
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.517,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 3.07,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.84,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.32
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 3.14,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.56
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 3.52,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.05,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.033
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_choice",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.95,
+     "kde": "q_choice",
+     "nalez": "jedna kategorie pohltila skoro vse",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "missing_answers",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.27,
+      "n_eligible": 60,
+      "n_platnych": 37,
+      "nevim": 0.162,
+      "podil_chybi": 0.383
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 47,
+      "podil_chybi": 0.217
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 39,
+      "podil_chybi": 0.35,
+      "podil_unikatu": 0.897,
+      "prum_slov": 3.2
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.55,
+      "n_eligible": 60,
+      "n_platnych": 40,
+      "nevim": 0.0,
+      "podil_chybi": 0.333
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 44,
+      "podil_chybi": 0.267,
+      "prumer": 3.5,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.27
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 38,
+      "podil_chybi": 0.367,
+      "prumer": 2.66,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.48
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 39,
+      "podil_chybi": 0.35,
+      "prumer": 3.13,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.49
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 40,
+      "podil_chybi": 0.333,
+      "prumer": 2.98,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.35
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.15
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.383,
+     "kde": "q_choice",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.333,
+     "kde": "q_plain",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.217,
+     "kde": "q_multi",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.267,
+     "kde": "q_scale_0",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.367,
+     "kde": "q_scale_1",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.35,
+     "kde": "q_scale_2",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.333,
+     "kde": "q_scale_3",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.35,
+     "kde": "q_open",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "flat_scale",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.267,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.117,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.867,
+      "prum_slov": 3.4
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.583,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 0.0
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 2.9,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 55,
+      "podil_chybi": 0.083,
+      "prumer": 3.29,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.3
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 54,
+      "podil_chybi": 0.1,
+      "prumer": 2.94,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.48
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 2500,
+    "straightlining": 0.05
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_scale_0",
+     "nalez": "temer nulovy rozptyl na skale",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "open_repeats_live",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.333,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.1,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.033,
+      "prum_slov": 2.6
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.533,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 2.85,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.49
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "prumer": 2.8,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.41
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 56,
+      "podil_chybi": 0.067,
+      "prumer": 3.21,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.37
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 55,
+      "podil_chybi": 0.083,
+      "prumer": 3.07,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.44
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.017
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.033,
+     "kde": "q_open",
+     "nalez": "synteticke verbatimy se opakuji — model recykluje formulace",
+     "uroven": "KRITICKE"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "KRITICKE",
+   "verdikt": "NEPOSILAT KLIENTOVI. Panel nebo prompt nefunguje, opakuj beh po oprave."
+  }
+ },
+ {
+  "id": "open_repeats_dry",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.267,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.117,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.033,
+      "prum_slov": 2.2
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.517,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 51,
+      "podil_chybi": 0.15,
+      "prumer": 3.14,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 52,
+      "podil_chybi": 0.133,
+      "prumer": 3.23,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.37
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 3.23,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.4
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 54,
+      "podil_chybi": 0.1,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.41
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.033
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.033,
+     "kde": "q_open",
+     "nalez": "synteticke verbatimy se opakuji — model recykluje formulace",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "ablation_verified",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.267,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.117,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.9,
+      "prum_slov": 3.6
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.55,
+      "n_eligible": 60,
+      "n_platnych": 60,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 55,
+      "podil_chybi": 0.083,
+      "prumer": 2.95,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.52
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 57,
+      "podil_chybi": 0.05,
+      "prumer": 2.89,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 58,
+      "podil_chybi": 0.033,
+      "prumer": 2.79,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.44
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 59,
+      "podil_chybi": 0.017,
+      "prumer": 3.36,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     }
+    },
+    "persona_effect_verified": true,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.017
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "small_space_duplicates",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.465,
+      "n_eligible": 200,
+      "n_platnych": 200,
+      "nevim": 0.1,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 200,
+      "n_platnych": 200,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 200,
+      "n_platnych": 200,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.83,
+      "prum_slov": 3.4
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.585,
+      "n_eligible": 200,
+      "n_platnych": 200,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.97,
+    "response_space_lower_bound": 6
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "large_space_duplicates",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.3,
+      "n_eligible": 40,
+      "n_platnych": 40,
+      "nevim": 0.075,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 40,
+      "n_platnych": 40,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 40,
+      "n_platnych": 40,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.9,
+      "prum_slov": 3.5
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.65,
+      "n_eligible": 40,
+      "n_platnych": 40,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 40,
+      "n_platnych": 38,
+      "podil_chybi": 0.05,
+      "prumer": 3.16,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.39
+     },
+     "q_scale_1": {
+      "n_eligible": 40,
+      "n_platnych": 38,
+      "podil_chybi": 0.05,
+      "prumer": 3.18,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.33
+     },
+     "q_scale_2": {
+      "n_eligible": 40,
+      "n_platnych": 39,
+      "podil_chybi": 0.025,
+      "prumer": 2.95,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     },
+     "q_scale_3": {
+      "n_eligible": 40,
+      "n_platnych": 39,
+      "podil_chybi": 0.025,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.47
+     },
+     "q_scale_4": {
+      "n_eligible": 40,
+      "n_platnych": 39,
+      "podil_chybi": 0.025,
+      "prumer": 2.97,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.51
+     },
+     "q_scale_5": {
+      "n_eligible": 40,
+      "n_platnych": 39,
+      "podil_chybi": 0.025,
+      "prumer": 2.82,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.52
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.075,
+    "response_space_lower_bound": 156250,
+    "straightlining": 0.425
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.425,
+     "kde": "beh",
+     "nalez": "cast respondentu odpovida na vsechny skaly stejne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "tiny_run",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.667,
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 1.0,
+      "prum_slov": 3.7
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.667,
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0,
+      "prumer": 4.33,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 0.58
+     },
+     "q_scale_1": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0,
+      "prumer": 2.33,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.53
+     },
+     "q_scale_2": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0,
+      "prumer": 3.33,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.15
+     },
+     "q_scale_3": {
+      "n_eligible": 3,
+      "n_platnych": 3,
+      "podil_chybi": 0.0,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.73
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 240,
+    "straightlining": 0.333
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_choice",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.333,
+     "kde": "beh",
+     "nalez": "cast respondentu odpovida na vsechny skaly stejne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "one_respondent",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 1.0,
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 1.0,
+      "prum_slov": 2.0
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 1.0,
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0,
+      "prumer": 4.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_1": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0,
+      "prumer": 1.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_2": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0,
+      "prumer": 5.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_3": {
+      "n_eligible": 1,
+      "n_platnych": 1,
+      "podil_chybi": 0.0,
+      "prumer": 5.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.0,
+    "response_space_lower_bound": 160,
+    "straightlining": 0.0
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_choice",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_choice",
+     "nalez": "jedna kategorie pohltila skoro vse",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_plain",
+     "nalez": "jedna kategorie pohltila skoro vse",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "everything_missing",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": "NaN",
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "nevim": 0.0,
+      "podil_chybi": 1.0
+     },
+     "q_multi": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0
+     },
+     "q_open": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": "NaN",
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "nevim": 0.0,
+      "podil_chybi": 1.0
+     },
+     "q_scale_0": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0,
+      "prumer": "NaN",
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_1": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0,
+      "prumer": "NaN",
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_2": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0,
+      "prumer": "NaN",
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     },
+     "q_scale_3": {
+      "n_eligible": 60,
+      "n_platnych": 0,
+      "podil_chybi": 1.0,
+      "prumer": "NaN",
+      "rozpeti_prumeru_segmentu": {},
+      "sd": "NaN"
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.983,
+    "response_space_lower_bound": 160,
+    "straightlining": 0.0
+   },
+   "nalezy": [
+    {
+     "hodnota": 1.0,
+     "kde": "q_choice",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_choice",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_plain",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_multi",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_scale_0",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_scale_1",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_scale_2",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_scale_3",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 1.0,
+     "kde": "q_open",
+     "nalez": "vic nez 20 % respondentu neodpovedelo",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ },
+ {
+  "id": "big_run",
+  "result": {
+   "metriky": {
+    "chybovost": 0.0,
+    "per_otazku": {
+     "q_choice": {
+      "cramer_v": {},
+      "koncentrace": 0.258,
+      "n_eligible": 400,
+      "n_platnych": 400,
+      "nevim": 0.095,
+      "podil_chybi": 0.0
+     },
+     "q_multi": {
+      "n_eligible": 400,
+      "n_platnych": 400,
+      "podil_chybi": 0.0
+     },
+     "q_open": {
+      "n_eligible": 400,
+      "n_platnych": 400,
+      "podil_chybi": 0.0,
+      "podil_unikatu": 0.797,
+      "prum_slov": 3.6
+     },
+     "q_plain": {
+      "cramer_v": {},
+      "koncentrace": 0.52,
+      "n_eligible": 400,
+      "n_platnych": 400,
+      "nevim": 0.0,
+      "podil_chybi": 0.0
+     },
+     "q_scale_0": {
+      "n_eligible": 400,
+      "n_platnych": 383,
+      "podil_chybi": 0.042,
+      "prumer": 3.08,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     },
+     "q_scale_1": {
+      "n_eligible": 400,
+      "n_platnych": 383,
+      "podil_chybi": 0.042,
+      "prumer": 3.1,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.45
+     },
+     "q_scale_2": {
+      "n_eligible": 400,
+      "n_platnych": 378,
+      "podil_chybi": 0.055,
+      "prumer": 3.0,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.4
+     },
+     "q_scale_3": {
+      "n_eligible": 400,
+      "n_platnych": 386,
+      "podil_chybi": 0.035,
+      "prumer": 2.99,
+      "rozpeti_prumeru_segmentu": {},
+      "sd": 1.38
+     }
+    },
+    "persona_effect_verified": false,
+    "podil_duplicitnich_vektoru": 0.08,
+    "response_space_lower_bound": 6250,
+    "straightlining": 0.18
+   },
+   "nalezy": [
+    {
+     "hodnota": 0.0,
+     "kde": "q_plain",
+     "nalez": "temer nikdo neodpovedel 'nevim' — nerealne rozhodne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": 0.18,
+     "kde": "beh",
+     "nalez": "cast respondentu odpovida na vsechny skaly stejne",
+     "uroven": "VAROVANI"
+    },
+    {
+     "hodnota": null,
+     "kde": "beh",
+     "nalez": "efekt plne persony nebyl v tomto behu overen ablation testem",
+     "uroven": "VAROVANI"
+    }
+   ],
+   "uroven": "VAROVANI",
+   "verdikt": "Pouzitelne s vyhradou — projdi nalezy nez to posles klientovi."
+  }
+ }
+]
