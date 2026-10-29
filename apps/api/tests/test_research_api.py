@@ -1324,6 +1324,7 @@ def test_the_approved_client_report_downloads_stamped_and_is_read_once(
             metadata={
                 "run_id": run_id,
                 "report_kind": "client",
+                "report_contract": client_report.CLIENT_REPORT_CONTRACT,
                 "review_state": "DRAFT_UNAPPROVED",
                 **REVIEW_STAMP_RECORD,
             },
@@ -1956,7 +1957,13 @@ def test_a_client_draft_with_no_stored_document_is_approved_as_unverifiable(
             data=DocxRenderer().render(_client_report_document()),
             content_type=INTERNAL_REPORT_MEDIA_TYPE,
             input_fingerprint="client-before-rd0",
-            metadata={"run_id": run_id, "report_kind": "client", **REVIEW_STAMP_RECORD},
+            # Of today's composition: an unapproved draft of an earlier one is never approved.
+            metadata={
+                "run_id": run_id,
+                "report_kind": "client",
+                "report_contract": client_report.CLIENT_REPORT_CONTRACT,
+                **REVIEW_STAMP_RECORD,
+            },
         )
         session.commit()
     approved = outsider.post(
@@ -1987,7 +1994,12 @@ def test_a_client_report_stored_before_its_document_says_so(
             data=b"PK\x03\x04client-before-rd5a",
             content_type=INTERNAL_REPORT_MEDIA_TYPE,
             input_fingerprint="client-before-rd5a",
-            metadata={"run_id": run_id, "report_kind": "client"},
+            # Of today's composition: an unapproved draft of an earlier one is never shown.
+            metadata={
+                "run_id": run_id,
+                "report_kind": "client",
+                "report_contract": client_report.CLIENT_REPORT_CONTRACT,
+            },
         )
         session.commit()
     refused = researcher.get(f"{_runs(world)}/{run_id}/report/client/document")
@@ -4147,3 +4159,20 @@ def test_two_approvals_of_one_snapshot_at_once_record_one_decision(
             .where(ApprovalDecisionRow.subject_id == snapshot)
         )
     assert decisions == 1
+
+
+def test_the_run_qc_switch_adds_its_step_to_a_new_run_only(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """RQC2: AIA_RUN_QC_ENABLED adds the qc step after fieldwork to a newly started run, which is
+    a different run than one without it; off, the graph is as before."""
+    revision = submit(researcher, world).json()["revision_id"]
+    plain = start(researcher, world, revision).json()
+    assert "qc" not in [s["node_key"] for s in plain["steps"]]
+
+    app.state.settings = app.state.settings.model_copy(update={"run_qc_enabled": True})
+    started = start(researcher, world, revision)
+    assert started.status_code == 201, started.text
+    run = started.json()
+    assert run["run_id"] != plain["run_id"]  # a different graph is a different run
+    assert "qc" in [s["node_key"] for s in run["steps"]]

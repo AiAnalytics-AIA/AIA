@@ -5,7 +5,7 @@
 // methodological; a value the map does not store stays null, never a guess.
 
 import { type BatteryWithMaps, type ObjectMapArtifact, originalRating } from "./object-map-view";
-import { color66 } from "./object-map-panel";
+import { REL_FLOOR, color66, relativeFloor } from "./object-map-panel";
 import { objectDetail, segmentLegend, storedRespondents, type SegmentLegend } from "./object-map-signed-off";
 
 /** The most relations listed under the map; the rest stay on it. */
@@ -16,8 +16,6 @@ export type ExplainedObject = {
   label: string;
   /** The mean rating on the declared scale (the stored 0-1 mean read back); null when not stored. */
   rating: number | null;
-  /** 0-100; null when not stored. */
-  connectedness: number | null;
   /** The object's hill colour on the map, so a row reads as its place on the map. */
   colour: string;
 };
@@ -26,6 +24,9 @@ export type ExplainedRelation = { a: ExplainedObject; b: ExplainedObject; r: num
 
 export type MapExplanation = {
   scale: [number, number];
+  /** The lowest relative height the map declares (the lowest-rated object's hill, as a share of the
+   *  top's); null when it declares none. */
+  floor: number | null;
   objects: ExplainedObject[]; // ranked by the stored mean, highest first
   unplaced: string[]; // labels of the objects nobody rated
   respondents: number;
@@ -52,14 +53,14 @@ export function plural(n: number, one: string, few: string, many: string): strin
 export function explainMap(battery: BatteryWithMaps, map: ObjectMapArtifact): MapExplanation {
   const scale: [number, number] = battery.rating_scale ?? [0, 1];
   const ids = map.object_ids;
+  const floor = relativeFloor(map);
   const all = ids.map((id, k) => {
     const d = objectDetail(battery, map, k);
     return {
       id,
       label: d.label,
       rating: d.height === null ? null : originalRating(d.height, battery.rating_scale) ?? d.height,
-      connectedness: d.connectedness,
-      colour: color66(map.heights.relative?.[k] ?? 0.15),
+      colour: color66(map.heights.relative?.[k] ?? floor ?? REL_FLOOR),
     };
   });
   const clear = map.spec.relation.clear_effect ?? 0.3;
@@ -77,6 +78,7 @@ export function explainMap(battery: BatteryWithMaps, map: ObjectMapArtifact): Ma
   const people = storedRespondents(map);
   return {
     scale,
+    floor,
     // An object without a stored mean ranks last, never as the lowest rated.
     objects: [...all].sort((x, y) => (y.rating ?? -Infinity) - (x.rating ?? -Infinity)),
     unplaced: (map.objects_not_placed ?? []).map((id) => label.get(id) ?? id),

@@ -27,7 +27,7 @@ from typing import Any, Final
 
 from .design_items import Document, Documents, ItemKey, item_values, normalise
 
-__all__ = ["ITEM", "ORDER", "Touch", "changed_fields", "item_fields"]
+__all__ = ["ITEM", "ORDER", "Touch", "changed_fields", "fields_between", "item_fields"]
 
 #: One ``(item, field)``: the unit two edits conflict on.
 Touch = tuple[ItemKey, str]
@@ -61,13 +61,16 @@ def item_fields(docs: Documents, *, previous: Documents | None = None) -> dict[T
             out[(key, "text")] = value
             lists.setdefault((key.document, key.kind), []).append(key.key)
         elif key.kind in _WHOLE_KINDS and isinstance(value, Mapping):
+            # A section's questions are items of their own only when they are keyed; a shape the
+            # rules do not key (``design_items``: whole) is a field like any other.
+            keyed = key.kind == "section" and _keyed_questions(value.get("questions"), values)
             for name, field in value.items():
-                if name == "id" or (key.kind == "section" and name == "questions"):
+                if name == "id" or (keyed and name == "questions"):
                     continue
                 out[(key, str(name))] = field
             if key.kind in ("section", "battery"):
                 sections.append(key.key)
-            if key.kind == "section" and isinstance(value.get("questions"), list):
+            if keyed:
                 held = [str(q) for q in value["questions"]]
                 out[(ItemKey("content", "order", f"section:{key.key}"), ORDER)] = held
                 for q in held:
@@ -79,6 +82,13 @@ def item_fields(docs: Documents, *, previous: Documents | None = None) -> dict[T
     for (document, kind), keys in lists.items():
         out[(ItemKey(document, "order", kind), ORDER)] = keys
     return out
+
+
+def _keyed_questions(held: Any, values: Mapping[ItemKey, Any]) -> bool:
+    """Whether a section's ``questions`` are its questions' keys, each an item of the design."""
+    return isinstance(held, list) and all(
+        isinstance(q, str) and ItemKey("content", "question", q) in values for q in held
+    )
 
 
 def _moved(a: Sequence[Any], b: Sequence[Any]) -> bool:
@@ -96,8 +106,12 @@ def changed_fields(
     only differs; a plan-list entry's wording differs when its normalised text does."""
     b_docs = before if isinstance(before, Documents) else Documents.of(before)
     a_docs = after if isinstance(after, Documents) else Documents.of(after)
-    a = item_fields(b_docs)
-    b = item_fields(a_docs, previous=b_docs)
+    return fields_between(item_fields(b_docs), item_fields(a_docs, previous=b_docs))
+
+
+def fields_between(a: Mapping[Touch, Any], b: Mapping[Touch, Any]) -> frozenset[Touch]:
+    """:func:`changed_fields` over two designs' :func:`item_fields`, read once by a caller that
+    compares one design with several."""
     out: set[Touch] = set()
     for touch in a.keys() | b.keys():
         key, field = touch

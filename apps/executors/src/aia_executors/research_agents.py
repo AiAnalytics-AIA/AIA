@@ -221,7 +221,7 @@ class ResearchAgentExecutor:
         # one repair's maximum response. Fail before reserving/sending, never trim.
         prompt_bytes = len(
             (
-                request.system + request.messages[0].content + canonical_json(request.agent.schema)
+                request.system + request.messages[0].text + canonical_json(request.agent.schema)
             ).encode()
         )
         if prompt_bytes + 5 * cfg.max_output_tokens + 2048 > cfg.context_window_tokens:
@@ -236,6 +236,7 @@ class ResearchAgentExecutor:
             provider=Provider.AWS_BEDROCK,
             reservation_usd=cfg.reservation_usd,
             announce=cfg.step_events,
+            refused_answers=lambda session: research_artifacts(session, context.scope, self._store),
         )
         try:
             caller.preflight(request)

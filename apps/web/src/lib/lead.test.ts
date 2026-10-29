@@ -376,6 +376,17 @@ describe("commandRequest", () => {
 describe("leadReasonWords", () => {
   it("says who fixes a refusal of the AI route, which a researcher cannot (LO12a)", () => {
     expect(leadReasonWords("egress_route_not_approved_for_class")).toMatch(/^Tuto studii nelze poslat modelu: .* Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+    // LO12b: the three refusals the route's own terms decide, each with who fixes it.
+    for (const [code, param] of [
+      ["egress_retention_unspecified", "aia_ai_route_retention_days"],
+      ["egress_residency_violation", "aia_ai_route_eu_processing_approved"],
+      ["egress_training_exclusion_missing", "aia_ai_route_excluded_from_training"],
+    ]) {
+      const words = leadReasonWords(code);
+      expect(words).toMatch(/^Tuto studii nelze poslat modelu: /);
+      expect(words).not.toContain(code);
+      expect(words).toContain(`nastaví parametr ${param}`);
+    }
     expect(leadReasonWords("budget_exceeded")).not.toContain("provozovatel");
   });
 

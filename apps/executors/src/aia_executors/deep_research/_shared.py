@@ -105,7 +105,7 @@ def _too_large(request: ModelRequest, budget: KindBudget) -> int | None:
     size = len(
         (
             request.system
-            + "".join(m.content for m in request.messages)
+            + "".join(m.text for m in request.messages)
             + canonical_json(request.agent.schema)
         ).encode()
     )
@@ -225,6 +225,7 @@ class _Step:
             # any kind holds, never one a request would take unasked.
             reservation_usd=runtime.config.largest_reservation_usd,
             limiter=runtime.model_slots,
+            refused_answers=lambda session: self._repo(session, context),
         )
 
     def _ask(

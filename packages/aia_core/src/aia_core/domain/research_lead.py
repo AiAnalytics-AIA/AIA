@@ -70,13 +70,13 @@ from .edit_ops import (
     refusal,
 )
 from .item_ids import SIDECAR_KEYS, list_ids, with_item_ids
+from .knowledge import knowledge_lineage
 from .material_rules import MaterialRule, classify_by_rule, rule_class
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
     FIXED_PREFIX,
     ResearchAction,
-    knowledge_lineage,
     prompt_class_source,
     prompt_data_class,
 )
@@ -92,12 +92,14 @@ __all__ = [
     "EXTERNAL_NOTE",
     "FOCUS_ID",
     "FOCUS_KINDS",
+    "GREETING_UNFUNDED",
     "ID_PATTERN",
     "LEAD_AGENT_ID",
     "LEAD_HARNESS_VERSION",
     "LEAD_PROMPT_ID",
     "LEAD_PROMPT_MAX_PIN_BYTES",
     "LEAD_PROMPT_VERSION",
+    "LEAD_TURN_RELEASED",
     "MESSAGES_MAX_BYTES",
     "MESSAGES_NOTE",
     "MESSAGE_MAX_BYTES",
@@ -191,6 +193,15 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 LEAD_HARNESS_VERSION: Final = "aia-research-lead-7"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
+
+#: A greeting the study's budget could not pay for (lead-orchestration F-LO-PARK-1; Nigel,
+#: 2026-10-28, W1Q11): ended without a model call, never parked at the budget, and said in one
+#: quiet line. The step's output names it as ``skipped``; the turn's reason reads it.
+GREETING_UNFUNDED: Final = "greeting_unfunded"
+#: The cancel reason of a Lead turn a budget set released (F-LO-PARK-1): it is never sent its
+#: frozen context; the messages it held wait again, and their next turn is frozen on the current
+#: design.
+LEAD_TURN_RELEASED: Final = "lead_turn_released"
 
 #: The frozen context's bound, canonical JSON (ADR 0026 decision 2).
 CONTEXT_MAX_BYTES: Final = 96 * 1024

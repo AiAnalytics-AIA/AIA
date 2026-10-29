@@ -58,6 +58,7 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
     WorkspaceConflict,
+    worker_preflight,
     worker_readiness,
 )
 from aia_core.domain.design import DesignRejected
@@ -287,15 +288,22 @@ class LeadState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     available: bool
     unavailable_reason: str | None
-    #: ``false`` only on evidence (the source says which); ``null``: unknown. Until the worker
-    #: publishes its composition (lead-orchestration LO12b) nothing here reports ``true``.
+    #: ``false`` only on evidence (the source says which); ``null``: unknown. ``true`` only from
+    #: the newest worker start's recorded composition (lead-orchestration LO12b): composed to
+    #: answer a turn, not proof that a worker runs now, so ``worker_composed_at`` and
+    #: ``worker_build`` say which start.
     worker_ready: bool | None
     #: Where ``worker_ready`` was read: ``newest_turn`` (this conversation's newest decided Lead
-    #: turn parked for a reason naming the worker's composition), or ``null`` with no source.
-    worker_ready_source: Literal["newest_turn"] | None
+    #: turn parked for a reason naming the worker's composition), ``composition`` (the newest
+    #: worker start's recorded AI route, with AIA_AI_ROUTE_PREFLIGHT_ENABLED), or ``null``.
+    worker_ready_source: Literal["newest_turn", "composition"] | None
     #: Why the worker is not ready (a park code, e.g. ``research_lead_unconfigured``); ``null``
     #: unless ``worker_ready`` is ``false``. The name ``lib/lead-availability.ts`` reads.
     worker_reason: str | None
+    #: With ``worker_ready_source: composition``: when that worker start was recorded (the
+    #: worker's clock) and its build; ``null`` otherwise.
+    worker_composed_at: datetime | None = None
+    worker_build: str | None = None
     #: The typed start commands the composer takes, with the Lead on or off (Q43).
     commands: list[TypedCommand]
     #: AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka.
@@ -572,14 +580,23 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
         retry_run = newest_analysed_run(ResearchRuns(session, scope))
+        preflight = (
+            worker_preflight(session, scope) if settings.ai_route_preflight_enabled else None
+        )
     on = settings.research_lead_on
-    ready, source, reason = worker_readiness(state["turns"])
+    ready, source, reason = worker_readiness(state["turns"], preflight)
     return LeadState(
         available=on,
         unavailable_reason=None if on else _DISABLED,
         worker_ready=ready,
         worker_ready_source=source,
         worker_reason=reason,
+        worker_composed_at=preflight.composed_at
+        if preflight is not None and source == "composition"
+        else None,
+        worker_build=preflight.build_sha
+        if preflight is not None and source == "composition"
+        else None,
         commands=[
             TypedCommand(
                 phrase=c.phrase,
@@ -606,7 +623,13 @@ def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, A
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
     of what waits (the browser reads that from the turn's output); with its prepared agent
     job's ceiling (LO23)."""
-    hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
+    hidden = {
+        "data_class",
+        "pending_self_update",
+        "self_update_base",
+        "awaiting_budget",
+        "decided_at",
+    }
     return [
         {
             **{k: v for k, v in t.items() if k not in hidden},
@@ -852,6 +875,7 @@ def approve_request(
                 prices=study_prices(settings, session, scope),
                 modes=(deep_research_mode(settings),),
                 store=store,
+                document_store=store if settings.deep_research_document_text else None,
             ),
         )
     return ApprovedRequest.model_validate(started)
