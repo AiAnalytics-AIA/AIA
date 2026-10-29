@@ -32,7 +32,7 @@ chunks:
   - "[ ] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
   - "[x] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
   - "[x] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
-  - "[ ] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
+  - "[x] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
   - "[ ] FLD25. SpendDialog on Start: Strop běhu, Rozpočet studie (zbývá), Práh potvrzení and Peněženka, the primary 'Spustit · nejvýše {ceiling}' (spec sber F5; carved out of FLD6; W1, with input-interactions#6)"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
@@ -290,6 +290,8 @@ None new (replacement is MVPQ-10, already open).
   Settings → Studie a rozpočty only (FLD23).
 - `CLAUDE.md` § 3, "The research workbench, in a browser": Co spustíte with Dotazník and Start (FLD23).
 - `open-items.md`: F-FLD-6 (open), from Findings above.
+- `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola's "Všechny kontroly (n)" (`AllChecks`), every
+  readiness check folded and counted, open while one fails, the trace and outlook inside (FLD24).
 
 ## From the research build spec (2026-10-26)
 
@@ -433,6 +435,16 @@ Deviations from the board, ruled by the coordinator on 2026-10-29:
 Tests: `ExecutionSteps.test.tsx` ("names Kontrola's checks and links each stage", "shows the ceiling as an upper
 bound …", "states the confirmation threshold and links to where it is set …", "says who answers in words that
 claim nothing about the cost …"); `workbench_journey.mjs` (Co spustíte with Dotazník and Start at four widths).
+
+*Built (FLD24):* `AllChecks` in `ExecutionSteps.tsx`, Fieldwork.dc.html's `<details>`: "Všechny kontroly (n)" with
+"x v pořádku · y upozornění · z brání" (and "k neznámé" for a status AIA does not know, never counted as passed),
+closed by default, open while a check stops the run (and opened again when one starts to); each row a status
+glyph (its words for a screen reader; an unknown status in words with its code), the message and, unless it
+passes, "Opravit" to where it is fixed (`checkHref`); the rules line; the research-question trace and the
+question outlook inside it. The readiness card's own "Návrh lze spustit" title is gone: "Co spustíte"'s pill says
+it once. The earlier runs' list stays below (spec F4 drops it for the Lead's cards; FLD21 links every run's Průběh
+from it). Tests: `ExecutionSteps.test.tsx` ("folds every check under one line …", "cannot start a design that fails
+a check" opening it).
 
 **FLD13 and FLD14** had no wave in the execution contracts (`tools/master_check.py` failed on develop `dbaa7720`); both
 are W1 now, with the disc (FLD8b, RQC7c), proposed here.
