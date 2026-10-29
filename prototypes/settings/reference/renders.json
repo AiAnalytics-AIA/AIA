@@ -13,8 +13,8 @@
   "board": "Prompts.dc.html",
   "title": "Systémové prompty",
   "w": 1440,
-  "h": 1129,
-  "text_chars": 1383,
+  "h": 1182,
+  "text_chars": 1467,
   "errors": [],
   "failed_requests": [],
   "image": "02-Prompts.webp"
@@ -33,8 +33,8 @@
   "board": "AI.dc.html",
   "title": "AI běh",
   "w": 1440,
-  "h": 1348,
-  "text_chars": 1970,
+  "h": 1401,
+  "text_chars": 2170,
   "errors": [],
   "failed_requests": [],
   "image": "04-AI.webp"
@@ -103,8 +103,8 @@
   "board": "LeadSettings.dc.html",
   "title": "Můj Vedoucí",
   "w": 1440,
-  "h": 2152,
-  "text_chars": 2373,
+  "h": 2433,
+  "text_chars": 3076,
   "errors": [],
   "failed_requests": [],
   "image": "11-LeadSettings.webp"

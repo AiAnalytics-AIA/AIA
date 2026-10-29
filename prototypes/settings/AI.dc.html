@@ -155,8 +155,9 @@ class Component extends DCLogic {
   }
   renderVals() {
     const acts = [
-      ['study', 'Vedoucí výzkumu ve studii', true, 'AIA_AI_RESEARCH_LEAD_ENABLED', 'vlastní (EU profil)', 'A, B, C', 'Konverzace s výzkumníkem, návrhy úprav a plánu'],
-      ['study', 'Pracovníci návrhu (8 agentů)', true, 'AIA_AI_RESEARCH_AGENTS_ENABLED', 'bedrock-eu-primary', 'B, C', 'Zadání, dotazník, publikum, dimenze, kritika'],
+      ['study', 'Vedoucí výzkumu ve studii', true, 'AIA_AI_RESEARCH_LEAD_ENABLED', 'vlastní (EU profil)', 'A, B, C', 'Konverzace, návrhy úprav a úloh; odpověď nejvýš 8 kol, 0,50 USD'],
+      ['study', 'Čtení Vedoucího během odpovědi', false, 'AIA_AI_RESEARCH_LEAD_READS', 'jako Vedoucí', 'A, B, C', 'Sedm interních čtení studie a klienta v tahu; zdarma, nic nemění', true],
+      ['study', 'Pracovníci návrhu (8 agentů)', true, 'AIA_AI_RESEARCH_AGENTS_ENABLED', 'bedrock-eu-primary', 'B, C', 'Zadání, dotazník, publikum, dimenze, kritika; jen jako karta ke schválení'],
       ['study', 'Plán Vedoucího a peněženka', false, 'AIA_LEAD_PLANS_ENABLED', '—', '—', 'Plán placené práce v rámci peněženky', true],
       ['run', 'AI respondenti z populace', false, 'AIA_AI_POPULATION_PERSONAS_ENABLED', '—', 'A', 'Respondenti podle panelu populace'],
       ['run', 'AI respondenti fiktivní', true, 'AIA_AI_RUNTIME_ENABLED', 'bedrock-eu-primary', 'C', 'Fiktivní respondenti, data označená jako fiktivní'],
