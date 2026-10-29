@@ -194,7 +194,8 @@ def _file_left_out(file: Mapping[str, Any]) -> str | None:
         return str(file["outcome"])
     if file.get("outcome") not in ("READ", "PARTIAL"):
         return "not_read"
-    if file.get("omitted") or file.get("omitted_columns") or file.get("omitted_sheets"):
+    cut = any(seg.get("cut") for seg in file.get("segments") or ())
+    if cut or file.get("omitted") or file.get("omitted_columns") or file.get("omitted_sheets"):
         return "over_budget"
     if file.get("outcome") == "PARTIAL":
         return "partly_read"

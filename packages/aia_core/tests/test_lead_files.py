@@ -360,3 +360,17 @@ def test_a_sheet_none_of_whose_columns_fit_is_counted_not_dropped_unsaid() -> No
     [one] = entry["files"]
     assert [s["name"] for s in one["dataset"]["sheets"]] == ["Široký"]
     assert one["omitted_sheets"] == 1 and one["omitted_columns"] > 3
+
+
+def test_a_document_cut_inside_its_only_segment_is_named_as_left_out() -> None:
+    """Codex on #1129: one segment longer than the share is sent cut; the manifest must say so."""
+    reading = SourceReading(
+        outcome=ReadingOutcome.READ,
+        reader="txt/1",
+        segments=(Segment(locator=Locator(paragraph=1), text="slovo " * 10_000),),
+    )
+    entry = files_layer([_file(reading)])
+    assert entry is not None
+    assert entry["files"][0]["segments"][0]["cut"] is True
+    row = next(r for r in context_manifest(_context(entry))["layers"] if r["layer"] == FILES_LAYER)
+    assert row["omitted"] == [{"id": f"SRC-{1:016x}", "reason": "over_budget"}]
