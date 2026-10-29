@@ -2190,7 +2190,7 @@ export type MethodPanel = {
   in_force: MethodMapSummary; draft: MethodMapSummary;
   status_changes: { a: string; b: string; in_force: string; draft: string }[];
   shifts: Record<string, number>; alignment_rmsd: number | null;
-  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]>;
+  heights: Record<string, [number | null, number | null]>; k100: Record<string, [number | null, number | null]> | null;
   terrain_max_change: number | null; terrain_note: string | null; notes: string[];
 };
 /** One fixed fictional cell of the support draft check (plan G1d). Statuses are

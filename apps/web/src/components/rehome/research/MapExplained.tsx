@@ -109,19 +109,18 @@ export function MapExplained({ x, approved, tech, idPrefix = "" }: { x: MapExpla
         <div className="fx-objs" role="table" aria-label={t(`${M}.objTitle`)}>
           <div className="fx-obj fx-obj--head" role="row">
             <span role="columnheader">{t(`${M}.objName`)}</span><span role="columnheader">{t(`${M}.objRating`)}</span>
-            <span role="columnheader">{t(`${M}.objConnected`)}</span><span role="columnheader">{t(`${M}.objOnMap`)}</span>
+            <span role="columnheader">{t(`${M}.objOnMap`)}</span>
           </div>
           {x.objects.map((o) => (
             <div key={o.id} className="fx-obj" role="row">
               <span role="cell" className="fx-obj__name"><Dot colour={o.colour} />{o.label}</span>
               <span role="cell" className="fx-obj__bar"><span className="fx-bar"><i style={{ width: `${o.rating === null ? 0 : ((o.rating - lo) / (hi - lo || 1)) * 100}%`, background: o.colour }} /></span><b>{o.rating === null ? "—" : num(o.rating, 2)}</b></span>
-              <span role="cell" className="fx-obj__bar"><span className="fx-bar"><i className="is-ink" style={{ width: `${o.connectedness ?? 0}%` }} /></span><b>{o.connectedness === null ? "—" : num(o.connectedness, 0)}</b></span>
               <span role="cell"><span className="fx-chip is-ok">{t(`${M}.objPlaced`)}</span></span>
             </div>
           ))}
           {x.unplaced.map((label) => (
             <div key={label} className="fx-obj" role="row">
-              <span role="cell" className="fx-obj__name">{label}</span><span role="cell">—</span><span role="cell">—</span>
+              <span role="cell" className="fx-obj__name">{label}</span><span role="cell">—</span>
               <span role="cell"><span className="fx-chip">{t(`${M}.objNobody`)}</span></span>
             </div>
           ))}
