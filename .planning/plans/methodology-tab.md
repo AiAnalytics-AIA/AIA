@@ -1355,6 +1355,10 @@ preset, `-4` to `-2` included (`apps/web/src/components/aia/settings/Methodology
     so no edit reaches their limits), pinned by `test_only_fields_no_editable_base_gives_a_number_are_left_out`.
     Their bounds stay declared and still guard `-3`/`-4`'s validators until MQ23b deletes those presets
     and the bounds with them.
+  - `apps/executors/tests/test_methodology_run_pins.py`: 8 moved, none dropped (edits on `terrain.idw_power`
+    and `relation.n_min`; the replaced `f12.kernel` shows in the map's alternate terrain). The test of an
+    unchanged `-3` in force writes that version and its activation as rows stored before MQ-23
+    (`_stored_before_mq23`): a run under it still pins `-3` and its retry keeps it.
   - Journeys: `settings_journey.mjs` and `contextual_settings_journey.mjs` start from `-5`.
   - The two added tests and the web test fail on `44d5bc72`.
 
