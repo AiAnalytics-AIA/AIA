@@ -44,6 +44,7 @@ __all__ = [
     "QcCheck",
     "QcFinding",
     "QcLevel",
+    "QcNotReadable",
     "QcQuestion",
     "QcThresholds",
     "RunQc",
@@ -56,6 +57,11 @@ RUN_QC_VERSION: Final = "aia-run-qc-1"
 RUN: Final = "beh"
 #: The space of answer vectors above which the unit stops multiplying (``qc.py:224``).
 _SPACE_CAP: Final = 10_000_000
+
+
+class QcNotReadable(ValueError):
+    """The run's QC cannot be read over this run (no respondent, or a question whose base is
+    the respondents asked, which the dataset does not record yet). Said, never a pass."""
 
 
 class QcLevel(StrEnum):
@@ -215,7 +221,7 @@ def run_qc(
     """
     n = len(answers)
     if n == 0:
-        raise ValueError("a run with no respondent has no quality to check")
+        raise QcNotReadable("a run with no respondent has no quality to check")
     t = thresholds
     findings: list[QcFinding] = []
 
@@ -389,7 +395,7 @@ def dataset_qc(
     validate_dataset(spec, dataset)
     routed = [q.id for q in spec.questions if q.condition is not None]
     if routed:
-        raise ValueError(
+        raise QcNotReadable(
             f"{', '.join(routed)}: a conditional question's base is the respondents asked, which "
             "the dataset does not record yet"
         )

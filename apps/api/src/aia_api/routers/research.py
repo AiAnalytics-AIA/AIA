@@ -52,7 +52,6 @@ from aia_core.application.deep_research import (
     RunSpecCorrupt,
 )
 from aia_core.application.errors import WorkspaceConflict
-from aia_core.application.lead_chat_start import RunStartSettings
 from aia_core.application.map_snapshots import (
     MAP_SNAPSHOT_MEDIA_TYPE,
     MapSnapshot,
@@ -115,12 +114,14 @@ from aia_core.application.research import (
     ResearchStepNotFound,
     RunOutlook,
     RunReservations,
+    RunStartSettings,
     WorkingRevisionNotFound,
     readiness_in_force,
     research_artifacts,
 )
 from aia_core.application.researcher_spend import run_spend_of, run_spends
 from aia_core.application.sociomapping_report import SOCIOMAPPING_REPORT_ARTIFACT_TYPE
+from aia_core.application.spend_confirmation import confirm_spend
 from aia_core.application.workflows import StartedRun
 from aia_core.domain.analysis.artifact import finding_diagnostic
 from aia_core.domain.analysis.modules import AnalysisModuleId
@@ -168,6 +169,7 @@ from aia_core.domain.research_agents import ProposalState, ResearchAction
 from aia_core.domain.research_design import settle_selection
 from aia_core.domain.research_trace import ResearchTrace
 from aia_core.domain.run_cost import analysis_ceiling_usd
+from aia_core.domain.run_start import StartRun
 from aia_core.domain.scope import (
     Permission,
     ScopeDenied,
@@ -1677,28 +1679,16 @@ def start_run(
     records is the deployment's (the Czech LIVE; the population double only in local and test).
     """
     persona_source = _chosen_persona_source(request, body.persona_source)
-    runs = ResearchRuns(
-        session,
-        scope,
-        population_contract=population.contract,
-        population_id=population.population_id,
-        panel_sampler=sampler,
-        routing_enabled=request.app.state.settings.routing_enabled,
+    settings = run_start_settings(request, population, sampler)
+    runs = ResearchRuns.for_settings(session, scope, settings)
+    command = StartRun(
+        design_revision_id=body.design_revision_id,
+        persona_source=persona_source,
+        population_version_id=body.population_version_id,
+        acknowledge=_acknowledgement(body.acknowledge_research_questions),
     )
     with run_start_errors():
-        started = runs.start(
-            design_revision_id=body.design_revision_id,
-            fieldwork_source=_fieldwork_source(request),
-            analysis_enabled=request.app.state.settings.ai_analysis_enabled,
-            external_context=request.app.state.settings.ai_analysis_external_context,
-            sociomapping_enabled=request.app.state.settings.sociomapping_experimental_enabled,
-            reservations=_reservations(request),
-            confirm_cost_usd=body.confirm_cost_usd,
-            population_version_id=body.population_version_id,
-            persona_source=persona_source,
-            acknowledge=_acknowledgement(body.acknowledge_research_questions),
-            require_answerability=request.app.state.settings.research_answerability_gate,
-        )
+        started = runs.start_run(command, confirmation=confirm_spend(scope, body.confirm_cost_usd))
     return _started(runs, started, response)
 
 
@@ -1754,6 +1744,7 @@ def run_start_settings(
         analysis_enabled=settings.ai_analysis_enabled,
         external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
+        qc_enabled=settings.run_qc_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),
         require_answerability=settings.research_answerability_gate,
@@ -2120,7 +2111,7 @@ def retry_run(
             run_id,
             fieldwork_source=_fieldwork_source(request),
             reservations=_reservations(request),
-            confirm_cost_usd=body.confirm_cost_usd if body else None,
+            confirmation=confirm_spend(scope, body.confirm_cost_usd if body else None),
             acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
             require_answerability=request.app.state.settings.research_answerability_gate,
         )
@@ -2236,7 +2227,7 @@ def retry_analysis(
             store,
             run_id=run_id,
             reservations=_reservations(request),
-            confirm_cost_usd=body.confirm_cost_usd if body else None,
+            confirmation=confirm_spend(scope, body.confirm_cost_usd if body else None),
             acknowledge=_acknowledgement(body.acknowledge_research_questions if body else None),
         )
     except ScopeDenied as exc:
@@ -4223,8 +4214,9 @@ def _agent_with_state(
 
 
 def stale_proposal(exc: StaleProposal) -> HTTPException:
-    """409 ``stale_proposal``: why (``design_moved``, ``unknown_baseline``, ``items_changed``,
-    ``lineage_changed``) and, for an edit, each item it touched that the proposal changes."""
+    """409 ``stale_proposal``: why (``design_moved``: not the proposal's own design;
+    ``unknown_baseline``, ``items_changed``, ``lineage_changed``) and, for an edit, each item it
+    touched that the proposal changes, with the fields (``conflicting_fields``)."""
     return HTTPException(
         status_code=409,
         detail={"code": "stale_proposal", "message": str(exc), "details": exc.details()},

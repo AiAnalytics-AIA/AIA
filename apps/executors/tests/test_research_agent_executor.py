@@ -946,6 +946,8 @@ def test_a_job_started_after_an_edit_is_checked_against_its_designs_working_revi
         assert refused.value.details() == {
             "reason": "items_changed",
             "conflicting_items": ["content:plan:problem_summary"],
+            # Both added it: an item's existence is its field (D-06).
+            "conflicting_fields": ["content:plan:problem_summary#item"],
             "conflicting_wording": {},  # a plan field, said by its name
         }
         # Nothing was written: the design and the working copy are as the person left them.
@@ -974,6 +976,86 @@ def test_an_edit_to_an_item_the_proposal_does_not_touch_survives_the_accept(
         assert now.content["research_plan"]["objectives"] == ["Test appeal"]
         designed = StudyDesignRepository(session, scope).content(accepted.revision.revision_id)
         assert designed == now.content
+
+
+def test_an_accepted_proposal_is_not_accepted_again(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    """A newer Design Revision no longer stales a proposal (WCE5), so the first accept's own
+    revision does not refuse a second one: the decision does, and nothing more is written."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        first = jobs.accept(
+            run_id,
+            store=store,
+            expected_revision_id=d1,
+            expected_workspace_revision=working_revision(session, world),
+        )
+        session.commit()
+        with pytest.raises(DesignRejected) as refused:
+            jobs.accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_already_accepted"
+        assert StudyDesignRepository(session, scope).latest() == first.revision
+        assert working_revision(session, world) == first.working.revision
+        assert len(ledger(session, run_id)) == 1
+
+
+def test_a_proposal_a_rebuild_replaces_is_not_accepted(
+    world: Any, database_url: str, store: Any, build: Any
+) -> None:
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        jobs = ResearchAgentJobs(session, scope)
+        jobs.rebuild(run_id, design_revision_id=d1)
+        session.commit()
+        with pytest.raises(DesignRejected) as refused:
+            jobs.accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_superseded"
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert ledger(session, run_id) == []
+
+
+def test_a_rebuild_outside_the_job_listing_still_replaces_its_proposal(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex on #1108: the listing projection reads the Study's newest 200 jobs, so a rebuild
+    followed by 200 more jobs fell out of it and the original read as pending. With no head
+    check (WCE5) nothing else refused it; the accept looks the rebuild up for this run alone."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        ResearchAgentJobs(session, scope).rebuild(run_id, design_revision_id=d1)
+        session.commit()
+    # The 200-job window holding none of this run's rebuilds, as after 200 later jobs.
+    monkeypatch.setattr(ResearchAgentJobs, "jobs", lambda self, *, limit=20: [])
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with pytest.raises(DesignRejected) as refused:
+            ResearchAgentJobs(session, scope).accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_superseded"
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert ledger(session, run_id) == []
 
 
 def test_an_older_working_copy_is_refused_as_stale(

@@ -523,6 +523,11 @@ class ClientKnowledgeRepository:
             )
         ).all()
         typed = {(r.item_id, r.revision): r for r in self._typed(scope, revision_rows)}
+        # The chosen revision's own lineage (CR-4), never the current revision's.
+        lineage = {
+            (r.item_id, r.revision): recorded_datasets(dict(r.provenance or {}))
+            for r in revision_rows
+        }
         entries: list[FrozenKnowledgeEntry] = []
         omitted: list[OmittedKnowledge] = []
         for chosen_id, chosen_revision in chosen:
@@ -563,6 +568,7 @@ class ClientKnowledgeRepository:
                         else ContextEntryState.SUPERSEDED
                     ),
                     current_revision=item.current_revision,
+                    datasets=lineage[(chosen_id, chosen_revision)],
                 )
             )
         return FrozenKnowledgeContext.freeze(
