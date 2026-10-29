@@ -27,6 +27,8 @@ chunks:
   - "[ ] K6. Implement correction, retirement, conflicts and dependent-study change visibility"
   - "[ ] K7. Prove all four consumers and reconcile the shared documentation after landing"
   - "[ ] K8. One semantics for Deep Research evidence entering client knowledge (an item or a proposal), and a document item's text visible to Deep Research"
+  - "[x] K8a. The rule for evidence entering knowledge: a verbatim capture a person checked is their write (an item, or a proposal where self-approval is off); anything a model wrote stays a proposal until a person accepts it (the product owner, 2026-10-29)"
+  - "[ ] K8b. A DOCUMENT or SOURCE item's file text frozen for Deep Research from its source's pinned reading, the Interní dokument mark frozen with it (G64), behind AIA_DEEP_RESEARCH_DOCUMENT_TEXT, off"
   - "[ ] K7a. W5 MVP research consumer proof: intake, reviewed/frozen knowledge, executable dimension, admitted report and same-client reuse; Simulation extension stays in K7 after MVP"
   - "[ ] K9. A cross-client what-needs-me portfolio: every study waiting for the signed-in researcher, across clients (D-47)"
   - "[ ] K10. Project memory searches approved reports too, beside designs (D-47)"
@@ -921,6 +923,32 @@ and a document item holds only `source_id`, so Deep Research never sees the file
 (`knowledge_access.py:75-90`). K8 decides once and gives `freeze_knowledge` the text snapshot. This plan
 owns the knowledge side; S2 supplies the bundle reader. Gap G36; interface I19.
 
+
+## K8a: one rule for Deep Research evidence entering knowledge (2026-10-29)
+
+The master plan's I19 / G36 read three plans as disagreeing on whether Deep Research evidence enters
+knowledge as an item or a proposal. They import three different things:
+
+| Path | What enters | Whose words | It becomes |
+| --- | --- | --- | --- |
+| "Ověřeno, přidat zdroj" (`application/verified_sources.py`, built) | a captured source: its URL, title and verbatim quote, from the sealed bundle | the source's own; a person checked it | an item, or a proposal where the client or the Study turned self-approval off |
+| K2e's import (not built) | an accepted finding's claim, located by its snapshot and quote | a model's | a proposal |
+| `deep-research-web-search` 37 (not built) | the run's consolidated dataset | a model's and code's | a DATASET proposal |
+
+**The rule** (the product owner, 2026-10-29, relayed by the PM coordinator ~09:46 UTC: "Yes, record
+it"): a verbatim capture a person checked is that person's write, so it is knowledge at once (ADR 0019
+decision 3), or a proposal where self-approval is off; anything a model wrote stays a proposal until a
+person accepts it, even when a person picked it to import. It follows from two decisions already made
+(the click as the person's write, 2026-10-19; AI-written knowledge a proposal, ADR 0019), so the three
+paths agree once each is read by what it imports. K2e and 37 inherit it when they are built.
+
+Pinned (`apps/api/tests/test_verified_sources_api.py`): the click writes an item at once
+(`test_a_checked_source_is_the_clients_knowledge_at_once_from_the_bundle_alone`), a proposal where
+the Study turned self-approval off (`test_a_study_with_self_approval_off_files_the_source_as_a_proposal`),
+and never the finding's claim (`test_the_item_is_the_captured_words_never_the_models_claim`, added
+here). That last test is a regression guard: it passes on `verified_sources.py:87-104 @ d0b3be8d`, and
+fails when the click writes `finding.claim` instead of `finding.quote`. In the fixture bundle the claim
+equals the quote, so the test serves a copy whose claim is a model's wording. No code changes.
 
 ## Execution predecessors (2026-10-20)
 
