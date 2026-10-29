@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
   - "[ ] CPR2. A client's status on the list, the server: ClientCard carries the client's status (active, archived), so the directory can say it (W1)"
-  - "[ ] CPR3. Budget and rule changes in the profile history, the server: the profile's history reads the client budget, wallet ceiling, data posture and self-approval changes from the audit, each with who and when (W1)"
+  - "[x] CPR3. Budget and rule changes in the profile history, the server: the profile's history reads the client budget, wallet ceiling, data posture and self-approval changes from the audit, each with who and when (W1)"
   - "[ ] CPR4. The client hero on every client tab, as canvas v21 draws it (core v4.3's hero): eyebrow and actions in one row, the client's name with its status chip, the lede, and four figures from GET /clients/{id} (Ke schválení, Znalosti, Soubory from CPR1, Rozpočet klienta); a figure the API does not give reads unknown, never 0 (W1, on prototype-build#PBA4's hero, after CPR1; Nigel, 28 Oct)"
   - "[ ] CPR5. Underline tabs, and Přidat podklady and Nový výzkum on every client tab, the same place each time (W1)"
   - "[ ] CPR6. Přehled as the canvas draws it: Čeká na vás first, no coloured tiles, the study's outputs in words (W1)"
@@ -98,7 +98,14 @@ an archived client's card says so.
 actions only (`apps/web/src/components/aia/clients/ProfileArea.tsx:324-346`). Read the client budget, wallet
 ceiling, data posture and self-approval changes from the audit too, each with the person's name
 (`client-knowledge-lifecycle#K15`) and never an e-mail. Test: a budget change reads in the history with who and
-when.
+when. Built: each entry answers `actor_name` (a member's display name, `member_display_names`; null when none) and
+`changes`, each field from what to what as its audit row kept it (`CLIENT_RULES_CHANGED`'s payload, the budget's
+`reason`); a self-approval change keeps only its new value, so it says `before_known: false`, never a guessed
+before, and a cleared one reads `"inherit"`; a stored value it cannot read is left out, never a 500. Today's Profil
+names the three new actions in words (`cs.ts` `aia.profile.history`); CPR11 shows who and the values. Budget changes are read only with `VIEW_CLIENT_COSTS`, as the budget is; a self-approval set for one of
+the client's studies is the study's, not the client's history. Tests:
+`test_client_api.py::test_the_profile_history_says_who_changed_the_budget_and_the_rules_and_from_what`,
+`test_client_profile.py::test_the_history_reads_budget_and_rules_by_name_and_the_budget_only_with_its_permission`.
 
 **CPR4. The client hero** (W1). Canvas v21, core v4.3's hero, as render `prototypes/clients/reference/03-Overview.webp`
 draws it (Nigel, 28 Oct 2026, ~21:21 UTC, relayed by the PM coordinator: "Build v21 as drawn"; it replaces v16's
@@ -235,6 +242,11 @@ Test: `make web_design`; the client journey (CPR19) passes on the new tokens.
   (archived studies out, the knowledge counts null without VIEW_CLIENT_KNOWLEDGE)" becomes "… (archived studies out;
   the knowledge counts and `sources`, the files the client keeps, null without VIEW_CLIENT_KNOWLEDGE)"; and under
   `client_source_repository.py`: "count: every source the client keeps, scoped, VIEW_CLIENT_KNOWLEDGE".
+- `CLAUDE.md` § 2, CPR3 (landed): the workspace router's "GET/PUT /clients/{id}/profile (the profile, its contacts,
+  its history)" becomes "… its history: profile, contact, budget (with VIEW_CLIENT_COSTS) and rule changes, each with
+  the person's display name and each field from what to what)"; under `client_profile_repository.py`, "history read
+  from the audit, never naming an e-mail" becomes "history read from the audit (the profile, contacts, the client's
+  budget, rules and self-approval), each entry with its actor's display name, never an e-mail".
 - `.planning/mvp-execution-contracts.md`, the `client-pages-redesign#CPR21` row: W3 becomes W1, this lane's last
   chunk (Nigel, 28 Oct 2026, ~21:21 UTC, relayed by the PM coordinator: "At the end of this lane").
 - `CLAUDE.md` § 2, when CPR4 lands: the client workspace's hero (canvas v21) and its four figures; when CPR10 lands: the client

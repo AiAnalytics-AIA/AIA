@@ -284,7 +284,16 @@ export type ClientWorkspace = {
 export type ClientProfileFields = { short_code: string; industry: string; market: string; description: string };
 export type ClientContact = { contact_id: string; name: string; role: string; email: string; receives_reports: boolean };
 export type ContactWrite = Omit<ClientContact, "contact_id">;
-export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
+/** A profile history entry; `changes`: a budget or rule field from what to what (CPR3), `before_known` false where
+ *  the audit did not record the earlier value; `actor_name` a member's display name, never an e-mail. */
+export type ProfileChange = {
+  action: string;
+  at: string | null;
+  actor_name: string | null;
+  fields: string[];
+  contact_name: string | null;
+  changes: { field: string; before: string | number | boolean | null; after: string | number | boolean | null; before_known: boolean }[];
+};
 export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
 /** What the client's own AI work may cost (client-budget CB1); never its studies' budgets. */
 export type ClientBudget = { budget_usd: number; spent_usd: number; reserved_usd: number; available_usd: number };
