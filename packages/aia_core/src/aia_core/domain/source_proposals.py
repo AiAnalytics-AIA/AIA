@@ -278,9 +278,7 @@ def request_bytes(request: ModelRequest) -> int:
     """The UTF-8 bytes the gateway bounds a request's input by: its system prompt, its
     message and its output contract (``model_gateway.input_token_bound``)."""
     return len(
-        (
-            request.system + request.messages[0].content + canonical_json(request.agent.schema)
-        ).encode()
+        (request.system + request.messages[0].text + canonical_json(request.agent.schema)).encode()
     )
 
 
