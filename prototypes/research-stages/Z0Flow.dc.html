@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Zadání se dvěma cestami – průchod</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zlead{display:flex;flex-direction:column;gap:2px}
+.zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
+.zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
+.zrow>.zv{min-width:0}
+.zgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zcard{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.zcard.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.zcard h3{margin:0;font-size:14px;font-weight:600}
+.zcard p{margin:0;font-size:13px}
+.zq{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;gap:10px;font-size:13px}
+.zq .n{font-family:var(--mono);font-size:12px;color:var(--faint);flex:none;width:18px}
+.zq .why{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.zflag{display:flex;flex-direction:column;gap:6px;border:1px solid var(--you);background:var(--youwash);border-radius:6px;padding:10px 12px;font-size:13px}
+.zflag .was{color:var(--faint);text-decoration:line-through}
+.zword{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);padding:0 2px}
+.zt{width:100%;border-collapse:collapse;font-size:13px}
+.zt th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border)}
+.zt td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.zt tr.miss td{background:var(--youwash)}
+.zt td.num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
+.zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
+.zm{box-shadow:inset 3px 0 0 var(--shviolet)}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
+.zseq a{font-weight:500}
+.zstate{display:flex;align-items:center;gap:10px;padding:8px 24px;background:var(--sunken);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.zbox{font-family:inherit;width:100%;box-sizing:border-box;min-height:120px;font-size:15px;line-height:22px;padding:12px 14px}
+.zdrawer{width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);display:flex;flex-direction:column}
+.zdrawer .dh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.zdrawer .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.zrub{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.zrub>div{display:grid;grid-template-columns:22px 28px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:start;font-size:13px;background:var(--raised)}
+.zrub>div:last-child{border-bottom:0}
+.zrub>div.miss{background:var(--youwash)}
+.zrub .i{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+.zrub .how{display:block;font-size:12px;color:var(--muted)}
+</style>
+</helmet>
+<div class="aia" data-theme="{{theme}}" style="display: block; padding: 40px 48px 56px; background: var(--surface)">
+<div style="max-width: 1344px; display: flex; flex-direction: column; gap: 20px">
+  <div><div class="cap">Návrh · Zadání se dvěma cestami · 29. 10. 2026</div>
+    <h1 style="margin: 4px 0 6px; font-size: 24px; line-height: 30px">Zadání začíná rozhodnutím a samo určí cestu studie</h1>
+    <p class="muted" style="max-width: 860px; font-size: 14px; line-height: 21px">Jeden vstup pro oba druhy studií: <b>Výzkum</b> (co lidé vnímají a udělají, odpovídají AI respondenti) a <b>Model</b> (náklady a provoz spočítané kódem z čísel klienta). Zadání se nejdřív ptá, co se rozhoduje a jaký výsledek by rozhodnutí změnil. Pak předá každému dalšímu kroku jen to, co potřebuje. Desky se dají proklikat v pořadí; dole na každé je šipka dál. Klient i čísla jsou smyšlené.</p></div>
+
+  <section class="sec" aria-labelledby="z0-flow"><div class="sh"><span class="num">01</span><h2 id="z0-flow">Pět kroků Zadání</h2><span class="grow"></span><span class="cap">kliknutím otevřete desku</span></div>
+    <div class="sb"><div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+      <sc-for list="{{steps}}" as="s" hint-placeholder-count="5"><a class="zcard" href="{{s.href}}" style="color: var(--ink); text-decoration: none"><span class="mono" style="color: var(--signal)">{{s.n}}</span><h3>{{s.t}}</h3><p class="muted">{{s.d}}</p></a></sc-for>
+    </div></div></section>
+
+  <section class="sec" aria-labelledby="z0-boards"><div class="sh"><span class="num">02</span><h2 id="z0-boards">Desky v pořadí</h2><span class="grow"></span><span class="cap">{{boardCount}} desek</span></div>
+    <div class="sb"><table class="zt"><thead><tr><th style="width: 70px">Deska</th><th style="width: 260px">Co ukazuje</th><th>Na co se dívat</th><th style="width: 190px">Případ</th></tr></thead><tbody>
+      <sc-for list="{{boards}}" as="b" hint-placeholder-count="9"><tr><td class="num"><a href="{{b.href}}">{{b.id}}</a></td><td><a href="{{b.href}}">{{b.t}}</a></td><td class="muted">{{b.d}}</td><td class="muted">{{b.c}}</td></tr></sc-for>
+    </tbody></table></div></section>
+
+  <div class="zgrid2">
+    <section class="sec" aria-labelledby="z0-prin"><div class="sh"><span class="num">03</span><h2 id="z0-prin">Na čem stojí</h2></div>
+      <div class="sb"><sc-for list="{{prin}}" as="p" hint-placeholder-count="6"><div class="li"><i class="{{p.ic}}" style="margin-top: 2px"></i><div class="tx"><b>{{p.t}}</b><span class="cap" style="display: block">{{p.d}}</span></div></div></sc-for></div></section>
+    <section class="sec" aria-labelledby="z0-keep"><div class="sh"><span class="num">04</span><h2 id="z0-keep">Co zůstává, jak je rozhodnuto</h2></div>
+      <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
+  </div>
+  <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1420}}'>
+class Component extends DCLogic {
+renderVals() {
+  const B = [
+    ['Z1', 'Z1Start', 'Začátek', 'Jedno pole „Co potřebujete rozhodnout?“ a Přidat podklady. Přepínač ukáže prázdné a vyplněné.', 'sklad'],
+    ['Z2', 'Z2Triage', 'Triáž', 'Ada navrhne cestu s důvodem, části Zadání přijdou jako návrh k zaškrtnutí, tři otázky seřazené podle toho, jak moc změní návrh.', 'sklad'],
+    ['Z3', 'Z3Decision', 'Rozhodnutí', 'Kdo, do kdy, možnosti, rozhodovací pravidlo. Stav „chybí práh“ a neměřitelné slovo s přepisem.', 'sklad'],
+    ['Z4', 'Z4Research', 'Cesta Výzkum', 'Co potřebujeme vědět → výzkumné otázky s typem; koho se to týká; podle čeho poznáme výsledek; co z toho dostane Návrh.', 'Zlatá Hora 12°, +3 Kč'],
+    ['Z5', 'Z5Model', 'Cesta Model', 'Cílová veličina, horizont, hranice, data (soubor → číslo, jedno chybí), předpoklady s ručitelem, co může výsledek otočit.', 'sklad'],
+    ['Z6', 'Z6Both', 'Obojí', 'Jedno Zadání založí dvě propojené studie; co každá zdědí a jak výsledek výzkumu vstoupí do modelu.', 'sklad + zákazníci'],
+    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání zablokované s tím, co ho odblokuje; předání do Návrhu nebo do Dat.', 'Zlatá Hora / sklad'],
+    ['Z8a', 'Z8aPhone', 'Telefon · začátek', 'Začátek na 390 px.', 'sklad'],
+    ['Z8b', 'Z8bPhone', 'Telefon · triáž', 'Triáž na 390 px: cesta, otázky, návrh Ady.', 'sklad']
+  ];
+  return {
+    theme: this.props.theme ?? 'light',
+    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada navrhne cestu', 'Výzkum, Model, nebo obojí, s důvodem. Rozhoduje člověk.', 'Z2Triage'], ['3 · Jádro', 'Rozhodnutí a pravidlo', 'Co se rozhoduje, kdo, do kdy, možnosti, kdy zvolíme kterou.', 'Z3Decision'], ['4 · Cesta', 'Části podle cesty', 'Výzkum: co potřebujeme vědět. Model: veličina, data, předpoklady.', 'Z4Research'], ['5 · Předání', 'Připravenost', 'Kontrola R1–R7, pak Návrh nebo Data převezme, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
+    boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,
+    prin: [
+      ['ph ph-target', 'Začít rozhodnutím', 'Co se rozhoduje, kdo a do kdy, mezi čím. Studie bez rozhodnutí je zvědavost.'],
+      ['ph ph-scales', 'Pravidlo předem', 'Než přijdou data, platí věta „zvolíme X, když ukazatel ≥ práh“. Výsledek se pak nečte podle přání.'],
+      ['ph ph-path', 'Metoda z otázky', 'Názory a chování: respondenti. Náklady a kapacity: model z čísel klienta. Často obojí.'],
+      ['ph ph-book-open', 'Co už víme', 'Data, dřívější studie a domněnky, každá s jistotou. Domněnka se stane hypotézou nebo předpokladem.'],
+      ['ph ph-squares-four', 'Hranice', 'Kdo nebo co je uvnitř, horizont, rozpočet, termín, co je mimo.'],
+      ['ph ph-user-check', 'Každý předpoklad má ručitele', 'Hodnota nebo rozsah, zdroj, kdo za ni ručí. Nic se nepoužije, dokud to člověk nepřijme.']
+    ].map(([ic, t, d]) => ({ ic, t, d })),
+    keep: [
+      ['Cíle zůstávají na Zadání a Návrh je čte odsud.', 'rozhodnuto dříve (spec Návrh B4)'],
+      ['Populaci vybírá Cílová skupina, objekty srovnání Návrh, měření Dotazník.', 'Zadání je popíše slovy a předá jako návrh'],
+      ['Připravenost je řádek čipů pod hlavičkou kroku; čip otevře detail.', 'spec Zadání 1.1'],
+      ['Placená úloha jen přes kartu s částkou (Analýza zadání, nejvýše 0,40 USD).', 'triáž je běžný tah Vedoucího; nic nepřijme sama'],
+      ['Žádné třídy dat na obrazovce; soubor je Důvěrný nebo Veřejný.', 'rozhodnuto 26.–28. 10.'],
+      ['Kompaktní hlavička kroku, panel Vedoucího je Chat F, vzhled core v4.3.', 'UI-1, 28. 10.']
+    ].map(([t, d]) => ({ t, d }))
+  };
+}
+}
+</script>
+</body>
+</html>
