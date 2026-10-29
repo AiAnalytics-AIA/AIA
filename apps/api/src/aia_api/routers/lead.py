@@ -852,6 +852,7 @@ def approve_request(
                 prices=study_prices(settings, session, scope),
                 modes=(deep_research_mode(settings),),
                 store=store,
+                document_store=store if settings.deep_research_document_text else None,
             ),
         )
     return ApprovedRequest.model_validate(started)
