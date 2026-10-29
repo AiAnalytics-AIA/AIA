@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 from typing import Any
 
@@ -9,7 +10,7 @@ import pytest
 from aia_core.application.deep_research import DeepResearchRuns, run_spec_metadata
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
 from aia_core.domain.deep_research.bundle import EvidenceBundle
-from aia_core.domain.deep_research.contracts import Channel
+from aia_core.domain.deep_research.contracts import Channel, DeepResearchRequest
 from aia_core.domain.deep_research.integration import (
     RUN_SPEC_CONTRACT,
     ArtifactPin,
@@ -22,6 +23,7 @@ from aia_core.domain.deep_research.integration import (
 )
 from aia_core.infrastructure.db import create_session_factory
 from aia_core.infrastructure.tables import WorkflowRunRow
+from aia_core.infrastructure.workflow_repository import WorkflowRepository
 from fastapi.testclient import TestClient
 
 API = "/api/v1"
@@ -401,3 +403,55 @@ def test_a_run_stopped_at_the_budget_cap_goes_on_when_a_person_lifts_it(
     assert _plan(lifted.json())["status"] == "RUNNABLE"
     again = researcher.post(f"{run_url}/budget", json={"budget_usd": before + 50.0})
     assert again.status_code == 409 and again.json()["code"] == "not_waiting_for_budget"
+
+
+def test_the_document_text_switch_decides_whether_a_run_freezes_a_files_words(
+    researcher: TestClient, world: Any, app: Any
+) -> None:
+    """client-knowledge-lifecycle K8b, through the start route: off, a DOCUMENT item froze its
+    title alone, as before; with AIA_DEEP_RESEARCH_DOCUMENT_TEXT the file's words and the
+    reading they came from."""
+    client = world.client_id("primary")
+    kept = researcher.post(
+        f"{API}/clients/{client}/sources",
+        json={
+            "filename": "vyrocni-zprava.md",
+            "data_b64": base64.b64encode("Tržby vzrostly o 12 %.".encode()).decode(),
+        },
+    )
+    assert kept.status_code == 201, kept.text
+    item = researcher.post(
+        f"{API}/clients/{client}/knowledge/proposals",
+        json={
+            "kind": "DOCUMENT",
+            "title": "Výroční zpráva",
+            "content": {"source_id": kept.json()["source_id"]},
+        },
+    )
+    assert item.status_code == 201 and item.json()["item_id"], item.text
+    revision = _revision(researcher, world)
+
+    def frozen(run_id: str) -> Any:
+        with create_session_factory(app.state.engine)() as session:
+            scope = ScopeResolver(session).study_context(
+                AuthenticatedPrincipal(
+                    user_id=world.users["researcher"], organization_id=world.organization_id
+                ),
+                study_id=world.study_id(),
+            )
+            # The engine request is the plan step's input, stored at enqueue.
+            stored = WorkflowRepository(session, scope).step_input(run_id, "plan") or {}
+            [source] = DeepResearchRequest.model_validate(stored["request"]).knowledge.items
+            return source
+
+    payload = {"design_revision_id": revision, "preset_name": "QUICK", "channels": ["WEB"]}
+    off = researcher.post(_url(world), json=payload)
+    assert off.status_code == 201, off.text
+    assert "Tržby" not in frozen(off.json()["run_id"]).text
+
+    app.state.settings = app.state.settings.model_copy(update={"deep_research_document_text": True})
+    on = researcher.post(_url(world), json=payload)
+    assert on.status_code == 201, on.text  # another request, so another run
+    source = frozen(on.json()["run_id"])
+    assert "Tržby vzrostly o 12 %." in source.text
+    assert source.reading_sha256 is not None and source.internal is False

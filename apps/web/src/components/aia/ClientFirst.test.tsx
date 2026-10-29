@@ -288,7 +288,7 @@ describe("a client's workspace", () => {
   const PROFILE = {
     short_code: "KA", industry: "Bankovnictví", market: "Česko", description: "",
     contacts: [{ contact_id: "CON-1", client_id: "CLI-a", name: "Jana Nová", role: "Marketing", email: "jana@klient.test", receives_reports: true }],
-    history: [{ action: "CLIENT_CONTACT_ADDED", actor_id: "USR-1", at: "2026-10-12T10:00:00Z", fields: [], contact_name: "Jana Nová" }],
+    history: [{ action: "CLIENT_CONTACT_ADDED", actor_name: "Jana", at: "2026-10-12T10:00:00Z", fields: [], contact_name: "Jana Nová", changes: [] }],
   };
   const profileApi = (extra: Record<string, (body: unknown) => unknown> = {}) =>
     api({
@@ -329,6 +329,23 @@ describe("a client's workspace", () => {
     // The history names the contact, and what the profile changed re-reads it.
     expect(screen.getByText("Přidán kontakt Jana Nová")).toBeTruthy();
     await waitFor(() => expect(called("GET", "/api/v1/clients/CLI-a/profile")).toHaveLength(2));
+  });
+
+  it("says the budget and rule changes in the history in words, never as a key (CPR3)", async () => {
+    path = "/app/clients/CLI-a/profile";
+    const change = (action: string) => ({ action, actor_name: "Jana", at: "2026-10-12T10:00:00Z", fields: [], contact_name: null, changes: [] });
+    profileApi({
+      "GET /api/v1/clients/CLI-a/profile": () => ({
+        ...PROFILE,
+        history: ["CLIENT_BUDGET_CHANGED", "CLIENT_RULES_CHANGED", "SELF_APPROVAL_CONFIGURED"].map(change),
+      }),
+    });
+    render(inClient("CLI-a", <ProfileArea />));
+    const history = (await screen.findByRole("heading", { name: "Historie profilu" })).closest("section")!;
+    expect(await within(history).findByText("Změněn rozpočet klienta")).toBeTruthy();
+    expect(within(history).getByText("Změněna pravidla klienta")).toBeTruthy();
+    expect(within(history).getByText("Změněno samoschválení")).toBeTruthy();
+    expect(history.textContent).not.toContain("aia.profile");
   });
 
   it("adds and removes a contact, and adds a competitor as the client's knowledge", async () => {

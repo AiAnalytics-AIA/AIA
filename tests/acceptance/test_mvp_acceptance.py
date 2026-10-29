@@ -516,3 +516,143 @@ def test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset(
     original = _step(first, "research_fieldwork")["artifact_id"]
     assert original and _step(retried, "research_fieldwork")["artifact_id"] == original
     assert not _progress(http, who, retry_path), "no respondent was asked again"
+
+
+# --------------------------------------------------------------------------- #
+# AC-04: a run's ceiling, the budget and the spend limit
+# --------------------------------------------------------------------------- #
+
+#: Below one respondent call's reservation (``AIA_AI_FIELDWORK_RESERVATION_USD``, 0.25): the
+#: first call cannot be held, so the run parks before anything is sent.
+EXHAUSTED_BUDGET_USD = 0.1
+#: Two concurrent runs' worth of holds cannot fit: each call holds 0.25 until it settles.
+SHARED_BUDGET_USD = 0.6
+
+
+def _budgeted_study(
+    http: Any, who: str, unique: Callable[[str], str], tag: str, budget_usd: float
+) -> str:
+    client_id = _client(http, who, unique(f"{tag}-client"), "Acceptance client (fiktivní)")
+    study = http.post(
+        "/studies",
+        {
+            "client_id": client_id,
+            "slug": unique(f"{tag}-study"),
+            "name": "MVP acceptance (fiktivní)",
+            "budget_usd": budget_usd,
+        },
+        as_user=who,
+    )
+    assert study.status == 201, study.text
+    return str(study.json()["study_id"])
+
+
+def _past_content(title: str = "") -> dict[str, Any]:
+    content: dict[str, Any] = json.loads((INPUTS / "past-study.json").read_text("utf-8"))["content"]
+    if title:
+        content["title"] = title
+    return content
+
+
+def test_ac04_the_ceiling_is_shown_and_a_start_at_the_limit_is_confirmed_in_the_ledger(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """The run's ceiling is on readiness before it starts; reaching the study's spend limit, a
+    start without the person's yes is refused and nothing runs; with it the run starts, the yes
+    is the run's row in the approval ledger, and the run spends within the ceiling it showed."""
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    study_id = _budgeted_study(http, who, unique, "ac04-limit", 25)
+    revision_id = _submit(http, who, study_id, _past_content())
+    base = f"/studies/{study_id}"
+    assert http.put(f"{base}/spend-confirm", {"limit_usd": 0.5}, as_user=who).status == 200
+
+    shown = http.get(f"{base}/research/readiness?design_revision_id={revision_id}", as_user=who)
+    assert shown.status == 200, shown.text
+    ceiling = shown.json()["cost_ceiling_usd"]
+    assert ceiling is not None and ceiling >= 0.5, shown.json()
+    assert shown.json()["confirmation_required"] is True
+
+    asked = http.post(f"{base}/research/runs", {"design_revision_id": revision_id}, as_user=who)
+    assert asked.status == 409 and asked.json()["code"] == "cost_confirmation_required", asked.text
+    assert http.get(f"{base}/research/runs", as_user=who).json()["items"] == []
+
+    started = http.post(
+        f"{base}/research/runs",
+        {"design_revision_id": revision_id, "confirm_cost_usd": ceiling},
+        as_user=who,
+    )
+    assert started.status == 201, started.text
+    run_path = f"{base}/research/runs/{started.json()['run_id']}"
+    approvals = http.get(f"{run_path}/approvals", as_user=who)
+    assert approvals.status == 200, approvals.text
+    [yes] = approvals.json()
+    assert (yes["subject"], yes["decision"], yes["by"]) == ("spend", "confirm", "researcher")
+
+    with stack.worker("ac04-limit") as worker:
+        run = stack.wait_for_run(worker, run_path, who)
+    assert run["status"] == "COMPLETED", f"{json.dumps(run)[:2000]}\n{stack.logs()}"
+    spend = http.get(run_path, as_user=who).json()["spend"]
+    assert spend["reserved_usd"] == 0 and 0 < spend["spent_usd"] <= ceiling, (spend, ceiling)
+
+
+def test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    study_id = _budgeted_study(http, who, unique, "ac04-exhausted", EXHAUSTED_BUDGET_USD)
+    revision_id = _submit(http, who, study_id, _past_content())
+    started = http.post(
+        f"/studies/{study_id}/research/runs", {"design_revision_id": revision_id}, as_user=who
+    )
+    assert started.status == 201, started.text
+    run_path = f"/studies/{study_id}/research/runs/{started.json()['run_id']}"
+
+    with stack.worker("ac04-exhausted"):
+        parked = _until(
+            stack,
+            "the fieldwork waiting for budget",
+            lambda: (
+                (r := http.get(run_path, as_user=who).json())
+                and _step(r, "research_fieldwork")["status"] == "AWAITING_BUDGET"
+                and r
+            ),
+        )
+    assert parked["status"] == "AWAITING_BUDGET", parked["status"]
+    assert parked["spend"]["spent_usd"] == 0 and parked["spend"]["reserved_usd"] == 0
+    assert _progress(http, who, run_path) == [], "no respondent was asked"
+
+
+def test_ac04_concurrent_starts_are_held_to_the_study_budget(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """Two runs of one study on two workers at once: whatever each holds and spends, together
+    they never pass the study's budget, and both stop for budget rather than overspend."""
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    study_id = _budgeted_study(http, who, unique, "ac04-concurrent", SHARED_BUDGET_USD)
+    runs = []
+    for title in ("Souběh A (fiktivní)", "Souběh B (fiktivní)"):
+        revision_id = _submit(http, who, study_id, _past_content(title))
+        started = http.post(
+            f"/studies/{study_id}/research/runs", {"design_revision_id": revision_id}, as_user=who
+        )
+        assert started.status == 201, started.text
+        runs.append(f"/studies/{study_id}/research/runs/{started.json()['run_id']}")
+
+    def parked() -> bool:
+        return all(
+            http.get(path, as_user=who).json()["status"] == "AWAITING_BUDGET" for path in runs
+        )
+
+    with stack.worker("ac04-one"), stack.worker("ac04-two"):
+        _until(stack, "both runs waiting for budget", parked)
+    # Once both wait, nothing moves, so the runs read one after the other agree with each other;
+    # read while the workers ran, a settled hold could be counted beside the one its release
+    # allowed. Spent money only grows, so its total at rest bounds it at every earlier moment.
+    spends = [http.get(path, as_user=who).json()["spend"] for path in runs]
+    held = sum(s["spent_usd"] + s["reserved_usd"] for s in spends)
+    assert held <= SHARED_BUDGET_USD + 1e-9, spends
+    study = http.get(f"/studies/{study_id}", as_user=who).json()
+    assert study["spent_usd"] <= SHARED_BUDGET_USD, study

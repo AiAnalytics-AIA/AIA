@@ -223,6 +223,15 @@ class KnowledgeSource(_Closed):
     truncated: bool
     #: The approver marked an ENTITY/TERM public; only then is its name not a client term.
     public: bool
+    #: The item's source was marked "Interní dokument" when the run froze it (K8b, G64): its
+    #: class is then C. Left out of the dump while false, so a run frozen without document text
+    #: is the request it always was.
+    internal: bool = Field(default=False, exclude_if=lambda v: v is False)
+    #: The SHA-256 of the source reading ``text`` was read from (K8b); ``None``: the text holds
+    #: no source's words. Left out of the dump while ``None``, as ``internal`` is.
+    reading_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$", exclude_if=lambda v: v is None
+    )
 
 
 class FrozenKnowledge(_Closed):
