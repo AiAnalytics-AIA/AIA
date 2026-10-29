@@ -467,7 +467,8 @@ try {
     await noOverflow(`run @${width}`);
     await shot(`${width}-run`);
   }
-  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Kontrola visit submits no design (FLD22)");
+  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow; four Kontrola visits submitted no design (FLD22)");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
   // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).

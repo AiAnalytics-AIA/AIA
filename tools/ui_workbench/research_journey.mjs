@@ -109,7 +109,9 @@ const startButton = page.getByRole("button", { name: TEXT.start });
 await startButton.waitFor({ timeout: 120000 });
 await page.waitForFunction((label) => [...document.querySelectorAll("button")].some((b) => b.textContent?.includes(label) && !b.disabled), TEXT.start, { timeout: 60000 })
   .catch(() => fail("the Run stage's start button stayed disabled (readiness not met?)"));
-ok("Run: design submitted, readiness passed");
+// Kontrola reads, never submits (FLD22): the visit wrote no Design Revision; the start makes it.
+if (writes.some((w) => w.endsWith("/design/revisions"))) fail("a visit to Kontrola submitted a design revision");
+ok("Run: readiness passed on the working copy, nothing submitted by the visit");
 await shot("1-run");
 // The research workbench (AIA_WEB_RESEARCH_WORKBENCH=true) puts the Lead beside the stage; with the switch
 // off the classic layout serves, and the Lead's card is not checked.
@@ -128,7 +130,8 @@ await startButton.click();
 const runId = (await (await started).json().catch(() => ({}))).run_id;
 if (!runId) fail("the start did not answer with its run");
 await page.waitForURL(/\/progress/, { timeout: 60000 });
-ok("Run: started, now on Progress");
+if (writes.filter((w) => w.endsWith("/design/revisions")).length !== 1) fail(`the start submitted ${writes.filter((w) => w.endsWith("/design/revisions")).length} design revisions, not one`);
+ok("Run: started, the design submitted by the start, now on Progress");
 // The run is also a card in the Lead's conversation (artifact-fieldwork FLD8, #550).
 const card = page.locator(`.conv [data-card="run"][data-aia="run.${runId}"]`);
 if (workbench) {
@@ -174,7 +177,8 @@ const originCode = await page.locator('[data-aia="receipt:respondents"] [data-or
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
-const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+// Money is written with a no-break space before the currency (Intl's cs-CZ): read as a plain space.
+const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.replace(/\s/g, " ").trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
 // The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
 const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();

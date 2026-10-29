@@ -3519,7 +3519,11 @@ export const cs = {
         INDICATIVE: "Indikativní: jen {donors} unikátních dárců (25\u201349), n = {n}.",
         SUPPRESS: "Potlačeno: jen {donors} unikátních dárců, pod hranicí 25. Hodnoty se nezobrazují.",
       },
-      preparing: "Ukládám návrh jako revizi a kontroluji ho…",
+      preparing: "Kontroluji návrh…",
+      // Kontrola reads the working copy (FLD22): the revision a run executes is made by Start.
+      workingRevision: "Pracovní kopie · revize {revision}",
+      workingRevisionHelp: "Spuštění uloží návrh jako novou revizi a běh se spustí nad ní. Pozdější úprava návrhu vytvoří novou revizi a spuštěný běh nezmění.",
+      changedOnStart: "Návrh se před spuštěním změnil. Kontroly jsou načtené znovu; zkontrolujte je a spusťte znovu.",
       readinessFailed: "Návrh se nepodařilo zkontrolovat",
       revision: "Revize návrhu {revision}",
       revisionHelp: "Běh se spustí nad touto revizí. Pozdější úprava návrhu vytvoří novou revizi a spuštěný běh nezmění.",

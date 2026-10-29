@@ -39,7 +39,7 @@ function api(content: Record<string, unknown> = { title: "Alfa", goal: "Zjistit,
       u === "/config" ? { apiBase: "", cognitoDomain: "", cognitoClientId: "", publicOrigin: "http://localhost", workbench: true }
       : u === CONTENT_PATH && method === "GET" ? { study_id: "STU-1", state: "NATIVE", revision: 2, revision_id: "REV-2", content: stored, analysis, template: EMPTY_PROJECT, saved_at: null, saved_by: null, can_edit: true, lineage: {} }
       : u === CONTENT_PATH ? { state: "NATIVE", revision: 3, revision_id: "REV-3", deduplicated: false }
-      : u.endsWith("/research/readiness") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
+      : u.endsWith("/research/readiness") || u.endsWith("/research/readiness/working") ? { design_revision_id: "REV-3", revision: 3, ready: false, checks: [], questions: 0, batteries: 0, objects: 0, n: 0, rules: "test", fieldwork_source: "ai_runtime" }
       : u.endsWith("/research/limits") ? { methodology_version: "aia-readiness-1", version: null, sample_size: { min: 20, max: 10000 } }
       : u.endsWith("/research/runs") ? { items: [] }
       : u.endsWith("/design/revisions") && method === "POST" ? { revision_id: "REV-3", revision: 3 }

@@ -1365,8 +1365,8 @@ export const research = {
   readiness: (studyId: string, revisionId: string, personaSource?: string, populationVersionId?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
-  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
-    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string, populationVersionId?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** What a working revision changes against a Design Revision (the newest when none is named), stage by stage; nothing is written (WCE7c). */
   workingImpact: (studyId: string, workingRevision: number, designRevisionId?: string) =>
     request<WorkingImpact>("GET", `${studyPath(studyId)}/research/impact${query({ working_revision: String(workingRevision), design_revision_id: designRevisionId })}`),

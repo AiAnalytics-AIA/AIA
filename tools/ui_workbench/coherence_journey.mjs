@@ -179,8 +179,12 @@ try {
   await goal.fill(`${before} (upraveno ${stamp})`);
   await page.waitForTimeout(3500); // the 1.8 s autosave
   await visit(stage(binding.study, "run"), "run-after-design-change", 6000);
-  const revisions = [...(await page.evaluate(() => document.body.innerText)).matchAll(/Revize návrhu (\d+)/g)].map((m) => Number(m[1]));
-  check("the Run stage names a newer revision than the run's", revisions.length >= 2 && Math.max(...revisions) > Math.min(...revisions), `revisions on screen: ${revisions.join(", ")}`);
+  // Kontrola reads the working copy and submits nothing (artifact-fieldwork FLD22): it names the
+  // working copy's revision, the earlier run keeps its Design Revision, and the visit made none.
+  const text = await page.evaluate(() => document.body.innerText);
+  const working = /Pracovní kopie · revize \d+/.test(text);
+  const runs = [...text.matchAll(/Revize návrhu (\d+)/g)].map((m) => Number(m[1]));
+  check("the Run stage reads the edited working copy beside the run's own revision", working && runs.length >= 1, `working copy named: ${working}; run revisions: ${runs.join(", ")}`);
   await goal.page().goto(`${FACADE}${stage(binding.study, "brief")}`, { waitUntil: "load" });
   await page.locator("textarea").first().fill(before); // the goal as it was
   await page.waitForTimeout(3500);

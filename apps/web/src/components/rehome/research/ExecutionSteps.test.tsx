@@ -154,6 +154,13 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
         ...overrides,
       };
+      // Kontrola reads the working revision's readiness (FLD22): unless a test answers it, as the
+      // readiness route would, naming the working revision and no Design Revision.
+      routes["GET /api/v1/studies/STU-1/research/readiness/working"] ??= async (b) => {
+        const read = { ...((await routes["GET /api/v1/studies/STU-1/research/readiness"]!(b)) ?? {}) } as Record<string, unknown>;
+        delete read.design_revision_id;
+        return { ...read, working_revision: new URL(u, "http://x").searchParams.get("working_revision") };
+      };
       // A route may answer later (a promise), to hold a read while the test looks at the screen.
       const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
@@ -243,17 +250,34 @@ describe("Run", () => {
     expect(links).toEqual([["Zobrazit průběh", "RUN-2"], ["Zobrazit výsledky", "RUN-1"]]);
   });
 
-  it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
+  it("reads the checks on the working copy, submits nothing on a visit, and on Start submits the design and runs it (FLD22)", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect(await screen.findByText(/^Pracovní kopie · revize \d+$/)).toBeTruthy();
+    // Kontrola reads, never submits (spec sber F2): the working revision's readiness, no Design Revision.
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("/readiness/working?working_revision=");
+    expect(screen.getByText("n = 450.")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
     // No client, org or unit id; the working revision the design is (ADR 0026), and nothing else.
     expect(Object.keys(submitted.body as object).sort()).toEqual(["content", "source_stage", "workspace_revision"]);
     expect((submitted.body as { workspace_revision: unknown }).workspace_revision).toEqual(expect.any(Number));
-    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-a1");
-    expect(screen.getByText("n = 450.")).toBeTruthy();
+    // The start reads the submitted revision's own readiness before it runs it.
+    const reads = called("GET", "/api/v1/studies/STU-1/research/readiness").map((c) => c.url);
+    expect(reads.at(-1)).toContain("design_revision_id=REV-a1");
+    const order = (pred: (c: (typeof calls)[number]) => boolean) => calls.findIndex(pred);
+    expect(order((c) => c.method === "POST" && c.url.endsWith("/design/revisions"))).toBeLessThan(order((c) => c.url.includes("design_revision_id=REV-a1")));
+    expect(order((c) => c.url.includes("design_revision_id=REV-a1"))).toBeLessThan(order((c) => c.method === "POST" && c.url.endsWith("/research/runs")));
+    expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
+  });
+
+  it("names Kontrola's checks and links each stage", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText("n = 450.")).toBeTruthy();
     expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();
     expect(screen.getByText(/Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie/)).toBeTruthy();
     // Studio v3: "Co spustíte" names each step with a way back to it, and a check that does
@@ -264,10 +288,6 @@ describe("Run", () => {
     );
     expect(screen.getByRole("link", { name: "Opravit →" }).getAttribute("href")).toBe(stagePath("audience"));
     expect(screen.getByRole("button", { name: t("research.exec.start") }).getAttribute("data-ai-action")).toBe("true");
-
-    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
   });
 
   it("lets the person choose who answers, reads the checks again under it, and starts with it (run-recovery-and-truth 5a)", async () => {
@@ -319,7 +339,7 @@ describe("Run", () => {
     expect(within(card).getByText(t("research.exec.respondents.reason.panel_personas_disabled"))).toBeTruthy();
   });
 
-  it("saves a change not yet saved before the design becomes a revision", async () => {
+  it("saves a change not yet saved before reading the checks, and makes it a revision only on Start", async () => {
     const workspace = workspaceFixture(PROJECT);
     api({ "PUT /api/v1/studies/STU-1/workspace/content": (b) => workspace.answer(CONTENT_PATH, "PUT", b) });
     const at = (step: "brief" | "run") => (
@@ -330,7 +350,11 @@ describe("Run", () => {
     const { rerender } = render(at("brief"));
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Nový cíl" } });
     rerender(at("run")); // before the 1.8 s autosave
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect(await screen.findByText(/^Pracovní kopie · revize \d+$/)).toBeTruthy();
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(1));
     const put = calls.findIndex((c) => c.method === "PUT" && c.url === CONTENT_PATH);
     const post = calls.findIndex((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/design/revisions");
     expect(put).toBeGreaterThanOrEqual(0);
@@ -390,7 +414,10 @@ describe("Run", () => {
     served = { ...served, revision: 4, revision_id: "REV-4", content: { ...PROJECT, goal: "Cíl, který uložil kolega" } };
     refuse = false;
     fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect(await screen.findByText(/^Pracovní kopie · revize \d+$/)).toBeTruthy();
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(1));
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect((submitted.body as { content: { goal: string } }).content.goal).toBe("Cíl, který uložil kolega");
     expect(called("GET", CONTENT_PATH)).toHaveLength(2);
@@ -400,7 +427,6 @@ describe("Run", () => {
     expect(puts).toHaveLength(2);
     expect((puts[1].body as { base_revision: number }).base_revision).toBe(4);
     expect((submitted.body as { workspace_revision: number }).workspace_revision).toBe(5);
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   }, 15_000);
 
   it("submits nothing when the save before it fails, and says why", async () => {
@@ -657,6 +683,8 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
+    // Declining writes nothing: the spend is asked before the design becomes a revision (FLD22).
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     fireEvent.click(await screen.findByRole("button", { name: /^Spustit běh · do 225,00\sUSD$/ }));
@@ -737,6 +765,46 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(screen.getByRole("button", { name: t("research.exec.start") })).toBe(start);
     expect(start.disabled).toBe(true);
     expect(screen.queryByRole("button", { name: t("research.exec.answerability.startLimited") })).toBeNull();
+    expect(called("POST", RUNS)).toHaveLength(0);
+  });
+
+  it("carries the acknowledgement given on Kontrola to the revision Start submits, for the same gaps under its digest (FLD22)", async () => {
+    const gaps = [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }];
+    const answer = (digest: string) => ({ rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true, gaps });
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => ({ ...READY, design_revision_id: undefined, answerability: answer("w".repeat(64)) }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability: answer("r".repeat(64)) }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(start);
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect((called("POST", RUNS)[0].body as { acknowledge_research_questions: unknown }).acknowledge_research_questions).toEqual({ digest: "r".repeat(64), reason: "Ověřujeme jen postup na fiktivních datech." });
+  });
+
+  it("starts nothing when the submitted revision's gaps differ from those acknowledged, and shows them again (FLD22)", async () => {
+    const gap = (q: string) => [{ kind: "not_answerable", research_question: q, verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }];
+    let reads = 0;
+    const shown = { rules: "aia-answerability-1", capable: false, digest: "w".repeat(64), acknowledgement_required: true, gaps: gap("Jak klienti důvěřují účtu?") };
+    const moved = { ...shown, digest: "x".repeat(64), gaps: gap("Proč odcházejí?") };
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => ({ ...READY, answerability: reads++ === 0 ? shown : moved }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability: { ...moved, digest: "r".repeat(64) } }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    expect(await screen.findByText(t("research.exec.changedOnStart"))).toBeTruthy();
+    expect(await screen.findByText("Proč odcházejí?")).toBeTruthy();
     expect(called("POST", RUNS)).toHaveLength(0);
   });
 
@@ -844,11 +912,14 @@ describe("Run: what a run can cost (5b.2)", () => {
       rules: "aia-answerability-1", capable: false, digest: "d".repeat(64), acknowledgement_required: true,
       gaps: [{ kind: "not_answerable", research_question: "Co klienty odrazuje?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
     };
+    const capable = { ...READY, answerability: { rules: "aia-answerability-1", capable: true, digest: "e".repeat(64), acknowledgement_required: false, gaps: [] } };
     let reads = 0;
     api({
-      "GET /api/v1/studies/STU-1/research/readiness": () =>
+      // The start's own read of the submitted revision passes; Kontrola's read again fails.
+      "GET /api/v1/studies/STU-1/research/readiness": () => capable,
+      "GET /api/v1/studies/STU-1/research/readiness/working": () =>
         reads++ === 0
-          ? { ...READY, answerability: { rules: "aia-answerability-1", capable: true, digest: "e".repeat(64), acknowledgement_required: false, gaps: [] } }
+          ? capable
           : new Response(JSON.stringify({ code: "internal_error", message: "Chyba.", details: {} }), { status: 500 }),
       "POST /api/v1/studies/STU-1/research/runs": () =>
         new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: answerability }), { status: 409 }),
@@ -869,9 +940,11 @@ describe("Run: what a run can cost (5b.2)", () => {
       gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
     };
     let reads = 0;
+    const off = { ...READY, answerability: { ...answerability, acknowledgement_required: false } };
     api({
       // Read first without the requirement (the gate was off), then as the server refuses.
-      "GET /api/v1/studies/STU-1/research/readiness": () => (reads++ === 0 ? { ...READY, answerability: { ...answerability, acknowledgement_required: false } } : { ...READY, answerability }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => off,
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => (reads++ === 0 ? off : { ...READY, answerability }),
       "POST /api/v1/studies/STU-1/research/runs": () =>
         new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "The run cannot answer every research question.", details: answerability }), { status: 409 }),
     });
