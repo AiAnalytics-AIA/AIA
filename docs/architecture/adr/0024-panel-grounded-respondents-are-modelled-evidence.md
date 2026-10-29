@@ -248,3 +248,17 @@ sub-question as answered:
   row prints *modelováno* and never *měřeno*, whatever its basis or the composer's `field_grades`
   (`packages/aia_core/src/aia_core/domain/report/evidence.py:59-65 @ 5d2ac5ac`, `grade_of`), fixed
   before the first client report is delivered: `report-delivery#RD13` (W2).
+
+## Amendment, 2026-10-29
+
+The methodology owner's answer to 0024-Q1, relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. It supersedes the 2026-10-26 amendment's
+Q1 (a), "confirm P1-P8 as written"; the ADR stays Accepted.
+
+- **0024-Q1 (b): change the thresholds before confirming.** TVD is scored on drawn answers, and
+  drawing alone produces TVD even with perfect probabilities: P6 (≤ 12.5 pp, cells of ≥ 50 donors)
+  can fail on chance alone, and P1 to P3 partly measure noise. **The fix:** score P1 to P3 and P6 on
+  the weighted mean of the predicted probabilities, keeping the drawn-answer TVD as a record; or
+  subtract a simulated draw-noise floor. Which of the two, and the new P1 to P3 and P6 thresholds, are
+  still to be agreed with him.
+- **Deadline:** before a preregistration is pinned. `panel-grounded-respondents` 7h (the confirmation
+  run) does not run until the thresholds are changed and confirmed.
