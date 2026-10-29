@@ -259,6 +259,13 @@ describe("Run", () => {
     // Kontrola reads, never submits (spec sber F2): the working revision's readiness, no Design Revision.
     expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("/readiness/working?working_revision=");
+    // PROJECT is a copy the template completed on load: it is saved (a save, no Design Revision) before
+    // the checks are read, so they read what is on screen (Codex on #1126), on the revision the save made.
+    const firstSave = calls.findIndex((c) => c.method === "PUT" && c.url.endsWith("/workspace/content"));
+    const firstRead = calls.findIndex((c) => c.url.includes("/readiness/working"));
+    expect(firstSave).toBeGreaterThanOrEqual(0);
+    expect(firstSave).toBeLessThan(firstRead);
+    expect(calls[firstRead].url).toContain("working_revision=4");
     expect(screen.getByText("n = 450.")).toBeTruthy();
     fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
