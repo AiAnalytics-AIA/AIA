@@ -14,7 +14,7 @@ What it creates, and why each piece exists:
 | ECR `aia-api`, `aia-worker`, `aia-web`, `aia-legacy-panel` | Images by git SHA; 30 kept; scan on push. The list (`local.images`) is also the deploy role's push grant: an image a workflow pushes without it here is refused with 403 (OI-41). `aia-legacy-panel` is pushed only by the hand-dispatched *Reference unit* workflow (`deploy/reference`, ADR 0018 decision 5); the product's deploy builds the other three |
 | SSM parameters `/aia/develop/*` | Configuration for the host's env file; the PostgreSQL password is a generated `SecureString` |
 | Cognito user pool + Google IdP + hosted domain + public app client | Authentication only ([ADR 0003](../../docs/architecture/adr/0003-cognito-identity-boundary.md)); PKCE; no self sign-up |
-| GitHub OIDC provider + `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys |
+| `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys. It trusts the account's GitHub OIDC provider, which [`infra/account`](../account/README.md) owns and this root only looks up |
 | `aia-develop-github-plan` role | Lets CI's *Terraform plan (develop)* job, in the `terraform-plan` GitHub environment only, read develop's state, its tfvars in SSM and the settings of what it refreshes. No write, no bucket object ([§ Terraform in CI](#terraform-in-ci)) |
 | DLM daily snapshot (7 kept), CloudWatch log group, 3 alarms, SNS email, AWS Budget | Observability and cost control at the size that matters here |
 

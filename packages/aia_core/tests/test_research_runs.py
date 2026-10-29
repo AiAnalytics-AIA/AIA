@@ -1153,6 +1153,7 @@ def test_the_typed_start_starts_the_run_its_command_names(
         fieldwork_source=AI,
         analysis_enabled=False,
         sociomapping_enabled=False,
+        qc_enabled=False,
         reservations=RESERVE,
         persona_source=PersonaSource.FICTIONAL_ROSTER,
         require_answerability=False,
