@@ -3724,6 +3724,11 @@ export const cs = {
       populationRead: "Populace: {label} ({population}).",
       previous: "Předchozí běhy",
       noRuns: "Tato studie zatím nemá žádný běh.",
+      // Průběh with no run in the study (FLD21; Fieldwork.dc.html's empty Průběh). The board names the
+      // revision; Průběh shows the study's newest run of any revision, so "no run" is the study's.
+      noRunTitle: "Ve studii zatím běh není",
+      noRunBody: "Běh spustíte v pohledu Kontrola a spuštění, nebo kartou Vedoucího. Jakmile poběží, otevře se tento pohled sám.",
+      toCheck: "Kontrola a spuštění",
       toProgress: "Zobrazit průběh",
       toResults: "Zobrazit výsledky",
       startedAt: "Spuštěno {when}",

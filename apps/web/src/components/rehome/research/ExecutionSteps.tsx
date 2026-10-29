@@ -108,6 +108,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
+import { Icon } from "../icons";
 import { ActionDock, FrameNavigation, Switch } from "../step";
 import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
@@ -1027,13 +1028,32 @@ function RunList({ runs }: { runs: ResearchRunSummary[] }) {
               {isSynthetic(r) ? <StatusPill tone="fault">{t("research.exec.fictional")}</StatusPill> : null}
               {isModelled(r) ? <StatusPill tone="neutral">{t("research.exec.modelled")}</StatusPill> : null}
               {hasUnknownOrigin(r) ? <StatusPill tone="fault">{t("research.exec.unknownOrigin")}</StatusPill> : null}
-              <a className={`underline ${RUN_LINK}`} href={`${stepHref(runDestination(r))}?run=${encodeURIComponent(r.run_id)}`}>
-                {runDestination(r) === "results" ? t("research.exec.toResults") : t("research.exec.toProgress")}
-              </a>
+              {/* Every run's Průběh, and its results once they are ready (FLD21). */}
+              <a className={`underline ${RUN_LINK}`} href={`${stepHref("progress")}?run=${encodeURIComponent(r.run_id)}`}>{t("research.exec.toProgress")}</a>
+              {runDestination(r) === "results" ? (
+                <a className={`underline ${RUN_LINK}`} href={`${stepHref("results")}?run=${encodeURIComponent(r.run_id)}`}>{t("research.exec.toResults")}</a>
+              ) : null}
             </li>
           ))}
         </ul>
       )}
+    </Card>
+  );
+}
+
+/** Průběh with no run in the study: in the workbench, where a run is started and that this view opens on its own (FLD21). */
+function NoRun() {
+  const workbench = useContext(FrameNavigation) !== null;
+  const { stepHref } = useResearch();
+  if (!workbench) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
+  return (
+    <Card title={t("research.exec.noRunTitle")}>
+      <p className="text-sm text-ink-muted">{t("research.exec.noRunBody")}</p>
+      <div className="mt-3">
+        <Link className={`gap-1.5 rounded-sm border border-border-strong bg-surface-raised px-2 text-xs font-medium text-ink hover:bg-surface-sunken ${RUN_LINK}`} href={stepHref("run")}>
+          <Icon name="checks" size={14} />{t("research.exec.toCheck")}
+        </Link>
+      </div>
     </Card>
   );
 }
@@ -1424,7 +1444,7 @@ export function ProgressStep() {
 
   if (run === undefined && error) return <Card><p role="alert" className="text-sm text-status-fault">{error}</p><Button className="mt-3" onClick={refresh}>{t("research.retry")}</Button></Card>;
   if (run === undefined) return <p className="text-sm text-ink-muted">{t("research.loading")}</p>;
-  if (run === null) return <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card>;
+  if (run === null) return <NoRun />;
   const parked = parkedForRuntime(run);
   const failed = run.steps.find((s) => s.status === "FAILED");
   const budgetWaits = run.steps.filter((s) => s.status === "AWAITING_BUDGET");

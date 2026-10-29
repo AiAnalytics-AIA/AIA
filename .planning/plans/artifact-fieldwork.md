@@ -29,7 +29,7 @@ chunks:
   - "[ ] FLD18. Průběh's steps grouped Sběr, Výpočet, Analýza and Zpráva, only the running group open (W1)"
   - "[ ] FLD19. A 'Celkem / Podle věku' switch on the respondent disc (W2, with run-qc-and-checkpoint#RQC7d's sectors)"
   - "[ ] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
-  - "[ ] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
+  - "[x] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
   - "[ ] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
   - "[ ] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
   - "[ ] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
@@ -362,6 +362,14 @@ unknown, never 0.
 **FLD21. Průběh for any run** (W1). FLD9 opens Průběh after a start and while a run moves; a finished, failed or parked
 run is reachable too, from the view switch and from the run list. Test: a finished run's Průběh opens from Kontrola's
 switch.
+
+*Built (FLD21):* Kontrola's switch opens Průběh on the study's newest run whatever its state (`useRun` reads it
+when no `?run=` names one); the run list on Kontrola links every run's Průběh, and a run whose results are
+ready its Výsledky beside it (`RunList`). With no run in the study, the workbench's Průběh says where a run is
+started and links Kontrola a spuštění (Fieldwork.dc.html's empty Průběh, `NoRun`); the board's "Na revizi N"
+reads "Ve studii", since Průběh shows the newest run of any revision, and the board's demo button is not built.
+The classic layout keeps its one line. Tests: `ExecutionSteps.test.tsx` ("opens a finished run's Průběh …",
+"says on the workbench's Průběh where a run is started …", 6a's links).
 
 **FLD22-FLD25. Kontrola, explicit** (W1, lane E). Spec `sber/F2`-`F5`, until now a note under FLD6:
 - FLD22 (`sber/F2`): readiness read from the working copy (`GET …/research/readiness/working`); `submitWorkingDesign`
