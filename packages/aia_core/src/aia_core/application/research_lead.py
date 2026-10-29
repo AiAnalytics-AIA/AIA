@@ -35,6 +35,7 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
+from ..domain.ai_route_reach import AiRouteReach, lead_preflight
 from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
 from ..domain.design import DESIGN_PROJECT_OWNER
@@ -109,6 +110,7 @@ from ..infrastructure.study_workspace_repository import (
 from ..infrastructure.workflow_repository import BudgetWaitNotLiftable, WorkflowRepository
 from .analysis_results import SourcesRefused, _external_context
 from .deep_research import DeepResearchRuns
+from .deep_research_reach import newest_composition
 from .lead_chat_start import approve_chat_start, chat_start_decisions
 from .lead_deep_research import (
     DeepResearchCardRequest,
@@ -222,28 +224,66 @@ WORKER_NOT_READY_REASONS: Final = frozenset(
 )
 
 
+@dataclass(frozen=True, slots=True)
+class WorkerPreflight:
+    """The newest worker start's composition, as the Lead's readiness reads it (LO12b).
+    ``ai_route`` ``None``: no worker recorded one, or it was recorded before LO12b."""
+
+    ai_route: AiRouteReach | None
+    composed_at: datetime | None = None
+    build_sha: str | None = None
+
+
+def worker_preflight(session: Session, scope: StudyContext) -> WorkerPreflight:
+    """The newest worker start's recorded composition, for :func:`worker_readiness`."""
+    latest = newest_composition(session, scope)
+    if latest is None:
+        return WorkerPreflight(None)
+    return WorkerPreflight(latest.ai_route, latest.composed_at, latest.build_sha)
+
+
 def worker_readiness(
     turns: Sequence[Mapping[str, Any]],
+    preflight: WorkerPreflight | None = None,
 ) -> tuple[bool | None, str | None, str | None]:
-    """Whether the worker can answer a Lead turn, as far as the caller's own turns show: the
-    answer, where it was read, and the reason when it is ``False``.
+    """Whether the worker can answer a Lead turn: the answer, where it was read, and the reason
+    when it is ``False``.
 
-    There is no worker composition record yet (lead-orchestration LO12b), so the one honest
-    source the API holds is this conversation's newest Lead turn a worker has decided. Parked
-    or failed for a reason that names the worker's composition
-    (:data:`WORKER_NOT_READY_REASONS`), the worker is not ready:
-    ``(False, "newest_turn", <reason>)``. Nothing here can say a worker *is* ready -- a turn
-    answered yesterday proves nothing about the worker running today -- so the answer is
-    otherwise ``(None, None, None)``: unknown, never ``True``. LO12b's record replaces this.
+    The conversation's newest Lead turn a worker has decided is read first: parked or failed
+    for a reason that names the worker's composition (:data:`WORKER_NOT_READY_REASONS`), the
+    worker is not ready, ``(False, "newest_turn", <reason>)``. A turn refused for its own
+    material (a class its knowledge raised it to) says nothing about the worker; its pane shows
+    that turn's own reason.
+
+    With ``preflight`` (``AIA_AI_ROUTE_PREFLIGHT_ENABLED``) and a recorded route, the newest
+    worker start's composition decides (``"composition"``), unless such a parked turn was decided
+    at or after that start (``decided_at``, the attempt's finish, against ``composed_at``; both
+    the worker's clock), which is the newer evidence: ``False`` with the reason every turn would
+    park for on it (``ai_route_reach.lead_preflight``), else ``True``. ``True`` means the newest
+    worker start was composed to answer a Lead turn -- not that a worker runs now; the caller
+    shows the record's time and build beside it (Nigel, 2026-10-28 ~21:02 UTC, through the PM
+    coordinator: "Yes, with its time"). Without either, never ``True``.
     """
+    parked: str | None = None
+    decided: object = None
     for turn in reversed(turns):
         if turn["actor"] != "lead" or turn["status"] in ("QUEUED", "RUNNING", "CANCELLED"):
             continue
-        reason = turn["reason"]
-        if turn["status"] in ("WAITING", "FAILED") and reason in WORKER_NOT_READY_REASONS:
-            return False, "newest_turn", str(reason)
-        return None, None, None
-    return None, None, None
+        if turn["status"] in ("WAITING", "FAILED") and turn["reason"] in WORKER_NOT_READY_REASONS:
+            parked, decided = str(turn["reason"]), turn.get("decided_at")
+        break
+    if preflight is None or preflight.ai_route is None:
+        return (False, "newest_turn", parked) if parked else (None, None, None)
+    if parked and (
+        preflight.composed_at is None
+        or not isinstance(decided, datetime)
+        or decided >= preflight.composed_at
+    ):
+        return False, "newest_turn", parked
+    refusal = lead_preflight(preflight.ai_route)
+    if refusal is not None:
+        return False, "composition", refusal
+    return True, "composition", None
 
 
 class LeadBusy(Exception):
@@ -424,6 +464,9 @@ def _view(
         "self_update_base": None,
         # Parked on the study's budget (see _holds); never sent to the browser.
         "awaiting_budget": False,
+        # When a worker decided the turn's newest attempt, by its clock (worker_readiness);
+        # never sent to the browser.
+        "decided_at": None,
         # What waits for the researcher's yes, as the step stored it; read by
         # decide_self_update, never sent to the browser.
         "pending_self_update": None,
@@ -459,6 +502,7 @@ def _view(
         status=status,
         reason=reason,
         awaiting_budget=step["status"] is StepRunStatus.AWAITING_BUDGET,
+        decided_at=(last or {}).get("finished_at"),
     )
     out = step.get("output") or {}
     if status == "COMPLETED" and isinstance(out.get("lead_output"), dict):
