@@ -184,14 +184,14 @@ SOCIOMAP = f"{METHODOLOGY}/sociomap"
 
 
 def _edit(formulas: dict[str, str] | None = None, **changes: Any) -> dict[str, Any]:
-    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
     for path, value in changes.items():
         node = spec
         *parents, leaf = path.split("__")
         for p in parents:
             node = node[p]
         node[leaf] = value
-    return {"base_preset": "aia-sociomap-3", "spec": spec, "formulas": formulas or {}}
+    return {"base_preset": "aia-sociomap-5", "spec": spec, "formulas": formulas or {}}
 
 
 @pytest.mark.parametrize("who", ["lead", "researcher", "outsider"])
@@ -243,9 +243,9 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
     )
     assert proposed.status_code == 201
     version = proposed.json()
-    assert (version["version_number"], version["name"]) == (1, "aia-sociomap-3+e1")
+    assert (version["version_number"], version["name"]) == (1, "aia-sociomap-5+e1")
     assert version["spec"]["terrain"]["sigma"] == 0.3
-    assert version["spec"]["methodology_version"] == "aia-sociomap-3+e1"
+    assert version["spec"]["methodology_version"] == "aia-sociomap-5+e1"
     assert owner.get(f"{SOCIOMAP}/versions").json()["in_force"]["origin"] == "code"
 
     put = owner.put(f"{SOCIOMAP}/activation", json={"version_number": 1, "reason": "ověřeno"})
@@ -254,7 +254,7 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
         "origin": "stored",
         "preset": None,
         "version_number": 1,
-        "name": "aia-sociomap-3+e1",
+        "name": "aia-sociomap-5+e1",
         # An edit is another method: internal until registered, never presumed approved.
         "register_status": "INTERNAL_ONLY",
     }
@@ -279,13 +279,29 @@ def test_propose_then_activate_puts_an_edit_in_force_and_reset_returns_the_prese
 def test_an_invalid_edit_is_422_with_every_problem_and_check_says_the_same(
     owner: TestClient,
 ) -> None:
-    edit = _edit({"f6.distance": "open('x')"}, relation__n_min=2)
+    edit = _edit({"f8.height": "open('x')"}, relation__n_min=2)
     checked = owner.post(f"{SOCIOMAP}/check", json=edit).json()
     assert checked["valid"] is False
-    assert {"spec.relation.n_min", "formula.f6.distance"} <= set(checked["problems"])
+    assert {"spec.relation.n_min", "formula.f8.height"} <= set(checked["problems"])
     refused = owner.post(f"{SOCIOMAP}/versions", json=edit)
     assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
     assert refused.json()["details"]["problems"] == checked["problems"]
+    assert owner.get(f"{SOCIOMAP}/versions").json()["versions"] == []
+
+
+def test_a_version_from_an_earlier_preset_is_422_and_nothing_is_stored(
+    owner: TestClient,
+) -> None:
+    """Metodika's Sociomap is edited from aia-sociomap-5 alone (MQ-23 (a)): an earlier preset
+    the versions route still serves is refused as a base, whole and valid as its spec is."""
+    edit = {
+        "base_preset": "aia-sociomap-3",
+        "spec": AIA_SOCIOMAP_V3.model_dump(mode="json"),
+        "formulas": {},
+    }
+    refused = owner.post(f"{SOCIOMAP}/versions", json=edit)
+    assert refused.status_code == 422 and refused.json()["code"] == "methodology_invalid"
+    assert set(refused.json()["details"]["problems"]) == {"base_preset"}
     assert owner.get(f"{SOCIOMAP}/versions").json()["versions"] == []
 
 
@@ -344,9 +360,7 @@ def test_a_member_compares_an_edit_with_what_is_in_force_on_fictional_panels(
 ) -> None:
     member: TestClient = as_user("researcher")
     # An edit of what is in force, aia-sociomap-5, with a stricter pair n_min.
-    edit = {**_edit(), "base_preset": "aia-sociomap-5"}
-    edit["spec"] = AIA_SOCIOMAP_V5.model_dump(mode="json")
-    edit["spec"]["relation"]["n_min"] = 34
+    edit = _edit(relation__n_min=34)
     body = member.post(f"{SOCIOMAP}/compare", json=edit).json()
     assert (body["valid"], body["in_force"]) == (True, "aia-sociomap-5")
     panels = {p["panel"]: p for p in body["panels"]}
@@ -375,13 +389,13 @@ def test_compare_is_for_the_editable_modules(owner: TestClient) -> None:
 
 
 def test_compare_reads_the_stored_version_in_force(owner: TestClient) -> None:
-    number = owner.post(f"{SOCIOMAP}/versions", json=_edit(terrain__sigma=0.3)).json()[
+    number = owner.post(f"{SOCIOMAP}/versions", json=_edit(terrain__idw_power=2.0)).json()[
         "version_number"
     ]
     owner.put(f"{SOCIOMAP}/activation", json={"version_number": number})
     body = owner.post(f"{SOCIOMAP}/compare", json=_edit()).json()
-    assert body["in_force"] == "aia-sociomap-3+e1"
-    assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # 0.3 in force, 0.25 drafted
+    assert body["in_force"] == "aia-sociomap-5+e1"
+    assert all(p["terrain_max_change"] > 0 for p in body["panels"])  # power 2 in force, 3 drafted
 
 
 # --------------------------------------------------------------------------- support (G1d)

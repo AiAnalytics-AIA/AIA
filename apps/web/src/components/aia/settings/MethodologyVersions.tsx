@@ -102,11 +102,14 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
   const [activating, setActivating] = useState<{ version: number | null } | null>(null);
   const presetStart = (name: string): Start => ({ base: name, spec: data.presets[name] ?? {}, formulas: {}, from: name });
   const versionStart = (v: MethodVersion): Start => ({ base: v.base_preset, spec: v.spec, formulas: v.formulas, from: v.name });
+  // An edit starts from the preset in force alone (MQ-23 (a)): a version stored from an earlier one is
+  // read, never edited from or put in force (the server refuses both).
+  const startable = (v: MethodVersion) => !summary.in_force || v.base_preset === summary.in_force;
   // An edit starts from what is in force (product owner, 2026-10-13): the stored version in force,
   // else the code's preset in force (not merely the first one listed).
   const editStart = (): Start => {
     const stored = data.in_force.origin === "stored" ? data.versions.find((v) => v.version_number === data.in_force.version_number) : undefined;
-    const from = stored ? versionStart(stored) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
+    const from = stored && startable(stored) ? versionStart(stored) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
     return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13); anyone else on
@@ -246,10 +249,11 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
                       <td className={`${CELL} text-right`}>
                         <div className="flex flex-col items-end gap-2">
                           {/* A version just saved is activated from its confirmation above: one button, never two. */}
-                          {data.may_edit && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
+                          {data.may_edit && startable(v) && inForce.version_number !== v.version_number && done?.version?.version_number !== v.version_number ? (
                             <Button small aria-label={tv(`${V}.activateNamed`, { name: v.name })} disabled={start !== null && dirty} onClick={() => { setDone(null); setActivating({ version: v.version_number }); }}>{t(`${V}.activateShort`)}</Button>
                           ) : null}
-                          {data.may_edit ? <Button small aria-label={tv(`${V}.editFromNamed`, { name: v.name })} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
+                          {data.may_edit && !startable(v) ? <span className="text-xs text-ink-muted">{t(`${V}.earlierBase`)}</span> : null}
+                          {data.may_edit && startable(v) ? <Button small aria-label={tv(`${V}.editFromNamed`, { name: v.name })} onClick={() => { setDone(null); changeStart(versionStart(v)); }}>{t(`${V}.editFromShort`)}</Button> : null}
                         </div>
                       </td>
                     </tr>
@@ -313,7 +317,8 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
             start={start}
             currentSpec={currentSpec}
             nextName={`${start.base}+e${Math.max(0, ...data.versions.map((v) => v.version_number)) + 1}`}
-            presets={Object.keys(data.presets)}
+            // A version starts from the preset in force alone (MQ-23 (a)); the rest read stored runs only.
+            presets={summary.in_force ? [summary.in_force] : Object.keys(data.presets)}
             onBase={(name) => changeStart(presetStart(name))}
             onDirty={setDirty}
             onCompared={onCompared}
@@ -612,7 +617,7 @@ function EditorForm({ summary, start, presets, detail, currentSpec, nextName, on
           {start.inForce && start.base !== start.inForce && start.from === start.base ? <>{tv(`${V}.startSameAs`, { base: start.base })} </> : null}
           {t(`${V}.startNamed`)} <span className="whitespace-nowrap font-mono">{nextName}</span>{internal ? <> {t(`${V}.startIs`)} <b className="font-semibold">{t(`${V}.startInternal`)}</b>{t(`${V}.startUntil`)}</> : "."}
         </p>
-        {presets.length > 1 ? (
+        {presets.length > 1 || (start.inForce !== undefined && summary.presets.length > 1) ? (
           <Field label={t(`${V}.base`)} className="w-56">
             <Select aria-label={t(`${V}.base`)} disabled={busy} value={!start.inForce && start.from === start.base ? start.base : ""} onChange={(e) => e.target.value && onBase(e.target.value)}>
               {!start.inForce && start.from === start.base ? null : <option value="">{start.inForce ? t(`${V}.inForceOption`) : start.from}</option>}

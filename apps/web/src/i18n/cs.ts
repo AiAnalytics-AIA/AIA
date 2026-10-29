@@ -1200,6 +1200,7 @@ export const cs = {
           activateShort: "Aktivovat", activateNamed: "Aktivovat {name}",
           editFromNamed: "Upravit z verze {name}",
           editFromShort: "Upravit",
+          earlierBase: "Z dřívější metodiky: jen ke čtení.",
           codeChanges: "Metoda tak, jak ji počítá kód.",
           baselineButton: "Ukázat metodiku v platnosti na fiktivních panelech",
           baselineChip: "Bez úpravy: {name} vedle sebe sama",

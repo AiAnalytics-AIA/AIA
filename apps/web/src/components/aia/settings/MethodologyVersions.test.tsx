@@ -21,11 +21,11 @@ type Doc = {
 const doc = fixture as unknown as Doc;
 type Sent = { method: string; url: string; body: Record<string, unknown> | null };
 
-function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare }: { mayAdminister?: boolean; mayEdit?: boolean; check?: (body: Record<string, unknown>) => unknown; compare?: unknown } = {}) {
+function fakeApi({ mayAdminister = true, mayEdit = mayAdminister, check, compare, stored = [], storedInForce = null }: { mayAdminister?: boolean; mayEdit?: boolean; check?: (body: Record<string, unknown>) => unknown; compare?: unknown; stored?: Record<string, unknown>[]; storedInForce?: number | null } = {}) {
   const sent: Sent[] = [];
-  const versions: Record<string, unknown>[] = [];
+  const versions: Record<string, unknown>[] = [...stored];
   const history: Record<string, unknown>[] = [];
-  let inForce: number | null = null;
+  let inForce: number | null = storedInForce;
   const now = "2026-10-11T12:00:00Z";
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const full = String(url);
@@ -491,6 +491,23 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
     expect(within(row).getByRole("rowheader").textContent).toMatch(/^aia-sociomap-5\+e1/);
   });
 
+  it("reads a version stored from an earlier preset, and never edits from it or puts it in force (MQ-23 (a))", async () => {
+    const name = "aia-sociomap-3+e1";
+    const earlier = { version_number: 1, name, base_preset: "aia-sociomap-3", spec: { ...doc.presets.sociomap["aia-sociomap-3"], methodology_version: name }, formulas: {}, payload_sha256: "a".repeat(64), note: "", created_by: "U-1", created_at: "2026-10-11T12:00:00Z", register_status: "INTERNAL_ONLY" };
+    const { sent } = fakeApi({ stored: [earlier], storedInForce: 1 });
+    render(<MethodologyPanel />); await openMap();
+    // In force, yet the edit starts from the preset in force: the server refuses any other base.
+    const form = await editor();
+    fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
+    fireEvent.click(within(form).getByRole("button", { name: "Uložit verzi" }));
+    await waitFor(() => expect(sent.find((s) => s.method === "POST" && s.url.endsWith("/versions"))?.body?.base_preset).toBe("aia-sociomap-5"));
+    fireEvent.click(screen.getByRole("tab", { name: "Verze a aktivace" }));
+    const row = await found('[data-methodology-version="1"]');
+    expect(within(row).queryByRole("button", { name: `Aktivovat ${name}` })).toBeNull();
+    expect(within(row).queryByRole("button", { name: `Upravit z verze ${name}` })).toBeNull();
+    expect(within(row).getByText("Z dřívější metodiky: jen ke čtení.")).toBeTruthy();
+  });
+
   it("has no register column for a module no register covers", async () => {
     fakeApi(); render(<MethodologyPanel />); await openMap();
     await openModule("Práh zobrazení");
@@ -636,7 +653,10 @@ describe("guided methodology editing", () => {
     fireEvent.change(await field(form, "relation.n_min"), { target: { value: "34" } });
     expect((await field(form, "terrain.sigma")).value).toBe("0,35");
     const unload = new Event("beforeunload", { cancelable: true }); window.dispatchEvent(unload); expect(unload.defaultPrevented).toBe(true);
-    fireEvent.change(within(form).getByLabelText("Začít od metodiky z kódu"), { target: { value: "aia-sociomap-2" } });
+    // A version starts from the preset in force alone: the earlier ones are not offered (MQ-23 (a)).
+    const bases = within(form).getByLabelText("Začít od metodiky z kódu") as HTMLSelectElement;
+    expect([...bases.options].map((o) => o.value)).toEqual(["", "aia-sociomap-5"]);
+    fireEvent.change(bases, { target: { value: "aia-sociomap-5" } });
     expect(screen.getByRole("alertdialog")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Ponechat" }));
     expect((await field(form, "terrain.sigma")).value).toBe("0,35");
