@@ -30,7 +30,7 @@ chunks:
   - "[ ] FLD19. A 'Celkem / Podle věku' switch on the respondent disc (W2, with run-qc-and-checkpoint#RQC7d's sectors)"
   - "[x] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
   - "[x] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
-  - "[ ] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
+  - "[x] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
   - "[ ] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
   - "[ ] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
   - "[ ] FLD25. SpendDialog on Start: Strop běhu, Rozpočet studie (zbývá), Práh potvrzení and Peněženka, the primary 'Spustit · nejvýše {ceiling}' (spec sber F5; carved out of FLD6; W1, with input-interactions#6)"
@@ -269,6 +269,11 @@ None new (replacement is MVPQ-10, already open).
   opens on Průběh while the newest run moves (running, waiting for a person, at fault), else on Kontrola (FLD9).
 - `CLAUDE.md` § 3, "The research workbench, in a browser": the journey also switches Sběr dat's two views at
   1440/1100/768/390; "A research run, end to end": after the start, Průběh is the selected view (FLD9).
+- `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola (RunStep) reads readiness on the working revision
+  and submits a Design Revision only inside Start, which reads the submitted revision's readiness before it runs
+  (FLD22); `lib/answerability.ts` `sameGaps`; `lib/api.ts` `research.workingReadiness` takes the population child.
+- `CLAUDE.md` § 3, "A research run, end to end": the visit to Kontrola submits nothing, the start exactly one
+  revision (FLD22).
 
 ## From the research build spec (2026-10-26)
 
@@ -386,6 +391,26 @@ The classic layout keeps its one line. Tests: `ExecutionSteps.test.tsx` ("opens 
   ResearchTraceCard and QuestionOutlookCard inside it. Test: a FAIL opens it.
 - FLD25 (`sber/F5`): `SpendDialog` replaces `ask()`; no dialog below the threshold or for fictional respondents.
   Test: the dialog's four lines and the primary's amount.
+
+*Built (FLD22):* `RunStep` reads an editor's readiness on the working revision on screen
+(`GET …/research/readiness/working`, through Vzorek's `loadSampleReadiness`: a change still waiting is saved
+first, a refused save never read), with the person's source and population child (the web's
+`research.workingReadiness` now passes `population_version_id`); it is read again when the working revision
+moves, only the newest read shown. A visit submits nothing (a study never saved is saved as the template
+completed it, never a Design Revision). Start asks the acknowledgement and the spend on what is on screen
+first, so declining writes nothing; then it submits the working copy (`submitWorkingDesign`), reads that
+revision's own readiness, and runs it. When the submitted revision is not ready, or asks for an acknowledgement
+the person did not give for those very gaps, nothing starts and Kontrola is read again ("Návrh se před
+spuštěním změnil"; a failed re-read says its own error). The acknowledgement carries over to the same gaps,
+whether one is required included, under the submitted revision's digest (`lib/answerability.ts` `sameGaps`), as
+decided by default under FLD9's note. The cost: that path leaves the submitted revision without a run, and a
+start reads readiness twice (the working copy's on screen, the submitted revision's). A reader still sees the newest Design Revision's
+readiness. "Co spustíte" titles the working copy ("Pracovní kopie · revize N") until FLD23 reworks it.
+Tests: `ExecutionSteps.test.tsx` ("reads the checks on the working copy, submits nothing on a visit …",
+"carries the acknowledgement …", "starts nothing when the submitted revision's gaps differ …");
+`workbench_journey.mjs` (four Kontrola visits submit no design), `research_journey.mjs` (the start submits
+exactly one) and `coherence_journey.mjs` step 4 (Kontrola names the edited working copy beside the run's own
+revision, in the classic layout; it read "Revize návrhu N" off Kontrola before).
 
 **FLD13 and FLD14** had no wave in the execution contracts (`tools/master_check.py` failed on develop `dbaa7720`); both
 are W1 now, with the disc (FLD8b, RQC7c), proposed here.

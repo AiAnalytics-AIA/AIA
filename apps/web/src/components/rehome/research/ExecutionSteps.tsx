@@ -27,6 +27,7 @@ import {
   type QuestionOutlook,
   type PersonaSourceOption,
   type Readiness,
+  type ReadinessBody,
   type Answerability,
   type AnswerabilityAcknowledgement,
   type ResearchTrace,
@@ -105,6 +106,7 @@ import { AnalysisExternal } from "./AnalysisExternal";
 import { FindingInspectButton, setShownAnalysis, useOpenAnalysisItem, type OpenAnalysisItem } from "./AnalysisInspect";
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
+import { loadSampleReadiness } from "@/components/workbench/useSampleReadiness";
 import { projectVariants, selectedVariant } from "@/research/plan";
 import { chosenDimensions, dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
@@ -131,7 +133,7 @@ import { citedMeasure, untitled, compareObjects, type CompiledSpecification, mea
 import { FormattedText } from "./FormattedText";
 import { CompleteReport } from "./CompleteReport";
 import { AnswerabilityGate } from "./AnswerabilityGate";
-import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, unanswerableAsked } from "@/lib/answerability";
+import { type AcknowledgementState, acknowledgementOf, acknowledges, confirmedFor, fixHref, gapFixes, hasGaps, refusalFor, NO_ACKNOWLEDGEMENT, needsAcknowledgement, sameGaps, unanswerableAsked } from "@/lib/answerability";
 import { errorText } from "@/lib/error-words";
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
@@ -273,7 +275,7 @@ function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; poin
  * above which Start asks first (plan 5b.2). The ceiling is the server's; the page only shows it,
  * and an unknown one is said to be unknown, never drawn as zero.
  */
-function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: Readiness; canEdit: boolean; onLimitSaved: () => void }) {
+function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: ReadinessBody; canEdit: boolean; onLimitSaved: () => void }) {
   const frame = useFrame();
   const [study, setStudy] = useState<Study | null | undefined>(undefined);
   const [saving, setSaving] = useState(false);
@@ -442,7 +444,7 @@ export function checkHref(checkId: string, stepHref: (step: StepKey) => string, 
 }
 
 /** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
-function Receipt({ revision, readiness }: { revision: number; readiness: Readiness }) {
+function Receipt({ revision, working, readiness }: { revision: number; working: boolean; readiness: ReadinessBody }) {
   const { state, stepHref } = useResearch();
   const p = state.project;
   const variant = projectVariants(state).find((v) => v.id === selectedVariant(p));
@@ -458,8 +460,8 @@ function Receipt({ revision, readiness }: { revision: number; readiness: Readine
     ["persona", tv("research.exec.receiptDims", { d: chosenDimensions(p).length, n: readiness.n ?? "—" })],
   ];
   return (
-    <Card title={tv("research.exec.revision", { revision })}>
-      <p className="text-[13px] text-ink-muted">{t("research.exec.revisionHelp")}</p>
+    <Card title={tv(working ? "research.exec.workingRevision" : "research.exec.revision", { revision })}>
+      <p className="text-[13px] text-ink-muted">{t(working ? "research.exec.workingRevisionHelp" : "research.exec.revisionHelp")}</p>
       <h3 className="mt-3 text-[13px] font-semibold">{t("research.exec.receiptTitle")}</h3>
       <dl className="@container mt-1.5 divide-y divide-border rounded-control border border-border">
         {rows.map(([k, v]) => (
@@ -653,7 +655,7 @@ const CHECK_ORDER: Record<string, number> = { FAIL: 0, WARN: 1, PASS: 2 };
 const DEEP_RESEARCH_RUNS_MAX = 100;
 
 export function RunStep() {
-  const { store, stepHref, confirmSpend } = useResearch();
+  const { store, stepHref, confirmSpend, state: { revision: workingRevision } } = useResearch();
   const workbench = useContext(FrameNavigation) !== null;
   const frame = useFrame();
   const router = useRouter();
@@ -661,7 +663,9 @@ export function RunStep() {
     | { kind: "loading" }
     | { kind: "failed"; message: string }
     | { kind: "none" }
-    | { kind: "ready"; revision: number; readiness: Readiness }
+    // `working`: read on the working revision the person sees (FLD22), nothing submitted; a person who
+    // may not edit reads the newest Design Revision's.
+    | { kind: "ready"; revision: number; working: boolean; readiness: ReadinessBody & { design_revision_id?: string } }
   >({ kind: "loading" });
   const [runs, setRuns] = useState<ResearchRunSummary[]>([]);
   const [starting, setStarting] = useState(false);
@@ -709,46 +713,77 @@ export function RunStep() {
     };
   }, [frame.clientId]);
 
+  // Kontrola reads, never submits (FLD22, spec sber F2): an editor reads readiness on the working
+  // revision on screen (a change still waiting is saved first, a refused save never read), so a visit
+  // moves no design head; the revision a run executes is submitted only inside Start. Read again when
+  // the working revision moves (a Lead's accepted edit), the answer on screen kept meanwhile.
+  const readOn = useCallback(async (personaSource?: string, child?: string | null) => {
+    if (frame.canEdit) {
+      // A study whose working content was never saved, or a copy the template completed on load, is
+      // saved as shown (a save, never a Design Revision), so the checks read what is on screen, as
+      // Start would save it; a template-supplied n read as missing would hold Start back.
+      const s = store.get();
+      // A refused save is said by the read below, in its words.
+      if ((s.revision === null || s.completed) && s.save.kind !== "conflict") {
+        await store.flush("run").catch((e: unknown) => {
+          if (store.get().save.kind !== "conflict") throw e;
+        });
+      }
+      const read = await loadSampleReadiness(store, frame.studyId, true, {
+        readiness: (studyId, revision) => research.workingReadiness(studyId, revision, personaSource, child ?? undefined),
+      });
+      if (read.kind === "failed") throw new Error(read.message);
+      return read.kind === "ready" ? { kind: "ready" as const, revision: read.revision, working: true, readiness: read.readiness } : { kind: "none" as const };
+    }
+    const latest = (await research.revisions(frame.studyId))[0];
+    if (!latest) return { kind: "none" as const };
+    const readiness = await research.readiness(frame.studyId, latest.revision_id, personaSource, child ?? undefined);
+    return { kind: "ready" as const, revision: latest.revision, working: false, readiness };
+  }, [frame.studyId, frame.canEdit, store]);
+  // Only the newest read is shown: an older one (the working revision moved, then the person chose
+  // another source) answering last never puts the old choice back on screen.
+  const reads = useRef(0);
+  const readLatest = useCallback(async (personaSource?: string, child?: string | null) => {
+    const n = ++reads.current;
+    try {
+      const p = await readOn(personaSource, child);
+      return n === reads.current ? p : null;
+    } catch (e) {
+      if (n === reads.current) throw e;
+      return null;
+    }
+  }, [readOn]);
+  const choice = useRef<{ source?: string; child: string | null }>({ child: null });
   useEffect(() => {
     let live = true;
-    (async () => {
-      let revisionId: string;
-      let revision: number;
-      if (frame.canEdit) {
-        // The design the person sees, once per visit -- but only as AIA holds it: a
-        // change still waiting for its save is saved first, and a copy whose save was
-        // refused (someone saved a newer one) never becomes a revision a run executes.
-        let r: DesignRevision;
-        try {
-          r = await submitWorkingDesign(store, frame.studyId, "run");
-        } catch (e) {
-          throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
-        }
-        revisionId = r.revision_id;
-        revision = r.revision;
-      } else {
-        const latest = (await research.revisions(frame.studyId))[0];
-        if (!latest) return live && setPrepared({ kind: "none" });
-        revisionId = latest.revision_id;
-        revision = latest.revision;
-      }
-      const readiness = await research.readiness(frame.studyId, revisionId);
-      if (live) setPrepared({ kind: "ready", revision, readiness });
-    })().catch((e: unknown) => live && setPrepared({ kind: "failed", message: message(e) }));
+    readLatest(choice.current.source, choice.current.child).then(
+      (p) => live && p && setPrepared(p),
+      (e: unknown) => live && setPrepared({ kind: "failed", message: message(e) }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [readLatest, workingRevision]);
+  useEffect(() => {
+    let live = true;
     research.runs(frame.studyId).then((r) => live && setRuns(r), () => {});
     return () => {
       live = false;
     };
-  }, [frame.studyId, frame.canEdit, store]);
+  }, [frame.studyId]);
 
-  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId) => {
-    if (prepared.kind !== "ready") return;
+  /** Reads Kontrola again; the read's error in words when it failed, also said on the page. */
+  const rereadReadiness = async (personaSource = prepared.kind === "ready" ? prepared.readiness.persona_source : undefined, child = childId): Promise<string | null> => {
+    if (prepared.kind !== "ready") return null;
+    // The child the run starts over too: readiness forecasts the population the start draws from.
+    choice.current = { source: personaSource ?? undefined, child };
     try {
-      // The child the run starts over too: readiness forecasts the population the start draws from.
-      const readiness = await research.readiness(frame.studyId, prepared.readiness.design_revision_id, personaSource, child ?? undefined);
-      setPrepared({ ...prepared, readiness });
+      const p = await readLatest(personaSource ?? undefined, child);
+      if (p?.kind === "ready") setPrepared(p);
+      return null;
     } catch (e) {
       setStartError(message(e));
+      return message(e);
     }
   };
   // The checks differ by source (the support forecast, the audience): read them again under it.
@@ -768,21 +803,63 @@ export function RunStep() {
   const ask = (ceiling: number, limit: number) =>
     confirmSpend({ summary: t("input.spend.research.run"), ceilingUsd: ceiling, thresholdUsd: limit, act: t("input.spend.research.startRun") });
 
+  /**
+   * The revision a run executes, submitted now and read as the server will hold it (FLD22): the
+   * working copy as saved, then its own readiness, whose answerability names that revision; and the
+   * acknowledgement to send, the person's for the gaps they were shown, carried to the same gaps
+   * under the submitted revision's digest. When the submitted revision is not ready, or asks for an
+   * acknowledgement the person did not give for those very gaps, nothing starts: Kontrola is read
+   * again and the person decides again.
+   */
+  const submitted = async (): Promise<{ readiness: Readiness; acknowledged?: AnswerabilityAcknowledgement } | null> => {
+    if (prepared.kind !== "ready") return null;
+    const shown = prepared.readiness.answerability;
+    if (!prepared.working) {
+      const readiness = prepared.readiness as Readiness;
+      return { readiness, acknowledged: acknowledgementOf(readiness.answerability, ack) ?? undefined };
+    }
+    let r: DesignRevision;
+    try {
+      r = await submitWorkingDesign(store, frame.studyId, "run");
+    } catch (e) {
+      throw store.get().save.kind === "conflict" ? new Error(CONFLICT_MESSAGE) : e;
+    }
+    const readiness = await research.readiness(frame.studyId, r.revision_id, prepared.readiness.persona_source ?? undefined, childId ?? undefined);
+    const acknowledged = hasGaps(readiness.answerability) && shown && sameGaps(shown, readiness.answerability) && confirmedFor(shown, ack)
+      ? acknowledgementOf(readiness.answerability, { ...ack, digest: readiness.answerability.digest }) ?? undefined
+      : undefined;
+    if (!readiness.ready || (needsAcknowledgement(readiness.answerability) && !acknowledged)) {
+      throw new Error((await rereadReadiness()) ?? t("research.exec.changedOnStart"));
+    }
+    return { readiness, acknowledged };
+  };
+
   const start = async () => {
     if (prepared.kind !== "ready") return;
-    const { readiness } = prepared;
-    const ceiling = num(readiness.cost_ceiling_usd);
-    const limit = num(readiness.spend_confirm_usd);
+    // The gaps are acknowledged, and the spend confirmed, on what the person sees, before anything is
+    // submitted: declining writes no Design Revision.
+    if (needsAcknowledgement(prepared.readiness.answerability) && !acknowledgementOf(prepared.readiness.answerability, ack)) return;
+    const ceiling = num(prepared.readiness.cost_ceiling_usd);
+    const limit = num(prepared.readiness.spend_confirm_usd);
     let yes: number | undefined;
-    if (readiness.confirmation_required && ceiling !== null && limit !== null) {
+    if (prepared.readiness.confirmation_required && ceiling !== null && limit !== null) {
       if (!(await ask(ceiling, limit))) return;
       yes = ceiling;
     }
-    const acknowledged = acknowledgementOf(readiness.answerability, ack) ?? undefined;
-    if (needsAcknowledgement(readiness.answerability) && !acknowledged) return;
     setStarting(true);
     setStartError(null);
     setFound(null);
+    let readiness: Readiness;
+    let acknowledged: AnswerabilityAcknowledgement | undefined;
+    try {
+      const s = await submitted();
+      if (!s) return setStarting(false);
+      ({ readiness, acknowledged } = s);
+    } catch (e) {
+      setStartError(message(e));
+      setStarting(false);
+      return;
+    }
     try {
       let started: ResearchRun;
       try {
@@ -795,13 +872,14 @@ export function RunStep() {
           setAck({ ...ack, confirmed: false });
           // The gaps shown are the ones the server just refused, whatever the re-read does: a
           // failed re-read never leaves older gaps, or none, on screen as the server's (review 3).
-          setPrepared({ ...prepared, readiness: { ...readiness, answerability: refused } });
+          setPrepared({ ...prepared, readiness: { ...prepared.readiness, answerability: refused } });
           await rereadReadiness();
           throw new Error(t("research.exec.answerability.refused"));
         }
         // The limit or the ceiling changed since the page read them: ask with the server's figure.
         const asked = confirmationAsked(e);
-        if (!asked || yes !== undefined || !(await ask(asked.ceiling, asked.limit))) throw e;
+        // Asked again only for a figure the person was not shown (the submitted revision's own).
+        if (!asked || asked.ceiling === yes || !(await ask(asked.ceiling, asked.limit))) throw e;
         started = await research.start(frame.studyId, readiness.design_revision_id, asked.ceiling, childId ?? undefined, readiness.persona_source, acknowledged);
       }
       // A start over a revision that already has a run returns that run (created: false):
@@ -888,7 +966,7 @@ export function RunStep() {
             />
           ) : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
-          <Receipt revision={prepared.revision} readiness={prepared.readiness} />
+          <Receipt revision={prepared.revision} working={prepared.working} readiness={prepared.readiness} />
           <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
           {prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
             <RespondentChoice

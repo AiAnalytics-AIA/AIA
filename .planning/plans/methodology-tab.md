@@ -46,6 +46,8 @@ chunks:
   - "[ ] X1. Simulation documented read-only; declared and editable when it is wired into runs"
   - "[x] Z1a. The path walked on the workbench for the Sociomap, support and aggregation (edit, check, compare, store, activate, run, Results); Results name the methods a run computed under"
   - "[x] Z1b. The walk as committed workbench journeys per module, run like make ui-research; Doc follow-up"
+  - "[x] MQ23a. Metodika offers aia-sociomap-5 alone as the base an edit starts from: the server refuses a version whose base is not the preset in force (stored, checked, compared or activated), the editor's base list holds that preset alone, the tests moved to -5 (the methodology owner 2026-10-29, MQ-23 (a))"
+  - "[ ] MQ23b. Delete aia-sociomap-2 to -4 from the code (the product owner 2026-10-29, \"keep only 5\"): the presets and their constants, and the tests that still read them; a stored -3 run still reads its stored map (see MQ23b below); aia-sociomap-1 untouched until the product owner says"
 ---
 # The Metodika tab — every formula and statistic in AIA, shown from the code and editable by the methodologist
 
@@ -1317,3 +1319,67 @@ To be written as chunks land:
 Review, 2026-10-26, relayed by the PM coordinator; against the proposed POST). S4d (R-1, the audit's
 check script), W1c (weighting) and X1 (Simulation) stay as written; it is outside the development
 plan, and not POST. ADR 0023's questions (Q1-Q7 and its verdict) are left for the methodology owner.
+
+## MQ-23 (a): Metodika offers `-5` alone as a base (2026-10-29)
+
+The methodology owner (2026-10-29, MQ-23 (a), `.planning/mvp-methodology-packet.md` part 2): Metodika
+offers `-5` alone as a base; the earlier presets stay in the code only so stored runs remain readable.
+The product owner took his recommendation, "keep only 5": delete `-2` to `-4`.
+
+**MQ23a (this chunk).** Before it, the editor's "Začít od metodiky z kódu" list offered every shipped
+preset, `-4` to `-2` included (`apps/web/src/components/aia/settings/MethodologyVersions.tsx:316,615-619
+@ 44d5bc72`), and `validate_version` accepted any of them as a base
+(`packages/aia_core/src/aia_core/domain/methodology/versions.py:99-103 @ 44d5bc72`), so a version from
+`-3` could be stored, checked, compared and put in force through the API.
+- **Server.** `validate_version` refuses a base other than the module's `in_force` (`base_preset`
+  problem; 422 `methodology_invalid`). It runs on propose, check, compare and on activation's
+  re-validation, so an edited `-2`..`-4` version already stored cannot be put in force either. Every
+  other editable module has one preset, its `in_force`; `-1` (`sociomap_reference`) is not editable.
+- **Web.** The base list holds the preset in force alone (and "Metodika v platnosti"); it shows only
+  while the module ships more than one preset, so the single-preset modules keep none. A version stored
+  from an earlier preset is read and says "Z dřívější metodiky: jen ke čtení.", with no Aktivovat or
+  Upravit; with one in force, an edit starts from the preset in force (`MethodologyVersions.tsx`
+  `startable`). Test: "reads a version stored from an earlier preset, and never edits from it or puts it
+  in force (MQ-23 (a))" (failed before: the draft was saved on `aia-sociomap-3`).
+- **Tests moved to `-5`** (the PM coordinator, 2026-10-29: move, drop only what exists solely in
+  `-2`..`-4`):
+  - `test_methodology_versions.py`: 6 moved to the `-5` spec and base; formula cases on `f6.distance`,
+    which `-5` does not read, now on `f8.height` / `f12.kernel`. Added
+    `test_a_base_other_than_the_preset_in_force_is_refused` (`-4`, `-3`, `-2`).
+  - `test_methodology_repository.py`: 7 moved, the refused formula on `f8.height`; none dropped.
+  - `apps/api/tests/test_methodology_api.py`: 9 moved; `test_compare_reads_the_stored_version_in_force`
+    edits `terrain.idw_power` (the `-5` terrain does not read `sigma`). Added
+    `test_a_version_from_an_earlier_preset_is_422_and_nothing_is_stored`.
+  - `test_methodology_bounds.py`: probed on the preset in force only; 4 fields moved, 3 dropped
+    (`relation.effect_floor`, `terrain.half_extent`, `terrain.kernel_cutoff`: `-5` gives them no number,
+    so no edit reaches their limits), pinned by `test_only_fields_no_editable_base_gives_a_number_are_left_out`.
+    Their bounds stay declared and still guard `-3`/`-4`'s validators until MQ23b deletes those presets
+    and the bounds with them.
+  - `apps/executors/tests/test_methodology_run_pins.py`: 8 moved, none dropped (edits on `terrain.idw_power`
+    and `relation.n_min`; the replaced `f12.kernel` shows in the map's alternate terrain). The test of an
+    unchanged `-3` in force writes that version and its activation as rows stored before MQ-23
+    (`_stored_before_mq23`): a run under it still pins `-3` and its retry keeps it.
+  - Journeys: `settings_journey.mjs` and `contextual_settings_journey.mjs` start from `-5`.
+  - The two added tests and the web test fail on `44d5bc72`.
+
+**MQ23b, planned: delete `-2` to `-4`.**
+- Out: `Preset("aia-sociomap-4" | "-3" | "-2")` from Metodika (`domain/methodology/sociomap.py:2165-2171`),
+  their constants `AIA_SOCIOMAP_V2` to `_V4` (`domain/sociomap/specification.py`, re-exported by
+  `domain/sociomap/__init__.py`; nothing else in the product reads them); the tests that still read them
+  go with the preset they test; the Metodika fixture written again by `tools/methodology_fixture.py`.
+- **What a stored `-3` run shows.** Every run before 2026-10-21 pinned `-1` and `-3` (D6 approved `-3`
+  on 2026-10-13), all on fictional data on develop. A run pins its methods' whole spec
+  (`SociomapMethod.spec`, `domain/research_sociomap.py:227-246`), so its stored maps read without the
+  preset: the run still shows its stored `-3` map as it was computed, never recomputed under another
+  method. A retry is already refused (`ResearchRunOnRetiredMethod`) and an analysis retry reuses the
+  stored map (`reuse_only`); both stay. **Open for the methodology owner:** whether the register keeps
+  `-3`'s CLIENT_FACING entry at `e16dc0d0…` (`domain/sociomap_register.py:51-66`), so a stored `-3` map
+  keeps its approval and reader note, or the entry goes and those maps read INTERNAL_ONLY.
+- **Kept:** the engine's non-corrected path (F8/F9, the envelope terrain, Stress-1), which stored edited
+  versions of the earlier presets and `-1` still compute; whether it goes is the next question, after
+  `-1`.
+- **`-1` untouched**: the reference whose golden fixtures F1-F9 run in every CI job; whether "keep only
+  5" includes it is open with the product owner.
+
+**Doc follow-up.** `CLAUDE.md` §2, MethodologyVersions: "the editor's base list holds the preset in
+force alone, and the server refuses a version from another base (MQ-23 (a))".
