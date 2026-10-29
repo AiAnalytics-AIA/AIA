@@ -1230,6 +1230,7 @@ describe("Progress", () => {
       ...COMPLETED,
       steps: [
         step("aggregate", "SUCCEEDED"),
+        step("qc", "SUCCEEDED", { kind: "research_qc" }),
         step("run", "SUCCEEDED"),
         step("future_step", "RUNNABLE"),
         step("compile", "SUCCEEDED"),
@@ -1241,14 +1242,16 @@ describe("Progress", () => {
     const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
     // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
-    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
-    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "qc", "aggregate", "analysis_objects", "future_step"]);
+    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5", "6"]);
+    // The run QC step (RQC2) is named, after the fieldwork whose answers it reads.
+    expect(within(rows[2]).getByText(t("research.exec.steps.qc"))).toBeTruthy();
     // The count belongs to the steps: their section says it, of the steps listed.
     const section = list.closest("section")!;
-    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
-    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
+    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 5, total: 6 }))).toBeTruthy();
+    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 5, total: 6 }))).toHaveLength(1);
     // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
-    expect(rows[4].textContent).toContain(tv("research.exec.stepUnnamed", { code: "future_step" }));
+    expect(rows[5].textContent).toContain(tv("research.exec.stepUnnamed", { code: "future_step" }));
     expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
   });
 

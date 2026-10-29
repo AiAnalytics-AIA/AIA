@@ -22,7 +22,7 @@ chunks:
   - "[x] LO10. `approve_request` bound to the revision shown on its card, and a clean error where the 96 KB Lead context meets the 64 KB agent limit"
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
-  - "[ ] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
+  - "[x] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
   - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
@@ -236,6 +236,59 @@ The refusal surfaces in the job error, the Lead pane, source proposals and Progr
 
 **LO12b. A pre-flight read of the AI route (W1)**  
 The API cannot evaluate class, so the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`, whose Reach panel is the other consumer, and with `run-qc-and-checkpoint#RQC8`). It lands in the same row as 52 (E12). The Lead pane gains `retention_unspecified`, `residency_violation` and `training_exclusion_missing`. Settings is read-only and stays so. Interfaces I15.
+
+- **Landed** (`feature/lead-route-preflight`), behind `AIA_AI_ROUTE_PREFLIGHT_ENABLED` (API, off by
+  default, off in test, absent from the develop Compose file).
+  - One rule: `domain/residency.py` `route_refusal(route, data_class, class_gates=)`, the route
+    checks `evaluate_egress` makes (no route, class, residency, training, retention), which
+    `evaluate_egress` now calls (`_route_denial`). Held to it over 1,728 route × class × gate cases
+    (`test_route_refusal_says_what_evaluate_egress_does_over_every_route`).
+  - The record: 52's row, no second table. `deep_research_compositions.ai_route` (JSON, nullable;
+    migration `c3e5a7b9d1f2`): runtime on, route id, region, zone, the three confirmations,
+    retention, approved classes, class gates, the study Lead off / unconfigured / configured. No
+    price, model id or invocation target. `aia_executors.deep_research_reach.ai_route_of(env)`
+    builds it from `AIRuntimeSettings.route()`, the facts the gateway judges, and
+    `record_reach` keeps it at every worker start. A row from before reads as unknown, and so does a
+    malformed one (`ai_route_from_record`).
+  - The pre-flight: `domain/ai_route_reach.py`. `class_reach` gives each class's verdict by
+    `route_refusal`. `lead_preflight` gives the reason a Lead turn would park:
+    `research_lead_unconfigured`, or the route's refusal of Class B (`egress_…`), which is the least a
+    turn carries (`material_rules`: the design). Class A depends on a turn's content and is never
+    claimed.
+  - The API:
+    - `GET /studies/{id}/lead`: `worker_readiness(turns, preflight)` reads the newest record
+      (`worker_ready_source: composition`). A turn refused for its own material (a class its
+      knowledge raised it to) is that turn's reason, never the worker's.
+    - `GET /settings/ai-route` (any member; 404 `ai_route_preflight_off` with the switch off): the
+      route as recorded, each class carried / advisory / refused, and `lead_refusal`.
+  - **Decided: `true` from the record, with its time** (Nigel, 2026-10-28 ~21:02 UTC, in the PM
+    coordinator's chat, relayed by send_message: "Yes, with its time"). `worker_ready: true`
+    (`worker_ready_source: composition`) means the newest worker start was composed to answer a
+    Lead turn, not that a worker runs now. GET /lead answers that start's `worker_composed_at` and
+    `worker_build`, and the pane says them beside "odpovídá". A parked turn still wins when its
+    worker decided it at or after that start, compared by the attempt's `finished_at` against
+    `composed_at` (both the worker's clock), or when it has no decision time. With the switch off,
+    or no record, `true` is never answered.
+  - The web:
+    - The Lead pane says the three new refusals (`egress_retention_unspecified`,
+      `egress_residency_violation`, `egress_training_exclusion_missing`) with LO12a's who-fixes line
+      (`lib/lead.ts`).
+    - Settings → AI běh → Trasa modelu shows "Podle pracovníka" (`settings/WorkerRoute.tsx`,
+      `lib/ai-route.ts`), read only, and nothing while the read is off.
+  - Cost: one indexed `ORDER BY composition_id DESC LIMIT 1` per GET /lead with the switch on. At
+    start, one more JSON value in the row the worker already writes.
+  - Tests:
+    - core: `test_ai_route_reach.py`;
+    - API: `test_with_the_preflight_on_the_composition_names_the_route_refusal`,
+      `test_with_the_preflight_on_a_turn_refused_for_its_own_class_stays_its_own`,
+      `test_with_the_preflight_on_a_turn_parked_after_the_start_wins`,
+      `test_ai_route_api.py`;
+    - executors: `test_the_ai_route_is_the_one_the_gateway_judges`,
+      `test_the_ai_route_is_kept_and_read_back`;
+    - web: `ai-route.test.ts`, `lead.test.ts`, `lead-availability.test.ts`, and ControlPanel's two
+      LO12b cases.
+  - Not done here: RQC8, readiness reading the same record for a run. It needs only
+    `class_reach(…)[CLASS_A]`.
 
 **LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02**  
 A wording change to the criterion, made with the acceptance harness, not a behaviour change. Interfaces I23.
@@ -1624,6 +1677,93 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
   card started, announced to the Deep Research panels already on screen.
 - `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card, and
   an Interpretation card's `research_run_id` (the results it is shown under).
+
+## F-LO-PARK-1 fixed (2026-10-28, `fix/lead-park-refreeze`)
+
+The finding (recorded with LO2's PR, `feature/lead-typed-start-run`): a Lead turn parked at the
+budget answered from the context it froze when it parked, and the parked turn on develop was a
+greeting nobody wrote. Nigel's decisions, 2026-10-28: "Both" (W1Q11, the PM status page); then, in
+this session, "Owner's pane resends" and "Show a quiet note".
+
+Before (`@ e06cfc10`): `release_lead_budget_waits` resumed the parked step
+(`application/research_lead.py:476-532`, `WorkflowRepository.resume_budget_waits`), whose input
+holds the context frozen at enqueue (`:872-917`); the executor let a greeting's `BudgetExceeded`
+park it like a message (`apps/executors/src/aia_executors/research_lead.py:201`).
+
+Now:
+
+- **A greeting never parks at the budget.** The executor ends a greeting whose reservation the
+  budget refuses as `Succeeded({"skipped": "greeting_unfunded"})`, before anything is sent: no
+  retry, no park, no error report. The turn reads `COMPLETED`, reason `greeting_unfunded`, no
+  output; the pane says it in one slate line, "Přehled studie čeká na rozpočet.", with no button.
+  A message still parks.
+- **A released message is answered on the design as it is now.** A budget set no longer resumes
+  the parked step: it cancels its run (never paid) with the reason `lead_turn_released`
+  (`domain/research_lead.py`), under the same rules as before (the budget went up, the hold fits,
+  oldest first). The messages the turn held wait again (`ResearchLead._released`: the newest Lead
+  turn's run carries that cancel reason): the state marks them `queued` and the released turn
+  `reason: lead_turn_released` ("Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je
+  teď."). The owner's pane sends what waits by itself (`LeadPane.tsx`, `answer_queued`), so the new
+  turn is frozen on the current working copy, under the owner's own scope: a colleague's budget set
+  never reads another researcher's Lead. A message written meanwhile is sent with the released one,
+  in order; a greeting is never sent ahead of them; a withdrawn one is not sent.
+- **No ledger row for a release.** Nothing is lifted: the parked run is cancelled, and the new turn
+  reserves from the budget as it now stands. The budget change itself stays audited
+  (`ScopeRepository.set_study_budget`).
+
+- **The pane reads again while a turn waits on the budget** (`LeadPane.tsx`, `PARKED_POLL_MS`, 10 s,
+  and when the tab regains focus), so a budget set in another tab or by a colleague sends the
+  released message without a reload; it polled only while the Lead was busy.
+
+**From the review of this fix (applied).** A released greeting, or a turn whose messages were all
+withdrawn, carries no `lead_turn_released` reason, since nothing follows it. Under the run's lock the
+release reads the step again (`WorkflowRepository.awaits_budget`, past the session's copy) and skips
+one no longer parked, so a hold is never counted twice. It needs `CANCEL_WORKFLOW` beside
+`APPROVE_BUDGET`, so it never fails the budget change it rides on. The released turn is read from one
+indexed query (`WorkflowRepository.cancel_reason`), not the run's whole event log. A greeting whose
+own reservation the gateway refuses (`reservation_exhausted`, a failed step rather than the
+reservation's `BudgetExceeded`) also ends unpaid; it parked for ever before.
+
+The trade-offs:
+- With no tab of the owner open, a released message is sent when they next open the study, not at
+  the moment the budget is set; its answer could not be read before then anyway.
+- A greeting whose repair call no longer fits its reservation drops the primary answer it paid for,
+  rather than park.
+
+Tests: `test_research_lead_application.py`
+`test_setting_the_budget_sends_the_parked_message_on_the_design_as_it_is_now` (replacing
+`…_and_records_the_person`), `test_a_message_written_after_the_release_is_sent_with_the_released_one`,
+`test_a_budget_set_by_another_researcher_releases_the_turn_for_its_owner_alone`,
+`test_a_released_message_withdrawn_is_never_sent`,
+`test_a_greeting_the_budget_did_not_pay_for_reads_as_one_quiet_line`,
+`test_a_released_greeting_promises_nothing`,
+`test_a_step_cancelled_since_it_parked_reads_as_no_longer_waiting`; `test_research_lead_executor.py`
+`test_a_greeting_the_budget_cannot_pay_for_ends_unpaid_and_never_parks`,
+`test_a_greeting_its_own_reservation_cannot_cover_ends_unpaid_too`; `test_research_lead_api.py`
+`test_setting_the_study_budget_sends_the_message_that_waited_for_it` (updated); `LeadPane.test.tsx`
+"says a greeting the budget could not pay for in one quiet line…" and "reads again when the tab comes
+back to a turn parked on the budget…". Red first on `e06cfc10`: the first five application tests,
+the executor's first test (the greeting read `WAITING`, `budget_exceeded`) and both pane tests fail;
+without its catch the second executor test reads `WAITING`, `reservation_exhausted`.
+
+### Doc follow-up (F-LO-PARK-1 fixed)
+
+- `CLAUDE.md` map, `routers/scope`: "PUT /studies/{id}/budget releases the study's Lead turns parked
+  at the cap whose hold now fits (Q39): each parked run cancelled (`lead_turn_released`), its
+  messages waiting again for their owner's pane to send them on the current design
+  (F-LO-PARK-1)", in place of "sends … lifted in the ledger under the person who set it".
+- `CLAUDE.md` map, `application/research_lead.py`: "`set_study_budget` / `release_lead_budget_waits`
+  release, never resume, a parked turn".
+- `CLAUDE.md` map, `aia_executors/research_lead.py`: "a greeting the budget cannot pay for ends
+  unpaid (`greeting_unfunded`), never parked".
+- ADR 0041 decision 7: a message released from a budget park waits again and is frozen afresh.
+- `open-items.md`: F-LO-PARK-1 closed by this PR.
+- `CLAUDE.md` §7 Known flakes, a candidate entry, met on this branch's full web run:
+  `apps/web/src/components/aia/settings/SystemDataPanels.test.tsx` › "shows the diagnostics to select
+  by hand when the browser refuses the copy, never 'Zkopírováno'": symptom, `expect(document.activeElement)
+  .toBe(field)` received `<body>`, on a host loaded with three other suites. Confirmation: passes run
+  alone, twice. Cause (a hypothesis): the field's focus is asserted the moment it appears, before
+  focus lands. Fix or waiver: none here; the file is untouched by this change.
 
 ## From the research build spec (2026-10-26)
 

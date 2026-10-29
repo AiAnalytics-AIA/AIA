@@ -14,6 +14,7 @@ chunks:
   - "[ ] 10. The what-if layer on screen: 'Co kdyby', the three scenarios, the map always marked provisional, one way back to the real map, nothing saved (W2, after 9)"
   - "[ ] 11. After the MVP: Zajímavé skupiny on the map (Nigel, 27 Oct 2026)"
   - "[x] 12. The map's terrain switch: Nastavení mapy offers Terén: IDW / IDW s poklesem, opening on plain IDW and offering only the terrains the run stored; Blokový and the envelope view gone; the panel's earlier contour lines (Nigel 2026-10-27; #1015)"
+  - "[x] 13. The relative scale reads the floor the stored map declares (terrain.relative_height_floor), in the web and the report: the legend's words, a node's colour without a relative height, and the report's sentence and figure; a floor of 0 says the scale runs from the lowest to the highest rating, its ends the real ratings (the methodology owner 2026-10-28, MQ-08; the floor itself moves in signed-off-sociomap-method, after his sign-off)"
 ---
 # aia-sociomap-5 in the web — the map drawn as the AIA panel draws it
 
@@ -249,3 +250,50 @@ The map side of #1015 (§ the terrain bullets above, as that PR rewrites them). 
 merges, with `signed-off-sociomap-method#12`.
 
 Chunk 12 ticked: #1015 merged into develop on 2026-10-27 (`aabb37e2`).
+
+## Chunk 13: the relative scale reads the stored floor (2026-10-28)
+
+The methodology owner (2026-10-28, MQ-08): relative height becomes truly 0 to 1, and the scale shows
+real numbers when relative is on. The floor is a spec value
+(`packages/aia_core/src/aia_core/domain/sociomap/specification.py:1686 @ 947686c0`), so moving it
+moves `-5`'s fingerprint (`b2992c12…` to `25b73e44…`) and waits for his sign-off of the new
+fingerprint (signed-off-sociomap-method). This chunk is what can land before it, moving no
+fingerprint: every surface reads the floor the stored map declares instead of assuming 0.15, so
+every map stored at 0.15 draws exactly as before and a map pinned at 0 draws as he asked.
+
+- **Web** (`@ 947686c0`): the panel hard-coded the 18.6.6 panel's `REL_FLOOR66` 0.15 for a node with
+  no relative height (`apps/web/src/lib/object-map-panel.ts:27,287`, `ObjectMapPanel.tsx:91`,
+  `lib/map-explained.ts:62`) and in two sentences (`i18n/cs.ts:3997` howTerrainText, `:4186`
+  infoScaleRange). `relativeFloor(map)` reads `spec.terrain.relative_height_floor` (the panel's 0.15
+  only for a map that declares none); the sentences take the floor, and at 0 say the scale runs from
+  the lowest-rated object (0) to the highest (1). The legend's ends were already the real ratings
+  (`ObjectMapPanel.tsx:719-724`). `normalizer` keeps the panel's 15 %: it is pinned to the panel's
+  golden draw, and no product code reads its `t`.
+- A map that declares no floor reads as unknown (`relativeFloor` null): its words say neither a
+  percentage nor 0 to 1, and only a node's colour without a relative height falls back to the
+  panel's 15 %. Which words is decided once, by the floor in whole per cent (`floorWords`), so a
+  floor that rounds to 0 % reads "0 to 1", never "0 % výšky"; the report decides the same way.
+- **Not changed:** an object nobody rated is coloured at the floor, the lowest-rated object's colour
+  (already so at 0.15); a neutral colour for it is a design decision, not this chunk's (Findings,
+  F-S5W-13).
+- **Report**: the figure read the floor already (`infrastructure/report_docx/signed_off_map_figure.py:509`)
+  and at 0 no longer prints "nejnižší objekt na 0 % výšky"; its ramp's ends are the real ratings
+  (`:500-503`). The reading guide says "nejníže hodnocený nulovou" at 0
+  (`application/report_maps.py:73-82`).
+
+Tests (each failed on `947686c0`): `object-map-panel.test.ts` "takes the relative floor from the
+map's spec, …", `ObjectMapPanel.test.tsx` "reads the relative floor from the map's own spec: a map
+declaring 0 says its scale runs 0 to 1 (MQ-08)", `map-explained.test.ts` (the floor carried),
+`test_report_signed_off_map_figure.py::test_the_legend_reads_the_declared_floor_and_names_the_objects_nobody_rated`
+and `::test_the_report_reads_the_declared_scale_and_explains_the_respondent_map` (floor 0).
+
+**Doc follow-up.** `CLAUDE.md` §2, `lib/object-map-panel.ts`: "relativeFloor: the relative floor the
+stored map declares (0.15 for every map stored so far)".
+
+
+### Findings (chunk 13; a design note, not built)
+
+- **F-S5W-13.** On a map whose floor is 0, an object with no relative height is coloured at 0, the
+  lowest-rated object's colour (`apps/web/src/lib/map-explained.ts`, `ObjectMapPanel.tsx`'s fallback
+  list); it was the same at 0.15. Unknown reads as lowest. A neutral colour for it is a design
+  decision (the PM coordinator, 2026-10-28: keep open as a design note).

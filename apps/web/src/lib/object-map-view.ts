@@ -28,7 +28,7 @@ export type ObjectMapArtifact = {
   // `estimator` and the respondent sections: the signed-off methodology's (aia-sociomap-5 and the
   // versions edited from it), read by object-map-signed-off.ts.
   spec: { methodology_version: string; relation: { basis: string; n_min: number; confidence: number; effect_floor?: number; estimator?: string; noise_rule?: { enabled: boolean }; clear_effect?: number };
-    ratings?: { person_normalization?: string }; terrain: { sigma: number; sigma_basis: string; method?: string } | null; respondent_map?: SignedOffRespondentSpec;
+    ratings?: { person_normalization?: string }; terrain: { sigma: number; sigma_basis: string; method?: string; relative_height_floor?: number } | null; respondent_map?: SignedOffRespondentSpec;
     // aia-sociomap-5: the declared taste-segment rules the segment texts quote.
     segments?: { min_respondents?: number; min_ratings?: number; colour_membership?: number } };
   respondent_ids?: string[];

@@ -22,6 +22,7 @@ exists only in ``aia_executors.workbench``.
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from importlib import metadata
 from typing import Any, Final, Protocol
 
@@ -30,6 +31,7 @@ from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import (
     JOINT_CERTIFICATE_METADATA,
     RESPONDENT_SYSTEM_METADATA,
+    DataOrigin,
     FieldworkDataset,
     FieldworkSource,
     InvalidDataset,
@@ -47,6 +49,7 @@ from aia_core.domain.methodology.pins import (
     read_support_pin,
 )
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.qc_flags import QC_FLAGS_VERSION, dataset_flags, flags_payload
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
     AIA_READINESS_V1,
@@ -67,6 +70,13 @@ from aia_core.domain.research_sociomap import (
     side_tables_of,
 )
 from aia_core.domain.research_sociomapping import SOCIOMAPPING_VERSION, research_sociomappings
+from aia_core.domain.run_qc import (
+    RUN_QC_VERSION,
+    UNIT_THRESHOLDS,
+    QcNotReadable,
+    RunQc,
+    dataset_qc,
+)
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V1,
     ENGINE_IMPLEMENTATION_VERSION,
@@ -74,7 +84,7 @@ from aia_core.domain.sociomap import (
 )
 from aia_core.domain.sociomap.hmodel_candidate import CANDIDATE_METHOD, CandidateParameters
 from aia_core.domain.workflow import FailureClass
-from aia_core.domain.workflow_templates import RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
+from aia_core.domain.workflow_templates import QC_STEP_KIND, RESEARCH_KINDS, SOCIOMAPPING_STEP_KIND
 from aia_core.infrastructure.artifact_repository import ArtifactNotFound, ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.storage import ArtifactStore, IntegrityError, ObjectNotFound
@@ -108,6 +118,7 @@ __all__ = [
 AGGREGATE: Final = "research_aggregate"
 SOCIOMAP: Final = "research_sociomap"
 SOCIOMAPPING: Final = "research_sociomapping"
+RUN_QC: Final = "research_qc"
 SPECIFICATION: Final = "research_specification"
 READINESS: Final = "research_readiness"
 FIELDWORK_DATASET: Final = "research_fieldwork_dataset"
@@ -1020,6 +1031,105 @@ class SociomappingExecutor(_Step):
         )
 
 
+def _qc_payload(qc: RunQc) -> dict[str, Any]:
+    return {
+        "status": "computed",
+        "version": qc.version,
+        "level": qc.level.value,
+        "verdict": qc.verdict,
+        "findings": [
+            {
+                "level": f.level.value,
+                "check": f.check.value,
+                "where": f.where,
+                "value": f.value,
+            }
+            for f in qc.findings
+        ],
+        "metrics": dict(qc.metrics),
+        "not_applicable": {k.value: v for k, v in qc.not_applicable.items()},
+        "thresholds": asdict(qc.thresholds),
+    }
+
+
+def unit_dry(origin: DataOrigin | None) -> bool:
+    """Whether a dataset is the unit's dry run (``mode == "dry"``: no model call): only the
+    fixture's invented answers. Fictional AI respondents were answered by a model."""
+    return origin is DataOrigin.SYNTHETIC_FIXTURE
+
+
+class RunQcExecutor(_Step):
+    """The run's quality checks over its stored answers (``evidence-integrity`` 2a; RQC2).
+
+    Warnings only (MVP-24): no step waits on it, and nothing it finds fails a run. A QC it
+    cannot read over this run (a conditional question, until fieldwork records who was asked,
+    RQC11) is stored as ``not_computed`` with the reason, and the step succeeds. A dataset that
+    does not answer its specification fails the step, as it fails aggregation; a defect in the
+    checks fails it too, reported rather than stored as a result.
+    Beside the findings it stores the respondents the straight-liner rule names, each a flag
+    with its id (``domain/qc_flags.py``, RQC4a): the record a decision on one is written to.
+    ``dry`` is the unit's run without a model call: the fixture's invented answers
+    (``SYNTHETIC_FIXTURE``), never fictional AI respondents, whose answers a model gave.
+    """
+
+    def execute(self, step: StepInput, context: StepContext) -> StepOutcome:
+        context.checkpoint()
+        with context.transaction() as (session, workflow):
+            spec_id = upstream_artifact(workflow, step, "compile")
+            dataset_id = upstream_artifact(workflow, step, "run")
+            if spec_id is None:
+                return _missing_upstream("compile")
+            if dataset_id is None:
+                return _missing_upstream("run")
+            repo = _artifacts(session, context, self._store)
+            spec = _read_spec(repo, spec_id)
+            dataset = _read_dataset(repo, dataset_id)
+            dataset_sha = repo.get(dataset_id).sha256
+        dry = unit_dry(dataset.origin)
+        try:
+            qc: dict[str, Any] = _qc_payload(dataset_qc(spec, dataset, dry=dry))
+            qc["flags"] = flags_payload(dataset_flags(spec, dataset))
+        except InvalidDataset as exc:
+            return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
+        except QcNotReadable as exc:
+            qc = {"status": "not_computed", "version": RUN_QC_VERSION, "reason": str(exc)}
+        qc["inputs"] = {
+            "specification_artifact_id": spec_id,
+            "specification_fingerprint": spec.fingerprint(),
+            "dataset_artifact_id": dataset_id,
+            "dataset_sha256": dataset_sha,
+        }
+        context.checkpoint()
+        with context.transaction() as (session, _workflow):
+            artifact, created = self._put(
+                _artifacts(session, context, self._store),
+                step,
+                payload={"kind": RUN_QC, "qc": qc},
+                artifact_type=RUN_QC,
+                input_fingerprint=fingerprint(
+                    {
+                        "dataset": dataset_sha,
+                        "qc": RUN_QC_VERSION,
+                        "flags": QC_FLAGS_VERSION,
+                        "spec": spec.fingerprint(),
+                        "dry": dry,
+                        "thresholds": asdict(UNIT_THRESHOLDS),
+                    }
+                ),
+                depends_on=[spec_id, dataset_id],
+                metadata={"status": qc["status"], "level": qc.get("level")},
+            )
+        context.progress(
+            "kontrola kvality běhu hotova"
+            if qc["status"] == "computed"
+            else "kontrolu kvality běhu nelze nad tímto během spočítat",
+            artifact_id=artifact.artifact_id,
+        )
+        return _produced(
+            step, artifact, created, RUN_QC, status=qc["status"], level=qc.get("level")
+        )
+
+
 def research_registry(
     *,
     store: ArtifactStore,
@@ -1042,4 +1152,5 @@ def research_registry(
             store=store, build=build, connectedness_interval=sociomap_connectedness_interval
         ),
         SOCIOMAPPING_STEP_KIND: SociomappingExecutor(store=store, build=build),
+        QC_STEP_KIND: RunQcExecutor(store=store, build=build),
     }

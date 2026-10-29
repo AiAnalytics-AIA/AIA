@@ -8,17 +8,22 @@ repository, as a worker would.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from aia_core.application.research import research_artifacts
 from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
+from aia_core.domain.ai_route_reach import AiRouteReach, LeadComposition
 from aia_core.domain.approval_ledger import ApprovalSubject
+from aia_core.domain.deployment import DataClassGates
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_lead import ARTIFACT_TYPE, EXTERNAL_LAYER
+from aia_core.domain.residency import DataClass, ProviderRoute, ResidencyZone
 from aia_core.domain.workflow import FailureClass
 from aia_core.domain.workflow_templates import RESEARCH_AGENT, RESEARCH_LEAD_TURN
 from aia_core.infrastructure.db import create_session_factory
+from aia_core.infrastructure.deep_research_composition_repository import record_composition
 from aia_core.infrastructure.scope_repository import ScopeRepository
 from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from aia_core.infrastructure.tables import (
@@ -1181,7 +1186,9 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
     researcher: TestClient, world: Any, app: FastAPI
 ) -> None:
     """F4 and the product owner's Q39 (2026-10-21): the message that parked for lack of budget
-    is sent once a person sets the budget in Nastavení -> Studie, and the ledger names them."""
+    is sent once a person sets the budget in Nastavení -> Studie. F-LO-PARK-1 (Nigel,
+    2026-10-28, W1Q11): never on the context it froze when it parked; the parked turn is
+    released, its message waits again, and the pane's own ask sends it on the copy as it is."""
     budget_url = f"/api/v1/studies/{world.study_id()}/budget"
     assert researcher.put(budget_url, json={"budget_usd": 0.0}).status_code == 200
     _hatched(researcher)
@@ -1210,14 +1217,19 @@ def test_setting_the_study_budget_sends_the_message_that_waited_for_it(
 
     assert researcher.put(budget_url, json={"budget_usd": 5.0}).status_code == 200
     lead = researcher.get(lead_url(world)).json()
-    assert lead["turns"][-1]["status"] == "QUEUED" and lead["busy"] is True
+    released = next(t for t in lead["turns"] if t["run_id"] == run_id)
+    assert (released["status"], released["reason"]) == ("CANCELLED", "lead_turn_released")
+    assert [t["queued"] for t in lead["turns"] if t["actor"] == "person"] == [True]
+    assert lead["busy"] is False
+    sent = researcher.post(f"{lead_url(world)}/turns/queued")
+    assert sent.status_code == 201, sent.text
+    (turn,) = sent.json()["turns"]
+    assert turn["status"] == "QUEUED" and turn["run_id"] != run_id
     with create_session_factory(app.state.engine)() as session:
         rows = session.scalars(
             select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == run_id)
         ).all()
-        assert [(r.gate_type, r.decision, r.approver_user_id) for r in rows] == [
-            ("budget", "lift", world.users["researcher"])
-        ]
+        assert rows == []  # cancelled, never paid: nothing was lifted
 
 
 # --------------------------------------------------------------------------- the switch off (27b)
@@ -1388,6 +1400,113 @@ def test_a_worker_that_cannot_answer_is_reported_not_ready(
         None,
         None,
     )
+
+
+def _record_route(
+    app: FastAPI,
+    *,
+    classes: frozenset[DataClass],
+    retention: int | None = 0,
+) -> None:
+    """A worker start's composition, its AI route as ``ai_route_of`` would record it."""
+    route = ProviderRoute(
+        route_id="bedrock-eu-primary",
+        provider="aws_bedrock",
+        zone=ResidencyZone.EU,
+        eu_processing_approved=True,
+        excluded_from_training=True,
+        retention_days=retention,
+        approved_for=classes,
+    )
+    with create_session_factory(app.state.engine)() as session:
+        record_composition(
+            session,
+            worker="worker-1",
+            build_sha="abc1234",
+            composed_at=datetime.now(UTC),
+            agent_directed=False,
+            class_gates=None,
+            routes=[],
+            ai_route=AiRouteReach(
+                True, route, "eu-central-1", DataClassGates.ENFORCE, LeadComposition.CONFIGURED
+            ),
+        )
+        session.commit()
+
+
+def _readiness(client: TestClient, world: Any) -> tuple[Any, Any, Any]:
+    state = client.get(lead_url(world)).json()
+    return state["worker_ready"], state["worker_ready_source"], state["worker_reason"]
+
+
+def test_with_the_preflight_on_the_composition_names_the_route_refusal(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the newest worker start recorded a route approved for Class C alone, so every
+    Lead turn (Class B at least) would be refused; GET /lead says so before any turn is sent,
+    only with AIA_AI_ROUTE_PREFLIGHT_ENABLED."""
+    _hatched(researcher)
+    _record_route(app, classes=frozenset({DataClass.CLASS_C_INTERNAL}))
+    assert _readiness(researcher, world) == (None, None, None)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    assert _readiness(researcher, world) == (
+        False,
+        "composition",
+        "egress_route_not_approved_for_class",
+    )
+    # A newer start whose route carries Class B: ready from its record, with its time and build
+    # (Nigel, 2026-10-28, "Yes, with its time").
+    _record_route(
+        app,
+        classes=frozenset({DataClass.CLASS_B_DERIVED_CLIENT, DataClass.CLASS_C_INTERNAL}),
+    )
+    assert _readiness(researcher, world) == (True, "composition", None)
+    state = researcher.get(lead_url(world)).json()
+    assert state["worker_build"] == "abc1234" and state["worker_composed_at"] is not None
+    # Off again: never ready without a source, and no record's time.
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": False})
+    state = researcher.get(lead_url(world)).json()
+    assert (state["worker_ready"], state["worker_composed_at"]) == (None, None)
+
+
+def test_with_the_preflight_on_a_turn_refused_for_its_own_class_stays_its_own(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the route carries Class B, so the record refuses no turn; a turn refused for a
+    class its own material raised it to is that turn's reason, shown on the turn, never the
+    worker's readiness."""
+    _hatched(researcher)
+    _save_content(app, world)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    _record_route(
+        app, classes=frozenset({DataClass.CLASS_B_DERIVED_CLIENT, DataClass.CLASS_C_INTERNAL})
+    )
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _park(app, world, reason="egress_route_not_approved_for_class")
+    state = researcher.get(lead_url(world)).json()
+    assert state["turns"][-1]["reason"] == "egress_route_not_approved_for_class"
+    assert "decided_at" not in state["turns"][-1]
+    assert _readiness(researcher, world) == (True, "composition", None)
+
+
+def test_with_the_preflight_on_a_turn_parked_after_the_start_wins(
+    researcher: TestClient, world: Any, app: FastAPI
+) -> None:
+    """LO12b: the newest start's record says ready, but a turn its worker parked afterwards for
+    the worker's composition is newer evidence: not ready, from the turn."""
+    _hatched(researcher)
+    _save_content(app, world)
+    app.state.settings = app.state.settings.model_copy(update={"ai_route_preflight_enabled": True})
+    _record_route(app, classes=frozenset(DataClass))
+    posted = researcher.post(
+        f"{lead_url(world)}/turns", json={"kind": "message", "stage": "brief", "text": "Jsi tam?"}
+    )
+    assert posted.status_code == 201, posted.text
+    _park(app, world, reason="research_lead_unconfigured")
+    assert _readiness(researcher, world) == (False, "newest_turn", "research_lead_unconfigured")
 
 
 def test_a_turn_reads_external_context_only_with_the_analysis_switch_on(

@@ -59,6 +59,7 @@ import { SECTIONS, SECTION_GROUPS, type SectionId, sectionLinkClick } from "./se
 import { InfoButton } from "./InfoButton";
 import { FOCUS } from "../../ui/parts";
 import { Technical, TechnicalProvider, TechnicalSwitch, useTechnicalChoice } from "./technical";
+import { WorkerRoute } from "./WorkerRoute";
 import { Icon, type IconName } from "../../rehome/icons";
 import { StatusPill, Tag, TextInput } from "../../rehome/ui";
 import { CARD, EYEBROW, Loaded } from "../states";
@@ -499,6 +500,7 @@ function RuntimePanel({ runtime, config, vocab, mayAdminister }: { runtime: Nati
             </Tile>
           </div>
         ) : <Unavailable what={t(`${R}.config`)} message={`${config.message} ${t(`${R}.configUnavailable`)}`} />}
+        <WorkerRoute />
       </section>
       <section aria-labelledby="ai-acts-h" className={`${CARD} flex flex-col gap-2`}>
         <div className="flex flex-wrap items-center gap-2">
