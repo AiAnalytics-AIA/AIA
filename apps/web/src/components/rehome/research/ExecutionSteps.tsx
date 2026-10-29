@@ -8,6 +8,9 @@
 // came from -- and when it came from the fictional dataset, that it is fiction.
 
 import Link from "next/link";
+import { ChoiceChips } from "@/components/ui/ChoiceChips";
+import { appRoutes } from "@/lib/app-routes";
+import { usdWords } from "@/lib/spend";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
@@ -43,7 +46,7 @@ import {
   population,
   research,
 } from "@/lib/api";
-import { clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
+import { summarize, clientChildren, outcomeValue, targetVerdict } from "@/lib/population";
 import { latestDesignRun, questionEvidence } from "@/lib/design-evidence";
 import { citedSnapshot } from "@/lib/verified-source";
 import { researchStepOrb, researchStepWork } from "@/lib/activity-orb";
@@ -107,10 +110,9 @@ import { FindingInspectButton, setShownAnalysis, useOpenAnalysisItem, type OpenA
 import { CodedWords } from "./CodedWords";
 import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { loadSampleReadiness } from "@/components/workbench/useSampleReadiness";
-import { projectVariants, selectedVariant } from "@/research/plan";
-import { chosenDimensions, dimensionLabels } from "@/research/persona";
+import { dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
-import { ActionDock, FrameNavigation, Switch } from "../step";
+import { ActionDock, FrameNavigation } from "../step";
 import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
 import { canReview, type StudyFrame } from "./frame";
@@ -269,156 +271,6 @@ function RespondentsReceipt({ run, pointable = false }: { run: ResearchRun; poin
 
 // ---------------------------------------------------------------- Run --------
 
-/**
- * What starting this run can cost at most, beside what the study has left, and the study's limit
- * above which Start asks first (plan 5b.2). The ceiling is the server's; the page only shows it,
- * and an unknown one is said to be unknown, never drawn as zero.
- */
-function CostCard({ readiness, canEdit, onLimitSaved }: { readiness: ReadinessBody; canEdit: boolean; onLimitSaved: () => void }) {
-  const frame = useFrame();
-  const [study, setStudy] = useState<Study | null | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => {
-    let live = true;
-    api.study(frame.studyId).then(
-      (s) => live && setStudy(s),
-      () => live && setStudy(null),
-    );
-    return () => {
-      live = false;
-    };
-  }, [frame.studyId, readiness]);
-  // An API that does not send a figure has not given one: read it as absent, never as zero.
-  const ceiling = num(readiness.cost_ceiling_usd);
-  const limit = num(readiness.spend_confirm_usd);
-  // The switch is on while a limit is stored, or while the person is typing one; the switch
-  // and the amount follow the stored limit when it changes. They are adjusted during render,
-  // never in an effect: an effect runs after the commit, so a switch turned on (or an amount
-  // typed) before it ran was overwritten by the mount's "no limit".
-  const [asking, setAsking] = useState(limit !== null);
-  const [amount, setAmount] = useState(limit === null ? "" : String(limit));
-  const [shownLimit, setShownLimit] = useState(limit);
-  if (limit !== shownLimit) {
-    setShownLimit(limit);
-    setAsking(limit !== null);
-    setAmount(limit === null ? "" : String(limit));
-  }
-
-  const save = async (limit: number | null) => {
-    setSaving(true);
-    setError(null);
-    try {
-      await research.setSpendConfirm(frame.studyId, limit);
-      onLimitSaved();
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setSaving(false);
-    }
-  };
-  const typed = amount.trim() === "" ? Number.NaN : Number(amount);
-  const remaining = num(study?.remaining_usd);
-  const budget = num(study?.budget_usd);
-  const commit = () => {
-    if (Number.isFinite(typed) && typed >= 0 && typed !== limit) void save(typed);
-  };
-  return (
-    <Card title={t("research.exec.cost.title")} region>
-      {ceiling !== null ? (
-        <>
-          <p className="text-sm font-medium">{tv("research.exec.cost.ceiling", { ceiling: ceiling.toFixed(2) })}</p>
-          <p className="text-xs text-ink-muted">
-            {tv("research.exec.cost.basis", { requests: readiness.fieldwork_requests, calls: readiness.analysis_calls })}
-          </p>
-          <p className="text-xs text-ink-muted">{t("research.exec.cost.bound")}</p>
-          <CostBar ceiling={ceiling} limit={limit} asks={readiness.confirmation_required} />
-        </>
-      ) : (
-        <div className="text-sm"><CodedWords coded={codeWords("research.exec.cost.unknown", readiness.cost_ceiling_unknown ?? "sample_size_missing")} /></div>
-      )}
-      {study === undefined ? null : remaining !== null && budget !== null ? (
-        <p className="mt-2 text-sm">{tv("research.exec.cost.remaining", { remaining: remaining.toFixed(2), budget: budget.toFixed(2) })}</p>
-      ) : (
-        <p className="mt-2 text-sm text-ink-muted">{t("research.exec.cost.budgetUnknown")}</p>
-      )}
-      <p className="mt-2 text-sm">
-        {limit === null ? t("research.exec.cost.limitNone") : tv("research.exec.cost.limitSet", { limit: limit.toFixed(2) })}
-      </p>
-      {readiness.confirmation_required ? <p className="text-sm font-medium text-status-you-ink">{t("research.exec.cost.willAsk")}</p> : null}
-      {limit !== null && ceiling === null ? (
-        <p role="alert" className="text-sm text-status-fault">{t("research.exec.cost.unknownBlocks")}</p>
-      ) : null}
-      {canEdit ? (
-        // The limit is saved when the amount is left or Enter is pressed; switching it off clears it.
-        <form
-          aria-label={t("research.exec.cost.limit")}
-          className="mt-3 flex flex-wrap items-center gap-3 border-t border-border pt-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            commit();
-          }}
-        >
-          <Switch
-            checked={asking}
-            disabled={saving}
-            label={t("research.exec.cost.switch")}
-            onChange={(on) => {
-              setAsking(on);
-              if (!on && limit !== null) void save(null);
-              if (!on) setAmount("");
-            }}
-          />
-          {asking ? (
-            <span className="inline-flex items-center gap-2">
-              <input
-                type="number"
-                inputMode="decimal"
-                min={0}
-                step="0.01"
-                aria-label={t("research.exec.cost.limitAmount")}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                onBlur={commit}
-                className="min-h-9 w-28 rounded-control border border-border-strong bg-surface-raised px-2.5 text-sm text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-              />
-              <span className="text-sm text-ink-muted">USD</span>
-            </span>
-          ) : null}
-          {saving ? <span className="text-xs text-ink-muted">{t("research.exec.cost.saving")}</span> : null}
-        </form>
-      ) : null}
-      {error ? <p role="alert" className="mt-2 text-sm text-status-fault">{error}</p> : null}
-    </Card>
-  );
-}
-
-/** The run's ceiling against the study's limit: `status-you` (coral) when Start will ask first; the limit as a mark. */
-function CostBar({ ceiling, limit, asks }: { ceiling: number; limit: number | null; asks: boolean }) {
-  const scale = Math.max(ceiling, limit ?? 0) * 1.4 || 1;
-  const pct = (x: number) => `${Math.min(100, (x / scale) * 100)}%`;
-  return (
-    <div className="mt-3">
-      <div aria-hidden="true" className="relative h-2.5 rounded-sm bg-surface-sunken">
-        <div className={`h-2.5 rounded-sm ${asks ? "bg-status-you" : "bg-signal"}`} style={{ width: pct(ceiling) }} />
-        {limit !== null ? <i className="absolute -top-1 block h-[18px] w-0.5 bg-ink" style={{ left: pct(limit) }} /> : null}
-      </div>
-      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
-        <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden="true" className={`block size-2.5 rounded-mark ${asks ? "bg-status-you" : "bg-signal"}`} />
-          {t("research.exec.cost.legendCeiling")}
-        </span>
-        {limit !== null ? (
-          <span className="inline-flex items-center gap-1.5">
-            <i aria-hidden="true" className="block h-2.5 w-0.5 bg-ink" />
-            {t("research.exec.cost.legendLimit")}
-          </span>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 /** Where each readiness check (domain research_design.assess_readiness, support_forecast) is
  *  fixed. A check not named here -- the questionnaire's, a compile problem, research-question
  *  coverage -- is fixed on Dotazník. */
@@ -442,39 +294,137 @@ export function checkHref(checkId: string, stepHref: (step: StepKey) => string, 
   return workbench && FIXED_BY_N.has(checkId) ? stageHref("sample", stepHref) : stepHref(fixStep(checkId));
 }
 
-/** "Co spustíte": each step of the design in one line, as the revision carries it, with a way back to it. */
-function Receipt({ revision, working, readiness }: { revision: number; working: boolean; readiness: ReadinessBody }) {
-  const { state, stepHref } = useResearch();
-  const p = state.project;
-  const variant = projectVariants(state).find((v) => v.id === selectedVariant(p));
-  const clip = (x: unknown) => {
-    const v = String(x || "").trim();
-    return v.length > 140 ? `${v.slice(0, 139)}…` : v;
-  };
-  const rows: [StepKey, string][] = [
-    ["brief", clip(p.goal) || "—"],
-    ["plan", clip(variant?.title || state.analysis?.problem_summary) || "—"],
-    ["questionnaire", tv("research.exec.counts", { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects, n: readiness.n ?? "—" })],
-    ["audience", clip(p.audience?.description || p.audience?.dataset_name) || "—"],
-    ["persona", tv("research.exec.receiptDims", { d: chosenDimensions(p).length, n: readiness.n ?? "—" })],
-  ];
+/**
+ * Who answers, in words (FLD23; Fieldwork.dc.html's caption): the chosen source, whether it is the
+ * default, and what that means. The fictional roster's words claim nothing about its cost: AI
+ * respondents cost money whoever they are, and "Cena nejvýše" says how much.
+ */
+function sourceNote(options: readonly PersonaSourceOption[], chosen: string | null): ReactNode {
+  const P = "research.exec.what.source";
+  const o = options.find((x) => x.source === chosen && x.offered);
+  const words = !o ? t(`${P}.none`) : o.source === "panel" ? t(`${P}.panel`) : o.source === "fictional_roster" ? t(`${P}.fictional`) : tv(`${P}.unknown`, { source: o.source });
   return (
-    <Card title={tv(working ? "research.exec.workingRevision" : "research.exec.revision", { revision })}>
-      <p className="text-[13px] text-ink-muted">{t(working ? "research.exec.workingRevisionHelp" : "research.exec.revisionHelp")}</p>
-      <h3 className="mt-3 text-[13px] font-semibold">{t("research.exec.receiptTitle")}</h3>
-      <dl className="@container mt-1.5 divide-y divide-border rounded-control border border-border">
-        {rows.map(([k, v]) => (
-          // On a narrow card: the stage above what it holds, the link beside both.
-          <div key={k} className="grid grid-cols-[1fr_auto] gap-x-3 px-3 py-2 text-sm @sm:grid-cols-[8rem_1fr_auto] @sm:items-baseline">
-            <dt className="text-ink-muted">{t(`aia.stages.${k}`)}</dt>
-            <dd className="row-start-2 min-w-0 @sm:row-start-auto">{v}</dd>
-            <dd className="col-start-2 row-span-2 row-start-1 self-center @sm:col-start-auto @sm:row-span-1 @sm:row-start-auto @sm:self-auto">
-              <Link href={stepHref(k)} className={STAGE_LINK}>{t("research.exec.edit")}</Link>
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </Card>
+    <>
+      {o?.default ? `${t(`${P}.default`)} ${words}` : words}
+      {/* A source this deployment does not offer is shown disabled, with its reason. */}
+      {options.filter((x) => !x.offered).map((x) => (
+        <span key={x.source} className="block">
+          {sourceLabel(x.source)}: <span><CodedWords inline coded={codeWords("research.exec.respondents.reason", x.reason ?? "")} /></span>
+        </span>
+      ))}
+    </>
+  );
+}
+
+/** A persona source's name; one AIA does not know is named by its code, never a missing key's text. */
+function sourceLabel(source: string): string {
+  return source === "panel" || source === "fictional_roster" ? t(`research.exec.respondents.${source}`) : source;
+}
+
+/**
+ * "Co spustíte" (FLD23, spec sber F3; Fieldwork.dc.html's Kontrola): the design, who answers, the
+ * population, the most the run can cost and the study's budget in one list, then what holds the start
+ * back or warns, and Start. Every figure is the server's; an unknown one says so, never 0.
+ */
+function WhatRuns({ revision, working, readiness, startable, population, sources, action, note, children }: {
+  revision: number;
+  working: boolean;
+  readiness: ReadinessBody;
+  /** Whether Start can start now: ready, priced where a threshold asks, and not held back otherwise. */
+  startable: boolean;
+  /** The population's label as the registry names it, or null when it was not read; and whether the
+   *  run's respondents are drawn from it (a panel run) or it is only recorded (any other source). */
+  population: { label: string | null; read: boolean };
+  /** Who answers, as a choice; null when the run's source offers none. */
+  sources: ReactNode;
+  action: ReactNode;
+  /** Why the start is held back, or what it will ask; null: the warnings, if any, are said instead. */
+  note: string | null;
+  /** What applies before a start: the answerability gate, the client's populations. */
+  children?: ReactNode;
+}) {
+  const { state, stepHref } = useResearch();
+  const frame = useFrame();
+  const [study, setStudy] = useState<Study | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    api.study(frame.studyId).then(
+      (s) => live && setStudy(s),
+      () => live && setStudy(null),
+    );
+    return () => {
+      live = false;
+    };
+  }, [frame.studyId]);
+  const P = "research.exec.what";
+  const ceiling = num(readiness.cost_ceiling_usd);
+  const limit = num(readiness.spend_confirm_usd);
+  const remaining = num(study?.remaining_usd);
+  const budget = num(study?.budget_usd);
+  const audience = String(state.project.audience?.description ?? "").trim();
+  const warnings = readiness.checks.filter((c) => c.status === "WARN");
+  const settings = `${appRoutes.settings()}#studies`;
+  return (
+    <section aria-labelledby="what-runs" data-what-runs className="rounded-card border border-border bg-surface-raised p-5">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <h2 id="what-runs" className="grow text-base font-semibold">{t(`${P}.title`)}</h2>
+        <StatusPill tone={startable ? "done" : readiness.ready ? "you" : "fault"}>{t(startable ? `${P}.ready` : `${P}.notReady`)}</StatusPill>
+      </div>
+      {/* Label beside value from a wide card, the value under its label on a narrow one. */}
+      <div className="@container">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-sm @md:grid-cols-[180px_1fr]">
+          <dt className="pt-2 text-ink-muted">{t(`${P}.design`)}</dt>
+          <dd className="pb-2 @md:pt-2">
+            {tv(working ? "research.exec.workingRevision" : "research.exec.revision", { revision })}
+            {" · "}
+            {tv(`${P}.counts`, { questions: readiness.questions, batteries: readiness.batteries, objects: readiness.objects })}
+            {" · "}
+            {/* Inside the sentence, so a text link (WCAG 2.5.8's inline exception), not a touch target. */}
+            <Link href={stepHref("questionnaire")} className={`text-signal underline ${FOCUS}`}>{t("aia.stages.questionnaire")}</Link>
+          </dd>
+          {sources ? <>
+            <dt className="pt-2 text-ink-muted">{t(`${P}.who`)}</dt>
+            <dd className="pb-2 @md:pt-2">{sources}</dd>
+          </> : null}
+          <dt className="pt-2 text-ink-muted">{t(`${P}.population`)}</dt>
+          <dd className="pb-2 @md:pt-2">
+            {[
+              population.read ? (population.label ?? t(`${P}.populationUnknown`)) : tv(`${P}.populationRecorded`, { label: population.label ?? t(`${P}.populationUnknown`) }),
+              population.read ? audience || null : null,
+              readiness.n ? tv(`${P}.n`, { n: readiness.n }) : t(`${P}.nUnknown`),
+            ].filter(Boolean).join(" · ")}
+          </dd>
+          <dt className="pt-2 text-ink-muted">{t(`${P}.ceiling`)}</dt>
+          <dd className="pb-2 @md:pt-2" data-what-ceiling>
+            {ceiling !== null ? (
+              <>
+                <span className="text-lg font-semibold tabular-nums">{usdWords(ceiling)}</span>
+                <span className="block text-xs text-ink-muted">
+                  {t(`${P}.bound`)}
+                  {limit !== null ? <>{" · "}<Link href={settings} className={`underline ${FOCUS}`}>{tv(readiness.confirmation_required ? `${P}.overLimit` : `${P}.underLimit`, { limit: usdWords(limit) })}</Link></> : null}
+                </span>
+              </>
+            ) : (
+              <span className="block"><CodedWords coded={codeWords("research.exec.cost.unknown", readiness.cost_ceiling_unknown ?? "sample_size_missing")} /></span>
+            )}
+            {limit !== null && ceiling === null ? <span role="alert" className="mt-1 block text-status-fault">{t(`${P}.unknownBlocks`)}</span> : null}
+          </dd>
+          <dt className="pt-2 text-ink-muted">{t(`${P}.budget`)}</dt>
+          <dd className="pb-2 @md:pt-2" data-what-budget>
+            {study === undefined ? null : remaining !== null && budget !== null
+              ? tv(`${P}.remaining`, { remaining: usdWords(remaining), budget: usdWords(budget) })
+              : <span className="text-ink-muted">{t("research.exec.cost.budgetUnknown")}</span>}
+          </dd>
+        </dl>
+      </div>
+      {children}
+      <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
+        <p className="grow basis-60 text-xs text-ink-muted" data-what-note>
+          {note ?? (warnings.length ? tv(`${P}.warnings`, { count: warnings.length, first: warnings.slice(0, 2).map((w) => w.message.replace(/[.\s]+$/, "")).join("; ") }) : null)}
+        </p>
+        {action}
+      </div>
+    </section>
   );
 }
 
@@ -701,10 +651,17 @@ export function RunStep() {
   // A run the start found instead of creating, when the acknowledgement given was not recorded.
   const [found, setFound] = useState<string | null>(null);
 
+  // The population a run records by default (LIVE), named as the registry names it; null: unread.
+  const [livePopulation, setLivePopulation] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
     population.registry().then(
-      (r) => live && setChildren(clientChildren(r, frame.clientId)),
+      (r) => {
+        if (!live) return;
+        setChildren(clientChildren(r, frame.clientId));
+        // A registry read without its lists names no population: unknown, never a guess.
+        setLivePopulation(Array.isArray(r.versions) && Array.isArray(r.populations) ? (summarize(r).live?.label ?? null) : null);
+      },
       () => live && setChildren([]),
     );
     return () => {
@@ -915,6 +872,66 @@ export function RunStep() {
       {prepared.kind === "none" ? <Card><p className="text-sm">{t("research.exec.noRuns")}</p></Card> : null}
       {prepared.kind === "ready" ? (
         <>
+          {/* What runs, who answers, what it costs, and Start (FLD23); then every check (FLD24 folds them). */}
+          <WhatRuns
+            revision={prepared.revision}
+            working={prepared.working}
+            readiness={prepared.readiness}
+            startable={prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
+            // A chosen child's id is never printed: one the registry no longer lists reads unknown.
+            population={{
+              label: childId ? (children.find((c) => c.version_id === childId)?.label ?? null) : livePopulation,
+              read: prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_source === "panel",
+            }}
+            sources={prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
+              <>
+                <ChoiceChips look="segmented" saves label={t("research.exec.what.who")}
+                  disabled={!frame.canEdit || starting || choosing}
+                  value={(prepared.readiness.persona_source ?? null) as string | null}
+                  options={prepared.readiness.persona_sources.map((o) => ({ key: o.source, label: sourceLabel(o.source), disabled: !o.offered }))}
+                  onChange={(source) => void chooseSource(source)} />
+                <span className="mt-1 block text-xs text-ink-muted" data-source-note>
+                  {sourceNote(prepared.readiness.persona_sources, prepared.readiness.persona_source ?? null)}
+                </span>
+              </>
+            ) : null}
+            note={
+              !frame.canEdit
+                ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
+                : !prepared.readiness.ready
+                  ? t("research.exec.dockNotReady")
+                  : blocked
+                    ? t("research.exec.dockBlocked")
+                    : unacknowledged
+                      ? t("research.exec.answerability.dock")
+                      : null
+            }
+            action={
+              <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
+                {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
+              </AiButton>
+            }
+          >
+            {found ? (
+              <p role="alert" className="text-sm">
+                {t("research.exec.answerability.existing")}{" "}
+                <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
+              </p>
+            ) : null}
+            {hasGaps(prepared.readiness.answerability) ? (
+              <AnswerabilityGate
+                answer={prepared.readiness.answerability}
+                value={ack}
+                onChange={setAck}
+                outlook={prepared.readiness.question_outlook ?? []}
+                stepHref={stepHref}
+                disabled={!frame.canEdit || starting}
+                runnable={prepared.readiness.ready}
+              />
+            ) : null}
+            {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
+            {startError ? <p role="alert" className="mt-3 text-sm text-status-fault">{startError}</p> : null}
+          </WhatRuns>
           {/* What stops the run first, then what runs (research-lane-redesign). */}
           <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
             <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
@@ -932,23 +949,6 @@ export function RunStep() {
             </ul>
             <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
           </Card>
-          {found ? (
-            <p role="alert" className="text-sm">
-              {t("research.exec.answerability.existing")}{" "}
-              <a className="underline" href={`${stepHref("progress")}?run=${encodeURIComponent(found)}`}>{t("research.exec.toProgress")}</a>
-            </p>
-          ) : null}
-          {hasGaps(prepared.readiness.answerability) ? (
-            <AnswerabilityGate
-              answer={prepared.readiness.answerability}
-              value={ack}
-              onChange={setAck}
-              outlook={prepared.readiness.question_outlook ?? []}
-              stepHref={stepHref}
-              disabled={!frame.canEdit || starting}
-              runnable={prepared.readiness.ready}
-            />
-          ) : null}
           {prepared.readiness.research_trace ? (
             <ResearchTraceCard
               trace={prepared.readiness.research_trace}
@@ -958,53 +958,18 @@ export function RunStep() {
             />
           ) : null}
           <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
-          <Receipt revision={prepared.revision} working={prepared.working} readiness={prepared.readiness} />
-          <CostCard readiness={prepared.readiness} canEdit={frame.canEdit} onLimitSaved={() => void rereadReadiness()} />
-          {prepared.readiness.fieldwork_source === "ai_runtime" && prepared.readiness.persona_sources?.length ? (
-            <RespondentChoice
-              options={prepared.readiness.persona_sources}
-              value={prepared.readiness.persona_source ?? null}
-              onChange={(source) => void chooseSource(source)}
-              disabled={!frame.canEdit || starting || choosing}
-            />
-          ) : null}
-          {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (
             <SyntheticBanner />
           )}
-          {startError ? <p role="alert" className="text-sm text-status-fault">{startError}</p> : null}
         </>
       ) : null}
       <RunList runs={runs} />
-      <ActionDock
-        inHeader={false}
-        back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }}
-        // Not while a new choice of respondents is being checked: Start would send the old one.
-        ready={prepared.kind === "ready" && prepared.readiness.ready && frame.canEdit && !blocked && !choosing && !unacknowledged}
-        note={
-          !frame.canEdit
-            ? t(frame.closed ? "research.exec.closed" : "research.exec.readOnly")
-            : prepared.kind !== "ready"
-              ? null
-              : !prepared.readiness.ready
-                ? t("research.exec.dockNotReady")
-                : blocked
-                  ? t("research.exec.dockBlocked")
-                  : unacknowledged
-                    ? t("research.exec.answerability.dock")
-                    : prepared.readiness.confirmation_required
-                    ? t("research.exec.dockAsk")
-                    : t("research.exec.dockReady")
-        }
-      >
-        {prepared.kind === "ready" ? (
-          <AiButton variant="primary" onClick={() => void start()} disabled={!prepared.readiness.ready || !frame.canEdit || starting || blocked || choosing || unacknowledged}>
-            {starting ? t("research.exec.starting") : limited ? t("research.exec.answerability.startLimited") : t("research.exec.start")}
-          </AiButton>
-        ) : null}
-      </ActionDock>
+      {workbench ? null : (
+        // The classic layout's way back; in the workbench the navigator is it.
+        <ActionDock inHeader={false} back={{ href: stepHref("persona"), label: `5. ${t("aia.stages.persona")}` }} note={null}>{null}</ActionDock>
+      )}
     </div>
   );
 }
@@ -1024,7 +989,8 @@ function PopulationChoice({
 }) {
   const P = "research.exec.population";
   return (
-    <Card title={t(`${P}.title`)}>
+    <div className="mt-4 border-t border-border pt-3">
+      <h3 className="mb-1 text-sm font-semibold">{t(`${P}.title`)}</h3>
       <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
         <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
         <label className="flex items-start gap-2">
@@ -1047,38 +1013,7 @@ function PopulationChoice({
         })}
       </fieldset>
       <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
-    </Card>
-  );
-}
-
-/** "Kdo bude odpovídat": every source of AI respondents, the offered ones choosable, the others
- * with the reason this deployment gives (plan run-recovery-and-truth 5a). */
-function RespondentChoice({ options, value, onChange, disabled }: {
-  options: PersonaSourceOption[];
-  value: string | null;
-  onChange: (source: string) => void;
-  disabled: boolean;
-}) {
-  const P = "research.exec.respondents";
-  return (
-    <Card title={t(`${P}.title`)}>
-      <fieldset className="flex flex-col gap-2 text-sm" disabled={disabled}>
-        <legend className="mb-1 text-ink-muted">{t(`${P}.text`)}</legend>
-        {options.map((o) => (
-          <label key={o.source} className={`flex items-start gap-2 ${o.offered ? "" : "text-ink-muted"}`}>
-            <input type="radio" name="run-respondents" checked={value === o.source} disabled={!o.offered} onChange={() => onChange(o.source)} />
-            <span className="flex flex-col">
-              <span>
-                <span className="font-semibold">{t(`${P}.${o.source}`)}</span>
-                {o.default ? <span className="text-ink-muted"> · {t(`${P}.default`)}</span> : null}
-              </span>
-              <span className="text-xs text-ink-muted">{o.offered ? t(`${P}.${o.source}Help`) : <CodedWords inline coded={codeWords(`${P}.reason`, o.reason ?? "")} />}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <p className="mt-2 text-xs text-ink-muted">{t(`${P}.note`)}</p>
-    </Card>
+    </div>
   );
 }
 

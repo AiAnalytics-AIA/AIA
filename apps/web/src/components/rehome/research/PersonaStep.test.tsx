@@ -533,7 +533,7 @@ describe("Dimenze", () => {
     aiaStub(PLANNED);
     render(<ResearchScreen step="persona" frame={TEST_FRAME} />);
     const card = (await screen.findByRole("heading", { name: "Faktory společnosti v AIA zatím nejsou" })).closest("section") as HTMLElement;
-    expect(within(card).getByText(/licencovaného panelu AIA nemá\. Kdo na dotazník odpoví, volíte před spuštěním běhu v části „Kdo bude odpovídat“/)).toBeTruthy();
+    expect(within(card).getByText(/licencovaného panelu AIA nemá\. Kdo na dotazník odpoví, volíte před spuštěním běhu v řádku „Kdo odpovídá“ na Sběru dat/)).toBeTruthy();
     // Neither the old product's name nor a claim the run uses the whole population (DIM-F6).
     expect(card.textContent).not.toMatch(/18\.6\.6|celou populací/);
     expect(screen.queryByRole("button", { name: "Použít faktory pro cílovou populaci" })).toBeNull();
