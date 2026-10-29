@@ -107,9 +107,9 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
   const startable = (v: MethodVersion) => !summary.in_force || v.base_preset === summary.in_force;
   // An edit starts from what is in force (product owner, 2026-10-13): the stored version in force,
   // else the code's preset in force (not merely the first one listed).
+  const storedInForce = data.in_force.origin === "stored" ? data.versions.find((v) => v.version_number === data.in_force.version_number) : undefined;
   const editStart = (): Start => {
-    const stored = data.in_force.origin === "stored" ? data.versions.find((v) => v.version_number === data.in_force.version_number) : undefined;
-    const from = stored && startable(stored) ? versionStart(stored) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
+    const from = storedInForce && startable(storedInForce) ? versionStart(storedInForce) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
     return { ...from, inForce: data.in_force.name };
   };
   // The methodologists who may edit open on the editor (product owner, 2026-10-13); anyone else on
@@ -128,8 +128,11 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
   const [baseline, setBaseline] = useState<{ name: string; result: MethodCompare } | null>(null);
   const [baselineBusy, setBaselineBusy] = useState(false);
   const [baselineError, setBaselineError] = useState<string | null>(null);
+  // What is in force beside itself is computed from what is in force, never from an edit's start; a
+  // version from an earlier preset cannot be computed now (the server refuses its base, MQ-23 (a)).
+  const baselineReadable = !storedInForce || startable(storedInForce);
   const showBaseline = async () => {
-    const live = editStart();
+    const live = storedInForce ? versionStart(storedInForce) : presetStart(summary.in_force ?? summary.presets[0] ?? "");
     setBaselineBusy(true); setBaselineError(null);
     try {
       const result = await methodology.compare(summary.id, { base_preset: live.base, spec: live.spec, formulas: live.formulas });
@@ -301,7 +304,9 @@ function Body({ summary, data, people, calc, reload, onEditing, onDirty }: { sum
             <MethodologyComparison result={baseline.result} />
           </> : (
             <div className="flex flex-wrap items-center gap-3">
-              <Button disabled={baselineBusy} onClick={() => void showBaseline()}>{t(`${V}.baselineButton`)}</Button>
+              {baselineReadable
+                ? <Button disabled={baselineBusy} onClick={() => void showBaseline()}>{t(`${V}.baselineButton`)}</Button>
+                : <p data-baseline-unavailable className="text-sm text-ink-muted">{t(`${V}.baselineEarlierBase`)}</p>}
               {baselineBusy ? <OperationStatus operation="compare" /> : null}
               {baselineError ? <p role="alert" className="text-sm text-status-fault">{baselineError}</p> : null}
             </div>

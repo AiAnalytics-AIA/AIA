@@ -506,6 +506,11 @@ describe("Verze a aktivace and Porovnání as full tables (fidelity F6b)", () =>
     expect(within(row).queryByRole("button", { name: `Aktivovat ${name}` })).toBeNull();
     expect(within(row).queryByRole("button", { name: `Upravit z verze ${name}` })).toBeNull();
     expect(within(row).getByText("Z dřívější metodiky: jen ke čtení.")).toBeTruthy();
+    // Nor is it shown beside itself: that would compare -5, the edit's start, under its name (review of #1121).
+    fireEvent.click(screen.getByRole("tab", { name: "Porovnání" }));
+    await found("[data-baseline-unavailable]");
+    expect(screen.queryByRole("button", { name: "Ukázat metodiku v platnosti na fiktivních panelech" })).toBeNull();
+    expect(sent.some((x) => x.url.endsWith("/compare"))).toBe(false);
   });
 
   it("has no register column for a module no register covers", async () => {
