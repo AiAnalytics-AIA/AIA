@@ -20,7 +20,7 @@ chunks:
   - "[x] RQC9. One authority for the valid n: the domain readiness limits, read by the web and the Lead"
   - "[x] RQC10. A population double composed in both the API and the worker over HTTP, for tier A's AC-05"
   - "[ ] RQC11. Routing in fieldwork (W1, after working-copy-edit-ops WCE13): a conditional question is asked only of respondents whose earlier answer meets its condition, and the dataset records who was not asked"
-  - "[ ] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
+  - "[x] RQC4a. W1 flag contract: deterministic QC flags, ids, lineage and accept-target schema before the W3 model-worker proposal"
   - "[ ] RQC12. Weight identity over HTTP: weight_role and weight_column in the run's population note and in the report's method section (G78)"
   - "[ ] RQC13. Fieldwork shows a question's stimulus to each respondent before the question, recorded in the answer's provenance (D-45)"
   - "[ ] RQC7d. The sector disc by one quota field, over RQC7b's quota-cell fill; the sectors sum to the answered total, a cell answered past its n drawn full and said, never clipped (spec sber D5; the sum rule added 2026-10-27; W2)"
@@ -554,3 +554,41 @@ step, recorded on the run so a retry keeps it.
   the fixture's answers alone); under `domain/workflow_templates.py`, `QC_STEP_KIND`.
 - `deploy/develop/README.md`: `AIA_RUN_QC_ENABLED` among the API's switches, off until measured.
 
+
+## RQC4a, delivered (2026-10-29, branch `feature/rqc4a-qc-flags`, stacked on RQC2)
+
+**The flags.** `domain/qc_flags.py` `straight_liner_flags` / `dataset_flags`: each respondent the
+straight-liner rule names, by code, over the run QC's own scope (the scale questions, only where there
+are at least `straight_lining_min_scales`, `answer_spread` reading `ONE` or `NO_SPREAD`). The count is
+the run QC's `straightlining` share on every captured unit run
+(`test_qc_flags.py::test_the_flags_are_exactly_the_respondents_the_run_qc_counts`), so the share and the
+flags never disagree. No new methodology: the scope and the rule are 2a's and RQC1's, with their
+divergences already on the methodology owner's list (F-RQC1-1, `evidence-integrity` 2).
+
+**Ids and lineage.** A flag's id is `<kind>:<respondent id>` (`flag_id`), unique within its run's QC
+record. The record already pins its lineage (`inputs`: specification id and fingerprint, dataset id and
+SHA-256, RQC2), so the id carries no run. The QC step stores the flags beside the findings
+(`flags_payload`, `aia-qc-flags-1`); `read_flags` refuses another version or an id that does not name
+its kind and respondent. The QC artifact's reuse key gains `QC_FLAGS_VERSION`. A QC that cannot be read
+(a conditional question, RQC11) stores no flags, for the same reason (`routed_questions_refusal`, shared
+with `dataset_qc`).
+
+**The accept target.** A field of the run's QC record, `flag_decisions` (`ACCEPT_FIELD`), as RQC4 says.
+`FlagDecisionRecord` names the flag, the QC artifact, the dataset's SHA-256, who decided and, for W3, the
+worker's proposal. `check_decision` takes `keep` or `flag` and refuses by code: `replace_not_available`
+(a new linked run, RQC5, has no command until its ADR, ADR 0026 decision 4), `decision_unknown`,
+`other_record`, `stale_dataset`, `unknown_flag`. Nothing stores a decision yet: the write, its ledger
+row and the worker's proposal are RQC4 (W3, after LO9b's binding).
+
+- Tests: `packages/aia_core/tests/test_qc_flags.py` (19 captured runs, the reading and items, ids, the
+  stored round trip and its refusals, a dataset's flags, the conditional refusal, each decision and each
+  refusal); `apps/executors/tests/test_run_qc_executor.py` (a fictional run stores the flags the domain
+  names, one per straight-liner of the share; a QC it cannot read stores none).
+
+## Doc follow-up (RQC4a)
+
+- `CLAUDE.md` §2, under `domain/`: `qc_flags.py`, a run's deterministic QC flags (RQC4a): the
+  straight-liners the run QC counts, one flag each (`<kind>:<respondent id>`), stored in the run's
+  `research_qc` record as `aia-qc-flags-1`; the accept target, the record's `flag_decisions` field
+  (`FlagDecisionRecord`, `check_decision`: keep or flag, `replace` refused until RQC5).
+- `CLAUDE.md` §2, under `aia_executors/research.py`: `RunQcExecutor` stores the flags beside the findings.
