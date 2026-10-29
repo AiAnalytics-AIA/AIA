@@ -1954,6 +1954,21 @@ class ResearchAgentJobs:
             for r in runs
         }
 
+    def _rebuilt(self, run_id: str) -> bool:
+        """Whether a job of this Study rebuilds ``run_id``, looked up for this run alone: the
+        listing's projection (:meth:`proposal_states`) sees only the Study's newest jobs."""
+        project_id = StudyDesignRepository(self.session, self.scope).project_id()
+        if project_id is None:
+            return False
+        rebuilds = WorkflowRepository(self.session, self.scope).list_runs(
+            project_id=project_id,
+            workflow_type=RESEARCH_AGENT,
+            # A rebuild's key carries the job it rebuilds (start); its metadata says so exactly.
+            key_contains=f":rebuild-of:{run_id}",
+            limit=200,
+        )
+        return any(r["metadata"].get("rebuild_of") == run_id for r in rebuilds)
+
     def dismiss(self, run_id: str) -> bool:
         """A person sets a proposal aside: a ``dismiss`` row in the approval ledger, nothing else.
 
@@ -2095,7 +2110,9 @@ class ResearchAgentJobs:
             raise DesignRejected(
                 "an accepted proposal is in the design", reason="proposal_already_accepted"
             )
-        if state is ProposalState.SUPERSEDED:
+        if state is ProposalState.SUPERSEDED or (
+            state is ProposalState.PENDING and self._rebuilt(run_id)
+        ):
             raise DesignRejected(
                 "a rebuild of this proposal replaces it", reason="proposal_superseded"
             )

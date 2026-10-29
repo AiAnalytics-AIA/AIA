@@ -1030,6 +1030,34 @@ def test_a_proposal_a_rebuild_replaces_is_not_accepted(
         assert ledger(session, run_id) == []
 
 
+def test_a_rebuild_outside_the_job_listing_still_replaces_its_proposal(
+    world: Any, database_url: str, store: Any, build: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Codex on #1108: the listing projection reads the Study's newest 200 jobs, so a rebuild
+    followed by 200 more jobs fell out of it and the original read as pending. With no head
+    check (WCE5) nothing else refused it; the accept looks the rebuild up for this run alone."""
+    d1 = design_on_working_copy(world)
+    run_id = job_on(world, database_url, store, build, d1)
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        ResearchAgentJobs(session, scope).rebuild(run_id, design_revision_id=d1)
+        session.commit()
+    # The 200-job window holding none of this run's rebuilds, as after 200 later jobs.
+    monkeypatch.setattr(ResearchAgentJobs, "jobs", lambda self, *, limit=20: [])
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with pytest.raises(DesignRejected) as refused:
+            ResearchAgentJobs(session, scope).accept(
+                run_id,
+                store=store,
+                expected_revision_id=d1,
+                expected_workspace_revision=working_revision(session, world),
+            )
+        assert refused.value.reason == "proposal_superseded"
+        assert StudyDesignRepository(session, scope).latest().revision_id == d1
+        assert ledger(session, run_id) == []
+
+
 def test_an_older_working_copy_is_refused_as_stale(
     world: Any, database_url: str, store: Any, build: Any
 ) -> None:
