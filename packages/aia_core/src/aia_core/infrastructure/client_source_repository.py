@@ -49,9 +49,11 @@ from ..domain.scope import (
     ClientWorkContext,
     Permission,
     ScopeDenied,
+    StudyContext,
 )
 from .source_reading import READERS, read_source
-from .storage import ArtifactStore, sha256_bytes
+from .storage import ArtifactStore, ObjectNotFound, sha256_bytes
+from .storage import IntegrityError as ReadingCorrupt
 from .tables import (
     AccessAuditRow,
     ClientSourceOccurrenceRow,
@@ -64,6 +66,7 @@ __all__ = [
     "ClientSourceRepository",
     "ReadingPin",
     "SourceReadingChanged",
+    "StudySource",
     "count_client_sources",
     "erase_client_sources",
 ]
@@ -84,6 +87,20 @@ class ReadingPin:
     segments: int
 
 
+@dataclass(frozen=True, slots=True)
+class StudySource:
+    """A study's own client's source as its row stands when a run is enqueued (lifecycle K8b):
+    what decides whether its reading is read at all, before any byte is fetched."""
+
+    source_id: str
+    family: SourceFamily
+    outcome: ReadingOutcome
+    segments: int
+    reading_sha256: str | None
+    characters: int
+    internal: bool
+
+
 class SourceReadingChanged(LookupError):
     """The source has been read again since the run was queued; it asks a new run."""
 
@@ -95,6 +112,13 @@ LIST_LIMIT: Final = 500
 def _client(scope: object) -> ClientContext:
     if not isinstance(scope, ClientContext):
         raise ScopeDenied("a client's sources require a client context", reason="forged_scope")
+    return scope
+
+
+def _study_scope(scope: object) -> StudyContext:
+    if not isinstance(scope, StudyContext):
+        raise ScopeDenied("a study's sources require a study context", reason="forged_scope")
+    scope.require(Permission.VIEW_STUDY)
     return scope
 
 
@@ -113,7 +137,7 @@ class ClientSourceRepository:
 
     def _rows(
         self,
-        scope: ClientContext | ClientWorkContext,
+        scope: ClientContext | ClientWorkContext | StudyContext,
         source_ids: list[str] | None = None,
         *,
         for_update: bool = False,
@@ -232,6 +256,39 @@ class ClientSourceRepository:
             # Nothing was read: the row says all there is.
             return SourceReading(outcome=ReadingOutcome(row.outcome), reason=row.reason)
         data = self._store.get(row.reading_key, expected_sha256=row.reading_sha256)
+        return SourceReading.model_validate_json(data)
+
+    def for_study(self, scope: StudyContext, source_ids: list[str]) -> dict[str, StudySource]:
+        """The named sources of the study's own client, from their rows alone, in one query, for
+        a Deep Research run enqueued from the study (lifecycle K8b). Needs ``VIEW_STUDY``; the
+        client comes from the study's scope, so another client's source is simply absent."""
+        rows = self._rows(_study_scope(scope), source_ids) if source_ids else []
+        return {
+            row.source_id: StudySource(
+                source_id=row.source_id,
+                family=SourceFamily(row.family),
+                outcome=ReadingOutcome(row.outcome),
+                segments=row.segment_count,
+                reading_sha256=row.reading_sha256,
+                characters=row.characters,
+                internal=row.internal_marked_by is not None,
+            )
+            for row in rows
+        }
+
+    def study_reading(
+        self, scope: StudyContext, source_id: str, *, reading_sha256: str
+    ) -> SourceReading | None:
+        """The reading :meth:`for_study` named, verified against that hash; ``None`` when the
+        source was read again since, or its kept reading is missing or fails verification: one
+        unreadable document never refuses a run, its item is held without its text."""
+        rows = self._rows(_study_scope(scope), [source_id])
+        if not rows or rows[0].reading_key is None or rows[0].reading_sha256 != reading_sha256:
+            return None
+        try:
+            data = self._store.get(rows[0].reading_key, expected_sha256=reading_sha256)
+        except (ReadingCorrupt, ObjectNotFound):
+            return None
         return SourceReading.model_validate_json(data)
 
     def reading_pin(self, scope: ClientContext, source_id: str) -> ReadingPin:

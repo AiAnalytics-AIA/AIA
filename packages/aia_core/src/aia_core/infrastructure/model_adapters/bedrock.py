@@ -97,6 +97,7 @@ from .transport import (
     TransportFailure,
     parse_duration_seconds,
     plausible_wait,
+    refuse_blocks,
     token_count,
 )
 
@@ -225,9 +226,7 @@ class BedrockConverseAdapter:
         if request.temperature is not None:
             inference["temperature"] = request.temperature
         body: dict[str, Any] = {
-            "messages": [
-                {"role": m.role, "content": [{"text": m.content}]} for m in request.messages
-            ],
+            "messages": [{"role": m.role, "content": [{"text": m.text}]} for m in request.messages],
             "inferenceConfig": inference,
         }
         if request.system:
@@ -303,6 +302,9 @@ class BedrockConverseAdapter:
                 kind=ProviderErrorKind.MODEL,
                 delivery=Delivery.NOT_SENT,
             )
+        if any(m.has_blocks for m in request.messages):
+            # Carried from G2 of ADR 0026 Amendment 2026-10-28, against recorded fixtures.
+            raise refuse_blocks("Bedrock Converse")
         problem = self._profile_problem(request) or self._thinking_problem(request)
         if problem:
             # The provider would answer 400; refusing here keeps it unsigned and unsent.

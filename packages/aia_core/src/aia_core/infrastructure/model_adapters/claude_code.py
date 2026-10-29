@@ -56,6 +56,7 @@ from .transport import (
     CliRunner,
     TransportFailure,
     plausible_instant,
+    refuse_blocks,
     refuse_profile,
     refuse_thinking,
     render_transcript,
@@ -134,6 +135,8 @@ class ClaudeCodeCliAdapter:
         return argv, render_transcript(request.messages)
 
     async def send(self, request: AdapterRequest) -> AdapterResponse:
+        if any(m.has_blocks for m in request.messages):
+            raise refuse_blocks("Claude Code CLI")
         if request.thinking_budget_tokens is not None:
             raise refuse_thinking("Claude Code CLI")
         if not request.request_profile.is_default:

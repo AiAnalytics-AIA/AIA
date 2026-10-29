@@ -464,10 +464,41 @@ try {
       // The link keeps its column beside them; the label no longer does.
       assert(share.length && share.every((w) => w >= 0.7), `Co spustíte's values take most of the card @390: ${share}`);
     }
+    // Sběr dat's two views (FLD9): the header's "Pohled", Kontrola selected here, each a touch target.
+    const views = page.getByRole("tablist", { name: "Pohled" });
+    const toCheck = views.getByRole("tab", { name: "Kontrola a spuštění" });
+    const toProgress = views.getByRole("tab", { name: "Průběh" });
+    assert.equal(await toCheck.getAttribute("aria-selected"), "true", `Kontrola is the open view @${width}`);
+    for (const tab of [toCheck, toProgress]) {
+      const h = (await tab.boundingBox())?.height ?? 0;
+      assert(h >= floor, `a view is a ${floor} px target @${width}: ${h}`);
+    }
     await noOverflow(`run @${width}`);
     await shot(`${width}-run`);
+    // Průběh opens on its own route, still Sběr dat on the navigator, and Kontrola opens back.
+    await toProgress.click();
+    await page.waitForURL(/\/progress(\?|$)/);
+    // The switch stays where the person pressed it: the focus is not dropped by the route change.
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("role") === "tab" && document.activeElement.textContent.trim()), "Průběh", `the focus stays on Průběh @${width}`);
+    assert.equal(await views.getByRole("tab", { name: "Průběh" }).getAttribute("aria-selected"), "true", `Průběh is the open view @${width}`);
+    await noOverflow(`progress @${width}`);
+    await shot(`${width}-progress`);
+    await views.getByRole("tab", { name: "Kontrola a spuštění" }).click();
+    await page.waitForURL(/\/run(\?|$)/);
   }
+  // With no run moving, the navigator's Sběr dat opens Kontrola, from Průběh too.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base + stagePath("progress"));
+  await page.getByRole("tablist", { name: "Pohled" }).waitFor({ timeout: 60000 });
+  await navStage("Sběr dat", true).click();
+  await page.waitForTimeout(1500);
+  assert(new URL(page.url()).pathname.endsWith("/progress"), "the navigator keeps the open view of the stage it is on");
+  await page.goto(base + stagePath("brief"));
+  await page.locator("[data-workbench]").waitFor();
+  await navStage("Sběr dat").click();
+  await page.waitForURL(/\/run(\?|$)/);
   check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  check("Sběr dat one stage with two views (FLD9): Pohled switches Kontrola and Průběh at 1440, 1100, 768 and 390, no overflow; with no run moving the navigator opens Kontrola");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
   // because a visit to Návrh submits a Design Revision that Vzorek's forecast then reads (WCE7b).

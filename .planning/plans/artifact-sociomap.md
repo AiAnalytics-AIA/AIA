@@ -17,6 +17,7 @@ chunks:
   - "[x] SOC11b. A copy pass on the stage: Stress-1, PROGRESS D6, Top vztahy, a dead key (reopens SOC11; spec szz S1; W2)"
   - "[x] SOC14. One sentence that the map's taste segments are descriptive (spec szz S2; W2)"
   - "[ ] SOC15. Evidence grades on the map: the report's glyph on every map node and the legend beside the map (Nigel, 27 Oct 2026; W2, with artifact-results#RES13)"
+  - "[x] SOC-S2. Beside -5 taste segments shown, the panel's legend, its exported PNG and the report's respondent figure say \"Segmenty jen popisují, jak se respondenti na této mapě liší.\" (the methodology owner 2026-10-29, S-2 (a))"
 ---
 # Artifact: Sociomapa (Sociomap)
 
@@ -421,3 +422,33 @@ added, never renumbered; a ticked chunk a decision reopens gets a follow-up chun
 
 **SOC15. Grades on the map** (W2, lane F). RES13's component on each node, and its legend in the map's legend. Test: a
 modelled run's nodes carry the modelled glyph.
+
+## SOC-S2: "segments only describe" in the `-5` legend (2026-10-29)
+
+The methodology owner (2026-10-29, S-2 (a), `.planning/mvp-methodology-packet.md` part 2): add
+"segments only describe" to the panel's own segment legend and to the exported PNG.
+
+- **Panel.** `segmentLines` (`apps/web/src/components/rehome/research/ObjectMapPanel.tsx`) writes the
+  segment legend's foot, which the legend (`SegmentNote`) and the exported PNG's legend card
+  (`drawLegendCard`, `lib/object-map-panel.ts`) both draw; with segments found (`SEGMENTS`) it was empty
+  and is now the sentence. No sentence where no segment is shown: a borderline split's hint is not
+  segments (the panel says nobody is coloured), and naming its groups "Segmenty" would contradict it.
+- **Report and snapshot.** The respondent figure (`infrastructure/report_docx/signed_off_map_figure.py`
+  `render_respondents`, drawn by the internal report and by `signed_off_snapshots`) prints it under its
+  segment legend when segments are found. The report's prose about the figure (`report_maps.py`
+  `_respondent_reading`) is not changed: S-2 names the legend and the PNG. The map snapshots (RD4) draw the object map only (`top`,
+  `3d`), so no snapshot has a segment legend; the client report draws no respondent map (#1109).
+- **Wording.** The packet names the point, not its Czech; the sentence is MapExplained's own
+  (`segDescriptive`, "Skupiny jen popisují, jak se respondenti na této mapě liší"), with "Segmenty"
+  as the legend names them, so the stage now shows both words. Written twice (`cs.ts`
+  `segmentsDescribe`, `signed_off_map_figure.py` `CZECH.segments_describe`). **For the methodology owner
+  to confirm**; a change of wording changes those two and, if wanted, `segDescriptive`.
+- The 18.6.6 panel's legends stay pinned as recorded (`lib/fixtures/object-map-draw-golden.json`,
+  not edited); the test expects them followed by AIA's sentence.
+
+Tests (each failed on `44d5bc72`): `ObjectMapPanel.test.tsx` "says what the panel says about the
+segments of hudba / distinct / borderline …" and "saves the respondent map with its density legend and
+segments …"; `test_report_signed_off_map_figure.py::test_the_respondent_map_draws_every_placed_respondent_in_its_segment_colour` (the segments
+shown) and `::test_the_respondent_map_says_why_it_shows_no_segments` (hinted or none: not said).
+
+**Doc follow-up.** none (no module, route or key moved).

@@ -50,6 +50,7 @@ from .transport import (
     TransportFailure,
     parse_duration_seconds,
     plausible_wait,
+    refuse_blocks,
     refuse_profile,
     refuse_thinking,
     resolve_secret,
@@ -100,7 +101,7 @@ class OpenAIChatAdapter:
             "max_completion_tokens": request.max_output_tokens,
             "messages": [
                 {"role": "system", "content": request.system},
-                *({"role": m.role, "content": m.content} for m in request.messages),
+                *({"role": m.role, "content": m.text} for m in request.messages),
             ],
         }
         if request.output_schema is not None:
@@ -129,6 +130,8 @@ class OpenAIChatAdapter:
         )
 
     async def send(self, request: AdapterRequest) -> AdapterResponse:
+        if any(m.has_blocks for m in request.messages):
+            raise refuse_blocks("OpenAI Chat")
         if request.thinking_budget_tokens is not None:
             raise refuse_thinking("OpenAI Chat")
         if not request.request_profile.is_default:

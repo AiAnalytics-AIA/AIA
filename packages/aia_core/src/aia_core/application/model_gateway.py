@@ -129,7 +129,7 @@ def input_token_bound(request: AdapterRequest) -> int:
     truth lets a call past a reservation that cannot cover it. The ledger
     records the real count afterwards.
     """
-    content = [request.system, *(m.content for m in request.messages)]
+    content = [request.system, *(_measured(m) for m in request.messages)]
     if request.output_schema is not None:
         content.append(canonical_json(request.output_schema))
     return (
@@ -137,6 +137,12 @@ def input_token_bound(request: AdapterRequest) -> int:
         + _PER_MESSAGE_OVERHEAD_TOKENS * (len(request.messages) + 1)
         + _PER_REQUEST_OVERHEAD_TOKENS
     )
+
+
+def _measured(message: Message) -> str:
+    """A message's content as the bound counts it: its text, or its blocks' JSON."""
+    wire = message.wire_content()
+    return wire if isinstance(wire, str) else canonical_json(wire)
 
 
 def _schema_name(agent_id: str) -> str:
@@ -707,6 +713,7 @@ class GovernedModelGateway:
                     else canonical_json(response.structured),
                     output=output,
                     usage_events=tuple(events),
+                    blocks=response.blocks,
                 )
 
             if repairs_left <= 0:
