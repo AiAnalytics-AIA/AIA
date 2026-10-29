@@ -2703,6 +2703,8 @@ class DeepResearchCompositionRow(Base):
     agent_directed: Mapped[bool] = mapped_column(Boolean, nullable=False)
     class_gates: Mapped[str | None] = mapped_column(String(16))
     routes: Mapped[list[dict[str, Any]]] = mapped_column(JSONType, nullable=False)
+    #: The AI route this start composed (lead-orchestration LO12b); ``None`` before it.
+    ai_route: Mapped[dict[str, Any] | None] = mapped_column(JSONType)
 
     __table_args__ = (Index("ix_deep_research_compositions_composed_at", "composed_at"),)
 

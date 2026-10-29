@@ -9,7 +9,7 @@ import "./map-explained.css";
 import type { ReactNode } from "react";
 import { t, tv } from "@/i18n/t";
 import { type MapExplanation, plural } from "@/lib/map-explained";
-import { SEGMENT_COLOURS } from "@/lib/object-map-panel";
+import { SEGMENT_COLOURS, floorWords } from "@/lib/object-map-panel";
 
 const M = "research.exec.mapStage";
 const pct = (x: number) => `${Math.round(100 * x)} %`;
@@ -17,6 +17,11 @@ const num = (x: number, d: number) => x.toLocaleString("cs-CZ", { minimumFractio
 const signed = (x: number) => (x >= 0 ? "+" : "−") + num(Math.abs(x), 2);
 const count = (n: number) => n.toLocaleString("cs-CZ");
 const word = (key: string, n: number) => plural(n, t(`${key}.one`), t(`${key}.few`), t(`${key}.many`));
+/** How the terrain's height reads: by the floor the map declares (floorWords, MQ-08). */
+function terrainWords(floor: number | null): string {
+  const w = floorWords(floor);
+  return w.kind === "floor" ? tv(`${M}.howTerrainText`, { floor: w.percent }) : t(w.kind === "full" ? `${M}.howTerrainTextFull` : `${M}.howTerrainTextUnknown`);
+}
 
 export type MapTech = { methodId: string; fingerprint: string; estimator: string | null; layout: string | null; terrain: string | null; run: string; revision: number; artifact: string; sha256: string };
 
@@ -184,7 +189,7 @@ export function MapExplained({ x, approved, tech, idPrefix = "" }: { x: MapExpla
           <li><b>{t(`${M}.howRatings`)}</b> {tv(`${M}.howRatingsText`, { lo, hi })}</li>
           <li><b>{t(`${M}.howRelations`)}</b> {tv(`${M}.howRelationsText`, { nMin: x.nMin })}</li>
           <li><b>{t(`${M}.howLayout`)}</b> {t(`${M}.${tech.layout?.startsWith("soft_rank") ? "howLayoutText" : "howLayoutOther"}`)}</li>
-          <li><b>{t(`${M}.howTerrain`)}</b> {t(`${M}.howTerrainText`)}</li>
+          <li><b>{t(`${M}.howTerrain`)}</b> {terrainWords(x.floor)}</li>
           <li><b>{t(`${M}.howGroups`)}</b> {t(`${M}.howGroupsText`)}</li>
           <li><b>{t(`${M}.howReliability`)}</b> {t(`${M}.howReliabilityText`)}</li>
         </ol>

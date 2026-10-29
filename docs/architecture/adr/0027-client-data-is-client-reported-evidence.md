@@ -1,6 +1,6 @@
 # ADR 0027 — A client's own data is client-reported evidence: its own origin, computed by code, shown beside modelled results, never mixed into them
 
-**Status:** Proposed — 2026-10-19, from the product owner's answers of the same day (`overview.md`
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-16 to MQ-18 are answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-19, from the product owner's answers of the same day (`overview.md`
 § MVP roadmap, MVP-19). **Builds on** [ADR 0015](0015-client-first-product-interface.md) (Client
 Knowledge, scoped before it is read), [ADR 0016](0016-research-execution-and-model-transmission.md)
 (a run executes a Design Revision), [ADR 0019](0019-two-roles-and-human-ai-gates.md) (a person
@@ -133,3 +133,16 @@ Three facts of the code frame it:
   row count as n, or an explicit "not a sample" status, never an invented effective n), the metric
   and unit set a client number may take, and when an interval is required
   (`client-data-in-analysis#0`). Q1 and Q4 are the methodology owner's.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. Its open questions as answered on
+2026-10-28 (MQ-16 to MQ-18):
+
+- **Q1 (MQ-16 (a)):** a benchmark shows both intervals and claims no difference when the supports
+  differ; modelled is not observed, until validation (ADR 0024's P1 to P8) lifts modelled answers.
+- **Q2 (MQ-17):** never in the MVP, as recorded above.
+- **Q4 (MQ-18), own rule:** survey rows: n is the row count, or Kish n when weighted, with an interval.
+  Records or census counts: labelled "not a sample", the exact figure, no interval, no tests. Supplied
+  aggregates without rows: as reported, no interval. Allowed metrics: mean, pct, n, plus count, amount
+  and rate.

@@ -1744,6 +1744,7 @@ def run_start_settings(
         analysis_enabled=settings.ai_analysis_enabled,
         external_context=settings.ai_analysis_external_context,
         sociomapping_enabled=settings.sociomapping_experimental_enabled,
+        qc_enabled=settings.run_qc_enabled,
         reservations=_reservations(request),
         persona_source=_persona_source(request),
         require_answerability=settings.research_answerability_gate,

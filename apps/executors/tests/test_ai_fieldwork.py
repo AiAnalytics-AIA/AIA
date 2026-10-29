@@ -1442,6 +1442,41 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert refused.value.reason == "not_modelled"
 
 
+def test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    grounded: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A -7 client draft printed a -5 respondent map a client may not see (the methodology
+    owner, 2026-10-28, MQ-01 (b)): after the contract moved, the document read skips it, its
+    approval is refused, and the next download composes anew."""
+    from aia_core.application import client_report
+    from aia_core.application.client_report import client_report_document, stored_client_report
+    from aia_core.application.report_approval import ReportNotApprovable, approve_report
+
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(ScriptedBedrock(), env=_grounded_env(), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with monkeypatch.context() as earlier:
+            earlier.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-7")
+            old, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert old.metadata["report_contract"] == "aia-client-report-7"
+        assert client_report_document(session, scope, store, run_id=run_id) is None
+        with pytest.raises(ReportNotApprovable):
+            approve_report(session, scope, store, run_id=run_id, artifact_id=old.artifact_id)
+        new, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert new.artifact_id != old.artifact_id
+        shown = client_report_document(session, scope, store, run_id=run_id)
+        assert shown is not None and shown[0].artifact_id == new.artifact_id
+        assert approve_report(
+            session, scope, store, run_id=run_id, artifact_id=new.artifact_id
+        ).is_approved
+
+
 def test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:

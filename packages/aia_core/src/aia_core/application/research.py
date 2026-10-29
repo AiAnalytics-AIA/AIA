@@ -481,6 +481,8 @@ class RunStartSettings:
     fieldwork_source: FieldworkSource
     analysis_enabled: bool
     sociomapping_enabled: bool
+    #: AIA_RUN_QC_ENABLED: a new run carries the run QC step (``run-qc-and-checkpoint`` RQC2)
+    qc_enabled: bool
     reservations: RunReservations
     #: The deployment's default persona source; a caller that offers no choice names it.
     persona_source: PersonaSource
@@ -675,6 +677,7 @@ class ResearchRuns:
             analysis_enabled=settings.analysis_enabled,
             external_context=settings.external_context,
             sociomapping_enabled=settings.sociomapping_enabled,
+            qc_enabled=settings.qc_enabled,
             reservations=settings.reservations,
             confirmation=confirmation,
             persona_source=command.persona_source,
@@ -693,6 +696,7 @@ class ResearchRuns:
         analysis_enabled: bool = False,
         external_context: bool = False,
         sociomapping_enabled: bool = False,
+        qc_enabled: bool = False,
         reservations: RunReservations | None = None,
         confirmation: SpendConfirmation | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
@@ -859,6 +863,8 @@ class ResearchRuns:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
+        if qc_enabled:
+            key += ":qc"
         if methodology is not None:
             # An edited methodology is new identity: the same revision under it is another
             # run, and its cost goes through the spend confirmation below like any new run.
@@ -1035,6 +1041,7 @@ class ResearchRuns:
                 "analysis_enabled": analysis_enabled,
                 **({"analysis_context": context_pin} if context_pin else {}),
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
+                **({"qc_enabled": True} if qc_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
                 "support": support_pin,
@@ -1123,6 +1130,7 @@ class ResearchRuns:
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
             sociomapping_enabled=sociomapping_enabled,
+            qc_enabled=qc_enabled,
             population=population,
         )
         if fresh_acknowledgement is not None and started.created:
@@ -1250,6 +1258,7 @@ class ResearchRuns:
             if analysis_enabled is None
             else analysis_enabled,
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
+            qc_enabled=bool(run["metadata"].get("qc_enabled", False)),
             reservations=reservations,
             confirmation=confirmation,
             sociomap_methods=pinned,

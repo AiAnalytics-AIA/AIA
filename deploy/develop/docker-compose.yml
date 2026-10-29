@@ -150,6 +150,8 @@ services:
       AIA_AI_FICTIONAL_CLIENT_IDS: ${AIA_AI_FICTIONAL_CLIENT_IDS:-}
       # The API pins this deterministic engine and its report into newly queued runs.
       AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED: ${AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED:-false}
+      # The API adds the run QC step (the unit's qc.kontrola, warnings only) to newly queued runs.
+      AIA_RUN_QC_ENABLED: ${AIA_RUN_QC_ENABLED:-false}
       # The object map's numba kernels compiled in the background after start, so the first
       # Metodika comparison after a deploy is not the ~40 s compile (apps/api warmup.py).
       AIA_SOCIOMAP_WARMUP_ENABLED: ${AIA_SOCIOMAP_WARMUP_ENABLED:-true}
