@@ -139,7 +139,7 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:45621/research-stages/%7B%7Bshot%7D%7D"
+   "404 http://127.0.0.1:41679/research-stages/%7B%7Bshot%7D%7D"
   ],
   "image": "14-Report.webp"
  },
@@ -184,8 +184,8 @@
    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ],
   "failed_requests": [
-   "404 http://127.0.0.1:45621/research-stages/%7B%7BshotDef%7D%7D",
-   "404 http://127.0.0.1:45621/research-stages/%7B%7BshotAia%7D%7D"
+   "404 http://127.0.0.1:41679/research-stages/%7B%7BshotDef%7D%7D",
+   "404 http://127.0.0.1:41679/research-stages/%7B%7BshotAia%7D%7D"
   ],
   "image": "18-ReportEditor.webp"
  },
@@ -198,5 +198,105 @@
   "errors": [],
   "failed_requests": [],
   "image": "19-Overview.webp"
+ },
+ {
+  "board": "Z0Flow.dc.html",
+  "title": "Z0 · Zadání se dvěma cestami: průchod",
+  "w": 1440,
+  "h": 1420,
+  "text_chars": 3510,
+  "errors": [],
+  "failed_requests": [],
+  "image": "20-Z0Flow.webp"
+ },
+ {
+  "board": "Z1Start.dc.html",
+  "title": "Z1 · Zadání: začátek",
+  "w": 1440,
+  "h": 1260,
+  "text_chars": 2198,
+  "errors": [],
+  "failed_requests": [],
+  "image": "21-Z1Start.webp"
+ },
+ {
+  "board": "Z2Triage.dc.html",
+  "title": "Z2 · Zadání: triáž",
+  "w": 1440,
+  "h": 1780,
+  "text_chars": 3820,
+  "errors": [],
+  "failed_requests": [],
+  "image": "22-Z2Triage.webp"
+ },
+ {
+  "board": "Z3Decision.dc.html",
+  "title": "Z3 · Zadání: rozhodnutí a pravidlo",
+  "w": 1440,
+  "h": 1500,
+  "text_chars": 2797,
+  "errors": [],
+  "failed_requests": [],
+  "image": "23-Z3Decision.webp"
+ },
+ {
+  "board": "Z4Research.dc.html",
+  "title": "Z4 · Zadání: cesta Výzkum",
+  "w": 1440,
+  "h": 2100,
+  "text_chars": 4748,
+  "errors": [],
+  "failed_requests": [],
+  "image": "24-Z4Research.webp"
+ },
+ {
+  "board": "Z5Model.dc.html",
+  "title": "Z5 · Zadání: cesta Model",
+  "w": 1440,
+  "h": 2420,
+  "text_chars": 3827,
+  "errors": [],
+  "failed_requests": [],
+  "image": "25-Z5Model.webp"
+ },
+ {
+  "board": "Z6Both.dc.html",
+  "title": "Z6 · Zadání: obojí",
+  "w": 1440,
+  "h": 1640,
+  "text_chars": 2754,
+  "errors": [],
+  "failed_requests": [],
+  "image": "26-Z6Both.webp"
+ },
+ {
+  "board": "Z7Ready.dc.html",
+  "title": "Z7 · Zadání: připravenost a předání",
+  "w": 1440,
+  "h": 1280,
+  "text_chars": 2696,
+  "errors": [],
+  "failed_requests": [],
+  "image": "27-Z7Ready.webp"
+ },
+ {
+  "board": "Z8aPhone.dc.html",
+  "title": "Z8a · Telefon: začátek",
+  "w": 390,
+  "h": 920,
+  "text_chars": 447,
+  "errors": [],
+  "failed_requests": [],
+  "image": "28-Z8aPhone.webp"
+ },
+ {
+  "board": "Z8bPhone.dc.html",
+  "title": "Z8b · Telefon: triáž",
+  "w": 390,
+  "h": 1110,
+  "text_chars": 771,
+  "errors": [],
+  "failed_requests": [],
+  "image": "29-Z8bPhone.webp"
  }
 ]

@@ -1,4 +1,4 @@
-# AIA Výzkumné kroky – prototyp, 28 Oct 2026
+# AIA Výzkumné kroky – prototyp, 29 Oct 2026
 
 A snapshot of the research-stages Design canvas, for use from another account. It is design reference,
 not product code: nothing here is imported by `apps/web`, and every client, study, person and number is
@@ -8,30 +8,44 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 9, artifact version `1793203710-fb9a` |
-| Exported | 28 Oct 2026 |
+| Version | version 14, artifact version `1793313415-9bdc` |
+| Exported | 29 Oct 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
 
-## What changed in version 9 (28 Oct)
+## What changed in version 14 (29 Oct)
 
-**The page heroes as core v4.3's** (the product owner: "Make the research stages hero match core v4.3 too", as
-Settings v118 and Klienti v21). Each board that opens with a page header now draws core's hero:
-- `Overview.dc.html`:
-  - the eyebrow "Přehled studie" and its two actions in one row;
-  - the serif title and the lede;
-  - the six figures beneath them, "Čeká na vás" in coral, in place of the bordered six-tile strip. Its
-    `.ovw-h` and `.ovs` rules are removed with it.
-- `Main.dc.html`, `Cards.dc.html`, `CardsF.dc.html`, `Marks.dc.html` and `ReportEditor.dc.html`:
-  - an eyebrow, the back link where the board had one;
-  - the 28/34 serif title, the lede and the rule under them;
-  - what sat beside the old header (the tags, the status legend, the orb note) in the eyebrow row.
+**A proposal: Zadání with two paths** (the product owner, 29 Oct: "I want to upgrade the zadani step to allow
+for this dual path … Suggest upgrades based on the best research design practices", and "i want to see
+something visual"). Ten new boards in a row of their own, "Zadání se dvěma cestami · návrh 29. 10.", walk
+one intake that routes a study to Výzkum, Model (the coming scenario cost model) or both:
 
-The eleven stage boards keep their compact study header: core's Hero is for top-level pages, and inside a study
-the stage header is used instead (`../design-system/components/Hero/README.md`). Every render has no new script
-error or failed request; Report's and ReportEditor's `{{shot}}` placeholders are as before. The canvas heights
-are unchanged.
+- `Z0Flow` is the walk-through: the five moves and every board in order.
+- `Z1Start` starts from one box, "Co potřebujete rozhodnout?", and Přidat podklady (empty and typed).
+- `Z2Triage` shows the Lead's path proposal with its reason, the drafted sections as one proposal with
+  checkboxes, and three questions ranked by how much each answer changes the design.
+- `Z3Decision` holds the decision block: decision, owner, date, options with "nic neměnit", the action
+  standard per path, a grey zone and the certainty needed; states "chybí práh" and the vague word with its
+  measurable rewrite.
+- `Z4Research` (Pivovar Zlatá Hora, +3 Kč) runs from information needs to research questions with their type,
+  whom the decision concerns, the measures the rule reads, what is known with its certainty, and what each
+  becomes on Návrh.
+- `Z5Model` (a fictional e-shop, a 2 000 m² warehouse or a 3PL) has the target quantity, horizon, boundary in and
+  out, the data inventory (file → number, one missing), assumptions with value or range, source and owner,
+  and what could flip the answer.
+- `Z6Both` shows one Zadání creating two linked studies: what each inherits, and the research result
+  offered to the model as an assumption.
+- `Z7Ready` puts rubric R1–R7 in the chip row and its drawer, then the hand-off blocked, ready and done, into
+  Návrh or into Data.
+- `Z8aPhone` and `Z8bPhone` are the start and the triage at 390 px.
+
+The existing boards are unchanged; `Brief.dc.html` stays the approved Zadání until the product owner picks.
+The new boards keep the decisions below: no data classes on screen, no stage showing what another owns
+(the population, comparison objects and measures are asked in words and handed on as proposals), the
+readiness chip row, paid AI only through a card, the compact stage header. Every render has no new script
+error; Report's and ReportEditor's `{{shot}}` placeholders are as before. Known gaps: the model study's own
+stages (Data, Předpoklady, Model, Výsledky) are not drawn yet; its navigator links nowhere.
 
 ## What changed since v95
 
@@ -43,7 +57,7 @@ board, stylesheet and asset is byte-identical to v95. Nothing is known to be wro
 
 ## What is in this folder
 
-- **19 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
+- **29 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
   holds each board's size and position on the canvas.
 - **`assets/aia-core.css`**: core v4.3, the "Petrol" shared stylesheet (SHA-256 `bd0c156e…4a2b0e`). It is
   owned by the design-system session and is newer than `../shared/aia-core.css` (core v3), which this
@@ -80,6 +94,15 @@ them.)
 | `ReportEditor.dc.html` | 11b · Editor zprávy: vzhled a ověření |
 | `ChatF.dc.html` | Chat Vedoucího · bubliny na časové ose (the Lead's chat; canonical since 28 Oct) |
 | `Marks.dc.html` | Značka Vedoucího · 5 variant |
+| `Z0Flow.dc.html` | Z0 · Zadání se dvěma cestami: průchod |
+| `Z1Start.dc.html` | Z1 · Zadání: začátek |
+| `Z2Triage.dc.html` | Z2 · Zadání: triáž |
+| `Z3Decision.dc.html` | Z3 · Zadání: rozhodnutí a pravidlo |
+| `Z8aPhone.dc.html`, `Z8bPhone.dc.html` | Z8a, Z8b · Telefon: začátek, triáž |
+| `Z4Research.dc.html` | Z4 · Zadání: cesta Výzkum |
+| `Z5Model.dc.html` | Z5 · Zadání: cesta Model |
+| `Z6Both.dc.html` | Z6 · Zadání: obojí |
+| `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
 
 ## What is decided (the product owner, 26–28 Oct 2026)
 
