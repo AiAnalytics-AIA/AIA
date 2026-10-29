@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -376,3 +377,142 @@ def test_ac12_another_client_s_studies_cannot_be_found_or_reused(
     absent = reuse(ABSENT_STUDY, their_revision)
     assert across.status == 404, across.text
     assert _answer(across) == _answer(absent)
+
+
+# --------------------------------------------------------------------------- #
+# AC-06: a killed worker loses no paid work
+# --------------------------------------------------------------------------- #
+
+#: Short leases, so a killed worker's attempt is found in seconds (CLAUDE.md §7: the waits below
+#: stay generous); the worker refuses a heartbeat over half its lease.
+FAST_LEASES = {"AIA_WORKER_LEASE_SECONDS": "6", "AIA_WORKER_HEARTBEAT_SECONDS": "1"}
+#: Each answered respondent kept the moment it returns (run-qc-and-checkpoint RQC0).
+CHECKPOINT = {"AIA_AI_FIELDWORK_CHECKPOINT": "true"}
+#: The first twenty calls answered, every later one held until the worker dies: a kill after
+#: them lands inside a call, never between two.
+STALLED = {"AIA_ACCEPTANCE_RECORDED_STALL_AFTER": "20"}
+#: What the stalled worker writes as a call starts being held (aia_executors.recorded_models
+#: HELD_MARK; the harness drives the stack over HTTP and imports none of its code).
+HELD_MARK = "recorded call held"
+#: How long the tests below wait for a state no run end reports.
+STATE_SECONDS = 120.0
+
+
+def _past_study_run(http: Any, who: str, unique: Callable[[str], str], tag: str) -> tuple[str, str]:
+    """The committed past study in a client of its own, submitted and started: (study, run)."""
+    past = json.loads((INPUTS / "past-study.json").read_text("utf-8"))
+    client_id = _client(http, who, unique(f"{tag}-client"), "Acceptance client (fiktivní)")
+    study_id = _study(http, who, unique(f"{tag}-study"), client_id, past["name"])
+    revision_id = _submit(http, who, study_id, past["content"])
+    started = http.post(
+        f"/studies/{study_id}/research/runs", {"design_revision_id": revision_id}, as_user=who
+    )
+    assert started.status in (200, 201), started.text
+    return study_id, str(started.json()["run_id"])
+
+
+def _until(stack: Any, what: str, check: Callable[[], Any]) -> Any:
+    """``check()``'s first truthy answer, polled; a failure names what never came."""
+    deadline = time.monotonic() + STATE_SECONDS
+    while time.monotonic() < deadline:
+        found = check()
+        if found:
+            return found
+        time.sleep(0.25)
+    raise AssertionError(f"never: {what}\n{stack.logs()}")
+
+
+def _progress(http: Any, who: str, run_path: str) -> list[dict[str, Any]]:
+    """The run's fieldwork progress reports, oldest first (aia-fieldwork-events-2)."""
+    events = http.get(f"{run_path}/events?limit=2000", as_user=who)
+    assert events.status == 200, events.text
+    return [e["payload"] for e in events.json() if e["message"] == "fieldwork_progress"]
+
+
+def _step(run: dict[str, Any], kind: str) -> dict[str, Any]:
+    return next(s for s in run["steps"] if s["kind"] == kind)
+
+
+def test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """A worker killed inside a respondent's call: the call that may have been billed stops the
+    run for a person (RECOVERY_REQUIRED), never paid again on its own; the retry the person asks
+    for replays every respondent answered before the kill and sends only the rest."""
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    study_id, run_id = _past_study_run(http, who, unique, "ac06-kill")
+    run_path = f"/studies/{study_id}/research/runs/{run_id}"
+
+    with stack.worker("ac06-doomed", **FAST_LEASES, **CHECKPOINT, **STALLED) as doomed:
+        # The wire says when it starts holding a call: the kill lands inside that call.
+        _until(stack, "a call held", lambda: HELD_MARK in doomed.log.read_text("utf-8", "replace"))
+        doomed.kill()
+    answered_before_kill = max(p["respondents"] for p in _progress(http, who, run_path))
+
+    with stack.worker("ac06-after", **FAST_LEASES, **CHECKPOINT) as worker:
+        stopped = _until(
+            stack,
+            "the run stopped for a person",
+            lambda: (
+                (r := http.get(run_path, as_user=who).json())["status"] == "RECOVERY_REQUIRED" and r
+            ),
+        )
+        fieldwork = _step(stopped, "research_fieldwork")
+        assert fieldwork["status"] == "RECOVERY_REQUIRED", fieldwork
+        assert fieldwork["recovery_reason"] == "paid_call_uncertain", fieldwork
+        assert stopped["spend"]["uncertain_calls"] == 1, stopped["spend"]
+
+        cancelled = http.post(f"{run_path}/cancel", {}, as_user=who)
+        assert cancelled.status == 200, cancelled.text
+        assert http.get(run_path, as_user=who).json()["status"] == "CANCELLED"
+        retried = http.post(f"{run_path}/retry", {}, as_user=who)
+        assert retried.status == 201, retried.text
+        retry_path = f"/studies/{study_id}/research/runs/{retried.json()['run_id']}"
+        run = stack.wait_for_run(worker, retry_path, who)
+    assert run["status"] == "COMPLETED", f"{json.dumps(run)[:2000]}\n{stack.logs()}"
+
+    # The retry answered every respondent, replaying the ones answered before the kill and
+    # sending only the rest: no answered respondent was paid for twice.
+    last = _progress(http, who, retry_path)[-1]
+    assert last["respondents"] == last["of"], last
+    assert last["replayed"] >= answered_before_kill, (last, answered_before_kill)
+    assert last["sent"] + last["replayed"] == last["of"], last
+    # And the killed run's possibly-billed call was never sent again on its own: its fieldwork
+    # stayed stopped until the person's retry.
+    assert _step(http.get(run_path, as_user=who).json(), "research_fieldwork")["status"] in {
+        "RECOVERY_REQUIRED",
+        "CANCELLED",
+    }
+
+
+def test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """A module left without a supported finding is asked again over the run's own collected
+    data: the retry's fieldwork is the original's dataset, by id, and no respondent is asked."""
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    study_id, run_id = _past_study_run(http, who, unique, "ac06-analysis")
+    run_path = f"/studies/{study_id}/research/runs/{run_id}"
+    with stack.worker(
+        "ac06-unsupported", AIA_ACCEPTANCE_RECORDED_NO_FINDINGS="research_questions"
+    ) as worker:
+        first = stack.wait_for_run(worker, run_path, who)
+    # The report waits for every module to state something it can support: the run ends at it.
+    assert first["status"] == "FAILED", f"{json.dumps(first)[:2000]}\n{stack.logs()}"
+    assert [s["kind"] for s in first["steps"] if s["status"] != "SUCCEEDED"] == ["research_report"]
+    retryable = http.get(f"{run_path}/analysis/retryable", as_user=who)
+    assert retryable.status == 200, retryable.text
+    assert "research_questions" in json.dumps(retryable.json()), retryable.text
+
+    asked = http.post(f"{run_path}/analysis/retry", {}, as_user=who)
+    assert asked.status == 201, asked.text
+    retry_path = f"/studies/{study_id}/research/runs/{asked.json()['run_id']}"
+    with stack.worker("ac06-retry") as worker:
+        retried = stack.wait_for_run(worker, retry_path, who)
+    assert retried["status"] == "COMPLETED", f"{json.dumps(retried)[:2000]}\n{stack.logs()}"
+
+    original = _step(first, "research_fieldwork")["artifact_id"]
+    assert original and _step(retried, "research_fieldwork")["artifact_id"] == original
+    assert not _progress(http, who, retry_path), "no respondent was asked again"

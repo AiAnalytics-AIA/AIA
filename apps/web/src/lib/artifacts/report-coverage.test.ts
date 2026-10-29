@@ -56,11 +56,16 @@ describe("Záznam pokrytí (RPT4)", () => {
       { kind: "artifact", artifact_type: "research_sociomapping_docx", artifact_id: "ART-s", sha256: "a" },
       { kind: "artifact", artifact_type: "research_unknown_kind" },
       { kind: "beside", node_key: "sociomapping", step_kind: "sociomapping" },
+      { kind: "artifact", artifact_type: "research_qc", artifact_id: "ART-q", sha256: "b" },
+      { kind: "beside", node_key: "qc", step_kind: "research_qc" },
     ]);
     expect(words(lines).slice(1)).toEqual([
       "Zpráva Sociomappingu (interní koncept): uloženo, žádná kapitola z něj nečte",
       `Další uložený výstup (${t("research.exec.code.technical")}: research_unknown_kind): uloženo, žádná kapitola z něj nečte`,
       "Sociomapping (experimentální metoda AIA): souběžný krok, zpráva z něj nečte",
+      // The run QC (RQC2): named, never a coded "Další uložený výstup".
+      "Kontrola kvality běhu: uloženo, žádná kapitola z něj nečte",
+      "Kontrola kvality běhu: souběžný krok, zpráva z něj nečte",
     ]);
   });
 });

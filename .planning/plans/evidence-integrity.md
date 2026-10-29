@@ -467,8 +467,9 @@ The thresholds are the unit's `PRAHY`, which the file calls "my calibration, not
 **2a, its divergences for the methodology owner (ported as the unit runs; none chosen here).**
 - *Dry mode.* The unit rates repeated open answers VAROVANI in a dry run and KRITICKE otherwise, and
   skips the ablation flag in a dry run (`qc.py:177-180`, `:247-249`). AIA has no dry mode; the port
-  takes `dry` as the caller's argument. RQC2's caller reads it from the dataset's origin
-  (`NON_EVIDENCE_ORIGINS`: fictional respondents) unless the methodology owner says otherwise.
+  takes `dry` as the caller's argument. RQC2's caller reads it from the dataset's origin: the
+  fixture's invented answers (`SYNTHETIC_FIXTURE`) alone, which no model gave; fictional AI respondents
+  are not a dry run (`aia_executors.research.unit_dry`), unless the methodology owner says otherwise.
 - *Severity.* KRITICKE stopped the unit's client report (`prototype_server.py:385`); in AIA nothing
   gates (MVP-24). The unit's level is kept as data, a warning on screen.
 - *Ablation.* The unit flags every live run whose persona effect no ablation verified. AIA has none;
