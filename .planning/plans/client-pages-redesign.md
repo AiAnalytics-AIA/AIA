@@ -1,10 +1,10 @@
 ---
 status: in-progress
 chunks:
-  - "[ ] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
+  - "[x] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
   - "[x] CPR2. A client's status on the list, the server: ClientCard carries the client's status (ACTIVE or DORMANT; an archived client is never listed), so the directory can say it (W1)"
   - "[ ] CPR3. Budget and rule changes in the profile history, the server: the profile's history reads the client budget, wallet ceiling, data posture and self-approval changes from the audit, each with who and when (W1)"
-  - "[ ] CPR4. The client hero on every client tab: eyebrow, the client's name, one line, and five figures from GET /clients/{id} (the file count from CPR1); a figure the API does not give reads unknown, never 0 (W1, on prototype-build#PBA4's hero, after CPR1)"
+  - "[ ] CPR4. The client hero on every client tab, as canvas v21 draws it (core v4.3's hero): eyebrow and actions in one row, the client's name with its status chip, the lede, and four figures from GET /clients/{id} (Ke schválení, Znalosti, Soubory from CPR1, Rozpočet klienta); a figure the API does not give reads unknown, never 0 (W1, on prototype-build#PBA4's hero, after CPR1; Nigel, 28 Oct)"
   - "[ ] CPR5. Underline tabs, and Přidat podklady and Nový výzkum on every client tab, the same place each time (W1)"
   - "[ ] CPR6. Přehled as the canvas draws it: Čeká na vás first, no coloured tiles, the study's outputs in words (W1)"
   - "[ ] CPR7. Klienti as a table: a sort segment, honest search, the client's status (CPR2), and a similar-name warning before Nový klient makes a second one (W1, after CPR2; with input-interactions#7's inline row)"
@@ -22,7 +22,7 @@ chunks:
   - "[ ] CPR19. Journey: the four client tabs at 1440 px with the narrower layouts kept, the hero's figures, a client sorted and searched, a profile field edited in place and read back, a file added to a chosen folder; zero paid jobs (W2)"
   - "[ ] CPR20. Removing a contact on Profil with Vrátit: today it is removed at once, with no undo and no confirmation (ProfileArea.tsx:261-262); the removal held for Vrátit as the design draws it (a defect; W1)"
   - "[ ] CPR22. Smazat znalost: deleting a knowledge item (a brand or competitor on Profil too) from its menu, a confirmation that says it is permanent and that studies keep their copies, no undo; on client-knowledge-lifecycle#K19's route (Q3, Nigel 27 Oct; W2, after K19)"
-  - "[ ] CPR21. The Petrol core v4 visual base brought into apps/web/src/design/tokens.json (then npm run tokens and make web_design), a separate chunk after the redesign's screens (the design-system session's canvas v10; W3)"
+  - "[ ] CPR21. The Petrol core v4 visual base brought into apps/web/src/design/tokens.json (then npm run tokens and make web_design), a separate chunk after the redesign's screens (the design-system session's canvas v10; W1, this lane's last chunk: Nigel, 28 Oct)"
 ---
 # Client pages redesign: Klienti, the client's tabs and Přidat podklady
 
@@ -104,10 +104,12 @@ ceiling, data posture and self-approval changes from the audit too, each with th
 (`client-knowledge-lifecycle#K15`) and never an e-mail. Test: a budget change reads in the history with who and
 when.
 
-**CPR4. The client hero** (W1). Since canvas v16 a compact header: one line with the tile, the client's name, a
-status chip, a coral "N ke schválení" link and the actions; the description on one line below; the figures (the
-canvas: studies, knowledge, waiting, files, budget) quiet on the tab row, a figure a tab already counts dropped; each
-from the API, unknown in words. Test: a figure the API leaves null reads "neznámé".
+**CPR4. The client hero** (W1). Canvas v21, core v4.3's hero, as render `prototypes/clients/reference/03-Overview.webp`
+draws it (Nigel, 28 Oct 2026, ~21:21 UTC, relayed by the PM coordinator: "Build v21 as drawn"; it replaces v16's
+compact header): the eyebrow KLIENT and the actions in one row; the tile, the client's name in the 28/34 serif and its
+status chip; the lede in full and "O klientovi"; four figures beneath, Ke schválení first in coral, Znalosti, Soubory
+(CPR1) and Rozpočet klienta "zbývá … z …". No studies figure: Výzkumy keeps its count on the tab. Each figure from
+the API, unknown in words. Test: a figure the API leaves null reads "neznámé".
 
 **CPR5. Tabs and actions** (W1). Underline tabs; Přidat podklady (secondary) and Nový výzkum (primary) in the hero
 on every tab. Test: every tab shows both, in the same place.
@@ -211,7 +213,9 @@ an item and "Smazat…" in a file's menu (canvas v17), and a brand's or competit
 confirmation: the item is deleted for good, studies that used it keep their frozen copy, no undo. Test: a confirmed
 delete removes the item from the library; a study's frozen context still reads it; cancelling deletes nothing.
 
-**CPR21. Petrol core v4 into tokens.json** (W3; a separate chunk after the screens). The design-system session's
+**CPR21. Petrol core v4 into tokens.json** (W1, this lane's last chunk; re-waved from W3 by Nigel, 28 Oct 2026,
+~21:21 UTC, relayed by the PM coordinator: "At the end of this lane". Until it lands the screens are built on today's
+tokens, matching the boards in layout, type, spacing and components). The design-system session's
 canvas v10 is the source; `apps/web/src/design/tokens.json` is the design system's one source (CLAUDE.md § 2), so the
 change is made there, then `npm run tokens`, and `make web_design` holds (contrast, palette and accent evidence).
 Test: `make web_design`; the client journey (CPR19) passes on the new tokens.
@@ -231,5 +235,11 @@ Test: `make web_design`; the client journey (CPR19) passes on the new tokens.
 
 ## Doc follow-up
 
-- `CLAUDE.md` § 2, when CPR4 lands: the client workspace's hero and its five figures; when CPR10 lands: the client
+- `CLAUDE.md` § 2, CPR1 (landed): in the workspace router's entry, "GET /clients/{id} carries the tabs' counts
+  (archived studies out, the knowledge counts null without VIEW_CLIENT_KNOWLEDGE)" becomes "… (archived studies out;
+  the knowledge counts and `sources`, the files the client keeps, null without VIEW_CLIENT_KNOWLEDGE)"; and under
+  `client_source_repository.py`: "count: every source the client keeps, scoped, VIEW_CLIENT_KNOWLEDGE".
+- `.planning/mvp-execution-contracts.md`, the `client-pages-redesign#CPR21` row: W3 becomes W1, this lane's last
+  chunk (Nigel, 28 Oct 2026, ~21:21 UTC, relayed by the PM coordinator: "At the end of this lane").
+- `CLAUDE.md` § 2, when CPR4 lands: the client workspace's hero (canvas v21) and its four figures; when CPR10 lands: the client
   pages read the eleven stages of `lib/workbench-stages.ts`.

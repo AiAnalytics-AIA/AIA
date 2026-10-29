@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] LO0. The contract ADR and the money vocabulary: wallet cap, `budget_usd`, `spend_confirm_usd`, the client ceiling, `clients.budget_usd`, OI-64, one precedence"
   - "[x] LO1. The wallet (M4): `study_wallets`, `_raises`, `_charges` and `clients.wallet_ceiling_usd`; charges for paid work including Deep Research"
-  - "[ ] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
+  - "[x] LO2. A typed `start_run` with no `confirm_cost_usd`, and an import rule that a plan step cannot reach the confirming start"
   - "[ ] LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`"
   - "[ ] LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover"
   - "[x] LO5. Direct human chat start: the typed command the server matches, ledger `chat_start`, the model not in the path"
@@ -84,6 +84,11 @@ The data for the two meters: spent against `budget_usd`, and the wallet remainin
 
 **LO3. `lead_plans` and `lead_plan_steps` (M5), the plan authority capability issued by `ScopeResolver`, the `lead_plan` workflow type, behind `AIA_LEAD_PLANS_ENABLED`**  
 The riskiest piece: the most tests and a kill switch. A step that reaches a gate the plan does not cover parks.
+**Its first commit, before any plan-step kind exists** (Nigel, 2026-10-28, W1Q10 on the PM status page,
+relayed by the coordinator: "Research runs in LO2, the rest in LO3"): `ResearchAgentJobs.start` and
+`rebuild`, the Deep Research start and the validation start take a `SpendConfirmation` (LO2's
+`application/spend_confirmation.py`) in place of a bare `confirm_cost_usd`, as the run starts do since
+LO2, and `wallet_admits` takes its amount from one. Only then does LO3 add a step kind.
 
 **LO4. The plan card: the steps (including "start fieldwork, ceiling X USD"), approved once, stopping at every gate it does not cover**  
 The prototype's decision card for a run start is this card with one item. The minimum usable plan card lands with LO4 in W1 inside the current Lead pane; it is part of I-1. `research-lead-workbench` 23 adds the richer worker/Deep Research cards in W4 and is not the first UI for plan approval. This chunk owns the contract and ledger rows (`lead_plan`, `plan_step`, M3).
@@ -1709,3 +1714,136 @@ typed starts and a document's AI proposals (`client-knowledge-lifecycle#K16`). T
 `infrastructure/workflow_repository.py:2845-2881 @ dbaa7720`); `AgentJobResponse` and the card's spend do not say it.
 Answer `reused_run_id` and attribute the spend to it, so a reused job costs nothing new and says why. Test: a job that
 reused a run answers its id and no new spend.
+
+## LO2 delivered (2026-10-28, E07, `feature/lead-typed-start-run`)
+
+Before (`@ df1377f7`): `ResearchRuns.start` took the confirmation as `confirm_cost_usd: float | None`
+(`application/research.py:619`), so any caller able to reach the start could confirm its own spend;
+the only check, `APPROVE_BUDGET` in `WorkflowRepository.record_spend_confirmation`
+(`infrastructure/workflow_repository.py:2493`), ran after `start_workflow` had created the run. The
+Run stage route (`routers/research.py:1680-1702`) and the typed chat start
+(`application/lead_chat_start.py:225-260`) each assembled the start's arguments themselves.
+
+Now:
+
+- **The typed start** is `domain/run_start.py` `StartRun`: the Design Revision, the persona source,
+  the population child and the answerability acknowledgement, each required, no default, and no
+  confirmation field. `ResearchRuns.for_settings(session, scope, settings)` composes the runs from
+  the deployment's `RunStartSettings` (moved from `lead_chat_start.py` to `research.py`) and keeps
+  them, so `ResearchRuns.start_run(command, *, confirmation=None)` starts on one set of settings,
+  never two. The Run stage route and the typed chat start both call it; LO3's plan step is its third
+  caller.
+- **The confirmation is issued, never constructed**: `application/spend_confirmation.py`
+  `confirm_spend(scope, usd)` returns a `SpendConfirmation`, only to a scope holding
+  `APPROVE_BUDGET` (which `WORKER_PERMISSIONS` withholds and the plan authority will not hold), and
+  refuses a figure that is not a finite, non-negative number. It names the person and the Study it
+  was issued in. A module-private issuer, an init-only argument, makes a confirmation built anywhere
+  else, or copied with `dataclasses.replace`, raise. `ResearchRuns.start`, `retry`, `retry_analysis`,
+  `_restart` and `analysis_results.retry_failed_modules` take `confirmation: SpendConfirmation |
+  None` in place of `confirm_cost_usd`; another person's or Study's is refused (`ScopeDenied`,
+  `confirmation_not_yours`), never read as no yes. The HTTP bodies are unchanged: a route issues the
+  confirmation from the person's `confirm_cost_usd`. The typed chat start issues it once, before it
+  submits a design, quotes the wallet or creates anything, and hands its amount to the wallet and
+  the agent job as well.
+- **Enforcement:** the import contract "nothing the worker runs reaches the confirming start (ADR
+  0028)" (`aia_worker`, `aia_executors` → `aia_core.application.spend_confirmation`, direct
+  imports; an executor reaches `application.research` for `research_artifacts`, which names the
+  type, and holding the type confirms nothing); and four `layer_check` rules: `SpendConfirmation(`
+  or the issuer only in that module, in the core, the API, the worker and the executors, and in the
+  worker and the executors no `confirm_spend` either (another module that imports it binds the name,
+  which the direct-import contract would not see). Both were
+  checked by planting a violation in an executor: `lint-imports` reported the contract BROKEN, and
+  `layer_check` failed the executors' rule.
+
+**No switch.** The one behaviour change is that a confirmation without `APPROVE_BUDGET` is refused
+before the run is created instead of after; a switch off would keep the gap open (LO15's reasoning).
+
+**Not here, for LO3.** `ResearchAgentJobs.start`/`rebuild`, the Deep Research start and the
+validation start still take a bare `confirm_cost_usd`. Agent jobs already ask `APPROVE_BUDGET`
+before anything is created (`spend_gate`, LO15); the others do not. LO3 moves each to
+`SpendConfirmation` before any plan step kind can reach it (Nigel, 2026-10-28, W1Q10; LO3's text).
+
+Tests (`packages/aia_core/tests/test_research_runs.py`):
+`test_the_worker_is_issued_no_confirmation_so_it_cannot_confirm_a_spend`,
+`test_a_confirmation_is_issued_only_by_confirm_spend`,
+`test_a_figure_that_is_not_an_amount_is_no_confirmation`,
+`test_a_confirmation_from_another_person_or_study_is_refused`,
+`test_the_typed_start_names_its_run_and_no_confirmation`,
+`test_the_typed_start_starts_the_run_its_command_names`; and
+`packages/aia_core/tests/test_spend_confirmation_reach.py`: no run start takes a bare figure (each
+of `ResearchRuns.start`, `start_run`, `retry`, `retry_analysis`, `retry_failed_modules`), the import
+contract keeps the issuer from the worker and the executors, and nothing they run names it. Red
+first: on `df1377f7` five of its six run cases fail (the sixth, nothing names the issuer, holds
+trivially where no issuer exists). Every existing threshold test, core and HTTP, unchanged in what
+it asserts.
+
+**Accepted, from `/code-review`.** A person sending `confirm_cost_usd` is now asked for
+`APPROVE_BUDGET` even where the threshold would not read it, and a retry of an unknown run with a
+figure is refused for that before its 404. Every person holds every permission (ADR 0019,
+`domain/scope.py:192-193`); only the worker's scope lacks it, and the worker sends no HTTP.
+
+### Doc follow-up (LO2)
+
+- `CLAUDE.md` map, `domain/`: "`run_start.py` `StartRun`: the typed run start (ADR 0028 decision 3,
+  I3): Design Revision, persona source, population child, acknowledgement, each explicit; no
+  confirmation"; `application/`: "`spend_confirmation.py` `confirm_spend`: the only issuer of a
+  `SpendConfirmation` (a person's yes to a start's ceiling), to a scope holding `APPROVE_BUDGET`; no
+  worker or executor imports it (LO2)"; `research.py`: "`ResearchRuns.start_run(StartRun,
+  confirmation=)` over `for_settings`: the one typed start the Run stage, the typed chat start and a
+  plan step call; `RunStartSettings` moved here from `lead_chat_start.py`".
+- `ARCHITECTURE.md` enforcement list: the import contract and the four `layer_check` rules above.
+- ADR 0028 *What enforces it*: the contract's name and module (`aia_core.application.spend_confirmation`).
+
+## Findings (2026-10-28)
+
+### F-LO-PARK-1. A turn parked at the budget answers from the context frozen when it parked (hypothesis)
+
+Reported by the PM coordinator from the product owner's develop session of 2026-10-28 (the "Sonnet 5.5 probe"
+study on the fictional Fio banka Sandbox client). **A hypothesis until reproduced**: the code path is anchored,
+the observation is not yet a test.
+
+1. **Claim.** A Lead turn parked `AWAITING_BUDGET` is released with the context it froze when it was queued,
+   so it answers about a working copy that has since moved. A greeting the web posts on its own when the
+   study opens can be that parked turn, so a person who never wrote to the Lead finds one waiting for the
+   budget.
+2. **Anchors** (`@ df1377f7`):
+   - The context is frozen once, into the step's input, when the turn is queued:
+     `packages/aia_core/src/aia_core/application/research_lead.py:872-917` (`_freeze`, then
+     `step_inputs["turn"]["context"]`).
+   - Release resumes the same step and its input; nothing freezes the context again:
+     `research_lead.py:476-540` (`release_lead_budget_waits` → `WorkflowRepository.resume_budget_waits`).
+   - The web greets on its own when the pane opens: `apps/web/src/components/workbench/LeadPane.tsx:208-212`;
+     `ResearchLead.post` queues a greeting turn like a message (`research_lead.py:677-760`), and a greeting is
+     only skipped while a turn is already waiting for the budget (`:732-736`).
+3. **Reproduction (open).** Observed on develop: a new study with no budget showed a parked turn at once
+   ("Na odpověď nezbývá rozpočet studie …") although nothing had been written to the Lead. The person then
+   edited the brief, five questions and n = 20, and set the budget to USD 30 (about 19:55-20:00 UTC). The turn
+   was sent within about 15 s, cost USD 0.03, said it had read revision 1, and described an empty "Nový výzkum"
+   with n = 300. The test to write: post a greeting on a study with no budget; save the working copy; raise the
+   budget; assert the released turn's context names the current working revision, and assert whether a greeting
+   should park at all.
+4. **Consequence.** The person pays for an answer about a design that no longer exists, and the answer contradicts
+   what is on screen.
+5. **Smallest fix (not chosen here; the owner's or S1's call).** Either (a) re-freeze a parked turn's context when
+   it is released (a new step input under the same turn, its digest recorded again), or (b) never park a greeting
+   on the budget: drop it, as a greeting is already dropped when a turn waits (`:732-736`). The two answer
+   different questions (ADR 0041 decision 7, Q39): Q39 resends "the message the researcher attempted to send",
+   which a greeting is not.
+6. **Test that would have caught it.** `test_research_lead_application.py`: a parked turn released after the
+   working copy moved names the current `workspace_revision`; and a greeting on a study with no budget parks
+   nothing (or is dropped).
+
+**Decided (Nigel, 2026-10-28, 20:09:36 UTC, W1Q11 on the PM status page, relayed by the
+coordinator): "Both".**
+- A greeting the web sends by itself never parks at the budget.
+- A real message released from a budget park re-freezes its context on release, so it answers on the
+  current design.
+
+**Where it lands (proposed):** its own small fix PR after LO2, on a fresh branch from `develop`
+(`fix/lead-park-refreeze`), not folded into LO2 or LO3: it touches `ResearchLead.post` and
+`release_lead_budget_waits` alone, none of the start paths, and needs no migration. Each fix with its
+own red-first test from part 6 above.
+
+### Doc follow-up (2026-10-28 findings)
+
+- `open-items.md`: number F-LO-PARK-1 (owner LO7 / research-lead-workbench), a hypothesis until its test exists.

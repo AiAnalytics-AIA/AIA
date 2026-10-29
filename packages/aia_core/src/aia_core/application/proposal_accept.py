@@ -5,15 +5,19 @@ An AI proposal -- an agent job's (``ResearchAgentJobs.accept``) or a Design Rese
 revision it came from (decision 5). Accepting it, under the Study row lock every design and
 working-copy writer takes:
 
-1. refuses it as stale (:class:`StaleProposal`) when the head Design Revision moved
-   (``design_moved``), when its baseline is not known (``unknown_baseline``: a revision written
-   before every writer named its working revision), or when an item it changes also changed in
-   the working copy since that baseline (``items_changed``, the items named);
-2. merges it into the working copy *now*, item by item: what it touches takes its value,
-   everything else keeps the person's (:func:`~aia_core.domain.design_items.merge_items`);
+1. refuses it as stale (:class:`StaleProposal`) when its baseline is not known
+   (``unknown_baseline``: a revision written before every writer named its working revision), or
+   when a field it changes, ``(item, field)``, also changed in the working copy since that
+   baseline (``items_changed``, the items and fields named; the owner's D-06, working-copy-edit-ops
+   WCE5). A newer Design Revision alone never stales it: a job start, a rebuild or a visit to the
+   Run stage submits one without changing what the proposal changes;
+2. merges it into the working copy *now*, field by field: each item it changes takes the fields it
+   changes, everything else keeps the person's, order included
+   (:func:`~aia_core.domain.design_items.merge_items`);
 3. saves the merged working copy, based on the revision the person had
    (``expected_workspace_revision``; another is ``stale_revision``);
-4. submits the merged content as the new Design Revision, naming that working revision.
+4. submits the merged content as the Study's newest Design Revision, naming that working
+   revision.
 
 The caller writes its ledger row in the same transaction and commits; nothing here commits, so a
 failure at any step writes none of them (decision 6). The browser then reloads the working copy;
@@ -24,10 +28,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
 from ..domain.design import DesignRejected, DesignRevision
+from ..domain.design_fields import ITEM, ORDER, Touch, fields_between, item_fields
 from ..domain.design_items import (
     Documents,
     ItemKey,
@@ -58,10 +64,12 @@ __all__ = [
 class StaleProposal(DesignRejected):
     """The proposal cannot be accepted as it stands: rebuild it on the current design.
 
-    ``why`` is ``design_moved``, ``unknown_baseline`` or ``items_changed``; ``conflicting_items``
-    names, for the last, each item the proposal changes that the working copy changed too, and
-    ``wording`` the words each names: a plan item is keyed by its id (WCE1), and one the person
-    reworded or removed is no longer in the copy the browser holds.
+    ``why`` is ``design_moved`` (an accept route's proposal is not the one the browser named),
+    ``unknown_baseline``, ``lineage_changed`` or ``items_changed``; ``conflicting_items`` names, for
+    the last, each item the proposal changes that the working copy changed too,
+    ``conflicting_fields`` the fields of them (``<item>#<field>``), and ``wording`` the words each
+    item names: a plan item is keyed by its id (WCE1), and one the person reworded or removed is no
+    longer in the copy the browser holds.
     """
 
     def __init__(
@@ -70,11 +78,13 @@ class StaleProposal(DesignRejected):
         *,
         why: str,
         conflicting_items: Iterable[ItemKey] = (),
+        conflicting_fields: Iterable[Touch] = (),
         wording: Mapping[ItemKey, str] | None = None,
     ) -> None:
         super().__init__(message, reason="stale_proposal")
         self.why = why
         self.conflicting_items = tuple(sorted(conflicting_items))
+        self.conflicting_fields = tuple(sorted(conflicting_fields))
         self.wording = dict(wording or {})
 
     def details(self) -> dict[str, object]:
@@ -82,6 +92,7 @@ class StaleProposal(DesignRejected):
         return {
             "reason": self.why,
             "conflicting_items": [str(k) for k in self.conflicting_items],
+            "conflicting_fields": [f"{k}#{f}" for k, f in self.conflicting_fields],
             "conflicting_wording": {
                 str(k): self.wording[k] for k in self.conflicting_items if k in self.wording
             },
@@ -110,6 +121,71 @@ def proposal_baseline(
     return Documents(content=dict(stored.content or {}), analysis=stored.analysis)
 
 
+#: The kinds a question's ``section`` field may name.
+_HOLDERS: Final = ("section", "battery")
+
+
+def _homes(section: Any) -> set[ItemKey]:
+    """The keys a section id names: a section's, or a battery's."""
+    return set() if section is None else {ItemKey("content", k, str(section)) for k in _HOLDERS}
+
+
+def _conflicts(
+    baseline: Documents, proposed: Documents, current: Documents, touched: frozenset[ItemKey]
+) -> tuple[dict[ItemKey, set[str]], set[Touch]]:
+    """The fields the proposal changes, by item, and those the working copy changed too (D-06).
+
+    The proposal's are its changed ``(item, field)`` pairs on ``touched`` items (``touched`` is
+    item-level, :func:`~aia_core.domain.design_items.design_items`: a question added, removed or
+    moved is there as the sections that hold it, so a touched section covers the place of the
+    questions it holds before or after), order left out: the merge keeps the person's order, so a
+    proposal's never applies. A pair conflicts when the working copy changed the same pair, when
+    either side added or removed the item and the other changed it at all, or when one side puts a
+    question into a section the other removed.
+    """
+    base = item_fields(baseline)
+    after = item_fields(proposed, previous=baseline)
+    now = item_fields(current, previous=baseline)
+    mine = fields_between(base, now)
+    placing = (ITEM, "section")
+    theirs = {
+        (k, f)
+        for k, f in fields_between(base, after)
+        if f != ORDER
+        and (
+            k in touched
+            or (
+                k.kind == "question"
+                and f in placing
+                and bool(
+                    (_homes(base.get((k, "section"))) | _homes(after.get((k, "section")))) & touched
+                )
+            )
+        )
+    }
+    by_item: dict[ItemKey, set[str]] = {}
+    for k, f in theirs:
+        by_item.setdefault(k, set()).add(f)
+    mine_items = {k for k, _ in mine}
+    mine_existence = {k for k, f in mine if f == ITEM}
+    their_existence = {k for k, f in theirs if f == ITEM}
+
+    def clashes(k: ItemKey, f: str) -> bool:
+        if (k, f) in mine or k in mine_existence or (f == ITEM and k in mine_items):
+            return True
+        home = _homes(after.get((k, "section")))
+        return k.kind == "question" and f in placing and bool(home & mine_existence)
+
+    conflicts = {(k, f) for k, f in theirs if clashes(k, f)}
+    # The mirror: a question the person added or moved into a section the proposal removes would
+    # go with it, unseen.
+    for k, f in mine:
+        if k.kind == "question" and f in placing:
+            gone = _homes(now.get((k, "section"))) & their_existence
+            conflicts.update((s, ITEM) for s in gone if (s, ITEM) not in after)
+    return by_item, conflicts
+
+
 def accept_into_working_copy(
     session: Session,
     scope: StudyContext,
@@ -131,6 +207,7 @@ def accept_into_working_copy(
     after it. The merged write is logged as ``by``, the person who accepts and the run proposed
     (``domain/edit_log.py``; working-copy-edit-ops WCE2e). Needs
     ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study: only a person accepts (ADR 0019 gate 1).
+    ``design_revision_id`` is the revision the proposal was made on, newest or not.
     """
     scope.require(Permission.EDIT_STUDY)
     scope.require(Permission.APPROVE_GATE)
@@ -139,9 +216,6 @@ def accept_into_working_copy(
     workspaces = StudyWorkspaceRepository(session)
     designs.lock()
     design = designs.get(design_revision_id)
-    latest = designs.latest()
-    if latest is None or latest.revision_id != design_revision_id:
-        raise StaleProposal("a newer Design Revision was submitted since", why="design_moved")
     baseline = proposal_baseline(session, scope, design)
     if baseline is None:
         raise StaleProposal(
@@ -176,15 +250,17 @@ def accept_into_working_copy(
             "the proposal names an item neither its baseline nor it has",
             why="unknown_baseline",
         )
-    conflicts = touched_set & design_items(baseline, current)
+    fields, conflicts = _conflicts(baseline, proposed, current, touched_set)
     if conflicts:
+        items = {k for k, _ in conflicts}
         raise StaleProposal(
-            "the working copy changed an item the proposal changes",
+            "the working copy changed a field the proposal changes",
             why="items_changed",
-            conflicting_items=conflicts,
-            wording=wordings(conflicts, baseline, current),
+            conflicting_items=items,
+            conflicting_fields=conflicts,
+            wording=wordings(items, baseline, current),
         )
-    merged = merge_items(proposed, current, touched_set, baseline=baseline)
+    merged = merge_items(proposed, current, (), baseline=baseline, fields=fields)
     saved = workspaces.save(
         scope,
         content=merged.content,
@@ -195,10 +271,7 @@ def accept_into_working_copy(
     )
     stored = workspaces.at_revision(scope, saved.revision)
     assert stored is not None  # save has just written or found it
-    revision, created = designs.submit_if_current(
-        content=stored.content,
-        source_stage=source_stage,
-        expected_revision_id=design_revision_id,
-        workspace_revision=saved.revision,
+    revision, created = designs.submit(
+        content=stored.content, source_stage=source_stage, workspace_revision=saved.revision
     )
     return AcceptedProposal(revision=revision, created=created, working=saved, merged=merged)

@@ -54,8 +54,6 @@ export type ObjectMapArtifact = {
   // `relative`: each PRIMARY object's hill height under the framed envelope (aia-sociomap-5).
   heights: { metric: string; values: (number | null)[]; support_n: number[]; relative?: (number | null)[] };
   support: { respondents: number; placed: number; not_placed: number; effective_n: number | null; donors: number; weighting: string };
-  // Each object's alignment and connectedness over the PRIMARY objects' known pairs.
-  scores?: { objects: { id: string; alignment: number | null; connectedness: number | null }[] };
   terrain:
     | { status: "not_computed"; reason: string }
     | {

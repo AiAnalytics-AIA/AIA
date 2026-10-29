@@ -208,10 +208,11 @@ class ClientCard(BaseModel):
 
 
 class ClientCounts(BaseModel):
-    """What the client's tabs count: open studies, and knowledge waiting or held.
+    """What the client's tabs count: open studies, knowledge waiting or held, and files.
 
-    Archived studies are not counted. The knowledge counts are null for a caller
-    who may not read the client's knowledge: unknown, never zero.
+    Archived studies are not counted. The knowledge counts and ``sources`` (the files the
+    client keeps) are null for a caller who may not read the client's knowledge: unknown,
+    never zero.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -220,6 +221,7 @@ class ClientCounts(BaseModel):
     simulations: int
     pending_proposals: int | None
     datasets: int | None
+    sources: int | None
 
 
 class ClientWorkspace(BaseModel):
@@ -950,6 +952,7 @@ def client_workspace(
     resolver: ResolverDep,
     repo: ScopeRepositoryDep,
     session: SessionDep,
+    store: ArtifactStoreDep,
 ) -> ClientWorkspace:
     """The client, the caller's role in it, what they may do, and what its tabs count.
 
@@ -959,15 +962,18 @@ def client_workspace(
     studies = repo.studies_in_client(scope, include_archived=False)
     pending: int | None = None
     datasets: int | None = None
+    sources: int | None = None
     if scope.has(ClientPermission.VIEW_CLIENT_KNOWLEDGE):
         summary = ClientKnowledgeRepository(session).summary(scope)
         pending = summary.pending_proposals
         datasets = summary.items_by_kind.get(KnowledgeKind.DATASET, 0)
+        sources = ClientSourceRepository(session, store).count(scope)
     counts = ClientCounts(
         research=sum(1 for s in studies if s.kind is StudyKind.RESEARCH),
         simulations=sum(1 for s in studies if s.kind is StudyKind.SIMULATION),
         pending_proposals=pending,
         datasets=datasets,
+        sources=sources,
     )
     return _workspace(scope, repo).model_copy(update={"counts": counts})
 

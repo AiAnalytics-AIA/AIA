@@ -27,6 +27,7 @@ from aia_core.application.research import (
     ResearchStepNotFound,
     RunReservations,
 )
+from aia_core.application.spend_confirmation import confirm_spend
 from aia_core.application.workflows import start_workflow
 from aia_core.domain.design import DESIGN_PROJECT_OWNER
 from aia_core.domain.fieldwork import FieldworkSource
@@ -929,7 +930,11 @@ def _start(runs: Any, design: Any, **kw: Any) -> Any:
         "reservations": RESERVE,
     }
     args.update(kw)
-    return runs(user="researcher").start(**args)
+    started_by = runs(user="researcher")
+    if "confirm_cost_usd" in args:
+        # A person's yes, issued as the routes issue it (lead-orchestration LO2).
+        args["confirmation"] = confirm_spend(started_by.scope, args.pop("confirm_cost_usd"))
+    return started_by.start(**args)
 
 
 def test_a_study_with_no_limit_starts_without_asking(
@@ -1033,8 +1038,12 @@ def test_a_retry_is_a_new_run_and_asks_again(
     runs(user="researcher").cancel(first.run_id)
     with pytest.raises(CostConfirmationRequired):
         runs(user="researcher").retry(first.run_id, fieldwork_source=AI, reservations=RESERVE)
-    retried = runs(user="researcher").retry(
-        first.run_id, fieldwork_source=AI, reservations=RESERVE, confirm_cost_usd=CEILING
+    researcher = runs(user="researcher")
+    retried = researcher.retry(
+        first.run_id,
+        fieldwork_source=AI,
+        reservations=RESERVE,
+        confirmation=confirm_spend(researcher.scope, CEILING),
     )
     assert retried.created and retried.run_id != first.run_id
     assert len(_spend_rows(session)) == 2
@@ -1053,6 +1062,118 @@ def test_the_worker_holds_no_authority_to_confirm_a_spend(
         WorkflowRepository(session, worker).record_spend_confirmation(
             started.run_id, ceiling_usd=CEILING, limit_usd=1.0, confirmed_usd=CEILING
         )
+
+
+def test_the_worker_is_issued_no_confirmation_so_it_cannot_confirm_a_spend(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    """lead-orchestration LO2: a confirmation is refused at issue, before any run exists.
+
+    The yes was a bare ``confirm_cost_usd`` argument, checked only when its ledger row was
+    written after the run was created; now nothing without ``APPROVE_BUDGET`` holds one."""
+    import dataclasses
+
+    from aia_core.domain.scope import WORKER_PERMISSIONS
+
+    _limit(scoped, 100.0)
+    worker = dataclasses.replace(scoped.scope(user="researcher"), permissions=WORKER_PERMISSIONS)
+    with pytest.raises(ScopeDenied):
+        confirm_spend(worker, CEILING)
+    assert confirm_spend(worker, None) is None  # no yes asks for no authority
+    assert runs(user="researcher").runs() == [] and _spend_rows(session) == []
+
+
+def test_a_confirmation_is_issued_only_by_confirm_spend(scoped: Any) -> None:
+    import dataclasses
+
+    from aia_core.application.spend_confirmation import SpendConfirmation
+
+    with pytest.raises(TypeError):
+        SpendConfirmation(CEILING, "USR-anyone", "STU-any", object())
+    issued = confirm_spend(scoped.scope(user="researcher"), 1.0)
+    with pytest.raises(ValueError):  # nor copied with a larger amount
+        dataclasses.replace(issued, usd=1_000_000.0)
+
+
+@pytest.mark.parametrize("usd", [float("nan"), float("inf"), -0.01, True])
+def test_a_figure_that_is_not_an_amount_is_no_confirmation(scoped: Any, usd: Any) -> None:
+    with pytest.raises(ValueError):
+        confirm_spend(scoped.scope(user="researcher"), usd)
+
+
+def test_a_confirmation_from_another_person_or_study_is_refused(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    """A yes is the person's who gave it, in the Study they gave it in."""
+    _limit(scoped, 100.0)
+    revision = design()
+    elsewhere = scoped.scope(user="researcher", study="sibling")
+    for yes in (
+        confirm_spend(scoped.scope(user="lead"), CEILING),
+        confirm_spend(elsewhere, CEILING),
+    ):
+        with pytest.raises(ScopeDenied):
+            runs(user="researcher").start(
+                design_revision_id=revision,
+                fieldwork_source=AI,
+                reservations=RESERVE,
+                confirmation=yes,
+            )
+    assert runs(user="researcher").runs() == [] and _spend_rows(session) == []
+
+
+def test_the_typed_start_names_its_run_and_no_confirmation() -> None:
+    """ADR 0028 decision 3: every field explicit, never "the latest", and no confirmation."""
+    import dataclasses
+
+    from aia_core.domain.run_start import StartRun
+
+    fields = {f.name: f for f in dataclasses.fields(StartRun)}
+    assert set(fields) == {
+        "design_revision_id",
+        "persona_source",
+        "population_version_id",
+        "acknowledge",
+    }
+    assert all(f.default is dataclasses.MISSING for f in fields.values())
+    with pytest.raises(TypeError):
+        StartRun(design_revision_id="REV-1")  # type: ignore[call-arg]
+
+
+def test_the_typed_start_starts_the_run_its_command_names(
+    session: Any, scoped: Any, runs: Any, design: Any
+) -> None:
+    from aia_core.application.research import RunStartSettings
+    from aia_core.domain.fieldwork import PersonaSource
+    from aia_core.domain.population import CZ_LIVE, CZ_SYNTHETIC_V17
+    from aia_core.domain.run_start import StartRun
+
+    _limit(scoped, 100.0)
+    settings = RunStartSettings(
+        fieldwork_source=AI,
+        analysis_enabled=False,
+        sociomapping_enabled=False,
+        reservations=RESERVE,
+        persona_source=PersonaSource.FICTIONAL_ROSTER,
+        require_answerability=False,
+        population_contract=CZ_SYNTHETIC_V17,
+        population_id=CZ_LIVE,
+    )
+    researcher = ResearchRuns.for_settings(session, scoped.scope(user="researcher"), settings)
+    command = StartRun(
+        design_revision_id=design(),
+        persona_source=PersonaSource.FICTIONAL_ROSTER,
+        population_version_id=None,
+        acknowledge=None,
+    )
+    with pytest.raises(CostConfirmationRequired):
+        researcher.start_run(command)
+    started = researcher.start_run(command, confirmation=confirm_spend(researcher.scope, CEILING))
+    assert started.created
+    metadata = researcher.get(started.run_id)["metadata"]
+    assert metadata["design_revision_id"] == command.design_revision_id
+    assert metadata["persona_source"] == PersonaSource.FICTIONAL_ROSTER.value
+    assert [row.run_id for row in _spend_rows(session)] == [started.run_id]
 
 
 def test_the_offered_new_run_starts_as_the_refused_one_did() -> None:
