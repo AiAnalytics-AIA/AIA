@@ -507,8 +507,7 @@ def render_objects(
     x0, y0, wl = 14 * s, h - 54 * s, 150 * s
     # The lowest hill's height is the declared floor of the relative heights.
     floor = artifact.spec.terrain.relative_height_floor if artifact.spec.terrain else None
-    floor = 0.0 if floor is None else floor
-    _ramp(ax, x0, y0, wl, s, floor)
+    _ramp(ax, x0, y0, wl, s, 0.0 if floor is None else floor)
     tx: dict[str, Any] = {"color": "#cfd6de", "fontsize": 7.2 * s, "zorder": 9}
     ax.text(x0, y0 - 6 * s, texts.height_title, va="bottom", weight="bold", **tx)
     if n_lab < shown.sum():
@@ -523,8 +522,11 @@ def render_objects(
         )
     ax.text(x0, y0 + 11 * s, _number(lo, 1, texts), va="top", **tx)
     ax.text(x0 + wl, y0 + 11 * s, _number(hi, 1, texts), va="top", ha="right", **tx)
-    lowest = texts.lowest.format(floor=f"{100 * floor:.0f}")
-    ax.text(x0, y0 + 24 * s, lowest, va="top", color="#8b96a3", fontsize=6.4 * s, zorder=9)
+    # At 0 the ramp's ends, the lowest and highest rating, say it all (MQ-08); a map declaring no
+    # floor gets no line, never a stated one.
+    if floor is not None and round(100 * floor) > 0:
+        lowest = texts.lowest.format(floor=f"{100 * floor:.0f}")
+        ax.text(x0, y0 + 24 * s, lowest, va="top", color="#8b96a3", fontsize=6.4 * s, zorder=9)
     ax.text(
         w - 14 * s,
         h - 46 * s,

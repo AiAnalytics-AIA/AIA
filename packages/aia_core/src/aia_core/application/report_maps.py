@@ -75,9 +75,12 @@ def _height_sentence(maps: list[tuple[str, SociomapArtifactV3]]) -> str:
         f"Výška a barva ukazují průměrné hodnocení {scale} vůči ostatním objektům sady: "
         "nejvýše hodnocený objekt má plnou výšku"
         + (
-            f", nejníže hodnocený {number(round(100 * floor), 0)} % výšky. "
-            if floor is not None
-            else ". "
+            ". "
+            if floor is None
+            # A floor of 0 (the methodology owner, 2026-10-28, MQ-08): the scale runs 0 to 1.
+            else ", nejníže hodnocený nulovou. "
+            if round(100 * floor) == 0
+            else f", nejníže hodnocený {number(round(100 * floor), 0)} % výšky. "
         )
     )
     if len(signed) == len(maps):

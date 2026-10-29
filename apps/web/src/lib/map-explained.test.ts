@@ -18,6 +18,7 @@ describe("explainMap", () => {
     expect(x.respondents).toBe(300);
     expect(x.pairs).toEqual({ reliable: 62, weak: 4, unknown: 0, total: 66 });
     expect(x.scale).toEqual([1, 10]);
+    expect(x.floor).toBe(0.15); // the floor the stored map declares
     expect(x.nMin).toBe(map.spec.relation.n_min);
   });
 

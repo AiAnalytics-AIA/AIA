@@ -377,6 +377,18 @@ describe("accessibility", () => {
     expect(screen.getByTestId("object-map-legend-info").textContent).toContain("relativní · nejnižší objekt = 15 % výšky nejvyššího");
   });
 
+  it("reads the relative floor from the map's own spec: a map declaring 0 says its scale runs 0 to 1 (MQ-08)", () => {
+    const zero = structuredClone(hudba);
+    const stored = zero.maps!["aia-sociomap-5"].artifact;
+    expect(stored.spec.terrain!.relative_height_floor).toBe(0.15);
+    stored.spec.terrain!.relative_height_floor = 0;
+    render(<ObjectMapView battery={zero} dataOrigin={null} />);
+    openLegend();
+    const info = screen.getByTestId("object-map-legend-info").textContent!;
+    expect(info).toContain("relativní · od nejníže hodnoceného objektu (0) po nejvýše hodnocený (1)");
+    expect(info).not.toContain("15 %");
+  });
+
   it("sizes the nodes by the mapped objects, not by those nobody rated", async () => {
     const big = structuredClone(hudba);
     const stored = big.maps!["aia-sociomap-5"].artifact;
