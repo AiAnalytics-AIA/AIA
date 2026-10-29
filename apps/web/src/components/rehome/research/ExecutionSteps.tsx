@@ -718,9 +718,16 @@ export function RunStep() {
   // the working revision moves (a Lead's accepted edit), the answer on screen kept meanwhile.
   const readOn = useCallback(async (personaSource?: string, child?: string | null) => {
     if (frame.canEdit) {
-      // A study whose working content was never saved is saved as the template completed it (a save,
-      // never a Design Revision), so there is a revision to read, as Start would save it.
-      if (store.get().revision === null && store.get().save.kind !== "conflict") await store.flush("run");
+      // A study whose working content was never saved, or a copy the template completed on load, is
+      // saved as shown (a save, never a Design Revision), so the checks read what is on screen, as
+      // Start would save it; a template-supplied n read as missing would hold Start back.
+      const s = store.get();
+      // A refused save is said by the read below, in its words.
+      if ((s.revision === null || s.completed) && s.save.kind !== "conflict") {
+        await store.flush("run").catch((e: unknown) => {
+          if (store.get().save.kind !== "conflict") throw e;
+        });
+      }
       const read = await loadSampleReadiness(store, frame.studyId, true, {
         readiness: (studyId, revision) => research.workingReadiness(studyId, revision, personaSource, child ?? undefined),
       });
