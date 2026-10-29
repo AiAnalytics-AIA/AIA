@@ -137,6 +137,10 @@ const card = page.locator(`.conv [data-card="run"][data-aia="run.${runId}"]`);
 if (workbench) {
   await card.waitFor({ timeout: 60000 }).catch(() => fail(`the Lead's conversation shows no card for run ${runId}`));
   ok("Progress: the run is a card in the Lead's conversation");
+  // Sběr dat is one stage with two views (FLD9): the start opened its Průběh.
+  const selected = await page.getByRole("tablist", { name: "Pohled" }).getByRole("tab", { name: "Průběh" }).getAttribute("aria-selected");
+  if (selected !== "true") fail("after the start, Sběr dat's Pohled does not show Průběh selected");
+  ok("Progress: Sběr dat's Pohled shows Průběh");
 }
 
 // 2. Progress: labelled fictional; polls until the worker has finished the chain.

@@ -1,0 +1,128 @@
+{
+ "adaptive_effort": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\\n\\nAnswer only by calling the tool aia_test_golden exactly once, with one object that satisfies its input schema exactly. Do not answer in text.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"auto\":{}}},\"additionalModelRequestFields\":{\"output_config\":{\"effort\":\"high\"}}}",
+    "ceiling_usd": 0.00889,
+    "input_fingerprint": "sha256:f8866bd45308a2f5caf416a8718b0c9b85fb3aa37422c5d89ad549fede0dc65b",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "646dbd8a6f78daa4f8ab1357ffcdd8f93029dca222bc52ed2c552385764fd92c"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "adaptive_repair": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\\n\\nAnswer only by calling the tool aia_test_golden exactly once, with one object that satisfies its input schema exactly. Do not answer in text.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"auto\":{}}}}",
+    "ceiling_usd": 0.00889,
+    "input_fingerprint": "sha256:abc55da9508efef9e330a9636e5d8e372637502dea28b6a4bc9da056f54b362b",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "646dbd8a6f78daa4f8ab1357ffcdd8f93029dca222bc52ed2c552385764fd92c"
+   },
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]},{\"role\":\"assistant\",\"content\":[{\"text\":\"Odpověď je ano.\"}]},{\"role\":\"user\",\"content\":[{\"text\":\"Your previous answer did not satisfy the required output schema:\\n- answered in text, not through the output tool\\nCall the tool aia_test_golden exactly once with one object that satisfies its input schema exactly. Do not answer in text.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\\n\\nAnswer only by calling the tool aia_test_golden exactly once, with one object that satisfies its input schema exactly. Do not answer in text.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"auto\":{}}}}",
+    "ceiling_usd": 0.009174,
+    "input_fingerprint": "sha256:b41aaf1a372e0054cff38b602eae8128eb6efb333a887f0d9a965227dcd481b7",
+    "purpose": "SCHEMA_REPAIR",
+    "system_prompt_sha256": "646dbd8a6f78daa4f8ab1357ffcdd8f93029dca222bc52ed2c552385764fd92c"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "conversation": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Shrň zadání: „spotřebitelé 18–35, Praha“.\",\"role\":\"user\"},{\"content\":\"Zadání: mladí spotřebitelé v Praze.\",\"role\":\"assistant\"},{\"content\":\"Navrhni tři výzkumné otázky.\\nKaždou na řádek.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Shrň zadání: „spotřebitelé 18–35, Praha“.\"}]},{\"role\":\"assistant\",\"content\":[{\"text\":\"Zadání: mladí spotřebitelé v Praze.\"}]},{\"role\":\"user\",\"content\":[{\"text\":\"Navrhni tři výzkumné otázky.\\nKaždou na řádek.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"tool\":{\"name\":\"aia_test_golden\"}}}}",
+    "ceiling_usd": 0.008897,
+    "input_fingerprint": "sha256:6d1538b8557bf6063f5c279e9e9929d0a7237c79086340dcfffc91080ed3c48f",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Shrň zadání: „spotřebitelé 18–35, Praha“.\",\"role\":\"user\"},{\"content\":\"Zadání: mladí spotřebitelé v Praze.\",\"role\":\"assistant\"},{\"content\":\"Navrhni tři výzkumné otázky.\\nKaždou na řádek.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "[user]\nShrň zadání: „spotřebitelé 18–35, Praha“.\n\n[assistant]\nZadání: mladí spotřebitelé v Praze.\n\n[user]\nNavrhni tři výzkumné otázky.\nKaždou na řádek."
+ },
+ "respondent_temperature": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"temperature\":0.0,\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096,\"temperature\":0.0},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"tool\":{\"name\":\"aia_test_golden\"}}}}",
+    "ceiling_usd": 0.008747,
+    "input_fingerprint": "sha256:7791898367bf92350e96b91d264e9d090ed341c8f3c6f312e181dc60d61a1f61",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "structured": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"tool\":{\"name\":\"aia_test_golden\"}}}}",
+    "ceiling_usd": 0.008747,
+    "input_fingerprint": "sha256:f08668ec24ba2f4a2af5732bbc66d0085f5ce1a8012c13155a2d58578f8bea5f",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "structured_repair": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"tool\":{\"name\":\"aia_test_golden\"}}}}",
+    "ceiling_usd": 0.008747,
+    "input_fingerprint": "sha256:f08668ec24ba2f4a2af5732bbc66d0085f5ce1a8012c13155a2d58578f8bea5f",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   },
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]},{\"role\":\"assistant\",\"content\":[{\"text\":\"{\\\"verdict\\\": \\\"ano\\\"}\"}]},{\"role\":\"user\",\"content\":[{\"text\":\"Your previous answer did not satisfy the required output schema:\\n- score: Field required\\nReturn one JSON object that satisfies the schema exactly. Return only the JSON object.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"tool\":{\"name\":\"aia_test_golden\"}}}}",
+    "ceiling_usd": 0.008972,
+    "input_fingerprint": "sha256:caaf143dc47e80609189fe7d164f5af69141b6df0ede4293c93f504b91c84fac",
+    "purpose": "SCHEMA_REPAIR",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "text": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\"}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\"}]}",
+    "ceiling_usd": 0.008548,
+    "input_fingerprint": "sha256:53b4e51cbabb36b0d41e0a830c57b183239f94512fd0dfbb9983a654db5eb7a0",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "bf498e9f1e666b35fdede2661cfef72e23dd747e5a1b3ea567e3fa277b8ce0a9"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\"}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ },
+ "thinking_budget": {
+  "anthropic_body": "{\"max_tokens\":4096,\"messages\":[{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"system\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"tool_choice\":{\"name\":\"aia_test_golden\",\"type\":\"tool\"},\"tools\":[{\"description\":\"Return the answer as this object.\",\"input_schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"name\":\"aia_test_golden\"}]}",
+  "calls": [
+   {
+    "bedrock_body": "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"Tvrzení: trh roste o 5 %.\"}]}],\"inferenceConfig\":{\"maxTokens\":4096},\"system\":[{\"text\":\"Jsi pečlivý analytik. Odpovídej česky.\\n\\nAnswer only by calling the tool aia_test_golden exactly once, with one object that satisfies its input schema exactly. Do not answer in text.\"}],\"toolConfig\":{\"tools\":[{\"toolSpec\":{\"name\":\"aia_test_golden\",\"description\":\"Return the answer as this object.\",\"inputSchema\":{\"json\":{\"additionalProperties\":false,\"properties\":{\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"},\"score\":{\"title\":\"Score\",\"type\":\"integer\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"}}}}],\"toolChoice\":{\"auto\":{}}},\"additionalModelRequestFields\":{\"thinking\":{\"type\":\"enabled\",\"budget_tokens\":2048}}}",
+    "ceiling_usd": 0.00889,
+    "input_fingerprint": "sha256:7e67ea76702edad25db6d72426aaf707049cf9da16dd4c5b225b016b6a2e8e5f",
+    "purpose": "PRIMARY",
+    "system_prompt_sha256": "646dbd8a6f78daa4f8ab1357ffcdd8f93029dca222bc52ed2c552385764fd92c"
+   }
+  ],
+  "openai_body": "{\"max_completion_tokens\":4096,\"messages\":[{\"content\":\"Jsi pečlivý analytik. Odpovídej česky.\",\"role\":\"system\"},{\"content\":\"Tvrzení: trh roste o 5 %.\",\"role\":\"user\"}],\"model\":\"test-model\",\"response_format\":{\"json_schema\":{\"name\":\"aia_test_golden\",\"schema\":{\"additionalProperties\":false,\"properties\":{\"score\":{\"title\":\"Score\",\"type\":\"integer\"},\"verdict\":{\"title\":\"Verdict\",\"type\":\"string\"}},\"required\":[\"verdict\",\"score\"],\"title\":\"Verdict\",\"type\":\"object\"},\"strict\":false},\"type\":\"json_schema\"}}",
+  "transcript": "Tvrzení: trh roste o 5 %."
+ }
+}

@@ -40,6 +40,8 @@ __all__ = [
     "parse_duration_seconds",
     "plausible_instant",
     "plausible_wait",
+    "refuse_blocks",
+    "refuse_profile",
     "refuse_thinking",
     "render_transcript",
     "resolve_secret",
@@ -272,6 +274,20 @@ def refuse_thinking(adapter: str) -> ProviderError:
     )
 
 
+def refuse_blocks(adapter: str) -> ProviderError:
+    """An adapter that sends text messages only refuses a message of content blocks.
+
+    A tool conversation (ADR 0026 Amendment 2026-10-28) sent as text would drop the
+    tool calls, their results and the reasoning a provider requires back: a different
+    request than the one priced and recorded. Unsent, and permanent.
+    """
+    return ProviderError(
+        f"the {adapter} adapter does not send content blocks",
+        kind=ProviderErrorKind.OTHER,
+        delivery=Delivery.NOT_SENT,
+    )
+
+
 def refuse_profile(adapter: str) -> ProviderError:
     """An adapter that sends only the default request shape refuses any other profile.
 
@@ -403,5 +419,5 @@ def token_count(value: Any) -> int | None:
 def render_transcript(messages: Sequence[Message]) -> str:
     """Render a conversation as one prompt, for transports that take one string."""
     if len(messages) == 1 and messages[0].role == "user":
-        return messages[0].content
-    return "\n\n".join(f"[{m.role}]\n{m.content}" for m in messages)
+        return messages[0].text
+    return "\n\n".join(f"[{m.role}]\n{m.text}" for m in messages)
