@@ -1675,12 +1675,18 @@ export type StaleProposalDetails = {
   /** The words each conflicting item names, from the server (it knows the baseline; WCE1). */
   conflicting_wording?: Record<string, string>;
 };
+/** A file given to the Lead, kept as the client's source, and what reading it produced (LO18a). */
+export type LeadFileKept = Pick<ClientSource, "source_id" | "filename" | "family" | "outcome" | "reason" | "segments" | "characters">;
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 /** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
 export const lead = {
   state: (studyId: string) => request<LeadState>("GET", `${studyPath(studyId)}/lead`),
-  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
+  /** `files`: the client's sources the message carries, each kept first through attachFile (LO18a). */
+  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null; files?: string[] }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+  /** Keep a file given to the Lead as the study's client's source (listed under the client's Data; LO18a). */
+  attachFile: (studyId: string, body: { filename: string; data_b64: string }) =>
+    request<LeadFileKept>("POST", `${studyPath(studyId)}/lead/files`, body),
   /** Accept or dismiss a turn's edits: the server applies, saves and records them (gate 1). */
   /** `auto`: the researcher's standing choice accepts the turn's text edits, not a click (inline-decisions 2). */
   decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>

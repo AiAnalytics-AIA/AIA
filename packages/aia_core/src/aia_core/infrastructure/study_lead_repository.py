@@ -13,11 +13,13 @@ The caller owns the transaction. The one exception to "never rewritten" is
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from ..domain.lead_files import LeadFileRef
 from ..domain.research_lead import LeadTurn, new_turn_id
 from ..domain.scope import ScopeDenied, StudyContext
 from .tables import StudyLeadTurnAnswerRow, StudyLeadTurnRow, StudyRow, as_utc, utcnow
@@ -47,6 +49,7 @@ def _to_domain(row: StudyLeadTurnRow) -> LeadTurn:
         created_at=as_utc(row.created_at),
         command=row.command,
         parent_turn_id=row.parent_turn_id,
+        files=tuple(LeadFileRef.model_validate(f) for f in row.files or ()),
     )
 
 
@@ -214,6 +217,7 @@ class StudyLeadRepository:
         turn_id: str | None = None,
         command: str | None = None,
         parent_turn_id: str | None = None,
+        files: Sequence[LeadFileRef] = (),
     ) -> LeadTurn:
         """Append one turn to this researcher's conversation, numbered after the last."""
         s = self._scope
@@ -237,6 +241,8 @@ class StudyLeadRepository:
             design_revision_id=design_revision_id,
             command=command,
             parent_turn_id=parent_turn_id,
+            # Left unset without files: SQL NULL, never a JSON null the check would read as set.
+            **({"files": [f.model_dump(mode="json") for f in files]} if files else {}),
             created_by=s.actor_id,
             created_at=utcnow(),
         )
