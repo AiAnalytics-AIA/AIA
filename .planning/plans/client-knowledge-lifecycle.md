@@ -734,8 +734,9 @@ unrecorded, or read the current revision's lineage for a superseded entry whose 
   `DATASET_DERIVED_KINDS`, `UNRECORDED_KNOWLEDGE_LINEAGE`) moves from `domain/research_agents.py` to
   `domain/knowledge.py`, beside `recorded_datasets`, so the knowledge context does not import the
   agent contracts; `research_agents` and `research_lead` import it from there.
-- The hash covers each entry's datasets: the lineage is what the gate judges, so `verify()` refuses a
-  stored copy whose lineage was changed. Rebuilt from the database it cannot differ for the same
+- The hash covers each entry's datasets and its kind: the lineage is what the gate judges, and with no
+  datasets recorded the kind decides it (a DATASET declares the unrecorded placeholder, a FACT nothing),
+  so `verify()` refuses a stored copy whose lineage or kind was changed (Codex's P2 on #1104). Rebuilt from the database it cannot differ for the same
   (item, revision), a revision row being append-only. `CONTEXT_VERSION` is `knowledge-context-v2`;
   no v1 context was ever stored: `freeze_for_study` has no caller outside the tests
   (`git grep freeze_for_study @ 28406c46`: the repository and `test_knowledge_context.py` alone).
@@ -747,7 +748,8 @@ Tests (`test_knowledge_context.py`): `test_a_frozen_entry_carries_the_datasets_i
 `test_a_superseded_entry_keeps_the_lineage_of_the_revision_chosen_not_the_newer_one`,
 `test_an_unrecorded_lineage_is_none_and_the_context_names_the_placeholder`,
 `test_a_contexts_lineage_is_the_one_the_agent_jobs_would_declare`,
-`test_a_stored_context_whose_lineage_was_changed_does_not_verify`, `test_an_entrys_lineage_has_one_spelling`;
+`test_a_stored_context_whose_lineage_was_changed_does_not_verify`,
+`test_a_stored_context_whose_kind_was_changed_does_not_verify`, `test_an_entrys_lineage_has_one_spelling`;
 all failed before the change.
 Not here: Deep Research's `knowledge_access` still names every dataset-derived item unresolved without
 reading its recorded lineage (K4b, or K8 with the "Interní dokument" mark, G64).

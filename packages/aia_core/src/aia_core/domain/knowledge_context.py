@@ -171,8 +171,8 @@ class FrozenKnowledgeContext(BaseModel):
     entries: tuple[FrozenKnowledgeEntry, ...] = ()
     omitted: tuple[OmittedKnowledge, ...] = ()
     #: :func:`context_sha256` of what is read: the version, study, client and each entry's
-    #: item, revision, SHA-256 and lineage. State and omissions are reported beside it, not
-    #: hashed.
+    #: item, revision, SHA-256, kind and lineage. State and omissions are reported beside it,
+    #: not hashed.
     sha256: str
 
     @classmethod
@@ -237,10 +237,11 @@ def context_sha256(
     version: str = CONTEXT_VERSION,
 ) -> str:
     """The SHA-256 of what a frozen context gives its reader: its version, study, client and
-    each entry's item id, revision, revision SHA-256 and recorded datasets (the lineage it is
-    sent under), in item order, canonical JSON (sorted keys, no spaces, UTF-8). An entry's words
-    are covered through its revision's SHA-256; its state (``SUPERSEDED``) and the omissions are
-    not what is read, so they are not hashed."""
+    each entry's item id, revision, revision SHA-256, kind and recorded datasets (the lineage it
+    is sent under: with none recorded, the kind decides it), in item order, canonical JSON
+    (sorted keys, no spaces, UTF-8). An entry's words are covered through its revision's
+    SHA-256; its state (``SUPERSEDED``) and the omissions are not what is read, so they are not
+    hashed."""
     payload = json.dumps(
         {
             "version": version,
@@ -251,6 +252,7 @@ def context_sha256(
                     "item_id": e.item_id,
                     "revision": e.revision,
                     "sha256": e.sha256,
+                    "kind": e.kind.value,
                     "datasets": list(e.datasets) if e.datasets is not None else None,
                 }
                 for e in sorted(entries, key=lambda e: e.item_id)

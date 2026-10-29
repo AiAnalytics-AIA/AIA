@@ -453,6 +453,23 @@ def test_a_stored_context_whose_lineage_was_changed_does_not_verify() -> None:
     assert not FrozenKnowledgeContext.model_validate(stored).verify()
 
 
+def test_a_stored_context_whose_kind_was_changed_does_not_verify() -> None:
+    """With no datasets recorded, the kind decides the lineage: a DATASET declares the unrecorded
+    placeholder, a FACT nothing. A stored copy relabelled FACT must not verify (Codex, #1104)."""
+    entry = _entry("a", revision_sha256("t", "", {}), ContextEntryState.CURRENT).model_copy(
+        update={"kind": KnowledgeKind.DATASET}
+    )
+    frozen = FrozenKnowledgeContext.freeze(
+        study_id="study", client_id="client", entries=[entry], omitted=()
+    )
+    assert frozen.lineage().datasets == {UNRECORDED_KNOWLEDGE_LINEAGE}
+    stored = frozen.model_dump(mode="json")
+    stored["entries"][0]["kind"] = KnowledgeKind.FACT.value
+    relabelled = FrozenKnowledgeContext.model_validate(stored)
+    assert relabelled.lineage().datasets == set()
+    assert not relabelled.verify()
+
+
 def test_an_entrys_lineage_has_one_spelling() -> None:
     entry = _entry("a", "1" * 64, ContextEntryState.CURRENT)
     as_read = FrozenKnowledgeEntry.model_validate(
