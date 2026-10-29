@@ -4,7 +4,8 @@ chunks:
   - "[x] 1. A wrong JSON type is named in the violation (received string / null / object / …), so the repair turn and error_json say what arrived"
   - "[x] 2. (a) The repair turn says to send a list or object itself, never a string holding JSON, when one arrived as a string (repair_hint=container-as-string-v1 on that repair's ledger note)"
   - "[ ] 3. Deferred: (b) narrow typed decoding, only if an observed failure shows `received string`"
-  - "[ ] 4. Schema-enforced output: what Bedrock Converse supports for the route models in the EU, the contracts' keywords it refuses, thinking and auto_tool; a new RequestProfile.structured_output value behind a switch off by default, recorded adapter fixtures first; any paid probe on the product owner's ok"
+  - "[x] 4a. Schema-enforced output, the reduced schema: domain/constrained_output.py reduces a contract's schema to Bedrock's grammar subset or refuses it by name; a golden fixture pins every contract's verdict (20 of 22 reduce); no client text reaches a sent schema"
+  - "[ ] 4b. Schema-enforced output, sent: RequestProfile's declared constrained capabilities behind AIA_BEDROCK_CONSTRAINED_OUTPUT (off by default and in test; fieldwork refused), the gateway sends the reduced schema with toolSpec.strict through the Bedrock adapter, recorded Converse fixtures first; the paid probe on the product owner's ok"
   - "[x] 5. Keep refused answers, every study step: one hook in StepModelCaller, REFUSED_ANSWER_SOURCE (the request's class; unclassified recorded as null), a refused_answer artifact on the failing step's own project (design workers, Lead, Deep Research, fieldwork, validation); analysis left as it is; operator-only"
   - "[ ] 5b. Deferred (the product owner, 2026-10-28 ~20:35 UTC, option C): client-source proposals keep no refused answer until a client-work failure is seen; the artifact store stays study-scoped"
 ---
@@ -530,6 +531,48 @@ answers were about 1,900 output tokens, roughly 8 KB.
 - No API route serves the artifact.
 - Deleting the client erases it, with its stored object.
 
+## Chunk 4a built (2026-10-28)
+
+`packages/aia_core/src/aia_core/domain/constrained_output.py`, `reduce_for_grammar(schema)`:
+
+- **Kept:** every type, shape, `required`, `enum`/`const`, `anyOf`/`allOf`, internal `$ref`,
+  the listed formats, and patterns without lookaround or backreferences.
+- **Dropped,** and still checked by the contract after the call: string and list lengths, numeric
+  bounds, `minItems` above 1. A tuple is sent as an array of its items.
+- **Refused by name:** an unknown keyword (the Lead's `discriminator`, from its `oneOf`), an open
+  object, recursion, an external `$ref`, an unsupported format or pattern, more than 12 optional
+  properties, or more than 16 unions.
+- **Unions** are counted at every node, not per property: stricter than AWS's wording, never looser.
+  It refuses the Deep Research investigator turn at 18.
+
+Tests (`packages/aia_core/tests/test_constrained_output.py`):
+
+- the golden fixture `fixtures/constrained_output/contracts.json` (every contract's verdict and
+  reduced-schema SHA-256);
+- 20 of 22 reduce;
+- each rule;
+- the contract still refuses what the grammar no longer holds;
+- no client text: a respondent block names items by id, and the Lead's schema carries none of its
+  context.
+
+### Review outcomes (`/code-review`, chunk 4a, 2026-10-28)
+
+- **Fixed, all fail-closed:**
+  - a definition counts each time it is referenced;
+  - the pattern check catches `(?P=…)` and large repeats (`{1000}`, `{100,}`), and may refuse a
+    valid pattern it cannot tell apart;
+  - `type: ["object", …]` must be closed too;
+  - an empty tuple is refused;
+  - a dangling `$ref`, or one outside `$defs`, is refused;
+  - the recursion check is a linear three-colour walk.
+  Tests: `test_every_edge_the_grammar_cannot_take_is_refused`,
+  `test_a_definition_counts_each_time_it_is_referenced`, `test_a_long_respondent_block_still_reduces`.
+- **For 4b's probe:** whether Bedrock's grammar takes `title`, `description` and `default` as
+  annotations. Anthropic documents `default`; the other two are not named. If it refuses them,
+  they are dropped like a bound.
+- **Left:** the Lead's discriminated `oneOf` could be sent as `anyOf`, but its 18 optional
+  properties are over the limit of 12 anyway.
+
 ## Doc follow-up
 
 - `AGENTS.md` (Pydantic): strict JSON mode reports a string, null or object for a list field with the
@@ -538,3 +581,7 @@ answers were about 1,900 output tokens, roughly 8 KB.
   repair answering a list or object sent as a string carries one more line, recorded on its note as
   `repair_hint=container-as-string-v1`, and that a wrong-type violation names the JSON type received.
 - `.planning/open-items.md`: F2, the research-agent path keeping no refused answer.
+- `CLAUDE.md` map, under `packages/aia_core/src/aia_core/domain/`: add `constrained_output.py` --
+  "A contract's schema reduced to Bedrock's constrained-decoding grammar (reduce_for_grammar):
+  bounds dropped, a tuple as an array, anything else refused by name; 12 optional / 16 union
+  limits; the contract still validates after the call (brief-analysis-schema-repair 4a)".

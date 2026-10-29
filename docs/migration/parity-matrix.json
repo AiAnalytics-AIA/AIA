@@ -4130,7 +4130,10 @@
     ],
     "tier_a": "Project memory's search and the design's reuse over HTTP, with its citation and labels; another client's studies not found.",
     "tier_b": "The fictional past study found and its design reused on develop, over the deployed API.",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac12_another_client_s_studies_cannot_be_found_or_reused"
+    ]
    },
    {
     "id": "AC-13",
