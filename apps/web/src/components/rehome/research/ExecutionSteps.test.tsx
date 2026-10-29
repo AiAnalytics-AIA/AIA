@@ -3580,7 +3580,7 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     );
   });
 
-  it("shows the spend as tiles in the prototype's words, the unpriced calls a fifth tile only when there are any (FLD4e)", async () => {
+  it("shows the spend as the board's compact panel in its words, the unpriced calls a row only when there are any (FLD4e, FLD20)", async () => {
     const labels = () => [...document.querySelectorAll("[data-run-spend] [data-spend] dt")].map((dt) => dt.textContent);
     const running = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
     api({ ...listed(running), "GET /api/v1/studies/STU-1": () => STUDY });
@@ -3590,6 +3590,14 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     expect(labels()).toEqual(["Utraceno", "Drženo pro běžící kroky", "Strop běhu", "Zbývá v rozpočtu studie"]);
     // Each tile its value first, as a figure; a note beneath it, never run into it.
     for (const tile of document.querySelectorAll("[data-run-spend] [data-spend]")) expect(tile.querySelector("dd > [data-spend-value]")).not.toBeNull();
+    // FLD20 (Fieldwork.dc.html "Náklady"): one row per amount, its label beside its value, not a tile; what is
+    // spent the one figure set strongest.
+    for (const row of document.querySelectorAll("[data-run-spend] [data-spend]")) {
+      expect([...row.children].map((c) => c.tagName)).toEqual(["DT", "DD"]);
+      expect(row.className).toContain("grid-cols-[1fr_auto]");
+    }
+    const strong = [...document.querySelectorAll("[data-run-spend] [data-spend-value]")].filter((v) => v.className.includes("font-semibold"));
+    expect(strong.map((v) => v.closest("[data-spend]")?.getAttribute("data-spend"))).toEqual(["spent"]);
     unmount();
 
     // An ended run with unpriced calls: a fifth tile, and no tile says a step still runs.

@@ -90,11 +90,14 @@ class DeepResearchCardUnavailable(Exception):
 class DeepResearchCardSettings:
     """What a Deep Research card's start takes from the deployment, never from the request: the
     prices and the mode the stage's own routes pass (``routers/deep_research.py``
-    ``study_prices``, ``deep_research_mode``) and the store its pins are read from."""
+    ``study_prices``, ``deep_research_mode``) and the store its pins are read from;
+    ``document_store``, the store a document's text is read from under
+    ``AIA_DEEP_RESEARCH_DOCUMENT_TEXT`` (client-knowledge-lifecycle K8b), ``None`` when off."""
 
     prices: DeepResearchPrices | None
     modes: tuple[ResearchMode, ...]
     store: ArtifactStore
+    document_store: ArtifactStore | None = None
 
 
 def card_target(frozen: Mapping[str, Any] | None, target_id: str | None) -> ResearchTargetRef:
@@ -146,7 +149,7 @@ def approve_deep_research_card(
     approved card, a stale one and a switched-off Lead before this is called.
     """
     assert turn.run_id is not None
-    runs = DeepResearchRuns(session, scope)
+    runs = DeepResearchRuns(session, scope, document_store=settings.document_store)
     runs.require_start()
     if isinstance(request, DesignResearchRequest):
         revision = submit_design()

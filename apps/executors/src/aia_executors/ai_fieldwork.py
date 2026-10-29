@@ -227,7 +227,7 @@ def request_key(request: ModelRequest, binding: str) -> str:
             "class": request.data_classification.value if request.data_classification else None,
             "max_output_tokens": request.max_output_tokens,
             "system": request.system,
-            "messages": [[m.role, m.content] for m in request.messages],
+            "messages": [[m.role, m.text] for m in request.messages],
         }
     )
 
