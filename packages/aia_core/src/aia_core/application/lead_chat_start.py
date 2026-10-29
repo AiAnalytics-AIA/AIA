@@ -109,6 +109,8 @@ class RunStartSettings:
     fieldwork_source: FieldworkSource
     analysis_enabled: bool
     sociomapping_enabled: bool
+    #: AIA_RUN_QC_ENABLED: a new run carries the run QC step (``run-qc-and-checkpoint`` RQC2)
+    qc_enabled: bool
     reservations: RunReservations
     persona_source: PersonaSource
     require_answerability: bool
@@ -241,6 +243,7 @@ def approve_chat_start(
             "analysis_enabled": run_start.analysis_enabled,
             "external_context": run_start.external_context,
             "sociomapping_enabled": run_start.sociomapping_enabled,
+            "qc_enabled": run_start.qc_enabled,
             "reservations": run_start.reservations,
             "persona_source": run_start.persona_source,
             "require_answerability": run_start.require_answerability,

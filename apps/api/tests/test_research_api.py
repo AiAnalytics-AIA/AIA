@@ -4147,3 +4147,20 @@ def test_two_approvals_of_one_snapshot_at_once_record_one_decision(
             .where(ApprovalDecisionRow.subject_id == snapshot)
         )
     assert decisions == 1
+
+
+def test_the_run_qc_switch_adds_its_step_to_a_new_run_only(
+    app: FastAPI, researcher: TestClient, world: Any
+) -> None:
+    """RQC2: AIA_RUN_QC_ENABLED adds the qc step after fieldwork to a newly started run, which is
+    a different run than one without it; off, the graph is as before."""
+    revision = submit(researcher, world).json()["revision_id"]
+    plain = start(researcher, world, revision).json()
+    assert "qc" not in [s["node_key"] for s in plain["steps"]]
+
+    app.state.settings = app.state.settings.model_copy(update={"run_qc_enabled": True})
+    started = start(researcher, world, revision)
+    assert started.status_code == 201, started.text
+    run = started.json()
+    assert run["run_id"] != plain["run_id"]  # a different graph is a different run
+    assert "qc" in [s["node_key"] for s in run["steps"]]

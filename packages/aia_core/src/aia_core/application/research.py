@@ -615,6 +615,7 @@ class ResearchRuns:
         analysis_enabled: bool = False,
         external_context: bool = False,
         sociomapping_enabled: bool = False,
+        qc_enabled: bool = False,
         reservations: RunReservations | None = None,
         confirm_cost_usd: float | None = None,
         sociomap_methods: Sequence[SociomapMethod] | None = None,
@@ -779,6 +780,8 @@ class ResearchRuns:
             key += ":analysis"
         if sociomapping_enabled:
             key += ":sociomapping"
+        if qc_enabled:
+            key += ":qc"
         if methodology is not None:
             # An edited methodology is new identity: the same revision under it is another
             # run, and its cost goes through the spend confirmation below like any new run.
@@ -944,6 +947,7 @@ class ResearchRuns:
                 "analysis_enabled": analysis_enabled,
                 **({"analysis_context": context_pin} if context_pin else {}),
                 **({"sociomapping_enabled": True} if sociomapping_enabled else {}),
+                **({"qc_enabled": True} if qc_enabled else {}),
                 "sociomap_methods": pinned,
                 **({"methodology": methodology} if methodology else {}),
                 "support": support_pin,
@@ -1032,6 +1036,7 @@ class ResearchRuns:
             owner=DESIGN_PROJECT_OWNER,
             analysis_enabled=analysis_enabled,
             sociomapping_enabled=sociomapping_enabled,
+            qc_enabled=qc_enabled,
             population=population,
         )
         if fresh_acknowledgement is not None and started.created:
@@ -1159,6 +1164,7 @@ class ResearchRuns:
             if analysis_enabled is None
             else analysis_enabled,
             sociomapping_enabled=bool(run["metadata"].get("sociomapping_enabled", False)),
+            qc_enabled=bool(run["metadata"].get("qc_enabled", False)),
             reservations=reservations,
             confirm_cost_usd=confirm_cost_usd,
             sociomap_methods=pinned,

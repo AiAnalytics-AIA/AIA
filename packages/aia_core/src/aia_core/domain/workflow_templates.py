@@ -70,6 +70,9 @@ REPORT_STEP_KIND: Final = "research_report"
 #: The experimental Sociomapping and its internal draft report (plan sociomapping-engine I1, I2):
 #: in a run's graph only when the run was started with them.
 SOCIOMAPPING_STEP_KIND: Final = "research_sociomapping"
+#: A run's quality checks over its answers (``evidence-integrity`` 2a, ``run-qc-and-checkpoint``
+#: RQC2): added to a new run's graph only under ``AIA_RUN_QC_ENABLED``; no step waits on it.
+QC_STEP_KIND: Final = "research_qc"
 SOCIOMAPPING_REPORT_STEP_KIND: Final = "research_sociomapping_report"
 
 #: A stored report DOCX rendered as PDF by the worker, the one process with the converter.
@@ -129,6 +132,7 @@ def steps_for_workflow(
     project_type: ProjectType,
     analysis_enabled: bool = False,
     sociomapping_enabled: bool = False,
+    qc_enabled: bool = False,
 ) -> list[StepDefinition]:
     """Return the step graph for ``workflow_type`` against a project of ``project_type``.
 
@@ -236,6 +240,19 @@ def steps_for_workflow(
                     ),
                     stage_type="REPORT",
                     artifact_target="research_internal_docx",
+                    max_attempts=3,
+                )
+            )
+        if qc_enabled:
+            # Its subject is the fieldwork's answers; nothing depends on it, so the report and
+            # every result go on whatever it finds (MVP-24: QC warns, it never gates).
+            steps.append(
+                StepDefinition(
+                    node_key="qc",
+                    kind=QC_STEP_KIND,
+                    depends_on=("run",),
+                    stage_type="FIELDWORK",
+                    artifact_target="research_qc",
                     max_attempts=3,
                 )
             )
