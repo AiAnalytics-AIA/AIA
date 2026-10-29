@@ -29,6 +29,7 @@ const LAYER_WORDS: Readonly<Record<string, string>> = {
   deep_research: "Hloubkový výzkum studie",
   targets: "Výsledky k výkladu",
   external_context_not_evidence: "Design Research (kontext, ne důkaz)",
+  files: "Přiložené dokumenty klienta",
   view: "Kde jste byli a vaše zpráva",
   memory: "Co jste spolu rozhodli",
   conversation: "Rozhovor",
@@ -42,11 +43,17 @@ const ITEMS: Readonly<Record<string, readonly [string, string, string]>> = {
   deep_research: ["běh", "běhy", "běhů"],
   targets: ["výsledek", "výsledky", "výsledků"],
   memory: ["záznam", "záznamy", "záznamů"],
+  files: ["dokument", "dokumenty", "dokumentů"],
 };
 
 const REASON_WORDS: Readonly<Record<string, string>> = {
   over_budget: "nevešla se do limitu vrstvy",
   unreadable: "specifikaci běhu se nepodařilo přečíst",
+  // An attached file (LO18a): the part past its share, or why none of it was sent.
+  reading_changed: "čtení dokumentu se od přiložení změnilo, nic z něj neodešlo",
+  source_unavailable: "dokument už není mezi podklady klienta",
+  not_read: "dokument se nepodařilo přečíst",
+  partly_read: "dokument se přečetl jen zčásti",
 };
 
 const kb = (bytes: number) => `${(bytes / 1024).toLocaleString("cs-CZ", { maximumFractionDigits: 1 })} kB`;

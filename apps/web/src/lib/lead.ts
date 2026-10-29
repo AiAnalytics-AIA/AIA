@@ -204,6 +204,8 @@ export type LeadTurn = {
   workspace_revision: number | null;
   created_at: string;
   created_by: string | null;
+  /** The client's sources a person's message carried to the Lead (LO18a); read only in the turn answering it. */
+  files?: { source_id: string; sha256: string; reading_sha256: string | null; filename: string }[];
   /** The most the turn's prepared agent job can cost, before it starts (LO23): its reservation;
    *  null when unknown (never 0) or when the turn prepares no agent job. */
   ceiling_usd?: number | null;

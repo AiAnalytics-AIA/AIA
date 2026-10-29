@@ -28,6 +28,9 @@ import { Facts } from "../rehome/AiJobCard";
 import { RunCardView, RunRequestCard, WorkerCardView } from "./LeadCards";
 import { LeadSees } from "./LeadSees";
 import { errorText } from "@/lib/error-words";
+import { FILE_ACCEPT } from "@/lib/client-sources";
+import * as leadFiles from "@/lib/lead-files";
+import { fileToBase64 } from "@/research/brief";
 
 const POLL_MS = 1500;
 /** While the newest Lead turn waits on the study's budget: a budget set elsewhere (Nastavení, a
@@ -59,7 +62,7 @@ export type LeadCardsContext = {
  * the pane is unmounted when the window narrows to the classic layout, and comes back empty
  * otherwise.
  */
-type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null };
+type Queued = { text: string; stage: WorkbenchStage; focus: { id: string; label: string } | null; files?: string[] };
 const kept = new Map<string, { draft: string; queued: Queued[] }>();
 
 /** An accepted self-update left a file another turn changed since; its notes did apply. The 200
@@ -117,6 +120,30 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
   const [error, setError] = useState<string | null>(null);
   const [seesOpen, setSeesOpen] = useState(false);
   const [draft, setDraft] = useState(() => kept.get(studyId)?.draft ?? "");
+  // Files given to the Lead for the next message (LO18a): each kept as the client's source at once.
+  const [attached, setAttached] = useState<leadFiles.Attached[]>([]);
+  const attachSeq = useRef(0);
+  const attach = (files: File[]) => {
+    for (const file of files.slice(0, leadFiles.room(attached))) {
+      const key = `f${++attachSeq.current}`;
+      const early = leadFiles.refusedBeforeUpload(file);
+      if (early) {
+        setAttached((a) => [...a, leadFiles.refused(key, file.name, early)]);
+        continue;
+      }
+      setAttached((a) => [...a, leadFiles.uploading(key, file.name)]);
+      void (async () => {
+        let next: leadFiles.Attached;
+        try {
+          const keptFile = await leadApi.attachFile(studyId, { filename: file.name, data_b64: await fileToBase64(file) });
+          next = leadFiles.kept(key, keptFile);
+        } catch (e) {
+          next = leadFiles.refused(key, file.name, e instanceof ApiError ? e.code : "upload_failed");
+        }
+        setAttached((a) => a.map((x) => (x.key === key ? next : x)));
+      })();
+    }
+  };
   // A message not yet stored keeps the stage and the element it was written about; once stored
   // it waits on the server, in every tab (ADR 0041 decision 7).
   const [queued, setQueued] = useState<Queued[]>(() => kept.get(studyId)?.queued ?? []);
@@ -212,7 +239,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     try {
       // A save that fails does not hold the message: the Lead then reads the last stored revision.
       await beforeMessage?.().catch(() => {});
-      if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus })) return;
+      if (await post({ kind: "message", text: m.text, stage: m.stage, focus: m.focus, ...(m.files?.length ? { files: m.files } : {}) })) return;
       setQueued((q) => [m, ...q]);
       setHeld(true);
     } finally {
@@ -238,10 +265,12 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
 
   const send = (text: string) => {
     const t = text.trim();
-    if (!t) return;
-    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus }]);
-    else void message({ text: t, stage, focus });
+    if (!t || leadFiles.holdsMessage(attached)) return;
+    const files = leadFiles.carried(attached);
+    if (sending || held) setQueued((q) => [...q, { text: t, stage, focus, files }]);
+    else void message({ text: t, stage, focus, files });
     setDraft("");
+    setAttached([]);
     onClearFocus();
   };
   // A stage's message (Návrh's "Požádat Vedoucího"): sent or queued as typed, the draft left alone.
@@ -368,7 +397,7 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
       </Conversation>
       </ViewWords.Provider>
       </TypedCardFacts.Provider>
-      <Composer draft={draft} setDraft={setDraft} onSend={send} busy={!!session?.busy || sending} queued={[...waiting.map((t) => ({ key: t.turn_id, text: t.text ?? "" })), ...queued.map((q, i) => ({ key: `local:${i}`, text: q.text }))]} onUnqueue={(key) => void unqueue(key)}
+      <Composer draft={draft} setDraft={setDraft} onSend={send} attached={attached} onAttach={attach} onUnattach={(key) => setAttached((a) => a.filter((x) => x.key !== key))} busy={!!session?.busy || sending} queued={[...waiting.map((t) => ({ key: t.turn_id, text: t.text ?? "" })), ...queued.map((q, i) => ({ key: `local:${i}`, text: q.text }))]} onUnqueue={(key) => void unqueue(key)}
         disabled={!canEdit || !me?.hatched || !session?.available} hint={composerHint({ canEdit, hatched: me?.hatched, available: session?.available, failed: error !== null })} focus={focus} picking={picking} onPick={onPick} onClearFocus={onClearFocus} />
     </div>
   );
@@ -480,6 +509,11 @@ function PersonTurn({ t, canEdit, onRequest, studyId, cards, onOpenJob, job, run
       <div className="msg msg--user" data-msg={t.turn_id}>
         {t.focus ? <div className="bubble__ref"><Icon name="at" size={12} />{t.focus.label}</div> : null}
         <div className="bubble">{t.text}</div>
+        {t.files?.length ? (
+          <ul className="filechips filechips--sent" aria-label="Soubory pro Vedoucího">
+            {t.files.map((f) => <li className="refchip filechip" key={f.source_id}><Icon name="paperclip" size={12} /><b>{f.filename}</b></li>)}
+          </ul>
+        ) : null}
         <div className="msgacts" role="group" aria-label="Akce zprávy"><span className="msgmeta">{time(t.created_at)}</span></div>
       </div>
       {typed ? <RequestCard r={typed} typed ceiling={t.ceiling_usd} approved={t.request_decision ?? null} onApprove={() => onRequest(t, typed)} canEdit={canEdit} /> : null}
@@ -678,8 +712,10 @@ function RequestCard({ r, approved, onApprove, canEdit, typed = false, ceiling }
   );
 }
 
-function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
+function Composer({ draft, setDraft, onSend, attached, onAttach, onUnattach, busy, queued, onUnqueue, disabled, hint, focus, picking, onPick, onClearFocus }: {
   draft: string; setDraft: (v: string) => void; onSend: (t: string) => void; busy: boolean;
+  /** Files given to the Lead for this message (LO18a), and how to add and remove one. */
+  attached: leadFiles.Attached[]; onAttach: (files: File[]) => void; onUnattach: (key: string) => void;
   queued: { key: string; text: string }[]; onUnqueue: (key: string) => void; disabled: boolean;
   /** Why the composer is shut, in its own field (composerHint); null while it is open. */
   hint: string | null;
@@ -687,6 +723,8 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
   picking: boolean; onPick: () => void; onClearFocus: () => void;
 }) {
   const ta = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const holding = leadFiles.holdsMessage(attached);
   return (
     <div className="composer-wrap">
       {queued.length ? (
@@ -699,6 +737,16 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
         </div>
       ) : null}
       {focus ? <div className="refchip"><Icon name="at" size={12} /><b>{focus.label}</b><button type="button" className="iconbtn refchip__clear" aria-label="Zrušit odkaz" onClick={onClearFocus}><Icon name="close" size={11} /></button></div> : null}
+      {attached.length ? (
+        <ul className="filechips" aria-label="Přiložené soubory">
+          {attached.map((a) => (
+            <li className="refchip filechip" key={a.key} data-file-state={a.state}>
+              <Icon name="paperclip" size={12} /><b>{a.name}</b><span className="filechip__words" role={a.state === "refused" ? "alert" : undefined}>{a.words}</span>
+              <button type="button" className="iconbtn refchip__clear" aria-label={`Odebrat ${a.name}`} onClick={() => onUnattach(a.key)}><Icon name="close" size={11} /></button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="composer">
         <label className="sr-only" htmlFor="composer">Napište Vedoucímu výzkumu</label>
         <textarea id="composer" ref={ta} rows={1} value={draft} disabled={disabled} placeholder={disabled && hint ? hint : focus ? "Co se má změnit? Např. „kratší“, „přejmenovat na …“" : "Napište Vedoucímu výzkumu…"}
@@ -707,11 +755,14 @@ function Composer({ draft, setDraft, onSend, busy, queued, onUnqueue, disabled, 
             if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSend(draft); }
           }} />
+        <input ref={picker} type="file" multiple hidden aria-hidden tabIndex={-1} accept={FILE_ACCEPT}
+          onChange={(e) => { onAttach(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
         <div className="composer__bar">
+          <button type="button" className="iconbtn" aria-label="Přiložit soubor (uloží se k podkladům klienta)" title="Přiložit soubor (uloží se k podkladům klienta)" disabled={disabled || leadFiles.room(attached) === 0} onClick={() => picker.current?.click()}><Icon name="paperclip" size={16} /></button>
           <button type="button" className={`iconbtn${picking ? " is-on" : ""}`} aria-pressed={picking} aria-label="Ukázat na prvek artefaktu (@)" title="Ukázat na prvek artefaktu (@)" disabled={disabled} onClick={onPick}><Icon name="at" size={16} /></button>
-          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Kde jsme a co mám udělat dál?")}>Kde jsme?</button>
-          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled} onClick={() => onSend("Projdi tento krok a navrhni konkrétní úpravy.")}>Navrhni úpravy</button>
-          <button type="button" className="composer__send" aria-label={busy ? "Zařadit do fronty" : "Odeslat"} title={busy ? "Zařadit do fronty" : "Odeslat"} disabled={disabled || !draft.trim()} onClick={() => onSend(draft)}><Icon name="send" size={16} /></button>
+          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled || holding} onClick={() => onSend("Kde jsme a co mám udělat dál?")}>Kde jsme?</button>
+          <button type="button" className="btn btn--sm btn--quiet" disabled={disabled || holding} onClick={() => onSend("Projdi tento krok a navrhni konkrétní úpravy.")}>Navrhni úpravy</button>
+          <button type="button" className="composer__send" aria-label={busy ? "Zařadit do fronty" : "Odeslat"} title={busy ? "Zařadit do fronty" : "Odeslat"} disabled={disabled || !draft.trim() || holding} onClick={() => onSend(draft)}><Icon name="send" size={16} /></button>
         </div>
       </div>
       <div className="composer__hint">Enter odešle · Shift+Enter nový řádek · Vedoucí nic nezmění bez vás</div>

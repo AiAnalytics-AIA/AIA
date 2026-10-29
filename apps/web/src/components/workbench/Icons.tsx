@@ -22,6 +22,7 @@ const NAMES = {
   next: "caret-right",
   normal: "square-split-horizontal",
   open: "arrow-square-out",
+  paperclip: "paperclip",
   pencil: "pencil-simple",
   send: "paper-plane-right",
   user: "user",

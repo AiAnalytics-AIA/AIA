@@ -47,7 +47,7 @@ chunks:
   - "[x] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
   - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
   - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
-  - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
+  - "[x] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
   - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
   - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
   - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
@@ -1822,6 +1822,31 @@ follow-up chunk below.
 **LO18a-d. Files to the Lead** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"). LO18's "take a file from the composer", split as the Lead worker proposed (26 Oct, anchors at `2e7fc1dd`). Nigel settled D-a: a file given to the Lead is the client's source and shows under the client's Data. The file's class drops out for the MVP under `prototype-build#PB6` (computed and recorded, never refused); the per-turn class stays the design for when enforcement returns.
 
 - **LO18a. The file in a turn** (W1). Kept as a client source (`infrastructure/client_source_repository.py`, with the study occurrence); the turn carries its ref (source id + SHA-256), never the bytes. Read with `infrastructure/source_reading.py` `read_source`: segments with locators for PDF, DOCX, ODT, PPTX, TXT, MD, DOC, CSV, XLSX, XLS and ODS, a dataset as its preview with personal columns masked. A `files` layer of the 96 KB context with its own share (about 16 KB): the outline, every locator, the segments in order until the share is spent, the rest named. Labelled the client's document, not evidence. Prompt and harness bumps; the web attach in the composer. Its outputs only through what exists: edits through the gate, an agent-job request, LO18b's proposal, LO18c's request. A file never writes the design, knowledge or a Lead file by itself, never starts paid work, never leaves its client, never becomes respondent evidence or Sociomap input, is never marked internal by the model, and is never read whole into one turn. Test: a PDF given on Zadání reaches the turn as its bounded segments with locators and is listed under the client's Data; a turn's manifest names the file and what was left out.
+  **As built (2026-10-28).** The product owner's answers to the proposal's two questions: "citable like knowledge,
+  file only in its turn". Each claim is anchored by its test:
+  - kept as the client's source from the Lead's own route, origin `LEAD`, the study on the audit row (the
+    occurrence names no study: `study-files#SF4`'s column), listed under the client's Data:
+    `test_lead_files_api.py::test_a_pdf_given_on_zadani_reaches_its_turn_bounded_and_is_listed_under_the_clients_data`;
+  - the message carries at most three of the study's client's sources, its refs from the row; another client's is
+    404, a greeting or a typed command carries none: `::test_another_clients_source_is_404_and_nothing_is_stored`,
+    `::test_files_ride_only_a_message_and_at_most_three`;
+  - nothing kept while the Lead is off or not hatched: `::test_no_file_is_kept_while_the_lead_is_off_or_not_hatched`;
+  - the `files` layer, 16 KB, before `view`, at most three files a turn and the rest named, each file's outline and
+    whole segments in order, a too-long first segment cut as measured in JSON:
+    `test_lead_files.py::test_a_long_document_is_cut_at_its_share_and_the_rest_named`,
+    `::test_a_cut_is_measured_as_sent_so_escaped_text_never_overruns_the_share`,
+    `::test_a_turn_reads_three_files_and_names_the_rest`;
+  - a dataset its preview, never a row: `::test_a_dataset_is_its_preview_and_never_a_row`,
+    `test_lead_files_api.py::test_a_dataset_reaches_the_turn_as_its_preview_never_a_row`;
+  - citable, its class the source rule's (A, C marked internal), a dataset declaring the unrecorded
+    client-knowledge lineage: `test_lead_files.py::test_the_layer_sits_before_the_view_and_is_sent_and_citable`,
+    `::test_the_files_class_is_its_source_rule_and_a_dataset_declares_its_lineage`;
+  - the manifest names each file and what it left out: `::test_the_manifest_names_each_file_and_what_it_left_out`;
+  - only its turn reads it, a later turn names it: the PDF test above;
+  - the web attach, its chips and the held message: `LeadPane.test.tsx` "gives the Lead a file: kept as the client's
+    source first, the message holding until then, then carrying it (LO18a)".
+  Harness `aia-research-lead-8`, prompt 4 (`test_prompt_slots.py::test_the_lead_s_baseline_wording_changes_only_with_its_version`).
+  Fits ADR 0026's 2026-10-28 amendment, R5: the file is part of the message, frozen at enqueue.
 - **LO18b. A questionnaire table becomes a proposal** (W1, with `artifact-questionnaire#QST12`; Nigel's questionnaire decision of 01:41 UTC, quoted in `prototype-build.md`). `import_questionnaire` (`infrastructure/questionnaire_file.py:187 @ 2e7fc1dd`) reads it with no model call; the result is a no-model questionnaire proposal reviewed in ProposalReview and accepted through `accept_into_working_copy` (`application/proposal_accept.py:113`), not as Lead edits (no applied section operation; at most 12 edits a turn, `domain/research_lead.py:370`). Amending a questionnaire section by section would need the section operations (WCE3b). Test: an XLSX given in a turn files one proposal whose sections match the import; accepting it writes them; no model call is ledgered for the read.
 - **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
 - **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.

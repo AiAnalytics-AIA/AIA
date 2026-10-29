@@ -79,6 +79,8 @@ class SourceOrigin(StrEnum):
     UPLOAD = "UPLOAD"
     WEB = "WEB"
     DEEP_RESEARCH = "DEEP_RESEARCH"
+    #: Given to the Research Lead in a study's conversation (lead-orchestration LO18a).
+    LEAD = "LEAD"
 
 
 class SourceFamily(StrEnum):
