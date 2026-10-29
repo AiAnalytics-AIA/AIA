@@ -194,3 +194,15 @@ W1 build sessions:
 In flight:
 - The Sonnet 5.5 probe (prompt P2): study "Sonnet 5.5 probe" on the fictional Fio client, n 78, fictional respondents, budget USD 40, ceiling 35.70.
 - #1077 (switch record) draft, pushed on Nigel's word; merge needs his word.
+## 2026-10-29 12:50 UTC (second account)
+
+- Status page v10: https://claude.ai/artifact/5BMkhxqdicnjSZDdpaMqgR. W1 on develop 97edef87: 101 of 283 chunks done.
+- Merged since 02:00 UTC (gate, on Nigel's words): #1090 #1093 #1094 #1096 #1098 #1099 #1100 #1102 #1103 #1104 #1105 #1106 #1107 #1108 #1109 #1110 #1111 #1112 #1113 #1114 #1115 #1116.
+- In the gate under his word: #1101, #1117, #1118, #1119.
+- Decisions recorded today:
+  - Data-class gates advisory everywhere for the MVP (22:25-22:27 UTC 10-28).
+  - K8 rule recorded; K8b: an "Interní dokument" source stays Class A.
+  - MQ-23 "keep only 5"; MQ-24 declared state, no paid call.
+  - LO13 go; flaky-test fix go; Sociomapa MQ-23 server-side scope.
+- Open on the page: W1Q12-W1Q18. Actions: N17-N24.
+- Relays refused by session checks: Sociomapa (MQ-23/S-2), E08 (the flaky fix). Nigel types those words in the sessions.
