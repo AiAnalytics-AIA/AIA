@@ -40,6 +40,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import sys
 import threading
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -77,6 +78,9 @@ __all__ = [
 RECORDING: Final = "aia-recorded-models-1"
 #: How long a stalled call is held: longer than any test waits for it.
 STALL_SECONDS: Final = 3600.0
+#: Written to stderr as a call starts being held: the sign a test waits for before it stops the
+#: worker inside that call, never a guess at how long sending it takes.
+HELD_MARK: Final = "recorded call held"
 PROFILE: Final = "eu.example.analysis-model-v1:0"  # a test id; the real one is configuration
 ANALYSIS_TOOL: Final = "aia_analysis_module"
 RESPONDENT_TOOL: Final = "aia_research_respondent"
@@ -475,6 +479,7 @@ class RecordedModels:
 
     async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
         if self.stall_after is not None and len(self.requests) >= self.stall_after:
+            print(HELD_MARK, file=sys.stderr, flush=True)
             await asyncio.sleep(STALL_SECONDS)
         tool = request.body["toolConfig"]["tools"][0]["toolSpec"]
         name = str(tool["name"])

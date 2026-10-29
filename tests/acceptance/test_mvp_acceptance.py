@@ -391,8 +391,9 @@ CHECKPOINT = {"AIA_AI_FIELDWORK_CHECKPOINT": "true"}
 #: The first twenty calls answered, every later one held until the worker dies: a kill after
 #: them lands inside a call, never between two.
 STALLED = {"AIA_ACCEPTANCE_RECORDED_STALL_AFTER": "20"}
-#: Time for the next call to be sent and held once the twentieth is answered.
-STALL_SETTLES = 1.5
+#: What the stalled worker writes as a call starts being held (aia_executors.recorded_models
+#: HELD_MARK; the harness drives the stack over HTTP and imports none of its code).
+HELD_MARK = "recorded call held"
 #: How long the tests below wait for a state no run end reports.
 STATE_SECONDS = 120.0
 
@@ -444,12 +445,8 @@ def test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work(
     run_path = f"/studies/{study_id}/research/runs/{run_id}"
 
     with stack.worker("ac06-doomed", **FAST_LEASES, **CHECKPOINT, **STALLED) as doomed:
-        _until(
-            stack,
-            "respondents answered",
-            lambda: [p for p in _progress(http, who, run_path) if p["respondents"] >= 10],
-        )
-        time.sleep(STALL_SETTLES)  # the next call is held now; the kill lands inside it
+        # The wire says when it starts holding a call: the kill lands inside that call.
+        _until(stack, "a call held", lambda: HELD_MARK in doomed.log.read_text("utf-8", "replace"))
         doomed.kill()
     answered_before_kill = max(p["respondents"] for p in _progress(http, who, run_path))
 
