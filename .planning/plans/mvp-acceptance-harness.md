@@ -743,8 +743,10 @@ rows. On it, three tests list under AC-04:
 - `test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing`: a budget below one call's
   hold parks the fieldwork in `AWAITING_BUDGET`, nothing spent or held, no respondent asked.
 - `test_ac04_concurrent_starts_are_held_to_the_study_budget`: two runs of one study on two
-  workers at once; what they hold and spend together never passes the budget, sampled while they
-  run, and both stop for budget.
+  workers at once; both stop for budget, and what they hold and spend together, read once both
+  wait, never passes it. A total sampled while they run would read two runs at two moments and
+  can count a settled hold beside the one its release allowed (Codex, #1101); spent money only
+  grows, so the total at rest bounds every earlier moment. The harness reads nothing but HTTP.
 
 The wallet clause of AC-04's statement ("held to the wallet when an approved plan starts it") is
 not in its tier-A projection; approved plans are `lead-orchestration#LO3`/`#LO4`.
