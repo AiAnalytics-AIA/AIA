@@ -17,7 +17,7 @@ chunks:
   - "[x] FLD2c. Kroky běhu as one ordered list from run.steps, never a fixed sixteen (reopens FLD2; spec sber P2; W1)"
   - "[x] FLD4e. Náklady as KPI tiles, 'Bez známé ceny' kept (reopens FLD4b; spec sber P1; W1)"
   - "[ ] FLD8b. The fieldwork disc's journey at four widths, zero paid (reopens FLD8; spec sber D6; W1)"
-  - "[ ] FLD9. Sběr dat one stage with two views, Kontrola and Průběh; a start opens Průběh, and the stage's link goes to Průběh while a run moves (spec sber F1 + P6; Nigel P5, 26 Oct 2026; W1)"
+  - "[x] FLD9. Sběr dat one stage with two views, Kontrola and Průběh; a start opens Průběh, and the stage's link goes to Průběh while a run moves (spec sber F1 + P6; Nigel P5, 26 Oct 2026; W1)"
   - "[x] FLD10. budget_need: a parked step answers what it needs to continue, read by the park note's '+Δ USD a pokračovat' and the Lead's lift card (spec sber P3 / G2, lead B4; W1)"
   - "[x] FLD11. Průběh's feed in words without raw codes, with a STEP_RESUMED line (spec sber P5; W1)"
   - "[x] FLD12. Fictional fieldwork reports fieldwork_progress every 10 respondents and at the last, nothing sent or replayed, so the disc shows without a paid run (spec sber G7)"
@@ -275,6 +275,11 @@ None new (replacement is MVPQ-10, already open).
 - `CLAUDE.md` § 2, `routers/`: research's run answers `cost_ceiling` (`usd`, `unknown`; with `VIEW_COSTS`; null for a run started before FLD4d), recorded at start by `application/research.py` for every new run; `run-spend.ts` adds Náklady's "Strop běhu" (FLD4d).
 
 - Register this plan and its chunks.
+- `CLAUDE.md` § 2, `src/components/workbench/`: FieldworkViews, Sběr dat's "Pohled" (Kontrola a spuštění |
+  Průběh) in the artifact header; `src/lib/workbench-stages.ts`: `fieldworkStep(lane)` and `openFieldwork`, Sběr dat
+  opens on Průběh while the newest run moves (running, waiting for a person, at fault), else on Kontrola (FLD9).
+- `CLAUDE.md` § 3, "The research workbench, in a browser": the journey also switches Sběr dat's two views at
+  1440/1100/768/390; "A research run, end to end": after the start, Průběh is the selected view (FLD9).
 - `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola (RunStep) reads readiness on the working revision
   and submits a Design Revision only inside Start, which reads the submitted revision's readiness before it runs
   (FLD22); `lib/answerability.ts` `sameGaps`; `lib/api.ts` `research.workingReadiness` takes the population child.
@@ -306,6 +311,17 @@ follow-up chunk below.
 **FLD8b. Disc journey** (spec `sber/D6`; reopens FLD8; W1, lane E). Fictional fieldwork writes no progress (sber G7): the journey needs a recorded panel run, or says what it cannot show.
 
 **FLD9. One stage, two views** (spec `sber/F1` and `sber/P6`, one chunk; W1, lane E). Nigel, 26 Oct 2026 (P5): one stage with two views, Kontrola and Průběh, "once it starts, it automatically loads to the prubeh page". Kontrola reads working readiness and submits nothing on a visit (FLD6, `sber/F2`). Decided by default (planning, open to Nigel's override): starting fieldwork keeps the answerability acknowledgement. On `research-lead-workbench#36`.
+
+*Built (FLD9):* `lib/workbench-stages.ts` `fieldworkStep(lane)`: the stage opens on `progress` while the
+lane's Průběh tone is running, you or fault, else on `run`; `openFieldwork(current, lane)` is where the
+workbench's `go` takes the stage (the navigator, the Lead's run card, `open_stage`): from another stage by
+`fieldworkStep`, from Kontrola to Průběh only while a run moves, from Průběh nowhere. The header's "Pohled"
+(`components/workbench/FieldworkViews.tsx`, Fieldwork.dc.html's `.ahd` segment) is a tablist of
+Kontrola a spuštění and Průběh after the h1, one Tab stop with arrow keys, each tab a 32 px target (44 px
+below 640 px), opening its route through `guardedNavigate`. A start already routes to Průběh. The classic
+layout (workbench off) keeps its two track stages. Tests: `workbench-stages.test.ts` (`fieldworkStep`, `openFieldwork`),
+`FieldworkViews.test.tsx`; `workbench_journey.mjs` at 1440/1100/768/390 and `research_journey.mjs` (Průběh
+selected after the start).
 
 **FLD10. The parked step's need** (spec `sber/P3`, no backend; W1, lane E, a money API moved into W1 by the register §6.3). One API for `sber/P3`, `sber/G2` and lead gap B4 (built once, contradiction 18): the step waiting for budget answers `budget_need` (USD, or unknown, never zero). Read by FLD6's park note and `research-lead-workbench#43`. Test: a step parked at the cap answers its need; an unpriced need reads unknown.
 
