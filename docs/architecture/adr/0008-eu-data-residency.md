@@ -3,7 +3,8 @@
 **Status:** Accepted. Frozen invariant; enforcement implemented in
 `aia_core.domain.residency`. Amended 2026-10-19 by the product owner: classes by rule
 (§ Amendment 2026-10-19); amendment note 2026-10-26: a brief's files Class A by rule,
-Veřejné makes one B (decided, not yet built: `artifact-brief` BRF7).
+Veřejné makes one B (decided, not yet built: `artifact-brief` BRF7); amended 2026-10-28: advisory
+class gates in every environment for the MVP (§ Amendment 2026-10-28).
 **Date:** 2026-09-22
 
 ## Context
@@ -257,3 +258,93 @@ brief's file and link take `MaterialRule.DESIGN`, Class B
 file marked Veřejné classes B, and a route approved for B alone refuses the unmarked one. Under the advisory gates of
 the 2026-10-21 amendment (develop) a class-only refusal of a brief file is a recorded pass, as for
 every other class.
+
+## Amendment 2026-10-28: advisory class gates in every environment for the MVP (product owner)
+
+**Context.** The 2026-10-21 amendment made the class gates advisory on develop alone; staging,
+production and an unknown `AIA_ENV` refuse to start with `AIA_DATA_CLASS_GATES=advisory`
+(`packages/aia_core/src/aia_core/domain/deployment.py:123-139 @ d2139903`, asked by the API at
+`apps/api/src/aia_api/config.py:480, 525`, the worker at `apps/worker/src/aia_worker/settings.py:153`
+and the executors at `apps/executors/src/aia_executors/ai_runtime.py:1048 @ d2139903`). So the first
+environment after develop would start with every class gate enforcing, and every run on an edited
+design, an unclassified Lead turn or prompt, would park again (OI-129). The product owner, in the PM
+coordinator's session, 2026-10-28 at 22:25 UTC: "For mvp i wanted to retire the data gates". Offered
+three choices (advisory everywhere, develop only, remove the gates), he chose **"Advisory everywhere"**
+at about 22:27 UTC, whose wording was: "A session drafts an ADR 0008 amendment that lets advisory run
+in staging and production for the MVP, then a small code PR. Every class decision is still recorded,
+so the gates can be switched back on later. Residency, licences and budgets are untouched."
+
+**Decision.**
+
+1. **`advisory` is allowed in every `AIA_ENV`** for the MVP: local, test, develop, staging,
+   production and an unknown or unset environment. No process refuses to start because of it;
+   `data_class_gates_problem` and its four callers go.
+2. **`enforce` stays the code default.** Unset is still `enforce`, a misspelt value still stops the
+   process by name (`parse_data_class_gates`), and a deployment runs advisory only where its own
+   configuration says `AIA_DATA_CLASS_GATES=advisory`, as develop's Compose file does. A deployment
+   that says nothing enforces: the relaxation is always a written choice of that deployment, never
+   inherited. Staging and production do not exist yet (no Compose file or Terraform root names
+   either), so each states the key when it is built.
+3. **What advisory relaxes and never relaxes is the 2026-10-21 amendment's list, unchanged.** It
+   relaxes only refusals made solely because of a data class. It never relaxes EU residency for
+   model calls (EU processing, training exclusion and bounded retention for A and B), the licence
+   gate (panel data on `bedrock-eu-primary` alone, OI-61; unrecorded client knowledge likewise,
+   Q60), budgets, reservations and the spend limit, scope, the route/provider match, tool metering,
+   ADR 0022's live sign-off, and the fail-closed egress boundary itself (an unauthorised scope, no
+   approved route, an unknown route: still refused). Unclassified material is judged as Class A for
+   every check that still holds.
+4. **Every class decision is still recorded**, in the four places the 2026-10-21 amendment names:
+   `residency.ClassAdvisory` on the note of every AI usage ledger row of the call and in
+   `CallProvenance.class_advisories`, on the retrieval gate's `DISPATCHED` tool event, and on a step
+   event for an executor's own refusal. So what enforce would have refused is readable after the
+   fact, and `enforce` is restored by setting the key, with no code change.
+
+**One exception to EU residency travels with advisory, and it is stated here because the choice's
+wording said residency was untouched.** Under advisory, Brave's search route takes a query of any
+class (`ToolRoute.any_class_when_advisory`,
+`packages/aia_core/src/aia_core/domain/deep_research/tooling.py:114-118 @ d2139903`; the owner's
+2026-10-21 words "dont limit the brave search capabilities either"). Brave is `NON_EU`, a US provider
+logging queries up to 90 days. On develop the material is fictional; in staging or production with
+real clients, a search query written from Class A client material may reach Brave, beyond ADR 0032
+decision 4 (Class A only as fields code extracts). Each such query is recorded on its tool event.
+Model calls, storage, every fetch, dataset, archive and Common Crawl route keep their residency.
+**This exception needs the product owner's explicit yes for staging and production** (open point 1
+below); the code PR carries it unchanged in the meantime, and it acts only where a deployment sets
+advisory, which no deployment but develop does today.
+
+**ADR 0032 (client posture) and the material rules.**
+
+- **`domain/material_rules.py` needs no change.** Classes are still computed by rule everywhere and
+  stored; advisory changes what a refusal does, not what a class is. Its docstrings say nothing
+  about where advisory runs.
+- **ADR 0032 needs a line, and this amendment is it.** A Deep Research run still pins its client's
+  posture (`application/deep_research.py:847-849, 963-970 @ d2139903`), and the posture is still set
+  only by an OWNER or ADMIN and audited. Under advisory, though, the posture no longer decides
+  Brave: a CLASSIFIED client's queries reach Brave whatever their class, and ADR 0032 decision 4's
+  "Class A only as extracted fields" check becomes a recorded pass rather than a refusal. On every
+  other non-EU route (the connectors, Common Crawl, the crawler) residency still refuses Class A and
+  B, so for those the posture keeps its meaning once decision 3 is built. Under `enforce` ADR 0032
+  reads exactly as written.
+
+**Consequence.** Wherever a deployment sets advisory, the data class no longer stops anything, and
+every pass is recorded. Enforce mode, every recorded fixture, and every environment that does not
+set the key are unchanged. OI-129 stays open: it is the condition for switching back, not closed by
+this.
+
+**What must be decided before switching back to `enforce`, and who decides.**
+
+1. **Brave's any-class exception in staging and production** — the product owner, as data owner (as
+   for OI-61 and Q60): carry it (the recommendation, as advisory means it today and he asked not to
+   limit Brave), or hold Brave to ADR 0032 decision 4 outside develop, a one-line condition on the
+   route.
+2. **How a design is classified when nobody has** (OI-129): an operator's exact-bytes record, the
+   design rule's class (B), or the posture — the product owner. Until it is answered, `enforce`
+   re-parks every run on an edited design.
+3. **The search classifier redesign** (ADR 0032 decision 5, `aia-query-classifier-2`) and ADR 0032
+   decisions 3-4 built (`deep-research-web-search` 53, 57) — the product owner, with the session
+   that builds them; without them `enforce` takes back the reach the MVP has.
+4. **A brief's files as Class A** (§ Amendment note 2026-10-26, `artifact-brief` BRF7), built and in
+   force — the product owner.
+5. **What the recorded advisories say**: before switching, the organization reads what enforce would
+   have refused (the `class_advisory` notes on the ledger and tool events) and decides whether any
+   of it needs telling a client — the product owner, as data owner.
