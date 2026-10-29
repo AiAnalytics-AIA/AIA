@@ -1,6 +1,6 @@
 # ADR 0023 — AIA's mathematics and statistics are shown from the code, and their parameters and formulas are a methodology version the methodologist edits
 
-**Status:** Proposed — develop (2026-10-11). To be implemented as
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (b), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — develop (2026-10-11). To be implemented as
 [`methodology-tab.md`](../../../.planning/plans/methodology-tab.md).
 **Decision note, 2026-10-26** (the product owner in chat, 26 Oct 2026 ~12:20 UTC, relayed by the PM coordinator): **0023-Q6 (a)**, no methodologist role: the methodology is
 written through the Admin permission for the MVP (the Metodik mark, `signed-off-sociomap-method#10`, governs
@@ -236,3 +236,27 @@ someone other than the methodologist.
 - the methodologist must approve separately from an Admin;
 - the simulation core is wired into runs;
 - a module needs an algorithm the expression language cannot express.
+
+## Amendment, 2026-10-29
+
+The methodology owner's verdict on this ADR and its questions, saved on his decision page and
+relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. Verdict **(b), accept with the reviewer's three amendments:**
+
+- **The module list matches what exists:** eight modules. Validation and simulation are not modules yet;
+  rounding sits inside aggregation (methodology V1b), not a module of its own.
+- **An edited Sociomap version stays `INTERNAL_ONLY`** until a register entry in code approves it
+  (`domain/sociomap_register.py`). Activating a version in Metodika is not an approval.
+- **Decision 7's audit checks are settled by R-1, withdrawn:** the MVP no longer needs `-2` to `-4`
+  checked (MQ-23: Metodika offers `-5` only).
+
+The questions:
+
+- **0023-Q1 (a):** approving an edited Sociomap method is a code change: its register entry lands by
+  pull request. Methodology rule: every change needs a benchmark, a self-test check and a log entry.
+- **0023-Q5 (b): a floor for client-facing surfaces.** This reverses decision 10's "no floor"
+  (2026-10-11): the methodologist still sets the thresholds, but a client-facing surface may not go
+  below a floor. **The floor's values (`min_cell`, `n_guard`, the donor minimums, `max_donor_share`)
+  were not given**; until they are, nothing client-facing changes.
+- **0023-Q7 (a):** weighting is read-only in Metodika for the MVP; `methodology-tab` W1c stays unbuilt.
+- **0023-Q6 (a)** stands as recorded on 2026-10-26: no methodologist role; the Metodik mark governs who
+  edits.

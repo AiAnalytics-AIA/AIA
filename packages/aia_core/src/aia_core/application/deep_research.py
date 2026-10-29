@@ -433,6 +433,7 @@ class DeepResearchRuns:
         preset_name: str,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         focus: Sequence[str] = (),
+        retry_of: str | None = None,
     ) -> DeepResearchRequest:
         """The request a run over this revision would be frozen to. Writes nothing.
 
@@ -449,6 +450,7 @@ class DeepResearchRuns:
             channels=channels,
             subjects_of=focused_subjects(focus) if focus else extract_subjects,
             nothing="the design has no research question, goal or tracked object",
+            retry_of=retry_of,
         )
 
     def _frozen_request(
@@ -459,6 +461,7 @@ class DeepResearchRuns:
         channels: Sequence[Channel],
         subjects_of: Callable[[dict[str, Any], FrozenKnowledge], tuple[ResearchSubject, ...]],
         nothing: str,
+        retry_of: str | None = None,
     ) -> DeepResearchRequest:
         """The engine request over one revision, with the subjects ``subjects_of`` builds.
 
@@ -501,6 +504,9 @@ class DeepResearchRuns:
             # Harness 3: the approved method settings are part of what the run is, so a
             # changed one is another request, another run, and reuses nothing of the old.
             settings_method=settings_in_force_for_study(self.session, self.scope).approved_method(),
+            # ADR 0032 decision 2: the client's posture, in the request a retry re-freezes; a
+            # retry keeps its original's, never the client row's now.
+            posture="OPEN" if self._posture(retry_of) == DataPosture.OPEN.value else None,
         )
 
     def freeze_design(
@@ -511,6 +517,7 @@ class DeepResearchRuns:
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         title: str | None = None,
         focus: Sequence[str] = (),
+        retry_of: str | None = None,
     ) -> DeepResearchRunSpec:
         """The ``DESIGN_RESEARCH`` spec over one Design Revision. Writes nothing.
 
@@ -525,6 +532,7 @@ class DeepResearchRuns:
             preset_name=preset_name,
             channels=channels,
             focus=focus,
+            retry_of=retry_of,
         )
         revision = self._designs().get(request.design_revision_id)
         return DeepResearchRunSpec(
@@ -551,6 +559,7 @@ class DeepResearchRuns:
         store: ArtifactStore,
         channels: Sequence[Channel] = (Channel.INTERNAL, Channel.WEB),
         title: str | None = None,
+        retry_of: str | None = None,
     ) -> DeepResearchRunSpec:
         """The ``INTERPRETATION_RESEARCH`` spec over one result of this Study. Writes nothing.
 
@@ -588,6 +597,7 @@ class DeepResearchRuns:
             channels=channels,
             subjects_of=lambda _content, _knowledge: mission,
             nothing=f"{target.kind}: the target's result has nothing to research",
+            retry_of=retry_of,
         )
         return DeepResearchRunSpec(
             contract_version=RUN_SPEC_CONTRACT,
@@ -692,6 +702,7 @@ class DeepResearchRuns:
             channels=channels,
             title=title,
             focus=focus,
+            retry_of=retry_of,
         )
         return self._enqueue(
             spec,
@@ -726,7 +737,12 @@ class DeepResearchRuns:
         self.scope.require(Permission.RUN_WORKFLOW)
         self.scope.require_open_study()
         spec = self.freeze_interpretation(
-            target=target, preset_name=preset_name, store=store, channels=channels, title=title
+            target=target,
+            preset_name=preset_name,
+            store=store,
+            channels=channels,
+            title=title,
+            retry_of=retry_of,
         )
         return self._enqueue(
             spec,
@@ -846,7 +862,9 @@ class DeepResearchRuns:
                 "settings_pin": settings_pin,
                 # The client's data posture at enqueue (settings-backends SB7): what the run
                 # was started under; a retry keeps the original's, as with its settings.
-                "client_posture": self._posture(retry_of),
+                "client_posture": (
+                    DataPosture.OPEN if request.open_posture else DataPosture.CLASSIFIED
+                ).value,
                 # ADR 0021: why, what and on which immutable state. The engine request
                 # itself is the plan step's input, below.
                 **run_spec_metadata(spec, purpose_source=purpose_source),
@@ -962,11 +980,18 @@ class DeepResearchRuns:
 
     def _posture(self, retry_of: str | None) -> str:
         """The posture a new run pins: a retry's original's, else the client's now (CLASSIFIED
-        when never set, never open)."""
+        when never set, never open).
+
+        A retry's is what its original's engine request carried (ADR 0032 decision 2), the
+        posture its egress ran under, never the client row now and never the run's metadata
+        label: a run frozen before chunk 53 carries none, ran CLASSIFIED, and retries
+        CLASSIFIED whatever its client was set to since."""
         if retry_of is not None:
-            pinned = self.get(retry_of)["metadata"].get("client_posture")
-            if isinstance(pinned, str):
-                return DataPosture(pinned).value
+            self.get(retry_of)  # the original is this Study's, or not found
+            stored = self._workflows().step_input(retry_of, "plan") or {}
+            request = stored.get("request")
+            pinned = request.get("posture") if isinstance(request, dict) else None
+            return (DataPosture.OPEN if pinned == "OPEN" else DataPosture.CLASSIFIED).value
         return ScopeRepository(self.session).client_posture(self.scope).value
 
     def retry(
@@ -1022,6 +1047,7 @@ class DeepResearchRuns:
                 store=store,
                 channels=channels,
                 title=record.title,
+                retry_of=run_id,
             )
             if spec.lineage != record.lineage:
                 raise LineageChanged(f"{run_id}'s target no longer freezes to its stored lineage")
@@ -1035,6 +1061,7 @@ class DeepResearchRuns:
             channels=channels,
             title=record.title if record is not None else None,
             focus=focus,
+            retry_of=run_id,
         )
         return FrozenStart(
             spec,

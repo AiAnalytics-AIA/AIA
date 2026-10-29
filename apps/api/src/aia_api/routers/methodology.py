@@ -394,7 +394,7 @@ class PanelOut(_Strict):
     alignment_rmsd: float | None
     #: ``[in force, draft]`` per object; ``null`` where an object has none.
     heights: dict[str, list[float | None]]
-    k100: dict[str, list[float | None]]
+    k100: dict[str, list[float | None]] | None
     terrain_max_change: float | None
     terrain_note: str | None
     notes: list[str]
@@ -724,7 +724,7 @@ def _panel(c: PanelComparison) -> PanelOut:
         shifts=dict(c.shifts),
         alignment_rmsd=c.alignment_rmsd,
         heights={k: list(v) for k, v in c.heights.items()},
-        k100={k: list(v) for k, v in c.k100.items()},
+        k100=None if c.k100 is None else {k: list(v) for k, v in c.k100.items()},
         terrain_max_change=c.terrain_max_change,
         terrain_note=c.terrain_note,
         notes=list(c.notes),

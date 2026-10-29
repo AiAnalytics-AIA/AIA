@@ -553,6 +553,13 @@ describe("the comparison with what is in force", () => {
             k100: { "objekt 1": [20, 10], "objekt 2": [30, 15] },
             terrain_max_change: 0, terrain_note: null, notes: ["Kontrola porovnává K100 jako bod; interval spočítá až běh."],
           },
+          {
+            panel: "balanced", label_cs: "Vyvážený panel", respondents: 120, objects: ["objekt 1", "objekt 2"],
+            in_force: summary(0.04, 3, 0), draft: summary(0.04, 3, 0), status_changes: [],
+            shifts: { "objekt 1": 0, "objekt 2": 0 }, alignment_rmsd: 0,
+            heights: { "objekt 1": [0.5, 0.5], "objekt 2": [0.4, 0.4] },
+            k100: null, terrain_max_change: 0, terrain_note: null, notes: [],
+          },
         ],
       },
     });
@@ -571,6 +578,10 @@ describe("the comparison with what is in force", () => {
     expect(within(panel).getAllByText("Beze změny.").length).toBe(2); // heights, terrain
     expect(within(panel).getByText(/objekt 1: 20 → 10/)).toBeTruthy();
     expect(within(panel).getByText(/interval spočítá až běh/)).toBeTruthy();
+    // A method that computes no object scores (aia-sociomap-5, MQ-05): K100 unknown, never "Beze změny".
+    const unscored = await found('[data-compare-panel="balanced"]');
+    expect(within(unscored).getByText("Tato metoda propojenost nepočítá.")).toBeTruthy();
+    expect(within(unscored).getAllByText("Beze změny.").length).toBe(2); // heights, terrain
     const body = sent.find((x) => x.url.endsWith("/compare"))?.body;
     expect((body?.spec as { relation: { n_min: number } }).relation.n_min).toBe(34);
     expect(sent.some((x) => x.method === "POST" && x.url.endsWith("/versions"))).toBe(false);

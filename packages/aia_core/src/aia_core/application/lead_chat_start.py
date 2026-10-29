@@ -37,38 +37,34 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
-from ..domain.fieldwork import FieldworkSource, PersonaSource
 from ..domain.lead_commands import ANALYSIS_RETRY, RESEARCH_RUN, command_for, match_command
 from ..domain.money import StartPath, StartVerdictKind, start_verdict
-from ..domain.population import PopulationImportContract
 from ..domain.research_lead import LeadTurn
+from ..domain.run_start import StartRun
 from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import CHAT_START_REUSE, WorkflowRepository
 from .analysis_results import AnalysisNotRetryable, retry_failed_modules
-from .audience_preview import PanelSampler
 from .research import (
     CostConfirmationRequired,
     ResearchAgentJobs,
     ResearchRuns,
-    RunReservations,
+    RunStartSettings,
     existing_start,
 )
+from .spend_confirmation import confirm_spend
 from .wallet import StudyWallets
 from .workflows import StartedRun
 
 __all__ = [
     "AnalysisRetryTargetMoved",
     "ChatStartRefused",
-    "RunStartSettings",
     "approve_chat_start",
     "chat_start_decisions",
     "newest_analysed_run",
@@ -99,33 +95,6 @@ class AnalysisRetryTargetMoved(Exception):
     def __init__(self, *, current_run_id: str) -> None:
         super().__init__(self.reason)
         self.current_run_id = current_run_id
-
-
-@dataclass(frozen=True, slots=True)
-class RunStartSettings:
-    """What a research run's start takes from the deployment, never from the request: the same
-    values ``POST …/research/runs`` passes (``routers/research.py`` ``start_run``)."""
-
-    fieldwork_source: FieldworkSource
-    analysis_enabled: bool
-    sociomapping_enabled: bool
-    #: AIA_RUN_QC_ENABLED: a new run carries the run QC step (``run-qc-and-checkpoint`` RQC2)
-    qc_enabled: bool
-    reservations: RunReservations
-    persona_source: PersonaSource
-    require_answerability: bool
-    population_contract: PopulationImportContract
-    population_id: str
-    #: AIA_AI_ANALYSIS_EXTERNAL_CONTEXT: the run pins its Design Research context
-    #: (evidence-integrity 7)
-    external_context: bool = False
-    #: Draws a panel run's sample, as readiness does (RQC6b); ``None``: unknown, as before.
-    panel_sampler: PanelSampler | None = None
-    #: The artifact store an analysis retry reads the run's stored outcomes from; without it a
-    #: typed analysis retry is refused (``run_start_unavailable``).
-    store: ArtifactStore | None = None
-    #: AIA_ROUTING_ENABLED: a valid display condition passes and the run pins it (WCE13 (d))
-    routing_enabled: bool = False
 
 
 def chat_start_decisions(
@@ -186,12 +155,16 @@ def approve_chat_start(
     matched = match_command(turn.text)
     if command is None or matched is None or matched.command is not command:
         raise ChatStartRefused("unknown_command")
+    # The person's yes, issued once, before anything is submitted, quoted or created (LO2): a
+    # scope without APPROVE_BUDGET, or a figure that is no amount, is refused here.
+    confirmation = confirm_spend(scope, confirm_cost_usd)
+    confirmed_usd = confirmation.usd if confirmation is not None else None
     wallets = StudyWallets(session, scope, enabled=wallet_enabled)
 
     def quote(ceiling: float | None) -> None:
         """Step 1: inside the wallet, else refused; the threshold asks in the same exchange."""
         if wallet_enabled:
-            wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirm_cost_usd)
+            wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirmed_usd)
 
     # A start that would find its run already there (the same job or run on the same design,
     # started by an earlier approval or on its stage) is not held to the wallet or the threshold
@@ -215,7 +188,7 @@ def approve_chat_start(
             run_start.store,
             run_id=target,
             reservations=run_start.reservations,
-            confirm_cost_usd=confirm_cost_usd,
+            confirmation=confirmation,
         )
         revision_id = str(started.run["metadata"]["design_revision_id"])
         ceiling = None
@@ -224,31 +197,21 @@ def approve_chat_start(
         if run_start is None:
             raise ChatStartRefused("run_start_unavailable")
         revision = submit_design("run")
-        runs = ResearchRuns(
-            session,
-            scope,
-            population_contract=run_start.population_contract,
-            population_id=run_start.population_id,
-            panel_sampler=run_start.panel_sampler,
-            routing_enabled=run_start.routing_enabled,
-        )
+        runs = ResearchRuns.for_settings(session, scope, run_start)
         outlook = runs.outlook(
             revision.revision_id,
             persona_source=run_start.persona_source,
             fieldwork_source=run_start.fieldwork_source,
         )
-        run_kwargs: dict[str, Any] = {
-            "design_revision_id": revision.revision_id,
-            "fieldwork_source": run_start.fieldwork_source,
-            "analysis_enabled": run_start.analysis_enabled,
-            "external_context": run_start.external_context,
-            "sociomapping_enabled": run_start.sociomapping_enabled,
-            "qc_enabled": run_start.qc_enabled,
-            "reservations": run_start.reservations,
-            "persona_source": run_start.persona_source,
-            "require_answerability": run_start.require_answerability,
-        }
-        found = existing_start(session, scope, lambda: runs.start(**run_kwargs, _probe=True))
+        # The typed run names no persona source, population child or acknowledgement: it starts
+        # on the deployment's defaults, explicitly (LO5's choice (1)).
+        command_run = StartRun(
+            design_revision_id=revision.revision_id,
+            persona_source=run_start.persona_source,
+            population_version_id=None,
+            acknowledge=None,
+        )
+        found = existing_start(session, scope, lambda: runs.start_run(command_run, _probe=True))
         ceiling = None
         if outlook.spec is not None:
             # A design that does not compile is refused by the start itself, by name.
@@ -260,7 +223,7 @@ def approve_chat_start(
             ).total_usd
             if found is None:
                 quote(ceiling)
-        started = runs.start(**run_kwargs, confirm_cost_usd=confirm_cost_usd)
+        started = runs.start_run(command_run, confirmation=confirmation)
         revision_id = revision.revision_id
         kind = ChargeKind.RESEARCH_RUN
     else:
@@ -289,7 +252,7 @@ def approve_chat_start(
             design_revision_id=revision.revision_id,
             action=action,
             instruction=matched.instruction,
-            confirm_cost_usd=confirm_cost_usd,
+            confirm_cost_usd=confirmed_usd,
         )
         ceiling = reservation_usd
         revision_id = revision.revision_id

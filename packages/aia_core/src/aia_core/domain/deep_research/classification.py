@@ -38,6 +38,7 @@ from .contracts import ClientTerm
 __all__ = [
     "CLASSIFIER_VERSION",
     "NGRAM",
+    "OPEN_POSTURE_REASON",
     "QueryClassification",
     "classify_query",
     "fold",
@@ -46,6 +47,10 @@ __all__ = [
 ]
 
 CLASSIFIER_VERSION: Final = "aia-query-classifier-1"
+
+#: The reason a query of a run pinned OPEN records in place of a classification (ADR 0032
+#: decision 3): it left as Class C on the organization's recorded posture, not on its words.
+OPEN_POSTURE_REASON: Final = "posture:OPEN"
 
 #: Words in a row a query may share with Class A text before it *is* Class A text.
 NGRAM: Final = 5

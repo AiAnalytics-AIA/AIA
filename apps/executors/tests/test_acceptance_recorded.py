@@ -29,6 +29,7 @@ from aia_executors.recorded_models import (
     ANALYSIS_TOOL,
     DEEP_RESEARCH_PREFIX,
     DESIGN_ANSWERS,
+    HELD_MARK,
     LEAD_REPLY,
     LEAD_TOOL,
     RECORDING,
@@ -302,3 +303,45 @@ def test_the_analysis_answer_cites_the_evidence_the_turn_sent() -> None:
     assert draft["numeric_claims"][0]["value"] == 3.25
     assert "3,25" in draft["summary"]
     assert reply.headers["x-amzn-requestid"].startswith("recorded-analysis-")
+
+
+def test_the_wire_takes_its_stall_and_its_unsupported_modules_from_the_environment() -> None:
+    wire = acceptance_recorded.recorded_wire(
+        {
+            acceptance_recorded.STALL_KEY: "20",
+            acceptance_recorded.NO_FINDINGS_KEY: " objects, segments ",
+        }
+    )
+    assert wire.stall_after == 20
+    assert wire.no_findings == {"objects", "segments"}
+    plain = acceptance_recorded.recorded_wire({})
+    assert (plain.stall_after, plain.no_findings) == (None, set())
+
+
+@pytest.mark.parametrize("stall", ["-1", "0.5", "soon"])
+def test_a_stall_that_is_not_a_count_is_refused_by_name(stall: str) -> None:
+    with pytest.raises(RuntimeError, match=acceptance_recorded.STALL_KEY):
+        acceptance_recorded.recorded_wire({acceptance_recorded.STALL_KEY: stall})
+
+
+def test_an_unknown_module_is_refused_by_name() -> None:
+    with pytest.raises(RuntimeError, match="no analysis module: nonsense"):
+        acceptance_recorded.recorded_wire({acceptance_recorded.NO_FINDINGS_KEY: "objects,nonsense"})
+
+
+def test_calls_after_the_stall_are_held_and_the_ones_before_answered(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    wire = RecordedModels(stall_after=1)
+    request = _request(RESPONDENT_TOOL, {"type": "object", "properties": {}})
+
+    async def two() -> bool:
+        await asyncio.wait_for(wire.send(request, timeout_s=5), 1)
+        try:
+            await asyncio.wait_for(wire.send(request, timeout_s=5), 0.3)
+        except TimeoutError:
+            return True
+        return False
+
+    assert asyncio.run(two()), "the second call is held"
+    assert capsys.readouterr().err.splitlines() == [HELD_MARK], "and says so as it is held"

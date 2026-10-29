@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Final
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -201,6 +201,22 @@ class ClientSourceRepository:
         scope = _client(scope)
         scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
         return self._records(self._rows(scope))[:LIST_LIMIT]
+
+    def count(self, scope: ClientContext) -> int:
+        """How many sources the client keeps: every one, not only the listed page."""
+        scope = _client(scope)
+        scope.require(ClientPermission.VIEW_CLIENT_KNOWLEDGE)
+        return (
+            self._session.scalar(
+                select(func.count())
+                .select_from(ClientSourceRow)
+                .where(
+                    ClientSourceRow.organization_id == scope.organization_id,
+                    ClientSourceRow.client_id == scope.client_id,
+                )
+            )
+            or 0
+        )
 
     def source(self, scope: ClientContext, source_id: str) -> SourceRecord:
         scope = _client(scope)
