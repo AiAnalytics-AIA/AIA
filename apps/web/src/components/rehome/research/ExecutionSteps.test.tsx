@@ -2243,7 +2243,8 @@ describe("Results", () => {
     const hypotheses = blocked.querySelector('[data-blocked-module="hypotheses"]') as HTMLElement;
     await waitFor(() => expect(hypotheses.getAttribute("data-way-out")).toBe("retry"));
     // The round is the Lead's to prepare: no way to Průběh, one button sending the person's typed command.
-    expect(hypotheses.textContent).toContain("Vedoucí výzkumu");
+    // The way out is known before GET /lead answers; the Lead's words follow it (a loaded runner, #1125).
+    await waitFor(() => expect(hypotheses.textContent).toContain("Vedoucí výzkumu"));
     expect(within(blocked).queryByRole("link", { name: "Zobrazit průběh běhu" })).toBeNull();
     // A module without a supported finding, with the server's reason and ways out, never a finding.
     const unsupported = screen.getByRole("region", { name: "Bez doloženého zjištění" });
