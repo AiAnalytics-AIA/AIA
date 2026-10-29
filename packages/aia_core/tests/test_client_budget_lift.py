@@ -18,7 +18,7 @@ from aia_core.application.client_work import lift_client_budget_wait, start_clie
 from aia_core.application.research import BudgetNotRaised
 from aia_core.domain.scope import ClientContext, ClientPermission, ClientWorkContext, ScopeDenied
 from aia_core.domain.workflow import StepRunStatus
-from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
 from aia_core.infrastructure.tables import (
     AccessAuditRow,
     ApprovalDecisionRow,
@@ -42,7 +42,9 @@ def scopes(
 def parked(session: Session, scoped: Any) -> tuple[str, str]:
     """A client run whose step is waiting for budget; the client's budget $1."""
     _, work = scopes(scoped)
-    started = start_client_work(session, work, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="p")
+    started = start_client_work(
+        session, work, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="p"
+    )
     step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == started.run_id)).first()
     assert step is not None
     step.status = StepRunStatus.AWAITING_BUDGET.value
@@ -125,7 +127,9 @@ def test_a_lift_decided_on_a_stale_budget_never_lowers_one_raised_meanwhile(
         pytest.skip("row locks are PostgreSQL's; SQLite serialises writers")
     first_run, node = parked(session, scoped)
     _, work = scopes(scoped)
-    second = start_client_work(session, work, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="q")
+    second = start_client_work(
+        session, work, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="q"
+    )
     step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == second.run_id)).one()
     step.status = StepRunStatus.AWAITING_BUDGET.value
     session.commit()

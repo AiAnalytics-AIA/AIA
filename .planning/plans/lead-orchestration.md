@@ -23,7 +23,7 @@ chunks:
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[x] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
-  - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
+  - "[x] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
@@ -292,6 +292,27 @@ The API cannot evaluate class, so the worker publishes a composition record the 
 
 **LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02**  
 A wording change to the criterion, made with the acceptance harness, not a behaviour change. Interfaces I23.
+
+*Done 2026-10-29 (the product owner: "Go, build it", relayed by the PM coordinator ~12:33 UTC).*
+- The statement's wording had landed in `2f40c9d0` (2026-10-28): AC-02 in
+  `docs/migration/parity-matrix.json` and `mvp-acceptance.md` §3 names "a client-level source
+  extraction in Client Knowledge, held to its client budget and approval (MVPQ-08)".
+- The code allowed more than the exception: `start_client_work` enqueued any workflow type as the
+  client's own work, with no study and no Lead, charged to `clients.budget_usd`
+  (`application/client_work.py:66-90 @ b108da5d`). Now `domain/workflow_templates.py`
+  `CLIENT_WORK_TYPES` is `{client_source_proposals}`, and `WorkflowRepository.create_run`, where every
+  run is made, refuses any other type under a client-work scope (`NotClientWork`, a defect rather than
+  an access refusal) before anything is written, whichever entry point started it. Tests that failed
+  before: `test_any_other_workflow_is_refused_as_client_work_before_anything_is_written` (one case
+  per other type) and `test_a_run_started_past_start_client_work_is_refused_the_same`
+  (`start_workflow` directly); `test_client_work_is_exactly_the_exception_ac02_grants` pins the set.
+  A budget lift does not re-check the type: no client-work run of another type exists, the only
+  production caller of `start_client_work` having been source proposals (`source_proposals.py:226`). The tests that started `develop_snapshot` as a stand-in for client work
+  (`test_client_work_start.py`, `test_client_budget_lift.py`, `test_client_api.py`) start
+  `client_source_proposals`, the only type the contract now admits; what they assert is unchanged.
+- AC-02's tier A cell, in the matrix and in §3.1 (held equal by `test_parity_matrix.py`), names the
+  same exception, so harness chunk 10 asserts the one start outside the Lead it grants. AC-02's
+  `tests` list is unchanged: harness chunk 10 owns it.
 
 **LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line**  
 The prototype's own documentation lists the unmeasured cost per turn as a gap to production.

@@ -93,6 +93,7 @@ from ..domain.workflow import (
     runtime_park_can_resume,
     validate_dag,
 )
+from ..domain.workflow_templates import CLIENT_WORK_TYPES, NotClientWork
 from .tables import (
     ApprovalDecisionRow,
     BudgetReservationRow,
@@ -593,7 +594,10 @@ class WorkflowRepository:
         if isinstance(scope, StudyContext):
             scope.require_open_study()
         else:
-            # The client's own work runs only in the client's own project.
+            # The client's own work is only what AC-02 excepts from the Lead (LO13), and it runs
+            # only in the client's own project.
+            if workflow_type not in CLIENT_WORK_TYPES:
+                raise NotClientWork(f"{workflow_type} runs inside a study, through the Lead")
             self._require_client_work_project(scope, project_id)
 
         existing = self._session.scalar(

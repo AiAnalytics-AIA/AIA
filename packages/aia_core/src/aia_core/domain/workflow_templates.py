@@ -41,6 +41,7 @@ from .workflow import StepDefinition
 
 __all__ = [
     "CLIENT_SOURCE_PROPOSALS",
+    "CLIENT_WORK_TYPES",
     "DEVELOP_SNAPSHOT",
     "POPULATION_MATERIALIZE",
     "REPORT_PDF",
@@ -53,6 +54,7 @@ __all__ = [
     "SOCIOMAPPING_REPORT_STEP_KIND",
     "SOCIOMAPPING_STEP_KIND",
     "WORKFLOW_TYPES",
+    "NotClientWork",
     "UnknownWorkflowType",
     "steps_for_workflow",
 ]
@@ -87,6 +89,12 @@ POPULATION_MATERIALIZE: Final = "population_materialize"
 #: the client's budget, in its client_sources project.
 CLIENT_SOURCE_PROPOSALS: Final = "client_source_proposals"
 
+#: The workflow types a run of the client's own work may be: the one exception to "every AI
+#: action starts through the Lead" (AC-02, MVPQ-08, lead-orchestration LO13), a client-level
+#: source extraction held to the client's budget and a person's approval. Every other type
+#: runs inside a study.
+CLIENT_WORK_TYPES: Final[frozenset[str]] = frozenset({CLIENT_SOURCE_PROPOSALS})
+
 #: Every workflow type a run may be created with. Closed: an unknown type is refused.
 WORKFLOW_TYPES: Final[frozenset[str]] = frozenset(
     {
@@ -120,6 +128,13 @@ _RESEARCH_GRAPH: Final[tuple[tuple[str, str, tuple[str, ...]], ...]] = (
     ("aggregate", "AGGREGATION", ("run",)),
     ("sociomap", "ANALYSIS", ("run",)),
 )
+
+
+class NotClientWork(ValueError):
+    """A workflow type that is not the client's own work (``CLIENT_WORK_TYPES``) was asked to run
+    as it: it runs inside a study, through the Lead (AC-02). A defect, not a refusal of access."""
+
+    reason = "not_client_work"
 
 
 class UnknownWorkflowType(LookupError):

@@ -75,7 +75,9 @@ def start_client_work(
     """Enqueue ``workflow_type`` as the client's own work, or find the run already made.
 
     The run names no study; the client's budget pays for every call it makes. Refused
-    (``ScopeDenied``) without ``RUN_WORKFLOW`` on the scope, before anything is written.
+    (``ScopeDenied``) without ``RUN_WORKFLOW`` on the scope, before anything is written; a
+    type that is not client work (``CLIENT_WORK_TYPES``) is refused by the repository
+    (``NotClientWork``), as for any run made under a client-work scope.
     """
     scope.require(Permission.RUN_WORKFLOW)
     return start_workflow(

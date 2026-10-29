@@ -1086,7 +1086,7 @@ def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
     from aia_core.application.client_work import start_client_work
     from aia_core.application.scope import AuthenticatedPrincipal, ScopeResolver
     from aia_core.domain.workflow import StepRunStatus
-    from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+    from aia_core.domain.workflow_templates import CLIENT_SOURCE_PROPOSALS
     from aia_core.infrastructure.db import create_session_factory
     from aia_core.infrastructure.tables import StepRunRow
     from sqlalchemy import select
@@ -1097,7 +1097,7 @@ def test_a_member_lifts_the_clients_budget_for_its_own_waiting_work(
         )
         work = ScopeResolver(session).client_work_context(principal, client_id=world.client_id())
         started = start_client_work(
-            session, work, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="api-lift"
+            session, work, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="api-lift"
         )
         step = session.scalars(
             select(StepRunRow).where(StepRunRow.run_id == started.run_id)
