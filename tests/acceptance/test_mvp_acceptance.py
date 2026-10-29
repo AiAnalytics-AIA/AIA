@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+import psycopg
 import pytest
 
 pytestmark = pytest.mark.acceptance
@@ -642,8 +643,17 @@ def test_ac04_concurrent_starts_are_held_to_the_study_budget(
         runs.append(f"/studies/{study_id}/research/runs/{started.json()['run_id']}")
 
     def total() -> float:
-        spends = [http.get(path, as_user=who).json()["spend"] for path in runs]
-        return float(sum(s["spent_usd"] + s["reserved_usd"] for s in spends))
+        """The study's spent and held money in one snapshot, as the budget guard counts it; two
+        run reads apart could count a settled hold beside the one its release allowed."""
+        with psycopg.connect(stack.database_url.replace("+psycopg", "", 1)) as db:
+            row = db.execute(
+                "SELECT s.spent_usd + COALESCE((SELECT SUM(r.amount_usd) FROM budget_reservations r"
+                " WHERE r.study_id = s.study_id AND r.status = 'RESERVED'), 0)"
+                " FROM studies s WHERE s.study_id = %s",
+                (study_id,),
+            ).fetchone()
+        assert row is not None, study_id
+        return float(row[0])
 
     seen: list[float] = []
     with stack.worker("ac04-one"), stack.worker("ac04-two"):
