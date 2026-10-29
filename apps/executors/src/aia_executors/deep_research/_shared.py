@@ -105,7 +105,7 @@ def _too_large(request: ModelRequest, budget: KindBudget) -> int | None:
     size = len(
         (
             request.system
-            + "".join(m.content for m in request.messages)
+            + "".join(m.text for m in request.messages)
             + canonical_json(request.agent.schema)
         ).encode()
     )
