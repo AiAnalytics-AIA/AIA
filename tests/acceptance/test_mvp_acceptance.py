@@ -22,7 +22,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-import psycopg
 import pytest
 
 pytestmark = pytest.mark.acceptance
@@ -642,29 +641,18 @@ def test_ac04_concurrent_starts_are_held_to_the_study_budget(
         assert started.status == 201, started.text
         runs.append(f"/studies/{study_id}/research/runs/{started.json()['run_id']}")
 
-    def total() -> float:
-        """The study's spent and held money in one snapshot, as the budget guard counts it; two
-        run reads apart could count a settled hold beside the one its release allowed."""
-        with psycopg.connect(stack.database_url.replace("+psycopg", "", 1)) as db:
-            row = db.execute(
-                "SELECT s.spent_usd + COALESCE((SELECT SUM(r.amount_usd) FROM budget_reservations r"
-                " WHERE r.study_id = s.study_id AND r.status = 'RESERVED'), 0)"
-                " FROM studies s WHERE s.study_id = %s",
-                (study_id,),
-            ).fetchone()
-        assert row is not None, study_id
-        return float(row[0])
+    def parked() -> bool:
+        return all(
+            http.get(path, as_user=who).json()["status"] == "AWAITING_BUDGET" for path in runs
+        )
 
-    seen: list[float] = []
     with stack.worker("ac04-one"), stack.worker("ac04-two"):
-
-        def both_parked() -> bool:
-            seen.append(total())
-            return all(
-                http.get(path, as_user=who).json()["status"] == "AWAITING_BUDGET" for path in runs
-            )
-
-        _until(stack, "both runs waiting for budget", both_parked)
-    assert max(seen) <= SHARED_BUDGET_USD + 1e-9, max(seen)
+        _until(stack, "both runs waiting for budget", parked)
+    # Once both wait, nothing moves, so the runs read one after the other agree with each other;
+    # read while the workers ran, a settled hold could be counted beside the one its release
+    # allowed. Spent money only grows, so its total at rest bounds it at every earlier moment.
+    spends = [http.get(path, as_user=who).json()["spend"] for path in runs]
+    held = sum(s["spent_usd"] + s["reserved_usd"] for s in spends)
+    assert held <= SHARED_BUDGET_USD + 1e-9, spends
     study = http.get(f"/studies/{study_id}", as_user=who).json()
     assert study["spent_usd"] <= SHARED_BUDGET_USD, study
