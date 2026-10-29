@@ -30,6 +30,10 @@ import { LeadSees } from "./LeadSees";
 import { errorText } from "@/lib/error-words";
 
 const POLL_MS = 1500;
+/** While the newest Lead turn waits on the study's budget: a budget set elsewhere (Nastavení, a
+ * colleague) releases it, and the messages it held are sent from here (F-LO-PARK-1). */
+const PARKED_POLL_MS = 10_000;
+const BUDGET_WAITS = new Set(["budget_exceeded", "reservation_exhausted"]);
 
 /**
  * What the conversation's cards need beside the turns (chunk 23): the study's research runs, where
@@ -164,6 +168,17 @@ export function LeadPane({ studyId, stage, canEdit, focus, picking, onPick, onCl
     const t = setTimeout(() => void read(), POLL_MS);
     return () => clearTimeout(t);
   }, [session, reads, read]);
+  // While the newest Lead turn waits on the budget, read again slowly and when the tab comes back:
+  // once someone sets the budget, its messages wait again and are sent below (answerQueued).
+  const newestLead = session ? [...session.turns].reverse().find((t) => t.actor === "lead") : undefined;
+  const parked = newestLead?.status === "WAITING" && BUDGET_WAITS.has(newestLead.reason ?? "");
+  useEffect(() => {
+    if (!parked) return;
+    const t = setTimeout(() => void read(), PARKED_POLL_MS);
+    const back = () => void read();
+    window.addEventListener("focus", back);
+    return () => { clearTimeout(t); window.removeEventListener("focus", back); };
+  }, [parked, reads, read]);
   useEffect(() => {
     const last = session ? newestCompleted(session.turns) : null;
     if (!last || applied.current === last.turn_id) return;
@@ -512,7 +527,8 @@ function LeadTurnView({ t, name, last, busy, onFollow, onView, onRequest, onSelf
     // Parked on the study's budget: coral for whoever can raise it (anyone who can edit the study,
     // ADR 0019), slate for a reader who cannot (the product owner, 2026-10-23, Q85). Any other wait is slate.
     const parkedOnBudget = t.status === "WAITING" && t.reason === "budget_exceeded";
-    const tone = parkedOnBudget && canEdit ? "you" : t.status === "WAITING" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault";
+    // An unfunded greeting is a quiet line, never a fault (F-LO-PARK-1).
+    const tone = parkedOnBudget && canEdit ? "you" : t.status === "WAITING" || t.reason === "greeting_unfunded" ? "world" : t.status === "CANCELLED" ? "cancelled" : "fault";
     return <div className="msg"><div className="notice" data-lead-wait={t.reason ?? t.status}><Glyph tone={tone} size={11} />{reasonWords(t.reason ?? t.status)}<span className="msgmeta">· {time(t.created_at)}</span></div></div>;
   }
   const o: LeadOutput = t.output;

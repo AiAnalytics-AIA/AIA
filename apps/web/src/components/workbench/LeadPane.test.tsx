@@ -161,6 +161,20 @@ describe("LeadPane", () => {
     expect(read.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
   });
 
+  it("says a greeting the budget could not pay for in one quiet line, and a released turn as sent again (F-LO-PARK-1)", async () => {
+    state.turns = [turn({ turn_id: "LDT-G", kind: "greeting", status: "COMPLETED", reason: "greeting_unfunded", output: null })];
+    render(pane());
+    const quiet = await waitFor(() => { const n = document.querySelector('[data-lead-wait="greeting_unfunded"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(quiet.textContent).toMatch(/Přehled studie čeká na rozpočet\./);
+    expect(quiet.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
+    expect(quiet.querySelector("button")).toBeNull();
+    cleanup();
+    state.turns = [turn({ turn_id: "LDT-R", status: "CANCELLED", reason: "lead_turn_released", output: null })];
+    render(pane());
+    const released = await waitFor(() => { const n = document.querySelector('[data-lead-wait="lead_turn_released"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(released.textContent).toMatch(/odpoví znovu, nad návrhem, jak je teď/);
+  });
+
   it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
     state.turns = [turn({ output: { reply: "Hotovo." } })];
     render(pane());
@@ -518,6 +532,19 @@ describe("LeadPane", () => {
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting("LDT-8", "Z jiné karty")] };
     fireEvent.click(within(queue).getAllByRole("button", { name: "Odebrat z fronty" })[1]!);
     await waitFor(() => expect(withdrawn).toEqual(["LDT-9"]));
+    await waitFor(() => expect(drains).toBe(1));
+  });
+
+  it("reads again when the tab comes back to a turn parked on the budget, and sends what a budget set released (F-LO-PARK-1)", async () => {
+    const asked = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: false });
+    state = { ...state, busy: false, turns: [asked, turn({ turn_id: "LDT-P", status: "WAITING", reason: "budget_exceeded", output: null })] };
+    render(pane());
+    await screen.findByText("Jsi tam?");
+    expect(drains).toBe(0); // nothing waits: the parked turn holds the message
+    // The budget is set in Nastavení (another tab, or a colleague): the turn is released and its
+    // message waits again. Not busy, so only the parked read finds it; here, the tab coming back.
+    state = { ...state, turns: [{ ...asked, queued: true }, turn({ turn_id: "LDT-P", status: "CANCELLED", reason: "lead_turn_released", output: null })] };
+    fireEvent(window, new Event("focus"));
     await waitFor(() => expect(drains).toBe(1));
   });
 

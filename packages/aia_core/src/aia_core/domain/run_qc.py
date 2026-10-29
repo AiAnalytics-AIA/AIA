@@ -44,11 +44,14 @@ __all__ = [
     "QcCheck",
     "QcFinding",
     "QcLevel",
+    "QcNotReadable",
     "QcQuestion",
     "QcThresholds",
     "RunQc",
     "dataset_qc",
+    "routed_questions_refusal",
     "run_qc",
+    "straight_liners",
 ]
 
 RUN_QC_VERSION: Final = "aia-run-qc-1"
@@ -56,6 +59,11 @@ RUN_QC_VERSION: Final = "aia-run-qc-1"
 RUN: Final = "beh"
 #: The space of answer vectors above which the unit stops multiplying (``qc.py:224``).
 _SPACE_CAP: Final = 10_000_000
+
+
+class QcNotReadable(ValueError):
+    """The run's QC cannot be read over this run (no respondent, or a question whose base is
+    the respondents asked, which the dataset does not record yet). Said, never a pass."""
 
 
 class QcLevel(StrEnum):
@@ -215,7 +223,7 @@ def run_qc(
     """
     n = len(answers)
     if n == 0:
-        raise ValueError("a run with no respondent has no quality to check")
+        raise QcNotReadable("a run with no respondent has no quality to check")
     t = thresholds
     findings: list[QcFinding] = []
 
@@ -289,14 +297,9 @@ def run_qc(
 
     metrics: dict[str, object] = {"per_otazku": per_question}
 
-    scales = [q.id for q in questions if q.typ == "skala"]
-    if len(scales) >= t.straight_lining_min_scales:
-        liners = sum(
-            answer_spread(row.get(qid) for qid in scales)
-            in (AnswerSpread.ONE, AnswerSpread.NO_SPREAD)
-            for row in answers
-        )
-        share = round(liners / n, 3)
+    liners = straight_liners([q.id for q in questions if q.typ == "skala"], answers, thresholds=t)
+    if liners is not None:
+        share = round(len(liners) / n, 3)
         metrics["straightlining"] = share
         if share > t.straight_lining_max:
             flag(
@@ -356,6 +359,25 @@ def run_qc(
     )
 
 
+def straight_liners(
+    scale_items: Sequence[str],
+    answers: Sequence[Mapping[str, Answer]],
+    *,
+    thresholds: QcThresholds = UNIT_THRESHOLDS,
+) -> list[tuple[int, AnswerSpread]] | None:
+    """Each straight-liner's position in ``answers`` and the rule's reading of it (``ONE`` or
+    ``NO_SPREAD``, RQC1), over the scale items; ``None`` with fewer scale items than the unit reads
+    (``qc.py:200-207``). The one scope both the run's share and its flags (``qc_flags``) count."""
+    if len(scale_items) < thresholds.straight_lining_min_scales:
+        return None
+    liners: list[tuple[int, AnswerSpread]] = []
+    for position, row in enumerate(answers):
+        spread = answer_spread(row.get(item) for item in scale_items)
+        if spread in (AnswerSpread.ONE, AnswerSpread.NO_SPREAD):
+            liners.append((position, spread))
+    return liners
+
+
 def _scale_point(qid: str, value: Answer) -> float:
     """A scale answer as a number. The unit coerced anything else to NaN (``pd.to_numeric``,
     ``errors="coerce"``); a validated dataset holds none, so one here is refused by name, as the
@@ -369,6 +391,19 @@ def _key(value: Answer) -> object:
     """An answer as one cell of an answer vector; the unit joins ``str(x)``, which tells the
     same values apart as this does on a validated dataset (text, a scale point, or none)."""
     return tuple(value) if isinstance(value, list) else value
+
+
+def routed_questions_refusal(spec: ResearchSpecification) -> str | None:
+    """Why QC cannot read this specification's dataset, or ``None``: a conditional question's
+    base is the respondents asked, which the dataset does not record until fieldwork routes
+    (``run-qc-and-checkpoint`` RQC11)."""
+    routed = [q.id for q in spec.questions if q.condition is not None]
+    if not routed:
+        return None
+    return (
+        f"{', '.join(routed)}: a conditional question's base is the respondents asked, which "
+        "the dataset does not record yet"
+    )
 
 
 def dataset_qc(
@@ -387,12 +422,9 @@ def dataset_qc(
     AIA's dataset does not record until fieldwork routes (``run-qc-and-checkpoint`` RQC11).
     """
     validate_dataset(spec, dataset)
-    routed = [q.id for q in spec.questions if q.condition is not None]
-    if routed:
-        raise ValueError(
-            f"{', '.join(routed)}: a conditional question's base is the respondents asked, which "
-            "the dataset does not record yet"
-        )
+    refusal = routed_questions_refusal(spec)
+    if refusal is not None:
+        raise QcNotReadable(refusal)
     questions = tuple(QcQuestion(q.id, q.typ, tuple(q.options)) for q in spec.questions)
     return run_qc(
         questions,

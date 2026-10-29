@@ -27,6 +27,7 @@ from aia_core.domain.run_qc import (
     UNIT_THRESHOLDS,
     QcCheck,
     QcLevel,
+    QcNotReadable,
     QcQuestion,
     dataset_qc,
     run_qc,
@@ -119,7 +120,7 @@ def test_what_has_no_input_in_aia_is_named_never_passed() -> None:
 
 
 def test_a_run_with_no_respondent_is_refused() -> None:
-    with pytest.raises(ValueError, match="no respondent"):
+    with pytest.raises(QcNotReadable, match="no respondent"):
         run_qc([QcQuestion("q", "skala")], [], dry=False, ablation=False)
 
 
@@ -256,5 +257,5 @@ def test_a_conditional_question_is_refused_until_the_dataset_records_who_was_ask
     assert spec is not None, problems
     assert spec.questions[1].condition is not None
     dataset = _dataset(spec.fingerprint(), [{"q1": "Ano", "q2": 3}, {"q1": "Ne", "q2": None}])
-    with pytest.raises(ValueError, match="q2: a conditional question's base"):
+    with pytest.raises(QcNotReadable, match="q2: a conditional question's base"):
         dataset_qc(spec, dataset, dry=True)

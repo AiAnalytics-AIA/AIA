@@ -2,7 +2,7 @@
 status: in-progress
 chunks:
   - "[x] CPR1. The client's file count, the server: GET /clients/{id} answers the number of the client's sources beside counts.datasets, null for a caller who may not read them (W1)"
-  - "[ ] CPR2. A client's status on the list, the server: ClientCard carries the client's status (active, archived), so the directory can say it (W1)"
+  - "[x] CPR2. A client's status on the list, the server: ClientCard carries the client's status (ACTIVE or DORMANT; an archived client is never listed), so the directory can say it (W1)"
   - "[ ] CPR3. Budget and rule changes in the profile history, the server: the profile's history reads the client budget, wallet ceiling, data posture and self-approval changes from the audit, each with who and when (W1)"
   - "[ ] CPR4. The client hero on every client tab, as canvas v21 draws it (core v4.3's hero): eyebrow and actions in one row, the client's name with its status chip, the lede, and four figures from GET /clients/{id} (Ke schválení, Znalosti, Soubory from CPR1, Rozpočet klienta); a figure the API does not give reads unknown, never 0 (W1, on prototype-build#PBA4's hero, after CPR1; Nigel, 28 Oct)"
   - "[ ] CPR5. Underline tabs, and Přidat podklady and Nový výzkum on every client tab, the same place each time (W1)"
@@ -91,8 +91,12 @@ change, and no token change rides inside a screen PR.
 `sources: int | None`, null without `VIEW_CLIENT_KNOWLEDGE` as the knowledge counts are. Test: a client with three
 sources answers 3; a caller without the permission reads null.
 
-**CPR2. Status on the list** (W1, server). `ClientCard` (`workspace.py:189-201`) carries no status. Add it. Test:
-an archived client's card says so.
+**CPR2. Status on the list** (W1, server). `ClientCard` (`workspace.py:189-201` @ dbaa7720) carries no status. Add it. An
+archived client never reaches the directory: `ScopeResolver.accessible_clients` leaves it out and `client_context`
+refuses it (`packages/aia_core/src/aia_core/application/scope.py:492-504`, `:450-451` @ e06cfc10), so the statuses a
+card can carry are ACTIVE and DORMANT (`packages/aia_core/src/aia_core/domain/scope.py:449-454` @ e06cfc10). Test
+(`test_client_api.py::test_the_directory_says_each_clients_status`): a dormant client's card says DORMANT beside
+an active one, and an archived client is not listed.
 
 **CPR3. Budget and rule changes in the history** (W1, server). The profile history returns profile and contact
 actions only (`apps/web/src/components/aia/clients/ProfileArea.tsx:324-346`). Read the client budget, wallet

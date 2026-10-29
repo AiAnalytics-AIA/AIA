@@ -1228,6 +1228,34 @@ class WorkflowRepository:
         ).all()
         return [(str(run_id), str(step_id)) for run_id, step_id in rows]
 
+    def awaits_budget(self, step_id: str) -> bool:
+        """Whether a step of a run in scope is still parked at the budget cap, read past the
+        session's copy of the row: after :meth:`lock_run`, a cancellation or a supersession that
+        committed while this transaction waited is seen."""
+        status = self._session.scalars(
+            select(StepRunRow.status)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepRunRow.step_id == step_id, *self._scope_filter())
+            .execution_options(populate_existing=True)
+        ).first()
+        return status == StepRunStatus.AWAITING_BUDGET.value
+
+    def cancel_reason(self, run_id: str) -> str | None:
+        """The reason the newest cancellation request of a run in scope named
+        (:meth:`request_cancel`), or ``None`` when none was asked or it named none."""
+        self._run(run_id)
+        payload: dict[str, Any] | None = self._session.scalars(
+            select(WorkflowEventRow.payload_json)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_type == "RUN_CANCEL_REQUESTED",
+            )
+            .order_by(WorkflowEventRow.event_id.desc())
+            .limit(1)
+        ).first()
+        reason = (payload or {}).get("reason")
+        return str(reason) if reason else None
+
     def study_reserved_usd(self) -> float:
         """What the study in scope's open holds keep from its budget now (calls in flight)."""
         scope = self.scope
@@ -3654,7 +3682,8 @@ class WorkflowRepository:
         )
 
     def last_attempt_errors(self, step_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
-        """Each step's newest attempt's failure class and error, by step id, in one query.
+        """Each step's newest attempt's failure class, error and finish time, by step id, in one
+        query.
 
         For a listing that says why a step is waiting or failed without each step's whole
         history. Only steps of runs in this scope are read; a step with no attempt is absent.
@@ -3673,6 +3702,8 @@ class WorkflowRepository:
             last[a.step_id] = {
                 "failure_class": FailureClass(a.failure_class) if a.failure_class else None,
                 "error": dict(a.error_json or {}),
+                # When the worker decided it, by the worker's clock; None while undecided.
+                "finished_at": as_utc(a.finished_at) if a.finished_at else None,
             }
         return last
 
