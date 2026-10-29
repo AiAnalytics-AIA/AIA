@@ -1891,12 +1891,12 @@ class RunApprovalResponse(BaseModel):
     summary="The approval-ledger rows about a run, oldest first",
 )
 def run_approvals(
-    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep
+    run_id: RunIdPath, scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
 ) -> list[RunApprovalResponse]:
     """Read only: what people decided on this run (a spend confirmation, a report's approval, a
     typed start), each with who decided and when. The run is found only through the Study."""
     try:
-        rows = ResearchRuns(session, scope).approvals(run_id)
+        rows = ResearchRuns(session, scope).approvals(run_id, store)
     except ResearchRunNotFound as exc:
         raise _not_found("run") from exc
     return [
