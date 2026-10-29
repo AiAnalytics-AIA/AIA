@@ -497,7 +497,8 @@ try {
   await page.locator("[data-workbench]").waitFor();
   await navStage("Sběr dat").click();
   await page.waitForURL(/\/run(\?|$)/);
-  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Kontrola visit submits no design (FLD22)");
+  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow; four Kontrola visits submitted no design (FLD22)");
   check("Sběr dat one stage with two views (FLD9): Pohled switches Kontrola and Průběh at 1440, 1100, 768 and 390, no overflow; with no run moving the navigator opens Kontrola");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,
