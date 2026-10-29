@@ -34,6 +34,7 @@ from ..domain.answerability import (
     read_answerability_note,
     with_answerability,
 )
+from ..domain.approval_ledger import ApprovalSubject, LedgerEntry
 from ..domain.deep_research.workflow import DEEP_RESEARCH
 from ..domain.design import DESIGN_PROJECT_OWNER, DesignRejected
 from ..domain.design_items import ItemKey
@@ -112,11 +113,11 @@ from ..domain.spend_attribution import ActivitySpend
 from ..domain.support_forecast import SupportForecast, forecast_support, with_support_forecast
 from ..domain.workflow import RUNTIME_UNAVAILABLE_REASON, StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import REPORT_PDF, RESEARCH, RESEARCH_AGENT
-from ..infrastructure.artifact_repository import Artifact, ArtifactRepository
+from ..infrastructure.artifact_repository import Artifact, ArtifactNotFound, ArtifactRepository
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.methodology_repository import methodology_in_force_for_study
 from ..infrastructure.prompt_repository import PromptResolver
-from ..infrastructure.scope_repository import ScopeRepository
+from ..infrastructure.scope_repository import ScopeRepository, member_display_names
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import DesignRevisionNotFound, StudyDesignRepository
 from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
@@ -1662,6 +1663,31 @@ class ResearchRuns:
         """The run's append-only events after ``since``."""
         self.get(run_id)
         return self._workflows().events(run_id, since=since, limit=limit)
+
+    def approvals(self, run_id: str, store: ArtifactStore) -> list[tuple[LedgerEntry, str | None]]:
+        """The approval-ledger rows about this run, oldest first, each with its approver's
+        display name (``None`` when the person has none, never an e-mail). A row names the run
+        itself, or an artifact the run made: an approved report or map snapshot is recorded by
+        its artifact, whose metadata names its run. Found only through the Study: a run of
+        another study is :class:`ResearchRunNotFound`, as everywhere."""
+        self.get(run_id)
+        artifacts = research_artifacts(self.session, self.scope, store)
+
+        def about_run(entry: LedgerEntry) -> bool:
+            if run_id in (entry.run_id, entry.subject_id):
+                return True
+            if entry.subject is not ApprovalSubject.ARTIFACT:
+                return False
+            try:
+                return artifacts.get(entry.subject_id).metadata.get("run_id") == run_id
+            except ArtifactNotFound:
+                return False
+
+        entries = [e for e in self._workflows().ledger() if about_run(e)]
+        names = member_display_names(
+            self.session, self.scope.organization_id, sorted({e.approver_user_id for e in entries})
+        )
+        return [(e, names.get(e.approver_user_id)) for e in entries]
 
     def artifact_ids(self, run_id: str) -> list[str]:
         """The artifacts this run's steps produced, in step order."""
