@@ -731,7 +731,7 @@ def test_an_uncertain_call_needs_recovery_and_is_never_retried(
 
 
 def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
-    world: Any, run_with: Callable[..., Worker]
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     off = {"q_invented": {"probabilities": [1.0]}}
     bedrock = ScriptedBedrock(answers={1: off, 2: off})
@@ -754,6 +754,19 @@ def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
     assert reservation.settled_amount_usd == pytest.approx(
         sum(e.cost_usd for e in events if e.outcome.is_terminal)
     )
+    # The refused answer is kept on the run's project, with its request's class (chunk 5).
+    with world.sessions() as session:
+        from aia_core.infrastructure.tables import ProjectArtifactRow, WorkflowRunRow
+
+        project_id = session.get(WorkflowRunRow, run_id).project_id  # type: ignore[union-attr]
+        (kept,) = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.artifact_type == "refused_answer",
+            )
+        ).all()
+        assert kept.size_bytes > 0
+    assert {e.data_class.value for e in events} == {_refused_class(world, store, kept.artifact_id)}
 
 
 def test_a_repaired_answer_is_used_and_both_calls_are_charged(
@@ -1635,3 +1648,12 @@ def test_the_composed_panel_source_reads_the_store_only_when_it_is_configured(
     routed = panel_population_source(str(tmp_path), children)
     assert routed.read("panel.csv.gz") == b"shared"
     assert routed.read(location) == b"child"
+
+
+def _refused_class(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> str:
+    with world.sessions() as session:
+        record = research_artifacts(session, world.lead_scope(session), store).read_json(
+            artifact_id
+        )
+    assert "q_invented" in record["rejected_output"]
+    return str(record["data_class"])

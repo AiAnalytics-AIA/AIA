@@ -127,11 +127,12 @@ _STEPS: Final[tuple[MethodStep, ...]] = (
             r"\;\vee\; \max_j a_{kj} = \min_j a_{kj}"
         ),
         implements=f"{_S}.engine:_placeability",
-        source_sha256="80baacdb7e98e699f6a02ae6c7bf33ccd79e0cb6ec322aabb92ad47d5ebd0cd2",
+        source_sha256="e444816b2bee0a96523187f9d2428cf2b7c0a54189a91831b28aff6c9096bdb7",
         evidence=(_rule("AUDIT-F11"),),
         tests=(
             f"{_T}/test_sociomap_engine.py::test_a_straight_liner_below_the_top_is_not_placed",
             f"{_T}/test_sociomap_engine.py::test_every_respondent_is_placed_or_excluded",
+            f"{_T}/test_straight_lining.py::test_the_v2_engine_places_only_a_spread",
         ),
     ),
     # ------------------------------------------------------------------ relations

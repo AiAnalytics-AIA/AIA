@@ -8,14 +8,18 @@ NOT_RUNNABLE while it lists none. A criterion lands here when the work that make
 lands (plan ``mvp-acceptance-harness`` chunk 5), never as a placeholder.
 
 Wired so far: AC-01, its tier-A projection (the identity seam is the ``development`` provider;
-Cognito in the deployed stack is tier B's).
+Cognito in the deployed stack is tier B's); AC-12, on the representative study's past study
+(``inputs/past-study.json``), run once on the recorded wire so its citation carries real labels.
 """
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import pytest
 
@@ -28,6 +32,7 @@ ABSENT_STUDY = "STU-0000000000000000000000000000dead"
 ABSENT_CLIENT = "CLI-0000000000000000000000000000dead"
 #: Any other path parameter: its shape does not matter, scope is decided first.
 _PARAM = re.compile(r"\{[^}]+\}")
+INPUTS = Path(__file__).resolve().parent / "inputs"
 
 
 def _provision(http: Any, people: Any, unique: Callable[[str], str]) -> tuple[str, str]:
@@ -227,3 +232,147 @@ def test_ac01_a_user_of_another_organization_cannot_tell_a_client_from_an_absent
         "exists:\n" + "\n".join(map(str, told))
     )
     assert not unproven, "\n".join(map(str, unproven))
+
+
+# --------------------------------------------------------------------------- #
+# AC-12: project memory
+# --------------------------------------------------------------------------- #
+
+
+def _client(http: Any, who: str, slug: str, name: str) -> str:
+    client = http.post("/clients", {"slug": slug, "name": name}, as_user=who)
+    assert client.status == 201, client.text
+    return str(client.json()["client_id"])
+
+
+def _study(http: Any, who: str, slug: str, client_id: str, name: str) -> str:
+    study = http.post(
+        "/studies",
+        {"client_id": client_id, "slug": slug, "name": name, "budget_usd": 25},
+        as_user=who,
+    )
+    assert study.status == 201, study.text
+    return str(study.json()["study_id"])
+
+
+def _submit(http: Any, who: str, study_id: str, content: dict[str, Any]) -> str:
+    """The content saved as the study's working copy and submitted as its Design Revision."""
+    path = f"/studies/{study_id}/workspace/content"
+    current = http.get(path, as_user=who).json()
+    saved = http.put(
+        path,
+        {"content": content, "base_revision": current["revision"], "reason": "acceptance_input"},
+        as_user=who,
+    )
+    assert saved.status == 200, saved.text
+    submitted = http.post(
+        f"/studies/{study_id}/design/revisions",
+        {"content": content, "source_stage": "run", "workspace_revision": saved.json()["revision"]},
+        as_user=who,
+    )
+    assert submitted.status == 201, submitted.text
+    return str(submitted.json()["revision_id"])
+
+
+def _search(http: Any, who: str, client_id: str, words: str) -> list[str]:
+    found = http.get(f"/clients/{client_id}/memory/search?q={quote(words)}", as_user=who)
+    assert found.status == 200, found.text
+    return [hit["study_id"] for hit in found.json()]
+
+
+def test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels(
+    stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """The client's past study, run once, is found by project memory; its Design Revision starts
+    a new study of the same client, which cites it with the labels its run carries."""
+    http, who = stack.http, people.researcher
+    signed_in(who)
+    past = json.loads((INPUTS / "past-study.json").read_text("utf-8"))
+    client_id = _client(http, who, unique("ac12-client"), "Acceptance client (fiktivní)")
+    past_id = _study(http, who, unique("ac12-past"), client_id, past["name"])
+    revision_id = _submit(http, who, past_id, past["content"])
+    started = http.post(
+        f"/studies/{past_id}/research/runs", {"design_revision_id": revision_id}, as_user=who
+    )
+    assert started.status in (200, 201), started.text
+    run_id = started.json()["run_id"]
+    with stack.worker("ac12") as worker:
+        run = stack.wait_for_run(worker, f"/studies/{past_id}/research/runs/{run_id}", who)
+    assert run["status"] == "COMPLETED", f"{json.dumps(run)[:2000]}\n{stack.logs()}"
+
+    # Found by what its design says, not only by its name.
+    assert past_id in _search(http, who, client_id, "čtenáři poboček")
+    hit = next(
+        h
+        for h in http.get(
+            f"/clients/{client_id}/memory/search?q={quote('Kvítkov')}", as_user=who
+        ).json()
+        if h["study_id"] == past_id
+    )
+    assert hit["source"] == "design" and hit["design_revision"] == 1, hit
+
+    reused = http.post(
+        f"/clients/{client_id}/memory/reuse",
+        {
+            "source_study_id": past_id,
+            "source_revision_id": revision_id,
+            "new_study_name": "MVP acceptance z minulé studie (fiktivní)",
+        },
+        as_user=who,
+    )
+    assert reused.status == 201, reused.text
+    body = reused.json()
+    assert body["created_study"] is True
+    citation = body["source"]
+    assert (citation["source_study_id"], citation["source_revision_id"]) == (past_id, revision_id)
+    labels = citation["labels"]
+    assert labels["run_ids"] == [run_id], labels
+    assert labels["never_run"] is False
+    # The past run's respondents were fictional AI respondents: the reuse says so.
+    assert labels["synthetic"] is True and labels["modelled"] is False, labels
+    # The citation is the study's own record, read back as it was written.
+    source = http.get(f"/studies/{body['study_id']}/design/source", as_user=who)
+    assert source.status == 200, source.text
+    assert source.json() == citation
+    content = http.get(f"/studies/{body['study_id']}/workspace/content", as_user=who).json()
+    assert [s["id"] for s in content["content"]["sections"]] == [
+        s["id"] for s in past["content"]["sections"]
+    ]
+
+
+def test_ac12_another_client_s_studies_cannot_be_found_or_reused(
+    http: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
+) -> None:
+    """Two clients of one organization, each with a study the same words find: each client's
+    memory finds its own; a reuse naming the other client's study is an absent one's 404."""
+    who = people.researcher
+    signed_in(who)
+    past = json.loads((INPUTS / "past-study.json").read_text("utf-8"))
+    mine = _client(http, who, unique("ac12-mine"), "Acceptance client (fiktivní)")
+    theirs = _client(http, who, unique("ac12-theirs"), "Jiný klient (fiktivní)")
+    my_study = _study(http, who, unique("ac12-my-study"), mine, past["name"])
+    their_study = _study(http, who, unique("ac12-their-study"), theirs, past["name"])
+    _submit(http, who, my_study, past["content"])
+    their_revision = _submit(http, who, their_study, past["content"])
+
+    words = "čtenáři poboček"
+    assert my_study in _search(http, who, mine, words)
+    assert their_study not in _search(http, who, mine, words)
+    assert their_study in _search(http, who, theirs, words)
+    assert my_study not in _search(http, who, theirs, words)
+
+    def reuse(source_study: str, source_revision: str) -> Any:
+        return http.post(
+            f"/clients/{mine}/memory/reuse",
+            {
+                "source_study_id": source_study,
+                "source_revision_id": source_revision,
+                "new_study_name": "Převzato odjinud (fiktivní)",
+            },
+            as_user=who,
+        )
+
+    across = reuse(their_study, their_revision)
+    absent = reuse(ABSENT_STUDY, their_revision)
+    assert across.status == 404, across.text
+    assert _answer(across) == _answer(absent)

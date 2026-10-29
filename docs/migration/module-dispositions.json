@@ -1261,7 +1261,7 @@
       "module": "qc.py",
       "loc": 273,
       "docstring": "NPC PANEL — qc.py Kontrola kvality behu. Pousti se automaticky po kazdem behu. Syntetický panel selhava jinak nez realny teren. Realny teren ma problem s podvodniky a nepozornosti; syntetický panel ma",
-      "state": "not-started"
+      "state": "partial"
     },
     {
       "disposition": "port",
