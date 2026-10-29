@@ -28,7 +28,7 @@ chunks:
   - "[ ] FLD17. 'Neúplný vzorek, kvóty nesplněny' wherever an incomplete run is read: Průběh, Výsledky, Sociomapa, Analýza and the internal report (W2, after FLD15)"
   - "[ ] FLD18. Průběh's steps grouped Sběr, Výpočet, Analýza and Zpráva, only the running group open (W1)"
   - "[ ] FLD19. A 'Celkem / Podle věku' switch on the respondent disc (W2, with run-qc-and-checkpoint#RQC7d's sectors)"
-  - "[ ] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
+  - "[x] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
   - "[ ] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
   - "[ ] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
   - "[ ] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
@@ -342,6 +342,12 @@ open.
 
 **FLD20. Compact costs** (W1). FLD4e's four tiles in one compact row, "Bez známé ceny" kept. Test: unknown spend reads
 unknown, never 0.
+*Ruled 2026-10-28* (Nigel, "The board's panel", relayed by the PM coordinator): the Náklady facts list as v9 draws it
+(Utraceno, Drženo, Strop běhu with "horní mez, ne odhad", Zbývá v rozpočtu studie), keeping "Bez známé ceny" as a row
+when there are unpriced calls. *Built:* `SpendCard` draws `spendRows` as one row per amount, label beside value,
+Utraceno set strongest, notes under their values; the held label stays plural ("Drženo pro běžící kroky", FLD4e:
+holds are summed across steps). The board's two-column row beside "Po sběru dat" waits for FLD18. Test:
+`ExecutionSteps.test.tsx` ("shows the spend as the board's compact panel …").
 
 **FLD21. Průběh for any run** (W1). FLD9 opens Průběh after a start and while a run moves; a finished, failed or parked
 run is reachable too, from the view switch and from the run list. Test: a finished run's Průběh opens from Kontrola's

@@ -174,7 +174,8 @@ const originCode = await page.locator('[data-aia="receipt:respondents"] [data-or
 if (!originCode?.startsWith("SYNTHETIC_")) fail(`Kdo odpovídal shows origin ${originCode ?? "nothing"}, not a fictional code`);
 ok(`Progress: Kdo odpovídal names the data's origin (${originCode})`);
 // Náklady (artifact-fieldwork FLD4b): the run's spend read from the API; fictional fieldwork spent nothing.
-const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
+// Money is written with a no-break space before the currency (Intl's cs-CZ): read as a plain space.
+const spent = (await page.locator('[data-run-spend] [data-spend="spent"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.replace(/\s/g, " ").trim();
 if (spent !== "0,00 USD") fail(`Náklady shows spent ${spent ?? "nothing"}, not 0,00 USD`);
 // The ceiling this start recorded (FLD4d): a new run always records one, never "nezaznamenán".
 const ceilingRow = (await page.locator('[data-run-spend] [data-spend="ceiling"] [data-spend-value]').first().textContent({ timeout: 30000 }).catch(() => null))?.trim();
