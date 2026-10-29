@@ -1091,3 +1091,91 @@ def test_a_dismissal_takes_the_study_lock_before_it_reads_the_decision(
     with world.sessions() as session:
         assert ResearchAgentJobs(session, world.lead_scope(session)).dismiss(run_id) is True
     assert order[0] == "lock" and "decisions" in order
+
+
+# --------------------------------------------------------------------------- #
+# A refused answer is kept for diagnosis (brief-analysis-schema-repair chunk 5)
+# --------------------------------------------------------------------------- #
+
+
+@dataclass
+class RefusingBedrock(RecordedBedrock):
+    """Answers every request with tracked_sets as a string holding JSON: refused twice."""
+
+    async def send(self, request: HttpRequest, *, timeout_s: float) -> HttpResponse:
+        response = await super().send(request, timeout_s=timeout_s)
+        content = response.body["output"]["message"]["content"][0]["toolUse"]
+        content["input"] = {**ANSWER, "tracked_sets": "[]"}
+        return response
+
+
+def test_a_refused_answer_is_kept_on_the_jobs_own_project_with_its_requests_class(
+    world: Any,
+    database_url: str,
+    store: Any,
+    build: Any,
+) -> None:
+    from aia_core.application.research import research_artifacts
+    from aia_core.infrastructure.tables import (
+        AIUsageEventRow,
+        ProjectArtifactRow,
+        StepAttemptRow,
+        StepRunRow,
+        WorkflowRunRow,
+    )
+
+    run_id = start(world)
+    transport = RefusingBedrock()
+    w = worker(world, database_url, store, build, transport)
+    assert w.run_once()
+    assert len(transport.requests) == 2  # the primary and its one repair
+    with world.sessions() as session:
+        step = session.scalars(select(StepRunRow).where(StepRunRow.run_id == run_id)).one()
+        project_id = session.get(WorkflowRunRow, run_id).project_id  # type: ignore[union-attr]
+        attempt = session.scalars(
+            select(StepAttemptRow).where(StepAttemptRow.step_id == step.step_id)
+        ).one()
+        assert attempt.error_json["reason"] == "structured_output_invalid"
+        assert "[]" not in json.dumps(attempt.error_json)  # no answer text in error_json
+        sent_as = {
+            row.data_class
+            for row in session.scalars(
+                select(AIUsageEventRow).where(AIUsageEventRow.run_id == run_id)
+            )
+        }
+        kept = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.artifact_type == "refused_answer",
+            )
+        ).all()
+        assert len(kept) == 1
+        # Operator-only (W1Q4): the routes serve what a step's output names, and none names it.
+        outputs = [r.output_json for r in session.scalars(select(StepRunRow))]
+        assert kept[0].artifact_id not in json.dumps(outputs)
+        record = research_artifacts(session, world.lead_scope(session), store).read_json(
+            kept[0].artifact_id
+        )
+    assert record["violations"] == ["tracked_sets: Input should be a valid array, received string"]
+    assert json.loads(record["rejected_output"])["tracked_sets"] == "[]"
+    assert record["call_ids"] == sorted(record["call_ids"]) and len(record["call_ids"]) == 2
+    assert sent_as == {record["data_class"]} == {"CLASS_B_DERIVED_CLIENT"}
+    assert record["class_source"] == "rule:refused_answer"
+    assert record["agent_id"] and record["prompt_version"]
+
+
+def test_a_job_that_succeeds_keeps_no_refused_answer(
+    world: Any,
+    database_url: str,
+    store: Any,
+    build: Any,
+) -> None:
+    from aia_core.infrastructure.tables import ProjectArtifactRow
+
+    start(world)
+    w = worker(world, database_url, store, build, RecordedBedrock())
+    assert w.run_once()
+    with world.sessions() as session:
+        assert not session.scalars(
+            select(ProjectArtifactRow).where(ProjectArtifactRow.artifact_type == "refused_answer")
+        ).all()
