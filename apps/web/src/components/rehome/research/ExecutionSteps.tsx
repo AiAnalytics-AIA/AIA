@@ -102,7 +102,6 @@ import { codedText, codeWords } from "@/lib/reason-words";
 import { readBudget } from "@/lib/budget-line";
 import { spendRows } from "@/lib/run-spend";
 import { holdingWords, reportStatus, reportStatusWords } from "@/lib/report-status";
-import type { Tone } from "@/lib/tone";
 import { AnalysisBlocked, ViolationList } from "./AnalysisBlocked";
 import { AnalysisCoverage, AnalysisMilestones } from "./AnalysisCoverage";
 import { AnalysisExternal } from "./AnalysisExternal";
@@ -112,6 +111,7 @@ import { CONFLICT_MESSAGE, submitWorkingDesign } from "@/research/store";
 import { loadSampleReadiness } from "@/components/workbench/useSampleReadiness";
 import { dimensionLabels } from "@/research/persona";
 import type { StepKey } from "@/research/steps";
+import { Glyph, type GlyphTone } from "../../workbench/Glyph";
 import { ActionDock, FrameNavigation } from "../step";
 import { AiButton, Button, StaleMark, StatusPill, Value } from "../ui";
 import { BudgetLift } from "./BudgetLift";
@@ -480,7 +480,68 @@ function quarantineWords(code: string): string {
 }
 
 /** A readiness check's tone: only a check that passed is good; a status this client does not know is not. */
-const checkTone = (status: string): Tone => (status === "PASS" ? "done" : status === "WARN" ? "you" : status === "FAIL" ? "fault" : "neutral");
+const CHECK_GLYPH: Readonly<Record<string, GlyphTone>> = { PASS: "done", WARN: "you", FAIL: "fault" };
+
+/**
+ * "Všechny kontroly (n)" (FLD24, spec sber F4; Fieldwork.dc.html): every readiness check folded under one
+ * summary, counted by status, open by default while one stops the run, and opened then whenever one starts
+ * to; each check that does not pass links to where it is fixed. A status AIA does not know is counted
+ * apart and shown in words with its code, never as passed. The research-question trace and the question
+ * outlook sit inside it (Vzorek shows the outlook too).
+ */
+function AllChecks({ checks, rules, fix, children }: {
+  checks: readonly { id: string; status: string; message: string }[];
+  rules: string;
+  fix: (checkId: string) => string;
+  children?: ReactNode;
+}) {
+  const P = "research.exec.checks";
+  const count = (status: string) => checks.filter((c) => c.status === status).length;
+  const unknown = checks.filter((c) => !Object.hasOwn(CHECK_GLYPH, c.status)).length;
+  const failing = count("FAIL") > 0;
+  const [open, setOpen] = useState(failing);
+  const [wasFailing, setWasFailing] = useState(failing);
+  if (failing !== wasFailing) {
+    // A check that starts to stop the run opens the list; one that stops failing leaves it as the person left it.
+    setWasFailing(failing);
+    if (failing) setOpen(true);
+  }
+  const summary = [
+    tv(`${P}.pass`, { n: count("PASS") }),
+    tv(`${P}.warn`, { n: count("WARN") }),
+    tv(`${P}.fail`, { n: count("FAIL") }),
+    ...(unknown ? [tv(`${P}.unknown`, { n: unknown })] : []),
+  ].join(" · ");
+  return (
+    <details data-all-checks open={open} onToggle={(e) => setOpen(e.currentTarget.open)} className="rounded-card border border-border bg-surface-raised">
+      <summary className={`flex min-h-11 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 px-5 py-3 ${FOCUS}`}>
+        <h2 className="grow text-base font-semibold">{tv(`${P}.title`, { n: checks.length })}</h2>
+        <span className="text-xs text-ink-muted">{summary}</span>
+      </summary>
+      <div className="flex flex-col gap-4 border-t border-border px-5 py-4">
+        <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
+          {[...checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => {
+            const known = Object.hasOwn(CHECK_GLYPH, c.status);
+            return (
+              <li key={c.id} className="flex items-start gap-2 text-sm">
+                <span className="mt-1 inline-flex"><Glyph tone={known ? CHECK_GLYPH[c.status] : "inert"} /></span>
+                {known ? (
+                  <span className="sr-only">{t(`research.exec.checkStatus.${c.status}`)}</span>
+                ) : (
+                  <span data-tone="neutral" className="text-xs text-ink-muted"><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></span>
+                )}
+                <span className="flex-1">{c.message}</span>
+                {c.status !== "PASS" ? <Link href={fix(c.id)} className={STAGE_LINK}>{t(`${P}.fix`)}</Link> : null}
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-xs text-ink-muted">{tv("research.exec.rules", { rules })}</p>
+        {children}
+      </div>
+    </details>
+  );
+}
 
 function ResearchTraceCard({ trace, outlook, answer, design }: {
   trace: ResearchTrace;
@@ -932,32 +993,18 @@ export function RunStep() {
             {children.length ? <PopulationChoice choices={children} value={childId} onChange={chooseChild} disabled={!frame.canEdit || starting} /> : null}
             {startError ? <p role="alert" className="mt-3 text-sm text-status-fault">{startError}</p> : null}
           </WhatRuns>
-          {/* What stops the run first, then what runs (research-lane-redesign). */}
-          <Card title={prepared.readiness.ready ? t("research.exec.ready") : t("research.exec.notReady")}>
-            <ul className="flex flex-col gap-2" aria-label={t("research.exec.steps.preflight")}>
-              {[...prepared.readiness.checks].sort((a, b) => (CHECK_ORDER[a.status] ?? 3) - (CHECK_ORDER[b.status] ?? 3)).map((c) => (
-                <li key={c.id} className="flex items-start gap-2 text-sm">
-                  <StatusPill tone={checkTone(c.status)}><CodedWords inline coded={codeWords("research.exec.checkStatus", c.status)} /></StatusPill>
-                  <span className="flex-1">{c.message}</span>
-                  {c.status !== "PASS" ? (
-                    <Link href={checkHref(c.id, stepHref, workbench)} className={STAGE_LINK}>
-                      {t("research.exec.fix")}
-                    </Link>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-xs text-ink-muted">{tv("research.exec.rules", { rules: prepared.readiness.rules })}</p>
-          </Card>
-          {prepared.readiness.research_trace ? (
-            <ResearchTraceCard
-              trace={prepared.readiness.research_trace}
-              outlook={prepared.readiness.question_outlook ?? []}
-              answer={prepared.readiness.answerability ?? null}
-              design={design}
-            />
-          ) : null}
-          <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
+          {/* Every check, folded under one line (FLD24, spec sber F4): open while one stops the run. */}
+          <AllChecks checks={prepared.readiness.checks} rules={prepared.readiness.rules} fix={(id) => checkHref(id, stepHref, workbench)}>
+            {prepared.readiness.research_trace ? (
+              <ResearchTraceCard
+                trace={prepared.readiness.research_trace}
+                outlook={prepared.readiness.question_outlook ?? []}
+                answer={prepared.readiness.answerability ?? null}
+                design={design}
+              />
+            ) : null}
+            <QuestionOutlookCard items={prepared.readiness.question_outlook ?? []} />
+          </AllChecks>
           {prepared.readiness.fieldwork_source === "ai_runtime" ? (
             <p role="note" className="rounded-sm border border-status-you-ink/40 bg-status-you-wash p-3 text-sm">{t("research.exec.aiRuntimeNotice")}</p>
           ) : (

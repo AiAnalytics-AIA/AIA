@@ -3328,6 +3328,15 @@ export const cs = {
         set: "Sada bez názvu",
         cited: "číslo, k němuž AIA nedohledala otázku",
       },
+      // FLD24 (spec sber F4): every check, folded.
+      checks: {
+        title: "Všechny kontroly ({n})",
+        pass: "{n} v pořádku",
+        warn: "{n} upozornění",
+        fail: "{n} brání",
+        unknown: "{n} neznámé",
+        fix: "Opravit",
+      },
       checkStatus: {
         PASS: "V pořádku",
         WARN: "Upozornění",
@@ -3525,8 +3534,6 @@ export const cs = {
       readinessFailed: "Návrh se nepodařilo zkontrolovat",
       revision: "Revize návrhu {revision}",
       rules: "Kontroly AIA ({rules}). Technickou kontrolu 18.6.6 nad jeho panelem AIA zatím neprovádí.",
-      ready: "Návrh lze spustit.",
-      notReady: "Návrh zatím nelze spustit. Opravte, co je označeno.",
       start: "Spustit výzkum",
       starting: "Spouštím…",
       cost: {
@@ -3574,7 +3581,7 @@ export const cs = {
         title: "Běh je spustitelný, ale nemusí odpovědět na všechny výzkumné otázky",
         // Beside readiness that says the design cannot run yet: never called runnable there.
         titleNotReady: "Běh nemusí odpovědět na všechny výzkumné otázky",
-        help: "Kontroly výše říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
+        help: "Všechny kontroly (níže) říkají, zda běh může proběhnout. Tato karta říká, zda dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže; pod každou je, kde to opravit:",
         // A refused retry (review web#8): it reruns the original's Design Revision, so no link to a fix.
         helpRetry: "Tato karta říká, zda opakovaný běh dokáže odpovědět na to, na co se studie ptá. U těchto výzkumných otázek AIA odpověď doložit nedokáže:",
         retryFixes: "Opakování spouští znovu revizi návrhu původního běhu, takže úpravy návrhu ani dotazníku tyto mezery u něj neodstraní; oprava platí pro nový běh spuštěný v kroku {stage}.",
