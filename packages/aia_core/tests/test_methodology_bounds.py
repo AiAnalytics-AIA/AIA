@@ -1,8 +1,9 @@
 """Each editable field's bound is its check's own (settings-redesign F13, AUD-10 (b)).
 
 A bound is declared beside its module and the editor says it beside the field ("mez …"). It is
-never more than the check: for every preset that gives the field a number, the value at each
-limit is kept and the value just past it is refused, by the module's own validation
+never more than the check: for every preset a version may be edited from (the one in force,
+where the module names one; MQ-23 (a)) that gives the field a number, the value at each limit is
+kept and the value just past it is refused, by the module's own validation
 (:func:`validate_version`), at the field or the part that holds it. A limit read from another
 field is read from the same preset.
 """
@@ -14,16 +15,41 @@ from typing import Any
 
 import pytest
 
-from aia_core.domain.methodology import MODULES, Bound, Limit, MethodModule, read_path
+from aia_core.domain.methodology import (
+    MODULES,
+    Bound,
+    Limit,
+    MethodModule,
+    Preset,
+    read_path,
+)
 from aia_core.domain.methodology.resolution import ABSENT
 from aia_core.domain.methodology.versions import MethodologyVersionInvalid, validate_version
 
 EDITABLE = [m for m in MODULES if m.editable]
-CASES = [(m, b) for m in EDITABLE for b in m.bounds]
 
 
 def _number(value: Any) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
+
+
+def _bases(module: MethodModule) -> list[Preset]:
+    """The presets a version may be edited from: the one in force, where the module names one
+    (the Sociomap's aia-sociomap-5 alone, MQ-23 (a)); every preset otherwise."""
+    if module.in_force is None:
+        return list(module.presets)
+    return [p for p in module.presets if p.name == module.in_force]
+
+
+def _numbered(module: MethodModule, bound: Bound) -> bool:
+    return any(_number(read_path(p.spec, bound.path)) for p in _bases(module))
+
+
+CASES = [(m, b) for m in EDITABLE for b in m.bounds if _numbered(m, b)]
+#: Bounds on fields only an earlier Sociomap preset gives a number (aia-sociomap-3 and -4's
+#: effect floor and envelope terrain). No version is edited from those presets any more, so no
+#: edit can reach these fields' limits; the bounds stay declared for the presets' own checks.
+UNREACHABLE = {f"{m.id}:{b.path}" for m in EDITABLE for b in m.bounds if not _numbered(m, b)}
 
 
 def _set(spec: dict[str, Any], path: str, value: Any) -> dict[str, Any]:
@@ -85,7 +111,7 @@ def _tightest(limits: list[tuple[Limit, float]], whole: bool) -> tuple[Limit, fl
 @pytest.mark.parametrize(("module", "bound"), CASES, ids=[f"{m.id}:{b.path}" for m, b in CASES])
 def test_each_limit_is_the_checks_own(module: MethodModule, bound: Bound) -> None:
     binding: set[int] = set()
-    for preset in module.presets:
+    for preset in _bases(module):
         value = read_path(preset.spec, bound.path)
         if value is ABSENT or not _number(value):
             continue  # no number here: a value would be refused for another reason
@@ -114,6 +140,14 @@ def test_each_limit_is_the_checks_own(module: MethodModule, bound: Bound) -> Non
     assert not unproved, (
         f"{bound.path}: no preset makes these limits bind, so none proves them: {unproved}"
     )
+
+
+def test_only_fields_no_editable_base_gives_a_number_are_left_out() -> None:
+    assert {
+        "sociomap:relation.effect_floor",
+        "sociomap:terrain.half_extent",
+        "sociomap:terrain.kernel_cutoff",
+    } == UNREACHABLE
 
 
 def test_every_editable_module_declares_bounds_and_the_catalogue_holds_them() -> None:

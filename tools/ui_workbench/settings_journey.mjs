@@ -346,7 +346,7 @@ try {
   await methodForm.getByRole("button", { name: "Zkontrolovat", exact: true }).click(); await methodForm.getByText(/Kontrola neprošla/).waitFor();
   assert.equal((await get("/api/v1/methodology/sociomap/versions")).versions.length, beforeVersions.versions.length);
   await (await chooseField("relation.n_min")).fill("34"); assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
-  await methodForm.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-2"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
+  await methodForm.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-5"); await page.getByRole("button", { name: "Ponechat", exact: true }).click();
   assert.equal(await (await chooseField("terrain.sigma")).inputValue(), "0,3");
   // Back to the catalogue with a draft open asks first; Ponechat keeps the draft.
   await page.locator("[data-methodology-back]").click(); await page.getByRole("button", { name: "Ponechat", exact: true }).click();

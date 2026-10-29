@@ -116,7 +116,7 @@ try {
   let editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
   const heading = () => editor.getByRole("heading", { name: "Parametry", exact: true });
   assert(!(await heading().evaluate((node) => node === document.activeElement)), "Opening Metodika moves focus into the editor unasked");
-  await editor.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-4");
+  await editor.getByLabel("Začít od metodiky z kódu", { exact: true }).selectOption("aia-sociomap-5");
   editor = page.locator("[data-methodology-editor]"); await editor.waitFor();
   await page.waitForFunction(() => document.activeElement?.textContent === "Parametry");
   // Zahodit úpravu starts over from what is in force, where the person is: no focus move.

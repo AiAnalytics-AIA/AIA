@@ -10,6 +10,8 @@ existed.
 from __future__ import annotations
 
 import copy
+import dataclasses
+import uuid
 from typing import Any
 
 import pytest
@@ -17,6 +19,13 @@ from aia_core.application.research import DesignNotReady, ResearchRuns, research
 from aia_core.domain.evidence.support import AIA_SUPPORT_V1
 from aia_core.domain.fieldwork import FieldworkSource
 from aia_core.domain.methodology.pins import UNIT_AGGREGATION_PIN, RunMethod, run_methods
+from aia_core.domain.methodology.sociomap import SOCIOMAP
+from aia_core.domain.methodology.versions import (
+    named,
+    payload_sha256,
+    validate_version,
+    version_payload,
+)
 from aia_core.domain.research_aggregate import AIA_AGGREGATE_V1
 from aia_core.domain.research_design import AIA_READINESS_V1
 from aia_core.domain.research_sociomap import default_methods
@@ -24,11 +33,13 @@ from aia_core.domain.respondent_behavior import AIA_RESPONSE_V1
 from aia_core.domain.sociomap import AIA_SOCIOMAP_V3
 from aia_core.domain.sociomap.models_v3 import SociomapArtifactV3, read_artifact
 from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
+from aia_core.domain.sociomap.terrain import EnvelopeTerrain
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.methodology_repository import MethodologyRepository
 from aia_core.infrastructure.storage import InMemoryArtifactStore
 from aia_core.infrastructure.study_design_repository import StudyDesignRepository
+from aia_core.infrastructure.tables import MethodologyActivationRow, MethodologyVersionRow
 from aia_executors import workbench
 from aia_worker.executor import StepExecutor
 from aia_worker.settings import WorkerSettings
@@ -76,16 +87,25 @@ def worker(
     )
 
 
-def _edit(world: Any, *, sigma: float, n_min: int, formulas: dict[str, str] | None = None) -> int:
-    """Propose and put in force an edited object map, as the Metodika tab does."""
-    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
-    spec["terrain"]["sigma"] = sigma
-    spec["relation"]["n_min"] = n_min
+def _edit(
+    world: Any,
+    *,
+    n_min: int | None = None,
+    idw_power: float | None = None,
+    formulas: dict[str, str] | None = None,
+) -> int:
+    """Propose and put in force an edited object map, as the Metodika tab does: from
+    aia-sociomap-5, the one base it offers (MQ-23 (a)); a value not given is -5's own."""
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
+    if n_min is not None:
+        spec["relation"]["n_min"] = n_min
+    if idw_power is not None:
+        spec["terrain"]["idw_power"] = idw_power
     with world.sessions() as session:
         repo = MethodologyRepository(session, world.admin_context(session))
         version = repo.propose(
             "sociomap",
-            base_preset="aia-sociomap-3",
+            base_preset="aia-sociomap-5",
             spec=spec,
             formulas=formulas or {},
             note="test",
@@ -155,19 +175,19 @@ def test_a_run_computes_the_edited_methodology_in_force_when_it_started(
     world: Any, store: InMemoryArtifactStore, worker: Worker
 ) -> None:
     before = _start(world)
-    number = _edit(world, sigma=0.3, n_min=12)
+    number = _edit(world, idw_power=2.0, n_min=12)
     after = _start(world)
     assert after != before  # the same revision under an edited methodology is another run
     metadata = _run(world, after)["metadata"]
     # The edited version alone: no reference map is pinned beside it.
-    assert [m["method_id"] for m in metadata["sociomap_methods"]] == [f"aia-sociomap-3+e{number}"]
-    assert metadata["methodology"]["name"] == f"aia-sociomap-3+e{number}"
+    assert [m["method_id"] for m in metadata["sociomap_methods"]] == [f"aia-sociomap-5+e{number}"]
+    assert metadata["methodology"]["name"] == f"aia-sociomap-5+e{number}"
     assert _start(world) == after  # and that run is idempotent
     _drain(worker)
-    edited = read_artifact(_maps(world, store, after)[f"aia-sociomap-3+e{number}"])
+    edited = read_artifact(_maps(world, store, after)[f"aia-sociomap-5+e{number}"])
     assert isinstance(edited, SociomapArtifactV3)
-    assert edited.spec.methodology_version == f"aia-sociomap-3+e{number}"
-    assert (edited.spec.terrain is not None and edited.spec.terrain.sigma) == 0.3
+    assert edited.spec.methodology_version == f"aia-sociomap-5+e{number}"
+    assert (edited.spec.terrain is not None and edited.spec.terrain.idw_power) == 2.0
     assert edited.spec.relation.n_min == 12
     original = read_artifact(_maps(world, store, before)["aia-sociomap-5"])
     assert isinstance(original, SociomapArtifactV3)
@@ -176,7 +196,7 @@ def test_a_run_computes_the_edited_methodology_in_force_when_it_started(
 
 
 def test_a_retry_keeps_the_methodology_its_run_pinned(world: Any) -> None:
-    number = _edit(world, sigma=0.3, n_min=12)
+    number = _edit(world, idw_power=2.0, n_min=12)
     run_id = _start(world)
     _reset(world)
     with world.sessions() as session:
@@ -185,11 +205,11 @@ def test_a_retry_keeps_the_methodology_its_run_pinned(world: Any) -> None:
         retried = runs.retry(run_id, fieldwork_source=FieldworkSource.SYNTHETIC_FIXTURE)
         session.commit()
     pinned = _run(world, retried.run_id)["metadata"]["sociomap_methods"]
-    assert [m["method_id"] for m in pinned] == [f"aia-sociomap-3+e{number}"]
+    assert [m["method_id"] for m in pinned] == [f"aia-sociomap-5+e{number}"]
 
 
 def test_back_to_the_preset_a_new_run_pins_the_codes_methods_again(world: Any) -> None:
-    _edit(world, sigma=0.3, n_min=12)
+    _edit(world, idw_power=2.0, n_min=12)
     _reset(world)
     run = _run(world, _start(world))
     assert run["metadata"]["sociomap_methods"] == [
@@ -202,11 +222,13 @@ def test_a_run_computes_the_formula_its_methodology_replaced(
 ) -> None:
     """A replaced kernel is the kernel the map's terrain is drawn with (plan S4c): the same
     parameters with the built-in kernel draw another terrain, and the body records what the
-    version replaced beside the map it shaped."""
+    version replaced beside the map it shaped. Under aia-sociomap-5 the kernel is the falloff of
+    the map's alternate terrain (framed_relative_idw_falloff, the terrain switch); its main
+    terrain, framed_relative_idw, reads no kernel."""
     kernel = "h * exp(-d2 / (sigma * sigma))"  # half the built-in's spread
-    plain = _edit(world, sigma=0.25, n_min=30)
+    plain = _edit(world)
     run_plain = _start(world)
-    edited = _edit(world, sigma=0.25, n_min=30, formulas={"f12.kernel": kernel})
+    edited = _edit(world, formulas={"f12.kernel": kernel})
     run_edited = _start(world)
     assert run_edited != run_plain
     (pinned,) = _run(world, run_edited)["metadata"]["sociomap_methods"]
@@ -215,17 +237,22 @@ def test_a_run_computes_the_formula_its_methodology_replaced(
 
     body = _body(world, store, run_edited)
     assert body["methods"][0] == {
-        "method_id": f"aia-sociomap-3+e{edited}",
+        "method_id": f"aia-sociomap-5+e{edited}",
         "spec_fingerprint": pinned["spec_fingerprint"],
         "formulas": {"f12.kernel": kernel},
     }
-    with_kernel = read_artifact(_maps(world, store, run_edited)[f"aia-sociomap-3+e{edited}"])
-    # The plain version changes nothing of aia-sociomap-3, so it is pinned as the preset itself.
+    with_kernel = read_artifact(_maps(world, store, run_edited)[f"aia-sociomap-5+e{edited}"])
+    # The plain version changes nothing of aia-sociomap-5, so it is pinned as the preset itself.
     assert plain >= 1
-    without = read_artifact(_maps(world, store, run_plain)["aia-sociomap-3"])
+    without = read_artifact(_maps(world, store, run_plain)["aia-sociomap-5"])
     assert isinstance(with_kernel, SociomapArtifactV3) and isinstance(without, SociomapArtifactV3)
     assert with_kernel.layout == without.layout  # the kernel moves the terrain, nothing else
     assert with_kernel.terrain != without.terrain
+    assert isinstance(with_kernel.terrain, EnvelopeTerrain)
+    assert isinstance(without.terrain, EnvelopeTerrain)
+    assert with_kernel.terrain.height == without.terrain.height
+    assert with_kernel.terrain.alternate_method == "framed_relative_idw_falloff"
+    assert with_kernel.terrain.alternate_height != without.terrain.alternate_height
 
 
 # ------------------------------------------- S2c: the readiness warning's pair n_min --
@@ -263,9 +290,10 @@ def _preflight(world: Any, store: InMemoryArtifactStore, run_id: str) -> dict[st
 
 
 def test_readiness_warns_with_the_n_min_of_the_methodology_in_force(world: Any) -> None:
-    # DESIGN asks 40 respondents: enough for the code's 30, not for an edit's 45.
+    # DESIGN asks 40 respondents: enough for aia-sociomap-5's pair n_min of 10, not for an
+    # edit's 45.
     assert _support(_readiness(world))["status"] == "PASS"
-    _edit(world, sigma=0.25, n_min=45)
+    _edit(world, n_min=45)
     edited = _support(_readiness(world))
     assert edited["status"] == "WARN" and "45" in edited["message"]
     _reset(world)
@@ -275,11 +303,11 @@ def test_readiness_warns_with_the_n_min_of_the_methodology_in_force(world: Any) 
 def test_the_preflight_step_reads_the_runs_pin_not_what_is_in_force_later(
     world: Any, worker: Worker, store: InMemoryArtifactStore
 ) -> None:
-    _edit(world, sigma=0.25, n_min=45)
+    _edit(world, n_min=45)
     under_edit = _start(world)
     _reset(world)
     before_edit = _start(world)
-    _edit(world, sigma=0.25, n_min=45)  # in force again while both run
+    _edit(world, n_min=45)  # in force again while both run
     _drain(worker)
     edited = _support(_preflight(world, store, under_edit))
     assert edited["status"] == "WARN" and "45" in edited["message"]
@@ -548,7 +576,7 @@ def test_a_run_pins_the_aggregation_version_in_force_and_its_aggregate_says_so(
 def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> None:
     """A retry pins its original's methods explicitly; it must still say they were stored
     versions, not the code's (plan methodology-tab Z1a)."""
-    _edit(world, sigma=0.25, n_min=45)
+    _edit(world, n_min=45)
     support = AIA_SUPPORT_V1.model_dump(mode="json")
     support["results"]["min_layer_donors"] = 20
     aggregation = AIA_AGGREGATE_V1.model_dump(mode="json")
@@ -582,7 +610,7 @@ def test_a_retry_keeps_the_stored_versions_its_pins_came_from(world: Any) -> Non
     ):
         assert retry[key] == original[key], key
     assert run_methods(retry) == {
-        "sociomap": RunMethod("aia-sociomap-3+e1", stored=True),
+        "sociomap": RunMethod("aia-sociomap-5+e1", stored=True),
         "support": RunMethod("aia-support-1+e1", stored=True),
         "aggregation": RunMethod("aia-aggregate-1+e1", stored=True),
         "response": RunMethod("aia-response-1+e1", stored=True),
@@ -744,11 +772,13 @@ def test_a_run_stores_its_numbers_at_the_places_its_aggregation_pinned(
             assert cell["top2box_pct"] == round(cell["top2box_pct"]), oid
 
 
-def _put_in_force(world: Any, spec: dict[str, Any], base: str = "aia-sociomap-5") -> str:
-    """Propose and put in force a version of ``base`` with ``spec``; its name."""
+def _put_in_force(world: Any, spec: dict[str, Any]) -> str:
+    """Propose and put in force a version of aia-sociomap-5 with ``spec``; its name."""
     with world.sessions() as session:
         repo = MethodologyRepository(session, world.admin_context(session))
-        version = repo.propose("sociomap", base_preset=base, spec=spec, formulas={}, note="test")
+        version = repo.propose(
+            "sociomap", base_preset="aia-sociomap-5", spec=spec, formulas={}, note="test"
+        )
         repo.activate("sociomap", version.version_number, reason="test")
         session.commit()
         return version.name
@@ -767,12 +797,51 @@ def test_the_preset_put_in_force_unchanged_is_pinned_under_its_own_name(
     assert _body(world, store, run_id)["methodology_status"] == "CLIENT_FACING"
 
 
+def _stored_before_mq23(world: Any, base: str, spec: dict[str, Any]) -> None:
+    """A version of an earlier preset, stored and put in force before Metodika offered
+    aia-sociomap-5 alone (MQ-23 (a), 2026-10-29). propose and activate refuse to make one now,
+    but an organization's rows from before stay in force, so the test writes the two rows
+    propose and activate stored then: the payload validated as it was when ``base`` was the
+    module's in force, its version row, and its activation."""
+    module = dataclasses.replace(SOCIOMAP, in_force=base)
+    with world.sessions() as session:
+        admin = world.admin_context(session)
+        name = named(base, 1)
+        payload = version_payload(
+            validate_version(module, base_preset=base, spec=spec, formulas={}, version_name=name)
+        )
+        session.add(
+            MethodologyVersionRow(
+                version_id=f"MTV-{uuid.uuid4().hex[:24]}",
+                organization_id=admin.organization_id,
+                module_id="sociomap",
+                version_number=1,
+                base_preset=base,
+                payload=payload,
+                payload_sha256=payload_sha256(payload),
+                note="test",
+                created_by=admin.actor_id,
+            )
+        )
+        session.flush()
+        session.add(
+            MethodologyActivationRow(
+                organization_id=admin.organization_id,
+                module_id="sociomap",
+                version_number=1,
+                activated_by=admin.actor_id,
+                reason="test",
+            )
+        )
+        session.commit()
+
+
 def test_a_run_under_an_unchanged_retired_preset_in_force_is_retried_not_refused(
     world: Any,
 ) -> None:
     # An unchanged aia-sociomap-3 in force pins the preset's own name; the organization chose it,
     # so its run is retried as it pinned it, not refused as the code's old default.
-    _put_in_force(world, AIA_SOCIOMAP_V3.model_dump(mode="json"), base="aia-sociomap-3")
+    _stored_before_mq23(world, "aia-sociomap-3", AIA_SOCIOMAP_V3.model_dump(mode="json"))
     run_id = _start(world)
     assert [m["method_id"] for m in _run(world, run_id)["metadata"]["sociomap_methods"]] == [
         "aia-sociomap-3"
