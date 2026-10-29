@@ -3,7 +3,7 @@ status: in-progress
 chunks:
   - "[x] RQC0. A per-respondent checkpoint (OI-64): each answered respondent and its paid-call identity are stored under the lease; a retry resumes; a possibly-billed uncertain call requires recovery and never triggers an automatic paid replay"
   - "[x] RQC1. One straight-liner definition in `domain/` (`straight_lining.answer_spread`), called by the Sociomap engine; the run QC (`evidence-integrity` 2) and the worker (RQC4a) call it when they land"
-  - "[ ] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
+  - "[x] RQC2. The QC node wired into the run: template node, step kind, registry, `AIA_RUN_QC_ENABLED`, the run-key identity"
   - "[ ] RQC3. A `MaterialRule` and lineage for run-derived material sent to a model (QC flags, the map interpreter)"
   - "[ ] RQC4. The flag artifact and the worker's keep-or-flag proposal; the accept destination"
   - "[ ] RQC5. Replace as a new linked run: a start path from a COMPLETED run with an exclusion pin that reuses the other respondents' paid answers; its ADR and deterministic admission rule (ADR 0026 decision 4) come first"
@@ -498,4 +498,59 @@ checkouts and were not run here).
   answer refused), called by the Sociomap's v2 `_placeability` and v3 `person_minmax`, `-5` held to it by
   test; the run QC (`evidence-integrity` 2) and the straight-liner worker read it (RQC1).
 - `.planning/open-items.md`: F-RQC1-1 (the three differences above), for the methodology owner.
+
+## RQC2, the design (2026-10-28, branch `feature/rqc2-qc-node`, stacked on `evidence-integrity` 2a)
+
+The node follows the experimental Sociomapping's pattern (`workflow_templates.py` `sociomapping_enabled`):
+the executor is always registered, and the switch decides only whether a newly started run includes the
+step, recorded on the run so a retry keeps it.
+
+- **Template.** `QC_STEP_KIND = "research_qc"`, node `qc`, depends on `run`, stage `FIELDWORK` (its
+  subject is the fieldwork's answers; EI#3 shows it on Fieldwork and Results), artifact `research_qc`,
+  three attempts (no model call, no money). No step depends on it: the report never waits on QC (MVP-24).
+- **Switch.** `AIA_RUN_QC_ENABLED` (API `Settings.run_qc_enabled`, off by default and on nowhere);
+  read at start by `POST …/research/runs` and the Lead's typed start (`RunStartSettings`).
+- **Run-key identity.** The run key gains `:qc`, so a run with the step is another run than one
+  without; the metadata records `qc_enabled: true`, and a retry keeps the original's (never re-read
+  from the switch), as `sociomapping_enabled` does.
+- **Executor.** `RunQcExecutor` (`aia_executors/research.py`): reads the run's specification and
+  dataset, `dataset_qc(spec, dataset, dry=dataset.is_synthetic)`, stores the result as JSON with its
+  inputs (specification and dataset ids, the dataset's SHA-256), the version and the thresholds. A QC
+  that cannot be read over this run (a conditional question, until RQC11) is stored as
+  `not_computed` with its reason, and the step succeeds: nothing QC finds fails a run. A dataset that does
+  not answer its specification fails the step as it fails aggregation, and a defect in the checks fails
+  it too (reported, never stored as a result). `dry` is the unit's run with no model call: the fixture's
+  invented answers (`SYNTHETIC_FIXTURE`) alone, never fictional AI respondents (`unit_dry`); on the
+  methodology owner's list with the other 2a divergences.
+- **Web.** Průběh names the step ("Kontrola kvality běhu") in the pipeline's order; the activity orb
+  reads it as code. Nothing else: EI#3 stores nothing more and shows the findings.
+- Tests: the template with and without the switch; a start with the switch carries `:qc` and the
+  metadata and a retry keeps it; the executor over a fictional run stores the QC the domain computes,
+  a conditional run stores `not_computed`, and the step never fails the run.
+
+**RQC2, delivered (2026-10-28).** As designed above, plus:
+- The reuse key of the QC artifact holds the dataset, the specification, `RUN_QC_VERSION`, `dry` and the
+  thresholds, so a QC under another rule is never handed back.
+- The report's coverage record names the step (`research_qc` -> "Kontrola kvality běhu") among the
+  outputs made beside the report (`report.py` `beside_outputs`, web `report-coverage.ts`).
+- `RunStartSettings.qc_enabled` is required, as `sociomapping_enabled` is: a composition that forgets it
+  fails the type check rather than forking the run key.
+- Develop's Compose passes `AIA_RUN_QC_ENABLED` to the API, `false` unless set; nothing turns it on.
+- Tests: `test_workflow_templates.py::test_the_research_graph_gains_the_run_qc_step_only_with_its_switch`;
+  `apps/executors/tests/test_run_qc_executor.py` (the graph without the switch; the key and the retry;
+  a fictional run completes and stores the domain's QC; a QC the domain cannot read is stored
+  `not_computed` and the run completes; `unit_dry` per origin);
+  `test_research_api.py::test_the_run_qc_switch_adds_its_step_to_a_new_run_only`;
+  `test_snapshot_executor.py` (the production registry carries `research_qc`);
+  `ExecutionSteps.test.tsx` (Průběh names the step after fieldwork), `activity-orb.test.ts`,
+  `report-coverage.test.ts`.
+
+## Doc follow-up (RQC2)
+
+- `CLAUDE.md` §2: under `config.py`, `AIA_RUN_QC_ENABLED` (`run_qc_enabled`, off; off on develop): a new
+  research run gains the `qc` step after fieldwork (`research_qc`, the unit's run QC over the stored
+  answers, warnings only, nothing waits on it), its key `:qc`, recorded on the run so a retry keeps it;
+  under `aia_executors/research.py`, `RunQcExecutor` (`not_computed` for a QC it cannot read; `unit_dry`:
+  the fixture's answers alone); under `domain/workflow_templates.py`, `QC_STEP_KIND`.
+- `deploy/develop/README.md`: `AIA_RUN_QC_ENABLED` among the API's switches, off until measured.
 

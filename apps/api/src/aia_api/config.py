@@ -104,6 +104,10 @@ class Settings(BaseSettings):
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
+    # Add the run QC step to a research run's graph when the run starts (AIA_RUN_QC_ENABLED,
+    # run-qc-and-checkpoint RQC2): the unit's qc.kontrola over the stored answers, as warnings.
+    # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
+    run_qc_enabled: bool = False
     # Compile the object map's numba kernels in the background from start
     # (AIA_SOCIOMAP_WARMUP_ENABLED): a container starts with an empty kernel cache, and without it
     # the first Metodika comparison pays the ~40 s compile (warmup.py). Off by default and in test;

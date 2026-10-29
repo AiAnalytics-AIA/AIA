@@ -3390,6 +3390,7 @@ export const cs = {
         compile: "Sestavení dotazníku z návrhu",
         preflight: "Kontrola připravenosti",
         run: "Sběr dat",
+        qc: "Kontrola kvality běhu",
         aggregate: "Agregace",
         sociomap: "Sociomapa",
         sociomapping: "Sociomapping (experimentální metoda AIA)",
