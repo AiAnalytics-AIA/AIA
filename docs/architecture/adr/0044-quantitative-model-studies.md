@@ -21,6 +21,8 @@ coordinator's chat, relayed to this session:
   - Q13: "Final as written". The defaults are the method, not provisional.
   - "Add a fifth session".
   - Z3 as the coordinator corrected it (decision 14).
+- 2026-10-30, 09:52 UTC: the model's map is "the "wind map" in the current sociomapping" (decision 12,
+  rewritten).
 - 2026-10-30, by 09:25 UTC: Q8 "Modely"; Q11 "all of thesw", every family after the MVP, side by side;
   Q12 "Yes, labelled modelováno".
 
@@ -303,17 +305,68 @@ A model's content is client financial information: **Class A**, by a new rule
   - `data_contract`: already admitted;
   - `artifact`: the report's approval.
 
-### 12. A Sociomap is never computed from a model; a survey sits beside it
+### 12. The model's own map: a SOMECS objects × properties map with a WIND height (2026-10-30)
 
-- A Sociomap is computed from respondents' ratings, and `aia-sociomap-5` is approved for those alone.
-  A model has neither respondents nor ratings, so no map is computed from it.
-- A survey of the same client is a research study, a separate kind, **linked later** (Q3). Once built,
-  the model's revision cites one approved run by artifact id and SHA-256, and the model's report gains a
-  chapter with the run's approved map snapshot and its admitted key numbers, each with its own grade.
-- A preference never changes a cost, and a cost never changes a rating.
-- AI respondents stand for Czech adults, so they can represent consumers. Staff and suppliers need the
-  client's own survey (`client-data-in-analysis#6`).
-- Designed in `quantitative-families` §LINK.
+**The product owner, 09:52 UTC, 2026-10-30:** "In this case (in the model), the sociomap isn't
+supposed to be based on respondents, this is the "wind map" in the current sociomapping". It
+overrules this decision's first version, "a Sociomap is never computed from a model".
+
+**What it is.** The published Sociomapping has a second input besides respondents. A fuzzy matrix can
+be built "from an objects × properties table by Euclidean, Manhattan or correlation similarity after
+declared scale extremes" (SOMECS Input, fig. 6). The H-Model places the objects, and its accuracy is
+the Spearman correlation between the distances and the fuzzy matrix. A **WIND map** (Weighted INverse
+Distance) "keeps the same horizontal positions and interpolates one object variable as height"
+(`.planning/plans/sociomapping-engine.md:55-79 @ 61230f5e`).
+
+**The Model path's map:**
+- **The objects** are the decision options: the model's scenarios (A, A phased, B, B renegotiated,
+  C, C + express for cities, a hybrid …).
+- **The properties** are the model's results and the scenarios' stated attributes: NPV of cost and
+  its interval, yearly cost, capex, P(cheapest), delivery time, customer loss, flexibility. Each
+  property has declared scale extremes and a direction (lower-is-better entered negative, as SOMECS
+  does).
+- **Every cell is a ref:** a `CALCULATED` or `ESTIMATED` result of the run, or a `stated` attribute with
+  its provenance. Nothing is typed into the map.
+- **Placement:** the objects are placed by the similarity of their property profiles.
+- **Height:** the WIND height is one chosen property, for example P(cheapest) or NPV.
+- **No respondents are involved.** Where a survey is linked (Q3, later), its approved respondent map
+  sits beside this one, as before. The two are never merged: a preference never changes a cost, and a
+  cost never changes a rating.
+
+**What it reuses and what is new.**
+- **Reused from `sociomapping-engine`:**
+  - the fuzzy matrix contract (`domain/sociomap/fuzzy.py`);
+  - the H-Model accuracy (`hmodel.py`) and its significance (engine chunk 2c);
+  - the experimental H-Model candidate (`hmodel_candidate.py`), or the `-5` layout
+    (`signed_off_layout.py`, from 4 objects);
+  - the WIND surface (engine chunk 4b) and its view (engine chunk 11).
+- **New here:**
+  - the objects × properties fuzzy matrix, a new `FuzzySource`;
+  - the adapter that builds the properties table from a model's run;
+  - the method's register entry.
+
+**Its register entry is A. Bahbouh's** (Q9). He signs the method as a whole (sign-off S9):
+- the similarity measure and its conversion to 0-1;
+- the scale extremes and direction rule;
+- the layout (the H-Model, or the `-5` layout reused);
+- the fit (Spearman accuracy) and its significance null;
+- the WIND exponent, radius and grid;
+- the minimum number of objects.
+
+The map is `ESTIMATED` (its layout is a fit). It is **internal until he registers it**, like every
+`ESTIMATED` method (Q10). Before then, Výsledky and the internal report show it marked *odhad
+(interní)*; the client report does not.
+
+**Its relation to AUDIT-F12.**
+- In the Sociomap evidence register, SOMECS-M2 (WIND) is OPEN: its exponent, radius and grid are
+  unstated. For AIA's respondent object map, AUDIT-F12 supersedes it: the terrain is the max-envelope
+  of each object's hill, the owner's rule of 2026-10-07 (`docs/migration/sociomapping-evidence-register.json`,
+  entries `SOMECS-M2` and `AUDIT-F12` @ 61230f5e).
+- **That stays as it is.** Respondent maps (`aia-sociomap-5`, and every older method a stored run
+  keeps) are unaffected: same terrain, same register, same client status.
+- The WIND surface applies only to the Model path's objects × properties map. It is a separate input
+  and a separate method, with its own register entry. Its parameters come from A. Bahbouh's entry, or
+  from export E7 when it exists (engine question M4).
 
 ### 13. The families: cost scenarios in the MVP, the rest designed and built after it
 
@@ -523,10 +576,11 @@ The checks are tests, and their report is what the method owner signs.
   - A report frame and three chart kinds.
   - Five generic stages.
 
-  The MVP builds all of that once, with one model type and decision 14's method, in about 67-83.5
-  session-days, on the fourth build session and a fifth for the method chunks: about 8-10 weeks
+  The MVP builds all of that once, with one model type and decision 14's method, in about 78.5-100.5
+  session-days (the model's WIND map included, decision 12), on the fourth build session and a fifth
+  for the method chunks: about 9-11 weeks
   (`cost-model-study`). The platform costs about 3-5 session-days more than a cost
-  model built alone. The robust method adds about 37-47.5. The other families are designed at about
+  model built alone. The robust method adds about 37-47.5, and the WIND map 11.5-17. The other families are designed at about
   53-65.5 session-days (`quantitative-families`); building decision 14 in the MVP takes the `ESTIMATED`
   platform, Monte Carlo, forecasting and NPV out of their scope.
 - **What it buys.** Questions AIA could not answer, under the same rules as the rest of AIA: code
@@ -535,7 +589,8 @@ The checks are tests, and their report is what the method owner signs.
   - no simulation;
   - no what-if over respondents;
   - no survey inside a model study;
-  - no Sociomap from a model;
+  - no respondent Sociomap from a model: the model's own map is an objects × properties WIND map, and
+    respondent maps are unchanged (decision 12);
   - no Deep Research from a model's content;
   - no `ESTIMATED` number in a client report before its method's register entry;
   - no tax, depreciation schedule or currency conversion in any family as designed.

@@ -27,6 +27,11 @@ chunks:
   - "[ ] CR7. The decision rule (Z3): the person's own rule, stated before the data (option, quantity, threshold, optionally the confidence needed), judged as written; the default confidence 0.90 / 0.10 only when the rule names none, said on the page; no rule, no recommendation (R2); dominance beside it; internal until the Monte Carlo method is registered"
   - "[ ] CR8. The method on screen: the data-check review on Data; on Výsledky the range table, dominance and flip inputs, the probability and zone, the difference's distribution, the Sobol or rank-correlation bars, the forecast with its backtest, the value-of-information table; every ESTIMATED value marked odhad (interní) until registered"
   - "[ ] CR9. The method in the report: blocks for each layer, a method appendix naming each method's id, version and register status, the client report carrying only CALCULATED and registered ESTIMATED numbers"
+  - "[ ] CS1. The properties table: objects are the run's scenarios; properties are chosen results (CALCULATED or ESTIMATED refs) and stated scenario attributes, each with declared scale extremes and direction"
+  - "[ ] CS2. The objects × properties fuzzy matrix (new FuzzySource): Euclidean, Manhattan or correlation similarity after scale extremes, converted to 0-1 by the registered rule; checked against SOMECS Input fig. 6"
+  - "[ ] CS3. Layout and fit: the H-Model candidate or the -5 layout (A. Bahbouh's choice), Spearman accuracy, significance through sociomapping-engine 2c; results stored, the rerun equal in bytes"
+  - "[ ] CS4. The WIND height on the layout: one chosen property, the surface from sociomapping-engine 4b with the registered exponent, radius and grid; ESTIMATED, internal until registered"
+  - "[ ] CS5. The map on Výsledky and in the report: the WIND view from sociomapping-engine 11, the property chosen as height, fit and its significance, odhad (interní) until registered; beside a linked survey's respondent map, never merged"
   - "[ ] CR10. The method validation pack: each method against its published reference as tests (Ishigami, PERT moments, Iman-Conover, MASE, a closed-form EVPPI), and the report the method owner signs"
 ---
 # The MVP build: the quantitative-model platform and its first model type, cost scenarios
@@ -126,10 +131,16 @@ depends on another plan's shape.
 | CR8 | 4-5 | CP7, CR1-CR7 | W3/W4 |
 | CR9 | 2-2.5 | CP8, CR1-CR7 | W4 |
 | CR10 | 2 | CR3-CR6 | W3/W4 |
+| CS1 | 1.5-2 | CM2, CR3 (P(cheapest)), CP2 | W3 |
+| CS2 | 2-3 | CS1; `sociomapping-engine#1a` (built) | W3 |
+| CS3 | 2-3 | CS2; `sociomapping-engine#2a` (built), `#2c` (significance) | W3 |
+| CS4 | 3-4.5 | CS3; `sociomapping-engine#4b` (its WIND part built here, ticked there) | W3 |
+| CS5 | 3-4.5 | CS4, CP7, CP8; `sociomapping-engine#11` (its WIND view built here) | W4 |
 | **Platform core (CP1-CP10)** | **24-29** | | |
 | **Cost scenarios (CM1-CM7)** | **11.5-14** | | |
 | **The robust method (CR1-CR10)** | **31.5-40.5** | | |
-| **MVP total** | **67-83.5** | | |
+| **The model's WIND map (CS1-CS5)** | **11.5-17** | | |
+| **MVP total** | **78.5-100.5** | | |
 
 **The platform's added cost.** The cost model built alone was estimated at 27-31 session-days (types,
 compute with the cumulative view, kind, bindings, run, API, stages, charts, Lead, report, journey). The
@@ -140,16 +151,20 @@ later model type saves about that much (`quantitative-families`).
 **The robust method's added cost** (2026-10-30) is about **37-47.5**: CP10, CM7 and CR1-CR10. Before it,
 the MVP total was 30-36.
 
+**The WIND map's added cost** (2026-10-30) is about **11.5-17** (CS1-CS5): S5 takes 8.5-12.5 of it
+(CS1-CS4) and S4 3-4.5 (CS5).
+
 ### Lanes (a fifth session approved, 2026-10-30)
 
 | Lane | Chunks | Session-days | Starts |
 |---|---|---|---|
-| **S4**: platform, data, UI, Lead, report, cost type | CP1-CP9, CM1-CM7, CR1, CR8, CR9 | 41-50 | W2, on the merged ADR and plan |
-| **S5**: the method, pure domain code | CP10, CR2, CR3, CR4, CR5, CR6, CR7, CR10 | 26-33.5 | W2, once S4's CP1 and CP2 have merged; CR2 also after CM2 |
+| **S4**: platform, data, UI, Lead, report, cost type | CP1-CP9, CM1-CM7, CR1, CR8, CR9, CS5 | 44-54.5 | W2, on the merged ADR and plan |
+| **S5**: the method, pure domain code | CP10, CR2-CR7, CR10, CS1-CS4 | 34.5-46 | W2, once S4's CP1 and CP2 have merged; CR2 also after CM2 |
 
 S5's chunks need no UI, data, Lead or route. They read CP1's types and CP2's contract, CM2's compute
 (for CR2) and CP4's bindings (for CR5's data). S4 consumes S5's results in CR8 and CR9. Both lanes run
-in parallel from W2, so the track takes about **8-10 weeks**. CR5 is the only S5 chunk that waits on
+in parallel from W2, so the track takes about **9-11 weeks** (8-10 before the WIND map,
+2026-10-30). CR5 is the only S5 chunk that waits on
 client data (CP4).
 
 **What moves on the critical path.**
@@ -528,6 +543,65 @@ which layers are internal.
 **Tests:** an unregistered method's numbers absent from the client document and present, marked, in the
 internal one.
 
+### CS1-CS5. The model's own map (ADR 0044 decision 12, 2026-10-30)
+
+The product owner, 09:52 UTC: the model's map is "the "wind map" in the current sociomapping", built
+from the model and not from respondents. It reuses `sociomapping-engine` where that plan already has
+the part, and builds only what is new: the objects × properties fuzzy matrix, the properties table
+from a model's run, and WIND for this input.
+
+- **CS1. The properties table** (`domain/business_model/map_table.py`).
+  - Objects: the run's scenarios. With fewer than the registered minimum, the result is
+    `too_few_objects`.
+  - Properties: results chosen by a person (NPV of cost, its interval width, yearly cost, capex,
+    P(cheapest)) as `CALCULATED` or `ESTIMATED` refs, plus stated scenario attributes (delivery time,
+    customer loss, flexibility) with their provenance.
+  - Each property has declared scale extremes and a direction (lower-is-better negated, as SOMECS
+    Input does).
+  - An unknown cell is unknown, never 0. SOMECS's 0 fill is not adopted (engine M5).
+
+  **Tests:** every cell resolves to a ref; an unknown cell refuses the map by name; a property without
+  extremes is refused.
+- **CS2. The objects × properties fuzzy matrix** (`domain/sociomap/fuzzy.py`, a new
+  `FuzzySource.OBJECT_PROPERTIES`).
+  - Euclidean, Manhattan or correlation similarity of the scaled profiles. Correlation only above the
+    registered number of properties (SOMECS: "correlation for more than 15 properties").
+  - The conversion to a 0-1 relation follows the registered rule. Until then it is
+    `MethodologyUndetermined`, by name, as the module does for every undocumented SOMECS rule.
+
+  **Tests:** SOMECS Input fig. 6's example reproduced; the three measures on a hand-computed case; a
+  property's direction reverses its contribution.
+- **CS3. Layout and fit.**
+  - The H-Model candidate (`hmodel_candidate.py`) or the `-5` layout (`signed_off_layout.py`, 4
+    objects and up), as A. Bahbouh registers.
+  - Spearman accuracy (`hmodel.py`), and its significance through `sociomapping-engine#2c` once it
+    lands. Until then the fit is shown with "významnost nezjištěna", never presumed significant.
+  - Stored, and reproduced in bytes on a rerun under the same pins.
+
+  **Tests:** the fig. 22 accuracy reproduced on this input's path; the rerun is equal in bytes; with
+  three objects the `-5` layout is refused by name.
+- **CS4. The WIND height.**
+  - One chosen property as each object's height; the surface by weighted inverse distance with the
+    registered exponent, radius and grid. It is built as `sociomapping-engine#4b`'s WIND part, there
+    for every WIND map, and ticked there.
+  - `ESTIMATED`, internal until registered.
+  - AUDIT-F12's envelope terrain for respondent maps is not touched.
+  - The evidence register's `SOMECS-M2` entry gains this map as what it applies to, with its
+    implementation and validation, in the same PR. `AUDIT-F12` still supersedes it for respondent maps.
+
+  **Tests:** at each object the surface equals its height; between objects it lies within their
+  heights; E7's three-element case once the export exists; the respondent map's terrain is unchanged
+  in bytes (a regression test on a stored `-5` map).
+- **CS5. On screen and in the report.**
+  - Výsledky's map view, built as `sociomapping-engine#11`'s WIND view and ticked there: the top view
+    first, 3D on request, the property chosen as height, the fit and its significance, every value a
+    ref, *odhad (interní)* until registered.
+  - The report figure through the existing figure renderer.
+  - A linked survey's respondent map shown beside it, never merged.
+
+  **Tests:** component tests; the figure's values are the artifact's refs; the client document carries
+  no map until registered.
+
 ### CR10. The method validation pack
 
 Every reference check of CR3-CR6 as a test, and a generated report of the results, the defaults and
@@ -555,6 +629,7 @@ entry, a method's numbers stay internal (Q10).
 | S6 | Forecasting and backtesting (`aia-cost-forecast-1`) | projects a volume over the horizon, tested on held-out months | methods: naive, seasonal naive (m = 12), drift, Holt-Winters additive (α, β, γ in [0, 1] by L-BFGS-B on in-sample squared error from a fixed start of 0.3 / 0.1 / 0.1); rolling origin over the last 6 months with ≥ 3 origins; MASE scaled by the in-sample seasonal naive (the naive below 24 months); the candidate and the baseline scored on the same held-out origins, the candidate used only if its held-out MAE is strictly below the baseline's, otherwise the baseline used and said; MASE (in-sample naive scale) and MAPE (no zero actual) reported, not the gate; interval from the backtest errors' 5th-95th percentiles | MASE on Hyndman's published worked example; a series where Holt-Winters must lose to the naive |
 | S7 | Value of information (`aia-cost-evppi-1`) | what knowing an input exactly could save | EVPPI by binning the Monte Carlo draws on the input into 20 equal-frequency bins; material when ≥ 5 % of the absolute expected difference, which offers the Výzkum path | a two-option toy with a closed-form EVPPI; an input with no effect gives ≈ 0 |
 | S8 | The decision rule's default confidence, Z3 (`aia-cost-decision-1`) | judges a person's stated rule against P(A cheaper) | the person's stated confidence decides; when the rule states none, the default is 0.90 for A and 0.10 for B, said on the page; no rule, no recommendation | a stated 0.8 judged at 0.8; the default used and said; each verdict at its boundary |
+| S9 | The model's WIND map (`aia-cost-map-1`) | places the options by their property profiles, with one property as height | the similarity measure (Euclidean, Manhattan, or correlation above 15 properties) and its conversion to 0-1; scale extremes and direction declared per property; the layout (the H-Model candidate, or the `-5` layout from 4 objects); the fit as Spearman accuracy, and its significance null; the WIND exponent, radius and grid; the minimum number of objects | SOMECS Input fig. 6; SOMECS fig. 22 accuracy; E7's three-element WIND when it exists; the respondent map's terrain unchanged |
 
 **The `CALCULATED` definitions he also signs** (Q9, "Aram signs these too"), one definitions page each,
 checked against published worked examples:
@@ -626,7 +701,7 @@ The docs PR applies these after this PR merges; they touch shared files, which t
   - §5: a new interface, "a client dataset's admitted aggregate as a model input"
     (`client-data-in-analysis#4` with `cost-model-study#CP4`; S3 owns the contract).
   - §2 / `mvp-development-plan.md` §2: a fourth build session, S4, and a fifth, S5 (approved 2026-10-30,
-    "Add a fifth session"), owning this track in the lanes of § Lanes; about 8-10 weeks.
+    "Add a fifth session"), owning this track in the lanes of § Lanes; about 9-11 weeks.
   - §11.1 (settled, 2026-10-30): Q9, A. Bahbouh owns every `ESTIMATED` method and signs the
     `CALCULATED` definitions ("aram owns statistical models", "Aram signs these too"); Q10, "Yes, once
     Aram registers it"; Q13, "Final as written"; a fifth session. Nothing of this plan is left in §11.4.
@@ -639,6 +714,11 @@ The docs PR applies these after this PR merges; they touch shared files, which t
     2026-10-29, Q6: pulled into W2 for the fourth session's track". Check that #2a (after #3a) and #10
     still order correctly;
   - every `quantitative-families` chunk UNSCHEDULED, "after the MVP by decision, 2026-10-29".
+- **`.planning/plans/sociomapping-engine.md`** (another feature's plan, so it is not edited here):
+  - 4b and 11 note that `cost-model-study` CS4 and CS5 build their WIND parts for the Model path's
+    objects × properties map, and tick them when they land;
+  - M4 notes that A. Bahbouh's register entry (S9) can settle WIND's parameters for that map ahead of
+    E7.
 - **`.planning/overview.md`:** MVP-1 becomes "All scenarios out, except quantitative models: the cost
   scenarios type in the MVP, other families designed (Nigel, 2026-10-29; ADR 0044)". The MVP roadmap
   gains the track.

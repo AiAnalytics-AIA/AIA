@@ -58,7 +58,7 @@ signs these too"); that is not counted here.
 
 **For a later choice:** the core plus four or five `CALCULATED` types in the MVP (cost scenarios, budget
 vs actual, ratios, NPV/IRR/payback, EOQ), at about 38-48 session-days, against 30-36 for the core plus
-cost scenarios before the robust method (`cost-model-study`, now 67-83.5 with it).
+cost scenarios before the robust method (`cost-model-study`, now 78.5-100.5 with it and the WIND map).
 
 ## Lanes (Q11: all of them, side by side)
 
@@ -208,7 +208,9 @@ The question: *how big is the market we could serve, and how much of it could we
 
 ## LINK1. The survey beside a model (2.5-3.5)
 
-ADR 0044 decision 12 (Q3, "Two kinds, linked later"). A Sociomap is never computed from a model.
+ADR 0044 decision 12 (Q3, "Two kinds, linked later"). The model's own map is an objects ×
+properties WIND map (`cost-model-study` CS1-CS5); a survey's respondent map sits beside it, never
+merged.
 - A model revision cites one approved research run of the same client.
 - The model's report gains a chapter, "Jak možnosti vnímají respondenti": the run's approved map
   snapshot (`application/map_snapshots.py:92, 198`, `report-delivery#RD4`) and its admitted key
