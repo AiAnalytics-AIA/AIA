@@ -467,7 +467,12 @@ signs these too"):
    guarantor: the person who stands behind it, a member or a client contact recorded by a member.
    - A `client_dataset` input's base is the data's value; its low and high are stated by a person.
    - Every scenario's total, and each difference between two scenarios, is reported over the whole box
-     of ranges by vertex enumeration over the low/high grid, refined at every `STEP` breakpoint.
+     of ranges by vertex enumeration over the low/high grid, cut into `STEP` cells at every breakpoint.
+   - **Cells are closed with their own step.** `ceil` jumps just after a breakpoint. So each cell
+     is evaluated at both of its ends with that cell's step count held fixed: at the left end that is
+     the one-sided limit, not the total at the breakpoint itself. An extreme reached only at an open
+     end is reported as a limit ("nejméně, nedosaženo"). Evaluating only the breakpoints would miss
+     A(x) = 9.05 + ceil(x) against B(x) = 10 + x just above x = 1.
    - **When vertices are exact.** Code checks, before it claims an exact range, that in the compared
      quantity every input:
      - enters every term through one and the same monotone form: as itself, as its reciprocal (a
@@ -483,7 +488,8 @@ signs these too"):
      input). The Monte Carlo is the range view, and the page says why.
    - Above a cap of 2^14 vertices the exact range is likewise refused by name.
    - **Dominance:** "A je levnější ve všech kombinacích" when the exactness check holds and A's total is
-     below B's at every vertex.
+     strictly below B's at every vertex of every closed cell, one-sided limits included. A difference
+     whose infimum is 0 at an open end is not certified.
      Otherwise the inputs that flip the ranking are named, each with the value at which it flips (the
      break-even machinery, one input at a time with the others at base), and the vertices where B wins.
 3. **Monte Carlo over the ranges** (`ESTIMATED`). All inputs move together.

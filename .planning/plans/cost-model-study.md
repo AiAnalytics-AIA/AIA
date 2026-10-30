@@ -19,7 +19,7 @@ chunks:
   - "[ ] CM7. NPV of each scenario's costs and discounted payback at a stated discount rate (CALCULATED)"
   - "[ ] CP10. The ESTIMATED grade on the platform: interval or percentiles, seed and method version pinned, results stored, the rerun-equals-bytes test; the method register (internal until A. Bahbouh's entry approves); the Metodika module 'Nákladové modely' holding every default as written (final, Q13), versioned, pinned per run"
   - "[ ] CR1. Data checks before use: reconciliation across files and against stated totals, period coverage and currency, robust outlier flags, seasonality only with two cycles; accepted by the person as part of the binding; missing stays missing"
-  - "[ ] CR2. Ranges: low / base / high and a guarantor on every input; exact range of every total by vertex enumeration refined at STEP breakpoints, only where code verifies every input enters through one monotone form (else range_not_exact, cap 2^14); dominance, and the inputs that flip the ranking with their flip values"
+  - "[ ] CR2. Ranges: low / base / high and a guarantor on every input; exact range of every total by vertex enumeration over closed STEP cells (each end with that cell's step count, one-sided limits included), only where code verifies every input enters through one monotone form (else range_not_exact, cap 2^14); dominance, and the inputs that flip the ranking with their flip values"
   - "[ ] CR3. Monte Carlo (ESTIMATED): PERT by default, triangular or a stated distribution; declared rank correlations by Iman-Conover, a non-PSD matrix refused; PCG64 under the run's seed; five-stream convergence check; P(A cheaper than B) with its standard error and the 90 % interval of the difference"
   - "[ ] CR4. Global sensitivity (ESTIMATED): Sobol first-order and total (Jansen, bootstrap intervals) for independent inputs, partial rank correlation when inputs are correlated, beside the tornado"
   - "[ ] CR5. Backtested forecasts (ESTIMATED): naive, seasonal naive, drift and Holt-Winters additive; rolling-origin backtest scoring the candidate and the baseline on the same held-out origins; a forecast whose held-out MAE is not strictly below the baseline's not used, said in words; MASE and MAPE reported, not the gate; its errors become the volume input's range and distribution"
@@ -341,9 +341,15 @@ clock.
 - `totals`: per line and in sum, per year.
 - `break_even(a, b, driver, low, high)`: every crossing in the range.
   - **When it is exact:** the driver enters the difference through one monotone form (itself, its
-    reciprocal, an annuity or a discount factor). The difference is then α + β·g(driver) on each piece
-    between the `STEP` breakpoints, solved in closed form for the driver and its reciprocal, and by
-    bisection to a stated `Decimal` tolerance for a rate.
+    reciprocal, an annuity or a discount factor). The difference is then α + β·g(driver) on each
+    `STEP` cell, with that cell's step count held fixed. It is solved in closed form for the driver and
+    its reciprocal, and by bisection to a stated `Decimal` tolerance for a rate.
+  - A jump at a breakpoint that changes the sign is reported as a crossing at the breakpoint, with its
+    side named.
+  - `curve(a, b, driver, low, high)`: the chart's points, each a stored `CALCULATED` ref. They are the
+    exact totals at a fixed grid of 64 evenly spaced points, plus both one-sided values at every `STEP`
+    breakpoint, plus every crossing. A curve through a reciprocal or rate form is therefore drawn as the
+    function is, and its crossings lie on the drawn lines.
   - **When it is refused:** a driver entering in two forms (x and 1/x) is refused
     `break_even_not_exact`, naming it.
   - Otherwise the result is `none_in_range` or `identical`.
@@ -375,12 +381,15 @@ against it.
 
 - The comparison: each scenario's yearly total stacked by line.
 - Cumulative cost over the stated years, with the payback year marked.
-- Break-even: two totals across the range, drawn through the exact values at the ends and every `STEP`
-  breakpoint, each crossing marked.
+- Break-even: two totals across the range, drawn through CM2's `curve` points (the fixed grid, both
+  sides of every `STEP` jump, every crossing), the jumps drawn as jumps and each crossing marked.
 - The tornado.
 
-**Tests:** the series are the artifact's refs; the break-even points are the breakpoints, with no
-sampled value.
+**Tests:**
+- the series are the artifact's refs, every point an exact evaluation;
+- for A(x) = 1/x against B(x) = 0.5 on [1, 4], the drawn curves cross at x = 2, the marked crossing,
+  not at x = 3, where the straight endpoint line would put it;
+- a `STEP` jump is drawn with both one-sided values.
 
 ### CM5. Cost scenarios: report blocks
 
@@ -440,7 +449,10 @@ outlier is flagged and kept unless excluded; 12 months say seasonality cannot be
 - Each input carries low, base and high, and a guarantor (a member, or a client contact recorded by a
   member); low ≤ base ≤ high or refused by name.
 - The exact range of every total and of each difference, by vertex enumeration over the low/high grid
-  refined at `STEP` breakpoints.
+  cut into closed `STEP` cells. Each end of a cell is evaluated with that cell's step count, so a cell's
+  left end gives the one-sided limit. An extreme reached only at an open end is reported as a limit.
+- Dominance needs A strictly below B at every vertex of every closed cell. A difference whose infimum
+  is 0 at an open end is not certified.
 - **The exactness check runs first.** Every input must enter the compared quantity through one and the
   same monotone form (itself, its reciprocal, an annuity or a discount factor), at most once per term,
   and a `STEP` driver must be a single input. The quantity is then multilinear in the transformed
@@ -451,7 +463,9 @@ outlier is flagged and kept unless excluded; 12 months say seasonality cannot be
   flip value, and the vertices where B wins.
 
 **Tests:** a hand-computed three-input case; B = x + 1/x against a fixed 2.25 on x in [0.5, 2] refused `range_not_exact` (its minimum 2 lies inside the range), never certified as dominated; a `STEP` breakpoint inside a range found; a flip value equal
-to the one-way break-even; the cap refused by name.
+to the one-way break-even; the cap refused by name; A(x) = 9.05 + ceil(x) against B(x) = 10 + x on
+[0.1, 1.1] not certified as dominated (B is cheaper just above x = 1, which the cell (1, 1.1] with step 2
+shows).
 
 ### CR3. Monte Carlo (`domain/business_model/montecarlo.py`)
 
@@ -640,7 +654,7 @@ checked against published worked examples:
 | D2 | Break-even, cumulative cost and payback (CM2) | exact crossings where the driver enters through one monotone form, refused by name otherwise; cumulative cost with capital in year 0, no growth or discounting; payback where the cumulative curves cross | a hand-computed fixture |
 | D3 | NPV and discounted payback (CM7) | each scenario's costs over the stated horizon, discounted at a stated rate, capital in year 0 | a published NPV worked example |
 | D4 | Data checks, deterministic part (CR1) | reconciliation of declared pairs and stated totals, period coverage, the currency check, missing stays missing | a fictional pair of files differing by a known share |
-| D5 | Ranges and dominance (CR2) | low ≤ base ≤ high with a guarantor; the exactness check (each input through one monotone form); vertex enumeration refined at `STEP` breakpoints; dominance and flip values | a hand-computed three-input case |
+| D5 | Ranges and dominance (CR2) | low ≤ base ≤ high with a guarantor; the exactness check (each input through one monotone form); vertex enumeration over closed `STEP` cells, one-sided limits included; dominance and flip values | a hand-computed three-input case |
 
 **Later, in the same form:** statements and the chart-of-accounts mapping (ACC1-ACC2), ratios (ACC3),
 variance (ACC4), the IRR root rule (FIN2), price elasticity (FIN5) and fitted safety stock (OR1).
