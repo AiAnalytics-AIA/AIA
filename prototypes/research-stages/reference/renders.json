@@ -203,8 +203,8 @@
   "board": "Z0Flow.dc.html",
   "title": "Z0 · Zadání se dvěma cestami: průchod",
   "w": 1440,
-  "h": 1420,
-  "text_chars": 3510,
+  "h": 1500,
+  "text_chars": 3887,
   "errors": [],
   "failed_requests": [],
   "image": "20-Z0Flow.webp"
@@ -234,7 +234,7 @@
   "title": "Z3 · Zadání: rozhodnutí a pravidlo",
   "w": 1440,
   "h": 1500,
-  "text_chars": 2797,
+  "text_chars": 2965,
   "errors": [],
   "failed_requests": [],
   "image": "23-Z3Decision.webp"
@@ -244,7 +244,7 @@
   "title": "Z4 · Zadání: cesta Výzkum",
   "w": 1440,
   "h": 2100,
-  "text_chars": 4748,
+  "text_chars": 4755,
   "errors": [],
   "failed_requests": [],
   "image": "24-Z4Research.webp"
@@ -263,8 +263,8 @@
   "board": "Z6Both.dc.html",
   "title": "Z6 · Zadání: obojí",
   "w": 1440,
-  "h": 1640,
-  "text_chars": 2754,
+  "h": 1720,
+  "text_chars": 3007,
   "errors": [],
   "failed_requests": [],
   "image": "26-Z6Both.webp"
@@ -274,7 +274,7 @@
   "title": "Z7 · Zadání: připravenost a předání",
   "w": 1440,
   "h": 1280,
-  "text_chars": 2696,
+  "text_chars": 2830,
   "errors": [],
   "failed_requests": [],
   "image": "27-Z7Ready.webp"

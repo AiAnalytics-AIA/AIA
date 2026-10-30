@@ -1,4 +1,4 @@
-# AIA Výzkumné kroky – prototyp, 29 Oct 2026
+# AIA Výzkumné kroky – prototyp, 30 Oct 2026
 
 A snapshot of the research-stages Design canvas, for use from another account. It is design reference,
 not product code: nothing here is imported by `apps/web`, and every client, study, person and number is
@@ -8,11 +8,30 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 14, artifact version `1793313415-9bdc` |
-| Exported | 29 Oct 2026 |
+| Version | version 20, artifact version `1793348891-11ce` |
+| Exported | 30 Oct 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in version 20 (30 Oct)
+
+**The stage navigator on the Zadání boards** (the product owner, 30 Oct, relayed by the PM coordinator). Only
+`Z0`–`Z7` changed; every other board, stylesheet and asset is byte-identical to version 14.
+
+- **Zadání is the first phase of its own on both bars**, in a fixed 180 px column, so it stays in the same place
+  whatever the path.
+- **The Výzkum bar** reads Zadání | Návrh výzkumu: Návrh, Dotazník | Vymezení vzorku | Sběr | Evidence |
+  Interpretace | Předání.
+- **`Z3Decision` and `Z7Ready` show their bar as `Z4`/`Z5` do** and say which path the example follows. On `Z7`
+  the bar, the study and the hand-off follow its path switch.
+- **`Z6Both` has a Studie switch** between the two linked studies (Model · sklad / Výzkum · zákazníci), each
+  with its own header and bar.
+- **`Z0Flow` notes** that the regrouping is proposed for the app's navigator too (research-lead-workbench 35)
+  and waits on D1–D7.
+
+The `Z0Flow` and `Z6Both` frames grew to 1500 and 1720 px. `canvas.json` also carries the move of
+`CardsF.dc.html` made on the canvas (now at x 3080, y −2600). Every render has no new script error.
 
 ## What changed in version 14 (29 Oct)
 
