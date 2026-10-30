@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Zadání – triáž</title>
+<script src="./support.js"></script>
+<script src="assets/thinking-orbs.js"></script>
+<link rel="stylesheet" href="assets/aia-core.css"><link rel="stylesheet" href="assets/aia-study.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Source+Serif+4:wght@600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
+.sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zlead{display:flex;flex-direction:column;gap:2px}
+.zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
+.zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
+.zrow>.zv{min-width:0}
+.zgrid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.zgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.zcard{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.zcard.on{border-color:var(--signal);box-shadow:inset 0 0 0 1px var(--signal);background:var(--stint)}
+.zcard h3{margin:0;font-size:14px;font-weight:600}
+.zcard p{margin:0;font-size:13px}
+.zq{border:1px solid var(--border);border-radius:8px;background:var(--raised);padding:10px 12px;display:flex;gap:10px;font-size:13px}
+.zq .n{font-family:var(--mono);font-size:12px;color:var(--faint);flex:none;width:18px}
+.zq .why{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.zflag{display:flex;flex-direction:column;gap:6px;border:1px solid var(--you);background:var(--youwash);border-radius:6px;padding:10px 12px;font-size:13px}
+.zflag .was{color:var(--faint);text-decoration:line-through}
+.zword{background:var(--youwash);box-shadow:inset 0 -2px 0 var(--you);padding:0 2px}
+.zt{width:100%;border-collapse:collapse;font-size:13px}
+.zt th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);background:var(--sunken);padding:8px 10px;border-bottom:1px solid var(--border)}
+.zt td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+.zt tr.miss td{background:var(--youwash)}
+.zt td.num{font-family:var(--mono);font-size:12px;white-space:nowrap}
+.zarrow{color:var(--faint);font-size:12px;display:flex;align-items:center;gap:6px}
+.zhand{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;background:var(--surface);border:1px dashed var(--strong);font-size:13px}
+.zm{box-shadow:inset 3px 0 0 var(--shviolet)}
+.ztag-m{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-m::before{content:"";width:7px;height:7px;transform:rotate(45deg);background:var(--ink)}
+.ztag-r{display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 6px;border-radius:6px;background:var(--sunken);color:var(--ink);font-size:11px;font-weight:500}
+.ztag-r::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--signal)}
+.zseq{display:flex;align-items:center;gap:8px;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);font-size:12px;color:var(--muted)}
+.zseq a{font-weight:500}
+.zstate{display:flex;align-items:center;gap:10px;padding:8px 24px;background:var(--sunken);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.zbox{font-family:inherit;width:100%;box-sizing:border-box;min-height:120px;font-size:15px;line-height:22px;padding:12px 14px}
+.zdrawer{width:360px;flex:none;border-left:1px solid var(--border);background:var(--raised);display:flex;flex-direction:column}
+.zdrawer .dh{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:14px}
+.zdrawer .db{padding:14px 16px;display:flex;flex-direction:column;gap:12px;font-size:13px}
+.zrub{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.zrub>div{display:grid;grid-template-columns:22px 28px minmax(0,1fr);gap:8px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:start;font-size:13px;background:var(--raised)}
+.zrub>div:last-child{border-bottom:0}
+.zrub>div.miss{background:var(--youwash)}
+.zrub .i{font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
+.zrub .how{display:block;font-size:12px;color:var(--muted)}
+</style>
+</helmet>
+<div class="aia wb" data-theme="{{theme}}" data-phase="navrh">
+  <nav class="asb" aria-label="Hlavní navigace">
+    <a class="as-brand" href="#"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="30" height="30" aria-hidden="true"><rect width="40" height="40" rx="7.2" fill="#0f1215"></rect><circle cx="8" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="8" r="2.3" fill="#6ac5e8"></circle><circle cx="26" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="8" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="14" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="14" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="14" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="20" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="26" cy="20" r="2.3" fill="#ece9e4"></circle><circle cx="32" cy="20" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="8" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="26" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="26" r="2.3" fill="#ece9e4"></circle><circle cx="8" cy="32" r="2.3" fill="#ece9e4"></circle><circle cx="14" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="20" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="26" cy="32" r="0.9" fill="#ece9e4" fill-opacity="0.35"></circle><circle cx="32" cy="32" r="2.3" fill="#ece9e4"></circle></svg><span class="as-l"><b>AI Analytics</b><small>Research Studio</small></span></a>
+    <div class="as-sec" aria-hidden="true">Pracovní prostor</div>
+    <ul class="as-nav">
+      <li><a href="Main.dc.html" class="on" aria-current="page"><span class="as-tile blue"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 13.5h11M4 13.5v-10h5v10M9 6.5h3v7M6 5.5h1M6 8h1M6 10.5h1"/></svg></span><span class="as-l">Klienti</span></a></li>
+      <li><a href="#"><span class="as-tile green"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM2 8h12M8 2c1.8 1.8 2.5 3.8 2.5 6S9.8 12.2 8 14M8 2C6.2 3.8 5.5 5.8 5.5 8s.7 4.2 2.5 6"/></svg></span><span class="as-l">Společenská inteligence</span></a></li>
+      
+      <li><a href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile slate"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4"/></svg></span><span class="as-l">Nastavení</span></a></li>
+    </ul>
+    <div class="as-gap"></div>
+    <a class="as-lead" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener"><span class="as-tile"><span style="width: 18px; height: 18px; display: inline-grid"><svg viewBox="0 0 32 32" role="img" aria-label="Lissajous" style="width:100%;height:100%;display:block;overflow:visible"><path d="M27.0 16.0 L26.9 16.9 L26.7 17.7 L26.3 18.6 L25.8 19.4 L25.1 20.2 L24.4 21.0 L23.5 21.7 L22.5 22.5 L21.4 23.1 L20.2 23.8 L19.0 24.4 L17.7 24.9 L16.4 25.4 L15.1 25.8 L13.9 26.2 L12.6 26.5 L11.4 26.7 L10.3 26.9 L9.2 27.0 L8.2 27.0 L7.4 27.0 L6.6 26.9 L6.0 26.7 L5.5 26.5 L5.2 26.2 L5.0 25.8 L5.0 25.4 L5.1 24.9 L5.4 24.4 L5.8 23.8 L6.4 23.1 L7.1 22.5 L7.9 21.7 L8.9 21.0 L9.9 20.2 L11.0 19.4 L12.2 18.6 L13.4 17.7 L14.7 16.9 L16.0 16.0 L17.3 15.1 L18.6 14.3 L19.8 13.4 L21.0 12.6 L22.1 11.8 L23.1 11.0 L24.1 10.3 L24.9 9.5 L25.6 8.9 L26.2 8.2 L26.6 7.6 L26.9 7.1 L27.0 6.6 L27.0 6.2 L26.8 5.8 L26.5 5.5 L26.0 5.3 L25.4 5.1 L24.6 5.0 L23.8 5.0 L22.8 5.0 L21.7 5.1 L20.6 5.3 L19.4 5.5 L18.1 5.8 L16.9 6.2 L15.6 6.6 L14.3 7.1 L13.0 7.6 L11.8 8.2 L10.6 8.9 L9.5 9.5 L8.5 10.3 L7.6 11.0 L6.9 11.8 L6.2 12.6 L5.7 13.4 L5.3 14.3 L5.1 15.1 L5.0 16.0 L5.1 16.9 L5.3 17.7 L5.7 18.6 L6.2 19.4 L6.9 20.2 L7.6 21.0 L8.5 21.7 L9.5 22.5 L10.6 23.1 L11.8 23.8 L13.0 24.4 L14.3 24.9 L15.6 25.4 L16.9 25.8 L18.1 26.2 L19.4 26.5 L20.6 26.7 L21.7 26.9 L22.8 27.0 L23.8 27.0 L24.6 27.0 L25.4 26.9 L26.0 26.7 L26.5 26.5 L26.8 26.2 L27.0 25.8 L27.0 25.4 L26.9 24.9 L26.6 24.4 L26.2 23.8 L25.6 23.1 L24.9 22.5 L24.1 21.7 L23.1 21.0 L22.1 20.2 L21.0 19.4 L19.8 18.6 L18.6 17.7 L17.3 16.9 L16.0 16.0 L14.7 15.1 L13.4 14.3 L12.2 13.4 L11.0 12.6 L9.9 11.8 L8.9 11.0 L7.9 10.3 L7.1 9.5 L6.4 8.9 L5.8 8.2 L5.4 7.6 L5.1 7.1 L5.0 6.6 L5.0 6.2 L5.2 5.8 L5.5 5.5 L6.0 5.3 L6.6 5.1 L7.4 5.0 L8.2 5.0 L9.2 5.0 L10.3 5.1 L11.4 5.3 L12.6 5.5 L13.9 5.8 L15.1 6.2 L16.4 6.6 L17.7 7.1 L19.0 7.6 L20.2 8.2 L21.4 8.9 L22.5 9.5 L23.5 10.3 L24.4 11.0 L25.1 11.8 L25.8 12.6 L26.3 13.4 L26.7 14.3 L26.9 15.1 L27.0 16.0" fill="none" stroke="currentColor" stroke-opacity=".32" stroke-width="1.3"/><circle cx="27" cy="16" r="2.40" fill="var(--ai)" fill-opacity="1.00"></circle></svg></span></span><span class="as-l">Můj Vedoucí</span></a>
+    <div class="as-foot"><span class="as-av" aria-hidden="true">JM</span><span class="as-l" style="min-width: 0; flex: 1"><b title="Jana Malá">Jana Malá</b><a href="#">Účet a nastavení</a></span><button class="as-out" type="button" aria-label="Odhlásit se" title="Odhlásit se"><svg width="15" height="15" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><path d="M120,216a8,8,0,0,1-8,8H48a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,0,16H56V208h56A8,8,0,0,1,120,216Zm109.66-93.66-40-40a8,8,0,0,0-11.32,11.32L204.69,120H112a8,8,0,0,0,0,16h92.69l-26.35,26.34a8,8,0,0,0,11.32,11.32l40-40A8,8,0,0,0,229.66,122.34Z"/></svg></button></div>
+  </nav>
+
+  <div class="main">
+    <header class="top"><span class="cl" aria-hidden="true">DV</span><div><div class="crumb">Klienti / Domácí dílna Vrba</div><div class="ttl">Sklad, nebo externí logistika?</div></div><span class="tag">cesta: navrženo obojí</span><span class="grow"></span><span class="meter"><i class="ph ph-wallet"></i>Rozpočet studie<span class="bar"><i style="width: 0%"></i></span>0,00 / 50,00 USD</span><a class="btn quiet sm" href="#"><i class="ph ph-squares-four s"></i>Přehled studie</a></header>
+    <nav class="snav" aria-label="Kroky studie" style="grid-template-columns: 1fr 5fr"><div class="phz"><div class="phl">Zadání</div><div class="sts"><a class="sg t-you on" href="#" aria-current="step"><span class="nm">Zadání</span><span class="sw"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span>Čeká na vás</span></a></div></div><div class="phz"><div class="phl">Další kroky</div><div class="sts"><a class="sg t-none" href="#"><span class="nm" style="color: var(--faint)">Podle cesty</span><span class="sw" style="color: var(--faint); font-weight: 400">Výzkum: Návrh … Zpráva · Model: Data … Zpráva</span></a></div></div></nav>
+    
+    <div class="split">
+<aside class="lead cfz" aria-label="Vedoucí výzkumu">
+  <div class="cfh"><span class="cfava" aria-hidden="true"><sc-if value="{{busy}}" hint-placeholder-val="{{ false }}"><thinking-orb size="36" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{idle}}" hint-placeholder-val="{{ true }}"><span class="cfmk"></span></sc-if></span><div class="grow"><b style="font-size: 15px">Ada</b><div class="cfst">Připravena</div></div><a class="cfib" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener" aria-label="Můj Vedoucí: značka a nastavení" title="Můj Vedoucí"><i class="ph ph-sliders-horizontal"></i></a></div>
+  <div class="conv">
+<div class="day">Dnes</div><div class="me"><span class="mfile"><i class="ph ph-file-text s"></i>objednavky_2025.xlsx · faktury_3PL_2025.pdf · nabidka_hala.pdf</span>Popis je v Zadání, přikládám tři soubory.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:07 · četla popis a 3 soubory</div><p>Rozhoduje se o penězích a kapacitě skladu: to spočítá <b>model</b> z vašich faktur, objednávek a nabídky. Vaše obava o zákazníky je ale otázka na lidi: kolik jich odradí delší doručení. Navrhuji proto <b>obojí</b>, jako dvě propojené studie.</p><p>Zadání jsem rozepsala do 8 částí; jsou nahoře jako návrh. Tři věci se musím zeptat, protože nejvíc mění výsledek.</p><div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Cesta</button><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Otázky</button></div></div></div><sc-if value="{{answered}}" hint-placeholder-val="{{ false }}"><div class="me">Nájem. Koupi haly neřešíme.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:09</div><p>Díky. Počítám s nájmem: investice je jen vybavení, 14,0 mil. Kč podle nabídky na str. 4. Doplnila jsem to do návrhu hranice modelu.</p></div></div></sc-if>
+  </div>
+  <div class="cfdock"><div class="cfcomp"><div class="cfrow"><button class="cfplus" type="button" aria-label="Akce, podklady a kontext"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled><i class="ph ph-paper-plane-right"></i></button></div></div>
+  <div class="cfctx"><i class="ph ph-eye s"></i>Vidí: Zadání, 3 soubory</div></div>
+</aside>
+      <main class="art" aria-label="Zadání">
+<div class="ahd"><h1>Zadání</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><span class="cap" style="margin: 0">{{pathWord}}</span><a class="btn primary sm" href="Z3Decision.dc.html">Rozhodnutí<i class="ph ph-caret-right s"></i></a></div>
+<div class="abody">
+  <section class="sec" id="z2-path"><div class="sh"><span class="num">00</span><h2>Cesta studie</h2><span class="grow"></span><span class="cap">vyberete vy · změnit jde až do předání</span></div>
+    <div class="sb"><div class="zgrid3" role="radiogroup" aria-label="Cesta studie">
+      <sc-for list="{{paths}}" as="p" hint-placeholder-count="3"><button class="{{p.cls}}" type="button" role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="text-align: left; font: inherit; color: inherit; cursor: pointer">
+        <span class="row" style="gap: 8px"><span class="{{p.tag}}">{{p.l}}</span><span class="grow"></span><sc-if value="{{p.lead}}" hint-placeholder-val="{{ false }}"><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhuje Ada</span></sc-if></span>
+        <h3>{{p.t}}</h3><p class="muted">{{p.d}}</p><p class="cap" style="margin: 0">{{p.st}}</p></button></sc-for>
+    </div>
+    <div class="sn sig"><i class="ph ph-sparkle" style="margin-top: 2px"></i><div><b>Proč obojí:</b> náklady skladu a dopravy jsou čísla z vašich souborů a spočítá je kód; kolik zákazníků odradí doručení o den delší, víme jen od lidí. Výsledek výzkumu pak vstoupí do modelu jako předpoklad, až ho přijmete.</div></div></div></section>
+
+  <div class="edits" id="z2-prop" role="region" aria-label="Návrh Zadání od Ady">
+    <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>Návrh Zadání: {{propN}} částí</b> <span class="muted">· z popisu a 3 souborů; každá cituje, odkud je</span></div>
+      <button class="btn quiet sm" type="button">Odložit</button><button class="btn primary sm" type="button" onClick="{{accept}}"><i class="ph ph-check s"></i><span>Přijmout vybrané ({{sel}})</span></button></div>
+    <sc-for list="{{props}}" as="p" hint-placeholder-count="8">
+      <div class="chg"><label class="row" style="align-items: flex-start"><input type="checkbox" checked="{{p.on}}" onChange="{{p.toggle}}" style="margin-top: 3px"><span class="grow"><b>{{p.where}}</b><span style="display: block">{{p.t}}</span><span class="why">{{p.why}}</span></span><span class="{{p.tagc}}">{{p.kind}}</span></label></div>
+    </sc-for>
+  </div>
+  <sc-if value="{{accepted}}" hint-placeholder-val="{{ false }}"><div class="sn ok"><span class="stg done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="grow">Přijato {{sel}} částí. Ostatní zůstávají v návrhu, dokud je nezahodíte.</div><button class="btn quiet sm" type="button" onClick="{{undo}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></div></sc-if>
+
+  <section class="sec" id="z2-q"><div class="sh"><span class="num">01</span><h2>Ada se ptá</h2><span class="grow"></span><span class="cap">nejvýš 3 · seřazeno podle toho, jak moc odpověď změní návrh</span></div>
+    <div class="sb"><sc-for list="{{qs}}" as="q" hint-placeholder-count="3"><div class="zq"><span class="n">{{q.n}}</span><div class="grow">{{q.t}}<span class="why">{{q.why}}</span>
+      <sc-if value="{{q.open}}" hint-placeholder-val="{{ true }}"><div class="row" style="gap: 6px; margin-top: 8px"><sc-for list="{{q.opts}}" as="o" hint-placeholder-count="2"><button class="chip" type="button" onClick="{{o.pick}}">{{o.l}}</button></sc-for><span class="cap" style="margin: 0">nebo odpovězte v chatu</span></div></sc-if>
+      <sc-if value="{{q.done}}" hint-placeholder-val="{{ false }}"><div class="cap" style="margin-top: 6px"><span class="stg sm done" aria-hidden="true" style="vertical-align: -3px"><i class="ph ph-check"></i></span> {{q.ans}}</div></sc-if>
+    </div></div></sc-for></div></section>
+</div>
+      </main>
+    </div>
+    <div class="zseq" role="navigation" aria-label="Průchod návrhem Zadání"><a href="Z1Start.dc.html"><i class="ph ph-caret-left s"></i>Začátek</a><span class="grow" style="text-align: center">Zadání se dvěma cestami · <b>Z2 Triáž</b> · <a href="Z0Flow.dc.html">celý průchod</a></span><a href="Z3Decision.dc.html">Rozhodnutí<i class="ph ph-caret-right s"></i></a></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1780}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { path: 'both', off: {}, accepted: false, ans: null }; }
+renderVals() {
+  const s = this.state;
+  const P = [
+    ['research', 'ztag-r', 'Výzkum', 'Co lidé vnímají a udělají', 'AI respondenti z populace ČR odpoví na dotazník. Kroky Návrh … Zpráva.', 'Tady: jen dopad delšího doručení na zákazníky.'],
+    ['model', 'ztag-m', 'Model', 'Kolik co stojí a kdy se vrátí', 'Kód spočítá scénáře z vašich čísel; každý předpoklad přijme člověk. Kroky Data, Předpoklady, Model, Výsledky, Zpráva.', 'Tady: náklady možností A, B, C na 7 let.'],
+    ['both', 'ztag-r', 'Obojí', 'Dvě propojené studie', 'Jedno Zadání založí model i výzkum. Výsledek výzkumu vstoupí do modelu jako předpoklad.', 'Tady: náklady a ztráta zákazníků dohromady.']
+  ];
+  const D = [
+    ['Rozhodnutí', 'Rozšířit sklad o 2 000 m², nebo dál platit externí logistiku za uskladnění a rozvoz.', 'z popisu', 'společné'],
+    ['Kdo a do kdy', 'Ředitel provozu s vedením, do 15. 12. 2026 (rozpočet 2027).', 'z popisu: „do poloviny prosince“', 'společné'],
+    ['Možnosti', 'A · zůstat u externí logistiky (nic neměnit) · B · rozšířit sklad · C · rozšířit sklad a objednávat po větších dávkách', 'A a B z popisu; C z nabídky, str. 5 (sleva při odběru nad 40 palet)', 'společné'],
+    ['Rozhodovací pravidlo', 'Zvolíme B nebo C, když roční náklady klesnou „výrazně“ proti A.', 'z popisu · práh chybí, viz otázka 2', 'společné'],
+    ['Cíle', 'C1 · Porovnat celkové roční náklady A, B a C na 7 let. C2 · Zjistit, kolik zákazníků odradí doručení o 1 den delší.', 'C1 z popisu; C2 z obavy o zákazníky', 'společné'],
+    ['Co už víme', 'Externí logistika stála v roce 2025 celkem 31,4 mil. Kč; 412 380 objednávek.', 'faktury_3PL_2025.pdf, souhrn str. 38 · objednavky_2025.xlsx', 'společné'],
+    ['Model · hranice a data', 'V modelu nájem, energie, personál skladu, rozvoz, poplatky 3PL, vybavení. Mimo daně a odpisy.', 'nabidka_hala.pdf str. 2–4; daně podle zvyklosti mimo, potvrďte', 'Model'],
+    ['Výzkum · co potřebujeme vědět', 'Kolik zákazníků by čekalo o den déle, při jaké hodnotě nákupu, a co by udělali místo toho.', 'z obavy v popisu', 'Výzkum']
+  ];
+  const on = (i) => !s.off[i];
+  const sel = D.filter((_, i) => on(i)).length;
+  const A = ['Nájem. Koupi haly neřešíme.', 'Aspoň o 10 % a návratnost do 4 let.', 'Vedení: jedno číslo s rozsahem a doporučení.'];
+  const Q = [
+    ['Počítat s nájmem haly, nebo s koupí? Nabídka uvádí obojí.', 'Mění investici zhruba o 38 mil. Kč, a tím dobu návratnosti i doporučení.', ['Nájem', 'Koupě', 'Obojí jako scénáře']],
+    ['„Výrazně levněji“ znamená kolik procent ročně proti dnešku?', 'Bez čísla nejde napsat rozhodovací pravidlo; zpráva by nemohla říct, kterou možnost data podporují.', ['5 %', '10 %', 'Napíšu vlastní']],
+    ['Kdo bude výsledek číst: vedení, nebo provoz?', 'Určí, jestli zpráva vede jedním číslem s rozsahem, nebo rozpisem po nákladových položkách.', ['Vedení', 'Provoz']]
+  ];
+  return {
+    theme: this.props.theme ?? 'light', busy: false, idle: true,
+    paths: P.map(([k, tag, l, t, d, st]) => ({ l, t, d, st, tag, lead: k === 'both', on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
+    pathWord: 'Cesta: ' + { research: 'Výzkum', model: 'Model', both: 'Obojí' }[s.path],
+    props: D.map(([where, t, why, kind], i) => ({ where, t, why: 'Zdroj: ' + why, kind, tagc: kind === 'Model' ? 'ztag-m' : kind === 'Výzkum' ? 'ztag-r' : 'tag', on: on(i), toggle: () => this.setState({ off: { ...s.off, [i]: on(i) } }) })),
+    propN: D.length, sel, accepted: s.accepted, accept: () => this.setState({ accepted: true }), undo: () => this.setState({ accepted: false }),
+    answered: s.ans === 0,
+    qs: Q.map(([t, why, opts], i) => ({ n: String(i + 1), t, why, open: !(s.ans === 0 && i === 0), done: s.ans === 0 && i === 0, ans: A[i], opts: opts.map((l) => ({ l, pick: () => { if (i === 0) this.setState({ ans: 0 }); } })) }))
+  };
+}
+}
+</script>
+</body>
+</html>

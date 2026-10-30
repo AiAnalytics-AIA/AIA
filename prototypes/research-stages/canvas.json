@@ -153,6 +153,86 @@
       "w": 1440,
       "x": 4640,
       "y": 0
+    },
+    "Z0Flow.dc.html": {
+      "h": 1420,
+      "is_interactive": true,
+      "title": "Z0 · Zadání se dvěma cestami: průchod",
+      "w": 1440,
+      "x": 0,
+      "y": 20600
+    },
+    "Z1Start.dc.html": {
+      "h": 1260,
+      "is_interactive": true,
+      "title": "Z1 · Zadání: začátek",
+      "w": 1440,
+      "x": 1520,
+      "y": 20600
+    },
+    "Z2Triage.dc.html": {
+      "h": 1780,
+      "is_interactive": true,
+      "title": "Z2 · Zadání: triáž",
+      "w": 1440,
+      "x": 3040,
+      "y": 20600
+    },
+    "Z3Decision.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "title": "Z3 · Zadání: rozhodnutí a pravidlo",
+      "w": 1440,
+      "x": 4560,
+      "y": 20600
+    },
+    "Z4Research.dc.html": {
+      "h": 2100,
+      "is_interactive": true,
+      "title": "Z4 · Zadání: cesta Výzkum",
+      "w": 1440,
+      "x": 0,
+      "y": 22500
+    },
+    "Z5Model.dc.html": {
+      "h": 2420,
+      "is_interactive": true,
+      "title": "Z5 · Zadání: cesta Model",
+      "w": 1440,
+      "x": 1520,
+      "y": 22500
+    },
+    "Z6Both.dc.html": {
+      "h": 1640,
+      "is_interactive": true,
+      "title": "Z6 · Zadání: obojí",
+      "w": 1440,
+      "x": 3040,
+      "y": 22500
+    },
+    "Z7Ready.dc.html": {
+      "h": 1280,
+      "is_interactive": true,
+      "title": "Z7 · Zadání: připravenost a předání",
+      "w": 1440,
+      "x": 4560,
+      "y": 22500
+    },
+    "Z8aPhone.dc.html": {
+      "h": 920,
+      "is_interactive": true,
+      "title": "Z8a · Telefon: začátek",
+      "w": 390,
+      "x": 6080,
+      "y": 20600
+    },
+    "Z8bPhone.dc.html": {
+      "h": 1110,
+      "is_interactive": true,
+      "title": "Z8b · Telefon: triáž",
+      "w": 390,
+      "x": 6550,
+      "y": 20600
     }
   },
   "createdOnFiles": {
@@ -203,6 +283,14 @@
       "w": 240,
       "x": 0,
       "y": 13100
+    },
+    "t6": {
+      "kind": "title1",
+      "maxW": 6940,
+      "text": "Zadání se dvěma cestami · návrh 29. 10.",
+      "w": 240,
+      "x": 0,
+      "y": 20300
     }
   },
   "order": [
@@ -224,7 +312,17 @@
     "Report.dc.html",
     "ReportEditor.dc.html",
     "ChatF.dc.html",
-    "Marks.dc.html"
+    "Marks.dc.html",
+    "Z0Flow.dc.html",
+    "Z1Start.dc.html",
+    "Z2Triage.dc.html",
+    "Z3Decision.dc.html",
+    "Z8aPhone.dc.html",
+    "Z8bPhone.dc.html",
+    "Z4Research.dc.html",
+    "Z5Model.dc.html",
+    "Z6Both.dc.html",
+    "Z7Ready.dc.html"
   ],
   "pages": [],
   "title": "AIA Výzkumné kroky – prototyp"
