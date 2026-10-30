@@ -92,7 +92,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
     <div class="sb"><div class="zgrid3" role="radiogroup" aria-label="Cesta studie">
       <sc-for list="{{paths}}" as="p" hint-placeholder-count="3"><button class="{{p.cls}}" type="button" role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="text-align: left; font: inherit; color: inherit; cursor: pointer">
         <span class="row" style="gap: 8px"><span class="{{p.tag}}">{{p.l}}</span><span class="grow"></span><sc-if value="{{p.lead}}" hint-placeholder-val="{{ false }}"><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhuje Ada</span></sc-if></span>
-        <h3>{{p.t}}</h3><p class="muted">{{p.d}}</p><p class="cap" style="margin: 0">{{p.st}}</p></button></sc-for>
+        <h3>{{p.t}}</h3></button></sc-for>
     </div>
     <div class="sn sig"><i class="ph ph-sparkle" style="margin-top: 2px"></i><div><b>Proč obojí:</b> náklady skladu a dopravy jsou čísla z vašich souborů a spočítá je kód; kolik zákazníků odradí doručení o den delší, víme jen od lidí. Výsledek výzkumu pak vstoupí do modelu jako předpoklad, až ho přijmete.</div></div></div></section>
 
@@ -117,15 +117,15 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1780}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1640}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { path: 'both', off: {}, accepted: false, ans: null }; }
 renderVals() {
   const s = this.state;
   const P = [
-    ['research', 'ztag-r', 'Výzkum', 'Co lidé vnímají a udělají', 'AI respondenti z populace ČR odpoví na dotazník. Kroky Návrh … Zpráva.', 'Tady: jen dopad delšího doručení na zákazníky.'],
-    ['model', 'ztag-m', 'Model', 'Kolik co stojí a kdy se vrátí', 'Kód spočítá scénáře z vašich čísel; každý předpoklad přijme člověk. Kroky Data, Předpoklady, Model, Výsledky, Zpráva.', 'Tady: náklady možností A, B, C na 7 let.'],
-    ['both', 'ztag-r', 'Obojí', 'Dvě propojené studie', 'Jedno Zadání založí model i výzkum. Výsledek výzkumu vstoupí do modelu jako předpoklad.', 'Tady: náklady a ztráta zákazníků dohromady.']
+    ['research', 'ztag-r', 'Výzkum', 'Co lidé vnímají a udělají'],
+    ['model', 'ztag-m', 'Model', 'Kolik co stojí'],
+    ['both', 'ztag-r', 'Obojí', 'Náklady i lidé']
   ];
   const D = [
     ['Rozhodnutí', 'Rozšířit sklad o 2 000 m², nebo dál platit externí logistiku za uskladnění a rozvoz.', 'z popisu', 'společné'],
@@ -147,7 +147,7 @@ renderVals() {
   ];
   return {
     theme: this.props.theme ?? 'light', busy: false, idle: true,
-    paths: P.map(([k, tag, l, t, d, st]) => ({ l, t, d, st, tag, lead: k === 'both', on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
+    paths: P.map(([k, tag, l, t]) => ({ l, t, tag, lead: k === 'both', on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
     pathWord: 'Cesta: ' + { research: 'Výzkum', model: 'Model', both: 'Obojí' }[s.path],
     props: D.map(([where, t, why, kind], i) => ({ where, t, why: 'Zdroj: ' + why, kind, tagc: kind === 'Model' ? 'ztag-m' : kind === 'Výzkum' ? 'ztag-r' : 'tag', on: on(i), toggle: () => this.setState({ off: { ...s.off, [i]: on(i) } }) })),
     propN: D.length, sel, accepted: s.accepted, accept: () => this.setState({ accepted: true }), undo: () => this.setState({ accepted: false }),

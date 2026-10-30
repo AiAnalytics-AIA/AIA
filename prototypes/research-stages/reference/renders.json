@@ -223,8 +223,8 @@
   "board": "Z2Triage.dc.html",
   "title": "Z2 · Zadání: triáž",
   "w": 1440,
-  "h": 1780,
-  "text_chars": 3820,
+  "h": 1640,
+  "text_chars": 3381,
   "errors": [],
   "failed_requests": [],
   "image": "22-Z2Triage.webp"
@@ -293,8 +293,8 @@
   "board": "Z8bPhone.dc.html",
   "title": "Z8b · Telefon: triáž",
   "w": 390,
-  "h": 1110,
-  "text_chars": 771,
+  "h": 1060,
+  "text_chars": 696,
   "errors": [],
   "failed_requests": [],
   "image": "29-Z8bPhone.webp"

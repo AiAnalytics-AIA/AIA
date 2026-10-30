@@ -75,7 +75,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <button class="stg-m" type="button" style="border: 0; border-bottom: 1px solid var(--border); width: 100%; text-align: left; font: inherit; color: inherit; min-height: 44px"><span class="stg sm youq" aria-hidden="true"><i class="ph ph-pause"></i></span><b>Zadání</b><span class="muted">· Čeká na vás</span><span class="grow"></span><span class="cap" style="margin: 0">další kroky podle cesty</span><i class="ph ph-caret-down s"></i></button>
 <div class="bd">
   <section class="sec"><div class="sh"><h2 style="font-size: 15px">Cesta studie</h2><span class="grow"></span><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhuje Ada</span></div>
-    <div class="sb" role="radiogroup" aria-label="Cesta studie"><sc-for list="{{paths}}" as="p" hint-placeholder-count="3"><button class="{{p.cls}}" type="button" role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="text-align: left; font: inherit; color: inherit; min-height: 44px"><span class="row" style="gap: 8px"><span class="{{p.tag}}">{{p.l}}</span><b class="grow" style="font-size: 13px">{{p.t}}</b></span><span class="cap" style="margin: 0">{{p.d}}</span></button></sc-for>
+    <div class="sb" role="radiogroup" aria-label="Cesta studie"><sc-for list="{{paths}}" as="p" hint-placeholder-count="3"><button class="{{p.cls}}" type="button" role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="text-align: left; font: inherit; color: inherit; min-height: 44px"><span class="row" style="gap: 8px"><span class="{{p.tag}}">{{p.l}}</span><b class="grow" style="font-size: 13px">{{p.t}}</b></span></button></sc-for>
       <p class="cap" style="margin: 0">Proč obojí: náklady spočítá kód z vašich souborů; kolik zákazníků odradí delší doručení, víme jen od lidí.</p></div></section>
   <section class="sec"><div class="sh"><h2 style="font-size: 15px">Ada se ptá</h2><span class="grow"></span><span class="cap" style="margin: 0">3</span></div>
     <div class="sb"><sc-for list="{{qs}}" as="q" hint-placeholder-count="3"><div class="zq"><span class="n">{{q.n}}</span><div class="grow">{{q.t}}<span class="why">{{q.why}}</span><div class="row" style="gap: 6px; margin-top: 8px"><sc-for list="{{q.opts}}" as="o" hint-placeholder-count="2"><button class="chip" type="button">{{o}}</button></sc-for></div></div></div></sc-for></div></section>
@@ -85,14 +85,14 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <div class="bb"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="grow"><b style="font-size: 13px">Ada</b><div class="cap" style="margin: 0">Navrhla jsem cestu a 8 částí Zadání.</div></div><button class="btn sm" type="button">Otevřít chat</button></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":1110}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":390,"height":1060}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { path: 'both' }; }
 renderVals() {
   const s = this.state;
   return {
     theme: this.props.theme ?? 'light',
-    paths: [['research', 'ztag-r', 'Výzkum', 'Co lidé udělají', 'jen dopad delšího doručení'], ['model', 'ztag-m', 'Model', 'Kolik co stojí', 'náklady A, B, C na 7 let'], ['both', 'ztag-r', 'Obojí', 'Dvě propojené studie', 'náklady i ztráta zákazníků']].map(([k, tag, l, t, d]) => ({ l, t, d, tag, on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
+    paths: [['research', 'ztag-r', 'Výzkum', 'Co lidé vnímají a udělají'], ['model', 'ztag-m', 'Model', 'Kolik co stojí'], ['both', 'ztag-r', 'Obojí', 'Náklady i lidé']].map(([k, tag, l, t]) => ({ l, t, tag, on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
     qs: [['Nájem haly, nebo koupě?', 'Mění investici o 38 mil. Kč a dobu návratnosti.', ['Nájem', 'Koupě']], ['„Výrazně levněji“ je kolik procent?', 'Bez čísla nejde napsat pravidlo.', ['5 %', '10 %']], ['Kdo výsledek čte?', 'Určí podobu zprávy.', ['Vedení', 'Provoz']]].map(([t, why, opts], i) => ({ n: String(i + 1), t, why, opts }))
   };
 }
