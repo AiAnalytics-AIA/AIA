@@ -39,8 +39,8 @@
       "is_interactive": true,
       "title": "Karty Vedoucího v chatu (nové)",
       "w": 1440,
-      "x": 3120,
-      "y": -3925
+      "x": 3080,
+      "y": -2600
     },
     "ChatF.dc.html": {
       "h": 900,
@@ -98,6 +98,14 @@
       "x": 0,
       "y": 18760
     },
+    "Overview.dc.html": {
+      "h": 2200,
+      "is_interactive": true,
+      "title": "Přehled studie (nový, UX v4)",
+      "w": 1440,
+      "x": 4640,
+      "y": 0
+    },
     "Questionnaire.dc.html": {
       "h": 2500,
       "is_interactive": true,
@@ -112,6 +120,14 @@
       "title": "11 · Zpráva",
       "w": 1440,
       "x": 1520,
+      "y": 13400
+    },
+    "ReportEditor.dc.html": {
+      "h": 2900,
+      "is_interactive": true,
+      "title": "11b · Editor zprávy: vzhled a ověření",
+      "w": 1440,
+      "x": 3040,
       "y": 13400
     },
     "Results.dc.html": {
@@ -138,24 +154,8 @@
       "x": 3040,
       "y": 8700
     },
-    "ReportEditor.dc.html": {
-      "h": 2900,
-      "is_interactive": true,
-      "title": "11b · Editor zprávy: vzhled a ověření",
-      "w": 1440,
-      "x": 3040,
-      "y": 13400
-    },
-    "Overview.dc.html": {
-      "h": 2200,
-      "is_interactive": true,
-      "title": "Přehled studie (nový, UX v4)",
-      "w": 1440,
-      "x": 4640,
-      "y": 0
-    },
     "Z0Flow.dc.html": {
-      "h": 1420,
+      "h": 1500,
       "is_interactive": true,
       "title": "Z0 · Zadání se dvěma cestami: průchod",
       "w": 1440,
@@ -171,7 +171,7 @@
       "y": 20600
     },
     "Z2Triage.dc.html": {
-      "h": 1780,
+      "h": 1640,
       "is_interactive": true,
       "title": "Z2 · Zadání: triáž",
       "w": 1440,
@@ -203,7 +203,7 @@
       "y": 22500
     },
     "Z6Both.dc.html": {
-      "h": 1640,
+      "h": 1720,
       "is_interactive": true,
       "title": "Z6 · Zadání: obojí",
       "w": 1440,
@@ -227,7 +227,7 @@
       "y": 20600
     },
     "Z8bPhone.dc.html": {
-      "h": 1110,
+      "h": 1060,
       "is_interactive": true,
       "title": "Z8b · Telefon: triáž",
       "w": 390,
@@ -236,8 +236,8 @@
     }
   },
   "createdOnFiles": {
-    "v": 1,
-    "at": "2026-10-27T16:00:00Z"
+    "at": "2026-10-27T16:00:00Z",
+    "v": 1
   },
   "designSystems": [],
   "launch": {
