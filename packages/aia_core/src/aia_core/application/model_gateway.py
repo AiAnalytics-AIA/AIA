@@ -132,6 +132,7 @@ def input_token_bound(request: AdapterRequest) -> int:
     content = [request.system, *(_measured(m) for m in request.messages)]
     if request.output_schema is not None:
         content.append(canonical_json(request.output_schema))
+    content.extend(canonical_json(t.wire()) for t in request.tools)
     return (
         sum(len(part.encode("utf-8")) for part in content)
         + _PER_MESSAGE_OVERHEAD_TOKENS * (len(request.messages) + 1)

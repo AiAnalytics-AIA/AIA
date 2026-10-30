@@ -43,6 +43,7 @@ __all__ = [
     "refuse_blocks",
     "refuse_profile",
     "refuse_thinking",
+    "refuse_tools",
     "render_transcript",
     "resolve_secret",
     "token_count",
@@ -283,6 +284,19 @@ def refuse_blocks(adapter: str) -> ProviderError:
     """
     return ProviderError(
         f"the {adapter} adapter does not send content blocks",
+        kind=ProviderErrorKind.OTHER,
+        delivery=Delivery.NOT_SENT,
+    )
+
+
+def refuse_tools(adapter: str) -> ProviderError:
+    """An adapter that offers only the output contract refuses a request offering tools.
+
+    Sending the request without them would answer a different request than the one
+    priced and fingerprinted. Unsent, and permanent.
+    """
+    return ProviderError(
+        f"the {adapter} adapter does not offer tools beside the output contract",
         kind=ProviderErrorKind.OTHER,
         delivery=Delivery.NOT_SENT,
     )

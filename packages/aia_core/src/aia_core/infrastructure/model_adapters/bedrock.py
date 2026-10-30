@@ -32,6 +32,14 @@ takes no sampling setting, so a temperature with it is refused unsent, as is a
 budget the output limit does not exceed. The reasoning blocks of the answer
 (``reasoningContent``) are skipped: neither the text nor its signature is kept.
 
+**A tool conversation** (ADR 0026 Amendment 2026-10-28, G2): a request that offers tools
+(``AdapterRequest.tools``) or carries content blocks. The tools are offered after the
+output tool, the choice ``auto``. Every block of the answer is kept in order
+(``AdapterResponse.blocks``): text, each ``toolUse``, and each reasoning block exactly
+as it came, redacted or not, signature included, to be sent back unchanged. Tool results
+go as ``toolResult`` blocks, an error with ``status: error``. Another provider's
+reasoning is refused unsent. Every other request is sent, and read, as before.
+
 **The model's request profile** (``AdapterRequest.request_profile``, declared in the
 resolved model's catalog entry, never guessed from its id) decides the rest. The
 default is everything above. A model family that refuses a forced tool choice, a
@@ -80,11 +88,16 @@ from urllib.parse import quote
 from aia_core.domain.ai_contracts import (
     AdapterRequest,
     AdapterResponse,
+    ContentBlock,
     Delivery,
     FinishReason,
     ModelUsage,
     ProviderError,
     ProviderErrorKind,
+    ReasoningBlock,
+    TextBlock,
+    ToolResultBlock,
+    ToolUseBlock,
 )
 from aia_core.domain.ai_models import StructuredOutput, ThinkingMode
 from aia_core.domain.providers import Provider
@@ -97,7 +110,6 @@ from .transport import (
     TransportFailure,
     parse_duration_seconds,
     plausible_wait,
-    refuse_blocks,
     token_count,
 )
 
@@ -130,6 +142,77 @@ _AUTHENTICATION_ERRORS: Final = frozenset(
         "MissingAuthenticationTokenException",
     }
 )
+
+
+def _tool_spec(name: str, description: str, schema: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "toolSpec": {
+            "name": name,
+            "description": description,
+            "inputSchema": {"json": dict(schema)},
+        }
+    }
+
+
+def _conversation(request: AdapterRequest) -> bool:
+    """True for a tool conversation: tools offered, or blocks already in it."""
+    return bool(request.tools) or any(m.has_blocks for m in request.messages)
+
+
+def _block(block: ContentBlock) -> dict[str, Any]:
+    """One content block as Converse takes it; a reasoning block exactly as it came."""
+    if isinstance(block, TextBlock):
+        return {"text": block.text}
+    if isinstance(block, ToolUseBlock):
+        return {
+            "toolUse": {"toolUseId": block.tool_use_id, "name": block.name, "input": block.input}
+        }
+    if isinstance(block, ToolResultBlock):
+        result: dict[str, Any] = {
+            "toolUseId": block.tool_use_id,
+            "content": [{"text": block.content}],
+        }
+        if block.is_error:
+            result["status"] = "error"
+        return {"toolResult": result}
+    return block.provider_block
+
+
+#: The Converse content blocks a tool conversation reads.
+_KNOWN_BLOCKS: Final = frozenset({"text", "reasoningContent", "toolUse"})
+
+
+def _blocks(content: list[Any]) -> tuple[ContentBlock, ...]:
+    """The answer's content as blocks, in order; raises ``ValueError`` on one it cannot read."""
+    blocks: list[ContentBlock] = []
+    for block in content:
+        if not isinstance(block, Mapping):
+            continue
+        if isinstance(block.get("text"), str):
+            blocks.append(TextBlock(block["text"]))
+        reasoning = block.get("reasoningContent")
+        if isinstance(reasoning, Mapping) and reasoning:
+            # Neither text nor the answer: kept whole, signature included, only to be sent
+            # back unchanged within a tool conversation.
+            blocks.append(
+                ReasoningBlock.of(
+                    Provider.AWS_BEDROCK, block, redacted="redactedContent" in reasoning
+                )
+            )
+        if not _KNOWN_BLOCKS.intersection(block):
+            # Dropping a block would send back a different turn than the model wrote.
+            raise ValueError(f"a content block of a kind not read here: {sorted(block)}")
+        tool_use = block.get("toolUse")
+        if isinstance(tool_use, Mapping):
+            arguments = tool_use.get("input")
+            if not isinstance(arguments, Mapping):
+                raise ValueError("a toolUse block without an input object")
+            blocks.append(
+                ToolUseBlock.of(
+                    str(tool_use.get("toolUseId") or ""), str(tool_use.get("name") or ""), arguments
+                )
+            )
+    return tuple(blocks)
 
 
 def bedrock_runtime_host(region: str) -> str:
@@ -221,30 +304,36 @@ class BedrockConverseAdapter:
         profile = request.request_profile
         # Thinking allows only ``auto``, and an ``auto_tool`` model refuses anything
         # else; the gateway's instruction does the rest.
-        offer_tool = thinking is not None or profile.structured_output is StructuredOutput.AUTO_TOOL
+        # Offered reads leave the choice to the model too (ADR 0026 Amendment 2026-10-28).
+        offer_tool = (
+            thinking is not None
+            or profile.structured_output is StructuredOutput.AUTO_TOOL
+            or bool(request.tools)
+        )
         inference: dict[str, Any] = {"maxTokens": request.max_output_tokens}
         if request.temperature is not None:
             inference["temperature"] = request.temperature
         body: dict[str, Any] = {
-            "messages": [{"role": m.role, "content": [{"text": m.text}]} for m in request.messages],
+            "messages": [
+                {"role": m.role, "content": [_block(b) for b in m.blocks]} for m in request.messages
+            ],
             "inferenceConfig": inference,
         }
         if request.system:
             body["system"] = [{"text": request.system}]
+        # The output tool first, as it always stood; the reads after it, in the order offered.
+        specs: list[dict[str, Any]] = []
+        choice: dict[str, Any] = {"auto": {}}
         if request.output_schema is not None:
             name = request.schema_name or "structured_output"
-            body["toolConfig"] = {
-                "tools": [
-                    {
-                        "toolSpec": {
-                            "name": name,
-                            "description": "Return the answer as this object.",
-                            "inputSchema": {"json": dict(request.output_schema)},
-                        }
-                    }
-                ],
-                "toolChoice": {"auto": {}} if offer_tool else {"tool": {"name": name}},
-            }
+            specs.append(
+                _tool_spec(name, "Return the answer as this object.", dict(request.output_schema))
+            )
+            if not offer_tool:
+                choice = {"tool": {"name": name}}
+        specs.extend(_tool_spec(t.name, t.description, t.schema) for t in request.tools)
+        if specs:
+            body["toolConfig"] = {"tools": specs, "toolChoice": choice}
         additional: dict[str, Any] = {}
         if thinking is not None:
             additional["thinking"] = {"type": "enabled", "budget_tokens": thinking}
@@ -302,9 +391,33 @@ class BedrockConverseAdapter:
                 kind=ProviderErrorKind.MODEL,
                 delivery=Delivery.NOT_SENT,
             )
-        if any(m.has_blocks for m in request.messages):
-            # Carried from G2 of ADR 0026 Amendment 2026-10-28, against recorded fixtures.
-            raise refuse_blocks("Bedrock Converse")
+        if any(
+            isinstance(b, ReasoningBlock) and b.provider is not Provider.AWS_BEDROCK
+            for m in request.messages
+            for b in m.blocks
+        ):
+            # Another provider's reasoning means nothing here, and its signature is not ours
+            # to pass on.
+            raise ProviderError(
+                "Bedrock Converse sends back only Bedrock's own reasoning blocks",
+                kind=ProviderErrorKind.OTHER,
+                delivery=Delivery.NOT_SENT,
+            )
+        if (
+            not request.tools
+            and request.output_schema is None
+            and any(
+                isinstance(b, ToolUseBlock | ToolResultBlock)
+                for m in request.messages
+                for b in m.blocks
+            )
+        ):
+            # Converse answers 400 without a toolConfig beside toolUse or toolResult blocks.
+            raise ProviderError(
+                "a conversation holding tool calls needs a toolConfig: offer its tools again",
+                kind=ProviderErrorKind.OTHER,
+                delivery=Delivery.NOT_SENT,
+            )
         problem = self._profile_problem(request) or self._thinking_problem(request)
         if problem:
             # The provider would answer 400; refusing here keeps it unsigned and unsent.
@@ -351,8 +464,6 @@ class BedrockConverseAdapter:
         for block in content:
             if not isinstance(block, Mapping):
                 continue
-            # ``reasoningContent`` (extended thinking) is neither text nor the answer:
-            # it is skipped, and nothing of it is kept.
             if isinstance(block.get("text"), str):
                 texts.append(block["text"])
             tool_use = block.get("toolUse")
@@ -363,6 +474,20 @@ class BedrockConverseAdapter:
                 and isinstance(tool_use.get("input"), Mapping)
             ):
                 structured = tool_use["input"]
+        blocks: tuple[ContentBlock, ...] = ()
+        if _conversation(request):
+            # Only a tool conversation keeps its blocks: every other call's reasoning is
+            # kept nowhere, as before.
+            try:
+                blocks = _blocks(content)
+            except ValueError as exc:
+                raise ProviderError(
+                    f"unreadable content block in a 200 from Bedrock Converse: {exc}",
+                    kind=ProviderErrorKind.OTHER,
+                    delivery=Delivery.UNKNOWN,
+                    provider_request_id=request_id,
+                    http_status=response.status,
+                ) from exc
 
         usage = body.get("usage") if isinstance(body.get("usage"), Mapping) else {}
         assert isinstance(usage, Mapping)
@@ -379,6 +504,7 @@ class BedrockConverseAdapter:
             # Converse does not name the serving model; the profile is what ran.
             served_model=self._model_id,
             structured=structured,
+            blocks=blocks,
         )
 
     def _classify(self, response: HttpResponse) -> ProviderError:

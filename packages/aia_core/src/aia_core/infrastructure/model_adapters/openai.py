@@ -53,6 +53,7 @@ from .transport import (
     refuse_blocks,
     refuse_profile,
     refuse_thinking,
+    refuse_tools,
     resolve_secret,
     token_count,
 )
@@ -132,6 +133,8 @@ class OpenAIChatAdapter:
     async def send(self, request: AdapterRequest) -> AdapterResponse:
         if any(m.has_blocks for m in request.messages):
             raise refuse_blocks("OpenAI Chat")
+        if request.tools:
+            raise refuse_tools("OpenAI Chat")
         if request.thinking_budget_tokens is not None:
             raise refuse_thinking("OpenAI Chat")
         if not request.request_profile.is_default:
