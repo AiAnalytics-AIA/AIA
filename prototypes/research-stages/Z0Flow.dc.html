@@ -81,9 +81,10 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
       <div class="sb"><sc-for list="{{keep}}" as="k" hint-placeholder-count="6"><div class="li"><span class="stg sm done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="tx">{{k.t}}<span class="cap" style="display: block">{{k.d}}</span></div></div></sc-for></div></section>
   </div>
   <p class="cap">Vychází z návrhu koordinátora (zásady, katalog polí, R1–R7, D1–D7) a ze schválené desky 1 · Zadání. Ta zůstává beze změny, dokud nerozhodnete. Otázky D1–D7 jsou na stránce koordinátora.</p>
+  <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě, na stejném místě a ve stejné šířce na cestě Výzkum i Model; na cestě Výzkum pak následuje Návrh výzkumu: Návrh, Dotazník. Stejné přeskupení se navrhuje i pro navigátor kroků v aplikaci (research-lead-workbench 35) a čeká na rozhodnutí D1–D7 o Zadání. Schválené desky výše mají dál svůj navigátor s 11 kroky.</div></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1420}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1500}}'>
 class Component extends DCLogic {
 renderVals() {
   const B = [
