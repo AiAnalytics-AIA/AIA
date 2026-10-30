@@ -328,7 +328,8 @@ chunks and estimates.
 
   Drivers are an input, or a × b / a ÷ b of two drivers. It computes, all `CALCULATED`:
   - totals per year;
-  - exact piecewise-linear break-even on one driver, within a stated range;
+  - exact break-even on one driver, within a stated range, where the driver enters each total through
+    one monotone form (decision 14, layer 2's exactness rule); otherwise refused by name;
   - one-way sensitivity;
   - cumulative cost over N stated years with capital paid in year 0, and the payback year (Q2 (a)+(c));
   - NPV of each scenario's costs and discounted payback, at a stated discount rate;
@@ -412,11 +413,24 @@ signs these too"):
 2. **Ranges, not points** (`CALCULATED`). Every accepted input has a low, base and high value and a
    guarantor: the person who stands behind it, a member or a client contact recorded by a member.
    - A `client_dataset` input's base is the data's value; its low and high are stated by a person.
-   - Every scenario's total is reported over the whole box of ranges, by vertex enumeration over the
-     low/high grid, refined at every `STEP` breakpoint. With decision 13's line kinds each total is
-     multilinear within a `STEP` cell, so the extremes are exact. Above a cap of 2^14
-     vertices the exact range is refused by name, and the Monte Carlo is the only range view.
-   - **Dominance:** "A je levnější ve všech kombinacích" when A's total is below B's at every vertex.
+   - Every scenario's total, and each difference between two scenarios, is reported over the whole box
+     of ranges by vertex enumeration over the low/high grid, refined at every `STEP` breakpoint.
+   - **When vertices are exact.** Code checks, before it claims an exact range, that in the compared
+     quantity every input:
+     - enters every term through one and the same monotone form: as itself, as its reciprocal (a
+       ÷ b driver, its range strictly positive), as the annuity factor of a rate, or as a discount factor;
+     - appears at most once in any term;
+     - when it drives a `STEP` line, is a single input, not a derived driver.
+
+     Then, in the transformed inputs, the quantity is multilinear within each `STEP` cell, and the
+     box maps to a box, so its extremes are at the vertices.
+   - **When they are not.** An input that enters the same quantity in two forms makes vertices
+     insufficient: for example x in one line and 1/x in another, where x + 1/x is lowest inside the
+     range. The exact range and dominance are then refused by name (`range_not_exact`, naming the
+     input). The Monte Carlo is the range view, and the page says why.
+   - Above a cap of 2^14 vertices the exact range is likewise refused by name.
+   - **Dominance:** "A je levnější ve všech kombinacích" when the exactness check holds and A's total is
+     below B's at every vertex.
      Otherwise the inputs that flip the ranking are named, each with the value at which it flips (the
      break-even machinery, one input at a time with the others at base), and the vertices where B wins.
 3. **Monte Carlo over the ranges** (`ESTIMATED`). All inputs move together.
@@ -429,7 +443,9 @@ signs these too"):
      arithmetic only, so a rerun reproduces the bytes.
    - **Convergence:** five independent streams (`SeedSequence.spawn`). The result stands when
      P(A cheaper than B) agrees across streams within ±0.01, and the difference's 5th and
-     95th percentiles within ±1 % of the base difference. Otherwise N doubles, up to
+     95th percentiles agree within a tolerance that never shrinks to zero: the larger of 1 % of the
+     absolute base difference and 0.1 % of the larger scenario's base total. Scenarios with equal base
+     costs therefore have a stable, non-zero tolerance. Otherwise N doubles, up to
      160,000, and then the result is refused as `not_converged`.
    - **Outputs:** P(A cheaper than B) with its Monte Carlo standard error; the 90 % interval of the
      difference; each scenario's percentiles. The percentiles and the seed are stored, and the samples
@@ -445,10 +461,14 @@ signs these too"):
    - A closed set of methods: naive, seasonal naive, drift, Holt-Winters additive with its parameters
      fitted by a pinned, deterministic optimiser.
    - Rolling-origin backtest on the most recent held-out periods (the last 6 months, at least 3
-     origins). The error is MASE against the seasonal naive baseline (the naive, without two
-     cycles), and MAPE where no actual is zero.
-   - **A forecast that does not beat its baseline (MASE ≥ 1) is not used.** The baseline is used
-     instead, and the page says so in words.
+     origins). The candidate and its baseline (the seasonal naive; the naive without two cycles) are
+     forecast from the **same origins** and scored on the **same held-out periods**.
+   - **A forecast that does not beat its baseline is not used**: its held-out mean absolute error
+     must be strictly below the baseline's on those same origins. The baseline is used instead, and
+     the page says so in words.
+   - MASE (scaled by the in-sample naive) and MAPE (where no actual is zero) are reported beside it,
+     never used as the gate. MASE < 1 does not show that a forecast beats the held-out baseline when
+     held-out volatility differs from the training period's.
    - The kept forecast's backtest errors give its interval, which becomes that volume input's range and
      its distribution in the Monte Carlo.
 6. **Value of information** (`ESTIMATED`). For each input, the expected value of perfect information on
@@ -485,7 +505,10 @@ for:
 - Sobol on the Ishigami function's analytic indices;
 - PERT on its analytic moments;
 - Iman-Conover on its target rank correlation;
-- MASE on a published worked example;
+- MASE on a published worked example, and the gate on a series whose held-out volatility differs from
+  its training volatility;
+- equal-base scenarios converging under the percentile tolerance;
+- `range_not_exact` on a quantity where an input enters as both x and 1/x;
 - EVPPI on a two-option toy with a closed form.
 
 The checks are tests, and their report is what the method owner signs.

@@ -11,7 +11,7 @@ chunks:
   - "[ ] CP8. The report frame and grades: PrintGrade CALCULATED (výpočet) and its admission beside admit_numeric_claims, the platform template frame (question, type blocks, inputs table, method, sources), report kind business_model approvable through approve_report, three chart kinds (absolute stacked bar, tornado, line with marked points) in the model and the renderer"
   - "[ ] CP9. The Lead: lead_artifacts rows for the five stages, a model read tool, MaterialRule.BUSINESS_MODEL (Class A), per-change proposal operations generic over a type's declared operations, accepted through the Lead's edit path"
   - "[ ] CM1. Cost scenarios, its types: Driver (input, or a × b / a ÷ b), the four cost-line kinds (FIXED, VARIABLE, STEP, CAPITAL annuity), at most five scenarios; registered as model type cost_scenarios v1"
-  - "[ ] CM2. Cost scenarios, compute: totals per year, exact piecewise-linear break-even on one driver in a stated range, one-way sensitivity, cumulative cost over N stated years with capital in year 0 and the payback year; unknown propagated by name; the warehouse golden fixture"
+  - "[ ] CM2. Cost scenarios, compute: totals per year, exact break-even on one driver in a stated range (where the driver enters through one monotone form, else refused by name), one-way sensitivity, cumulative cost over N stated years with capital in year 0 and the payback year; unknown propagated by name; the warehouse golden fixture"
   - "[ ] CM3. Cost scenarios, the Model stage: lines, drivers and scenarios edited in place (input standard I1-I11)"
   - "[ ] CM4. Cost scenarios, charts: scenario comparison stacked by line, cumulative cost with the payback year, break-even lines with the crossing marked, the sensitivity tornado; the same drawing on Výsledky and in the DOCX"
   - "[ ] CM5. Cost scenarios, report blocks and method text"
@@ -19,10 +19,10 @@ chunks:
   - "[ ] CM7. NPV of each scenario's costs and discounted payback at a stated discount rate (CALCULATED)"
   - "[ ] CP10. The ESTIMATED grade on the platform: interval or percentiles, seed and method version pinned, results stored, the rerun-equals-bytes test; the method register (internal until A. Bahbouh's entry approves); the Metodika module 'Nákladové modely' holding every default as written (final, Q13), versioned, pinned per run"
   - "[ ] CR1. Data checks before use: reconciliation across files and against stated totals, period coverage and currency, robust outlier flags, seasonality only with two cycles; accepted by the person as part of the binding; missing stays missing"
-  - "[ ] CR2. Ranges: low / base / high and a guarantor on every input; exact range of every total by vertex enumeration refined at STEP breakpoints (cap 2^14); dominance, and the inputs that flip the ranking with their flip values"
+  - "[ ] CR2. Ranges: low / base / high and a guarantor on every input; exact range of every total by vertex enumeration refined at STEP breakpoints, only where code verifies every input enters through one monotone form (else range_not_exact, cap 2^14); dominance, and the inputs that flip the ranking with their flip values"
   - "[ ] CR3. Monte Carlo (ESTIMATED): PERT by default, triangular or a stated distribution; declared rank correlations by Iman-Conover, a non-PSD matrix refused; PCG64 under the run's seed; five-stream convergence check; P(A cheaper than B) with its standard error and the 90 % interval of the difference"
   - "[ ] CR4. Global sensitivity (ESTIMATED): Sobol first-order and total (Jansen, bootstrap intervals) for independent inputs, partial rank correlation when inputs are correlated, beside the tornado"
-  - "[ ] CR5. Backtested forecasts (ESTIMATED): naive, seasonal naive, drift and Holt-Winters additive; rolling-origin backtest, MASE against the baseline and MAPE without zeros; a forecast that does not beat its baseline not used, said in words; its errors become the volume input's range and distribution"
+  - "[ ] CR5. Backtested forecasts (ESTIMATED): naive, seasonal naive, drift and Holt-Winters additive; rolling-origin backtest scoring the candidate and the baseline on the same held-out origins; a forecast whose held-out MAE is not strictly below the baseline's not used, said in words; MASE and MAPE reported, not the gate; its errors become the volume input's range and distribution"
   - "[ ] CR6. Value of information (ESTIMATED): EVPPI per input from the Monte Carlo draws; an input marked measurable by a survey with material EVPPI offers the Výzkum path, a research study proposed with its question, nothing started"
   - "[ ] CR7. The decision rule (Z3): the person's own rule, stated before the data (option, quantity, threshold, optionally the confidence needed), judged as written; the default confidence 0.90 / 0.10 only when the rule names none, said on the page; no rule, no recommendation (R2); dominance beside it; internal until the Monte Carlo method is registered"
   - "[ ] CR8. The method on screen: the data-check review on Data; on Výsledky the range table, dominance and flip inputs, the probability and zone, the difference's distribution, the Sobol or rank-correlation bars, the forecast with its backtest, the value-of-information table; every ESTIMATED value marked odhad (interní) until registered"
@@ -324,8 +324,14 @@ clock.
 ### CM2. Cost scenarios: compute
 
 - `totals`: per line and in sum, per year.
-- `break_even(a, b, driver, low, high)`: every crossing, solved exactly on each linear piece between the
-  `STEP` breakpoints. Otherwise `none_in_range`, or `identical`.
+- `break_even(a, b, driver, low, high)`: every crossing in the range.
+  - **When it is exact:** the driver enters the difference through one monotone form (itself, its
+    reciprocal, an annuity or a discount factor). The difference is then α + β·g(driver) on each piece
+    between the `STEP` breakpoints, solved in closed form for the driver and its reciprocal, and by
+    bisection to a stated `Decimal` tolerance for a rate.
+  - **When it is refused:** a driver entering in two forms (x and 1/x) is refused
+    `break_even_not_exact`, naming it.
+  - Otherwise the result is `none_in_range` or `identical`.
 - `sensitivity(inputs, step, pair)`: ±step (10 % unless stated), ordered by the swing.
 - `cumulative(years)`: the capital paid in year 0 and the yearly costs after it, with no growth and no
   discounting, and the payback year at which the cumulative curves cross (`none_within_horizon`
@@ -419,11 +425,17 @@ outlier is flagged and kept unless excluded; 12 months say seasonality cannot be
 - Each input carries low, base and high, and a guarantor (a member, or a client contact recorded by a
   member); low ≤ base ≤ high or refused by name.
 - The exact range of every total and of each difference, by vertex enumeration over the low/high grid
-  refined at `STEP` breakpoints; above the module's vertex cap, `range_too_large`.
+  refined at `STEP` breakpoints.
+- **The exactness check runs first.** Every input must enter the compared quantity through one and the
+  same monotone form (itself, its reciprocal, an annuity or a discount factor), at most once per term,
+  and a `STEP` driver must be a single input. The quantity is then multilinear in the transformed
+  inputs within each `STEP` cell.
+- Otherwise the result is `range_not_exact`, naming the input, with no dominance claim and the Monte
+  Carlo as the range view. Above the vertex cap it is `range_too_large`.
 - Dominance ("A je levnější ve všech kombinacích"), or the inputs that flip the ranking, each with its
   flip value, and the vertices where B wins.
 
-**Tests:** a hand-computed three-input case; a `STEP` breakpoint inside a range found; a flip value equal
+**Tests:** a hand-computed three-input case; B = x + 1/x against a fixed 2.25 on x in [0.5, 2] refused `range_not_exact` (its minimum 2 lies inside the range), never certified as dominated; a `STEP` breakpoint inside a range found; a flip value equal
 to the one-way break-even; the cap refused by name.
 
 ### CR3. Monte Carlo (`domain/business_model/montecarlo.py`)
@@ -438,7 +450,7 @@ to the one-way break-even; the cap refused by name.
   percentiles, stored with the seed.
 
 **Tests:** PERT moments analytic; Iman-Conover hits its target rank correlation within tolerance; the
-same seed gives the same bytes, a different seed a result within tolerance; a dominated case gives P = 1.
+same seed gives the same bytes, a different seed a result within tolerance; a dominated case gives P = 1; two scenarios with equal base costs and different ranges converge under the non-zero percentile tolerance.
 
 ### CR4. Global sensitivity
 
@@ -453,13 +465,19 @@ PRCC and no Sobol.
 
 - Methods: naive, seasonal naive, drift, Holt-Winters additive (parameters by a pinned deterministic
   optimiser, `scipy.optimize` with a fixed start).
-- Rolling-origin backtest over the module's window; MASE against the seasonal naive (naive without two
-  cycles); MAPE only without zero actuals.
-- MASE ≥ 1: the forecast is not used, the baseline is, and the page says so.
+- Rolling-origin backtest over the module's window. The candidate and its baseline (the seasonal naive;
+  the naive without two cycles) are forecast from the same origins and scored on the same held-out
+  periods.
+- The gate: a candidate whose held-out MAE is not strictly below the baseline's is not used, the
+  baseline is, and the page says so.
+- MASE (in-sample naive scale) and MAPE (only without zero actuals) are reported, never the gate.
 - The kept method's backtest errors give the volume input's range and its distribution in CR3.
 
-**Tests:** MASE on a published example; a series where Holt-Winters loses to the naive keeps the naive
-and says so; the fit is byte-identical on a rerun.
+**Tests:**
+- MASE on a published example;
+- a series where Holt-Winters loses to the naive keeps the naive and says so;
+- a series whose held-out volatility differs from its training volatility, where MASE < 1 and the
+  candidate still loses on the held-out origins, keeps the baseline; the fit is byte-identical on a rerun.
 
 ### CR6. Value of information
 
@@ -532,9 +550,9 @@ entry, a method's numbers stay internal (Q10).
 | S1 | Data checks, statistical part (`aia-cost-checks-1`) | flags outliers and tests seasonality before data feeds an input | outliers: modified z (median, MAD) > 3.5, flagged and never dropped; seasonality: tested only with ≥ 2 full cycles of 12 months, seasonal-index range > 10 % of the mean level; reconciliation: any difference shown, flagged above 1 % | Iglewicz-Hoaglin's published example; a synthetic series with a known seasonal amplitude |
 | S2 | Input distributions (`aia-cost-mc-1`, part) | turns low / base / high into a distribution | PERT with λ = 4 by default; triangular, uniform or normal truncated at low and high only when a person states it, on record | PERT's analytic mean and variance |
 | S3 | Correlations (`aia-cost-mc-1`, part) | imposes declared dependence between inputs | pairwise rank (Spearman) correlations declared by a person; Iman-Conover; a matrix that is not positive semi-definite refused, the nearest valid one offered as a proposal | achieved rank correlation within ±0.02 of its target at N = 20,000 |
-| S4 | Monte Carlo (`aia-cost-mc-1`) | P(A cheaper than B) and the difference's interval | N = 20,000; `numpy` PCG64 under the run's seed; 5 spawned streams; converged when P agrees within ±0.01, and the 5th and 95th percentiles of the difference within ±1 % of the base difference; otherwise N doubles to at most 160,000, then `not_converged`; reported: P with its Monte Carlo standard error, the 90 % interval (5th-95th percentile) | a dominated case gives P = 1; a symmetric case gives P = 0.5 within its standard error |
+| S4 | Monte Carlo (`aia-cost-mc-1`) | P(A cheaper than B) and the difference's interval | N = 20,000; `numpy` PCG64 under the run's seed; 5 spawned streams; converged when P agrees within ±0.01, and the 5th and 95th percentiles of the difference within the larger of 1 % of the absolute base difference and 0.1 % of the larger scenario's base total; otherwise N doubles to at most 160,000, then `not_converged`; reported: P with its Monte Carlo standard error, the 90 % interval (5th-95th percentile) | a dominated case gives P = 1; a symmetric case gives P = 0.5 within its standard error; equal base costs converge |
 | S5 | Global sensitivity (`aia-cost-gsa-1`) | which inputs drive the difference's variance | independent inputs: Sobol first-order and total indices, Jansen estimator, base N = 8,192 (N(k+2) evaluations), 1,000 bootstrap resamples, 90 % intervals; correlated inputs: partial rank correlation coefficients, Sobol not shown | the Ishigami function (a = 7, b = 0.1), analytic indices recovered within ±0.02 |
-| S6 | Forecasting and backtesting (`aia-cost-forecast-1`) | projects a volume over the horizon, tested on held-out months | methods: naive, seasonal naive (m = 12), drift, Holt-Winters additive (α, β, γ in [0, 1] by L-BFGS-B on in-sample squared error from a fixed start of 0.3 / 0.1 / 0.1); rolling origin over the last 6 months with ≥ 3 origins; MASE scaled by the in-sample seasonal naive (the naive below 24 months); MAPE only with no zero actual; MASE ≥ 1: not used, the baseline used and said; interval from the backtest errors' 5th-95th percentiles | MASE on Hyndman's published worked example; a series where Holt-Winters must lose to the naive |
+| S6 | Forecasting and backtesting (`aia-cost-forecast-1`) | projects a volume over the horizon, tested on held-out months | methods: naive, seasonal naive (m = 12), drift, Holt-Winters additive (α, β, γ in [0, 1] by L-BFGS-B on in-sample squared error from a fixed start of 0.3 / 0.1 / 0.1); rolling origin over the last 6 months with ≥ 3 origins; MASE scaled by the in-sample seasonal naive (the naive below 24 months); the candidate and the baseline scored on the same held-out origins, the candidate used only if its held-out MAE is strictly below the baseline's, otherwise the baseline used and said; MASE (in-sample naive scale) and MAPE (no zero actual) reported, not the gate; interval from the backtest errors' 5th-95th percentiles | MASE on Hyndman's published worked example; a series where Holt-Winters must lose to the naive |
 | S7 | Value of information (`aia-cost-evppi-1`) | what knowing an input exactly could save | EVPPI by binning the Monte Carlo draws on the input into 20 equal-frequency bins; material when ≥ 5 % of the absolute expected difference, which offers the Výzkum path | a two-option toy with a closed-form EVPPI; an input with no effect gives ≈ 0 |
 | S8 | The decision rule's default confidence, Z3 (`aia-cost-decision-1`) | judges a person's stated rule against P(A cheaper) | the person's stated confidence decides; when the rule states none, the default is 0.90 for A and 0.10 for B, said on the page; no rule, no recommendation | a stated 0.8 judged at 0.8; the default used and said; each verdict at its boundary |
 
@@ -544,10 +562,10 @@ checked against published worked examples:
 | # | Definition | What he signs | Reference check |
 |---|---|---|---|
 | D1 | Cost line kinds and the annuity (CM1) | fixed, variable (rate × driver), step (per block × ceil(driver ÷ block)), capital (annuity at a stated rate over a stated life); drivers as input, a × b or a ÷ b | the annuity against a published worked example |
-| D2 | Break-even, cumulative cost and payback (CM2) | exact crossings per linear piece in a stated range; cumulative cost with capital in year 0, no growth or discounting; payback where the cumulative curves cross | a hand-computed fixture |
+| D2 | Break-even, cumulative cost and payback (CM2) | exact crossings where the driver enters through one monotone form, refused by name otherwise; cumulative cost with capital in year 0, no growth or discounting; payback where the cumulative curves cross | a hand-computed fixture |
 | D3 | NPV and discounted payback (CM7) | each scenario's costs over the stated horizon, discounted at a stated rate, capital in year 0 | a published NPV worked example |
 | D4 | Data checks, deterministic part (CR1) | reconciliation of declared pairs and stated totals, period coverage, the currency check, missing stays missing | a fictional pair of files differing by a known share |
-| D5 | Ranges and dominance (CR2) | low ≤ base ≤ high with a guarantor; vertex enumeration refined at `STEP` breakpoints; dominance and flip values | a hand-computed three-input case |
+| D5 | Ranges and dominance (CR2) | low ≤ base ≤ high with a guarantor; the exactness check (each input through one monotone form); vertex enumeration refined at `STEP` breakpoints; dominance and flip values | a hand-computed three-input case |
 
 **Later, in the same form:** statements and the chart-of-accounts mapping (ACC1-ACC2), ratios (ACC3),
 variance (ACC4), the IRR root rule (FIN2), price elasticity (FIN5) and fitted safety stock (OR1).
