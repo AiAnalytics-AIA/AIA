@@ -8,11 +8,31 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 25, artifact version `1793528286-6903` |
+| Version | version 27, artifact version `1793538157-21ef` |
 | Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in versions 26–27 (1 Nov)
+
+The product owner, in this session: "lets change the names for each lane, kupsi is stupid"; "this software is not client facing, its
+always an AIA researcher"; "in the cesta studie, i want the options to be better described … the two lanes need better names"; and of
+the strategy map, "this model does not come from the sociomap 5 engine, please rebuild".
+
+- **The client is Velis Commerce s.r.o.** (`VC`, fictional), and its two studies are "Strategie skladu a logistiky 2026–2032" (the
+  model) and "Zákazníci a rychlost doručení" (the research). The research path's map files keep their `kupsi_sociomap_*` names.
+- **The two paths are named "Výzkum zákazníků" and "Obchodní model"** on every board (tags, path cards, the study switch, the next
+  steps). On `Z2Triage` and `Z8bPhone` each path card says what it answers and from what: Výzkum zákazníků "Co chtějí zákazníci a
+  co udělají", Obchodní model "Co která varianta firmě přinese", Obojí "Zákazníci i čísla firmy".
+- **The screens speak to an AIA researcher**, never to the client: "Co klient potřebuje rozhodnout?", "ze souborů klienta", and
+  every acceptance is the researcher's ("přijal výzkumník").
+- **`KM5Map` is now "Sociomapa strategií", computed by the `aia-sociomap-5` engine.** The model's 800 scenarios of the uncertain
+  inputs (seeded, after the research) take the respondents' place: in each, the seven variants get a 1–10 mark by their 7-year
+  result for the firm. `compute_object_map` placed them and found three scenario families; the figures (`assets/velis_strategy_*.jpg`)
+  are the report's figure function's. The board says the method "scénáře místo respondentů" waits for the methodologist and the map
+  is internal. It replaces the designed WIND view, whose terrains (`kupsi_wind_*.png`) are removed. `KO1Link` shows it beside the
+  research map. The generating script is not in the repo.
 
 ## What changed in versions 22–25 (1 Nov)
 
@@ -31,7 +51,7 @@ showcase of the same case.
   - `KM3Model`: cost lines, the driver and the variants.
   - `KM4Results`: ranges and dominance, P(cheapest) against the rule, the C − B distribution, the tornado beside Sobol, break-even, the
     backtested forecast and value of information.
-  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height.
+  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height (replaced in version 27).
   - `KO1Link`: the research result proposed as the model's assumption.
   - `KM6Report`: the model's report.
 
@@ -119,7 +139,7 @@ board, stylesheet and asset is byte-identical to v95. Nothing is known to be wro
   export does not touch.
 - **`assets/aia-study.css`**: the research stages' own stylesheet (SHA-256 `d1a2d23b…00f689`).
 - **`assets/thinking-orbs.js`**: the Lead's orb (thinking-orbs 0.3.2, MIT, Jakub Antalik).
-- **`assets/kupsi_*`**: the -5 engine's map figures (fictional data) and the designed WIND terrains for `KM5Map`.
+- **`assets/kupsi_sociomap_*`, `assets/velis_strategy_*`**: the -5 engine's map figures on fictional data, the research path's and `KM5Map`'s.
 - **`assets/<id>.png|jpg`**: the screenshots of today's AIA that the boards' "UX kritika" sections show.
 
 The canvas keeps these files as they are here: `canvas.json`, the boards and `assets/` at the same relative
@@ -159,8 +179,8 @@ them.)
 | `Z5Model.dc.html` | Z5 · Zadání: cesta Model |
 | `Z6Both.dc.html` | Z6 · Zadání: obojí |
 | `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
-| `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Kupsi) |
-| `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Model: Data, Předpoklady, Model, Výsledky, Mapa rozhodnutí, Zpráva (Kupsi) |
+| `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum zákazníků: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Velis) |
+| `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Obchodní model: Data, Předpoklady, Model, Výsledky, Sociomapa strategií, Zpráva (Velis) |
 | `KO1Link.dc.html` | O1 · Obojí: výzkum do modelu |
 
 ## What is decided (the product owner, 26–28 Oct 2026)

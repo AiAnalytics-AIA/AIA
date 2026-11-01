@@ -203,8 +203,8 @@
   "board": "Z0Flow.dc.html",
   "title": "Z0 · Zadání se dvěma cestami: průchod",
   "w": 1440,
-  "h": 1940,
-  "text_chars": 5183,
+  "h": 1980,
+  "text_chars": 5411,
   "errors": [],
   "failed_requests": [],
   "image": "20-Z0Flow.webp"
@@ -214,7 +214,7 @@
   "title": "Z1 · Zadání: začátek",
   "w": 1440,
   "h": 1320,
-  "text_chars": 2291,
+  "text_chars": 2356,
   "errors": [],
   "failed_requests": [],
   "image": "21-Z1Start.webp"
@@ -223,8 +223,8 @@
   "board": "Z2Triage.dc.html",
   "title": "Z2 · Zadání: triáž",
   "w": 1440,
-  "h": 1720,
-  "text_chars": 3649,
+  "h": 1790,
+  "text_chars": 4045,
   "errors": [],
   "failed_requests": [],
   "image": "22-Z2Triage.webp"
@@ -234,27 +234,27 @@
   "title": "Z3 · Zadání: rozhodnutí a pravidlo",
   "w": 1440,
   "h": 1500,
-  "text_chars": 3220,
+  "text_chars": 3313,
   "errors": [],
   "failed_requests": [],
   "image": "23-Z3Decision.webp"
  },
  {
   "board": "Z4Research.dc.html",
-  "title": "Z4 · Zadání: cesta Výzkum",
+  "title": "Z4 · Zadání: cesta Výzkum zákazníků",
   "w": 1440,
   "h": 2100,
-  "text_chars": 4755,
+  "text_chars": 4784,
   "errors": [],
   "failed_requests": [],
   "image": "24-Z4Research.webp"
  },
  {
   "board": "Z5Model.dc.html",
-  "title": "Z5 · Zadání: cesta Model",
+  "title": "Z5 · Zadání: cesta Obchodní model",
   "w": 1440,
   "h": 2460,
-  "text_chars": 3819,
+  "text_chars": 3891,
   "errors": [],
   "failed_requests": [],
   "image": "25-Z5Model.webp"
@@ -264,7 +264,7 @@
   "title": "Z6 · Zadání: obojí",
   "w": 1440,
   "h": 1720,
-  "text_chars": 3061,
+  "text_chars": 3191,
   "errors": [],
   "failed_requests": [],
   "image": "26-Z6Both.webp"
@@ -274,7 +274,7 @@
   "title": "Z7 · Zadání: připravenost a předání",
   "w": 1440,
   "h": 1280,
-  "text_chars": 2860,
+  "text_chars": 2936,
   "errors": [],
   "failed_requests": [],
   "image": "27-Z7Ready.webp"
@@ -284,7 +284,7 @@
   "title": "Z8a · Telefon: začátek",
   "w": 390,
   "h": 980,
-  "text_chars": 478,
+  "text_chars": 508,
   "errors": [],
   "failed_requests": [],
   "image": "28-Z8aPhone.webp"
@@ -293,8 +293,8 @@
   "board": "Z8bPhone.dc.html",
   "title": "Z8b · Telefon: triáž",
   "w": 390,
-  "h": 1060,
-  "text_chars": 671,
+  "h": 1130,
+  "text_chars": 843,
   "errors": [],
   "failed_requests": [],
   "image": "29-Z8bPhone.webp"
@@ -304,7 +304,7 @@
   "title": "M1 · Model: Data",
   "w": 1440,
   "h": 1700,
-  "text_chars": 2864,
+  "text_chars": 2906,
   "errors": [],
   "failed_requests": [],
   "image": "30-KM1Data.webp"
@@ -314,7 +314,7 @@
   "title": "M2 · Model: Předpoklady",
   "w": 1440,
   "h": 1540,
-  "text_chars": 2640,
+  "text_chars": 2696,
   "errors": [],
   "failed_requests": [],
   "image": "31-KM2Assumptions.webp"
@@ -324,7 +324,7 @@
   "title": "M3 · Model: Model",
   "w": 1440,
   "h": 2120,
-  "text_chars": 2502,
+  "text_chars": 2562,
   "errors": [],
   "failed_requests": [],
   "image": "32-KM3Model.webp"
@@ -334,7 +334,7 @@
   "title": "M4 · Model: Výsledky",
   "w": 1440,
   "h": 2220,
-  "text_chars": 3791,
+  "text_chars": 3852,
   "errors": [],
   "failed_requests": [],
   "image": "33-KM4Results.webp"
@@ -343,8 +343,8 @@
   "board": "KM5Map.dc.html",
   "title": "M5 · Model: Mapa rozhodnutí",
   "w": 1440,
-  "h": 1500,
-  "text_chars": 2171,
+  "h": 2160,
+  "text_chars": 3562,
   "errors": [],
   "failed_requests": [],
   "image": "34-KM5Map.webp"
@@ -354,7 +354,7 @@
   "title": "O1 · Obojí: výzkum do modelu",
   "w": 1440,
   "h": 1860,
-  "text_chars": 2606,
+  "text_chars": 2571,
   "errors": [],
   "failed_requests": [],
   "image": "35-KO1Link.webp"
@@ -364,7 +364,7 @@
   "title": "M6 · Model: Zpráva",
   "w": 1440,
   "h": 1080,
-  "text_chars": 2611,
+  "text_chars": 2671,
   "errors": [],
   "failed_requests": [],
   "image": "36-KM6Report.webp"
@@ -374,7 +374,7 @@
   "title": "V1 · Výzkum: Návrh a Dotazník",
   "w": 1440,
   "h": 1240,
-  "text_chars": 2799,
+  "text_chars": 2846,
   "errors": [],
   "failed_requests": [],
   "image": "37-KV1Design.webp"
@@ -384,7 +384,7 @@
   "title": "V2 · Výzkum: Vzorek",
   "w": 1440,
   "h": 1100,
-  "text_chars": 2197,
+  "text_chars": 2244,
   "errors": [],
   "failed_requests": [],
   "image": "38-KV2Sample.webp"
@@ -394,7 +394,7 @@
   "title": "V3 · Výzkum: Výsledky",
   "w": 1440,
   "h": 1280,
-  "text_chars": 2170,
+  "text_chars": 2220,
   "errors": [],
   "failed_requests": [],
   "image": "39-KV3Results.webp"
@@ -404,7 +404,7 @@
   "title": "V4 · Výzkum: Sociomapa",
   "w": 1440,
   "h": 1540,
-  "text_chars": 2287,
+  "text_chars": 2348,
   "errors": [],
   "failed_requests": [],
   "image": "40-KV4Sociomap.webp"
@@ -414,7 +414,7 @@
   "title": "V5 · Výzkum: Zpráva",
   "w": 1440,
   "h": 1300,
-  "text_chars": 1882,
+  "text_chars": 1943,
   "errors": [],
   "failed_requests": [],
   "image": "41-KV5Report.webp"
