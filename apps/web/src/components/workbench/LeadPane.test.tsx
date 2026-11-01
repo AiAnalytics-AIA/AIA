@@ -421,7 +421,7 @@ describe("LeadPane", () => {
     fireEvent.change(select, { target: { value: "t2" } });
     await waitFor(() => expect(quoted.at(-1)?.target.question_id).toBe("q1"));
     fireEvent.click(screen.getByRole("button", { name: "Spustit literární rešerši" }));
-    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-20" }), expect.objectContaining({ kind: "interpretation_research", target: "t2", preset: "STANDARD" })));
+    await waitFor(() => expect(onRequest).toHaveBeenCalledWith(expect.objectContaining({ turn_id: "LDT-20" }), expect.objectContaining({ kind: "interpretation_research", target: "t2", target_ref: { kind: "RESULT_QUESTION", question_id: "q1" }, preset: "STANDARD" })));
   });
 
   it("says a typed start's unknown price in words, never 0, and holds a start whose live settings are missing (LO5a.3)", async () => {

@@ -567,7 +567,7 @@ export function Workbench({ frame, step, store, memory, save, inspector, reload,
     let retryConfirmed = false;
     // A typed Deep Research card (LO5a.3): the target chosen on it, or the run a retry or a stop
     // names; a different run since only on the person's yes, as the analysis retry.
-    const typedDeep = turn.command ? (r.kind === "interpretation_research" ? { targetId: r.target ?? undefined }
+    const typedDeep = turn.command ? (r.kind === "interpretation_research" ? { target: r.target_ref }
       : r.kind === "deep_research_retry" || r.kind === "deep_research_stop" ? { runId: r.run_id } : undefined) : undefined;
     let deepConfirmed = false;
     for (;;) {

@@ -110,7 +110,8 @@ export type LeadRequest =
    *  (a candidate id of the turn's targets layer). LO5a.2: started on the server by its approval,
    *  under the stage start's gates (isDeepResearchCard). */
   | { kind: "design_research"; why: string; preset?: "QUICK" | "STANDARD"; focus?: string[] }
-  | { kind: "interpretation_research"; why: string; target?: string | null; preset?: "QUICK" | "STANDARD" }
+  /** `target_ref`: a typed card's chosen candidate's reference (LO5a.3), what its approval sends. */
+  | { kind: "interpretation_research"; why: string; target?: string | null; target_ref?: Record<string, unknown>; preset?: "QUICK" | "STANDARD" }
   /** The Lead's card names the run it retries; a person's typed "Zopakuj rešerši" (LO5a.3) names
    *  the one GET /lead says it retries, absent while there is none. */
   | { kind: "deep_research_retry"; why: string; run_id?: string }

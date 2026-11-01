@@ -1700,14 +1700,15 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  /** `deep`: a typed Deep Research card's choice (LO5a.3): the Interpretation candidate's id, or the
-   *  run a retry or a stop names; the server takes back only what it can find. */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string, deep?: { targetId?: string; runId?: string }) =>
+  /** `deep`: a typed Deep Research card's choice (LO5a.3): the Interpretation candidate's
+   *  reference (never its position, which a newer completed run shifts), or the run a retry or a
+   *  stop names; the server takes back only what its list still holds. */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string, deep?: { target?: Record<string, unknown>; runId?: string }) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
       ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
-      ...(deep?.targetId === undefined ? {} : { target_id: deep.targetId }),
+      ...(deep?.target === undefined ? {} : { target: deep.target }),
       ...(deep?.runId === undefined ? {} : { deep_research_run_id: deep.runId }),
     }),
   /** What a typed "Spusť rešerši výsledků" may name (LO5a.3), read on its card. */

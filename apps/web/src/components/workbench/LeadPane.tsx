@@ -529,7 +529,7 @@ function TypedResearchCard({ t, r, studyId, canEdit, onRequest }: { t: LeadTurn;
   const price: TypedPrice = !interpret ? { kind: "later" } : current ? { kind: "quoted", usd: current.usd } : { kind: "reading" };
   const missing = current?.missing ?? [];
   const run = r.kind === "deep_research_retry" ? facts.deepRetryRun : r.kind === "deep_research_stop" ? facts.deepStopRun : null;
-  const typed: LeadRequest = r.kind === "interpretation_research" ? { ...r, target: target?.id ?? null }
+  const typed: LeadRequest = r.kind === "interpretation_research" ? { ...r, target: target?.id ?? null, target_ref: target?.ref }
     : r.kind === "deep_research_retry" || r.kind === "deep_research_stop" ? { ...r, run_id: run?.run_id } : r;
   const blocked = decided ? null : typedResearchBlocked(r, { hasRun: !!run, hasTarget: interpret ? !!target || targets === null : true, missing });
   const typedFacts: TypedResearchFacts = { runWords: run ? deepRunWords(run) : undefined, price };
