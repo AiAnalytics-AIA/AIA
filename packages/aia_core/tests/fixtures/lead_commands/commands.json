@@ -1,16 +1,22 @@
 {
   "about": "The Lead composer's typed start commands (lead-orchestration LO5), matched by code on the server: domain/lead_commands.py COMMANDS. The web's composer reads this file too. A change here is a change to what a person may start without the Lead's model.",
   "commands": [
-    {"phrase": "Analyzuj zadání", "start": "agent_job:analyze_brief", "label": "Analýza zadání", "takes_instruction": true},
-    {"phrase": "Navrhni dotazník", "start": "agent_job:build_questionnaire", "label": "Návrh dotazníku", "takes_instruction": true},
-    {"phrase": "Uprav dotazník", "start": "agent_job:optimize_questionnaire", "label": "Úprava dotazníku", "takes_instruction": true},
-    {"phrase": "Navrhni audienci", "start": "agent_job:propose_audience", "label": "Návrh audience", "takes_instruction": true},
-    {"phrase": "Navrhni dimenze", "start": "agent_job:suggest_dimensions", "label": "Návrh dimenzí", "takes_instruction": true},
-    {"phrase": "Zkontroluj návrh", "start": "agent_job:critique_design", "label": "Kontrola návrhu", "takes_instruction": true},
-    {"phrase": "Pomoz s návrhem", "start": "agent_job:design_copilot", "label": "Pomoc s návrhem", "takes_instruction": true},
-    {"phrase": "Zeptej se na klientské znalosti", "start": "agent_job:answer_memory", "label": "Klientské znalosti", "takes_instruction": true},
-    {"phrase": "Spusť výzkum", "start": "research_run", "label": "Spuštění výzkumu", "takes_instruction": false},
-    {"phrase": "Zopakuj analýzu", "start": "analysis_retry", "label": "Opakování analýzy", "takes_instruction": false}
+    {"phrase": "Analyzuj zadání", "start": "agent_job:analyze_brief", "label": "Analýza zadání", "takes_instruction": true, "preset": null},
+    {"phrase": "Navrhni dotazník", "start": "agent_job:build_questionnaire", "label": "Návrh dotazníku", "takes_instruction": true, "preset": null},
+    {"phrase": "Uprav dotazník", "start": "agent_job:optimize_questionnaire", "label": "Úprava dotazníku", "takes_instruction": true, "preset": null},
+    {"phrase": "Navrhni audienci", "start": "agent_job:propose_audience", "label": "Návrh audience", "takes_instruction": true, "preset": null},
+    {"phrase": "Navrhni dimenze", "start": "agent_job:suggest_dimensions", "label": "Návrh dimenzí", "takes_instruction": true, "preset": null},
+    {"phrase": "Zkontroluj návrh", "start": "agent_job:critique_design", "label": "Kontrola návrhu", "takes_instruction": true, "preset": null},
+    {"phrase": "Pomoz s návrhem", "start": "agent_job:design_copilot", "label": "Pomoc s návrhem", "takes_instruction": true, "preset": null},
+    {"phrase": "Zeptej se na klientské znalosti", "start": "agent_job:answer_memory", "label": "Klientské znalosti", "takes_instruction": true, "preset": null},
+    {"phrase": "Spusť výzkum", "start": "research_run", "label": "Spuštění výzkumu", "takes_instruction": false, "preset": null},
+    {"phrase": "Zopakuj analýzu", "start": "analysis_retry", "label": "Opakování analýzy", "takes_instruction": false, "preset": null},
+    {"phrase": "Spusť rešerši k návrhu", "start": "design_research", "label": "Rešerše k návrhu", "takes_instruction": false, "preset": "STANDARD"},
+    {"phrase": "Spusť rychlou rešerši k návrhu", "start": "design_research_quick", "label": "Rychlá rešerše k návrhu", "takes_instruction": false, "preset": "QUICK"},
+    {"phrase": "Spusť rešerši výsledků", "start": "interpretation_research", "label": "Rešerše k výsledkům", "takes_instruction": false, "preset": "STANDARD"},
+    {"phrase": "Spusť rychlou rešerši výsledků", "start": "interpretation_research_quick", "label": "Rychlá rešerše k výsledkům", "takes_instruction": false, "preset": "QUICK"},
+    {"phrase": "Zopakuj rešerši", "start": "deep_research_retry", "label": "Opakování rešerše", "takes_instruction": false, "preset": null},
+    {"phrase": "Zastav rešerši", "start": "deep_research_stop", "label": "Zastavení rešerše", "takes_instruction": false, "preset": null}
   ],
   "matches": [
     {"text": "Spusť výzkum", "start": "research_run", "instruction": ""},
@@ -18,7 +24,13 @@
     {"text": "/Spusť výzkum.", "start": "research_run", "instruction": ""},
     {"text": "Navrhni dotazník: krátce,  do 10 otázek", "start": "agent_job:build_questionnaire", "instruction": "krátce, do 10 otázek"},
     {"text": "zkontroluj návrh", "start": "agent_job:critique_design", "instruction": ""},
-    {"text": "Zopakuj analýzu.", "start": "analysis_retry", "instruction": ""}
+    {"text": "Zopakuj analýzu.", "start": "analysis_retry", "instruction": ""},
+    {"text": "Spusť rešerši k návrhu", "start": "design_research", "instruction": ""},
+    {"text": "spusť rychlou rešerši k návrhu.", "start": "design_research_quick", "instruction": ""},
+    {"text": "/Spusť rešerši výsledků", "start": "interpretation_research", "instruction": ""},
+    {"text": "Spusť rychlou rešerši výsledků", "start": "interpretation_research_quick", "instruction": ""},
+    {"text": "Zopakuj rešerši!", "start": "deep_research_retry", "instruction": ""},
+    {"text": "zastav rešerši", "start": "deep_research_stop", "instruction": ""}
   ],
   "not_matches": [
     "spust vyzkum",
@@ -28,9 +40,13 @@
     "Navrhni dotazník:",
     "Navrhni dotazník:   ",
     "Co myslíš, mám spustit výzkum?",
-    "Spusť rešerši k návrhu",
     "Zopakuj analýzu: jen shrnutí",
     "zopakuj analyzu",
+    "spust resersi k navrhu",
+    "Spusť rešerši výsledků: t3",
+    "Spusť rešerši k návrhu: jen otázka 2",
+    "Spusť standardní rešerši k návrhu",
+    "Zastav rešerši prosím",
     ""
   ]
 }

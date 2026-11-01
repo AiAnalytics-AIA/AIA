@@ -1208,6 +1208,63 @@ web card only navigates (`Workbench.tsx:258-262`).
 - Kill switch: `AIA_STUDY_WALLET_ENABLED`.
 - Depends on LO5, LO1, DRL-0, LO5a.1 and 27b. **DRL-5 waits for it (Q48).**
 
+*LO5a.3a, the server, landed (`feature/lo5a3-typed-deep-research`; the PM coordinator's go, 2026-10-29).*
+- **Vocabulary** (`domain/lead_commands.py`, `tests/fixtures/lead_commands/commands.json`). The preset lives in the
+  command's own start, so a stored turn names it alone:
+
+  | Phrase | Start | Preset |
+  |---|---|---|
+  | "Spusť rešerši k návrhu" | `design_research` | STANDARD |
+  | "Spusť rychlou rešerši k návrhu" | `design_research_quick` | QUICK |
+  | "Spusť rešerši výsledků" | `interpretation_research` | STANDARD |
+  | "Spusť rychlou rešerši výsledků" | `interpretation_research_quick` | QUICK |
+  | "Zopakuj rešerši" | `deep_research_retry` | — |
+  | "Zastav rešerši" | `deep_research_stop` | — |
+
+  None takes an instruction. A target after a colon is no command.
+- **Starts** (`application/lead_deep_research.py` `approve_typed_deep_research`, dispatched from
+  `lead_chat_start.approve_chat_start` after its decided-card check, re-match and `confirm_spend`):
+  - A design start freezes the working content's revision.
+  - An Interpretation start takes `target`, the chosen candidate's reference, only while the candidates built
+    at approval (`ResearchLead.interpretation_targets`, the turn's own `targets` builder) still hold it; else the
+    default. Never its position, which a newer completed run shifts (Codex P1 on #1144); never the text. A
+    reference the list does not hold is 404 `research_target_not_found`; no default is 409 `no_default_target`.
+  - A retry takes the newest failed or cancelled run, chosen by status in the query before its limit (Codex P2 on
+    #1144).
+  - A stop takes the newest run not ended, chosen the same way. It cancels and writes a `chat_start` row decision `stop`, naming the
+    run in its comment only.
+  - The card names the run it showed (`deep_research_run_id`). Another one since is 409
+    `deep_research_retry_target_moved` / `deep_research_stop_target_moved`. None at all is 409
+    `no_retryable_deep_research` / `no_running_deep_research`.
+  - Quote, wallet and create are the card's own (`start_research`, shared with `approve_deep_research_card`), then the
+    `chat_start` row and the charge at the pinned ceiling.
+- **Idempotency.** It is the card's `chat_start` row under the conversation's lock (`chat_start_decisions`, keyed by
+  the turn), never timing. A double click or a retried request returns the first run. The spec's fingerprint finds
+  the stage's run.
+- **Reads.**
+  - `GET …/lead` answers `deep_research_retry_run` and `deep_research_stop_run`, and each command's `preset`.
+  - `GET …/lead/interpretation-targets` answers the candidates, read on the card, not on the conversation's poll,
+    since it reads each completed run's specification.
+- E07's constraints kept: amounts from `confirmed_usd`; no `SpendConfirmation` constructed; not in
+  `test_spend_confirmation_reach.py` until LO3.
+- Tests:
+  - `apps/api/tests/test_lead_typed_deep_research_api.py`, 12 tests, all failing on develop before this:
+    - Lead off;
+    - QUICK;
+    - wallet charge once;
+    - outside the wallet;
+    - the charge refused after create;
+    - the threshold;
+    - the targets read;
+    - default, listed and forged target;
+    - nothing to interpret;
+    - stop;
+    - retry and a moved target;
+    - another organization.
+  - `test_lead_commands.py` (preset per start, fixture matches and near-misses).
+- Still open: **LO5a.3b**, the web card: purpose, the target picker over `…/lead/interpretation-targets`, preset, the
+  quote, missing live settings; the journey on 12a.
+
 **LO5a.4 (DRL-9, on LO3/LO4). Deep Research as plan-step kinds.**
 - `lead_plan_steps.kind` takes `design_research` and `interpretation_research`.
   - A design step runs over the plan's immutable revision (D-04).
