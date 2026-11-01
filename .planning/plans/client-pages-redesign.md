@@ -16,7 +16,7 @@ chunks:
   - "[ ] CPR13. Přidat podklady: Vložit odkaz, one public URL kept as the client's source (W2, after client-knowledge-lifecycle#K2e)"
   - "[ ] CPR14. Remove Projektová paměť: off the global navigation (three items left), its pages redirected, its search folded into Výzkumy (CPR9); the memory search and reuse routes stay (Nigel, 27 Oct; W1)"
   - "[ ] CPR15. The library's layout: kinds as a segment, the open item in a 380 px drawer (W1)"
-  - "[ ] CPR16. Label colours without green: GREEN dropped from LabelColour, a migration recolouring every stored green label teal, the picker offering no green, which belongs to the version in force alone (Q2, Nigel 27 Oct; W1)"
+  - "[x] CPR16. Label colours without green: GREEN dropped from LabelColour, a migration recolouring every stored green label teal, the picker offering no green, which belongs to the version in force alone (Q2, Nigel 27 Oct; W1)"
   - "[ ] CPR17. Znalosti as a Drive (canvas v6): the folder tree on the left, a breadcrumb whose every part is a drop target, a row or tile view, every client file in one list (GET /clients/{id}/sources), a row dragged onto a folder moved at once with Vrátit for 8 s, the same actions in the ⋯ menu and on right-click, a details panel, the Interní switch on a file, Přečíst znovu; a file renamed in place, no new revision, audited (Q1); 'Smazat…' in the file menu with its confirmation (CPR22) (W2, with study-files#SF3)"
   - "[ ] CPR18. Aktivita: the client's source occurrences as a timeline (who added what, when, from where) (W2, after study-files#SF4)"
   - "[ ] CPR19. Journey: the four client tabs at 1440 px with the narrower layouts kept, the hero's figures, a client sorted and searched, a profile field edited in place and read back, a file added to a chosen folder; zero paid jobs (W2)"
@@ -191,7 +191,18 @@ views as `client-knowledge-lifecycle#K14` names them. Test: the drawer opens on 
 dropped from `LabelColour` (`packages/aia_core/src/aia_core/domain/knowledge.py:353`) and from the web's palette
 (`apps/web/src/lib/knowledge-library.ts:52`); one migration rewrites every stored green label to teal (`TEAL`, added
 if the enum lacks it), audited as one system change; the picker offers no green. Test: the migration turns a green
-label teal and its downgrade restores it; the API refuses `GREEN`; the picker has no green.
+label teal and its downgrade restores it; the API refuses `GREEN`; the picker has no green. Built: migration
+`5cc62edde24e` (on `2bec066f109f`), hand-written as a CHECK change is: each green label teal, the CHECK without
+GREEN, and one `CLIENT_KNOWLEDGE_LABELS_RECOLOURED` audit row per client it changed (its `client_id`, no actor, no
+reason, the labels' ids in its payload; one upgrade's rows share one `created_at`); the downgrade widens the CHECK
+and, from the latest upgrade's rows, puts back exactly those labels where they are still teal and no person has
+changed them since (`CLIENT_KNOWLEDGE_LABEL_CHANGED` after the row), keeping the audit rows. Settings → Audit says
+the change in Czech (`lib/audit-change.ts`, "2 zelené štítky přebarveny na tyrkysové"). TEAL was in the enum already. Proved on PostgreSQL 16 (upgrade, `pg_get_constraintdef`, a
+GREEN insert refused, `alembic check`, downgrade, `downgrade base` / `upgrade head`). Tests:
+`test_labels_without_green_migration.py` (per client, a person's later change kept, a second cycle undoing only
+its own upgrade); `audit-change.test.ts`; `test_client_api.py` (GREEN refused on create and update);
+`KnowledgeLibrary.test.tsx` (the picker's five swatches by name); the action named in `lib/audit.ts`, held by
+`audit.test.ts` to `content_free.py`'s `AUDIT_ACTIONS`.
 
 **CPR17. Znalosti as a Drive** (W2; canvas v6, with `study-files#SF3`'s tree and moves). The folder tree on the left;
 a breadcrumb whose every part is a drop target; a row or tile view; every client file in one list from the sources

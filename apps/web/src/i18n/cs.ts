@@ -345,7 +345,7 @@ export const cs = {
       labelColour: "Barva štítku",
       labelColourOf: "Barva štítku {name}",
       labelActions: "Akce štítku {name}",
-      colours: { BLUE: "Modrá", TEAL: "Tyrkysová", GREEN: "Zelená", ORANGE: "Oranžová", VIOLET: "Fialová", SLATE: "Šedá" },
+      colours: { BLUE: "Modrá", TEAL: "Tyrkysová", ORANGE: "Oranžová", VIOLET: "Fialová", SLATE: "Šedá" },
       deleteLabelConfirm: "Smazat štítek „{name}“? Zmizí z {n} znalostí; znalosti samy zůstanou. Smazání nepůjde vrátit.",
       labelDeleted: "Štítek „{name}“ smazán",
       deleteAction: "Smazat",
@@ -2322,6 +2322,8 @@ export const cs = {
           // An audit record's change in words (F10, lib/audit-change.ts).
           change: {
             noThreshold: "bez prahu",
+            // CPR16's migration: green left the label palette.
+            recoloured: { one: "zelený štítek přebarven na tyrkysový", few: "zelené štítky přebarveny na tyrkysové", many: "zelených štítků přebarveno na tyrkysové" },
             joinedAs: "nový člen: {role}",
             proposalVersion: "návrh {version}",
             // A refused change of an OWNER's membership (MEMBER_ROLE_DENIED payload.change).

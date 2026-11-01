@@ -960,6 +960,12 @@ def test_a_person_files_the_clients_knowledge_in_folders_and_labels(
     assert taken.status_code == 409 and taken.json()["code"] == "name_taken"
     label = researcher.post(f"{base}/labels", json={"name": "2025", "colour": "BLUE"}).json()
     assert researcher.post(f"{base}/labels", json={"name": "x", "colour": "RED"}).status_code == 422
+    # CPR16: green belongs to the version in force alone, never to a label.
+    assert (
+        researcher.post(f"{base}/labels", json={"name": "x", "colour": "GREEN"}).status_code == 422
+    )
+    green = researcher.put(f"{base}/labels/{label['label_id']}", json={"colour": "GREEN"})
+    assert green.status_code == 422
 
     placed = researcher.put(
         f"{base}/placement",

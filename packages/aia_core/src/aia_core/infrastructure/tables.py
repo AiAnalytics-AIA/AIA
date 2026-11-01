@@ -1386,7 +1386,7 @@ class ClientKnowledgeLabelRow(Base):
         ForeignKeyConstraint(["client_id"], ["clients.client_id"], ondelete="CASCADE"),
         UniqueConstraint("client_id", "name_key", name="uq_client_knowledge_labels_name"),
         CheckConstraint(
-            "colour in ('BLUE','TEAL','GREEN','ORANGE','VIOLET','SLATE')",
+            "colour in ('BLUE','TEAL','ORANGE','VIOLET','SLATE')",
             name="knowledge_label_colour_known",
         ),
     )
