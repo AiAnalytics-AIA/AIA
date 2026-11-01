@@ -1,7 +1,7 @@
 ---
-status: in-progress
+status: done
 chunks:
-  - "[ ] 1. Advisory allowed in every AIA_ENV: data_class_gates_problem and its four callers removed; enforce stays the default; the tests that pinned the refusal pin the new rule"
+  - "[x] 1. Advisory allowed in every AIA_ENV: data_class_gates_problem and its four callers removed; enforce stays the default; the tests that pinned the refusal pin the new rule"
 ---
 # Advisory class gates in every environment for the MVP
 
