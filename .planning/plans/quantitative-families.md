@@ -28,8 +28,9 @@ chunks:
 
 Written 2026-10-29 on the product owner's decision of the same day (relayed by the PM coordinator, ~22:06
 UTC). All four families are in AIA's scope, and he chose "Design all now, build later". **Every chunk
-here is designed and not scheduled: after the MVP.** In `mvp-execution-contracts.md` each is
-UNSCHEDULED, "after the MVP by decision". The rules are
+here is designed and not scheduled: after the MVP**, except MKT1-MKT5, which the owner moved into the
+MVP on 2026-10-30 (built on S6). In `mvp-execution-contracts.md` the rest are UNSCHEDULED, "after the
+MVP by decision". The rules are
 [ADR 0044](../../docs/architecture/adr/0044-quantitative-model-studies.md).
 
 The platform (study kind, inputs and provenance, working copy, run, report frame, Lead, chart kinds) is
@@ -54,15 +55,15 @@ signs these too"); that is not counted here.
 | Operations research | OR1-OR5 | 13-17 | both | the MVP's `ESTIMATED` methods (OR1's fitted variant, OR3, OR4) |
 | Market sizing | MKT1-MKT5 | 13-16 | CALCULATED, carried grades | an ADR 0021 amendment (MKT4); ADR 0024's lift |
 | The survey link | LINK1 | 2.5-3.5 | carried grades | MKT1; `report-delivery#RD4` |
-| **All families** | | **53-65.5** | | |
+| **All families** | | **53-65.5** (40-49.5 after the MVP, §MKT moved in) | | |
 
 **For a later choice:** the core plus four or five `CALCULATED` types in the MVP (cost scenarios, budget
 vs actual, ratios, NPV/IRR/payback, EOQ), at about 38-48 session-days, against 30-36 for the core plus
-cost scenarios before the robust method (`cost-model-study`, now 78.5-100.5 with it and the WIND map).
+cost scenarios before the robust method (`cost-model-study`, now 79.5-102 with it, the WIND map and twelve scenarios).
 
 ## Lanes (Q11: all of them, side by side)
 
-Four sessions after the MVP, one family each, all starting once the MVP's platform has merged.
+Lanes after the MVP, one family each, all starting once the MVP's platform has merged.
 Weeks assume five session-days a week.
 
 | Lane | Chunks | Session-days | Weeks | Waits on |
@@ -70,12 +71,15 @@ Weeks assume five session-days a week.
 | L-FIN: business case and finance | FIN1-FIN6 | 11.5-13 | 2.5-3 | nothing beyond the MVP |
 | L-ACC: accounting | ACC1-ACC5 | 13-16 | 2.5-3 | ACC1 extends the data contract (`client-data-in-analysis#2`) |
 | L-OR: operations research | OR1-OR5 | 13-17 | 2.5-3.5 | nothing beyond the MVP |
-| L-MKT: market sizing and the survey link | MKT1-MKT5, LINK1 | 15.5-19.5 | 3-4 | an ADR 0021 amendment before MKT4; `report-delivery#RD4` for LINK1 |
-| **All four** | | **53-65.5** | **about 4** | |
+| L-LINK: the survey link | LINK1 | 2.5-3.5 | 0.5-1 | MKT1 (in the MVP); `report-delivery#RD4` |
+| **After the MVP** | | **40-49.5** | | |
 
-- **Four sessions:** the longest lane decides the calendar, about 4 weeks.
-- **Two sessions** (L-FIN then L-OR on one, L-ACC then L-MKT on the other): about 5.5-7 weeks.
-- **One session:** about 11-13 weeks.
+**Market sizing moved into the MVP** ("Yes, add it to the MVP", 2026-10-30): MKT1-MKT5 (13-16) are
+built on S6's lane (`situation-reports` § Lanes). This plan keeps their design, and they are ticked here.
+
+- **Three sessions:** the longest lane decides the calendar, about 3.5 weeks.
+- **Two sessions** (L-FIN then L-OR on one, L-ACC then L-LINK on the other): about 5-6 weeks.
+- **One session:** about 8-10 weeks.
 
 **A. Bahbouh is the shared constraint.** He signs every family's definitions page and every `ESTIMATED`
 method (Q9). With four lanes at once, his reviews arrive together. Each lane's CR10-style validation pack
@@ -169,7 +173,7 @@ demand should we plan for?*
 **Determinism** (ADR 0044 decision 6): every OR result is stored, and its rerun under the same pins gives
 the same bytes. A test per type runs on CI's platform.
 
-## §MKT Market sizing (13-16)
+## §MKT Market sizing (13-16; in the MVP, on S6)
 
 The question: *how big is the market we could serve, and how much of it could we win?*
 
@@ -238,5 +242,6 @@ None yet.
 ## Doc follow-up
 
 In `cost-model-study.md` § Doc follow-up, which covers both plans: §3.3 of the master plan registers
-this plan, and every chunk here is UNSCHEDULED in the contracts. Also: ADR 0021 will need an amendment
-before MKT4; ADR 0024's lift scope, for MKT3, is checked when MKT3 is scheduled.
+this plan; MKT1-MKT5 are in the MVP on S6 (W3-W4), and every other chunk is UNSCHEDULED in the contracts.
+ADR 0021 needs its amendment before MKT4, now in the MVP; ADR 0024's lift scope, for MKT3, is checked as
+MKT3 is built.
