@@ -222,7 +222,7 @@ class AnalysisConfig:
 
 def _request_bytes(request: ModelRequest) -> int:
     """An upper bound on a request's input tokens: its UTF-8 bytes, contract included."""
-    parts = [request.system, *(m.content for m in request.messages)]
+    parts = [request.system, *(m.text for m in request.messages)]
     parts.append(canonical_json(request.agent.schema or {}))
     return sum(len(p.encode("utf-8")) for p in parts)
 

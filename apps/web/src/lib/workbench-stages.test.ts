@@ -2,7 +2,7 @@
 // reaches a route, every route shows a stage, and a stage's tone is the lane's.
 import { describe, expect, it } from "vitest";
 
-import { PHASES, STAGES, STAGE_ORDER, stageHref, stageOf, stageState } from "./workbench-stages";
+import { PHASES, STAGES, STAGE_ORDER, fieldworkStep, openFieldwork, stageHref, stageOf, stageState } from "./workbench-stages";
 import type { StepKey } from "@/research/steps";
 
 const href = (step: StepKey) => `/s/${step}`;
@@ -21,6 +21,30 @@ describe("workbench stages", () => {
       const step = path!.split("/").pop() as StepKey;
       expect(stageOf(step, hash ? `#${hash}` : ""), s).toBe(s);
     }
+  });
+
+  it("open Sběr dat on Průběh while the newest run moves, else on Kontrola (FLD9)", () => {
+    const moving = (tone: "running" | "you" | "fault") => ({ run: { tone: "done" as const, line: "Spuštěno 1×" }, progress: { tone, line: "Běh 1" } });
+    for (const tone of ["running", "you", "fault"] as const) expect(fieldworkStep(moving(tone)), tone).toBe("progress");
+    // A run with its results, a cancelled one, none, and runs not yet read: Kontrola a spuštění.
+    expect(fieldworkStep({ run: { tone: "done", line: "Spuštěno 1×" }, progress: { tone: "done", line: "Běh 1: výsledky připraveny" } })).toBe("run");
+    expect(fieldworkStep({ run: { tone: "done", line: "Spuštěno 2×" }, progress: { tone: "idle", line: "Běh 2: zrušeno" } })).toBe("run");
+    expect(fieldworkStep({ run: { tone: "idle", line: "Nespuštěno" }, progress: { tone: "idle", line: "Zatím žádný běh" } })).toBe("run");
+    expect(fieldworkStep({})).toBe("run");
+    expect(fieldworkStep()).toBe("run");
+  });
+
+  it("open Sběr dat from another stage by its runs, keep Průběh, and leave Kontrola for Průběh only while a run moves (FLD9)", () => {
+    const moving = { progress: { tone: "running" as const, line: "Běh 1: běží" } };
+    const ended = { progress: { tone: "done" as const, line: "Běh 1: výsledky připraveny" } };
+    expect(openFieldwork(null, moving)).toBe("progress");
+    expect(openFieldwork(null, ended)).toBe("run");
+    // On Kontrola: the Lead's run card opens Průběh while a run moves, else nothing moves.
+    expect(openFieldwork("run", moving)).toBe("progress");
+    expect(openFieldwork("run", ended)).toBeNull();
+    // On Průběh nothing moves, a finished run's progress included.
+    expect(openFieldwork("progress", moving)).toBeNull();
+    expect(openFieldwork("progress", ended)).toBeNull();
   });
 
   it("put the result views on Výsledky by the hash ResultsWorkspace reads, old anchors included", () => {

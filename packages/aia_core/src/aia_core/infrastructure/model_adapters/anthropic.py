@@ -52,8 +52,10 @@ from .transport import (
     parse_duration_seconds,
     plausible_instant,
     plausible_wait,
+    refuse_blocks,
     refuse_profile,
     refuse_thinking,
+    refuse_tools,
     resolve_secret,
     token_count,
 )
@@ -113,7 +115,7 @@ class AnthropicMessagesAdapter:
             "model": request.model,
             "max_tokens": request.max_output_tokens,
             "system": request.system,
-            "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+            "messages": [{"role": m.role, "content": m.text} for m in request.messages],
         }
         if request.temperature is not None:
             body["temperature"] = request.temperature
@@ -139,6 +141,10 @@ class AnthropicMessagesAdapter:
         )
 
     async def send(self, request: AdapterRequest) -> AdapterResponse:
+        if any(m.has_blocks for m in request.messages):
+            raise refuse_blocks("Anthropic Messages")
+        if request.tools:
+            raise refuse_tools("Anthropic Messages")
         if request.thinking_budget_tokens is not None:
             raise refuse_thinking("Anthropic Messages")
         if not request.request_profile.is_default:

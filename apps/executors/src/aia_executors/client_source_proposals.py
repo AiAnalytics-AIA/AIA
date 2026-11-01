@@ -107,7 +107,7 @@ def _request_key(request: ModelRequest, cfg: SourceProposalsConfig) -> str:
                 "policy": cfg.policy_version,
                 "max_output_tokens": cfg.max_output_tokens,
                 "system": request.system,
-                "message": request.messages[0].content,
+                "message": request.messages[0].text,
                 "schema": request.agent.schema,
             }
         ).encode()

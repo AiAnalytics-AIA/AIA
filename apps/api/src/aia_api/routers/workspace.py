@@ -54,6 +54,7 @@ from aia_core.domain.research_template import research_template
 from aia_core.domain.scope import (
     ClientContext,
     ClientPermission,
+    ClientStatus,
     Permission,
     ScopeDenied,
     SeparationOfDutiesViolation,
@@ -187,13 +188,18 @@ class MemoryHitResponse(BaseModel):
 
 
 class ClientCard(BaseModel):
-    """One client in the directory."""
+    """One client in the directory.
+
+    ``status`` is the client's: an archived client is never listed, as
+    :meth:`ScopeResolver.accessible_clients` leaves it out (ADR 0019).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     client_id: str
     name: str
     slug: str
+    status: Literal["ACTIVE", "DORMANT"]
     your_role: str | None
     active_count: int
     study_count: int
@@ -914,6 +920,9 @@ def my_clients(
     for client_id in resolver.accessible_clients(principal):
         scope = _client_scope(principal, resolver, client_id)
         client = repo.get_client_in_scope(scope)
+        if client.status is ClientStatus.ARCHIVED:
+            # Archived after its scope was resolved: left out, as it would have been before.
+            continue
         studies = repo.studies_in_client(scope, include_archived=False)
         active = [s for s in studies if s.status in OPEN_STATUSES]
         cards.append(
@@ -921,6 +930,7 @@ def my_clients(
                 client_id=client.client_id,
                 name=client.name,
                 slug=client.slug,
+                status="DORMANT" if client.status is ClientStatus.DORMANT else "ACTIVE",
                 your_role=scope.client_role.value if scope.client_role else None,
                 active_count=len(active),
                 study_count=len(studies),
@@ -1283,13 +1293,29 @@ class ContactResponse(BaseModel):
     receives_reports: bool
 
 
+class RuleChangeResponse(BaseModel):
+    """A budget or rule field, from what to what; ``before_known`` false: not recorded."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field: str
+    before: str | float | bool | None
+    after: str | float | bool | None
+    before_known: bool
+
+
 class ProfileChangeResponse(BaseModel):
+    """One history entry. ``actor_name`` is a member's display name, never an e-mail;
+    null when there is none."""
+
     model_config = ConfigDict(extra="forbid")
 
     action: str
     at: datetime | None
+    actor_name: str | None
     fields: list[str]
     contact_name: str | None
+    changes: list[RuleChangeResponse]
 
 
 class ClientProfileResponse(BaseModel):
@@ -1328,7 +1354,20 @@ def _profile_out(scope: ClientContext, repo: ClientProfileRepository) -> ClientP
         contacts=[_contact_out(c) for c in repo.contacts(scope)],
         history=[
             ProfileChangeResponse(
-                action=h.action, at=h.at, fields=list(h.fields), contact_name=h.contact_name
+                action=h.action,
+                at=h.at,
+                actor_name=h.actor_name,
+                fields=list(h.fields),
+                contact_name=h.contact_name,
+                changes=[
+                    RuleChangeResponse(
+                        field=c.field,
+                        before=c.before,
+                        after=c.after,
+                        before_known=c.before_known,
+                    )
+                    for c in h.changes
+                ],
             )
             for h in repo.history(scope)
         ],

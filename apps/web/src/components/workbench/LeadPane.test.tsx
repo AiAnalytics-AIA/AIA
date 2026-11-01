@@ -30,6 +30,18 @@ const MANIFEST = {
   ] },
 };
 
+// jsdom's Blob has no arrayBuffer() (every current browser has); read it through FileReader. AGENTS.md § jsdom.
+if (!Blob.prototype.arrayBuffer) {
+  Blob.prototype.arrayBuffer = function (this: Blob) {
+    return new Promise<ArrayBuffer>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as ArrayBuffer);
+      r.onerror = () => reject(r.error);
+      r.readAsArrayBuffer(this);
+    });
+  };
+}
+
 let me: ResearcherLead;
 let state: LeadState;
 let posts: unknown[];
@@ -42,6 +54,8 @@ let failStates = 0;
 let drainStarts: LeadTurn[] = [];
 let onDrain: (() => void) | null = null;
 let withdrawn: string[] = [];
+let attachedFiles: { filename: string; data_b64: string }[] = [];
+let releaseAttach: (() => void) | null = null;
 function api() {
   vi.stubGlobal("fetch", vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
     const u = String(url);
@@ -64,6 +78,17 @@ function api() {
       }
       onDrain?.();
       return new Response(JSON.stringify({ turns: drainStarts }), { status: drainStarts.length ? 201 : 200 });
+    }
+    if (u.endsWith("/lead/files")) {
+      const body = JSON.parse(String(init?.body)) as { filename: string; data_b64: string };
+      attachedFiles.push(body);
+      if (body.filename.endsWith(".exe")) return new Response(JSON.stringify({ code: "unsupported_format", message: "x" }), { status: 422 });
+      await new Promise<void>((resolve) => { releaseAttach = resolve; });
+      const dataset = body.filename.endsWith(".csv");
+      return new Response(JSON.stringify({
+        source_id: `SRC-000000000000000${attachedFiles.length}`, filename: body.filename, family: dataset ? "DATASET" : "DOCUMENT",
+        outcome: "READ", reason: null, segments: 2, characters: 120,
+      }), { status: 201 });
     }
     if (u.endsWith("/withdraw")) {
       withdrawn.push(u.split("/").at(-2)!);
@@ -99,6 +124,8 @@ beforeEach(() => {
   staleAnswer = [];
   drains = 0;
   withdrawn = [];
+  attachedFiles = [];
+  releaseAttach = null;
   failPosts = 0;
   failDrains = 0;
   failStates = 0;
@@ -161,6 +188,20 @@ describe("LeadPane", () => {
     expect(read.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
   });
 
+  it("says a greeting the budget could not pay for in one quiet line, and a released turn as sent again (F-LO-PARK-1)", async () => {
+    state.turns = [turn({ turn_id: "LDT-G", kind: "greeting", status: "COMPLETED", reason: "greeting_unfunded", output: null })];
+    render(pane());
+    const quiet = await waitFor(() => { const n = document.querySelector('[data-lead-wait="greeting_unfunded"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(quiet.textContent).toMatch(/Přehled studie čeká na rozpočet\./);
+    expect(quiet.querySelector(".glyph")?.getAttribute("data-tone")).toBe("world");
+    expect(quiet.querySelector("button")).toBeNull();
+    cleanup();
+    state.turns = [turn({ turn_id: "LDT-R", status: "CANCELLED", reason: "lead_turn_released", output: null })];
+    render(pane());
+    const released = await waitFor(() => { const n = document.querySelector('[data-lead-wait="lead_turn_released"]'); if (!n) throw new Error("no line"); return n as HTMLElement; });
+    expect(released.textContent).toMatch(/odpoví znovu, nad návrhem, jak je teď/);
+  });
+
   it("opens what the last Lead turn could see from the Vidí chip, naming what it left out", async () => {
     state.turns = [turn({ output: { reply: "Hotovo." } })];
     render(pane());
@@ -209,6 +250,52 @@ describe("LeadPane", () => {
     fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Je cíl dost konkrétní?" } });
     fireEvent.keyDown(screen.getByLabelText("Napište Vedoucímu výzkumu"), { key: "Enter" });
     await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Je cíl dost konkrétní?", stage: "brief", focus: null }));
+  });
+
+  it("gives the Lead a file: kept as the client's source first, the message holding until then, then carrying it (LO18a)", async () => {
+    render(pane());
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["%PDF-1"], "Zadání.pdf", { type: "application/pdf" })] } });
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Co v zadání chybí?" } });
+    // Still being kept: the message waits for it rather than going without it.
+    await screen.findByText("Ukládá se k podkladům klienta…");
+    expect((screen.getByRole("button", { name: "Odeslat" }) as HTMLButtonElement).disabled).toBe(true);
+    // The quick asks hold too, rather than dropping a click unsaid (review of LO18a).
+    expect((screen.getByRole("button", { name: "Kde jsme?" }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(releaseAttach).not.toBeNull());
+    act(() => releaseAttach!());
+    await screen.findByText("Přečteno: 2 části, 120 znaků", { exact: false });
+    expect(attachedFiles[0]!.filename).toBe("Zadání.pdf");
+    fireEvent.click(screen.getByRole("button", { name: "Odeslat" }));
+    await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Co v zadání chybí?", stage: "brief", focus: null, files: ["SRC-0000000000000001"] }));
+    // The chips go with the message.
+    expect(screen.queryByRole("list", { name: "Přiložené soubory" })).toBeNull();
+  });
+
+  it("says a refused file at its chip, sends none of it, and takes at most three files", async () => {
+    render(pane());
+    await waitFor(() => expect(posts).toHaveLength(1));
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [new File(["MZ"], "a.exe"), new File([""], "prázdný.txt")] } });
+    expect(await screen.findByText(/Nepřiloženo: tento formát AIA nepřijímá/)).toBeTruthy();
+    expect(screen.getByText(/Nepřiloženo: soubor je prázdný/)).toBeTruthy();
+    // The empty file was refused here, never sent.
+    expect(attachedFiles.map((f) => f.filename)).toEqual(["a.exe"]);
+    fireEvent.change(screen.getByLabelText("Napište Vedoucímu výzkumu"), { target: { value: "Přečti." } });
+    fireEvent.click(screen.getByRole("button", { name: "Odeslat" }));
+    await waitFor(() => expect(posts[1]).toEqual({ kind: "message", text: "Přečti.", stage: "brief", focus: null }));
+    fireEvent.change(input, { target: { files: ["1", "2", "3", "4"].map((n) => new File(["x"], `${n}.md`)) } });
+    await waitFor(() => expect(attachedFiles).toHaveLength(4));
+    expect(screen.getAllByText("Ukládá se k podkladům klienta…")).toHaveLength(3);
+    expect((screen.getByRole("button", { name: /Přiložit soubor/ }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("names the files a sent message carried", async () => {
+    state = { ...state, turns: [turn({ turn_id: "P-1", actor: "person", text: "Přečti.", run_id: null, files: [{ source_id: "SRC-0000000000000001", sha256: "a", reading_sha256: "b", filename: "Zadání.pdf" }] })] };
+    render(pane());
+    const list = await screen.findByRole("list", { name: "Soubory pro Vedoucího" });
+    expect(within(list).getByText("Zadání.pdf")).toBeTruthy();
   });
 
   it("saves the working copy's waiting change before a message goes, so the Lead reads it", async () => {
@@ -518,6 +605,19 @@ describe("LeadPane", () => {
     state = { ...state, busy: false, turns: [turn({ output: { reply: "Hotovo." } }), waiting("LDT-8", "Z jiné karty")] };
     fireEvent.click(within(queue).getAllByRole("button", { name: "Odebrat z fronty" })[1]!);
     await waitFor(() => expect(withdrawn).toEqual(["LDT-9"]));
+    await waitFor(() => expect(drains).toBe(1));
+  });
+
+  it("reads again when the tab comes back to a turn parked on the budget, and sends what a budget set released (F-LO-PARK-1)", async () => {
+    const asked = turn({ turn_id: "LDT-9", actor: "person", text: "Jsi tam?", run_id: null, queued: false });
+    state = { ...state, busy: false, turns: [asked, turn({ turn_id: "LDT-P", status: "WAITING", reason: "budget_exceeded", output: null })] };
+    render(pane());
+    await screen.findByText("Jsi tam?");
+    expect(drains).toBe(0); // nothing waits: the parked turn holds the message
+    // The budget is set in Nastavení (another tab, or a colleague): the turn is released and its
+    // message waits again. Not busy, so only the parked read finds it; here, the tab coming back.
+    state = { ...state, turns: [{ ...asked, queued: true }, turn({ turn_id: "LDT-P", status: "CANCELLED", reason: "lead_turn_released", output: null })] };
+    fireEvent(window, new Event("focus"));
     await waitFor(() => expect(drains).toBe(1));
   });
 

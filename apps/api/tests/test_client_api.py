@@ -10,11 +10,13 @@ from __future__ import annotations
 import base64
 import dataclasses
 import hashlib
+import json
 from typing import Any
 
 import pytest
 from aia_core.application.scope import ScopeResolver
-from aia_core.domain.scope import ClientContext, ClientPermission
+from aia_core.domain.scope import ClientContext, ClientPermission, ClientStatus
+from aia_core.infrastructure.scope_repository import ScopeRepository
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -55,6 +57,42 @@ def test_the_directory_lists_every_client_to_every_member(
         if x["client_id"] == world.client_id("primary")
     )
     assert primary["active_count"] == 2
+
+
+def test_the_directory_says_each_clients_status(
+    owner: TestClient, lead: TestClient, world: Any
+) -> None:
+    """CPR2: a dormant client says so on its card; an archived one is not listed at all."""
+    dormant = owner.put(
+        f"{API}/clients/{world.client_id('other')}/status", json={"status": "DORMANT"}
+    )
+    assert dormant.status_code == 200, dormant.text
+    status = {c["client_id"]: c["status"] for c in lead.get(f"{API}/workspace/clients").json()}
+    assert status == {world.client_id("primary"): "ACTIVE", world.client_id("other"): "DORMANT"}
+    archived = owner.put(
+        f"{API}/clients/{world.client_id('other')}/status", json={"status": "ARCHIVED"}
+    )
+    assert archived.status_code == 200, archived.text
+    listed = lead.get(f"{API}/workspace/clients").json()
+    assert [c["client_id"] for c in listed] == [world.client_id("primary")]
+
+
+def test_a_client_archived_while_the_directory_is_read_is_left_out(
+    lead: TestClient, world: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """CPR2: archived between its scope check and its row's read, a client is not listed."""
+    read = ScopeRepository.get_client_in_scope
+
+    def archived_meanwhile(self: ScopeRepository, scope: ClientContext) -> Any:
+        client = read(self, scope)
+        if client.client_id != world.client_id("other"):
+            return client
+        return client.model_copy(update={"status": ClientStatus.ARCHIVED})
+
+    monkeypatch.setattr(ScopeRepository, "get_client_in_scope", archived_meanwhile)
+    listed = lead.get(f"{API}/workspace/clients")
+    assert listed.status_code == 200, listed.text
+    assert [c["client_id"] for c in listed.json()] == [world.client_id("primary")]
 
 
 def test_a_researcher_starts_a_client_and_every_member_can_open_it(
@@ -1015,6 +1053,45 @@ def test_a_member_fills_in_the_clients_profile_and_its_history_says_what_changed
     # Another client's profile is its own.
     theirs = other_client_lead.get(f"{API}/clients/{world.client_id('other')}/profile").json()
     assert theirs["industry"] == ""
+
+
+def test_the_profile_history_says_who_changed_the_budget_and_the_rules_and_from_what(
+    owner: TestClient, researcher: TestClient, world: Any
+) -> None:
+    """CPR3: the budget, wallet ceiling, data posture and self-approval changes, by name."""
+    client = world.client_id()
+    assert researcher.put(f"{API}/clients/{client}/budget", json={"budget_usd": 50}).is_success
+    rules = owner.put(
+        f"{API}/clients/{client}/rules", json={"data_posture": "OPEN", "wallet_ceiling_usd": 20}
+    )
+    assert rules.status_code == 200, rules.text
+    approval = owner.put(f"{API}/self-approval", json={"allowed": False, "client_id": client})
+    assert approval.status_code == 200, approval.text
+    # Set for one of the client's studies, it is the study's, not the client's history.
+    study = owner.put(f"{API}/self-approval", json={"allowed": True, "study_id": world.study_id()})
+    assert study.status_code == 200, study.text
+
+    history = researcher.get(f"{API}/clients/{client}/profile").json()["history"]
+    assert [(h["action"], h["actor_name"]) for h in history] == [
+        ("SELF_APPROVAL_CONFIGURED", "owner"),
+        ("CLIENT_RULES_CHANGED", "owner"),
+        ("CLIENT_BUDGET_CHANGED", "researcher"),
+    ]
+    assert history[0]["changes"] == [
+        {"field": "allow_self_approval", "before": None, "after": False, "before_known": False}
+    ]
+    assert sorted(history[1]["changes"], key=lambda c: c["field"]) == [
+        {"field": "data_posture", "before": None, "after": "OPEN", "before_known": True},
+        {"field": "wallet_ceiling_usd", "before": None, "after": 20.0, "before_known": True},
+    ]
+    assert history[2]["changes"] == [
+        {"field": "budget_usd", "before": 0.0, "after": 50.0, "before_known": True}
+    ]
+    assert all(h["at"] for h in history)
+    assert "@" not in json.dumps(history)
+    # Another client's history knows nothing of it.
+    theirs = researcher.get(f"{API}/clients/{world.client_id('other')}/profile").json()
+    assert theirs["history"] == []
 
 
 def test_a_member_sets_the_clients_own_budget_and_the_directory_does_not_carry_it(

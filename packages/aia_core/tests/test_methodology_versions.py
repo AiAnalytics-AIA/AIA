@@ -21,11 +21,11 @@ from aia_core.domain.methodology.versions import (
     validate_version,
     version_payload,
 )
-from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V3
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V1, AIA_SOCIOMAP_V5
 
 
 def _spec(**changes: Any) -> dict[str, Any]:
-    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
     for path, value in changes.items():
         node = spec
         *parents, leaf = path.split("__")
@@ -38,10 +38,10 @@ def _spec(**changes: Any) -> dict[str, Any]:
 def _validate(spec: dict[str, Any], formulas: dict[str, str] | None = None, **kw: Any) -> Any:
     return validate_version(
         SOCIOMAP,
-        base_preset=kw.get("base", "aia-sociomap-3"),
+        base_preset=kw.get("base", "aia-sociomap-5"),
         spec=spec,
         formulas=formulas or {},
-        version_name=kw.get("name", named("aia-sociomap-3", 1)),
+        version_name=kw.get("name", named("aia-sociomap-5", 1)),
     )
 
 
@@ -49,13 +49,13 @@ def test_an_edited_parameter_is_a_version_named_for_its_base() -> None:
     version = _validate(_spec(relation__n_min=40, terrain__sigma=0.3))
     assert version.spec.relation.n_min == 40
     assert version.spec.terrain.sigma == 0.3
-    assert version.spec.methodology_version == "aia-sociomap-3+e1"
-    assert version.spec.fingerprint() != AIA_SOCIOMAP_V3.fingerprint()
+    assert version.spec.methodology_version == "aia-sociomap-5+e1"
+    assert version.spec.fingerprint() != AIA_SOCIOMAP_V5.fingerprint()
 
 
 def test_the_author_cannot_name_a_version_the_codes_preset() -> None:
-    version = _validate(_spec(methodology_version="aia-sociomap-3"))
-    assert version.spec.methodology_version == "aia-sociomap-3+e1"
+    version = _validate(_spec(methodology_version="aia-sociomap-5"))
+    assert version.spec.methodology_version == "aia-sociomap-5+e1"
 
 
 def test_a_replaced_formula_is_kept_when_it_keeps_its_slots_properties() -> None:
@@ -69,7 +69,7 @@ def test_every_problem_is_reported_at_once() -> None:
             _spec(relation__n_min=2, terrain__sigma=-1.0, layout__map_frame__extent=3.0),
             {
                 "f12.kernel": "h * exp(d2)",  # rises with distance
-                "f6.distance": "__import__('os')",
+                "f8.height": "__import__('os')",
                 "f99.nothing": "1",
             },
         )
@@ -78,7 +78,7 @@ def test_every_problem_is_reported_at_once() -> None:
         problems
     )
     assert "formula.f12.kernel.non_increasing_in:d2" in problems
-    assert problems["formula.f6.distance"].startswith("unknown_function")
+    assert problems["formula.f8.height"].startswith("unknown_function")
     assert "no slot" in problems["formula.f99.nothing"]
 
 
@@ -108,17 +108,36 @@ def test_a_base_the_module_does_not_have_is_refused() -> None:
     assert "no preset" in refused.value.problems["base_preset"]
 
 
+@pytest.mark.parametrize("base", ["aia-sociomap-4", "aia-sociomap-3", "aia-sociomap-2"])
+def test_a_base_other_than_the_preset_in_force_is_refused(base: str) -> None:
+    """Metodika's Sociomap is edited from aia-sociomap-5 alone (MQ-23 (a)): an earlier preset
+    the code still holds is refused as a base, with its own spec and a valid edit."""
+    preset = next(p for p in SOCIOMAP.presets if p.name == base)
+    with pytest.raises(MethodologyVersionInvalid) as refused:
+        validate_version(
+            SOCIOMAP,
+            base_preset=base,
+            spec=preset.spec.model_dump(mode="json"),
+            formulas={},
+            version_name=named(base, 1),
+        )
+    assert set(refused.value.problems) == {"base_preset"}
+    assert "aia-sociomap-5" in refused.value.problems["base_preset"]
+
+
 def test_the_payload_is_plain_json_and_its_digest_is_stable() -> None:
-    version = _validate(_spec(relation__n_min=40), {"f6.distance": "sqrt(2 * (1 - r))"})
+    version = _validate(
+        _spec(relation__n_min=40), {"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"}
+    )
     payload = version_payload(version)
     assert payload["contract"] == VERSION_CONTRACT
     assert payload["spec"]["relation"]["n_min"] == 40
-    assert payload["formulas"] == {"f6.distance": "sqrt(2 * (1 - r))"}
+    assert payload["formulas"] == {"f12.kernel": "h * exp(-d2 / (2 * sigma ** 2))"}
     assert payload_sha256(payload) == payload_sha256(dict(reversed(list(payload.items()))))
     assert len(payload_sha256(payload)) == 64
 
 
 def test_a_version_number_counts_from_one() -> None:
-    assert named("aia-sociomap-3", 12) == "aia-sociomap-3+e12"
+    assert named("aia-sociomap-5", 12) == "aia-sociomap-5+e12"
     with pytest.raises(ValueError):
-        named("aia-sociomap-3", 0)
+        named("aia-sociomap-5", 0)
