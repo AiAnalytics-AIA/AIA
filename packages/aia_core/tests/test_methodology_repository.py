@@ -13,7 +13,7 @@ import pytest
 from sqlalchemy import select
 
 from aia_core.domain.scope import ScopeDenied
-from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V3
+from aia_core.domain.sociomap.specification import AIA_SOCIOMAP_V5
 from aia_core.infrastructure.methodology_repository import (
     MethodologyReader,
     MethodologyRefused,
@@ -25,7 +25,7 @@ SOCIOMAP = "sociomap"
 
 
 def _spec(**changes: Any) -> dict[str, Any]:
-    spec = AIA_SOCIOMAP_V3.model_dump(mode="json")
+    spec = AIA_SOCIOMAP_V5.model_dump(mode="json")
     for path, value in changes.items():
         node = spec
         *parents, leaf = path.split("__")
@@ -59,7 +59,7 @@ def _reader(scoped: Any, session: Any) -> MethodologyReader:
 def _propose(repo: MethodologyRepository, **changes: Any) -> Any:
     formulas = changes.pop("formulas", {})
     return repo.propose(
-        SOCIOMAP, base_preset="aia-sociomap-3", spec=_spec(**changes), formulas=formulas
+        SOCIOMAP, base_preset="aia-sociomap-5", spec=_spec(**changes), formulas=formulas
     )
 
 
@@ -93,8 +93,8 @@ def test_with_nothing_stored_the_codes_preset_is_in_force(scoped: Any, session: 
 
 def test_a_proposal_is_a_named_version_and_not_yet_in_force(scoped: Any, session: Any) -> None:
     version = _propose(_repo(scoped, session), relation__n_min=40, terrain__sigma=0.3)
-    assert (version.version_number, version.name) == (1, "aia-sociomap-3+e1")
-    assert version.payload["spec"]["methodology_version"] == "aia-sociomap-3+e1"
+    assert (version.version_number, version.name) == (1, "aia-sociomap-5+e1")
+    assert version.payload["spec"]["methodology_version"] == "aia-sociomap-5+e1"
     assert version.payload["spec"]["relation"]["n_min"] == 40
     assert len(version.payload_sha256) == 64
     assert _reader(scoped, session).in_force(SOCIOMAP).origin == "code"
@@ -138,9 +138,9 @@ def test_an_invalid_version_is_refused_with_every_problem_and_nothing_stored(
     scoped: Any, session: Any
 ) -> None:
     with pytest.raises(MethodologyRefused) as refused:
-        _propose(_repo(scoped, session), relation__n_min=2, formulas={"f6.distance": "open('x')"})
+        _propose(_repo(scoped, session), relation__n_min=2, formulas={"f8.height": "open('x')"})
     assert refused.value.reason == "methodology_invalid"
-    assert {"spec.relation.n_min", "formula.f6.distance"} <= set(refused.value.problems)
+    assert {"spec.relation.n_min", "formula.f8.height"} <= set(refused.value.problems)
     assert session.scalar(select(MethodologyVersionRow)) is None
     assert _audit(session) == []
 
@@ -176,7 +176,7 @@ def test_versions_are_immutable_and_numbered_per_organization(scoped: Any, sessi
     )
     owner = _marked(scoped, scoped.resolver.organization_context(principal))
     theirs = MethodologyRepository(session, owner)
-    first = theirs.propose(SOCIOMAP, base_preset="aia-sociomap-3", spec=_spec(), formulas={})
+    first = theirs.propose(SOCIOMAP, base_preset="aia-sociomap-5", spec=_spec(), formulas={})
     assert first.version_number == 1
     assert MethodologyReader(session, owner).in_force(SOCIOMAP).origin == "code"
     theirs.activate(SOCIOMAP, 1)
@@ -187,7 +187,7 @@ def test_a_long_note_or_reason_is_refused_not_cut(scoped: Any, session: Any) -> 
     repo = _repo(scoped, session)
     with pytest.raises(MethodologyRefused) as note:
         repo.propose(
-            SOCIOMAP, base_preset="aia-sociomap-3", spec=_spec(), formulas={}, note="x" * 501
+            SOCIOMAP, base_preset="aia-sociomap-5", spec=_spec(), formulas={}, note="x" * 501
         )
     assert note.value.reason == "note_too_long"
     with pytest.raises(MethodologyRefused) as reason:

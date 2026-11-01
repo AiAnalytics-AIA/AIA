@@ -446,9 +446,11 @@ try {
   for (const width of [1440, 1100, 768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(base + stagePath("run"));
-    const edit = page.getByRole("link", { name: "Upravit", exact: true });
-    await edit.first().waitFor({ timeout: 60000 });
-    assert((await edit.count()) > 0, `Co spustíte names its stages @${width}`);
+    // "Co spustíte" (FLD23): one summary with its way to Dotazník and Start inside it.
+    const what = page.getByRole("region", { name: "Co spustíte" });
+    await what.waitFor({ timeout: 60000 });
+    assert((await what.getByRole("link", { name: "Dotazník", exact: true }).count()) === 1, `Co spustíte links Dotazník @${width}`);
+    assert((await what.getByRole("button", { name: "Spustit výzkum", exact: true }).count()) === 1, `Start is in Co spustíte @${width}`);
     const floor = width < 640 ? 44 : 32;
     // Every shown link of the stage's own but one inside a sentence, which WCAG 2.5.8 exempts: a link
     // with text of its parent's beside it.
@@ -497,7 +499,8 @@ try {
   await page.locator("[data-workbench]").waitFor();
   await navStage("Sběr dat").click();
   await page.waitForURL(/\/run(\?|$)/);
-  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow");
+  assert.equal(writes.filter((w) => /\/design\/revisions$/.test(w.path)).length, submitsBefore, "a Kontrola visit submits no design (FLD22)");
+  check("Spuštění's links are touch targets, Co spustíte stacks on a phone, at 1440, 1100, 768 and 390, no overflow; four Kontrola visits submitted no design (FLD22)");
   check("Sběr dat one stage with two views (FLD9): Pohled switches Kontrola and Průběh at 1440, 1100, 768 and 390, no overflow; with no run moving the navigator opens Kontrola");
 
   // The stages' docks name no classic step: the navigator names the neighbours (DIM-F4). Last,

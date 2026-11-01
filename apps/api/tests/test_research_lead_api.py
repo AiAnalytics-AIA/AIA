@@ -244,6 +244,8 @@ def test_a_message_queues_a_turn_and_the_lead_answers_one_at_a_time(
         "queued",
         "withdrawn",
         "answers",
+        # The client's sources a person's message carried to the Lead (LO18a).
+        "files",
     }
     assert lead["command"] is None
     assert lead["answers"] == [person["turn_id"]] and person["queued"] is False
@@ -387,6 +389,7 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
     paths = {path for path in app.openapi()["paths"] if "/lead" in path}
     assert paths == {
         "/api/v1/studies/{study_id}/lead",
+        "/api/v1/studies/{study_id}/lead/files",
         "/api/v1/studies/{study_id}/lead/turns",
         "/api/v1/studies/{study_id}/lead/turns/queued",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/withdraw",

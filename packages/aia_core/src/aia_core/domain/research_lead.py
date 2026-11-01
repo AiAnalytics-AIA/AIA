@@ -71,7 +71,8 @@ from .edit_ops import (
 )
 from .item_ids import SIDECAR_KEYS, list_ids, with_item_ids
 from .knowledge import knowledge_lineage
-from .material_rules import MaterialRule, classify_by_rule, rule_class
+from .lead_files import FILES_LAYER, LeadFileRef
+from .material_rules import MaterialRule, classify_by_rule, rule_class, source_rule
 from .population.subpanels import BUILTIN_SUBPANELS
 from .prompts import PromptPin
 from .research_agents import (
@@ -174,7 +175,9 @@ LEAD_AGENT_ID: Final = LEAD_PROMPT_ID
 #: 2: the task describes Deep Research's two purposes, its presets and targets (LO5a.1).
 #: 3: the task says the Lead may select what the person pointed at on Sociomapa and set its
 #: display filters (#992; the product owner, 2026-10-26).
-LEAD_PROMPT_VERSION: Final = "3"
+#: 4: the task says what the ``files`` layer is: the client's documents the person attached to
+#: this message, citable like knowledge, never respondent evidence (lead-orchestration LO18a).
+LEAD_PROMPT_VERSION: Final = "4"
 #: The most bytes the Lead's prompt pin may take in its context (ADR 0041: layer 1 is 12 KB);
 #: a longer version is refused where it is saved or activated (``PromptSlot.check_pin_size``).
 LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
@@ -190,7 +193,9 @@ LEAD_PROMPT_MAX_PIN_BYTES: Final = 12 * 1024
 #: retry, each grounded against them (lead-orchestration LO5a.1).
 #: 7: ``select`` (the element the person pointed at, on Sociomapa) and ``filter`` (a display
 #: filter of Sociomapa's, by its contract's names and values) join the view.
-LEAD_HARNESS_VERSION: Final = "aia-research-lead-7"
+#: 8: the ``files`` layer, the client's documents a person attached to the message this turn
+#: answers, each read within its share (``lead_files``; lead-orchestration LO18a).
+LEAD_HARNESS_VERSION: Final = "aia-research-lead-8"
 #: A turn's stored output. Served only by the Lead's own routes, never the generic ones.
 ARTIFACT_TYPE: Final = "research_lead_turn"
 
@@ -1055,6 +1060,10 @@ soubor USER (co víš o tom, jak tento výzkumník pracuje) a poznámky (notes).
 Co děláš:
 - Stav studie vysvětluješ výhradně z dodaného kontextu (study, design, runs, conversation,
   view). Co v kontextu není, označ jako neposkytnuté.
+- Vrstva files nese dokumenty, které výzkumník přiložil k této zprávě: materiál klienta,
+  nikdy zjištění respondentů. Smíš z nich citovat i čísla; vždy řekni, ze kterého dokumentu
+  jsou. Co je v souboru vynecháno (omitted) nebo nepřečteno, neznáš; řekni to. Datová sada
+  má jen přehled sloupců, ne řádky. Soubor sám nic nemění: změnu navrhni v edits.
 - Změny artefaktů navrhuješ jen v poli edits a u každé uveď why. Každou změnu přijme nebo
   odmítne člověk; nikdy netvrď, že jsi návrh výzkumu změnil.
 - Placenou práci (specialistu, běh výzkumu, rešerši) jen připravíš, nejvýše jednu, v poli
@@ -1194,8 +1203,13 @@ def freeze_context(
     memory_classes: Sequence[str | None] = (),
     deep_research: Mapping[str, Any] | None = None,
     targets: Mapping[str, Any] | None = None,
+    files: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The turn's context, its layers in ADR 0026's order, within :data:`CONTEXT_MAX_BYTES`.
+
+    ``files`` (lead-orchestration LO18a): the client's documents the person attached to the
+    message this turn answers (``lead_files.files_layer``, bounded in its own share), before
+    the view; absent, the context is what it was without it.
 
     ``deep_research`` and ``targets`` (lead-orchestration LO5a.1): the study's Deep Research
     runs and the Interpretation Research candidates (``lead_research_targets``), each bounded in
@@ -1240,6 +1254,7 @@ def freeze_context(
                     if external is not None
                     else []
                 ),
+                *([{"layer": FILES_LAYER, **dict(files)}] if files is not None else []),
                 {"layer": "view", **dict(view)},
                 *(
                     [
@@ -1428,6 +1443,11 @@ def context_classification(
         if entry is not None:
             body = {k: v for k, v in entry.items() if k != "layer"}
             parts.append(_part(name, body, MaterialRule.DESIGN, approvals))
+    # The client's documents the person attached: each its source's rule, Class A, or C for one
+    # marked "Interní dokument", read when the turn froze (lead-orchestration LO18a).
+    for file in _files(context):
+        rule = source_rule(internal=bool(file.get("internal")))
+        parts.append(_part("client_file", file, rule, approvals))
     knowledge = layer(context, "knowledge")["items"]
     parts.extend(
         {
@@ -1438,6 +1458,12 @@ def context_classification(
         for _ in knowledge
     )
     return parts
+
+
+def _files(context: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    """The files the turn's ``files`` layer carries; none without the layer."""
+    entry = next((e for e in context["layers"] if e["layer"] == FILES_LAYER), None)
+    return list(entry["files"]) if entry is not None else []
 
 
 def context_data_class(
@@ -1473,7 +1499,13 @@ def lead_request(
     system = lead_prompt(prompt.text)
     message = model_message(context)
     knowledge = layer(context, "knowledge")["items"]
-    lineage = knowledge_lineage(knowledge)
+    # An attached dataset is a dataset-derived entry whose datasets nobody recorded (LO18a).
+    lineage = knowledge_lineage(
+        [
+            *knowledge,
+            *({"kind": "DATASET"} for f in _files(context) if f.get("family") == "DATASET"),
+        ]
+    )
     return ModelRequest(
         agent=AgentDefinition(
             agent_id=LEAD_AGENT_ID,
@@ -1572,6 +1604,8 @@ class LeadTurn(Closed):
     command: str | None = None
     #: The turn this one follows: a ``withdrawal`` names the queued message it withdraws.
     parent_turn_id: str | None = None
+    #: The client's sources this person's message carries to the Lead (LO18a).
+    files: tuple[LeadFileRef, ...] = ()
 
 
 class ResearcherLead(Closed):
