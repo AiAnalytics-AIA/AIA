@@ -79,6 +79,18 @@ class SourceUpload(_Model):
     data_b64: str = Field(min_length=1, max_length=_B64_MAX)
 
 
+def decoded(body: SourceUpload) -> bytes:
+    """The upload's bytes; 422 ``not_base64`` for a body that is not base64. Shared with the
+    Lead's files (``routers/lead.py``), one upload contract for a client's source."""
+    try:
+        return base64.b64decode(body.data_b64, validate=True)
+    except binascii.Error as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "not_base64", "message": "The file is not valid base64."},
+        ) from exc
+
+
 class InternalMarkRequest(_Model):
     #: True marks the source "Interní dokument"; false unmarks it.
     internal: bool
@@ -270,13 +282,7 @@ def add_source(
 ) -> SourceAddedResponse:
     """Needs ``PROPOSE_CLIENT_KNOWLEDGE``. Adding a source accepts nothing."""
     scope = _scope(principal, resolver, client_id)
-    try:
-        data = base64.b64decode(body.data_b64, validate=True)
-    except binascii.Error as exc:
-        raise HTTPException(
-            status_code=422,
-            detail={"code": "not_base64", "message": "The file is not valid base64."},
-        ) from exc
+    data = decoded(body)
     try:
         record, created = ClientSourceRepository(session, store).add(
             scope, filename=body.filename, data=data
