@@ -239,6 +239,18 @@ describe("Run", () => {
     expect(screen.queryByText("PASS")).toBeNull();
   });
 
+  it("folds every check under one line counted by status, closed while none stops the run (FLD24)", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, checks: [...READY.checks, { id: "novel", status: "SOMETHING_NEW", message: "Nová kontrola." }] }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await whatRuns();
+    const all = document.querySelector("[data-all-checks]") as HTMLDetailsElement;
+    expect(all.open).toBe(false);
+    const summary = all.querySelector("summary") as HTMLElement;
+    expect(within(summary).getByRole("heading", { name: "Všechny kontroly (3)" })).toBeTruthy();
+    // A status AIA does not know is counted apart, never as passed.
+    expect(summary.textContent).toContain("1 v pořádku · 1 upozornění · 0 brání · 1 neznámé");
+  });
+
   it("lists each earlier run in the state every screen reads, and opens results only once they are ready (6a)", async () => {
     const analysis = (outcome: string) => step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: outcome });
     const blocked = run({ ...COMPLETED, run_id: "RUN-2", steps: [...COMPLETED.steps, analysis("BLOCKED")] });
@@ -299,7 +311,7 @@ describe("Run", () => {
     expect(what.textContent).toContain("N 450");
     expect(within(what).getByText("Upozornění, která nebrání (1): AIA zatím nepoužije filtry.")).toBeTruthy();
     expect(within(what).getByRole("button", { name: t("research.exec.start") })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Opravit →" }).getAttribute("href")).toBe(stagePath("audience"));
+    expect(within(screen.getByRole("list", { name: t("research.exec.steps.preflight") })).getByRole("link", { name: t("research.exec.checks.fix") }).getAttribute("href")).toBe(stagePath("audience"));
     expect(screen.getByRole("button", { name: t("research.exec.start") }).getAttribute("data-ai-action")).toBe("true");
   });
 
@@ -494,7 +506,9 @@ describe("Run", () => {
       }),
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText(t("research.exec.notReady"))).toBeTruthy();
+    expect(within(await whatRuns()).getByText(t("research.exec.what.notReady"))).toBeTruthy();
+    // A check that stops the run opens "Všechny kontroly" (FLD24).
+    expect((document.querySelector("[data-all-checks]") as HTMLDetailsElement).open).toBe(true);
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -670,7 +684,7 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
   it("shows no card for a design with no items", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText(t("research.exec.ready"))).toBeTruthy();
+    await whatRuns();
     expect(screen.queryByRole("region", { name: t("research.exec.outlook.title") })).toBeNull();
   });
 });
