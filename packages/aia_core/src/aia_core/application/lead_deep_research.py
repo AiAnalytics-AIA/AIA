@@ -48,6 +48,7 @@ from ..domain.lead_commands import (
     DESIGN_RESEARCH_STARTS,
     INTERPRETATION_RESEARCH_STARTS,
 )
+from ..domain.research import retryable
 from ..domain.research_lead import (
     DeepResearchRetryRequest,
     DesignResearchRequest,
@@ -57,6 +58,7 @@ from ..domain.research_lead import (
 from ..domain.run_cost import DeepResearchPrices
 from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
+from ..domain.workflow import WorkflowRunStatus
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
 from .deep_research import (
@@ -329,28 +331,45 @@ class DeepResearchTargetMoved(Exception):
         self.current_run_id = current_run_id
 
 
+#: The states a typed retry and a typed stop can act on, chosen in the query before its limit,
+#: so newer runs in other states never hide them (Codex P2 on #1144).
+_RETRYABLE: Final = tuple(s for s in WorkflowRunStatus if retryable(s))
+_UNENDED: Final = tuple(s for s in WorkflowRunStatus if not s.is_terminal)
+
+
 def retry_target(runs: DeepResearchRuns) -> dict[str, Any] | None:
     """The run a typed "Zopakuj rešerši" retries: the study's newest Deep Research run that can be
     retried (failed or cancelled), which its card names; ``None`` when there is none."""
-    return next((r for r in runs.runs(limit=50) if r["retryable"]), None)
+    return next(iter(runs.runs(limit=1, statuses=_RETRYABLE)), None)
 
 
 def stop_target(runs: DeepResearchRuns) -> dict[str, Any] | None:
     """The run a typed "Zastav rešerši" stops: the study's newest Deep Research run that has not
     ended (running, queued or waiting); ``None`` when there is none."""
-    return next((r for r in runs.runs(limit=50) if not r["status"].is_terminal), None)
+    return next(iter(runs.runs(limit=1, statuses=_UNENDED)), None)
 
 
 def interpretation_target(
-    targets: Mapping[str, Any] | None, target_id: str | None
+    targets: Mapping[str, Any] | None, target: Mapping[str, Any] | None
 ) -> ResearchTargetRef:
-    """The target a typed Interpretation start names: ``target_id`` from ``targets`` (the
-    ``targets`` layer the server just built over the study's completed runs), else its default.
-    A target is never read from the person's text; an id the list does not hold is
+    """The target a typed Interpretation start names: ``target``, the reference of the candidate
+    the person chose, only while ``targets`` (the list the server just built over the study's
+    completed runs) still holds it; else the list's default. Never a position in the list, which
+    a newer completed run shifts (Codex P1 on #1144), and never the person's text; a reference
+    the list does not hold is
     :class:`~aia_core.application.deep_research.ResearchTargetNotFound`."""
-    if target_id is None and (targets is None or targets.get("default") is None):
-        raise TypedDeepResearchRefused("no_default_target")
-    return card_target({"layers": [{"layer": "targets", **(targets or {})}]}, target_id)
+    if target is None:
+        if targets is None or targets.get("default") is None:
+            raise TypedDeepResearchRefused("no_default_target")
+        return card_target({"layers": [{"layer": "targets", **targets}]}, None)
+    try:
+        wanted = _REF.dump_python(_REF.validate_python(target), mode="json")
+    except ValidationError as exc:
+        raise ResearchTargetNotFound("target") from exc
+    for candidate in (targets or {}).get("candidates") or ():
+        if isinstance(candidate, Mapping) and candidate.get("ref") == wanted:
+            return _REF.validate_python(wanted)
+    raise ResearchTargetNotFound("target")
 
 
 def approve_typed_deep_research(
@@ -363,7 +382,7 @@ def approve_typed_deep_research(
     settings: DeepResearchCardSettings | None,
     submit_design: Callable[[], Any],
     targets: Callable[[], Mapping[str, Any] | None],
-    target_id: str | None,
+    target: Mapping[str, Any] | None,
     shown_run_id: str | None,
     confirm_cost_usd: float | None,
     wallet_enabled: bool,
@@ -374,9 +393,10 @@ def approve_typed_deep_research(
     this turn yet and re-matched its text; ``confirm_cost_usd`` is the confirmed amount it issued.
     A start follows the module's order with a ``chat_start`` row naming the run in place of the
     card's two rows: freeze once, quote, hold to the wallet, create, record, charge at the pinned
-    ceiling. ``targets()`` builds the Interpretation candidates now, at approval; ``target_id``
-    names one, else the default. ``shown_run_id``: the run a retry's or a stop's card named, so a
-    newer one is never acted on unasked. A stop cancels and charges nothing; its row is ``stop``.
+    ceiling. ``targets()`` builds the Interpretation candidates now, at approval; ``target``
+    names one by its reference, else the default. ``shown_run_id``: the run a retry's or a
+    stop's card named, so a newer one is never acted on unasked. A stop cancels and charges
+    nothing; its row is ``stop``.
     """
     if settings is None:
         raise DeepResearchCardUnavailable("no Deep Research start is composed here")
@@ -419,7 +439,7 @@ def approve_typed_deep_research(
         assert preset is not None
         start = FrozenStart(
             runs.freeze_interpretation(
-                target=interpretation_target(targets(), target_id),
+                target=interpretation_target(targets(), target),
                 preset_name=preset,
                 store=settings.store,
                 channels=CARD_CHANNELS,

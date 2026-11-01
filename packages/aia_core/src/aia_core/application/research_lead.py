@@ -1276,7 +1276,7 @@ class ResearchLead:
         workspace_revision: int | None = None,
         retry_run_id: str | None = None,
         deep_research: DeepResearchCardSettings | None = None,
-        target_id: str | None = None,
+        target: Mapping[str, Any] | None = None,
         deep_research_run_id: str | None = None,
     ) -> dict[str, Any]:
         """A person approves the paid job a Lead turn prepared, and it starts (ADR 0026
@@ -1338,7 +1338,7 @@ class ResearchLead:
                 retry_run_id=retry_run_id,
                 deep_research=deep_research,
                 targets=self.interpretation_targets,
-                target_id=target_id,
+                target_ref=target,
                 deep_research_run_id=deep_research_run_id,
             )
         turn, output = self._completed(turn_id)

@@ -144,7 +144,7 @@ def approve_chat_start(
     retry_run_id: str | None = None,
     deep_research: DeepResearchCardSettings | None = None,
     targets: Callable[[], Mapping[str, Any] | None] = lambda: None,
-    target_id: str | None = None,
+    target_ref: Mapping[str, Any] | None = None,
     deep_research_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Start the work the person's typed command named (``turn.command``), once.
@@ -154,9 +154,9 @@ def approve_chat_start(
 
     A typed Deep Research start, retry or stop (LO5a.3) is
     :func:`~aia_core.application.lead_deep_research.approve_typed_deep_research` on
-    ``deep_research``'s settings: ``targets()`` the Interpretation candidates built now and
-    ``target_id`` the one the person chose (else the default); ``deep_research_run_id`` the run a
-    retry's or a stop's card showed.
+    ``deep_research``'s settings: ``targets()`` the Interpretation candidates built now,
+    ``target_ref`` the reference of the one the person chose (else the default), and
+    ``deep_research_run_id`` the run a retry's or a stop's card showed.
 
     ``submit_design(source_stage)`` submits the working content as a Design Revision, as the
     Lead's approval does. ``run_start`` is the deployment's run settings; without them a typed
@@ -197,7 +197,7 @@ def approve_chat_start(
             settings=deep_research,
             submit_design=lambda: submit_design("questionnaire"),
             targets=targets,
-            target_id=target_id,
+            target=target_ref,
             shown_run_id=deep_research_run_id,
             confirm_cost_usd=confirmed_usd,
             wallet_enabled=wallet_enabled,

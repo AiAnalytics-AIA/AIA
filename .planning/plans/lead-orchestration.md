@@ -1201,11 +1201,13 @@ web card only navigates (`Workbench.tsx:258-262`).
 - **Starts** (`application/lead_deep_research.py` `approve_typed_deep_research`, dispatched from
   `lead_chat_start.approve_chat_start` after its decided-card check, re-match and `confirm_spend`):
   - A design start freezes the working content's revision.
-  - An Interpretation start resolves `target_id` (else the default) from the candidates built at approval
-    (`ResearchLead.interpretation_targets`, the turn's own `targets` builder). The text is never read for it.
-    An id it does not hold is 404 `research_target_not_found`; no default is 409 `no_default_target`.
-  - A retry takes the newest failed or cancelled run.
-  - A stop takes the newest run not ended. It cancels and writes a `chat_start` row decision `stop`, naming the
+  - An Interpretation start takes `target`, the chosen candidate's reference, only while the candidates built
+    at approval (`ResearchLead.interpretation_targets`, the turn's own `targets` builder) still hold it; else the
+    default. Never its position, which a newer completed run shifts (Codex P1 on #1144); never the text. A
+    reference the list does not hold is 404 `research_target_not_found`; no default is 409 `no_default_target`.
+  - A retry takes the newest failed or cancelled run, chosen by status in the query before its limit (Codex P2 on
+    #1144).
+  - A stop takes the newest run not ended, chosen the same way. It cancels and writes a `chat_start` row decision `stop`, naming the
     run in its comment only.
   - The card names the run it showed (`deep_research_run_id`). Another one since is 409
     `deep_research_retry_target_moved` / `deep_research_stop_target_moved`. None at all is 409
