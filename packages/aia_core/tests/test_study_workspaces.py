@@ -11,8 +11,10 @@ Study.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import inspect
+import json
 from pathlib import Path
 from typing import Any
 
@@ -31,8 +33,10 @@ from aia_core.domain.attachments import (
 )
 from aia_core.domain.edit_log import ActorKind, OpSource, WriteBy
 from aia_core.domain.research_template import research_template
-from aia_core.domain.scope import ScopeDenied, StudyStatus
+from aia_core.domain.scope import Permission, ScopeDenied, StudyStatus
 from aia_core.domain.workspace import (
+    WORKBENCH_STAGE_KEYS,
+    WORKBENCH_STAGE_STEPS,
     WORKING_CONTENT_MAX_BYTES,
     WORKSPACE_PROJECT_OWNER,
     ContentState,
@@ -463,6 +467,47 @@ def test_the_last_stage_is_remembered_for_whoever_opens_the_study(
     assert workspaces.record_stage(outsider, stage="plan").last_stage == "plan"
     with pytest.raises(ValueError):
         workspaces.record_stage(lead, stage="nonsense")
+
+
+def test_the_workbench_stage_is_remembered_beside_its_step_and_never_disagrees_with_it(
+    scoped: Any, workspaces: StudyWorkspaceRepository
+) -> None:
+    """CPR23: the stage a study was left on in the workbench, kept with the classic step."""
+    lead = scoped.scope()
+    workspaces.save(
+        lead,
+        content=BRIEF,
+        base_revision=None,
+        by=WriteBy(ActorKind.PERSON, lead.actor_id, OpSource.UI),
+    )
+    assert workspaces.get(lead).last_workbench_stage is None  # never recorded: unknown
+    left = workspaces.record_stage(lead, stage="results", workbench_stage="report")
+    assert (left.last_stage, left.last_workbench_stage) == ("results", "report")
+    # An unknown stage, or one its step's route never shows, is refused and changes nothing.
+    for step, stage in (("results", "nowhere"), ("brief", "report"), ("run", "analysis")):
+        with pytest.raises(ValueError):
+            workspaces.record_stage(lead, stage=step, workbench_stage=stage)
+    assert workspaces.get(lead).last_workbench_stage == "report"
+    # A role that may not edit records nothing.
+    reader = dataclasses.replace(
+        lead, permissions=frozenset(p for p in lead.permissions if p is not Permission.EDIT_STUDY)
+    )
+    assert workspaces.record_stage(reader, stage="plan", workbench_stage="design").last_stage == (
+        "results"
+    )
+    # The step recorded alone clears the stage beside it, so the two never disagree.
+    alone = workspaces.record_stage(lead, stage="plan")
+    assert (alone.last_stage, alone.last_workbench_stage) == ("plan", None)
+
+
+def test_the_workbench_stages_are_the_webs_eleven_in_order() -> None:
+    """The fixture apps/web's workbench-stages.test.ts holds STAGE_ORDER to (CPR23)."""
+    fixture = Path(__file__).parent / "fixtures" / "workbench_stages" / "stages.json"
+    held = json.loads(fixture.read_text(encoding="utf-8"))
+    assert tuple(held["stages"]) == WORKBENCH_STAGE_KEYS
+    assert {k: set(v) for k, v in held["steps"].items()} == {
+        k: set(v) for k, v in WORKBENCH_STAGE_STEPS.items()
+    }
 
 
 def test_a_clients_workspaces_are_only_the_studies_its_scope_opens(

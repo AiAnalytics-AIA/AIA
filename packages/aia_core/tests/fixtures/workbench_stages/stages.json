@@ -1,0 +1,16 @@
+{
+  "stages": ["brief", "design", "questionnaire", "audience", "dimensions", "sample", "fieldwork", "results", "sociomap", "analysis", "report"],
+  "steps": {
+    "brief": ["brief"],
+    "design": ["plan"],
+    "questionnaire": ["questionnaire"],
+    "audience": ["audience"],
+    "dimensions": ["persona"],
+    "sample": ["persona"],
+    "fieldwork": ["run", "progress"],
+    "results": ["results"],
+    "sociomap": ["results"],
+    "analysis": ["results"],
+    "report": ["results"]
+  }
+}

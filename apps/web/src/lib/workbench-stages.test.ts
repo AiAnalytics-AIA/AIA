@@ -1,5 +1,7 @@
 // The workbench's eleven stages over today's routes (research-lead-workbench D2): every stage
 // reaches a route, every route shows a stage, and a stage's tone is the lane's.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { PHASES, STAGES, STAGE_ORDER, fieldworkStep, openFieldwork, stageHref, stageOf, stageState } from "./workbench-stages";
@@ -90,6 +92,19 @@ describe("workbench stages", () => {
     expect(stageState("results", lane)).toEqual({ tone: "done", line: "Revize 2", word: "Hotovo" });
     for (const view of ["sociomap", "analysis", "report"] as const) {
       expect(stageState(view, lane)).toEqual({ tone: "inert", line: "Revize 2", word: "" });
+    }
+  });
+});
+
+describe("the stages the server keeps (client-pages-redesign CPR23)", () => {
+  it("are the eleven in the same order, held to the server's list by the shared fixture", () => {
+    const fixture = join(process.cwd(), "../../packages/aia_core/tests/fixtures/workbench_stages/stages.json");
+    const held = JSON.parse(readFileSync(fixture, "utf8")) as { stages: string[]; steps: Record<string, string[]> };
+    expect(held.stages).toEqual([...STAGE_ORDER]);
+    // Each stage's steps are the routes that show it, as stageOf reads them with the stage's view.
+    for (const stage of STAGE_ORDER) {
+      expect(held.steps[stage], stage).toContain(STAGES[stage].step);
+      for (const step of held.steps[stage]) expect(stageOf(step as StepKey, STAGES[stage].view ?? ""), `${stage} ${step}`).toBe(stage);
     }
   });
 });
