@@ -106,6 +106,9 @@ scripted Lead can prepare an interpretation card. Tests: a completed Deep Resear
 its counts and ids and no quote text; a park wakes one with the code; a completed analysis lets the
 scripted Lead prepare an interpretation card. Detail in *Deep Research under the Lead* below.
 A continuation turn may read through the Lead's read tools like any turn (ADR 0026 Amendment 2026-10-28).
+*Note 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): Analýza already offers the Interpretation card by code
+once the analysis completes (ANL14, no model, the Lead on or off); this wake writes the Lead's own card, with its
+why, into the conversation, and both start through the same typed start (LO5a.3).
 
 **LO7. The Lead's context layers per ADR 0026 decision 2: readiness, question outlook, what changed since its last turn, other people's changes, and the execution state (status, park code, spend, selection receipt, QC)**  
 `freeze_context` has none of these (`domain/research_lead.py:803-819`). The Lead's answer to "Kde jsme?" is built from them.

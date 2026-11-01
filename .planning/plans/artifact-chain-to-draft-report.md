@@ -245,6 +245,8 @@ G12-G17 are added by this plan.
   seal. Unmarking the run composes the next draft without it.
 - `research_internal_docx_with_research` (`contextual_report.py:864`) is retired for new reports:
   nothing composes one after this lands. Stored ones stay downloadable and approvable as they are.
+- *Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): the run is marked by "Použít ve zprávě" on
+  Analýza's finished card (ANL15); nothing else changes here.
 - Tests: a draft with a marked run holds each accepted finding in its target's section, labelled L,
   with no ledger ref; a rejected finding does not print; no `research_internal_docx_with_research` is
   stored for a new report; a stored one still downloads by its artifact id; the census (CHN11a)

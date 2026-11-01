@@ -136,6 +136,9 @@ report, analysis prompt or export reads them; RES8's export test repeats it for 
 **RES6. The Lead on Výsledky.**
 - `ExecutionSteps.tsx:1415`'s ask is removed under `leadOwnsAiStarts`; an Interpretation Research
   card targets a measure.
+- *Narrowed 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): Výsledky only points there. A measure
+  or set offers "Zeptat se Vedoucího" (AskLead) with that target; the card, the run and its findings stand on
+  Analýza. No Interpretation Research panel or start on Výsledky.
 - Test: the 26f guard.
 - Depends on #550, `research-lead-workbench#23b`, `#26f`, `#26f.1` and `lead-orchestration#LO5a.1`.
 
