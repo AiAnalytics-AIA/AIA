@@ -16,6 +16,7 @@ import pytest
 from aia_core.domain.lead_commands import (
     ANALYSIS_RETRY,
     COMMANDS,
+    DEEP_RESEARCH_STARTS,
     INSTRUCTION_MAX_CHARS,
     RESEARCH_RUN,
     command_for,
@@ -35,23 +36,37 @@ def test_the_vocabulary_is_the_fixtures() -> None:
             "start": c.start,
             "label": c.label,
             "takes_instruction": c.takes_instruction,
+            "preset": c.preset,
         }
         for c in COMMANDS
     ] == FIXTURE["commands"]
 
 
-def test_every_design_worker_the_run_and_the_analysis_retry_has_exactly_one_command() -> None:
+def test_every_start_has_exactly_one_command() -> None:
     starts = [c.start for c in COMMANDS]
     assert len(starts) == len(set(starts))
     assert sorted(starts) == sorted(
-        [f"agent_job:{a.value}" for a in ResearchAction] + [RESEARCH_RUN, ANALYSIS_RETRY]
+        [f"agent_job:{a.value}" for a in ResearchAction]
+        + [RESEARCH_RUN, ANALYSIS_RETRY, *DEEP_RESEARCH_STARTS]
     )
     phrases = [c.phrase.casefold() for c in COMMANDS]
     assert len(phrases) == len(set(phrases))
     for command in COMMANDS:
         assert command_for(command.start) is command
-        assert (command.action is None) == (command.start in {RESEARCH_RUN, ANALYSIS_RETRY})
-    assert command_for("design_research") is None
+        assert (command.action is None) == (not command.start.startswith("agent_job:"))
+    assert command_for("agent_job:unknown") is None
+
+
+def test_a_deep_research_start_names_its_preset_and_nothing_else_does() -> None:
+    """lead-orchestration LO5a.3: STANDARD unless the person typed "rychlou" (Q46); a retry and
+    a stop take the run's own, and no other command has one."""
+    presets = {c.start: c.preset for c in COMMANDS if c.preset is not None}
+    assert presets == {
+        "design_research": "STANDARD",
+        "design_research_quick": "QUICK",
+        "interpretation_research": "STANDARD",
+        "interpretation_research_quick": "QUICK",
+    }
 
 
 @pytest.mark.parametrize("case", FIXTURE["matches"], ids=lambda c: c["text"])

@@ -36,20 +36,30 @@ both starts at once.
 from __future__ import annotations
 
 import json
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy.orm import Session
 
 from ..domain.approval_ledger import ApprovalSubject
-from ..domain.lead_commands import ANALYSIS_RETRY, RESEARCH_RUN, command_for, match_command
+from ..domain.lead_commands import (
+    ANALYSIS_RETRY,
+    DEEP_RESEARCH_STARTS,
+    RESEARCH_RUN,
+    command_for,
+    match_command,
+)
 from ..domain.money import StartPath, StartVerdictKind, start_verdict
 from ..domain.research_lead import LeadTurn
 from ..domain.run_start import StartRun
 from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.scope_repository import ScopeRepository
-from ..infrastructure.workflow_repository import CHAT_START_REUSE, WorkflowRepository
+from ..infrastructure.workflow_repository import (
+    CHAT_START_REUSE,
+    CHAT_START_STOP,
+    WorkflowRepository,
+)
 from .analysis_results import AnalysisNotRetryable, retry_failed_modules
 from .research import (
     CostConfirmationRequired,
@@ -61,6 +71,9 @@ from .research import (
 from .spend_confirmation import confirm_spend
 from .wallet import StudyWallets
 from .workflows import StartedRun
+
+if TYPE_CHECKING:
+    from .lead_deep_research import DeepResearchCardSettings
 
 __all__ = [
     "AnalysisRetryTargetMoved",
@@ -111,7 +124,9 @@ def chat_start_decisions(
         turn_id = comment.get("turn_id")
         if turn_id in wanted and turn_id not in found:
             reused = entry.decision == CHAT_START_REUSE
-            run_id = comment.get("run_id") if reused else entry.run_id
+            # A stop's row, as a reuse's, names its run in the comment alone (LO5a.3).
+            named = reused or entry.decision == CHAT_START_STOP
+            run_id = comment.get("run_id") if named else entry.run_id
             found[turn_id] = {"run_id": run_id, "comment": comment, "reused": reused}
     return found
 
@@ -127,11 +142,21 @@ def approve_chat_start(
     run_start: RunStartSettings | None,
     wallet_enabled: bool,
     retry_run_id: str | None = None,
+    deep_research: DeepResearchCardSettings | None = None,
+    targets: Callable[[], Mapping[str, Any] | None] = lambda: None,
+    target_id: str | None = None,
+    deep_research_run_id: str | None = None,
 ) -> dict[str, Any]:
     """Start the work the person's typed command named (``turn.command``), once.
 
     ``retry_run_id``: for an analysis retry, the run the card showed. Another newest analysed run
     is :class:`AnalysisRetryTargetMoved`, never retried in its place.
+
+    A typed Deep Research start, retry or stop (LO5a.3) is
+    :func:`~aia_core.application.lead_deep_research.approve_typed_deep_research` on
+    ``deep_research``'s settings: ``targets()`` the Interpretation candidates built now and
+    ``target_id`` the one the person chose (else the default); ``deep_research_run_id`` the run a
+    retry's or a stop's card showed.
 
     ``submit_design(source_stage)`` submits the working content as a Design Revision, as the
     Lead's approval does. ``run_start`` is the deployment's run settings; without them a typed
@@ -159,6 +184,24 @@ def approve_chat_start(
     # scope without APPROVE_BUDGET, or a figure that is no amount, is refused here.
     confirmation = confirm_spend(scope, confirm_cost_usd)
     confirmed_usd = confirmation.usd if confirmation is not None else None
+    if command.start in DEEP_RESEARCH_STARTS:
+        # Imported here: lead_deep_research imports this module (wallet_admits).
+        from .lead_deep_research import approve_typed_deep_research
+
+        return approve_typed_deep_research(
+            session,
+            scope,
+            turn,
+            command.start,
+            command.preset,
+            settings=deep_research,
+            submit_design=lambda: submit_design("questionnaire"),
+            targets=targets,
+            target_id=target_id,
+            shown_run_id=deep_research_run_id,
+            confirm_cost_usd=confirmed_usd,
+            wallet_enabled=wallet_enabled,
+        )
     wallets = StudyWallets(session, scope, enabled=wallet_enabled)
 
     def quote(ceiling: float | None) -> None:

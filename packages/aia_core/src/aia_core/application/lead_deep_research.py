@@ -42,6 +42,12 @@ from ..domain.deep_research.integration import (
     InterpretationLineage,
     ResearchTargetRef,
 )
+from ..domain.lead_commands import (
+    DEEP_RESEARCH_RETRY,
+    DEEP_RESEARCH_STOP,
+    DESIGN_RESEARCH_STARTS,
+    INTERPRETATION_RESEARCH_STARTS,
+)
 from ..domain.research_lead import (
     DeepResearchRetryRequest,
     DesignResearchRequest,
@@ -53,17 +59,31 @@ from ..domain.scope import StudyContext
 from ..domain.wallet import ChargeKind
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.workflow_repository import WorkflowRepository
-from .deep_research import DeepResearchRuns, FrozenStart, ResearchTargetNotFound, StartVerdict
+from .deep_research import (
+    DeepResearchQuote,
+    DeepResearchRuns,
+    FrozenStart,
+    ResearchTargetNotFound,
+    StartVerdict,
+)
 from .lead_chat_start import wallet_admits
 from .wallet import StudyWallets
+from .workflows import StartedRun
 
 __all__ = [
     "INTERPRETATION_TITLE",
     "DeepResearchCardRequest",
     "DeepResearchCardSettings",
     "DeepResearchCardUnavailable",
+    "DeepResearchTargetMoved",
+    "TypedDeepResearchRefused",
     "approve_deep_research_card",
+    "approve_typed_deep_research",
     "card_target",
+    "interpretation_target",
+    "retry_target",
+    "start_research",
+    "stop_target",
 ]
 
 DeepResearchCardRequest = (
@@ -129,6 +149,44 @@ def _charge_kind(purpose: DeepResearchPurpose) -> ChargeKind:
     return ChargeKind.DEEP_RESEARCH
 
 
+def start_research(
+    session: Session,
+    scope: StudyContext,
+    runs: DeepResearchRuns,
+    start: FrozenStart,
+    *,
+    settings: DeepResearchCardSettings,
+    wallets: StudyWallets,
+    wallet_enabled: bool,
+    confirm_cost_usd: float | None,
+) -> tuple[StartedRun, DeepResearchQuote, float | None]:
+    """Steps 2 and 3 of the module, shared by a Lead card and a typed start (LO5a.3): quote the
+    one frozen spec, hold its ceiling to the wallet when it is on, create the run; the ceiling
+    returned is the one the created run pinned, else the quote's."""
+    quoted = runs.quote(
+        start.spec, prices=settings.prices, modes=settings.modes, retry_of=start.retry_of
+    )
+    ceiling = quoted.ceiling.total_usd if quoted.ceiling is not None else None
+    # Unapproved live settings refuse first (the start below raises them), so the person is
+    # never asked to confirm a cost for a run that cannot start (stand-in review of #1006).
+    if wallet_enabled and quoted.verdict not in (
+        StartVerdict.EXISTS,
+        StartVerdict.LIVE_SETTINGS_UNAPPROVED,
+    ):
+        wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirm_cost_usd)
+    started = runs.start_frozen(
+        start, prices=settings.prices, modes=settings.modes, confirm_cost_usd=confirm_cost_usd
+    )
+    if started.created:
+        # The start admits again, reading the organization's settings again: a route allowance
+        # changed since the quote moves the ceiling the run pins. What is recorded and charged is
+        # that pinned ceiling, never the quote's, so a larger one meets the wallet's own check
+        # (and rolls the start back) rather than running past the remainder (review of #1006).
+        pinned = started.run["metadata"].get("cost_ceiling_usd")
+        ceiling = float(pinned) if pinned is not None else None
+    return started, quoted, ceiling
+
+
 def approve_deep_research_card(
     session: Session,
     scope: StudyContext,
@@ -176,27 +234,17 @@ def approve_deep_research_card(
     else:
         start = runs.retry_spec(request.run_id, store=settings.store)
     spec = start.spec
-
-    quoted = runs.quote(spec, prices=settings.prices, modes=settings.modes, retry_of=start.retry_of)
-    ceiling = quoted.ceiling.total_usd if quoted.ceiling is not None else None
     wallets = StudyWallets(session, scope, enabled=wallet_enabled)
-    # Unapproved live settings refuse first (the start below raises them), so the person is
-    # never asked to confirm a cost for a run that cannot start (stand-in review of #1006).
-    if wallet_enabled and quoted.verdict not in (
-        StartVerdict.EXISTS,
-        StartVerdict.LIVE_SETTINGS_UNAPPROVED,
-    ):
-        wallet_admits(session, scope, wallets, ceiling, confirm_cost_usd=confirm_cost_usd)
-    started = runs.start_frozen(
-        start, prices=settings.prices, modes=settings.modes, confirm_cost_usd=confirm_cost_usd
+    started, quoted, ceiling = start_research(
+        session,
+        scope,
+        runs,
+        start,
+        settings=settings,
+        wallets=wallets,
+        wallet_enabled=wallet_enabled,
+        confirm_cost_usd=confirm_cost_usd,
     )
-    if started.created:
-        # The start admits again, reading the organization's settings again: a route allowance
-        # changed since the quote moves the ceiling the run pins. What is recorded and charged is
-        # that pinned ceiling, never the quote's, so a larger one meets the wallet's own check
-        # (and rolls the start back) rather than running past the remainder (review of #1006).
-        pinned = started.run["metadata"].get("cost_ceiling_usd")
-        ceiling = float(pinned) if pinned is not None else None
 
     # The card's own decision, with what it started; a run that already existed was confirmed
     # (or not) when it was created, so this approval confirmed no new spend.
@@ -254,6 +302,178 @@ def approve_deep_research_card(
         "status": started.run["status"].value,
         # Where its run is followed: a retry card does not say which checkpoint it retries, and
         # an Interpretation run is shown under the research run it interprets, not the newest.
+        "purpose": spec.purpose.value,
+        "research_run_id": _research_run_id(spec.target),
+    }
+
+
+class TypedDeepResearchRefused(Exception):
+    """A typed Deep Research start, retry or stop with nothing to act on, by name (LO5a.3):
+    ``no_default_target`` (an Interpretation start naming no target, with no completed
+    research-questions module to default to), ``no_retryable_deep_research``,
+    ``no_running_deep_research``. Nothing is written."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+class DeepResearchTargetMoved(Exception):
+    """The card named the run it would retry or stop, and another is that run now: nothing
+    happens until the person confirms ``current_run_id`` (as :class:`~aia_core.application.
+    lead_chat_start.AnalysisRetryTargetMoved`)."""
+
+    def __init__(self, reason: str, *, current_run_id: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.current_run_id = current_run_id
+
+
+def retry_target(runs: DeepResearchRuns) -> dict[str, Any] | None:
+    """The run a typed "Zopakuj rešerši" retries: the study's newest Deep Research run that can be
+    retried (failed or cancelled), which its card names; ``None`` when there is none."""
+    return next((r for r in runs.runs(limit=50) if r["retryable"]), None)
+
+
+def stop_target(runs: DeepResearchRuns) -> dict[str, Any] | None:
+    """The run a typed "Zastav rešerši" stops: the study's newest Deep Research run that has not
+    ended (running, queued or waiting); ``None`` when there is none."""
+    return next((r for r in runs.runs(limit=50) if not r["status"].is_terminal), None)
+
+
+def interpretation_target(
+    targets: Mapping[str, Any] | None, target_id: str | None
+) -> ResearchTargetRef:
+    """The target a typed Interpretation start names: ``target_id`` from ``targets`` (the
+    ``targets`` layer the server just built over the study's completed runs), else its default.
+    A target is never read from the person's text; an id the list does not hold is
+    :class:`~aia_core.application.deep_research.ResearchTargetNotFound`."""
+    if target_id is None and (targets is None or targets.get("default") is None):
+        raise TypedDeepResearchRefused("no_default_target")
+    return card_target({"layers": [{"layer": "targets", **(targets or {})}]}, target_id)
+
+
+def approve_typed_deep_research(
+    session: Session,
+    scope: StudyContext,
+    turn: LeadTurn,
+    start_name: str,
+    preset: str | None,
+    *,
+    settings: DeepResearchCardSettings | None,
+    submit_design: Callable[[], Any],
+    targets: Callable[[], Mapping[str, Any] | None],
+    target_id: str | None,
+    shown_run_id: str | None,
+    confirm_cost_usd: float | None,
+    wallet_enabled: bool,
+) -> dict[str, Any]:
+    """A person's typed Deep Research start, retry or stop (lead-orchestration LO5a.3), once.
+
+    The caller (``approve_chat_start``) holds the conversation's lock, has found no decision of
+    this turn yet and re-matched its text; ``confirm_cost_usd`` is the confirmed amount it issued.
+    A start follows the module's order with a ``chat_start`` row naming the run in place of the
+    card's two rows: freeze once, quote, hold to the wallet, create, record, charge at the pinned
+    ceiling. ``targets()`` builds the Interpretation candidates now, at approval; ``target_id``
+    names one, else the default. ``shown_run_id``: the run a retry's or a stop's card named, so a
+    newer one is never acted on unasked. A stop cancels and charges nothing; its row is ``stop``.
+    """
+    if settings is None:
+        raise DeepResearchCardUnavailable("no Deep Research start is composed here")
+    runs = DeepResearchRuns(session, scope, document_store=settings.document_store)
+    workflows = WorkflowRepository(session, scope)
+    if start_name == DEEP_RESEARCH_STOP:
+        stoppable = stop_target(runs)
+        if stoppable is None:
+            raise TypedDeepResearchRefused("no_running_deep_research")
+        run_id = str(stoppable["run_id"])
+        if shown_run_id is not None and shown_run_id != run_id:
+            raise DeepResearchTargetMoved("deep_research_stop_target_moved", current_run_id=run_id)
+        status = runs.cancel(run_id, reason="researcher")
+        workflows.record_chat_start(
+            run_id,
+            turn_id=turn.turn_id,
+            start=start_name,
+            ceiling_usd=None,
+            design_revision_id=str(stoppable["metadata"]["design_revision_id"]),
+            stopped=True,
+        )
+        return {
+            "run_id": run_id,
+            "design_revision_id": str(stoppable["metadata"]["design_revision_id"]),
+            "status": status.value,
+        }
+
+    runs.require_start()
+    if start_name in DESIGN_RESEARCH_STARTS:
+        assert preset is not None
+        revision = submit_design()
+        start = FrozenStart(
+            runs.freeze_design(
+                design_revision_id=revision.revision_id,
+                preset_name=preset,
+                channels=CARD_CHANNELS,
+            )
+        )
+    elif start_name in INTERPRETATION_RESEARCH_STARTS:
+        assert preset is not None
+        start = FrozenStart(
+            runs.freeze_interpretation(
+                target=interpretation_target(targets(), target_id),
+                preset_name=preset,
+                store=settings.store,
+                channels=CARD_CHANNELS,
+                title=INTERPRETATION_TITLE,
+            )
+        )
+    else:
+        assert start_name == DEEP_RESEARCH_RETRY
+        retryable = retry_target(runs)
+        if retryable is None:
+            raise TypedDeepResearchRefused("no_retryable_deep_research")
+        run_id = str(retryable["run_id"])
+        if shown_run_id is not None and shown_run_id != run_id:
+            raise DeepResearchTargetMoved("deep_research_retry_target_moved", current_run_id=run_id)
+        start = runs.retry_spec(run_id, store=settings.store)
+
+    spec = start.spec
+    wallets = StudyWallets(session, scope, enabled=wallet_enabled)
+    started, _quoted, ceiling = start_research(
+        session,
+        scope,
+        runs,
+        start,
+        settings=settings,
+        wallets=wallets,
+        wallet_enabled=wallet_enabled,
+        confirm_cost_usd=confirm_cost_usd,
+    )
+    lineage = spec.lineage
+    design_revision_id = (
+        lineage.design.design_revision_id
+        if isinstance(lineage, InterpretationLineage)
+        else lineage.design_revision_id
+    )
+    decision_id = workflows.record_chat_start(
+        started.run_id,
+        turn_id=turn.turn_id,
+        start=start_name,
+        ceiling_usd=ceiling,
+        design_revision_id=design_revision_id,
+        # A run another start had made stays that start's: nothing is charged to this card.
+        reused=not started.created,
+    )
+    if wallet_enabled and started.created:
+        wallets.charge(
+            run_id=started.run_id,
+            kind=_charge_kind(spec.purpose),
+            ceiling_usd=ceiling,
+            approval_decision_id=decision_id,
+        )
+    return {
+        "run_id": started.run_id,
+        "design_revision_id": design_revision_id,
+        "status": started.run["status"].value,
         "purpose": spec.purpose.value,
         "research_run_id": _research_run_id(spec.target),
     }
