@@ -15,6 +15,7 @@
 body{margin:0}
 a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
 .sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
 .zlead{display:flex;flex-direction:column;gap:2px}
 .zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
 .zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
@@ -80,10 +81,10 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <aside class="lead cfz" aria-label="Vedoucí výzkumu">
   <div class="cfh"><span class="cfava" aria-hidden="true"><sc-if value="{{busy}}" hint-placeholder-val="{{ false }}"><thinking-orb size="36" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{idle}}" hint-placeholder-val="{{ true }}"><span class="cfmk"></span></sc-if></span><div class="grow"><b style="font-size: 15px">Ada</b><div class="cfst">Připravena</div></div><a class="cfib" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener" aria-label="Můj Vedoucí: značka a nastavení" title="Můj Vedoucí"><i class="ph ph-sliders-horizontal"></i></a></div>
   <div class="conv">
-<div class="day">Dnes</div><div class="me"><span class="mfile"><i class="ph ph-file-text s"></i>objednavky_2023-2025.xlsx · smlouva_3PL_CZ.pdf · nabidka_hala.pdf · nabidka_3PL_PL.pdf</span>Popis je v Zadání, přikládám čtyři soubory.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:07 · četla popis a 4 soubory</div><p>Náklady skladu a dopravy jsou v souborech klienta a spočítá je <b>model</b>. Kolik zákazníků odradí doručení o den delší, víme jen od lidí. Navrhuji proto <b>obojí</b>, jako dvě propojené studie.</p><p>Zadání jsem rozepsala do 9 částí, každá cituje, odkud je. Chybí práh rozhodnutí: při jaké jistotě variantu zvolíte?</p><div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Cesta</button><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Otázky</button></div></div></div><sc-if value="{{answered}}" hint-placeholder-val="{{ false }}"><div class="me">Finanční ředitel klienta chce 80 %. Pod tím chce vědět, co ještě ověřit.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:09</div><p>Zapsáno jako pravidlo: zvolíte variantu, která je nejlevnější s pravděpodobností aspoň 0,80. Model převezme data, výzkum převezme otázku na doručení.</p></div></div></sc-if>
+<div class="day">Dnes</div><div class="me"><span class="mfile"><i class="ph ph-file-text s"></i>objednavky_2023-2025.xlsx · smlouva_3PL_CZ.pdf · nabidka_hala.pdf · nabidka_3PL_PL.pdf · vysledovka_2025.xlsx · zakaznici_souhrn_2025.xlsx</span>Popis je v Zadání. Přidala jsem výsledovku a souhrn zákazníků z CRM.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:07 · četla popis a 6 souborů</div><p>Náklady a příspěvek jsou v souborech klienta a spočítá je <b>obchodní model</b>. Kolik objednávek se ztratí, když balík přijde o den později, a kde, víme jen od lidí. Navrhuji proto <b>obojí</b>, jako dvě propojené studie.</p><p>Zadání jsem rozepsala do 8 částí; každá cituje, odkud je. Navrhuji i čtyři další varianty, které se v takových rozhodnutích běžně vyplatí srovnat. Mám tři otázky, seřazené podle toho, kolik mohou změnit doporučení.</p><div class="views"><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Návrh</button><button class="view" type="button"><i class="ph ph-target s"></i>Ukázat: Otázky</button></div></div></div><sc-if value="{{answered}}" hint-placeholder-val="{{ false }}"><div class="me">Finanční ředitel klienta unese nejvýš 10 milionů horší výsledek než dnes, a to jen výjimečně.</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:09</div><p>Zapsáno do pravidla jako mez rizika: ztráta horší než 10 mil. Kč proti dnešku nejvýš v 1 budoucnosti z 10. Tím je pravidlo úplné.</p></div></div></sc-if>
   </div>
   <div class="cfdock"><div class="cfcomp"><div class="cfrow"><button class="cfplus" type="button" aria-label="Akce, podklady a kontext"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled><i class="ph ph-paper-plane-right"></i></button></div></div>
-  <div class="cfctx"><i class="ph ph-eye s"></i>Vidí: Zadání, 4 soubory</div></div>
+  <div class="cfctx"><i class="ph ph-eye s"></i>Vidí: Zadání, 6 souborů</div></div>
 </aside>
       <main class="art" aria-label="Zadání">
 <div class="ahd"><h1>Zadání</h1><span class="saved"><i class="ph ph-check s"></i>Uloženo</span><span class="grow"></span><span class="cap" style="margin: 0">{{pathWord}}</span><a class="btn primary sm" href="Z3Decision.dc.html">Rozhodnutí<i class="ph ph-caret-right s"></i></a></div>
@@ -94,10 +95,16 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
         <span class="row" style="gap: 8px"><span class="{{p.tag}}">{{p.l}}</span><span class="grow"></span><sc-if value="{{p.lead}}" hint-placeholder-val="{{ false }}"><span class="pill ai"><i class="ph ph-sparkle s"></i>navrhuje Ada</span></sc-if></span>
         <h3>{{p.t}}</h3><p class="muted">{{p.d}}</p></button></sc-for>
     </div>
-    <div class="sn sig"><i class="ph ph-sparkle" style="margin-top: 2px"></i><div><b>Proč obojí:</b> náklady vlastního skladu i obou 3PL jsou čísla ze souborů klienta a spočítá je kód; kolik zákazníků odradí doručení o den delší, víme jen od lidí. Výsledek výzkumu pak vstoupí do modelu jako předpoklad, až ho přijmete.</div></div></div></section>
+    <div class="sn sig"><i class="ph ph-sparkle" style="margin-top: 2px"></i><div><b>Proč obojí:</b> náklady, příspěvek a investice jsou čísla ze souborů klienta a spočítá je kód; kolik objednávek odradí doručení o den delší a ve kterých městech, víme jen od lidí. Výsledek výzkumu pak vstoupí do modelu jako předpoklad, až ho přijmete.</div></div></div></section>
+
+  <section class="sec" id="z2-q"><div class="sh"><span class="num">01</span><h2>Ada se ptá</h2><span class="grow"></span><span class="cap">nejvýš 3 · seřazeno podle toho, kolik by odpověď mohla změnit doporučení</span></div>
+    <div class="sb"><sc-for list="{{qs}}" as="q" hint-placeholder-count="3"><div class="zq"><span class="n">{{q.n}}</span><div class="grow">{{q.t}}<span class="why">{{q.why}}</span>
+      <sc-if value="{{q.open}}" hint-placeholder-val="{{ true }}"><div class="row" style="gap: 6px; margin-top: 8px"><sc-for list="{{q.opts}}" as="o" hint-placeholder-count="2"><button class="chip" type="button" onClick="{{o.pick}}">{{o.l}}</button></sc-for><span class="cap" style="margin: 0">nebo odpovězte v chatu</span></div></sc-if>
+      <sc-if value="{{q.done}}" hint-placeholder-val="{{ false }}"><div class="cap" style="margin-top: 6px"><span class="stg sm done" aria-hidden="true" style="vertical-align: -3px"><i class="ph ph-check"></i></span> {{q.ans}}</div></sc-if>
+    </div><span class="tag" style="flex: none">{{q.val}}</span></div></sc-for></div></section>
 
   <div class="edits" id="z2-prop" role="region" aria-label="Návrh Zadání od Ady">
-    <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>Návrh Zadání: {{propN}} částí</b> <span class="muted">· z popisu a 4 souborů; každá cituje, odkud je</span></div>
+    <div class="eh"><span class="stg you" aria-hidden="true"><i class="ph ph-exclamation-mark"></i></span><div class="grow"><b>Návrh Zadání: {{propN}} částí</b> <span class="muted">· z popisu a 6 souborů; každá cituje, odkud je, a říká, kam půjde</span></div>
       <button class="btn quiet sm" type="button">Odložit</button><button class="btn primary sm" type="button" onClick="{{accept}}"><i class="ph ph-check s"></i><span>Přijmout vybrané ({{sel}})</span></button></div>
     <sc-for list="{{props}}" as="p" hint-placeholder-count="8">
       <div class="chg"><label class="row" style="align-items: flex-start"><input type="checkbox" checked="{{p.on}}" onChange="{{p.toggle}}" style="margin-top: 3px"><span class="grow"><b>{{p.where}}</b><span style="display: block">{{p.t}}</span><span class="why">{{p.why}}</span></span><span class="{{p.tagc}}">{{p.kind}}</span></label></div>
@@ -105,11 +112,6 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   </div>
   <sc-if value="{{accepted}}" hint-placeholder-val="{{ false }}"><div class="sn ok"><span class="stg done" aria-hidden="true"><i class="ph ph-check"></i></span><div class="grow">Přijato {{sel}} částí. Ostatní zůstávají v návrhu, dokud je nezahodíte.</div><button class="btn quiet sm" type="button" onClick="{{undo}}"><i class="ph ph-arrow-counter-clockwise s"></i>Vrátit</button></div></sc-if>
 
-  <section class="sec" id="z2-q"><div class="sh"><span class="num">01</span><h2>Ada se ptá</h2><span class="grow"></span><span class="cap">nejvýš 3 · seřazeno podle toho, jak moc odpověď změní návrh</span></div>
-    <div class="sb"><sc-for list="{{qs}}" as="q" hint-placeholder-count="3"><div class="zq"><span class="n">{{q.n}}</span><div class="grow">{{q.t}}<span class="why">{{q.why}}</span>
-      <sc-if value="{{q.open}}" hint-placeholder-val="{{ true }}"><div class="row" style="gap: 6px; margin-top: 8px"><sc-for list="{{q.opts}}" as="o" hint-placeholder-count="2"><button class="chip" type="button" onClick="{{o.pick}}">{{o.l}}</button></sc-for><span class="cap" style="margin: 0">nebo odpovězte v chatu</span></div></sc-if>
-      <sc-if value="{{q.done}}" hint-placeholder-val="{{ false }}"><div class="cap" style="margin-top: 6px"><span class="stg sm done" aria-hidden="true" style="vertical-align: -3px"><i class="ph ph-check"></i></span> {{q.ans}}</div></sc-if>
-    </div></div></sc-for></div></section>
 </div>
       </main>
     </div>
@@ -117,43 +119,42 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1790}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1880}}'>
 class Component extends DCLogic {
-constructor(props) { super(props); this.state = { path: 'both', off: {}, accepted: false, ans: null }; }
+constructor(props) { super(props); this.state = { path: 'both', off: {}, accepted: false, ans: {} }; }
 renderVals() {
   const s = this.state;
   const P = [
     ['research', 'ztag-r', 'Výzkum zákazníků', 'Co chtějí zákazníci a co udělají', 'Odpovědi stovek respondentů z modelu české populace: postoje, chování, ochota platit.'],
-    ['model', 'ztag-m', 'Obchodní model', 'Co která varianta firmě přinese', 'Náklady, zisk, rizika a plán provedení, spočítané z čísel firmy.'],
+    ['model', 'ztag-m', 'Obchodní model', 'Co která varianta firmě přinese', 'Příspěvek, náklady, rizika a plán provedení, spočítané z čísel firmy.'],
     ['both', 'ztag-r', 'Obojí', 'Zákazníci i čísla firmy', 'Výsledek výzkumu zákazníků vstoupí do obchodního modelu jako jeden z jeho vstupů.']
   ];
   const D = [
-    ['Rozhodnutí', 'Rozšířit vlastní sklad o 2 000 m², zůstat u českého 3PL, nebo přejít k polskému 3PL.', 'z popisu', 'společné'],
-    ['Kdo a do kdy', 'Finanční ředitel s vedením, do 15. 12. 2026 (rozpočet 2027).', 'z popisu: „do poloviny prosince“', 'společné'],
-    ['Možnosti', 'A · vlastní sklad +2 000 m² · B · zůstat u 3PL v Česku (nic neměnit) · C · polský 3PL, doručení o den delší', 'A z nabidka_hala.pdf; B ze smlouvy; C z nabidka_3PL_PL.pdf', 'společné'],
-    ['Rozhodovací pravidlo', 'Zvolíme nejlevnější variantu na 7 let (NPV nákladů), když je nejlevnější s jistotou. Ztrátu marže z odchodu zákazníků počítáme jako náklad.', 'z popisu · práh jistoty chybí, viz otázka 1', 'společné'],
-    ['Cíle', 'C1 · Porovnat NPV nákladů A, B a C na 7 let i s nejistotou. C2 · Zjistit, kolik zákazníků odradí doručení o den delší a koho.', 'C1 z popisu; C2 z obavy o zákazníky', 'společné'],
-    ['Co už víme', 'Český 3PL stál v roce 2025 celkem 23,7 mil. Kč; 410 000 objednávek; poplatek 46 Kč za objednávku.', 'smlouva_3PL_CZ.pdf s. 4 · objednavky_2023-2025.xlsx', 'společné'],
-    ['Obchodní model · horizont a veličina', 'NPV nákladů na 7 let při diskontu 8 %; ztracená marže odešlých zákazníků je náklad varianty C.', 'z popisu; diskont podle zvyklosti, potvrďte', 'Obchodní model'],
-    ['Obchodní model · hranice a data', 'V modelu investice, provoz skladu, poplatky 3PL, doprava do ČR, skladné, ztracená marže. Mimo daně a odpisy.', 'nabidka_hala.pdf s. 1–4; obě smlouvy', 'Obchodní model'],
-    ['Výzkum zákazníků · co potřebujeme vědět', 'Kolik zákazníků by při doručení o den delší přestalo nakupovat nebo nakupovalo méně, a kdo to je.', 'z obavy v popisu', 'Výzkum zákazníků']
+    ['1 · Rozhodnutí a cíl firmy', 'Kde skladovat a odkud expedovat 2026–2032. Cíl: co nejvyšší příspěvek po logistice za 7 let při růstu asi 9 % ročně, bez zhoršení slibu doručení.', 'z popisu · příspěvek 300 Kč na objednávku z vysledovka_2025.xlsx', 'společné', '→ pravidlo, model'],
+    ['2 · Kdo a do kdy', 'Finanční ředitel s vedením, do 15. 12. 2026 (rozpočet 2027); výsledek hotový do 8. 12.', 'z popisu: „do poloviny prosince“', 'společné', '→ rozsah a termín'],
+    ['3 · Možnosti', 'A vlastní sklad +2 000 m², B zůstat u 3PL CZ, C polský 3PL. Navrhuji přidat A2 hala po etapách, B2 pevná cena u 3PL CZ na 5 let, C2 polský 3PL s expresem pro velká města a H hybrid.', 'A, B, C z popisu a nabídek; A2–H návrh Ady: obvyklé kombinace, které snižují riziko', 'společné', '→ varianty modelu'],
+    ['4 · Omezení', 'Výpověď 3PL CZ 6 měsíců: přechod nejdřív 1. 7. 2027. Hala hotová za 12 měsíců, kapacita 620 tis. objednávek ročně. Strop investice potvrďte.', 'smlouva_3PL_CZ.pdf s. 8 · nabidka_hala.pdf s. 2–3', 'společné', '→ časování a kapacita v modelu'],
+    ['5 · Pravidlo a riziko', 'Doporučíme variantu s nejvyšším příspěvkem, pokud je lepší než dnešek s pravděpodobností aspoň 0,80. Slib doručení ve velkých městech se nezhorší. Mez ztráty chybí, viz otázka 1.', 'z popisu: „co přinese nejvíc“, „nechce ztratit zákazníky“', 'společné', '→ Výsledky, Zpráva'],
+    ['6 · Zákazníci', 'E-shop s oblečením a doplňky, 128 000 zákazníků; 46 % do 35 let, 38 % ve velkých městech. Dnes slib: do 2 pracovních dnů, ve velkých městech druhý den.', 'zakaznici_souhrn_2025.xlsx · web klienta, Doprava', 'Výzkum zákazníků', '→ Cílová skupina, kvóty, otázky'],
+    ['7 · Data a nejistoty', 'Čísla ze 6 souborů. Chybí náklady přechodu k jinému 3PL. Největší nejistota: kolik objednávek se ztratí při doručení o den delší.', 'z popisu a souborů', 'Obchodní model', '→ Data, Předpoklady'],
+    ['8 · Provedení a výstup', 'Vedení chce jedno doporučení s rozsahem a plán přechodu. Navrhuji ověřit nový způsob nejdřív pilotem, než se přejde celý.', 'z popisu; pilot návrh Ady, viz otázka 3', 'společné', '→ Zpráva: plán a hranice k hlídání']
   ];
   const on = (i) => !s.off[i];
   const sel = D.filter((_, i) => on(i)).length;
-  const A = ['Klient chce 80 %. Pod tím chce vědět, co ještě ověřit.', 'Ano, marže 300 Kč na objednávku.', 'Vedení: jedno doporučení s rozsahem.'];
+  const A = ['10 mil. Kč, nejvýš v 1 budoucnosti z 10 · zapsáno do pravidla', 'Ano · zpozdeni_2024.xlsx přijde do Dat', 'Ano · jeden region, 3 měsíce, od března 2027'];
   const Q = [
-    ['Při jaké jistotě klient variantu zvolí? Model ukáže, s jakou pravděpodobností je která nejlevnější.', 'Bez prahu nejde napsat rozhodovací pravidlo; zpráva by nemohla říct, kterou variantu data podporují.', ['70 %', '80 %', '90 %']],
-    ['Počítat ztracenou marži odešlých zákazníků jako náklad varianty C?', 'Bez ní vyjde polský 3PL levněji vždy; s ní rozhoduje, kolik zákazníků odejde.', ['Ano', 'Ne']],
-    ['Kdo bude výsledek číst: vedení, nebo provoz?', 'Určí, jestli zpráva vede jedním doporučením s rozsahem, nebo rozpisem po nákladových položkách.', ['Vedení', 'Provoz']]
+    ['Jakou nejhorší ztrátu proti dnešku vedení unese?', 'Varianty s polským 3PL vydělají v průměru víc, ale v horších budoucnostech ztrácejí. Bez meze by pravidlo mohlo doporučit riskantní variantu.', ['5 mil. Kč', '10 mil. Kč', '20 mil. Kč'], 'mění doporučení'],
+    ['Máte data o zásilkách, které přišly pozdě, a co zákazníci udělali potom?', 'Kolik objednávek se ztratí, je největší neznámá; její přesná znalost má podle prvního odhadu cenu kolem 1,7 mil. Kč. Skutečné chování zpřesní výsledek výzkumu.', ['Ano, nahrajeme', 'Nemáme'], '≈ 1,7 mil. Kč'],
+    ['Jde nový způsob nejdřív vyzkoušet na části zákazníků?', 'Pilot odhalí omyl dřív, než stojí miliony, a určí plán provedení ve zprávě.', ['Ano', 'Ne'], 'plán provedení']
   ];
   return {
     theme: this.props.theme ?? 'light', busy: false, idle: true,
     paths: P.map(([k, tag, l, t, d]) => ({ l, t, d, tag, lead: k === 'both', on: s.path === k, cls: s.path === k ? 'zcard on' : 'zcard', pick: () => this.setState({ path: k }) })),
     pathWord: 'Cesta: ' + { research: 'Výzkum zákazníků', model: 'Obchodní model', both: 'Obojí' }[s.path],
-    props: D.map(([where, t, why, kind], i) => ({ where, t, why: 'Zdroj: ' + why, kind, tagc: kind === 'Obchodní model' ? 'ztag-m' : kind === 'Výzkum zákazníků' ? 'ztag-r' : 'tag', on: on(i), toggle: () => this.setState({ off: { ...s.off, [i]: on(i) } }) })),
+    props: D.map(([where, t, why, kind, to], i) => ({ where, t, why: 'Zdroj: ' + why + ' ' + to, kind, tagc: kind === 'Obchodní model' ? 'ztag-m' : kind === 'Výzkum zákazníků' ? 'ztag-r' : 'tag', on: on(i), toggle: () => this.setState({ off: { ...s.off, [i]: on(i) } }) })),
     propN: D.length, sel, accepted: s.accepted, accept: () => this.setState({ accepted: true }), undo: () => this.setState({ accepted: false }),
-    answered: s.ans === 0,
-    qs: Q.map(([t, why, opts], i) => ({ n: String(i + 1), t, why, open: !(s.ans === 0 && i === 0), done: s.ans === 0 && i === 0, ans: A[i], opts: opts.map((l) => ({ l, pick: () => { if (i === 0) this.setState({ ans: 0 }); } })) }))
+    answered: s.ans[0] != null,
+    qs: Q.map(([t, why, opts, val], i) => ({ n: String(i + 1), t, why, val, open: s.ans[i] == null, done: s.ans[i] != null, ans: A[i], opts: opts.map((l) => ({ l, pick: () => this.setState({ ans: { ...s.ans, [i]: l } }) })) }))
   };
 }
 }

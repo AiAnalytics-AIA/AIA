@@ -15,6 +15,7 @@
 body{margin:0}
 a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
 .sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
 .zlead{display:flex;flex-direction:column;gap:2px}
 .zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
 .zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
@@ -80,7 +81,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <aside class="lead cfz" aria-label="Vedoucí výzkumu">
   <div class="cfh"><span class="cfava" aria-hidden="true"><sc-if value="{{busy}}" hint-placeholder-val="{{ false }}"><thinking-orb size="36" state="working" aria-hidden="true"></thinking-orb></sc-if><sc-if value="{{idle}}" hint-placeholder-val="{{ true }}"><span class="cfmk"></span></sc-if></span><div class="grow"><b style="font-size: 15px">Ada</b><div class="cfst">Připravena</div></div><a class="cfib" href="https://claude.ai/artifact/8W9LR8Ju9BWnR5JACmiWv7" target="_blank" rel="noopener" aria-label="Můj Vedoucí: značka a nastavení" title="Můj Vedoucí"><i class="ph ph-sliders-horizontal"></i></a></div>
   <div class="conv">
-<div class="day">Dnes</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:40</div><p>Při předání založím dvě propojené studie: <b>model</b> nákladů a <b>výzkum</b> mezi zákazníky. Obě vycházejí z tohoto Zadání a mají každá svůj rozpočet.</p><p>Až bude hotový výzkum, nabídnu modelu jeho výsledek jako předpoklad P4 „ztráta zákazníků při +1 dni“. Použije se, jen když ho přijmete.</p></div></div>
+<div class="day">Dnes</div><div class="reply"><span class="lav" aria-hidden="true"><i class="ph ph-sparkle"></i></span><div class="body"><div class="who"><b>Ada</b>9:40</div><p>Při předání založím dvě propojené studie: <b>obchodní model</b> a <b>výzkum zákazníků</b>. Obě vycházejí z tohoto Zadání a mají každá svůj rozpočet.</p><p>Až bude hotový výzkum, nabídnu modelu dva jeho výsledky jako předpoklady: ztrátu objednávek při +1 dni a její podíl ve velkých městech. Použijí se, jen když je přijmete.</p></div></div>
   </div>
   <div class="cfdock"><div class="cfcomp"><div class="cfrow"><button class="cfplus" type="button" aria-label="Akce, podklady a kontext"><i class="ph ph-plus"></i></button><button class="cfatt" type="button" aria-label="Přiložit soubor" title="Přiložit soubor: docx, pdf, csv, xlsx…"><i class="ph ph-upload-simple"></i></button><label class="sr" for="cfin">Zpráva pro Adu</label><textarea id="cfin" rows="1" placeholder="Zeptejte se Ady…"></textarea><button class="cfgo" type="button" aria-label="Odeslat" disabled><i class="ph ph-paper-plane-right"></i></button></div></div>
   <div class="cfctx"><i class="ph ph-eye s"></i>Vidí: Zadání</div></div>
@@ -91,17 +92,17 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
 <div class="abody">
   <section class="sec"><div class="sh"><span class="num">01</span><h2>Jedno Zadání, dvě propojené studie</h2><span class="grow"></span><span class="cap">vznikne při předání</span></div>
     <div class="sb">
-      <div class="zcard" style="align-items: center; text-align: center; border-style: dashed"><span class="cap" style="margin: 0">Zadání · společné jádro</span><b>Strategie skladu a logistiky 2026–2032</b><span class="cap" style="margin: 0">rozhodnutí · možnosti A, B, C · pravidlo · cíle · co už víme · výstup</span></div>
+      <div class="zcard" style="align-items: center; text-align: center; border-style: dashed"><span class="cap" style="margin: 0">Zadání · společné jádro</span><b>Strategie skladu a logistiky 2026–2032</b><span class="cap" style="margin: 0">rozhodnutí a cíl · 7 možností a omezení · pravidlo a riziko · cíle · provedení a výstup</span></div>
       <div class="zarrow" style="justify-content: center"><i class="ph ph-arrow-elbow-down-right"></i>při předání</div>
       <div class="zgrid2">
-        <div class="zcard zm"><span class="row" style="gap: 8px"><span class="ztag-m">Obchodní model</span><span class="cap" style="margin: 0">studie 1</span></span><h3>Strategie skladu a logistiky 2026–2032</h3><p class="muted">NPV nákladů A, B a C na 7 let a pravděpodobnost, že je která nejlevnější.</p>
+        <div class="zcard zm"><span class="row" style="gap: 8px"><span class="ztag-m">Obchodní model</span><span class="cap" style="margin: 0">studie 1</span></span><h3>Strategie skladu a logistiky 2026–2032</h3><p class="muted">Příspěvek sedmi variant na 7 let s nejistotou, doporučení podle pravidla a plán provedení.</p>
           <div class="row" style="gap: 4px; flex-wrap: wrap"><span class="tag">Zadání</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Data</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Předpoklady</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Model</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Výsledky</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Zpráva</span></div>
           <span class="cap" style="margin: 0">rozpočet studie 10,00 USD · počítá kód, AI jen navrhuje</span></div>
-        <div class="zcard"><span class="row" style="gap: 8px"><span class="ztag-r">Výzkum zákazníků</span><span class="cap" style="margin: 0">studie 2</span></span><h3>Zákazníci a rychlost doručení</h3><p class="muted">Kolik zákazníků odradí doručení o den delší, a kdo to je.</p>
+        <div class="zcard"><span class="row" style="gap: 8px"><span class="ztag-r">Výzkum zákazníků</span><span class="cap" style="margin: 0">studie 2</span></span><h3>Zákazníci a rychlost doručení</h3><p class="muted">Kolik objednávek se ztratí při doručení o den delší, kde a u koho.</p>
           <div class="row" style="gap: 4px; flex-wrap: wrap"><span class="tag">Zadání</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Návrh</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Dotazník</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">…</span><i class="ph ph-caret-right s" style="color: var(--faint)"></i><span class="tag">Zpráva</span></div>
           <span class="cap" style="margin: 0">rozpočet studie 40,00 USD · strop běhu 29,20 USD při N 800</span></div>
       </div>
-      <div class="zhand"><i class="ph ph-arrow-square-out" style="margin-top: 2px"></i><div><b>Spojení:</b> výsledek výzkumu, „podíl zákazníků, kteří by při doručení o den delší přestali nakupovat“, se modelu nabídne jako předpoklad P4 s rozsahem z intervalu výzkumu. Použije se, až ho výzkumník přijme na kroku Předpoklady. Dokud výzkum neskončí, Model počítá s odhadem marketingu 0–12 % a říká to. <a href="KO1Link.dc.html">Jak to vypadá →</a></div></div>
+      <div class="zhand"><i class="ph ph-arrow-square-out" style="margin-top: 2px"></i><div><b>Spojení:</b> výzkum dá modelu dva předpoklady s rozsahem: <b>ztrátu objednávek při +1 dni</b> (zkalibrovanou daty Velis o zpožděních) a <b>podíl té ztráty ve velkých městech</b>. Použijí se, až je výzkumník přijme na kroku Předpoklady. Dokud výzkum neskončí, model počítá s odhadem marketingu 0–12 % a říká to. <a href="KO1Link.dc.html">Jak to vypadá →</a></div></div>
     </div></section>
 
   <section class="sec"><div class="sh"><span class="num">02</span><h2>Co která studie zdědí</h2><span class="grow"></span><span class="cap">změna společné části se druhé studii nabídne jako návrh</span></div>
@@ -120,7 +121,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1720}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1740}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { created: false, study: 'model' }; }
 renderVals() {
@@ -130,15 +131,15 @@ renderVals() {
     showM: s.study === 'model', showR: s.study === 'research',
     studies: [['model', 'Obchodní model'], ['research', 'Výzkum zákazníků']].map(([k, l]) => ({ l, on: s.study === k, cls: s.study === k ? 'on' : '', pick: () => this.setState({ study: k }) })), create: () => this.setState({ created: true }), undo: () => this.setState({ created: false }),
     inh: [
-      ['Rozhodnutí, kdo a do kdy', 'společné', 'celé', 'celé'],
-      ['Možnosti A, B, C', 'společné', 'jako scénáře modelu', 'jako kontext; testuje se jen dopad +1 dne'],
-      ['Rozhodovací pravidlo', 'společné', 'nejlevnější s P ≥ 0,80', 'výsledek vstoupí do modelu jako P4'],
-      ['Cíle', 'podle cesty', 'C1 · NPV nákladů na 7 let', 'C2 · kdo odejde při +1 dni'],
-      ['Co už víme', 'společné', 'čísla ze smluv, nabídek a objednávek', 'nic z čísel; jen kontext'],
-      ['Podklady', 'podle cesty', 'objednávky, smlouva 3PL, dvě nabídky', 'žádný soubor; čísla firmy se nikam neposílají'],
-      ['Cílová veličina, horizont, hranice, data, předpoklady', 'jen Model', 'celé', '—'],
-      ['Co potřebujeme vědět, koho se týká, ukazatele', 'jen Výzkum', '—', 'celé'],
-      ['Výstup a kdo ho čte', 'společné', 'jedna zpráva pro vedení může citovat obě studie', 'totéž'],
+      ['Rozhodnutí a cíl firmy, kdo a do kdy', 'společné', 'celé; cíl je ukazatel modelu', 'celé'],
+      ['Možnosti a omezení', 'společné', 'sedm variant, časování a kapacita', 'jako kontext; testuje se dopad +1 dne, s expresem ve městech i bez'],
+      ['Pravidlo a riziko', 'společné', 'lepší než B s P ≥ 0,80, ztráta > 10 mil. v ≤ 10 %', 'výsledky vstoupí do modelu jako dva předpoklady'],
+      ['Cíle', 'podle cesty', 'C1 · příspěvek 7 variant · C3 · provedení', 'C2 · ztráta objednávek, kde a u koho'],
+      ['Zákazníci', 'jen Výzkum', 'kolik objednávek ve velkých městech (38 %)', 'složení z CRM → kvóty; dnešní slib → scénář otázky'],
+      ['Data a nejistoty', 'podle cesty', 'soubory, předpoklady s ručitelem, data o zpožděních', 'data o zpožděních ke kalibraci; čísla firmy se jinak nikam neposílají'],
+      ['Cílová veličina, horizont, hranice', 'jen Model', 'celé', '—'],
+      ['Co potřebujeme vědět, jak to lidem popsat, ukazatele', 'jen Výzkum', '—', 'celé'],
+      ['Provedení a výstup', 'společné', 'plán, pilot, hranice k hlídání ve zprávě', 'zpráva výzkumu doplní, co nabídnout místo rychlosti'],
       ['Rozpočet studie', 'každá svůj', '10,00 USD', '40,00 USD']
     ].map(([part, d, m, r]) => ({ part, d, m, r }))
   };

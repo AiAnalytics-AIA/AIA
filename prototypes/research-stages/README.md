@@ -8,11 +8,53 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 27, artifact version `1793538157-21ef` |
+| Version | version 28, artifact version `1793540721-10d0` |
 | Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 27 (1 Nov, the engine strategy map; this PR's first commit); version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in version 28 (1 Nov)
+
+The product owner asked for "a logic and scientific pass": does each step take in the most relevant data in the most usable way, and does
+each step produce expert output that leads to the next step or into the final report? Above all, "i need the zadani stage to collect highly
+relevant data to then help create and shape the rest of the stages." This version applies that review.
+
+- **Zadání collects what the later stages need.** Each part says where it comes from and which stage uses it.
+  - `Z1Start`: still one required field. Ada shows what she read from it and asks for four optional sources, each with its reason and the
+    stage that reads it: the P&L, a CRM customer summary, delayed-delivery data and a transition plan.
+  - `Z2Triage`: Ada's three questions come first, ranked by how much each answer could change the recommendation: the risk limit, the
+    delayed-delivery data (about 1.7 M Kč of information value) and whether a pilot is possible. The proposal has 8 parts.
+  - `Z3Decision` is the shared core:
+    - the decision and the firm's goal;
+    - seven options with their constraints (capex cap, contract notice, warehouse capacity, the delivery promise);
+    - a rule with a threshold and a **risk limit**;
+    - three goals;
+    - execution and output.
+  - `Z4Research` follows Velis instead of the Pivovar example. It covers:
+    - what we need to know;
+    - Velis's customers from the CRM summary (they become the sample's quotas);
+    - today's delivery promise (it becomes the question's scenario);
+    - the indicators the model reads.
+  - `Z5Model` measures contribution after logistics, not cost. It also covers timing, boundaries, two missing numbers, guarantors and
+    correlations.
+  - `Z6Both` and `Z7Ready` now show what each stage inherits. R1–R7 now check the goal, the constraints, the risk limit and execution.
+- **Customer research** follows Velis:
+  - The question describes today's promise.
+  - It adds "how much less often", because order frequency costs more orders than churn does.
+  - The quotas follow the CRM mix.
+  - Results are calibrated against the client's delayed-delivery data: stated loss 5.8 % against observed 3.9 %.
+  - A table of segment against churn backs the map's reading.
+- **The business model is a profit model** (fictional numbers, seeded):
+  - Each of the seven options is scored by contribution after logistics. The model includes lost orders, warehouse capacity with
+    overflow, the hall's residual value, switching costs with real timing, and express delivery for the big cities.
+  - The rule: better than today with P ≥ 0.80, and a loss over 10 M Kč in at most 10 % of futures.
+  - Results: C2 is recommended at a median of +7.3 M Kč; B2 is the fallback.
+  - Charts: a forest plot of all options, a tornado chart, break-even points (7.2 % order loss, 37.4 Kč fee) and value of information in
+    Kč (EVPPI) in place of the Sobol shares.
+  - The report has an execution plan, a pilot and limits to watch.
+- **`KM5Map` is recomputed** with the `aia-sociomap-5` engine on 800 scenarios of the new model. C2 and B2 sit highest, and three scenario
+  families are explained by their drivers.
 
 ## What changed in versions 26–27 (1 Nov)
 
@@ -51,7 +93,7 @@ showcase of the same case.
   - `KM3Model`: cost lines, the driver and the variants.
   - `KM4Results`: ranges and dominance, P(cheapest) against the rule, the C − B distribution, the tornado beside Sobol, break-even, the
     backtested forecast and value of information.
-  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height (replaced in version 27).
+  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height (replaced in version 27; the model became a profit model in 28).
   - `KO1Link`: the research result proposed as the model's assumption.
   - `KM6Report`: the model's report.
 
@@ -175,8 +217,8 @@ them.)
 | `Z2Triage.dc.html` | Z2 · Zadání: triáž |
 | `Z3Decision.dc.html` | Z3 · Zadání: rozhodnutí a pravidlo |
 | `Z8aPhone.dc.html`, `Z8bPhone.dc.html` | Z8a, Z8b · Telefon: začátek, triáž |
-| `Z4Research.dc.html` | Z4 · Zadání: cesta Výzkum |
-| `Z5Model.dc.html` | Z5 · Zadání: cesta Model |
+| `Z4Research.dc.html` | Z4 · Zadání: cesta Výzkum zákazníků (Velis since version 28) |
+| `Z5Model.dc.html` | Z5 · Zadání: cesta Obchodní model |
 | `Z6Both.dc.html` | Z6 · Zadání: obojí |
 | `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
 | `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum zákazníků: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Velis) |

@@ -15,6 +15,7 @@
 body{margin:0}
 a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-decoration:underline}
 .sec.need{border-color:var(--you);box-shadow:inset 3px 0 0 var(--you)}
+.zcard.need{border-color:var(--you);background:var(--youwash)}
 .zlead{display:flex;flex-direction:column;gap:2px}
 .zrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:4px 16px;align-items:baseline;font-size:13px}
 .zrow>.zk{color:var(--muted);font-size:12px;font-weight:500}
@@ -84,42 +85,43 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   <div class="sn"><i class="ph ph-info" style="margin-top: 2px"></i><div><b>Lišta kroků na těchto deskách:</b> Zadání je první skupina sama o sobě, na stejném místě a ve stejné šířce na cestě Výzkum i Model; na cestě Výzkum pak následuje Návrh výzkumu: Návrh, Dotazník. Stejné přeskupení se navrhuje i pro navigátor kroků v aplikaci (research-lead-workbench 35) a čeká na rozhodnutí D1–D7 o Zadání. Schválené desky výše mají dál svůj navigátor s 11 kroky.</div></div>
 </div></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1980}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":2160}}'>
 class Component extends DCLogic {
 renderVals() {
   const B = [
-    ['Z1', 'Z1Start', 'Začátek', 'Jedno pole „Co klient potřebuje rozhodnout?“ a Přidat podklady. Přepínač ukáže prázdné a vyplněné.', 'Velis'],
-    ['Z2', 'Z2Triage', 'Triáž', 'Ada navrhne cestu s důvodem, části Zadání přijdou jako návrh k zaškrtnutí, tři otázky seřazené podle toho, jak moc změní návrh.', 'Velis'],
-    ['Z3', 'Z3Decision', 'Rozhodnutí', 'Kdo, do kdy, možnosti, rozhodovací pravidlo. Stav „chybí práh“ a neměřitelné slovo s přepisem.', 'Velis'],
-    ['Z4', 'Z4Research', 'Cesta Výzkum zákazníků', 'Co potřebujeme vědět → výzkumné otázky s typem; koho se to týká; podle čeho poznáme výsledek; co z toho dostane Návrh.', 'Zlatá Hora 12°, +3 Kč'],
-    ['Z5', 'Z5Model', 'Cesta Obchodní model', 'Cílová veličina, horizont, hranice, data (soubor → číslo, jedno chybí), předpoklady s ručitelem, co může výsledek otočit.', 'Velis'],
+    ['Z1', 'Z1Start', 'Začátek', 'Jedno povinné pole a podklady; Ada z textu vyčte, co už ví, a navrhne, které další podklady by pomohly a kam půjdou.', 'Velis'],
+    ['Z2', 'Z2Triage', 'Triáž', 'Ada navrhne cestu s důvodem a Zadání v 8 částech, každou se zdrojem a s tím, kam půjde; tři otázky seřazené podle toho, kolik změní doporučení.', 'Velis'],
+    ['Z3', 'Z3Decision', 'Společné jádro', 'Rozhodnutí a cíl firmy, sedm možností a omezení, pravidlo s prahem a mezí rizika, cíle, provedení a výstup. Stav „chybí mez rizika“.', 'Velis'],
+    ['Z4', 'Z4Research', 'Cesta Výzkum zákazníků', 'Co potřebujeme vědět → výzkumné otázky; zákazníci Velis ze souhrnu CRM; jak to lidem popsat; ukazatele, které čte model; co dostane Návrh.', 'Velis · výzkum'],
+    ['Z5', 'Z5Model', 'Cesta Obchodní model', 'Příspěvek po logistice, horizont a časování, hranice, data (soubor → číslo, dvě chybí), předpoklady s ručitelem, souvislosti, co může výsledek otočit.', 'Velis · model'],
     ['Z6', 'Z6Both', 'Obojí', 'Jedno Zadání založí dvě propojené studie; co každá zdědí a jak výsledek výzkumu vstoupí do modelu.', 'Velis: model + výzkum'],
-    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání zablokované s tím, co ho odblokuje; předání do Návrhu nebo do Dat.', 'Velis'],
+    ['Z7', 'Z7Ready', 'Připravenost a předání', 'R1–R7 jako čipy a v panelu; předání drží chybějící mez rizika; co převezme Návrh, Vzorek, Data a Zpráva.', 'Velis'],
     ['Z8a', 'Z8aPhone', 'Telefon · začátek', 'Začátek na 390 px.', 'Velis'],
     ['Z8b', 'Z8bPhone', 'Telefon · triáž', 'Triáž na 390 px: cesta, otázky, návrh Ady.', 'Velis'],
-    ['V1', 'KV1Design', 'Výzkum · Návrh a Dotazník', 'Výzkumné otázky a dotazník o doručení: co je důležité, kdo by odešel při +1 dni.', 'Velis · výzkum'],
-    ['V2', 'KV2Sample', 'Výzkum · Vzorek', '800 AI respondentů z populace ČR, kvóty, jen lidé, kteří nakupují online.', 'Velis · výzkum'],
-    ['V3', 'KV3Results', 'Výzkum · Výsledky', 'Ztráta zákazníků 3,1 % s intervalem; vlastnosti doručení; návrh předat modelu.', 'Velis · výzkum'],
-    ['V4', 'KV4Sociomap', 'Výzkum · Sociomapa', 'Mapa vypočtená enginem aia-sociomap-5 nad smyšlenými daty: shora, 3D a respondenti.', 'Velis · výzkum'],
+    ['V1', 'KV1Design', 'Výzkum · Návrh a Dotazník', 'Otázky o dopadu +1 dne na dnešní slib Velis, i o kolik méně by lidé nakupovali; sada pro Sociomapu.', 'Velis · výzkum'],
+    ['V2', 'KV2Sample', 'Výzkum · Vzorek', '800 AI respondentů s kvótami podle složení zákazníků Velis z CRM.', 'Velis · výzkum'],
+    ['V3', 'KV3Results', 'Výzkum · Výsledky', 'Ztracené objednávky 5,8 % proti skutečnému chování 3,9 %; kde a u koho; návrh dvou předpokladů pro model.', 'Velis · výzkum'],
+    ['V4', 'KV4Sociomap', 'Výzkum · Sociomapa', 'Mapa z enginu aia-sociomap-5 a kdo z kterého segmentu odejde.', 'Velis · výzkum'],
     ['V5', 'KV5Report', 'Výzkum · Zpráva', 'Zpráva výzkumu s mapou a čísly s původem.', 'Velis · výzkum'],
-    ['M1', 'KM1Data', 'Model · Data', 'Čtyři soubory, každé číslo přivázané ke stránce nebo sloupci, kontrola dat před výpočtem.', 'Velis · model'],
-    ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Třináct předpokladů s rozsahem, zdrojem a ručitelem.', 'Velis · model'],
-    ['M3', 'KM3Model', 'Model · Model', 'Nákladové položky, hybné veličiny a varianty A, B, C.', 'Velis · model'],
-    ['M4', 'KM4Results', 'Model · Výsledky', 'Rozsahy, P(nejlevnější), rozdíl C − B, citlivost, bod zvratu, předpověď, hodnota informace.', 'Velis · model'],
+    ['M1', 'KM1Data', 'Model · Data', 'Devět souborů, u každého, která část Zadání ho vyžádala; čísla se stránkou; kontrola dat a kapacity.', 'Velis · model'],
+    ['M2', 'KM2Assumptions', 'Model · Předpoklady', 'Devatenáct předpokladů s rozsahem, zdrojem a ručitelem; dva z výzkumu.', 'Velis · model'],
+    ['M3', 'KM3Model', 'Model · Model', 'Sedm variant, příspěvek po logistice, časování, kapacita, zůstatková hodnota a přechod.', 'Velis · model'],
+    ['M4', 'KM4Results', 'Model · Výsledky', 'Pravidlo pro sedm variant (P lepší než B, riziko ztráty, slib ve městech), rozdíl C2 − B, citlivost, bod zvratu, předpověď, hodnota informace v Kč.', 'Velis · model'],
     ['M5', 'KM5Map', 'Model · Sociomapa strategií', 'Sedm variant v 800 scénářích, engine aia-sociomap-5; interní, metoda čeká na schválení.', 'Velis · model'],
-    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení podle pravidla, každé číslo se stupněm.', 'Velis · model'],
-    ['O1', 'KO1Link', 'Obojí · výzkum do modelu', 'Výsledek výzkumu navržený jako předpoklad modelu; P(nejlevnější) před a po.', 'Velis']
+    ['M6', 'KM6Report', 'Model · Zpráva', 'Doporučení C2 se zálohou B2, plán provedení s pilotem a hranice k hlídání; každé číslo se stupněm.', 'Velis · model'],
+    ['O1', 'KO1Link', 'Obojí · výzkum do modelu', 'Dva výsledky výzkumu, zkalibrované daty klienta, navržené jako předpoklady; co se tím změnilo.', 'Velis']
   ];
   return {
     theme: this.props.theme ?? 'light',
-    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada navrhne cestu', 'Výzkum zákazníků, Obchodní model, nebo obojí, s důvodem. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Jádro', 'Rozhodnutí a pravidlo', 'Co se rozhoduje, kdo, do kdy, možnosti, kdy zvolíme kterou.', 'Z3Decision'], ['4 · Cesta', 'Části podle cesty', 'Výzkum zákazníků: co potřebujeme vědět. Obchodní model: veličina, data, předpoklady.', 'Z4Research'], ['5 · Předání', 'Připravenost', 'Kontrola R1–R7, pak Návrh nebo Data převezme, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
+    steps: [['1 · Popis', 'Vlastními slovy', 'Jedno pole a podklady. Nic jiného není povinné.', 'Z1Start'], ['2 · Triáž', 'Ada navrhne cestu', 'Výzkum zákazníků, Obchodní model, nebo obojí, s důvodem. Rozhoduje výzkumník.', 'Z2Triage'], ['3 · Jádro', 'Rozhodnutí, cíl, riziko', 'Co se rozhoduje a proč, co chce firma získat, možnosti a omezení, pravidlo s mezí rizika, provedení.', 'Z3Decision'], ['4 · Cesta', 'Části podle cesty', 'Výzkum: co potřebujeme vědět, koho se týká, jak to popsat. Model: veličina, data, předpoklady s ručitelem.', 'Z4Research'], ['5 · Předání', 'Připravenost', 'Kontrola R1–R7, pak Návrh nebo Data převezme, co Zadání ustálilo.', 'Z7Ready']].map(([n, t, d, f]) => ({ n, t, d, href: f + '.dc.html' })),
     boards: B.map(([id, f, t, d, c]) => ({ id, t, d, c, href: f + '.dc.html' })), boardCount: B.length,
     prin: [
       ['ph ph-target', 'Začít rozhodnutím', 'Co se rozhoduje, kdo a do kdy, mezi čím. Studie bez rozhodnutí je zvědavost.'],
       ['ph ph-scales', 'Pravidlo předem', 'Než přijdou data, platí věta „zvolíme X, když ukazatel ≥ práh“. Výsledek se pak nečte podle přání.'],
       ['ph ph-path', 'Metoda z otázky', 'Názory a chování: respondenti. Náklady a kapacity: model z čísel klienta. Často obojí.'],
       ['ph ph-book-open', 'Co už víme', 'Data, dřívější studie a domněnky, každá s jistotou. Domněnka se stane hypotézou nebo předpokladem.'],
-      ['ph ph-squares-four', 'Hranice', 'Kdo nebo co je uvnitř, horizont, rozpočet, termín, co je mimo.'],
+      ['ph ph-squares-four', 'Hranice a omezení', 'Kdo nebo co je uvnitř, horizont, smlouvy, kapacity, rozpočet, termín, co je mimo.'],
+      ['ph ph-shield-check', 'Riziko a provedení', 'Kolik horší výsledek firma unese, jak to vyzkoušet pilotem a co po rozhodnutí hlídat.'],
       ['ph ph-user-check', 'Každý předpoklad má ručitele', 'Hodnota nebo rozsah, zdroj, kdo za ni ručí. Nic se nepoužije, dokud to výzkumník nepřijme.']
     ].map(([ic, t, d]) => ({ ic, t, d })),
     keep: [
