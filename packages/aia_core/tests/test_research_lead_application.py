@@ -324,35 +324,171 @@ def test_a_message_written_again_before_the_budget_is_set_is_answered_not_held(
     assert _lead(scope, session).state()["busy"] is False
 
 
-def test_setting_the_budget_sends_the_parked_message_and_records_the_person(
+def _edit(scope: Any, session: Any, base: int, title: str) -> int:
+    """The working copy moved on: the person edits it after the turn parked."""
+    return (
+        StudyWorkspaceRepository(session)
+        .save(
+            scope,
+            content={**CONTENT, "title": title},
+            base_revision=base,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+        )
+        .revision
+    )
+
+
+def test_setting_the_budget_sends_the_parked_message_on_the_design_as_it_is_now(
     scoped: Any, session: Any
 ) -> None:
     """The product owner, 2026-10-21 (Q39): "once the budget is set or raised, it should
     automatically resend the message the researcher attempted to send in the first place".
-    The person setting the budget is the consent, recorded in the ledger as every lift is."""
+
+    F-LO-PARK-1 (Nigel, 2026-10-28, W1Q11): the turn was sent the context it froze when it
+    parked, so on develop it answered about revision 1 after the brief and the questionnaire had
+    moved on. A released turn is cancelled, never paid; its message waits again, and the turn
+    that answers it is frozen on the copy as it is now."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    parked_on = _save(scope, session)
+    first = _message(_lead(scope, session), "Kde studie stojí?")
+    _park_on_budget(session, scope, requested=0.5)
+    now = _edit(scope, session, parked_on, "Fiktivní koncept, druhá verze")
+
+    study, released = set_study_budget(session, scope, 5.0)
+    assert study.budget_usd == 5.0 and released == [first[-1]["run_id"]]
+    workflows = WorkflowRepository(session, scope)
+    assert workflows.get_run(first[-1]["run_id"])["status"] is WorkflowRunStatus.CANCELLED
+    assert session.scalars(select(ApprovalDecisionRow)).all() == []  # nothing was lifted
+    state = _lead(scope, session).state()
+    by_id = {t["turn_id"]: t for t in state["turns"]}
+    assert by_id[first[-1]["turn_id"]]["reason"] == "lead_turn_released"
+    assert by_id[first[0]["turn_id"]]["queued"] is True  # the pane sends what waits
+    assert state["busy"] is False
+
+    (turn,) = _lead(scope, session).answer_queued()
+    assert turn["workspace_revision"] == now != parked_on
+    assert turn["answers"] == [first[0]["turn_id"]]
+    context = _step_input(session, scope, turn["run_id"])["context"]
+    design = json.dumps(layer(context, "design"), ensure_ascii=False)
+    assert "druhá verze" in design  # the copy as it is now, not the one it parked on
+    _complete(session, scope, {"reply": "Ve fázi zadání."})
+    state = _lead(scope, session).state()
+    assert state["busy"] is False and state["turns"][-1]["output"] == {"reply": "Ve fázi zadání."}
+    assert not any(t["queued"] for t in state["turns"])
+    assert len(_message(_lead(scope, session), "Díky")) == 2
+
+
+def test_a_message_written_after_the_release_is_sent_with_the_released_one(
+    scoped: Any, session: Any
+) -> None:
+    """The released message is answered first, with the new one, and never passed over for a
+    greeting."""
     scope = scoped.scope()
     _hatch(scoped, session)
     _no_budget(scoped, scope)
     first = _message(_lead(scope, session), "Kde studie stojí?")
-    work = _park_on_budget(session, scope, requested=0.5)
+    _park_on_budget(session, scope)
+    set_study_budget(session, scope, 5.0)
+    later = _lead(scope, session, clock=lambda: utcnow() + timedelta(days=1))
+    assert later.post(kind="greeting", stage="brief") == []
 
-    study, released = set_study_budget(session, scope, 5.0)
-    assert study.budget_usd == 5.0 and released == [first[-1]["run_id"]]
-    state = _lead(scope, session).state()
-    assert state["turns"][-1]["status"] == "QUEUED" and state["busy"] is True
-    rows = session.scalars(
-        select(ApprovalDecisionRow).where(ApprovalDecisionRow.run_id == first[-1]["run_id"])
-    ).all()
-    assert [(r.gate_type, r.decision, r.step_id) for r in rows] == [
-        ("budget", "lift", work.step_id)
+    turns = _message(_lead(scope, session), "Jsi tam?")
+    context = _step_input(session, scope, turns[-1]["run_id"])["context"]
+    assert [m["text"] for m in layer(context, "view")["messages"]] == [
+        "Kde studie stojí?",
+        "Jsi tam?",
     ]
-    assert rows[0].approver_user_id == scope.actor_id
+    assert turns[-1]["answers"] == [first[0]["turn_id"], turns[0]["turn_id"]]
 
-    # The message is answered without being written again; the next one goes as usual.
-    _complete(session, scope, {"reply": "Ve fázi zadání."})
-    state = _lead(scope, session).state()
-    assert state["busy"] is False and state["turns"][-1]["output"] == {"reply": "Ve fázi zadání."}
-    assert len(_message(_lead(scope, session), "Díky")) == 2
+
+def test_a_budget_set_by_another_researcher_releases_the_turn_for_its_owner_alone(
+    scoped: Any, session: Any
+) -> None:
+    """A Lead is its researcher's own (ADR 0026): a colleague's budget set releases the turn,
+    and only its owner's own Lead sends the message again."""
+    owner = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, owner)
+    first = _message(_lead(owner, session))
+    _park_on_budget(session, owner)
+    colleague = scoped.scope(user="researcher")
+    _hatch(scoped, session, "researcher")
+
+    assert set_study_budget(session, colleague, 5.0)[1] == [first[-1]["run_id"]]
+    assert _lead(colleague, session).state()["turns"] == []  # nothing of the owner's reaches them
+    assert _lead(colleague, session).answer_queued() == []
+    owners = {t["turn_id"]: t for t in _lead(owner, session).state()["turns"]}
+    assert owners[first[0]["turn_id"]]["queued"] is True
+    (turn,) = _lead(owner, session).answer_queued()
+    assert turn["answers"] == [first[0]["turn_id"]]
+    assert turn["created_by"] == owner.actor_id
+
+
+def test_a_released_greeting_promises_nothing(scoped: Any, session: Any) -> None:
+    """A greeting parked before F-LO-PARK-1's fix held no message: released, it says nothing will
+    follow, and nothing does (the review of the fix)."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    (greeting,) = _lead(scope, session).post(kind="greeting", stage="brief")
+    _park_on_budget(session, scope)
+    assert set_study_budget(session, scope, 5.0)[1] == [greeting["run_id"]]
+    turn = _lead(scope, session).state()["turns"][-1]
+    assert (turn["status"], turn["reason"]) == ("CANCELLED", None)
+    assert _lead(scope, session).answer_queued() == []
+
+
+def test_a_step_cancelled_since_it_parked_reads_as_no_longer_waiting(
+    scoped: Any, session: Any
+) -> None:
+    """The review of F-LO-PARK-1: a turn cancelled after the release listed it (a message that
+    superseded it, in another transaction) is read again under the run's lock and skipped, its
+    hold not counted."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    _message(_lead(scope, session))
+    work = _park_on_budget(session, scope)
+    workflows = WorkflowRepository(session, scope)
+    assert workflows.awaits_budget(work.step_id)
+    workflows.request_cancel(work.run_id, reason="lead_turn_superseded")
+    assert not workflows.awaits_budget(work.step_id)
+    assert workflows.cancel_reason(work.run_id) == "lead_turn_superseded"
+
+
+def test_a_released_message_withdrawn_is_never_sent(scoped: Any, session: Any) -> None:
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    _no_budget(scoped, scope)
+    first = _message(_lead(scope, session))
+    _park_on_budget(session, scope)
+    set_study_budget(session, scope, 5.0)
+    _lead(scope, session).withdraw(first[0]["turn_id"])
+    assert _lead(scope, session).answer_queued() == []
+
+
+def test_a_greeting_the_budget_did_not_pay_for_reads_as_one_quiet_line(
+    scoped: Any, session: Any
+) -> None:
+    """F-LO-PARK-1: the worker ends a greeting the budget cannot pay for (``skipped``)."""
+    scope = scoped.scope()
+    _hatch(scoped, session)
+    (greeting,) = _lead(scope, session).post(kind="greeting", stage="brief")
+    workflows = WorkflowRepository(session, scope)
+    work = workflows.claim_next(worker_id="w", kinds={RESEARCH_LEAD_TURN})
+    assert work is not None
+    workflows.complete_attempt(
+        work.attempt_id, worker_id="w", output={"skipped": "greeting_unfunded"}
+    )
+    turn = _lead(scope, session).state()["turns"][-1]
+    assert (turn["turn_id"], turn["status"], turn["reason"], turn["output"]) == (
+        greeting["turn_id"],
+        "COMPLETED",
+        "greeting_unfunded",
+        None,
+    )
 
 
 def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: Any) -> None:
@@ -369,7 +505,6 @@ def test_a_budget_still_too_small_leaves_the_turn_parked(scoped: Any, session: A
     assert set_study_budget(session, scope, 1.0)[1] == []  # lowered
     turn = _lead(scope, session).state()["turns"][-1]
     assert (turn["status"], turn["reason"]) == ("WAITING", "budget_exceeded")
-    assert session.scalars(select(ApprovalDecisionRow)).all() == []
     assert set_study_budget(session, scope, 10.0)[1] != []  # now it fits
 
 

@@ -47,12 +47,22 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any, Final, Literal
 
 from .brief_materials import material_signature
-from .item_ids import ID_LISTS, SIDECAR_KEYS, Entry, bound_of, fold, list_ids, with_item_ids
+from .item_ids import (
+    ID_LISTS,
+    OBJECT_IDS,
+    OPTION_IDS,
+    SIDECAR_KEYS,
+    Entry,
+    bound_of,
+    fold,
+    list_ids,
+    with_item_ids,
+)
 from .research_design import keep_point_labels
 
 __all__ = [
@@ -544,10 +554,47 @@ def _keyed_merge(
 
 
 Side = tuple[Mapping[str, Any], Mapping[str, Any]]
+#: The fields each changed item takes from the proposal (D-06); ``None``: every item whole.
+Fields = Mapping[ItemKey, Collection[str]]
+#: An item's existence, and a question's place: the fields that say where an item stands.
+_PLACE: Final = frozenset({"item", "section"})
+#: The id list that names a field's parts, and goes with it.
+_PART_IDS: Final = {"kategorie": OPTION_IDS, "objects": OBJECT_IDS}
+
+
+def _places(key: ItemKey, fields: Fields | None) -> bool:
+    """Whether the proposal decides where ``key`` stands: it adds or removes it, or moves it."""
+    return fields is None or not _PLACE.isdisjoint(fields.get(key, ()))
+
+
+def _take(key: ItemKey, mine: Any, theirs: Any, fields: Fields | None) -> Any:
+    """``key``'s value merged: the proposal's whole, or, field by field (D-06), the person's with
+    only the fields the proposal changed taken from it (a field it dropped dropped), each with
+    the id list that names its parts. An item only one side has is that side's."""
+    if fields is None or not isinstance(mine, Mapping) or not isinstance(theirs, Mapping):
+        return theirs
+    if "item" in fields.get(key, ()):
+        return theirs
+    out = dict(mine)
+    for name in fields.get(key, ()):
+        if name in _PLACE:
+            continue
+        for field in (name, _PART_IDS.get(name)):
+            if field is None:
+                continue
+            if field in theirs:
+                out[field] = theirs[field]
+            else:
+                out.pop(field, None)
+    return out
 
 
 def _merge_plan(
-    doc: Document, proposed: Side, current: Side, touched: set[ItemKey]
+    doc: Document,
+    proposed: Side,
+    current: Side,
+    touched: set[ItemKey],
+    fields: Fields | None = None,
 ) -> dict[str, Any]:
     """A research plan (or an analysis), merged field by field and list item by list item.
 
@@ -571,11 +618,18 @@ def _merge_plan(
                     out[ids_key] = [Entry(k, bound_of(v)).as_json() for k, v in merged]
                 continue
         elif name == "tracked_sets":
-            mine = {t.key for t in touched if t.kind == "tracked_set"}
+            sets = {t for t in touched if t.kind == "tracked_set"}
             p_sets = _set_entries(p_raw.get(name))
             c_sets = _set_entries(c_raw.get(name)) if name in c_raw else []
-            if mine and p_sets is not None and c_sets is not None:
-                out[name] = [v for _, v in _keyed_merge(p_sets, c_sets, mine)]
+            if sets and p_sets is not None and c_sets is not None:
+                placed = {t.key for t in sets if _places(t, fields)}
+                c_by, p_by = dict(c_sets), dict(p_sets)
+                out[name] = [
+                    _take(ItemKey(doc, "tracked_set", k), c_by[k], p_by[k], fields)
+                    if ItemKey(doc, "tracked_set", k) in sets and k in c_by and k in p_by
+                    else v
+                    for k, v in _keyed_merge(p_sets, c_sets, placed)
+                ]
                 continue
         if ItemKey(doc, other, name) in touched:
             if name in p_raw:
@@ -586,10 +640,15 @@ def _merge_plan(
 
 
 def _merge_sections(
-    proposed: tuple[Any, Any], current: tuple[Any, Any], touched: set[ItemKey]
+    proposed: tuple[Any, Any],
+    current: tuple[Any, Any],
+    touched: set[ItemKey],
+    fields: Fields | None = None,
 ) -> Any:  # a list of sections, or the current value untouched
     """The questionnaire, merged section by section and question by question. Each side is
-    ``(as stored, with its ids written in)``: keyed by the ids, valued as stored."""
+    ``(as stored, with its ids written in)``: keyed by the ids, valued as stored. With
+    ``fields``, a section or question stands where the person has it unless the proposal adds,
+    removes or moves it, and takes only the fields the proposal changed (:func:`_take`)."""
     (p_raw, p_ids), (c_raw, c_ids) = proposed, current
     mine = {t for t in touched if t.document == "content" and t.kind in _SECTION_KINDS}
     if not mine:
@@ -598,24 +657,49 @@ def _merge_sections(
     c_sections = _section_entries(c_ids, c_raw) or []
     p_by, c_by = dict(p_sections), dict(c_sections)
     p_questions, c_questions = _section_questions(p_sections), _section_questions(c_sections)
-    section_keys = {t.key for t in mine if t.kind in ("section", "battery")}
-    question_keys = {t.key for t in mine if t.kind == "question"}
-    order = _keyed_merge(
-        [(k, k) for k, _ in p_sections], [(k, k) for k, _ in c_sections], section_keys
-    )
+    sections = {t.key: t for t in mine if t.kind in ("section", "battery")}
+    questions = {t.key: t for t in mine if t.kind == "question"}
+    placed = {k for k, t in sections.items() if _places(t, fields)}
+    placed_q = {k for k, t in questions.items() if _places(t, fields)}
+    c_all = {k: q for held in c_questions.values() for k, q in held or []}
+    p_all = {k: q for held in p_questions.values() for k, q in held or []}
+
+    def question(k: str, v: Any) -> Any:
+        if k not in questions or k not in c_all or k not in p_all:
+            return v
+        return _take(questions[k], c_all[k], p_all[k], fields)
+
+    order = _keyed_merge([(k, k) for k, _ in p_sections], [(k, k) for k, _ in c_sections], placed)
     out: list[Any] = []
     for key, _ in order:
-        section = p_by[key] if key in section_keys or key not in c_by else c_by[key]
+        if key not in c_by:
+            section = p_by[key]
+        elif key in sections and key in p_by:
+            section = _take(sections[key], c_by[key], p_by[key], fields)
+        else:
+            section = c_by[key]
         mine_q, theirs_q = c_questions.get(key), p_questions.get(key)
-        if section.get("type") == "object_battery" or (mine_q is None and theirs_q is None):
+        # Questions that are no list of objects are one field of their section (design_fields),
+        # taken whole when the proposal changed them.
+        whole = (
+            fields is not None
+            and theirs_q is None
+            and key in sections
+            and "questions" in fields.get(sections[key], ())
+        )
+        if (
+            section.get("type") == "object_battery"
+            or whole
+            or (mine_q is None and theirs_q is None)
+        ):
             out.append(dict(section))
             continue
-        questions = (
-            [v for _, v in _keyed_merge(theirs_q or [], mine_q, question_keys)]
+        merged_q = (
+            _keyed_merge(theirs_q or [], mine_q, placed_q)
             if key in c_by and mine_q is not None
-            else [q for _, q in theirs_q or []]
+            else theirs_q or []
         )
-        out.append({**section, "questions": questions})
+        out.append({**section, "questions": [question(k, v) for k, v in merged_q]})
     return out
 
 
@@ -625,6 +709,7 @@ def merge_items(
     touched: Iterable[ItemKey],
     *,
     baseline: Documents | None = None,
+    fields: Fields | None = None,
 ) -> Documents:
     """The proposal merged into the working copy now, item by item (ADR 0026 decision 6).
 
@@ -635,8 +720,15 @@ def merge_items(
     cleared. ``baseline`` is the design ``touched`` was computed against: both sides' ids are read
     against it, as :func:`design_items` read them. Nothing is stored with an id it did not have,
     but a merged plan list whose working copy keeps an id list keeps it, lined up.
+
+    ``fields`` (D-06, working-copy-edit-ops WCE5) names, for each touched item, the fields the
+    proposal changed (:mod:`.design_fields`' names). A question, section, battery or tracked set
+    then takes only those from the proposal and keeps the person's others, and stands where the
+    person has it unless the proposal adds, removes or moves it (``item``, a question's
+    ``section``). With it the touched items are its keys and ``touched`` is not read; without it
+    every touched item is taken whole, as before.
     """
-    touched_set = set(touched)
+    touched_set = set(touched) if fields is None else set(fields)
     p_res, c_res = _resolve(proposed, baseline), _resolve(current, baseline)
     content = dict(current.content)
     p = proposed.content
@@ -674,6 +766,7 @@ def merge_items(
                 _mapping(c_res.content.get("research_plan")),
             ),
             touched_set,
+            fields,
         )
     if "sections" in content or "sections" in p:
         # A proposal's scale with two ends, where the person's copy labels every point of the
@@ -686,6 +779,7 @@ def merge_items(
             ),
             (content.get("sections"), c_res.content.get("sections")),
             touched_set,
+            fields,
         )
         if merged is not None:
             content["sections"] = merged
@@ -696,6 +790,7 @@ def merge_items(
             (proposed.analysis or {}, p_res.analysis or {}),
             (current.analysis or {}, c_res.analysis or {}),
             touched_set,
+            fields,
         )
     return Documents(content=content, analysis=analysis)
 

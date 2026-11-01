@@ -1,4 +1,4 @@
-# AIA Design System v3.3: export of 27 Oct 2026
+# AIA Design System v3.4: export of 28 Oct 2026
 
 The AIA Design System artifact as it stands, exported so another account can use it without access to the live
 artifact. It is a design reference, not product code: nothing in `apps/web` imports it, and every client, study,
@@ -6,8 +6,9 @@ person and number in it is fictional.
 
 | | |
 |---|---|
-| Live artifact (private to the owner's account) | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4> |
-| Exported version | v12, artifact version id `1793100361-1081`, 27 Oct 2026 |
+| Live artifact, owned by the second account since 28 Oct 2026 (private to it) | <https://claude.ai/artifact/MufBxctmGRFPbxtysSFfZw>: edit this one, and export from it |
+| Earlier artifact, first account (no longer edited) | <https://claude.ai/artifact/SEEkz1TrFgEZ1yK53Qmas4>, last exported at v12 (`1793100361-1081`, 27 Oct 2026) |
+| Exported version | v3.4, artifact version id `1793221581-0d82`, 28 Oct 2026 |
 | Before / after | [`../ux-upgrade/`](../ux-upgrade/): the UX upgrade's audits and 12 screens before and after |
 | Product code it matches | draft PRs #1022 (`feature/ux-upgrade`: Petrol, the AI spark edge, the command palette, one way to save, undo, pay and fail) and #1030 (`feature/ux-shared-components`: StatusPill, Value, StaleMark, AiJobCard, ItemReview) |
 
@@ -32,6 +33,21 @@ artifact, with a light/dark switch. It loads only files in this folder:
 | `docs/design-system.json` | The artifact's index (asset groups, last change) |
 | `assets/Icons`, `assets/LeadMarks`, `assets/Brand` | The SVGs the artifact keeps as uploads: 93 Phosphor icons, the five Lead marks, the AIA mark and the lattice field |
 | `fonts/` | IBM Plex Sans and Mono, Source Serif 4 and its Display cut (OFL) |
+
+## What changed in v3.4 (28 Oct)
+
+- **Rebuilt in the second account** from this folder (the owner, 28 Oct: "Rebuild it here first"). These went in unchanged:
+  - the brand book and its two sections;
+  - `tokens.json`, the 48 cards and `bundle.css`;
+  - the fonts.
+
+  The 101 icons, Lead marks and brand SVGs were uploaded again under new ids, which `docs/design-system.json` now records. Three previews (DockRail, LeadChat, LeadMark) load them by those ids in the artifact; here they keep their `../../assets/` paths.
+- **The hero follows core v4.3** (the owner: "Make the Design System hero match core v4.3 too", as Settings, Klienti and the research stages):
+  - `hero-title` is 28/34, not 40/46;
+  - `lede` is 14/20 and 68 characters, not 16/24 and 62. These are in `tokens.json`, in `tokens.css` and in the brand book's type line;
+  - the Hero card's rules describe core v4.3's hero: the eyebrow and chips in one row, the figures in a row beneath, the hairline under it.
+
+  The Hero preview already rendered at these sizes, because `bundle.css` carries core's later rules, so it is unchanged.
 
 ## The boards (48 cards)
 

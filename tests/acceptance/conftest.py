@@ -52,6 +52,10 @@ RESEARCHER = "researcher@acceptance.invalid"
 OTHER_ORGANIZATION_USER = "smoke.seed@aia-develop.invalid"
 #: Generous: a cold start of the API imports the whole application (CLAUDE.md §7).
 START_SECONDS = 90.0
+#: Long enough for a cold worker on a CI runner to finish a run (CLAUDE.md §7).
+RUN_SECONDS = 300.0
+#: A run's ends, as the run routes report its status.
+RUN_ENDS = frozenset({"COMPLETED", "FAILED", "CANCELLED"})
 
 
 def _python() -> str:
@@ -154,12 +158,20 @@ class Process:
     name: str
     popen: subprocess.Popen[bytes]
     log: Path
+    #: Killed by the test (:meth:`kill`): its exit is the signal's, never a clean one.
+    killed: bool = False
 
     def tail(self) -> str:
         return f"--- {self.name} ({self.log}) ---\n{_tail(self.log)}"
 
     def alive(self) -> bool:
         return self.popen.poll() is None
+
+    def kill(self) -> None:
+        """SIGKILL, as a lost machine: no cleanup runs, the lease is the only record."""
+        self.killed = True
+        self.popen.send_signal(signal.SIGKILL)
+        self.popen.wait(10)
 
     def stop(self, timeout: float = 30.0) -> int:
         """SIGTERM, as ECS sends it; the exit code."""
@@ -275,7 +287,24 @@ class Stack:
             process.stop()
             raise
         code = process.stop()
-        assert code == 0, f"the worker exited {code} on SIGTERM\n{process.tail()}"
+        assert process.killed or code == 0, f"the worker exited {code} on SIGTERM\n{process.tail()}"
+
+    def wait_for_run(self, worker: Process, path: str, who: str) -> dict[str, Any]:
+        """Poll a run at ``path`` until it ends or parks by name, or its worker is gone."""
+        deadline = time.monotonic() + RUN_SECONDS
+        seen: dict[str, Any] = {}
+        while time.monotonic() < deadline:
+            reply = self.http.get(path, as_user=who)
+            assert reply.status == 200, reply.text
+            seen = dict(reply.json() or {})
+            if seen.get("status") in RUN_ENDS:
+                return seen
+            if str(seen.get("status", "")).startswith("WAITING") and seen.get("reason"):
+                return seen  # parked by name: it would wait for a person, not finish
+            if not worker.alive():
+                break
+            time.sleep(0.5)
+        raise AssertionError(f"the run did not finish: {json.dumps(seen)[:2000]}\n{self.logs()}")
 
     def logs(self) -> str:
         return "\n".join(p.tail() for p in (self.api, *self.workers))

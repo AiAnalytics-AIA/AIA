@@ -264,6 +264,14 @@
 .arthead__title { font-size: 16px; line-height: 20px; font-weight: 600; }
 /* The save state goes under the title when the two do not fit side by side (workbench audit F13). */
 .arthead .row { flex-wrap: wrap; row-gap: 0; }
+/* Sběr dat's two views (FLD9), the board's "Pohled" segment (Fieldwork.dc.html .ahd; core v4.3 .seg). */
+.views { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: var(--surface-raised); color: var(--ink); }
+.views button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-right: 1px solid var(--border); background: transparent; min-height: 32px; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+.views button:last-child { border-right: 0; }
+.views button:hover { background: var(--surface-sunken); }
+.views button[aria-selected="true"] { background: var(--signal); color: var(--on-signal); }
+.views button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.views button[aria-selected="true"]:focus-visible { outline-color: var(--on-signal); outline-offset: -4px; }
 &.wb--sheet .arthead__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .arthead__sub { font-size: 12px; line-height: 16px; color: var(--ink-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .arthead__actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
@@ -572,12 +580,19 @@
 .card__titlerow .act__title { font-size: 14px; }
 .card__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .refchip__clear { width: 20px; height: 20px; }
+/* Files given to the Lead (LO18a): chips above the composer, and under a sent message. */
+.filechips { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.filechips--sent { justify-content: flex-end; margin-top: 4px; }
+.filechip { min-width: 0; }
+.filechip b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 18ch; font-weight: 500; }
+.filechip__words { color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.filechip[data-file-state="refused"] .filechip__words { color: var(--status-fault); }
 /* At a phone's width every control the frame owns is a 44 px target, as the shared controls' TOUCH
    is (input-interactions I11); from 640 px the prototype's density stands, above WCAG 2.2's 24 px. */
 @media (max-width: 639.98px) {
   .iconbtn { width: 44px; height: 44px; }
   .composer__send { width: 44px; height: 44px; border-radius: 22px; }
-  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip, .arthead__actions button, .conv__sees--chip { min-height: 44px; }
+  .btn, .btn--sm, button.chip, .linkchip, .follow__btn, .listbtn, .shead__pending, .nav__current, .nav__stage, .shead__home, .skip, .arthead__actions button, .views button, .conv__sees--chip { min-height: 44px; }
   .refchip__clear { flex: none; }
   .nav--sheet { height: 48px; }
 }

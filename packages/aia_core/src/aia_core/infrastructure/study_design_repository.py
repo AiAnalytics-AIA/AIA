@@ -244,33 +244,6 @@ class StudyDesignRepository:
             content=stored.content, source_stage=source_stage, workspace_revision=saved.revision
         )
 
-    def submit_if_current(
-        self,
-        *,
-        content: Any,
-        source_stage: str,
-        expected_revision_id: str,
-        workspace_revision: int,
-    ) -> tuple[DesignRevision, bool]:
-        """Apply a reviewed proposal only against its unchanged baseline.
-
-        The same Study row lock serializes ordinary submit() and proposal
-        acceptance, including first-design creation. ``workspace_revision`` is the working
-        revision the accept wrote, as :meth:`submit` requires. The caller commits.
-        """
-        self._scope.require(Permission.EDIT_STUDY)
-        self._scope.require_open_study()
-        self._require_research(lock=True)
-        self.get(expected_revision_id)
-        latest = self.latest()
-        if latest is None or latest.revision_id != expected_revision_id:
-            raise DesignRejected(
-                "the proposal's design baseline has changed", reason="stale_proposal"
-            )
-        return self.submit(
-            content=content, source_stage=source_stage, workspace_revision=workspace_revision
-        )
-
     def record_source(
         self,
         *,

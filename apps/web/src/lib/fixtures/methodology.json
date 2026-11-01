@@ -2762,7 +2762,7 @@
       "reading_cs": "",
       "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [
        {
         "latex": "a_{ki}",
@@ -3843,7 +3843,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -5125,7 +5125,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -6564,11 +6564,12 @@
       "reading_cs": "",
       "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread"
       ],
       "title_cs": "Respondent bez rozptylu není umístěn",
       "values": []
@@ -7557,7 +7558,7 @@
       "reading_cs": "",
       "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [
        {
         "latex": "a_{ki}",
@@ -8638,7 +8639,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -9920,7 +9921,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -11359,11 +11360,12 @@
       "reading_cs": "",
       "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread"
       ],
       "title_cs": "Respondent bez rozptylu není umístěn",
       "values": []
@@ -12352,7 +12354,7 @@
       "reading_cs": "",
       "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [
        {
         "latex": "a_{ki}",
@@ -13433,7 +13435,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -14719,7 +14721,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -16161,11 +16163,12 @@
       "reading_cs": "",
       "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread"
       ],
       "title_cs": "Respondent bez rozptylu není umístěn",
       "values": []
@@ -17154,7 +17157,7 @@
       "reading_cs": "",
       "role_cs": "Srovná přísné a štědré hodnotitele, aby korelace zachytila, co lidé hodnotí podobně, ne jak přísně.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [
        {
         "latex": "a_{ki}",
@@ -18235,7 +18238,7 @@
       "reading_cs": "",
       "role_cs": "Síla a směr vztahu pro výklad mapy; rozložení ani skóre nemění.",
       "source_cs": "",
-      "source_sha256": "486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+      "source_sha256": "3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input"
@@ -19517,7 +19520,7 @@
        "f3_status"
       ],
       "keeps_cs": [],
-      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+      "note_cs": "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, 28. 10. 2026).",
       "reading_cs": "",
       "role_cs": "Jak objekt souvisí s ostatními; podklad pro propojenost 0-100.",
       "source_cs": "",
@@ -20959,11 +20962,12 @@
       "reading_cs": "",
       "role_cs": "Kdo dal všem objektům stejné hodnocení, nenese informaci o vztazích: vypadne z korelací a terénu, výšky ho ale započtou.",
       "source_cs": "",
-      "source_sha256": "986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+      "source_sha256": "ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
-       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights"
+       "packages/aia_core/tests/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+       "packages/aia_core/tests/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread"
       ],
       "title_cs": "Respondent bez rozptylu není umístěn",
       "values": []
@@ -21803,11 +21807,12 @@
       "reading_cs": "",
       "role_cs": "",
       "source_cs": "",
-      "source_sha256": "80baacdb7e98e699f6a02ae6c7bf33ccd79e0cb6ec322aabb92ad47d5ebd0cd2",
+      "source_sha256": "e444816b2bee0a96523187f9d2428cf2b7c0a54189a91831b28aff6c9096bdb7",
       "symbols": [],
       "tests": [
        "packages/aia_core/tests/test_sociomap_engine.py::test_a_straight_liner_below_the_top_is_not_placed",
-       "packages/aia_core/tests/test_sociomap_engine.py::test_every_respondent_is_placed_or_excluded"
+       "packages/aia_core/tests/test_sociomap_engine.py::test_every_respondent_is_placed_or_excluded",
+       "packages/aia_core/tests/test_straight_lining.py::test_the_v2_engine_places_only_a_spread"
       ],
       "title_cs": "Kdo se dá umístit",
       "values": []

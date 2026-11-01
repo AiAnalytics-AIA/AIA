@@ -1322,33 +1322,29 @@ def test_concurrent_live_promotions_have_exactly_one_winner(
 def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
     pg_sessions: sessionmaker[Session], world: dict[str, Any]
 ) -> None:
-    """Two connections accept the same baseline; only one may create its child."""
-    from aia_core.domain.design import DesignRejected
+    """Two connections accept proposals made on one design, from one working revision; only one
+    may write. The Study row lock serialises them, so the second reads the working copy the first
+    wrote and is refused as ``stale_revision`` (WCE5: a newer Design Revision alone stales
+    nothing, the working revision the person accepted against does)."""
+    from aia_core.application.proposal_accept import accept_into_working_copy
+    from aia_core.domain.design_items import Documents
     from aia_core.infrastructure.study_design_repository import StudyDesignRepository
-    from aia_core.infrastructure.study_workspace_repository import StudyWorkspaceRepository
+    from aia_core.infrastructure.study_workspace_repository import (
+        StudyWorkspaceRepository,
+        WorkspaceConflict,
+    )
 
     session, workflows = _repo_in_new_session(pg_sessions, world)
     try:
-        design = StudyDesignRepository(session, workflows.scope)
-        revision, _ = design.submit_as_working_copy(
+        revision, _ = StudyDesignRepository(session, workflows.scope).submit_as_working_copy(
             content={"goal": "Original"}, source_stage="brief"
         )
-        # Each accept names a working revision holding exactly its design (ADR 0026 decision 5).
-        workspaces = StudyWorkspaceRepository(session)
-        working: dict[int, int] = {}
-        for index in range(2):
-            base = workspaces.content(workflows.scope).revision
-            content = workspaces.content(workflows.scope).content or {}
-            saved = workspaces.save(
-                workflows.scope,
-                content={**content, "goal": f"Reviewed proposal {index}"},
-                base_revision=base,
-                by=WriteBy(ActorKind.PERSON, workflows.scope.actor_id, OpSource.UI),
-            )
-            working[index] = saved.revision
+        working = StudyWorkspaceRepository(session).content(workflows.scope).revision
+        assert working is not None
         session.commit()
     finally:
         session.close()
+    proposals = [{"goal": "Reviewed proposal"}, {"goal": "Original", "title": "Proposed title"}]
 
     def accept(index: int) -> str:
         session, workflows = _repo_in_new_session(pg_sessions, world)
@@ -1356,27 +1352,28 @@ def test_two_reviewed_design_proposals_cannot_overwrite_each_other(
             # This identity-map entry precedes the lock. The repository must
             # re-read its guard when acquiring FOR UPDATE, not trust old state.
             session.get(StudyRow, world["study_id"])
-            repository = StudyDesignRepository(session, workflows.scope)
             try:
-                stored = StudyWorkspaceRepository(session).at_revision(
-                    workflows.scope, working[index]
-                )
-                assert stored is not None
-                repository.submit_if_current(
-                    content=stored.content,
+                accept_into_working_copy(
+                    session,
+                    workflows.scope,
+                    design_revision_id=revision.revision_id,
+                    proposed=Documents(content=proposals[index]),
+                    expected_workspace_revision=working,
                     source_stage="plan",
-                    expected_revision_id=revision.revision_id,
-                    workspace_revision=working[index],
+                    reason="ai_proposal_accepted",
+                    by=WriteBy(
+                        ActorKind.PERSON, workflows.scope.actor_id, OpSource.PROPOSAL_ACCEPT, "R"
+                    ),
                 )
                 session.commit()
                 return "accepted"
-            except DesignRejected as exc:
+            except WorkspaceConflict as exc:
                 session.rollback()
                 return exc.reason
         finally:
             session.close()
 
-    assert sorted(_run_concurrently(2, accept)) == ["accepted", "stale_proposal"]
+    assert sorted(_run_concurrently(2, accept)) == ["accepted", "stale_revision"]
     session, workflows = _repo_in_new_session(pg_sessions, world)
     try:
         revisions = StudyDesignRepository(session, workflows.scope).revisions()

@@ -423,13 +423,16 @@ def test_a_skipped_or_missing_criterion_test_is_never_a_pass(
 def test_a_criterion_no_test_proves_keeps_the_acceptance_not_runnable(
     tool: ModuleType, matrix: dict[str, Any]
 ) -> None:
-    """The committed matrix: AC-01's tests passing makes AC-01 PASS and nothing more."""
-    ac01 = next(c for c in matrix["mvp_acceptance"]["criteria"] if c["id"] == "AC-01")
-    assert ac01["tests"], "AC-01 is wired"
-    results = {tuple(t.split("::", 1)): "passed" for t in ac01["tests"]}
+    """The committed matrix: the wired criteria's tests passing makes each of them PASS and
+    nothing more; every criterion that lists no test keeps the acceptance NOT_RUNNABLE."""
+    criteria = matrix["mvp_acceptance"]["criteria"]
+    wired = {c["id"]: c["tests"] for c in criteria if c["tests"]}
+    assert "AC-01" in wired, "AC-01 is wired"
+    assert len(wired) < len(criteria), "a criterion is still unwired"
+    results = {tuple(t.split("::", 1)): "passed" for tests in wired.values() for t in tests}
     report = tool.build_report(matrix, results, frozenset({"acceptance"}))
     verdicts = {c["id"]: c["verdict"] for c in report.acceptance["criteria"]}
-    assert verdicts.pop("AC-01") == "PASS"
+    assert {i: verdicts.pop(i) for i in wired} == dict.fromkeys(wired, "PASS")
     assert set(verdicts.values()) == {"NOT_RUNNABLE"}
     assert report.acceptance["verdict"] == "NOT_RUNNABLE"
 

@@ -20,10 +20,8 @@ from .ai_material import MaterialApproval, classify_material, most_restrictive_m
 from .ai_models import ModelCapability
 from .analysis.native import MAX_RESEARCH_QUESTIONS, research_questions_of
 from .design_items import Documents, ItemKey, brief_signature, design_items
-from .knowledge import KnowledgeItem
+from .knowledge import KnowledgeItem, knowledge_lineage
 from .lead_workers import CardKind, ContextLayer, LeadWorkerSpec, ResultKind, WorkerRegistry
-from .licence import DataLineage
-from .licence_determinations import CLIENT_KNOWLEDGE_DATASET
 from .material_rules import MaterialRule, RuledMaterial, classify_by_rule, rule_class
 from .prompts import PromptPin
 from .research_design import keep_point_labels
@@ -567,39 +565,6 @@ def knowledge_entries(knowledge: list[KnowledgeItem]) -> tuple[list[dict[str, An
         else:
             omitted.append(item.item_id)
     return selected, omitted
-
-
-#: The kinds whose material derives from some dataset, so a request must name it.
-DATASET_DERIVED_KINDS: Final = frozenset({"DATASET", "ARTIFACT", "FINDING"})
-#: The lineage an item of those kinds carries when nobody recorded its datasets: the data owner's
-#: determination of 2026-10-21 (/pmstatus Q60) clears it for the EU Bedrock route alone, so the
-#: licence gate refuses it on any other route (``not_approved_for_route``). The determination's own
-#: name, so the two cannot drift apart.
-UNRECORDED_KNOWLEDGE_LINEAGE: Final = CLIENT_KNOWLEDGE_DATASET
-
-
-def knowledge_lineage(entries: list[dict[str, Any]]) -> DataLineage:
-    """The licence lineage of the knowledge a request carries (CR-4): the union of every
-    entry's recorded ``datasets``, and the unrecorded placeholder for each dataset-derived
-    entry that records none -- which the licence gate passes on the EU Bedrock route alone and
-    refuses by name on any other (Q60). No dataset-derived entry and no recorded dataset: derived
-    from no dataset.
-
-    A stored entry from before lineage was recorded carries no ``datasets`` and reads as
-    unrecorded, exactly as every such entry did before.
-    """
-    datasets: set[str] = set()
-    for entry in entries:
-        recorded = entry.get("datasets")
-        if (
-            isinstance(recorded, list)
-            and recorded
-            and all(isinstance(d, str) and d.strip() for d in recorded)
-        ):
-            datasets.update(recorded)
-        elif entry.get("kind") in DATASET_DERIVED_KINDS:
-            datasets.add(UNRECORDED_KNOWLEDGE_LINEAGE)
-    return DataLineage.of(*sorted(datasets)) if datasets else DataLineage.none()
 
 
 class AgentContextTooLarge(ValueError):

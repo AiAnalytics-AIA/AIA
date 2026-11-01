@@ -44,6 +44,7 @@ __all__ = [
     "ProviderRoute",
     "ResidencyZone",
     "evaluate_egress",
+    "route_refusal",
 ]
 
 
@@ -274,14 +275,9 @@ def evaluate_egress(
         data_class = DataClass.CLASS_A_CLIENT_CONFIDENTIAL
 
     if route is None:
-        raise EgressDenied("no approved route for this request", reason="no_approved_route")
-
-    if data_class not in route.approved_for:
-        if not class_gates.advisory:
-            raise EgressDenied(
-                f"route {route.route_id} is not approved for {data_class.value}",
-                reason="route_not_approved_for_class",
-            )
+        raise EgressDenied(_NO_ROUTE, reason="no_approved_route")
+    denial, class_advised = _route_denial(route, data_class, class_gates)
+    if class_advised:
         advisories.append(
             ClassAdvisory(
                 "egress",
@@ -289,24 +285,8 @@ def evaluate_egress(
                 None if advisories else data_class,
             )
         )
-
-    if data_class in _EU_ONLY_CLASSES:
-        if not route.is_eu_processing:
-            raise EgressDenied(
-                f"{data_class.value} requires confirmed EU processing; "
-                f"route {route.route_id} is {route.zone.value}",
-                reason="residency_violation",
-            )
-        if not route.excluded_from_training:
-            raise EgressDenied(
-                f"{data_class.value} requires contractual exclusion from training",
-                reason="training_exclusion_missing",
-            )
-        if not route.has_bounded_retention:
-            raise EgressDenied(
-                f"{data_class.value} requires a specified provider retention period",
-                reason="retention_unspecified",
-            )
+    if denial is not None:
+        raise denial
 
     return EgressDecision(
         organization_id=scope.organization_id,
@@ -319,6 +299,70 @@ def evaluate_egress(
         zone=route.zone,
         advisories=tuple(advisories),
     )
+
+
+_NO_ROUTE: Final = "no approved route for this request"
+
+
+def _route_denial(
+    route: ProviderRoute, data_class: DataClass, class_gates: DataClassGates
+) -> tuple[EgressDenied | None, bool]:
+    """Checks 4-6 of :func:`evaluate_egress`, the ones a route's terms decide: the first
+    refusal, or ``None``, and whether a class-only refusal was passed under advisory gates."""
+    advised = False
+    if data_class not in route.approved_for:
+        if not class_gates.advisory:
+            return (
+                EgressDenied(
+                    f"route {route.route_id} is not approved for {data_class.value}",
+                    reason="route_not_approved_for_class",
+                ),
+                False,
+            )
+        advised = True
+    if data_class in _EU_ONLY_CLASSES:
+        if not route.is_eu_processing:
+            return (
+                EgressDenied(
+                    f"{data_class.value} requires confirmed EU processing; "
+                    f"route {route.route_id} is {route.zone.value}",
+                    reason="residency_violation",
+                ),
+                advised,
+            )
+        if not route.excluded_from_training:
+            return (
+                EgressDenied(
+                    f"{data_class.value} requires contractual exclusion from training",
+                    reason="training_exclusion_missing",
+                ),
+                advised,
+            )
+        if not route.has_bounded_retention:
+            return (
+                EgressDenied(
+                    f"{data_class.value} requires a specified provider retention period",
+                    reason="retention_unspecified",
+                ),
+                advised,
+            )
+    return None, advised
+
+
+def route_refusal(
+    route: ProviderRoute | None,
+    data_class: DataClass,
+    *,
+    class_gates: DataClassGates = DataClassGates.ENFORCE,
+) -> str | None:
+    """The reason :func:`evaluate_egress` would refuse ``data_class`` over ``route``, or
+    ``None`` when the route carries it (a class-only refusal passed under advisory gates is
+    ``None``). The same checks, in the same order: a pre-flight read of a route someone else
+    composed (lead-orchestration LO12b), never a decision to send anything."""
+    if route is None:
+        return "no_approved_route"
+    denial, _ = _route_denial(route, data_class, class_gates)
+    return None if denial is None else denial.reason
 
 
 @dataclass(frozen=True, slots=True)

@@ -882,6 +882,32 @@ forbid "the worker never builds its own scope context" \
   '^[^#]*\b(Organization|Client|Study)Context\(' \
   "$WORKER"
 
+# --- Spend: a confirmation is issued, never constructed -------------------
+#
+# A start whose cost ceiling reaches the study's confirmation threshold needs a
+# person's yes (ADR 0028 decision 3, lead-orchestration LO2). That yes is a
+# SpendConfirmation, which only confirm_spend issues, to a scope holding
+# APPROVE_BUDGET, through a module-private issuer. A confirmation built anywhere
+# else would let a plan step, an executor or a model's argument confirm its own
+# spend. Exempt: application/spend_confirmation.py is the issuer. The worker and
+# the executors also never name confirm_spend, however it is reached: the import
+# contract in the root pyproject.toml sees direct imports only, and another module
+# that imports it binds the name too.
+forbid "spend confirmations are issued only by confirm_spend" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER)' \
+  "$CORE" \
+  "$CORE/application/spend_confirmation.py"
+
+forbid "the API never builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER)' \
+  "$API"
+forbid "the worker never builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER|\bconfirm_spend\b)' \
+  "$WORKER"
+forbid "no executor builds a spend confirmation" \
+  '^[^#]*(\bSpendConfirmation\(|_CONFIRMATION_ISSUER|\bconfirm_spend\b)' \
+  "$EXECUTORS"
+
 # --- Evidence: admission and certificates are issued, never constructed ------
 #
 # The same capability pattern as scope. An AdmittedClaim is the only form in

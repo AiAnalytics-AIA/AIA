@@ -125,6 +125,8 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}, mayAdmi
         "GET /api/v1/access-audit": () => [{ event_id: 1, action: "CLIENT_GRANT", client_id: "CLI-a", study_id: null, subject_user_id: "USR-1", actor_id: "USR-1", role: "LEAD", reason: "self_grant", payload: {}, created_at: null }],
         "PUT /api/v1/self-approval": () => ({ allowed: true, source: "organization" }),
         "GET /api/v1/settings/researcher-spend": () => ({ period: "this_month", start: "", end: "", everyone: mayAdminister, currency: "USD", people: [] }),
+        // The pre-flight read is off unless a test turns it on (LO12b).
+        "GET /api/v1/settings/ai-route": () => new Response('{"code":"ai_route_preflight_off","message":"off"}', { status: 404 }),
         ...overrides,
       };
       // A route may answer with a promise, so a test can hold one read open.
@@ -930,6 +932,40 @@ describe("what powers AIA", () => {
     expect(within(panelOf("AI běh").querySelector("[data-tab-chips]") as HTMLElement).getByText("Spravuje nasazení · jen ke čtení")).toBeTruthy();
     expect(within(section("ai")).queryByText("Spravuje nasazení · jen ke čtení")).toBeNull();
     expect(within(section("ai").querySelector("[data-config]") as HTMLElement).getByText("oblast v EU: data zůstávají v EU")).toBeTruthy();
+  });
+
+  it("says what the newest worker start's route carries, class by class, and what a Lead turn meets (LO12b)", async () => {
+    api({
+      "GET /api/v1/settings/ai-route": () => ({
+        recorded: true, worker: "worker-1", build_sha: "abc1234", composed_at: "2026-10-28T20:00:00Z", runtime: true,
+        route_id: "bedrock-eu-primary", region: "eu-central-1", zone: "EU", eu_processing_approved: true, excluded_from_training: true,
+        retention_days: null, approved_for: ["C"], class_gates: "enforce", study_lead: "configured",
+        classes: [
+          { data_class: "A", refusal: "egress_route_not_approved_for_class", advisory: false },
+          { data_class: "B", refusal: "egress_route_not_approved_for_class", advisory: false },
+          { data_class: "C", refusal: null, advisory: false },
+        ],
+        lead_refusal: "egress_route_not_approved_for_class",
+      }),
+    });
+    render(<ControlPanel />);
+    const block = await waitFor(() => {
+      const el = section("ai").querySelector("[data-worker-route='recorded']") as HTMLElement | null;
+      expect(el).toBeTruthy();
+      return el as HTMLElement;
+    });
+    expect(block.querySelector("[data-class-line='B']")?.textContent).toMatch(/^B: odmítne: trasa není pro tuto třídu schválena/);
+    expect(block.querySelector("[data-class-line='C']")?.getAttribute("data-kind")).toBe("carried");
+    expect(block.querySelector("[data-lead-refusal]")?.textContent).toBe("Vedoucí výzkumu: trasa není pro tuto třídu schválena");
+    expect(block.querySelector("[data-who-fixes]")?.textContent).toMatch(/^Opraví to provozovatel AIA, ne výzkumník: nastaví parametr aia_ai_route_approved_for/);
+  });
+
+  it("draws nothing of the worker's route while the API's pre-flight read is off (LO12b)", async () => {
+    api();
+    render(<ControlPanel />);
+    await waitFor(() => expect(card("respondent_fieldwork")).toBeTruthy());
+    await waitFor(() => expect(called("GET", "/api/v1/settings/ai-route").length).toBe(1));
+    expect(section("ai").querySelector("[data-worker-route]")).toBeNull();
   });
 
   it("draws the route as tiles and the activities as v99's four columns, each explanation behind its ⓘ (F11)", async () => {

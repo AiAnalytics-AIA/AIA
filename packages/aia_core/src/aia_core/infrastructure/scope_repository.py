@@ -96,6 +96,24 @@ def _study_to_domain(row: StudyRow) -> Study:
     )
 
 
+def member_display_names(
+    session: Session, organization_id: str, user_ids: Sequence[str]
+) -> dict[str, str]:
+    """Each of ``user_ids`` who is a member of ``organization_id``, by display name, never an
+    e-mail; a person with neither is left out, for the caller to name in words."""
+    if not user_ids:
+        return {}
+    rows = session.execute(
+        select(UserRow.user_id, UserRow.display_name)
+        .join(OrganizationMemberRow, OrganizationMemberRow.user_id == UserRow.user_id)
+        .where(
+            OrganizationMemberRow.organization_id == organization_id,
+            UserRow.user_id.in_(list(user_ids)),
+        )
+    )
+    return {uid: name for uid, name in rows if name and "@" not in name}
+
+
 class SubjectMismatch(Exception):
     """A sign-in's subject differs from the one the e-mail's record is bound to."""
 

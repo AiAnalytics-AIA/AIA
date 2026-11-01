@@ -13,7 +13,7 @@ Where `tokens.json` (what ships), core v3 and the boards (what was approved), an
 | D7 | Weight 700 in the boards | The boards' Google Fonts link loads Plex at 700; LOOK.md allows 400/500/600. Only the research canvas's retired Hatch and LeadSettings copies set 700; core v3 and aia-study set none. | **Drop 700 from the boards' font link**, and remove the two retired copies from the research canvas. |
 | D8 | z-index | core v3: scrim 50, toast 60. `tokens.json`: overlay 40, toast 50. | **The tokens win**; core's next version follows. |
 | D9 | `num-hero` weight | `tokens.json` 28/32 at 500. LOOK.md: figures at 600. | **600**, and add `figure` / `figure-xl`. |
-| D10 | Type tokens LOOK.md names but `tokens.json` lacks | hero 40/46, lede 16/24, eyebrow, figures; `Hero.tsx` hard-codes them. | **Add them to `tokens.json`** (drafted here as "Hlavičky v2"). |
+| D10 | Type tokens LOOK.md names but `tokens.json` lacks | hero 28/34, lede 14/20 (core v4.3), eyebrow, figures; `Hero.tsx` hard-codes them. | **Add them to `tokens.json`** (drafted here as "Hlavičky v2"). |
 | D11 | Diff colours | `diff-*` exist only in core v3. | **Add them to `tokens.json`** (drafted here). |
 | D12 | Dialog width | LOOK.md and core: 560, padding 24. Research `.sdlg`: 520, padding 20. | **560/24**. |
 | D13 | Running glyph | LOOK.md: a 2 px signal ring. Research `.stg.run`: a spinning arc (2.5 px, signal top on wash). | **The still ring** (core `.st .g.run`); motion only in the Thinking orb. |

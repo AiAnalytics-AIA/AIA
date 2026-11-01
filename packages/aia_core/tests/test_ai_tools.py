@@ -358,3 +358,77 @@ def test_recovery_inputs_carry_the_failure_and_reset_but_not_the_billing_flags()
     # fail_attempt reads these from the attempt row; one source of truth.
     assert "paid_call_dispatched" not in inputs.error
     assert "outcome_known" not in inputs.error
+
+
+class _Answer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    items: list[str]
+
+
+def _structured_request(sent_as: DataClass | None) -> Any:
+    from aia_core.domain.ai_contracts import Message, ModelRequest
+    from aia_core.domain.licence import DataLineage
+
+    return ModelRequest(
+        agent=AgentDefinition(
+            agent_id="design-agent",
+            version="1",
+            capability=ModelCapability.CRITIC,
+            prompt_id="design",
+            prompt_version="2",
+            output_contract=_Answer,
+            max_output_tokens=1000,
+        ),
+        policy_version="test-v1",
+        data_classification=sent_as,
+        data_lineage=DataLineage.none(),
+        system="Answer.",
+        messages=(Message(role="user", content="Go."),),
+    )
+
+
+def _schema_failure(reason: str = "structured_output_invalid") -> ModelCallFailed:
+    return ModelCallFailed(
+        "structured output failed validation",
+        failure=FailureClass.SCHEMA_VIOLATION,
+        reason=reason,
+        violations=("items: Input should be a valid array, received string",),
+        rejected_output='{"items":"[]"}',
+    )
+
+
+def test_a_refused_answer_takes_the_class_its_request_was_sent_as() -> None:
+    from aia_core.domain.ai_execution import refused_answer
+
+    record = refused_answer(
+        _structured_request(DataClass.CLASS_A_CLIENT_CONFIDENTIAL), _schema_failure()
+    )
+    assert record is not None
+    assert record["data_class"] == "CLASS_A_CLIENT_CONFIDENTIAL"
+    assert record["class_source"] == "rule:refused_answer"
+    assert record["rejected_output"] == '{"items":"[]"}'
+    assert record["violations"] == ["items: Input should be a valid array, received string"]
+    assert (record["agent_id"], record["prompt_id"], record["prompt_version"]) == (
+        "design-agent",
+        "design",
+        "2",
+    )
+
+
+def test_an_unclassified_request_keeps_its_refused_answer_with_no_class_guessed() -> None:
+    from aia_core.domain.ai_execution import refused_answer
+
+    record = refused_answer(_structured_request(None), _schema_failure())
+    assert record is not None
+    assert record["data_class"] is None
+    assert record["class_source"] == "unclassified"
+
+
+def test_only_a_refused_structured_answer_is_kept() -> None:
+    from aia_core.domain.ai_execution import refused_answer
+
+    assert refused_answer(_structured_request(None), _schema_failure("provider_quota")) is None
+    no_text = ModelCallFailed(
+        "x", failure=FailureClass.SCHEMA_VIOLATION, reason="structured_output_invalid"
+    )
+    assert refused_answer(_structured_request(None), no_text) is None

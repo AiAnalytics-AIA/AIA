@@ -12,7 +12,6 @@ github_environment = "develop"
 # If GitHub Settings > Actions > OIDC subject customization uses immutable
 # subjects, use the exact subject shown there (including organization/repo IDs).
 # github_oidc_subject = "repo:OWNER@OWNER_ID/REPO@REPO_ID:environment:develop"
-# create_github_oidc_provider = false   # if the account already has one for GitHub
 # The same subject for the terraform-plan environment (CI's Terraform plan job), required when
 # subjects are immutable: github_oidc_subject with ":environment:develop" -> ":environment:terraform-plan".
 # github_plan_oidc_subject = "repo:OWNER@OWNER_ID/REPO@REPO_ID:environment:terraform-plan"

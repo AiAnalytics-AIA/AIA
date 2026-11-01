@@ -1,6 +1,6 @@
 # ADR 0036 — Replacing respondents is a new linked run: the original stays as it is, an exclusion is pinned, kept answers are reused by hash; the weighting awaits the methodology owner
 
-**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-15 is answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
 owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The replacement
 method (decision 5) is awaiting the methodology owner** (MVPQ-10) and is not chosen here. The
 admission rule [ADR 0026](0026-research-lead-proposes-a-person-decides.md) decision 4 requires
@@ -129,3 +129,20 @@ and its executable behaviour once MVPQ-10 is answered.
 
 1. **MVPQ-10, the method**, is the methodology owner's (A. Bahbouh).
 2. ~~Which run a report reads by default.~~ The newer, naming both (D-36, a), as written.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2, with both amendments:
+
+- **The draw:** a substitute comes from a sampler exclusion or a cell-bound draw (OI-99).
+- **A refusal when the fieldwork checkpoint is off** (`AIA_AI_FIELDWORK_CHECKPOINT`): no replacement run
+  starts without it.
+
+**Decision 5, the method (MQ-15 (b), 2026-10-28):** the other weights are kept; each replacement takes
+the weight of the one it replaces; no silent renormalisation. Refused when the cell has no unused
+donors, or when more than **10 %** of the run would be replaced (a proposed default, awaiting
+sign-off).
+
+- **Q7 (a):** no replacement on fictional-roster runs; panel runs only, and a fictional run says so.
+- **Q8 (a):** a replacement run may itself be replaced. Each names its predecessor, and the 10 % cap
+  counts cumulatively against the original run.

@@ -187,3 +187,70 @@ def test_nothing_is_recorded_when_the_composition_fails_after_deep_research(
     monkeypatch.undo()
     registry.compose_registry(on_deep_research=seen.append)
     assert len(seen) == 1
+
+
+# ----------------------------------------------------------------- the AI route (LO12b)
+
+AI_ENV = {
+    "AIA_ENV": "test",
+    "AIA_AI_RUNTIME_ENABLED": "true",
+    "AIA_AI_ROUTE_ID": "bedrock-eu-primary",
+    "AIA_BEDROCK_REGION": "eu-central-1",
+    "AIA_BEDROCK_MODEL_ID": "eu.test.route-model:1",
+    "AIA_AI_POLICY_VERSION": "test-route-reach-v1",
+    "AIA_BEDROCK_INPUT_USD_PER_MTOK": "3",
+    "AIA_BEDROCK_OUTPUT_USD_PER_MTOK": "15",
+    "AIA_BEDROCK_MAX_OUTPUT_TOKENS": "8192",
+    "AIA_BEDROCK_CONTEXT_WINDOW_TOKENS": "200000",
+    "AIA_AI_ROUTE_EU_PROCESSING_APPROVED": "true",
+    "AIA_AI_ROUTE_EXCLUDED_FROM_TRAINING": "true",
+    "AIA_AI_ROUTE_APPROVED_FOR": "CLASS_C_INTERNAL",
+    "AIA_AI_FIELDWORK_MAX_OUTPUT_TOKENS": "1024",
+    "AIA_AI_FIELDWORK_RESERVATION_USD": "0.25",
+    "AIA_AI_RESEARCH_LEAD_ENABLED": "true",
+    "AIA_AI_RESEARCH_LEAD_MAX_OUTPUT_TOKENS": "1500",
+    "AIA_AI_RESEARCH_LEAD_RESERVATION_USD": "5",
+}
+
+
+def test_the_ai_route_is_the_one_the_gateway_judges() -> None:
+    from aia_core.domain.ai_route_reach import LeadComposition, lead_preflight
+    from aia_executors.ai_runtime import AIRuntimeSettings
+    from aia_executors.deep_research_reach import ai_route_of
+
+    reach = ai_route_of(AI_ENV)
+    settings = AIRuntimeSettings.from_env(AI_ENV)
+    assert settings is not None and reach.route == settings.route()
+    assert (reach.runtime, reach.region, reach.study_lead) == (
+        True,
+        "eu-central-1",
+        LeadComposition.CONFIGURED,
+    )
+    # Class C alone and no retention stated: every Lead turn (Class B at least) is refused.
+    assert lead_preflight(reach) == "egress_route_not_approved_for_class"
+    unconfigured = {k: v for k, v in AI_ENV.items() if not k.startswith("AIA_AI_RESEARCH_LEAD_MAX")}
+    assert ai_route_of(unconfigured).study_lead is LeadComposition.UNCONFIGURED
+    # Runtime off: no route, and gates the runtime never validated cost the record nothing.
+    off = ai_route_of({"AIA_ENV": "staging", "AIA_DATA_CLASS_GATES": "advisory"})
+    assert (off.runtime, off.route, off.study_lead) == (False, None, LeadComposition.OFF)
+
+
+def test_the_ai_route_is_kept_and_read_back(world: Any) -> None:
+    from aia_executors.deep_research_reach import ai_route_of
+
+    reach = ai_route_of(AI_ENV)
+    with world.sessions() as session:
+        record_composition(
+            session,
+            worker="w1",
+            build_sha=None,
+            composed_at=datetime.now(UTC),
+            agent_directed=False,
+            class_gates=None,
+            routes=[],
+            ai_route=reach,
+        )
+        session.commit()
+    with world.sessions() as session:
+        latest = DeepResearchCompositions(session, world.admin_context(session)).latest()
+    assert latest is not None and latest.ai_route == reach

@@ -15,7 +15,7 @@ What it creates, and why each piece exists:
 | Bedrock application inference profiles `aia-develop-route`, `aia-develop-lead` | Each copies one model's EU system profile under the `Environment` tag, so Bedrock spend lands in the tagged cost record (AC-15). A changed model id fails the plan until `terraform apply -replace='aws_bedrock_inference_profile.route'` (or `.lead[0]`) |
 | SSM parameters `/aia/develop/*` | Configuration for the host's env file; the PostgreSQL password is a generated `SecureString` |
 | Cognito user pool + Google IdP + hosted domain + public app client | Authentication only ([ADR 0003](../../docs/architecture/adr/0003-cognito-identity-boundary.md)); PKCE; no self sign-up |
-| GitHub OIDC provider + `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys |
+| `aia-develop-github-deploy` role | Lets the `develop` GitHub environment push images, upload one bundle and run one SSM command. No stored keys. It trusts the account's GitHub OIDC provider, which [`infra/account`](../account/README.md) owns and this root only looks up |
 | `aia-develop-github-plan` role | Lets CI's *Terraform plan (develop)* job, in the `terraform-plan` GitHub environment only, read develop's state, its tfvars in SSM and the settings of what it refreshes. No write, no bucket object ([§ Terraform in CI](#terraform-in-ci)) |
 | DLM daily snapshot (7 kept), CloudWatch log group, 3 alarms, SNS email, AWS Budget | Observability and cost control at the size that matters here |
 

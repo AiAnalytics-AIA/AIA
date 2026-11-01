@@ -223,6 +223,15 @@ class KnowledgeSource(_Closed):
     truncated: bool
     #: The approver marked an ENTITY/TERM public; only then is its name not a client term.
     public: bool
+    #: The item's source was marked "Interní dokument" when the run froze it (K8b, G64): its
+    #: class is then C. Left out of the dump while false, so a run frozen without document text
+    #: is the request it always was.
+    internal: bool = Field(default=False, exclude_if=lambda v: v is False)
+    #: The SHA-256 of the source reading ``text`` was read from (K8b); ``None``: the text holds
+    #: no source's words. Left out of the dump while ``None``, as ``internal`` is.
+    reading_sha256: str | None = Field(
+        default=None, pattern=r"^[0-9a-f]{64}$", exclude_if=lambda v: v is None
+    )
 
 
 class FrozenKnowledge(_Closed):
@@ -284,6 +293,16 @@ class DeepResearchRequest(_Closed):
     #: code's proposed default, and then left out of the stored form, so such a request and
     #: every key it shapes are what they were before settings existed.
     settings_method: str | None = None
+    #: The client's data posture pinned at enqueue (ADR 0032 decision 2, chunk 53): ``"OPEN"``
+    #: when the organization declared this client's material may be used in public search
+    #: queries; ``None`` for CLASSIFIED (or never set), and then left out of the stored form,
+    #: so a CLASSIFIED request and every key it shapes are what they were before chunk 53.
+    posture: Literal["OPEN"] | None = None
+
+    @property
+    def open_posture(self) -> bool:
+        """Whether this run's web egress follows the OPEN posture instead of a class."""
+        return self.posture == "OPEN"
 
     @field_validator("channels")
     @classmethod
@@ -295,19 +314,23 @@ class DeepResearchRequest(_Closed):
     @model_serializer(mode="wrap")
     def _without_absent_method(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
         body: dict[str, Any] = handler(self)
-        if body.get("settings_method") is None:
-            body.pop("settings_method", None)
+        for optional in ("settings_method", "posture"):
+            if body.get(optional) is None:
+                body.pop(optional, None)
         return body
 
     def fingerprint(self) -> str:
         return digest(self.model_dump(mode="json"))
 
     def method_identity(self) -> dict[str, str]:
-        """What every cross-run reuse key carries of the method: the harness, and the
-        approved method settings when there are any (harness 3)."""
+        """What every cross-run reuse key carries of the method: the harness, the approved
+        method settings when there are any (harness 3), and an OPEN posture (chunk 53), so an
+        OPEN run never reuses a CLASSIFIED run's refused tracks, nor the reverse."""
         identity = {"harness": HARNESS_VERSION}
         if self.settings_method is not None:
             identity["settings"] = self.settings_method
+        if self.posture is not None:
+            identity["posture"] = self.posture
         return identity
 
 

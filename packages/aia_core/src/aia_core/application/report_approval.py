@@ -29,7 +29,11 @@ from typing import Any, Final
 
 from sqlalchemy.orm import Session
 
-from aia_core.application.client_report import CLIENT_REPORT_ARTIFACT_TYPE, client_gate_findings
+from aia_core.application.client_report import (
+    CLIENT_REPORT_ARTIFACT_TYPE,
+    client_gate_findings,
+    of_current_composition,
+)
 from aia_core.application.contextual_report import (
     CONTEXT_REPORT_ARTIFACT_TYPE,
     CONTEXT_REPORT_DOCUMENT_ARTIFACT_TYPE,
@@ -178,6 +182,12 @@ def approve_report(
         # Approved before this release, which froze nothing: invalidate_stage and delete spare
         # only a frozen artifact. Freezing is no decision, so the ledger keeps its one row.
         return artifact if artifact.is_frozen else artifacts.freeze(artifact_id)
+    if APPROVABLE_KINDS[artifact.artifact_type] in CLIENT_REPORT_KINDS and not (
+        of_current_composition(artifact)
+    ):
+        # A client draft of an earlier composition, composed or saved in the editor, is never
+        # approved: a -7 draft printed a -5 respondent map a client may not see (MQ-01 (b)).
+        raise ReportNotApprovable(artifact_id)
     if artifact.artifact_type == CLIENT_REPORT_ARTIFACT_TYPE:
         _refuse_beside_approved_edit(session, scope, run_id, artifact_id)
     # The client deliverable's checks (RD0, MVPQ-09): warnings since 2026-10-22, never a refusal

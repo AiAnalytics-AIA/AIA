@@ -44,6 +44,7 @@ export const AGENT_ORB: Record<ResearchAgentAction, OrbState> = {
 const RUN_STEP_ORB: Readonly<Record<string, Orb>> = {
   compile: code("shaping"),
   preflight: code("solving"),
+  qc: code("searching"),
   aggregate: code("weaving"),
   sociomap: code("connecting"),
   sociomapping: code("connecting"),

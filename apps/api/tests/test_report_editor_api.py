@@ -18,6 +18,7 @@ import jwt
 import pytest
 from aia_core.application.client_report import (
     CLIENT_REPORT_ARTIFACT_TYPE,
+    CLIENT_REPORT_CONTRACT,
     CLIENT_REPORT_DOCUMENT_ARTIFACT_TYPE,
     CLIENT_REPORT_STAGE,
 )
@@ -350,7 +351,12 @@ def _stored_client(app: FastAPI, world: Any, run_id: str, draft: str) -> str:
             artifact_type=CLIENT_REPORT_ARTIFACT_TYPE,
             data=_docx(),
             content_type=INTERNAL_REPORT_MEDIA_TYPE,
-            metadata={"run_id": run_id, "report_kind": "client"},
+            # Every client draft records the composition it is (since ab913735, 2026-10-13).
+            metadata={
+                "run_id": run_id,
+                "report_kind": "client",
+                "report_contract": CLIENT_REPORT_CONTRACT,
+            },
             reuse=False,
         )
         store_document_beside(
@@ -984,6 +990,35 @@ def test_an_edited_version_says_what_it_changed_and_is_approved_as_itself(
     app.state.settings = app.state.settings.model_copy(update={"onlyoffice_callback_base": ""})
     assert researcher.get(f"{versions}/{edited}").status_code == 200
     assert researcher.get(f"{versions}/{edited}/download").status_code == 200
+
+
+def test_an_edited_client_version_of_an_earlier_composition_is_never_approved(
+    app: FastAPI,
+    researcher: TestClient,
+    client: TestClient,
+    world: Any,
+    saves: Saves,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A version saved in the editor keeps its composition's contract; once the contract moves
+    on, an unapproved one is refused as its composed draft is: a -7 client draft printed a -5
+    respondent map a client may not see (the methodology owner, 2026-10-28, MQ-01 (b))."""
+    from aia_core.application import client_report
+
+    run_id, draft = _reported_run(app, researcher, world)
+    _stored_client(app, world, run_id, draft)
+    config = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()["config"]
+    url = saves.put(_docx("50 %"))
+    me = world.users["researcher"]
+    assert _callback(client, config, status=6, url=url, users=[me]).json() == {"error": 0}
+    edited = researcher.post(_editor(world, run_id), json={"variant": "client"}).json()
+    version = edited["version_artifact_id"]
+    # The deploy: the client report's composition moves on.
+    monkeypatch.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-next")
+    runs = f"{API}/studies/{world.study_id()}/research/runs"
+    refused = researcher.post(f"{runs}/{run_id}/report/approve", json={"artifact_id": version})
+    assert refused.status_code == 409, refused.text
+    assert refused.json()["code"] == "report_not_approvable"
 
 
 def test_an_edited_client_report_is_judged_on_what_its_save_changed_and_approved_as_the_clients(

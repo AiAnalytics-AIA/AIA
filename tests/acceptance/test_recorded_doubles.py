@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import base64
 import json
-import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -26,14 +25,11 @@ pytestmark = pytest.mark.acceptance
 HERE = Path(__file__).resolve().parent
 INPUTS = HERE / "inputs"
 RECORDINGS = HERE / "recordings"
-#: Generous: a cold worker imports the whole composition (CLAUDE.md §7).
-RUN_SECONDS = 240.0
 #: The recorded extraction's usage (2,000 in, 300 out) at the stack's test prices (USD 3 / 15
 #: per million tokens): what one batch costs the client.
 SOURCE_BATCH_USD = (2000 * 3 + 300 * 15) / 1_000_000
 #: A recorded Deep Research agent's usage (1,500 in, 250 out) at the same prices.
 DEEP_RESEARCH_CALL_USD = (1500 * 3 + 250 * 15) / 1_000_000
-TERMINAL = {"COMPLETED", "FAILED", "CANCELLED"}
 
 
 def _index() -> dict[str, Any]:
@@ -44,24 +40,6 @@ def _index() -> dict[str, Any]:
 def _recording(name: str) -> dict[str, Any]:
     loaded: dict[str, Any] = json.loads((RECORDINGS / name).read_text("utf-8"))
     return loaded
-
-
-def _wait(stack: Any, worker: Any, path: str, who: str) -> dict[str, Any]:
-    """Poll until the run ends, or until the worker that drains it is gone."""
-    deadline = time.monotonic() + RUN_SECONDS
-    seen: dict[str, Any] = {}
-    while time.monotonic() < deadline:
-        reply = stack.http.get(path, as_user=who)
-        assert reply.status == 200, reply.text
-        seen = dict(reply.json() or {})
-        if seen.get("status") in TERMINAL:
-            return seen
-        if str(seen.get("status", "")).startswith("WAITING") and seen.get("reason"):
-            return seen  # parked by name: it would wait for a person, not finish
-        if not worker.alive():
-            break
-        time.sleep(0.5)
-    raise AssertionError(f"the run did not finish: {json.dumps(seen)[:2000]}\n{stack.logs()}")
 
 
 def _client(http: Any, who: str, unique: Callable[[str], str]) -> str:
@@ -143,7 +121,7 @@ def test_a_client_document_s_proposals_are_answered_by_the_recorded_wire(
     assert started.status == 202, started.text
 
     with stack.worker("source-proposals", **SOURCE_PROPOSALS_ENV) as worker:
-        run = _wait(stack, worker, path, who)
+        run = stack.wait_for_run(worker, path, who)
     assert run["status"] == "COMPLETED", f"{json.dumps(run)}\n{stack.logs()}"
     output = run["output"]
     assert output["proposed"] >= 1, output
@@ -228,7 +206,7 @@ def test_a_design_research_run_is_answered_by_recorded_agents_over_the_recorded_
     run_path = f"{runs}/{started.json()['run_id']}"
 
     with stack.worker("deep-research", **DEEP_RESEARCH_ENV) as worker:
-        run = _wait(stack, worker, run_path, who)
+        run = stack.wait_for_run(worker, run_path, who)
     assert run["status"] == "COMPLETED", f"{json.dumps(run)[:3000]}\n{stack.logs()}"
 
     bundle = http.get(f"{run_path}/bundle", as_user=who)

@@ -8,7 +8,7 @@ chunks:
   - "[ ] WCE3b. The web store on the server vocabulary, Questionnaire (manual operations, move, remove, reference by stable id)"
   - "[ ] WCE3c. The web store on the server vocabulary, Audience, Dimensions and Sample"
   - "[ ] WCE4. Presence (M2) and the change feed: `study_presence`, `GET …/workspace/ops?since=` (ADR 0029), a poll, two sessions"
-  - "[ ] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
+  - "[x] WCE5. Field-level merge, per (item_key, field) (D-06), and a stale rule that a later Design Revision does not defeat"
   - "[ ] WCE6. Per-change accept (M6): `proposal_change_decisions`, one change identity across the three accept routes, a dependency rule for coupled changes, `touched_items` returned to the web; any member with the accept permission may accept a proposal another member's Lead prepared (Q16), the chat text staying private"
   - "[x] WCE7a. Readiness on a working revision: `GET …/research/readiness/working?working_revision=n`, the readiness a submit of that revision reads, nothing written"
   - "[x] WCE7b. Vzorek reads it on the working revision it shows, no submit on a visit (Návrh's coverage in artifact-design, Spuštění in artifact-fieldwork#FLD6)"
@@ -616,6 +616,74 @@ exactly as the old text keys did (`" ".join(split()).casefold()`, one function; 
 - `open-items.md`: close F-WCE0-3 (this chunk); number F-WCE1-1 (open, WCE2), F-WCE1-2 (open,
   WCE8b with WCE2; blocks switching `AIA_WEB_STABLE_ITEM_IDS` on) and F-WCE1-3 to F-WCE1-5 (open,
   switch-on prerequisites).
+
+## WCE5 delivered (2026-10-28)
+
+`application/proposal_accept.py` `accept_into_working_copy`, the one accept path (agent jobs and
+Design Research), on the field view (`domain/design_fields.py`, D-06):
+
+- **No head check.** The `design_moved` refusal when a newer Design Revision exists is gone, and
+  with it `StudyDesignRepository.submit_if_current` (its only caller); the accept submits the
+  merged copy as the newest revision with `submit`, under the same Study row lock. Each route
+  still refuses `design_moved` when `expected_revision_id` is not the proposal's own design (the
+  browser accepting what it saw), and `stale_revision` when the working copy moved since the
+  person loaded it.
+- **The stale rule** (`_conflicts`): the proposal's changed `(item, field)` pairs on the items it
+  touches, order left out (the merge keeps the person's order, so a proposal's order never
+  applies); a touched section covers the place (`item`, `section`) of the questions it holds, since
+  the recorded `touched_items` are item-level and a move is recorded as its two sections. It
+  conflicts when the working copy changed the same pair, when either side added or removed the item
+  and the other changed it, or when the proposal puts a question into a section the person
+  removed. The refusal keeps `conflicting_items` and adds `conflicting_fields`
+  (`<item>#<field>`).
+- **The merge** (`design_items.merge_items(…, fields=)`): a question, section, battery or tracked
+  set the proposal changes takes only the fields it changes (a field's id list with it:
+  `kategorie_ids`, `object_ids`) and keeps the person's others; it stands where the person has it
+  unless the proposal adds, removes or moves it. Without `fields` the merge is as before (the
+  shared merge case unchanged).
+- **What the head check used to stop, now stopped by name** (from `/code-review` on this chunk):
+  an agent job whose proposal is ACCEPTED or SUPERSEDED (its projection, read under the Study lock)
+  is refused `proposal_already_accepted` / `proposal_superseded` before any merge; a dismissed one
+  may still be accepted, as `dismiss` says; a Design Research run with any accept recorded
+  (`WorkflowRepository.design_research_accepted`) is refused `proposal_already_accepted` (from the
+  security review: a revert of its block would otherwise let the same items be written back over
+  it). Design Research's 64 KB design-jobs bound is checked on
+  the merged copy against the copy it merged into (the accept may land on a design grown since the
+  run). A question the person added or moved into a section the proposal removes conflicts on that
+  section. A section whose `questions` are not question objects has them as a field
+  (`design_fields`), so a proposal changing them is taken whole, never dropped.
+- Tests: `test_proposal_field_merge.py` (a Design Revision submitted elsewhere; another field of
+  the same item merges; the same field is stale; a removed item; a question into a removed section;
+  a proposal's move applied; the person's move kept; two additions to one section; the person's
+  question into a section the proposal removes; unkeyed questions merged whole);
+  `test_research_agent_executor.py` (`…_is_not_accepted_again`, `…_a_rebuild_replaces_is_not_accepted`);
+  `test_design_research_proposals.py::test_an_accept_onto_a_design_grown_since_the_run_is_held_to_the_context_bound`
+  and `…::test_a_run_accepted_once_is_spent_even_after_the_person_reverts_its_items` (the second-accept
+  test now expects `proposal_already_accepted` for the run's own revision); the PostgreSQL
+  race now through `accept_into_working_copy`
+  (`test_workflow_concurrency.py::test_two_reviewed_design_proposals_cannot_overwrite_each_other`);
+  `test_design_research_proposals.py::test_a_design_edited_after_the_run_is_never_written_over` now
+  asserts the person's edit is kept on the accepted revision instead of a refusal.
+
+### Findings (WCE5)
+
+- **F-WCE5-1. A proposal's move of a question between sections was dropped by the merge.**
+  Anchor: `packages/aia_core/src/aia_core/domain/design_items.py:602-622 @ df1377f7`
+  (`_merge_sections`: `question_keys` holds only touched questions). Reproduction: a proposal moving Q2
+  from section A to B touches `section:A` and `section:B` only (`design_items`); `merge_items` keeps
+  Q2 in A, as no question key is touched. Consequence: an accepted questionnaire proposal silently
+  differs from what the person reviewed. Fixed here (the move is the question's `section` field).
+  Test: `test_proposal_field_merge.py::test_a_proposals_move_between_sections_is_applied`.
+
+### Doc follow-up (WCE5)
+
+- `CLAUDE.md` § 2, `application/proposal_accept.py`: "the item-level stale rule
+  (StaleProposal: design_moved, unknown_baseline, items_changed)" becomes "the field-level stale
+  rule (D-06; StaleProposal: unknown_baseline, items_changed with conflicting_fields; no head check,
+  a newer Design Revision stales nothing)"; `design_items.py`: `merge_items(fields=)` merges a
+  changed item field by field; `infrastructure/study_design_repository.py`: drop
+  "submit / submit_if_current" for "submit".
+- `open-items.md`: number F-WCE5-1, closed by this chunk.
 
 ## Re-waved (2026-10-26)
 

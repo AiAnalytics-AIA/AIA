@@ -97,7 +97,11 @@ from ..domain.deep_research.acquisition import (
     is_archive_host,
 )
 from ..domain.deep_research.archive import AccessBarrier, ArchivePermit, LiveAttempt
-from ..domain.deep_research.classification import classify_query
+from ..domain.deep_research.classification import (
+    OPEN_POSTURE_REASON,
+    QueryClassification,
+    classify_query,
+)
 from ..domain.deep_research.common_crawl import (
     ARCHIVE_HOST,
     AthenaPricing,
@@ -544,11 +548,20 @@ class RetrievalGate:
         datasets: Sequence[DatasetAccess] = (),
         archives: Sequence[DatasetAccess] = (),
         class_gates: DataClassGates = DataClassGates.ENFORCE,
+        open_posture: bool = False,
     ) -> None:
         """``class_gates`` is the deployment's ``AIA_DATA_CLASS_GATES``: under advisory (develop
         only) a refusal made solely because of a query's or a URL's class is passed where the
         route's residency allows it, and written on the call's ``DISPATCHED`` event; a route
-        that declares ``any_class_when_advisory`` (Brave's search) takes any class."""
+        that declares ``any_class_when_advisory`` (Brave's search) takes any class.
+
+        ``open_posture`` is the run's pinned client posture, OPEN (ADR 0032 decision 3,
+        chunk 53): the organization's recorded statement that this client's material may be
+        used in public search queries. Every query, index statement, URL and dataset query
+        then takes Class C on that authority, with the reason ``posture:OPEN`` in place of
+        a classification, and nothing else about a route (residency, scope, the archive's
+        permit, the approved settings) changes. Only the run's own request sets it; nothing a
+        query says can."""
         if not isinstance(scope, StudyContext) or not isinstance(scope.grant, ScopeGrant):
             raise ScopeDenied(
                 "retrieval requires an issued study context", reason="unauthorised_scope"
@@ -564,6 +577,7 @@ class RetrievalGate:
         self._datasets = {d.connector.connector_id: d for d in datasets}
         self._archives = {a.connector.connector_id: a for a in archives}
         self._class_gates = class_gates
+        self._open_posture = open_posture
         if len(self._datasets) != len(datasets) or len(self._archives) != len(archives):
             raise ValueError("each dataset connector at most once")
         if any(d.route.tool is not ToolKind.DATASET_QUERY for d in datasets):
@@ -693,6 +707,18 @@ class RetrievalGate:
             gates=DataClassGates.ENFORCE,
         )
         return "" if would is None else ClassAdvisory("retrieval", would, data_class).note()
+
+    def _classify(self, text: str, *, context_class: DataClass) -> QueryClassification:
+        """What leaves, classified: by its derivation, client terms and Class A text
+        (``classify_query``), or, for a run pinned OPEN, Class C on the posture's authority."""
+        if self._open_posture:
+            return QueryClassification(DataClass.CLASS_C_INTERNAL, (OPEN_POSTURE_REASON,))
+        return classify_query(
+            text,
+            context_class=context_class,
+            client_terms=self._terms,
+            class_a_texts=self._class_a,
+        )
 
     def refusal_for_class(self, data_class: DataClass) -> str | None:
         """Why every query written from a context of ``data_class`` would be refused.
@@ -877,12 +903,7 @@ class RetrievalGate:
         the query.
         """
         route = self._retrieval.search_route
-        classified = classify_query(
-            query,
-            context_class=context_class,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        )
+        classified = self._classify(query, context_class=context_class)
         cls = classified.data_class
         sent = sent_search(query, lang)
         reason = self._refusal(route, data_class=cls, class_a="class_a_query")
@@ -969,12 +990,7 @@ class RetrievalGate:
     ) -> tuple[DataClass, str | None]:
         """A URL's class, and why it may not be requested (address, archive, scope,
         class, egress)."""
-        cls = classify_query(
-            url,
-            context_class=DataClass.CLASS_C_INTERNAL,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        ).data_class
+        cls = self._classify(url, context_class=DataClass.CLASS_C_INTERNAL).data_class
         try:
             host = check_url(url)
         except FetchRefused as exc:
@@ -1274,12 +1290,7 @@ class RetrievalGate:
             raise ValueError("this gate has no Common Crawl route")
         route = archive.index_route
         statement = build_index_sql(query, archive.index.table)
-        cls = classify_query(
-            statement,
-            context_class=context_class,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        ).data_class
+        cls = self._classify(statement, context_class=context_class).data_class
         reason: str | None
         if query.target is IndexTarget.URL and _permit_url(permit) != query.value:
             reason = "archive_not_permitted"
@@ -1372,12 +1383,7 @@ class RetrievalGate:
         route = archive.archive_route
         url = archive_url(row)
         sent = sent_archived(row)
-        cls = classify_query(
-            url,
-            context_class=DataClass.CLASS_C_INTERNAL,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        ).data_class
+        cls = self._classify(url, context_class=DataClass.CLASS_C_INTERNAL).data_class
         reason: str | None
         try:
             reason = None if check_url(url) == ARCHIVE_HOST else HOST_OUT_OF_SCOPE
@@ -1458,12 +1464,7 @@ class RetrievalGate:
     ) -> DatasetOutcome:
         """The path every connector call takes; an archive's needs its permit first."""
         sent = query.text()
-        classified = classify_query(
-            sent,
-            context_class=context_class,
-            client_terms=self._terms,
-            class_a_texts=self._class_a,
-        )
+        classified = self._classify(sent, context_class=context_class)
         cls = classified.data_class
 
         def record(

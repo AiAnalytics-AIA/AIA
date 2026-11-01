@@ -16,6 +16,7 @@ from aia_core.domain.workflow_templates import (
     CLIENT_SOURCE_PROPOSALS,
     DEVELOP_SNAPSHOT,
     POPULATION_MATERIALIZE,
+    QC_STEP_KIND,
     REPORT_PDF_STEP_KIND,
     REPORT_STEP_KIND,
     RESEARCH_AGENT,
@@ -41,8 +42,8 @@ from sqlalchemy.orm import Session, sessionmaker
 
 # Every research step has an executor (ADR 0016).
 # The research steps, then the experimental Sociomapping step (in the graph only when a run
-# was started with it, but always registered, like the AI steps).
-PRODUCTION_RESEARCH_KINDS = [*RESEARCH_KINDS.values(), SOCIOMAPPING_STEP_KIND]
+# was started with it, but always registered, like the AI steps), and the run QC step, the same.
+PRODUCTION_RESEARCH_KINDS = [*RESEARCH_KINDS.values(), SOCIOMAPPING_STEP_KIND, QC_STEP_KIND]
 
 
 def _start(world: Any, **kwargs: Any) -> str:

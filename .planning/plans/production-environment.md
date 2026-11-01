@@ -2,7 +2,12 @@
 status: in-progress
 chunks:
   - "[x] PE0. The production environment ADR (supersedes "undecided" in ADR 0009)"
-  - "[ ] PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM"
+  - "[ ] PE1a. `infra/account`: the GitHub OIDC provider (moved out of develop by import) and CloudTrail, under prevent_destroy; the roots test"
+  - "[ ] PE1b. `infra/production` foundation: state, tags, its own VPC, KMS, the three buckets (prevent_destroy, other environments denied), ECR"
+  - "[ ] PE1c. RDS PostgreSQL 16 in private subnets: KMS, deletion protection, 14-day PITR, final snapshot, the database URL in SSM"
+  - "[ ] PE1d. The host: t3a.large, encrypted EBS, EIP, DLM, an instance role conditioned on the Environment tag under a permission boundary"
+  - "[ ] PE1e. Identity and DNS: the ai-analytics.ai zone and app record, the Cognito pool, Google and callbacks for app.ai-analytics.ai"
+  - "[ ] PE1f. Alarms (develop's three, RDS, oldest QUEUED step), the tagged Budget, the production deploy role, tagged Bedrock profiles"
   - "[ ] PE2. `deploy-production.yml`: a manual release, an RDS snapshot first, the rollback"
   - "[x] PE3. Terraform validation in CI: format, validate and plan on a pull request that touches `infra/`"
   - "[ ] PE4. The egress allow-list: a forward proxy for search hosts, reconciled with fetch from any public host"
@@ -38,8 +43,26 @@ Every chunk below is **open**; a chunk is built from this file, not from the mas
 **PE0. The production environment ADR (supersedes "undecided" in ADR 0009)**  
 Records the same-account decision and its mitigations: shared Bedrock quota, tag-conditioned IAM with a permission boundary, separate OIDC roles, destroy guards.
 
-**PE1. `infra/production`: the host, RDS, buckets, SSM, Cognito pool and Google callbacks for the production hostname, ECR, tagged IAM**  
-The OIDC provider and destroy hazards in `infra/develop/github.tf:19-31` and `main.tf:106-117` are handled so one root cannot destroy the other's resources.
+**PE1. `infra/production`, split into PE1a-PE1f (2026-10-28, the owner's go-ahead in the PE3 session)**  
+ADR 0031 decides the shape; each sub-chunk is one PR, and every apply is a person's, its steps in the
+PR and the root's README. The OIDC provider and destroy hazards (`infra/develop/github.tf:8-31`,
+`main.tf:106-117` @ 854c209) are handled so one root cannot destroy the other's resources.
+
+Decided by the owner on 2026-10-28 (this session, answering the split):
+- **Network: production's own VPC**, two public subnets for the host and two private ones for RDS, no
+  NAT and no internet route from the private ones; develop stays in the default VPC.
+- **Images: production's own ECR repositories** (`aia-production-api`, `-worker`, `-web`); the release
+  (PE2) copies the exact SHA develop ran into them, so a develop push never changes what production
+  runs.
+- **The content security policy** (scope freeze, PE1) lives in production's Caddyfile, which PE2
+  creates; it is built with PE2.
+
+- **PE1a.** `infra/account/` owns what the account holds once: the GitHub OIDC provider, imported from
+  develop (whose `removed` block drops it from its state without destroying it), and CloudTrail with
+  its bucket, all under `prevent_destroy`. `test_terraform_roots.py`: only `infra/account` declares the
+  provider, its three resources keep `prevent_destroy`, and `infra/production` declares no
+  `force_destroy = true`. Ticked once the owner's apply ran (`infra/account/README.md` § First apply).
+- **PE1b-PE1f** as listed above, each with its own plan check and apply steps.
 
 **PE2. `deploy-production.yml`: a manual release, an RDS snapshot first, the rollback**  
 

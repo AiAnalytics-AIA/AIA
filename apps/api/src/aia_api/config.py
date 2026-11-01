@@ -100,10 +100,19 @@ class Settings(BaseSettings):
     # is shown its accepted findings as external context, never evidence (evidence-integrity 7;
     # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT). Off by default; a retry keeps what its original pinned.
     ai_analysis_external_context: bool = False
+    # A Deep Research run enqueued now freezes each DOCUMENT or SOURCE knowledge item's file text
+    # from its source's reading, with the reading's SHA-256 and its "Interní dokument" mark
+    # (client-knowledge-lifecycle K8b; AIA_DEEP_RESEARCH_DOCUMENT_TEXT). A dataset's rows are never
+    # read. Off by default: off, the frozen request is the one it always was.
+    deep_research_document_text: bool = False
     # The experimental Sociomapping (AIA's H-Model candidate) and its internal draft report,
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
     sociomapping_experimental_enabled: bool = False
+    # Add the run QC step to a research run's graph when the run starts (AIA_RUN_QC_ENABLED,
+    # run-qc-and-checkpoint RQC2): the unit's qc.kontrola over the stored answers, as warnings.
+    # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.
+    run_qc_enabled: bool = False
     # Compile the object map's numba kernels in the background from start
     # (AIA_SOCIOMAP_WARMUP_ENABLED): a container starts with an empty kernel cache, and without it
     # the first Metodika comparison pays the ~40 s compile (warmup.py). Off by default and in test;
@@ -195,6 +204,14 @@ class Settings(BaseSettings):
     # reading a wallet row and PUT is 409 ``wallet_disabled``; no start consults the wallet. Off
     # by default, off in test, absent from the develop Compose file.
     study_wallet_enabled: bool = False
+
+    # The Lead pane's pre-flight read of the AI route (lead-orchestration LO12b,
+    # ``AIA_AI_ROUTE_PREFLIGHT_ENABLED``): on, GET /studies/{id}/lead reads the newest worker
+    # start's recorded route (one indexed row) and says which refusal a turn would meet
+    # (``worker_ready_source: composition``), and a turn parked on the route's own terms counts
+    # as the worker not ready. Off: the conversation's newest turn alone, as before. Off by
+    # default, off in test, absent from the develop Compose file.
+    ai_route_preflight_enabled: bool = False
 
     # What a Deep Research run can cost at most (plan deep-research-web-search.md chunk 22),
     # from the same keys the worker composes it from. Each kind of model request reserves

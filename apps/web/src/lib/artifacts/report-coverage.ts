@@ -18,6 +18,7 @@ const OUTPUT_STEP: Record<string, string> = {
   research_aggregate: "aggregate",
   research_sociomap: "sociomap",
   research_sociomapping_docx: "sociomapping_report",
+  research_qc: "qc",
 };
 
 const quoted = (question: string) => (question ? `„${question}“` : "Výzkumná otázka bez znění");
