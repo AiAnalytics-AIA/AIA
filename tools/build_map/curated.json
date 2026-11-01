@@ -98,7 +98,8 @@
       "study-data-lifecycle",
       "simulation-studio",
       "study-files",
-      "client-pages-redesign"
+      "client-pages-redesign",
+      "scenario-respondent-bridge"
     ],
     "intel": [
       "panel-grounded-respondents",
@@ -220,7 +221,8 @@
     "post": [
       "simulation-studio",
       "class-b-search-route",
-      "fronta-prace"
+      "fronta-prace",
+      "scenario-respondent-bridge"
     ]
   },
   "stage_purpose": {
@@ -269,19 +271,19 @@
   "queue": {
     "now": [
       {
-        "t": "Design system in the product: #1022 merged (Petrol, AI spark edge, ⌘K, components); #1030 (five shared components) stacked on it",
-        "who": "design-system session",
-        "note": "Prototypes on core v4.3 in prototypes/<name>/ (undated, #1036). #1030 waits on Nigel's word."
+        "t": "Open PRs being finished: #1125 (FLD21), #1088 (docs), #1091 (Settings export), #1135 (this map), #1136 (prototype export)",
+        "who": "their sessions",
+        "note": "Each merges on its permission once CI and Codex are clean."
       },
       {
-        "t": "#1015 -5 terrain by IDW: merged 27 Oct",
-        "who": "Aram",
-        "note": "Five non-blocking follow-ups for Aram on the PR"
+        "t": "New PRs from the 1 Nov consolidation: #1137, #1138, #1139, #1140, #1141, and the Interpretation Research patches and the E08 flaky-test fix as they open",
+        "who": "their sessions",
+        "note": "Each waits on the product owner's merge word once clean."
       },
       {
-        "t": "Read-only AWS access for the audit",
-        "who": "done",
-        "note": "aia-claude-observe attached; findings folded into Configuration"
+        "t": "LO18b: a questionnaire table dropped into the Lead's chat becomes a proposal (Nahradit or Doplnit); Dotazník's old chooser removed",
+        "who": "LO18 session",
+        "note": "Building; reports before committing."
       }
     ],
     "next": [
@@ -354,10 +356,94 @@
   "questions": [
     {
       "who": "Nigel",
-      "q": "ACTION: run one Lead turn on develop. The Sonnet 5.5 agreement is now AVAILABLE (your admin's playground call, 27 Oct 11:15), so the next turn is the Lead's first on 5.5 and the first since the v3 prompt.",
-      "blocks": "sonnet-5-5-switch 2; knowing whether v3 fixed the Lead's SCHEMA_VIOLATION failures",
-      "from": "infra audit, 27 Oct",
-      "rec": "Do it today, with GlitchTip open: if it still fails, the code session replays the three failed turns."
+      "q": "ACTION: approve the \"Terraform plan (develop)\" run on #1088 under Review deployments, then give the merge word",
+      "blocks": "#1088, the docs of develop's tagged Bedrock profiles and Sonnet 5.5",
+      "from": "1 Nov",
+      "rec": "Approve the plan run; the docs were rechecked against develop and live SSM today."
+    },
+    {
+      "who": "Nigel",
+      "q": "ACTION: merge words for #1137 and #1138 (class gates advisory everywhere), #1139 (CPR16), #1140 (LO13) and #1141 (situation reports and caps) once each is clean",
+      "blocks": "those PRs",
+      "from": "1 Nov",
+      "rec": "Merge each as it comes back green and Codex-clean; #1137 before #1138."
+    },
+    {
+      "who": "Nigel",
+      "q": "Brave web search takes material of any data class on develop. Should it in staging and production too?",
+      "blocks": "#1137 (ADR 0008 amendment), deep-research-web-search",
+      "from": "28 Oct",
+      "rec": "Develop only for the MVP; decide production with the production go-live."
+    },
+    {
+      "who": "Nigel",
+      "q": "The strategy map: the prototype now computes it with the -5 engine using 800 model scenarios as respondents, while ADR 0044 decision 12 says a SOMECS options x properties map with a WIND height. Which one is the design?",
+      "blocks": "cost-model-study CS1-CS5 (S5), the methodology owner's register entry",
+      "from": "1 Nov",
+      "rec": "Keep ADR 0044's options x properties map; let the prototype say it is a demonstration, and ask the methodology owner before any scenarios-as-respondents method."
+    },
+    {
+      "who": "Nigel",
+      "q": "Name the legal counsel who approves the report terms library (contract parties and delivery terms in composed reports)",
+      "blocks": "situation-reports RC5",
+      "from": "30 Oct",
+      "rec": "Name one person; RC5 is after RC1 merges."
+    },
+    {
+      "who": "Nigel",
+      "q": "Start the Modely sessions again: S4 (paused at CP1), then S5 once CP1 and CP2 merge, S6 once RC1 merges",
+      "blocks": "the Modely track",
+      "from": "1 Nov",
+      "rec": "Start S4 when the week's usage allows; the track is the longest path after W1."
+    },
+    {
+      "who": "Nigel",
+      "q": "Graphify: ship the tooling (search guard about 110 ms per call; 0 of 5 free-text questions answered before the doc pass), run the doc and label pass first, or drop it?",
+      "blocks": "the graphify plan",
+      "from": "1 Nov",
+      "rec": "Run the doc pass and re-test the 5 questions before shipping the guard."
+    },
+    {
+      "who": "Nigel",
+      "q": "Waiting build sessions: WCE6's three answers (E06), the go for LO3 (E07), for G3 in three PRs (E11), and for brief analysis 4b",
+      "blocks": "working-copy-edit-ops WCE6, lead-orchestration LO3, G3, research-agent-workflows 4b",
+      "from": "29 Oct",
+      "rec": "Answer WCE6 first: per-change accept is on W1's gate."
+    },
+    {
+      "who": "Nigel",
+      "q": "MQ-24: how the Audience stage reads the population (option a, b or c)",
+      "blocks": "the methodology answers session",
+      "from": "29 Oct",
+      "rec": "Take the session's recommended option; it is a reading, no paid call."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "The cost model's sign-off sheet: S1-S15 (data checks, distributions, correlations, Monte Carlo, Sobol, forecasting, value of information, decision confidence, the WIND map, expert aggregation, the native SOMECS table, map selection, method texts, imported fieldwork, social desirability) and D1-D5 (the exact definitions)",
+      "blocks": "ESTIMATED numbers in client reports; cost-model-study, situation-reports",
+      "from": "30 Oct",
+      "rec": "Sign the defaults as written (the product owner made them final); a change is a new Metodika version."
+    },
+    {
+      "who": "Methodology owner",
+      "q": "Open from the 29 Oct answers: 0023-Q5 floor values, 0024-Q1 thresholds, RN-1 reader note, MQ-21 with 2-3 objects, S-2 wording, the -3 register entry, F2, F3, 5c, and the straight-liner definitions",
+      "blocks": "sociomap-formula-corrections, run-qc-and-checkpoint",
+      "from": "29 Oct",
+      "rec": "Answer in the methodology packet; each is small."
+    },
+    {
+      "who": "Legal",
+      "q": "OQ13: may the editor use the AGPL icon sprites?",
+      "blocks": "report-editor-hosting 5, 9",
+      "from": "26 Oct",
+      "rec": "Ship with ONLYOFFICE's own icons until legal answers; the sprites are cosmetic."
+    },
+    {
+      "who": "Legal",
+      "q": "Approve the terms library for composed reports (delivery and closing terms)",
+      "blocks": "situation-reports RC5",
+      "from": "30 Oct",
+      "rec": "Start from the terms in the client contracts already in use."
     },
     {
       "who": "Code session",
@@ -367,130 +453,11 @@
       "rec": "One small chunk in the Lead plan: replay first, fix only what still fails."
     },
     {
-      "who": "Nigel",
-      "q": "CloudTrail shows the console session that accepted the Sonnet agreement acting as the AWS account's root user.",
-      "blocks": "the shared account's security",
-      "from": "infra audit, 27 Oct",
-      "rec": "Use an IAM user or role for console work; keep root locked away with MFA."
-    },
-    {
-      "who": "Nigel",
-      "q": "ACTION: sign off Brave and approve the Deep Research values on Settings → Deep Research (you chose to keep it on and sign off now)",
-      "blocks": "deep-research-web-search 1, 51, 54",
-      "from": "27 Oct",
-      "rec": "Sign off with the proposed values; Deep Research has run on priced Brave since 14 Oct, so the sign-off catches the plan up with reality."
-    },
-    {
-      "who": "Nigel",
-      "q": "Retiring Sociomap -1 to -4: what do old runs show, is 18.6.6 parity retired, and is #1015 finished first?",
-      "blocks": "the new 'sociomap-5 only' plan",
-      "from": "tonight",
-      "rec": "Old runs say 'retired method, run again'; retire 18.6.6 parity and keep F1-F9 as history; let Aram finish #1015 first, then one session removes -1 to -4 in small PRs."
-    },
-    {
-      "who": "Nigel",
-      "q": "'Lead researcher' chooses the report's map terrain: the person running the study, or the AI Lead?",
-      "blocks": "report terrain follow-up",
-      "from": "tonight",
-      "rec": "The person running the study, chosen per report in the editor."
-    },
-    {
-      "who": "Nigel",
-      "q": "Návrh F-DSN-4, OQ5 and RPT8e (the signed-in editor check)",
-      "blocks": "artifact-design, artifact-report RPT8e",
-      "from": "26 Oct",
-      "rec": "Take each as the Návrh and Zpráva sessions proposed; they are small and block nothing else."
-    },
-    {
-      "who": "Nigel",
-      "q": "Review ADRs 0020 to 0024 one by one (the explainer document you asked for)",
-      "blocks": "ADR statuses",
-      "from": "25 Oct",
-      "rec": "Ask for the explainer document first, then decide each in one sitting."
-    },
-    {
-      "who": "Nigel",
-      "q": "The UX upgrade is in the prototypes at core v4.3 (Klienti v20, Výzkumné kroky v95, Nastavení v117; Design System v3.2 (artifact v12); the rail hover fixed, Projektová paměť gone) and exported to the repo with 46 reference images (#1026-#1029, #1031). Draft PR #1022 holds the tokens and first components. Should it be built into the product now (CPR21), or after the client pages redesign?",
-      "blocks": "client-pages-redesign CPR21; every screen's look",
-      "from": "27 Oct",
-      "rec": "After the client pages redesign, as you said: CPR21 lands the tokens once the redesigned pages exist, so nothing is restyled twice."
-    },
-    {
-      "who": "Nigel",
-      "q": "UX audit (#1022): the study inspector and the Lead's cards say the same things in two places. Which one owns each piece?",
-      "blocks": "research-lead-workbench frame, every stage",
-      "from": "27 Oct",
-      "rec": "The stage owns the state and actions; the Lead's cards only propose and report, linking to the stage."
-    },
-    {
-      "who": "Nigel",
-      "q": "UX audit (#1022): Spuštění has two ways to start a run (the stage button and the Lead's run card). Keep one, or both?",
-      "blocks": "artifact-fieldwork FLD6, rlw#37",
-      "from": "27 Oct",
-      "rec": "Keep both as one action: the Lead's card opens Spuštění's own start, so there is one confirmation and one ledger row."
-    },
-    {
-      "who": "Nigel",
-      "q": "UX audit (#1022): the study budget shows three times on one screen. Where should it live?",
-      "blocks": "artifact-sample SMP4b, Vzorek / Spuštění",
-      "from": "27 Oct",
-      "rec": "Once, in the study bar; Vzorek and Spuštění show only what this run would cost against it."
-    },
-    {
-      "who": "Nigel",
-      "q": "UX audit (#1022): six different chip implementations. Make one shared chip component the rule?",
-      "blocks": "input-interactions, CPR21",
-      "from": "27 Oct",
-      "rec": "Yes: one Chip component in input-interactions, with the six migrated as their screens are touched."
-    },
-    {
-      "who": "Methodology owner",
-      "q": "#1015: the IDW power's range and re-approval of the -5 fingerprint",
-      "blocks": "signed-off-sociomap-method",
-      "from": "tonight",
-      "rec": "Aram picks the range (the review suggests 1 to 10) and re-approves the fingerprint in the same PR."
-    },
-    {
-      "who": "Methodology owner",
-      "q": "The methodology packet MQ-01 to MQ-24, and MVPQ-02b (how open answers are coded)",
-      "blocks": "sociomap-formula-corrections, assumptions-and-open-answer-coding AOC4",
-      "from": "20 Oct",
-      "rec": "Answer MQ-02 and MQ-05 first: they unblock the -5 segment work (E14, E29-E31)."
-    },
-    {
-      "who": "Methodology owner",
-      "q": "MVPQ-10: what a replaced respondent does to weights and support",
-      "blocks": "run-qc-and-checkpoint RQC5",
-      "from": "20 Oct",
-      "rec": "Until answered, RQC5 builds the mechanism and labels the limit."
-    },
-    {
-      "who": "Methodology owner",
-      "q": "OQ8 / OQ9: Kish n on Výsledky; a set's scale by the board's presets",
-      "blocks": "artifact-results RES3, artifact-questionnaire QST10",
-      "from": "26 Oct",
-      "rec": "Show Kish n beside n on Výsledky; take the board's presets for a set's scale."
-    },
-    {
       "who": "Operator",
       "q": "Tick report-editor-hosting chunk 4 (the Document Server runs and passes the smoke) and teach the smoke the activation rows (MP6)",
       "blocks": "the editor's plan state; trusting a green deploy",
       "from": "27 Oct",
       "rec": "Tick chunk 4 now; schedule MP6 in W0, since it's the check that keeps configuration honest."
-    },
-    {
-      "who": "Methodology owner",
-      "q": "ADRs 0027, 0034, 0036 and 0037 accepted once their methodology answers are written in (0036-Q7: methodologically relevant data)",
-      "blocks": "those ADRs",
-      "from": "25 Oct",
-      "rec": "Write the methodology answers into each ADR, then accept them together."
-    },
-    {
-      "who": "Legal",
-      "q": "OQ13: may the editor use the AGPL icon sprites?",
-      "blocks": "report-editor-hosting 5, 9",
-      "from": "26 Oct",
-      "rec": "Ship with ONLYOFFICE's own icons until legal answers; the sprites are cosmetic."
     },
     {
       "who": "Operator",
@@ -526,13 +493,6 @@
       "blocks": "panel fieldwork, complete-study-report B6",
       "from": "27 Oct",
       "rec": "Verify and close chunk 4; panel runs depend on it."
-    },
-    {
-      "who": "Nigel",
-      "q": "Sociomap what-if: you ticked 'Something else' beside leave objects out, one segment, shift ratings. What else should a scenario be able to change?",
-      "blocks": "sociomap-5-web 9",
-      "from": "27 Oct",
-      "rec": "Name it or drop it; the three scenarios are planned either way."
     },
     {
       "who": "Operator",
@@ -664,14 +624,15 @@
     "tracks": [
       {
         "name": "Modely and composed reports",
-        "when": "Runs beside W2 to W4, on sessions S4, S5 and S6 (about 10 to 12 weeks)",
+        "when": "Runs beside W2 to W4 on three build sessions (S4 platform and cost model, S5 the statistical method, S6 reports, maps, imported fieldwork and market sizing): 134 to 176 session-days, about 10 to 12 weeks",
         "goal": "A second kind of study beside Výzkumy: decisions calculated from the client's own numbers, with the uncertainty shown, and reports composed for each situation.",
         "outcomes": [
-          "Cost scenarios from the client's files: every input has a source and a person who vouches for it.",
-          "A robust method: ranges, Monte Carlo, sensitivity, backtested forecasts and the value of more information, judged against a decision rule written before the data.",
-          "Mapa rozhodnutí: the options as a Sociomap with a WIND height, computed from the model.",
-          "Market sizing as a model result with its sources.",
-          "Reports composed from an approved outline of chapters; expert scoring; imported fieldwork; bulk and selected Sociomaps.",
+          "Cost scenarios from the client's files: every input has a source and a person who vouches for it, up to 12 scenarios per study.",
+          "A robust method: data checks, ranges, Monte Carlo, sensitivity, backtested forecasts and the value of more information, judged against a decision rule written before the data. The methodology owner signs every method before its numbers reach a client.",
+          "Mapa rozhodnutí: the options and their properties as a Sociomap with a WIND height (up to 30 objects).",
+          "Market sizing as a model result with its sources, never a typed number.",
+          "Reports composed for each situation: the Lead proposes an outline of chapters (method, contract parties and terms, market, segments, competitors, entry strategy, risks, KPIs, a Sociomap appendix) and a person approves it.",
+          "Expert scoring of objects on criteria, imported field surveys labelled \"terénní šetření\", and bulk and selected Sociomaps.",
           "Výzkum and Modely linked: a survey result becomes the model's assumption when the decision depends on it."
         ],
         "plans": [
