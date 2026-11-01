@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
+from aia_core.application.deep_research import DeepResearchRuns
 from aia_core.application.lead_chat_start import (
     AnalysisRetryTargetMoved,
     ChatStartRefused,
@@ -30,6 +31,10 @@ from aia_core.application.lead_chat_start import (
 from aia_core.application.lead_deep_research import (
     DeepResearchCardSettings,
     DeepResearchCardUnavailable,
+    DeepResearchTargetMoved,
+    TypedDeepResearchRefused,
+    retry_target,
+    stop_target,
 )
 from aia_core.application.research import (
     CostCeilingUnknown,
@@ -63,6 +68,7 @@ from aia_core.application.research_lead import (
     worker_readiness,
 )
 from aia_core.domain.client_sources import SourceRejected
+from aia_core.domain.deep_research.integration import ResearchTargetRef
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
 from aia_core.domain.lead_files import FILES_PER_MESSAGE
@@ -179,6 +185,15 @@ class RequestApproval(BaseModel):
     #: A typed analysis retry's run, as its card showed it (``analysis_retry_run``); another
     #: newest analysed run since is 409 ``analysis_retry_target_moved``.
     retry_run_id: str | None = Field(default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$")
+    #: A typed "Spusť rešerši výsledků" (LO5a.3): the ``ref`` of the candidate the person chose
+    #: from ``…/lead/interpretation-targets``, taken only while the list rebuilt at approval holds
+    #: it (never its position, which a newer completed run shifts); none, its default.
+    target: ResearchTargetRef | None = None
+    #: A typed "Zopakuj rešerši" or "Zastav rešerši": the run its card showed
+    #: (``deep_research_retry_run`` / ``deep_research_stop_run``); another one since is 409.
+    deep_research_run_id: str | None = Field(
+        default=None, max_length=64, pattern=r"^RUN-[0-9a-f]{1,32}$"
+    )
 
 
 class EditStatus(BaseModel):
@@ -305,6 +320,8 @@ class TypedCommand(BaseModel):
     start: str
     label: str
     takes_instruction: bool
+    #: A Deep Research start's preset, ``QUICK`` or ``STANDARD`` (LO5a.3); ``null`` otherwise.
+    preset: str | None
 
 
 class RetryTarget(BaseModel):
@@ -346,6 +363,10 @@ class LeadState(BaseModel):
     wallet_enabled: bool
     #: The run a typed analysis retry's card names; ``null`` when no run ran analysis.
     analysis_retry_run: RetryTarget | None
+    #: The Deep Research run a typed "Zopakuj rešerši" retries (the newest failed or cancelled)
+    #: and the one "Zastav rešerši" stops (the newest not ended); ``null`` when there is none.
+    deep_research_retry_run: RetryTarget | None = None
+    deep_research_stop_run: RetryTarget | None = None
     busy: bool
     turns: list[LeadTurn]
 
@@ -571,6 +592,15 @@ def _lead_errors() -> Iterator[None]:
             reason=exc.reason.value,
             limit_usd=exc.limit_usd,
         ) from exc
+    except DeepResearchTargetMoved as exc:
+        raise _error(
+            409,
+            exc.reason,
+            "Another Deep Research run is the one this card would act on now; confirm it.",
+            current_run_id=exc.current_run_id,
+        ) from exc
+    except TypedDeepResearchRefused as exc:
+        raise _error(409, exc.reason, "There is no Deep Research run for this command.") from exc
     except AnalysisRetryTargetMoved as exc:
         raise _error(
             409,
@@ -618,6 +648,8 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
         retry_run = newest_analysed_run(ResearchRuns(session, scope))
+        deep_runs = DeepResearchRuns(session, scope)
+        deep_retry, deep_stop = retry_target(deep_runs), stop_target(deep_runs)
         preflight = (
             worker_preflight(session, scope) if settings.ai_route_preflight_enabled else None
         )
@@ -641,6 +673,7 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
                 start=c.start,
                 label=c.label,
                 takes_instruction=c.takes_instruction,
+                preset=c.preset,
             )
             for c in COMMANDS
         ],
@@ -652,8 +685,46 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
             created_at=retry_run.get("created_at"),
             phase=str(retry_run["phase"]),
         ),
+        deep_research_retry_run=_retry_target(deep_retry),
+        deep_research_stop_run=_retry_target(deep_stop),
         busy=state["busy"],
         turns=[LeadTurn.model_validate(t) for t in _public(state["turns"], settings)],
+    )
+
+
+class InterpretationTargets(BaseModel):
+    """The Interpretation candidates a typed "Spusť rešerši výsledků" chooses from (LO5a.3),
+    built by code over the study's newest completed runs, as a turn's ``targets`` layer is:
+    each candidate's ``id``, ``kind``, ``ref``, words and connections; the default (the
+    research-questions module, Q44) and how many were left out. Empty with none."""
+
+    model_config = ConfigDict(extra="forbid")
+    candidates: list[dict[str, Any]]
+    default: str | None
+    omitted: int
+    #: Completed runs whose specification did not read: they offer nothing, named.
+    unreadable_runs: list[str] = []
+
+
+@router.get("/lead/interpretation-targets", response_model=InterpretationTargets)
+def read_interpretation_targets(
+    scope: StudyScopeDep, session: SessionDep, store: ArtifactStoreDep
+) -> InterpretationTargets:
+    """What a typed Interpretation start may name (LO5a.3). Read on the card, not with the
+    conversation: it reads each completed run's stored specification. The approval builds the
+    list again and takes only an id it holds."""
+    with _lead_errors():
+        layer = ResearchLead(session, scope, store=store).interpretation_targets()
+    return InterpretationTargets.model_validate(
+        layer or {"candidates": [], "default": None, "omitted": 0}
+    )
+
+
+def _retry_target(run: dict[str, Any] | None) -> RetryTarget | None:
+    if run is None:
+        return None
+    return RetryTarget(
+        run_id=run["run_id"], created_at=run.get("created_at"), phase=str(run["phase"])
     )
 
 
@@ -950,7 +1021,11 @@ def approve_request(
     # the Lead's and a run start's own mappings answer first where they overlap.
     with deep_research_start_errors(session), _lead_errors(), run_start_errors():
         started = ResearchLead(
-            session, scope, enabled=settings.research_lead_on, external_store=external
+            session,
+            scope,
+            enabled=settings.research_lead_on,
+            external_store=external,
+            store=store,
         ).approve_request(
             turn_id,
             confirm_cost_usd=body.confirm_cost_usd,
@@ -959,6 +1034,8 @@ def approve_request(
             wallet_enabled=settings.study_wallet_enabled,
             workspace_revision=body.workspace_revision,
             retry_run_id=body.retry_run_id,
+            target=None if body.target is None else body.target.model_dump(mode="json"),
+            deep_research_run_id=body.deep_research_run_id,
             deep_research=DeepResearchCardSettings(
                 prices=study_prices(settings, session, scope),
                 modes=(deep_research_mode(settings),),

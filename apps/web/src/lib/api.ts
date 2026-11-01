@@ -10,7 +10,7 @@ import type { BriefMaterials } from "@/lib/material-class";
 import type { Approval, EditedLine, StoredReportDocument } from "@/lib/artifacts/report";
 import type { DocsTicket, EditorMode, EditorOpened, EditorVersionRead, SeenEdit } from "@/lib/report-editor";
 import { currentIdToken, loadConfig } from "@/lib/auth";
-import type { EditDecisionResult, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision, WorkingEdit } from "@/lib/lead";
+import type { EditDecisionResult, InterpretationTargets, LeadPreferences, LeadState, LeadTurn, RequestApproval, ResearcherLead, SelfUpdateDecision, WorkingEdit } from "@/lib/lead";
 import type { OmittedPage, TurnManifest } from "@/lib/lead-manifest";
 export type { ResearcherLead as ResearcherLeadView } from "@/lib/lead";
 
@@ -1587,6 +1587,12 @@ export type DesignProposal = {
 };
 const deepPath = (studyId: string) => `${studyPath(studyId)}/deep-research/runs`;
 export const deepResearch = {
+  /** What an Interpretation start over `target` would cost (POST …/deep-research/quote); nothing is
+   *  reserved or started. `ceiling_usd` null: a price it needs is unknown, never 0. */
+  quoteInterpretation: (studyId: string, target: Record<string, unknown>, preset: "QUICK" | "STANDARD") =>
+    request<{ ceiling_usd: number | null; live_settings_missing: string[]; start_verdict: string }>("POST", `${studyPath(studyId)}/deep-research/quote`, {
+      purpose: "INTERPRETATION_RESEARCH", target, preset_name: preset, channels: ["WEB"],
+    }),
   interpret: (studyId: string, runId: string, analysisArtifactId: string, preset: "QUICK" | "STANDARD", confirmCostUsd?: number) =>
     request<DeepResearchRun>("POST", `${deepPath(studyId)}/interpretation`, {
       target: { kind: "ANALYSIS_MODULE", research_run_id: runId, analysis_artifact_id: analysisArtifactId, module_id: "research_questions" },
@@ -1695,12 +1701,20 @@ export const lead = {
   /** Approve a turn's prepared design job: spend limit, ledger and start in one transaction. */
   /** `workspaceRevision`: the current working revision, sent only after a 409 stale_card and the
    *  person's yes to running the card on the design as it is now (lead-orchestration LO10). */
-  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string) =>
+  /** `deep`: a typed Deep Research card's choice (LO5a.3): the Interpretation candidate's
+   *  reference (never its position, which a newer completed run shifts), or the run a retry or a
+   *  stop names; the server takes back only what its list still holds. */
+  approveRequest: (studyId: string, turnId: string, confirmCostUsd?: number, workspaceRevision?: number, retryRunId?: string, deep?: { target?: Record<string, unknown>; runId?: string }) =>
     request<RequestApproval>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/request`, {
       ...(confirmCostUsd === undefined ? {} : { confirm_cost_usd: confirmCostUsd }),
       ...(workspaceRevision === undefined ? {} : { workspace_revision: workspaceRevision }),
       ...(retryRunId === undefined ? {} : { retry_run_id: retryRunId }),
+      ...(deep?.target === undefined ? {} : { target: deep.target }),
+      ...(deep?.runId === undefined ? {} : { deep_research_run_id: deep.runId }),
     }),
+  /** What a typed "Spusť rešerši výsledků" may name (LO5a.3), read on its card. */
+  interpretationTargets: (studyId: string) =>
+    request<InterpretationTargets>("GET", `${studyPath(studyId)}/lead/interpretation-targets`),
   /** Keep or drop what a turn wants to remember for all of the researcher's work (once, in the ledger). */
   decideSelfUpdate: (studyId: string, turnId: string, decision: "accept" | "dismiss") =>
     request<SelfUpdateDecision>("POST", `${studyPath(studyId)}/lead/turns/${enc(turnId)}/self-update`, { decision }),

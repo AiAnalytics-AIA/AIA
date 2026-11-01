@@ -4001,7 +4001,7 @@
      "ai.runtime_policy",
      "ai.usage_ledger"
     ],
-    "tier_a": "The workbench's routes over HTTP on the recorded Lead and workers, and the browser journeys as a line of their own (harness chunk 10): every AI start through the Lead, every paid step from an approval card, an approved plan or a typed start, each in the approval ledger.",
+    "tier_a": "The workbench's routes over HTTP on the recorded Lead and workers, and the browser journeys as a line of their own (harness chunk 10): every AI start through the Lead but the client-level source extraction (MVPQ-08), the one run the client's own work may start, every paid step from an approval card, an approved plan or a typed start, each in the approval ledger.",
     "tier_b": "A person works the study in the deployed workbench at every supported width, the Lead and the workers on the live route.",
     "tests": []
    },

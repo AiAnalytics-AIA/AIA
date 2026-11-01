@@ -390,6 +390,7 @@ def test_every_lead_route_is_study_scoped_or_the_callers_own(app: FastAPI) -> No
     assert paths == {
         "/api/v1/studies/{study_id}/lead",
         "/api/v1/studies/{study_id}/lead/files",
+        "/api/v1/studies/{study_id}/lead/interpretation-targets",
         "/api/v1/studies/{study_id}/lead/turns",
         "/api/v1/studies/{study_id}/lead/turns/queued",
         "/api/v1/studies/{study_id}/lead/turns/{turn_id}/withdraw",

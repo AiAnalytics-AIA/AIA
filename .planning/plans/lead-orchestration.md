@@ -23,7 +23,7 @@ chunks:
   - "[ ] LO11. The Lead over time (M7): `researcher_lead_signals`, proposed updates the researcher approves each, a reader and rollback for Lead file revisions; no handover or admin read (D-32 to D-34); a departed member's Lead sealed only, never handed over (built in #830), deleted 365 days after sealing (Q14; seal-only, Nigel 2026-10-26)"
   - "[x] LO12a. The route-class refusal says who fixes it (W0): on the job error, the Lead pane, source proposals and Progress, from the refusal codes that exist today, with a link to the runbook; static copy, no read of the route"
   - "[x] LO12b. A pre-flight read of the AI route (W1): the worker publishes a composition record the API, Settings and the Lead pane read (shared with `deep-research-web-search#52`), and the new refusal reasons"
-  - "[ ] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
+  - "[x] LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02"
   - "[ ] LO14. The Lead's cost per turn measured by the benchmark (ADR 0041 A5, lead-conversation LC13; each paid run at most USD 50, its cost stated first), the hold from counted tokens (A1), and an `AIA_LEAD_*` kill switch and budget line"
   - "[x] LO16. The approval ledger's subject types (lane migration M3, W0, the first migration): `approval_decisions.subject_type` extended with `wallet`, `lead_plan`, `plan_step`, `chat_start`, `data_contract`, `map_snapshot` and `sociomap_unlock`; S3 writes it"
   - "[x] LO15. Server spend enforcement (W0): `ResearchAgentJobs.start` and `rebuild` apply `spend_confirm_usd` as `ResearchRuns.start` does, and record the confirmation in the ledger; tested through direct HTTP start and rebuild and through the Lead's approve path"
@@ -295,6 +295,27 @@ The API cannot evaluate class, so the worker publishes a composition record the 
 
 **LO13. Client-level paid AI (source proposals, `clients.budget_usd`) recorded as an explicit exception to "every AI action goes through the Lead" in AC-02**  
 A wording change to the criterion, made with the acceptance harness, not a behaviour change. Interfaces I23.
+
+*Done 2026-10-29 (the product owner: "Go, build it", relayed by the PM coordinator ~12:33 UTC).*
+- The statement's wording had landed in `2f40c9d0` (2026-10-28): AC-02 in
+  `docs/migration/parity-matrix.json` and `mvp-acceptance.md` §3 names "a client-level source
+  extraction in Client Knowledge, held to its client budget and approval (MVPQ-08)".
+- The code allowed more than the exception: `start_client_work` enqueued any workflow type as the
+  client's own work, with no study and no Lead, charged to `clients.budget_usd`
+  (`application/client_work.py:66-90 @ b108da5d`). Now `domain/workflow_templates.py`
+  `CLIENT_WORK_TYPES` is `{client_source_proposals}`, and `WorkflowRepository.create_run`, where every
+  run is made, refuses any other type under a client-work scope (`NotClientWork`, a defect rather than
+  an access refusal) before anything is written, whichever entry point started it. Tests that failed
+  before: `test_any_other_workflow_is_refused_as_client_work_before_anything_is_written` (one case
+  per other type) and `test_a_run_started_past_start_client_work_is_refused_the_same`
+  (`start_workflow` directly); `test_client_work_is_exactly_the_exception_ac02_grants` pins the set.
+  A budget lift does not re-check the type: no client-work run of another type exists, the only
+  production caller of `start_client_work` having been source proposals (`source_proposals.py:226`). The tests that started `develop_snapshot` as a stand-in for client work
+  (`test_client_work_start.py`, `test_client_budget_lift.py`, `test_client_api.py`) start
+  `client_source_proposals`, the only type the contract now admits; what they assert is unchanged.
+- AC-02's tier A cell, in the matrix and in §3.1 (held equal by `test_parity_matrix.py`), names the
+  same exception, so harness chunk 10 asserts the one start outside the Lead it grants. AC-02's
+  `tests` list is unchanged: harness chunk 10 owns it.
 
 **LO14. The Lead's cost per turn measured, and an `AIA_LEAD_*` kill switch and budget line**  
 The prototype's own documentation lists the unmeasured cost per turn as a gap to production.
@@ -1186,6 +1207,83 @@ web card only navigates (`Workbench.tsx:258-262`).
   - a journey on recorded web.
 - Kill switch: `AIA_STUDY_WALLET_ENABLED`.
 - Depends on LO5, LO1, DRL-0, LO5a.1 and 27b. **DRL-5 waits for it (Q48).**
+
+*LO5a.3a, the server, landed (`feature/lo5a3-typed-deep-research`; the PM coordinator's go, 2026-10-29).*
+- **Vocabulary** (`domain/lead_commands.py`, `tests/fixtures/lead_commands/commands.json`). The preset lives in the
+  command's own start, so a stored turn names it alone:
+
+  | Phrase | Start | Preset |
+  |---|---|---|
+  | "Spusť rešerši k návrhu" | `design_research` | STANDARD |
+  | "Spusť rychlou rešerši k návrhu" | `design_research_quick` | QUICK |
+  | "Spusť rešerši výsledků" | `interpretation_research` | STANDARD |
+  | "Spusť rychlou rešerši výsledků" | `interpretation_research_quick` | QUICK |
+  | "Zopakuj rešerši" | `deep_research_retry` | — |
+  | "Zastav rešerši" | `deep_research_stop` | — |
+
+  None takes an instruction. A target after a colon is no command.
+- **Starts** (`application/lead_deep_research.py` `approve_typed_deep_research`, dispatched from
+  `lead_chat_start.approve_chat_start` after its decided-card check, re-match and `confirm_spend`):
+  - A design start freezes the working content's revision.
+  - An Interpretation start takes `target`, the chosen candidate's reference, only while the candidates built
+    at approval (`ResearchLead.interpretation_targets`, the turn's own `targets` builder) still hold it; else the
+    default. Never its position, which a newer completed run shifts (Codex P1 on #1144); never the text. A
+    reference the list does not hold is 404 `research_target_not_found`; no default is 409 `no_default_target`.
+  - A retry takes the newest failed or cancelled run, chosen by status in the query before its limit (Codex P2 on
+    #1144).
+  - A stop takes the newest run not ended, chosen the same way. It cancels and writes a `chat_start` row decision `stop`, naming the
+    run in its comment only.
+  - The card names the run it showed (`deep_research_run_id`). Another one since is 409
+    `deep_research_retry_target_moved` / `deep_research_stop_target_moved`. None at all is 409
+    `no_retryable_deep_research` / `no_running_deep_research`.
+  - Quote, wallet and create are the card's own (`start_research`, shared with `approve_deep_research_card`), then the
+    `chat_start` row and the charge at the pinned ceiling.
+- **Idempotency.** It is the card's `chat_start` row under the conversation's lock (`chat_start_decisions`, keyed by
+  the turn), never timing. A double click or a retried request returns the first run. The spec's fingerprint finds
+  the stage's run.
+- **Reads.**
+  - `GET …/lead` answers `deep_research_retry_run` and `deep_research_stop_run`, and each command's `preset`.
+  - `GET …/lead/interpretation-targets` answers the candidates, read on the card, not on the conversation's poll,
+    since it reads each completed run's specification.
+- E07's constraints kept: amounts from `confirmed_usd`; no `SpendConfirmation` constructed; not in
+  `test_spend_confirmation_reach.py` until LO3.
+- Tests:
+  - `apps/api/tests/test_lead_typed_deep_research_api.py`, 12 tests, all failing on develop before this:
+    - Lead off;
+    - QUICK;
+    - wallet charge once;
+    - outside the wallet;
+    - the charge refused after create;
+    - the threshold;
+    - the targets read;
+    - default, listed and forged target;
+    - nothing to interpret;
+    - stop;
+    - retry and a moved target;
+    - another organization.
+  - `test_lead_commands.py` (preset per start, fixture matches and near-misses).
+
+*LO5a.3b, the web card, landed (`feature/lo5a3b-typed-deep-research-card`).*
+- `lib/lead.ts` `commandRequest` reads the six starts onto the existing request kinds, with a new `deep_research_stop`.
+- `LeadPane` `TypedResearchCard` puts RequestCard over them:
+  - an Interpretation start's target is chosen in a select over `GET …/lead/interpretation-targets`, the default
+    preselected;
+  - its price comes from `POST …/deep-research/quote` (`priceFact`: "Cena nejvýše", "Horní mez, ne odhad."; an unknown
+    price "Neznámá", never 0; a design start's or a retry's "Spočte se při spuštění");
+  - a retry or a stop names its run ("Rešerše z …", GET /lead);
+  - nothing to act on, or missing live settings, holds the button and says who fixes it (`typedResearchBlocked`).
+- `Workbench.onRequest` sends `target_id` and `deep_research_run_id`, and asks again on a moved target.
+- Tests:
+  - `lead.test.ts`: `commandRequest` per start, `chosenTarget`, `priceFact`, `typedResearchBlocked` and the retry's facts;
+  - `LeadPane.test.tsx`: the chosen target sent, an unknown price in words and a held start, a stop naming its run;
+  - all new tests fail on develop.
+- Journey: `tools/ui_workbench/typed_deep_research_journey.mjs`, on a fresh workbench with `make ui-fixtures` and
+  `make ui-research`.
+  - At 1440: the typed card, its 27 targets and price, approved, one Interpretation run under one `chat_start` row;
+    "Zastav rešerši" named it and the stop ended it (CANCELLED).
+  - At 390, in the sheet: the quick card without overflow, left with "Teď ne".
+  - Zero priced ledger rows, no spend, no request off the machine.
+  - Re-run on the same workbench, it finds the first run again (idempotency) and has nothing to stop.
 
 **LO5a.4 (DRL-9, on LO3/LO4). Deep Research as plan-step kinds.**
 - `lead_plan_steps.kind` takes `design_research` and `interpretation_research`.
