@@ -229,6 +229,15 @@ for (const width of [1100, 768, 390]) {
   await shot(`2-progress-${width}`);
 }
 await page.setViewportSize({ width: 1440, height: 1100 });
+// A finished run's Průběh from Kontrola's switch, no run named (FLD21).
+if (workbench) {
+  await page.goto(stage("run"), { waitUntil: "load", timeout: 120000 });
+  await page.getByRole("tablist", { name: "Pohled" }).getByRole("tab", { name: "Průběh" }).click();
+  await page.waitForURL(/\/progress(\?|$)/, { timeout: 60000 });
+  const status = await page.locator('[data-aia="step:sociomap"]').first().getAttribute("data-status", { timeout: 60000 }).catch(() => null);
+  if (status !== "SUCCEEDED") fail(`Kontrola's switch opens no finished run's Průběh (sociomap ${status ?? "missing"})`);
+  ok("Progress: Kontrola's switch opens the finished run's Průběh");
+}
 ok(`Progress at 1100, 768 and 390: the steps, Kdo odpovídal${workbench ? ", the run's card (in the Lead's drawer below 1100)" : ""}, no overflow; at 390 the receipt stacked and Zobrazit výsledky a 44 px target`);
 
 // 3. Results: labelled fictional, an aggregate table, the Sociomap labelled by method.
