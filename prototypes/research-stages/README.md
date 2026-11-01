@@ -8,13 +8,13 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 24, artifact version `1793527567-6bd4` |
+| Version | version 25, artifact version `1793528286-6903` |
 | Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
 | Previous versions | in git history: version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
 
-## What changed in versions 22–24 (1 Nov)
+## What changed in versions 22–25 (1 Nov)
 
 **The dual path on one case, Kupsi s.r.o.** The product owner asked on 30 Oct, relayed by the PM coordinator: "for the prototype I'm
 sending to the executive, I want it to be 1:1 with what the research steps prototype will look like with the dual path. also i want
@@ -41,6 +41,8 @@ showcase of the same case.
   Their maps (`assets/kupsi_sociomap_*.jpg`) were computed by the `aia-sociomap-5` engine (`compute_object_map`) on 800 fictional
   respondents rating 7 delivery attributes. They were drawn by the report's figure function (`signed_off_map_figure.signed_off_snapshots`).
   The generating script is not in the repo; each caption says the map came from the engine on fictional data.
+
+- **Version 25:** `KM5Map`'s note is in Czech only, with no internal ids.
 
 `Brief.dc.html` and the other approved stage boards are unchanged. Every render has no new script error.
 
