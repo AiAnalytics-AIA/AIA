@@ -580,6 +580,13 @@
 .card__titlerow .act__title { font-size: 14px; }
 .card__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .refchip__clear { width: 20px; height: 20px; }
+/* Files given to the Lead (LO18a): chips above the composer, and under a sent message. */
+.filechips { display: flex; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.filechips--sent { justify-content: flex-end; margin-top: 4px; }
+.filechip { min-width: 0; }
+.filechip b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 18ch; font-weight: 500; }
+.filechip__words { color: var(--ink-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.filechip[data-file-state="refused"] .filechip__words { color: var(--status-fault); }
 /* At a phone's width every control the frame owns is a 44 px target, as the shared controls' TOUCH
    is (input-interactions I11); from 640 px the prototype's density stands, above WCAG 2.2's 24 px. */
 @media (max-width: 639.98px) {
