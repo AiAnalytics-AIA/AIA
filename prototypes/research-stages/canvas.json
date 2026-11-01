@@ -155,7 +155,7 @@
       "y": 8700
     },
     "Z0Flow.dc.html": {
-      "h": 1500,
+      "h": 1940,
       "is_interactive": true,
       "title": "Z0 · Zadání se dvěma cestami: průchod",
       "w": 1440,
@@ -163,7 +163,7 @@
       "y": 20600
     },
     "Z1Start.dc.html": {
-      "h": 1260,
+      "h": 1320,
       "is_interactive": true,
       "title": "Z1 · Zadání: začátek",
       "w": 1440,
@@ -171,7 +171,7 @@
       "y": 20600
     },
     "Z2Triage.dc.html": {
-      "h": 1640,
+      "h": 1720,
       "is_interactive": true,
       "title": "Z2 · Zadání: triáž",
       "w": 1440,
@@ -192,15 +192,15 @@
       "title": "Z4 · Zadání: cesta Výzkum",
       "w": 1440,
       "x": 0,
-      "y": 22500
+      "y": 22660
     },
     "Z5Model.dc.html": {
-      "h": 2420,
+      "h": 2460,
       "is_interactive": true,
       "title": "Z5 · Zadání: cesta Model",
       "w": 1440,
       "x": 1520,
-      "y": 22500
+      "y": 22660
     },
     "Z6Both.dc.html": {
       "h": 1720,
@@ -208,7 +208,7 @@
       "title": "Z6 · Zadání: obojí",
       "w": 1440,
       "x": 3040,
-      "y": 22500
+      "y": 22660
     },
     "Z7Ready.dc.html": {
       "h": 1280,
@@ -216,10 +216,10 @@
       "title": "Z7 · Zadání: připravenost a předání",
       "w": 1440,
       "x": 4560,
-      "y": 22500
+      "y": 22660
     },
     "Z8aPhone.dc.html": {
-      "h": 920,
+      "h": 980,
       "is_interactive": true,
       "title": "Z8a · Telefon: začátek",
       "w": 390,
@@ -233,6 +233,102 @@
       "w": 390,
       "x": 6550,
       "y": 20600
+    },
+    "KM1Data.dc.html": {
+      "h": 1700,
+      "is_interactive": true,
+      "title": "M1 · Model: Data",
+      "w": 1440,
+      "x": 0,
+      "y": 27460
+    },
+    "KM2Assumptions.dc.html": {
+      "h": 1540,
+      "is_interactive": true,
+      "title": "M2 · Model: Předpoklady",
+      "w": 1440,
+      "x": 1520,
+      "y": 27460
+    },
+    "KM3Model.dc.html": {
+      "h": 2120,
+      "is_interactive": true,
+      "title": "M3 · Model: Model",
+      "w": 1440,
+      "x": 3040,
+      "y": 27460
+    },
+    "KM4Results.dc.html": {
+      "h": 2220,
+      "is_interactive": true,
+      "title": "M4 · Model: Výsledky",
+      "w": 1440,
+      "x": 4560,
+      "y": 27460
+    },
+    "KM5Map.dc.html": {
+      "h": 1500,
+      "is_interactive": true,
+      "title": "M5 · Model: Mapa rozhodnutí",
+      "w": 1440,
+      "x": 6080,
+      "y": 27460
+    },
+    "KO1Link.dc.html": {
+      "h": 1860,
+      "is_interactive": true,
+      "title": "O1 · Obojí: výzkum do modelu",
+      "w": 1440,
+      "x": 7600,
+      "y": 27460
+    },
+    "KM6Report.dc.html": {
+      "h": 1080,
+      "is_interactive": true,
+      "title": "M6 · Model: Zpráva",
+      "w": 1440,
+      "x": 9120,
+      "y": 27460
+    },
+    "KV1Design.dc.html": {
+      "h": 1240,
+      "is_interactive": true,
+      "title": "V1 · Výzkum: Návrh a Dotazník",
+      "w": 1440,
+      "x": 0,
+      "y": 25520
+    },
+    "KV2Sample.dc.html": {
+      "h": 1100,
+      "is_interactive": true,
+      "title": "V2 · Výzkum: Vzorek",
+      "w": 1440,
+      "x": 1520,
+      "y": 25520
+    },
+    "KV3Results.dc.html": {
+      "h": 1280,
+      "is_interactive": true,
+      "title": "V3 · Výzkum: Výsledky",
+      "w": 1440,
+      "x": 3040,
+      "y": 25520
+    },
+    "KV4Sociomap.dc.html": {
+      "h": 1540,
+      "is_interactive": true,
+      "title": "V4 · Výzkum: Sociomapa",
+      "w": 1440,
+      "x": 4560,
+      "y": 25520
+    },
+    "KV5Report.dc.html": {
+      "h": 1300,
+      "is_interactive": true,
+      "title": "V5 · Výzkum: Zpráva",
+      "w": 1440,
+      "x": 6080,
+      "y": 25520
     }
   },
   "createdOnFiles": {
@@ -287,10 +383,26 @@
     "t6": {
       "kind": "title1",
       "maxW": 6940,
-      "text": "Zadání se dvěma cestami · návrh 29. 10.",
+      "text": "Zadání se dvěma cestami · případ Kupsi s.r.o. (smyšlený)",
       "w": 240,
       "x": 0,
       "y": 20300
+    },
+    "t8": {
+      "kind": "title1",
+      "maxW": 10600,
+      "text": "Kupsi · cesta Model: Vlastní sklad, nebo 3PL? · a jejich spojení",
+      "w": 240,
+      "x": 0,
+      "y": 27160
+    },
+    "t7": {
+      "kind": "title1",
+      "maxW": 7400,
+      "text": "Kupsi · cesta Výzkum: Ochota čekat na doručení",
+      "w": 240,
+      "x": 0,
+      "y": 25220
     }
   },
   "order": [
@@ -322,7 +434,19 @@
     "Z4Research.dc.html",
     "Z5Model.dc.html",
     "Z6Both.dc.html",
-    "Z7Ready.dc.html"
+    "Z7Ready.dc.html",
+    "KV1Design.dc.html",
+    "KV2Sample.dc.html",
+    "KV3Results.dc.html",
+    "KV4Sociomap.dc.html",
+    "KV5Report.dc.html",
+    "KM1Data.dc.html",
+    "KM2Assumptions.dc.html",
+    "KM3Model.dc.html",
+    "KM4Results.dc.html",
+    "KM5Map.dc.html",
+    "KO1Link.dc.html",
+    "KM6Report.dc.html"
   ],
   "pages": [],
   "title": "AIA Výzkumné kroky – prototyp"

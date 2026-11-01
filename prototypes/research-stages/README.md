@@ -1,4 +1,4 @@
-# AIA Výzkumné kroky – prototyp, 30 Oct 2026
+# AIA Výzkumné kroky – prototyp, 1 Nov 2026
 
 A snapshot of the research-stages Design canvas, for use from another account. It is design reference,
 not product code: nothing here is imported by `apps/web`, and every client, study, person and number is
@@ -8,11 +8,41 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 21, artifact version `1793349285-c85d` |
-| Exported | 30 Oct 2026 |
+| Version | version 24, artifact version `1793527567-6bd4` |
+| Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in versions 22–24 (1 Nov)
+
+**The dual path on one case, Kupsi s.r.o.** The product owner asked on 30 Oct, relayed by the PM coordinator: "for the prototype I'm
+sending to the executive, I want it to be 1:1 with what the research steps prototype will look like with the dual path. also i want
+example sociomaps drawn from the sociomap 5 engine". The client and every number are fictional, and they agree with the PM coordinator's
+showcase of the same case.
+
+- **Version 22: the Zadání boards on Kupsi.** `Z0`–`Z3`, `Z5`–`Z7`, `Z8a` and `Z8b` now follow a fictional e-shop with three options:
+  A, its own warehouse +2 000 m²; B, staying with its Czech 3PL; C, a cheaper Polish 3PL that delivers a day later. The rule, written
+  before the data, is "the cheapest option over 7 years (NPV) with probability at least 0,80". `Z4Research` keeps its own example
+  (Pivovar).
+- **Version 23: the Model path and the link** (ADR 0044, `.planning/plans/cost-model-study.md` @ 0f7019b2). Seven boards:
+  - `KM1Data`: the files, their bindings and the data checks.
+  - `KM2Assumptions`: 13 inputs with ranges and guarantors.
+  - `KM3Model`: cost lines, the driver and the variants.
+  - `KM4Results`: ranges and dominance, P(cheapest) against the rule, the C − B distribution, the tornado beside Sobol, break-even, the
+    backtested forecast and value of information.
+  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height.
+  - `KO1Link`: the research result proposed as the model's assumption.
+  - `KM6Report`: the model's report.
+
+  Every number was computed by the showcase's own simulation code, and every ESTIMATED number is marked "odhad (interní)". `KM5Map` is a
+  designed view, labelled "návrh, metoda čeká na schválení", because the engine does not compute it yet (CS1–CS4).
+- **Version 24: the Research path.** `KV1Design`, `KV2Sample`, `KV3Results`, `KV4Sociomap` and `KV5Report` carry the delivery survey.
+  Their maps (`assets/kupsi_sociomap_*.jpg`) were computed by the `aia-sociomap-5` engine (`compute_object_map`) on 800 fictional
+  respondents rating 7 delivery attributes. They were drawn by the report's figure function (`signed_off_map_figure.signed_off_snapshots`).
+  The generating script is not in the repo; each caption says the map came from the engine on fictional data.
+
+`Brief.dc.html` and the other approved stage boards are unchanged. Every render has no new script error.
 
 ## What changed in versions 20 and 21 (30 Oct)
 
@@ -67,8 +97,8 @@ The existing boards are unchanged; `Brief.dc.html` stays the approved Zadání u
 The new boards keep the decisions below: no data classes on screen, no stage showing what another owns
 (the population, comparison objects and measures are asked in words and handed on as proposals), the
 readiness chip row, paid AI only through a card, the compact stage header. Every render has no new script
-error; Report's and ReportEditor's `{{shot}}` placeholders are as before. Known gaps: the model study's own
-stages (Data, Předpoklady, Model, Výsledky) are not drawn yet; its navigator links nowhere.
+error; Report's and ReportEditor's `{{shot}}` placeholders are as before. At version 14 the model study's own
+stages were not drawn yet; versions 22–24 add them on the Kupsi case (`KM1Data` … `KM6Report`).
 
 ## What changed since v95
 
@@ -80,13 +110,14 @@ board, stylesheet and asset is byte-identical to v95. Nothing is known to be wro
 
 ## What is in this folder
 
-- **29 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
+- **41 boards**, listed in `canvas.json` order with their titles in the table below. `canvas.json` also
   holds each board's size and position on the canvas.
 - **`assets/aia-core.css`**: core v4.3, the "Petrol" shared stylesheet (SHA-256 `bd0c156e…4a2b0e`). It is
   owned by the design-system session and is newer than `../shared/aia-core.css` (core v3), which this
   export does not touch.
 - **`assets/aia-study.css`**: the research stages' own stylesheet (SHA-256 `d1a2d23b…00f689`).
 - **`assets/thinking-orbs.js`**: the Lead's orb (thinking-orbs 0.3.2, MIT, Jakub Antalik).
+- **`assets/kupsi_*`**: the -5 engine's map figures (fictional data) and the designed WIND terrains for `KM5Map`.
 - **`assets/<id>.png|jpg`**: the screenshots of today's AIA that the boards' "UX kritika" sections show.
 
 The canvas keeps these files as they are here: `canvas.json`, the boards and `assets/` at the same relative
@@ -126,6 +157,9 @@ them.)
 | `Z5Model.dc.html` | Z5 · Zadání: cesta Model |
 | `Z6Both.dc.html` | Z6 · Zadání: obojí |
 | `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
+| `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Kupsi) |
+| `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Model: Data, Předpoklady, Model, Výsledky, Mapa rozhodnutí, Zpráva (Kupsi) |
+| `KO1Link.dc.html` | O1 · Obojí: výzkum do modelu |
 
 ## What is decided (the product owner, 26–28 Oct 2026)
 
