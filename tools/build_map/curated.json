@@ -7,6 +7,12 @@
       "where": "Klient → Výzkumy → a study"
     },
     {
+      "id": "modely",
+      "name": "Modely",
+      "sub": "Model studies beside Výzkumy: cost scenarios, the robust method, the decision map, market sizing and reports composed per situation",
+      "where": "Klient → Modely → a study"
+    },
+    {
       "id": "lead",
       "name": "Vedoucí",
       "sub": "The AI research Lead: the conversation beside every stage, the jobs it runs, its memory and identity",
@@ -69,6 +75,11 @@
       "sociomap-5-web",
       "research-integrity-report",
       "productization-coherence"
+    ],
+    "modely": [
+      "cost-model-study",
+      "quantitative-families",
+      "situation-reports"
     ],
     "lead": [
       "lead-orchestration",
@@ -556,5 +567,119 @@
       "Definition of done",
       "Merged into develop with CI green and a review on the exact head, the chunk ticked in its plan, and its Doc follow-up applied by the next docs PR."
     ]
-  ]
+  ],
+  "story": {
+    "intro": "AIA helps a team decide with evidence. A study starts from the decision in Zadání and takes one of two paths, or both. Výzkum asks people, through AI respondents drawn from the Czech population, and maps what they think with the Sociomap. Modely calculates costs and scenarios from the client's own numbers, with the uncertainty shown. Ada, the Research Lead, guides the work in conversation, and a person approves every step that matters. The MVP is built in six waves. Each wave ends at a gate where something new works end to end.",
+    "process": [
+      {
+        "t": "Plan",
+        "d": "Each feature has a plan file in the repository, split into chunks. A chunk is a piece of work small enough to review in one sitting."
+      },
+      {
+        "t": "Build",
+        "d": "Build sessions (S1 to S6) each own a lane of chunks. A chunk becomes one pull request with a test that fails before the change and passes after it."
+      },
+      {
+        "t": "Check",
+        "d": "Every pull request passes the automatic checks (CI) and an independent code review (Codex). It merges only when both are clean, and nothing merges without the product owner's word."
+      },
+      {
+        "t": "Deploy",
+        "d": "Every green merge to develop is deployed to the develop site automatically, so the newest work can always be tried."
+      },
+      {
+        "t": "Gate",
+        "d": "A wave is done when all of its chunks are merged and its gate check holds. The next wave starts after that."
+      },
+      {
+        "t": "Decide",
+        "d": "Questions only a person can answer (scope, method, money, legal) go to the product owner. The methodology owner signs every statistical method before its numbers reach a client."
+      }
+    ],
+    "waves": [
+      {
+        "id": "W0",
+        "name": "Ready to build",
+        "goal": "The groundwork, so that building is safe and fast.",
+        "outcomes": [
+          "Every surface has a named owner, and the sessions know which lane is theirs.",
+          "The automatic acceptance test that judges the finished MVP is in place and runs.",
+          "AI steps on develop are no longer blocked by the route settings, and a blocked step says who can fix it."
+        ]
+      },
+      {
+        "id": "W1",
+        "name": "Ada runs a study",
+        "goal": "You run a study by talking to Ada.",
+        "outcomes": [
+          "Ada edits Zadání, Návrh and Dotazník on request; you accept or reject each change one by one.",
+          "Two colleagues can work in the same study without overwriting each other.",
+          "Ada prepares a plan (for example, \"run fieldwork, at most X USD\"). You approve it once, and she stops at anything it does not cover.",
+          "Fieldwork is quality-checked and shows its progress and cost, and it resumes after a failure without paying twice.",
+          "Deep Research reaches the live web (Brave and other sources).",
+          "Production exists as a real environment beside develop."
+        ],
+        "gate": "Two people edit one study; a plan approved within its budget starts a run; Deep Research reaches the live web and says which sources it used."
+      },
+      {
+        "id": "W2",
+        "name": "Results are seen",
+        "goal": "Results become something you explore, not only read.",
+        "outcomes": [
+          "The corrected Sociomap of respondents, with segment maps you can drill into.",
+          "Ada can talk about the results and point at them.",
+          "Map snapshots can be approved for reports, and the report has its approve and export panel."
+        ]
+      },
+      {
+        "id": "W3",
+        "name": "Evidence is complete",
+        "goal": "Everything a report says can be defended.",
+        "outcomes": [
+          "A client's own data can be used in the analysis, under clear rules.",
+          "Open-ended answers are coded into counts, and questionable respondents are flagged.",
+          "The Analýza and Zpráva screens are finished, with AI helpers that interpret maps and polish the report."
+        ]
+      },
+      {
+        "id": "W4",
+        "name": "Deep Research joins the report",
+        "goal": "Outside research becomes part of the deliverable.",
+        "outcomes": [
+          "Deep Research results appear as cards in the conversation with Ada.",
+          "The report gains a chapter of outside sources (literature and public data), every quote checked against its source."
+        ]
+      },
+      {
+        "id": "W5",
+        "name": "Acceptance and release",
+        "goal": "Proof that it all works, then release.",
+        "outcomes": [
+          "Every MVP criterion is run automatically.",
+          "A full run on develop within a USD 25 budget.",
+          "Production is released after a restore test, a rollback rehearsal and a working \"delete this client\" path."
+        ]
+      }
+    ],
+    "tracks": [
+      {
+        "name": "Modely and composed reports",
+        "when": "Runs beside W2 to W4, on sessions S4, S5 and S6 (about 10 to 12 weeks)",
+        "goal": "A second kind of study beside Výzkumy: decisions calculated from the client's own numbers, with the uncertainty shown, and reports composed for each situation.",
+        "outcomes": [
+          "Cost scenarios from the client's files: every input has a source and a person who vouches for it.",
+          "A robust method: ranges, Monte Carlo, sensitivity, backtested forecasts and the value of more information, judged against a decision rule written before the data.",
+          "Mapa rozhodnutí: the options as a Sociomap with a WIND height, computed from the model.",
+          "Market sizing as a model result with its sources.",
+          "Reports composed from an approved outline of chapters; expert scoring; imported fieldwork; bulk and selected Sociomaps.",
+          "Výzkum and Modely linked: a survey result becomes the model's assumption when the decision depends on it."
+        ],
+        "plans": [
+          "cost-model-study",
+          "situation-reports",
+          "quantitative-families"
+        ]
+      }
+    ]
+  }
 }
