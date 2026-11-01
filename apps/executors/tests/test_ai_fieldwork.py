@@ -731,7 +731,7 @@ def test_an_uncertain_call_needs_recovery_and_is_never_retried(
 
 
 def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
-    world: Any, run_with: Callable[..., Worker]
+    world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker]
 ) -> None:
     off = {"q_invented": {"probabilities": [1.0]}}
     bedrock = ScriptedBedrock(answers={1: off, 2: off})
@@ -754,6 +754,19 @@ def test_an_off_question_answer_gets_one_repair_then_fails_the_attempt(
     assert reservation.settled_amount_usd == pytest.approx(
         sum(e.cost_usd for e in events if e.outcome.is_terminal)
     )
+    # The refused answer is kept on the run's project, with its request's class (chunk 5).
+    with world.sessions() as session:
+        from aia_core.infrastructure.tables import ProjectArtifactRow, WorkflowRunRow
+
+        project_id = session.get(WorkflowRunRow, run_id).project_id  # type: ignore[union-attr]
+        (kept,) = session.scalars(
+            select(ProjectArtifactRow).where(
+                ProjectArtifactRow.project_id == project_id,
+                ProjectArtifactRow.artifact_type == "refused_answer",
+            )
+        ).all()
+        assert kept.size_bytes > 0
+    assert {e.data_class.value for e in events} == {_refused_class(world, store, kept.artifact_id)}
 
 
 def test_a_repaired_answer_is_used_and_both_calls_are_charged(
@@ -1429,6 +1442,41 @@ def test_a_panel_run_has_a_client_report_of_admitted_modelled_numbers_and_a_fict
     assert refused.value.reason == "not_modelled"
 
 
+def test_a_client_draft_of_an_earlier_composition_is_never_shown_or_approved(
+    world: Any,
+    store: InMemoryArtifactStore,
+    run_with: Callable[..., Worker],
+    grounded: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A -7 client draft printed a -5 respondent map a client may not see (the methodology
+    owner, 2026-10-28, MQ-01 (b)): after the contract moved, the document read skips it, its
+    approval is refused, and the next download composes anew."""
+    from aia_core.application import client_report
+    from aia_core.application.client_report import client_report_document, stored_client_report
+    from aia_core.application.report_approval import ReportNotApprovable, approve_report
+
+    run_id = _start_grounded(world, grounded)
+    worker = run_with(ScriptedBedrock(), env=_grounded_env(), population=grounded.loader())
+    assert _drain(worker) == ["completed"] * 5
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        with monkeypatch.context() as earlier:
+            earlier.setattr(client_report, "CLIENT_REPORT_CONTRACT", "aia-client-report-7")
+            old, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert old.metadata["report_contract"] == "aia-client-report-7"
+        assert client_report_document(session, scope, store, run_id=run_id) is None
+        with pytest.raises(ReportNotApprovable):
+            approve_report(session, scope, store, run_id=run_id, artifact_id=old.artifact_id)
+        new, _ = stored_client_report(session, scope, store, run_id=run_id)
+        assert new.artifact_id != old.artifact_id
+        shown = client_report_document(session, scope, store, run_id=run_id)
+        assert shown is not None and shown[0].artifact_id == new.artifact_id
+        assert approve_report(
+            session, scope, store, run_id=run_id, artifact_id=new.artifact_id
+        ).is_approved
+
+
 def test_a_panel_runs_preflight_says_its_filters_apply_and_its_sample_keeps_them(
     world: Any, store: InMemoryArtifactStore, run_with: Callable[..., Worker], grounded: Any
 ) -> None:
@@ -1635,3 +1683,12 @@ def test_the_composed_panel_source_reads_the_store_only_when_it_is_configured(
     routed = panel_population_source(str(tmp_path), children)
     assert routed.read("panel.csv.gz") == b"shared"
     assert routed.read(location) == b"child"
+
+
+def _refused_class(world: Any, store: InMemoryArtifactStore, artifact_id: str) -> str:
+    with world.sessions() as session:
+        record = research_artifacts(session, world.lead_scope(session), store).read_json(
+            artifact_id
+        )
+    assert "q_invented" in record["rejected_output"]
+    return str(record["data_class"])

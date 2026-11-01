@@ -75,13 +75,13 @@ describe("the map's standing in the inspector", () => {
 });
 
 describe("an object in the inspector", () => {
-  it("shows the object's rating, connectedness and strongest relations", () => {
+  it("shows the object's rating and strongest relations, never connectedness (MQ-05)", () => {
     show(map);
     render(<MapInspect target={`object:hudba/${a}`} />);
     const body = screen.getByTestId("map-inspect-object").textContent!;
     expect(body).toContain(hudba.objects.find((o) => o.id === a)!.label);
     expect(body).toContain("Průměrné hodnocení");
-    expect(body).toContain("Provázanost (0–100)");
+    expect(body).not.toContain("Provázanost");
     // Its relations open a pair in the drawer: buttons, not toggles left unpressed.
     const rows = screen.getByTestId("object-map-detail-relations").querySelectorAll("button");
     expect(rows.length).toBeGreaterThan(0);

@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 
 from aia_core.application import report_maps
 from aia_core.application.report_maps import compose_map_sections
-from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure
+from aia_core.domain.report.model import Callout, Paragraph, SociomapFigure, Text
 from aia_core.domain.sociomap import (
     AIA_SOCIOMAP_V3,
     ObjectMapInputs,
@@ -226,6 +226,8 @@ def test_the_respondent_map_draws_every_placed_respondent_in_its_segment_colour(
     text = words(fig)
     assert "Výška · Shluky respondentů" in text
     assert "Chuťové segmenty" in text and "není jasně v jednom segmentu" in text
+    # Beside segments shown: they only describe (the methodology owner, 2026-10-29, S-2).
+    assert "Segmenty jen popisují, jak se respondenti na této mapě liší." in text
     for j, share in enumerate(seg.shares):
         assert f"Segment {j + 1} · {100 * share:.0f} %" in text
     assert f"bez polohy: {resp.counts['NOT_PLACED']} respondentů" in text
@@ -296,6 +298,12 @@ def test_the_legend_reads_the_declared_floor_and_names_the_objects_nobody_rated(
     )
     assert "nejnižší objekt na 30 % výšky" in words(fig)
     assert "neumístěno: 3 objekty, nikdo je nehodnotil" in words(fig)
+    # A floor of 0 (MQ-08): the ramp's two ends are the lowest and highest rating, no floor line.
+    terrain = artifact.spec.terrain.model_copy(update={"relative_height_floor": 0.0})  # type: ignore[union-attr]
+    zero = _with(artifact, spec=artifact.spec.model_copy(update={"terrain": terrain}))
+    fig, cam = axes()
+    render_objects(fig.axes[0], zero, list(OBJECTS), cam, scale=None)
+    assert "nejnižší objekt na" not in words(fig)
 
 
 def test_the_sparse_note_shows_only_when_no_statement_veils_the_map() -> None:
@@ -335,10 +343,11 @@ def test_the_respondent_map_says_why_it_shows_no_segments() -> None:
     assert (
         "Náznak 2 skupin · nejisté, body nejsou obarvené" in borderline
         and "Segment 1" not in borderline
+        and "Segmenty jen popisují" not in borderline  # a hint shows no segments (S-2)
     )
-    assert "Chuťové segmenty se nehledají (málo dat)" in line(
-        decision="NONE", reason="TOO_FEW_RESPONDENTS", hint=None
-    )
+    too_few = line(decision="NONE", reason="TOO_FEW_RESPONDENTS", hint=None)
+    assert "Chuťové segmenty se nehledají (málo dat)" in too_few
+    assert "Segmenty jen popisují" not in too_few  # no segments, nothing to describe
     assert "Žádné zřetelné chuťové segmenty" in line(
         decision="NONE", reason="NO_CLEAR_SEGMENTS", hint=None
     )
@@ -425,7 +434,12 @@ def test_the_respondent_alt_text_names_segment_colours_only_when_they_are_shown(
     assert "barva bodu chuťový segment" not in respondent_alt(plain)
 
 
-def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_client_report_shows_the_object_map_never_the_respondent_map_or_segments(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The register approves -5's object map for clients; its respondent map and taste segments
+    wait until the web and the report draw them (the methodology owner, 2026-10-28, MQ-01 (b)),
+    and a dot is one person (MQ-13). The internal report keeps all three."""
     # The register's entry for aia-sociomap-5, as the stored map's method recorded it.
     method = AIA_SOCIOMAP_V5.methodology_version
     entry = next(a for a in SOCIOMAP_REGISTER if a.method_id == method)
@@ -433,20 +447,26 @@ def test_the_client_report_shows_the_respondent_map_too(monkeypatch: pytest.Monk
     assert entry.status is MethodologyStatus.CLIENT_FACING
     frozen = tastes()
     images = object_map_snapshots(frozen)
-    client = [
-        b
-        for b in compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
-        if isinstance(b, SociomapFigure)
-    ]
-    views = ["Pohled shora", "Prostorový pohled", "Mapa respondentů"]
-    assert [f.title.split(" · ")[1] for f in client] == views
+    blocks = compose_map_sections(frozen, images, source="Frozen", client=True)[0].blocks
+    client = [b for b in blocks if isinstance(b, SociomapFigure)]
+    assert [f.title.split(" · ")[1] for f in client] == ["Pohled shora", "Prostorový pohled"]
     assert all(f.methodology_status == "CLIENT_FACING" for f in client)
-    internal = [
-        b
-        for b in compose_map_sections(frozen, images, source="Frozen")[0].blocks
-        if isinstance(b, SociomapFigure)
-    ]
+    words = " ".join(
+        i.text for b in blocks for i in getattr(b, "content", ()) if isinstance(i, Text)
+    )
+    assert "Mapa respondentů" not in words and "segment" not in words
+    internal_blocks = compose_map_sections(frozen, images, source="Frozen")[0].blocks
+    internal = [b for b in internal_blocks if isinstance(b, SociomapFigure)]
     assert len(internal) == 3
+    # The fixture shows segments, so the client's "not in words" above is meaningful.
+    internal_words = " ".join(
+        i.text for b in internal_blocks for i in getattr(b, "content", ()) if isinstance(i, Text)
+    )
+    assert "Barva bodu ukazuje chuťový segment" in internal_words
+    # The client report draws no respondent figure it would throw away.
+    client_images = object_map_snapshots(frozen, respondents=False)
+    assert not any(view == "respondents" for (_b, _m, view) in client_images)
+    assert compose_map_sections(frozen, client_images, source="Frozen", client=True)
 
 
 def _tiny() -> dict:
@@ -532,6 +552,25 @@ def test_the_report_reads_the_declared_scale_and_explains_the_respondent_map() -
         in prose
     )
     assert "převedené na škálu od nuly do jedné" not in prose
+    # A map whose spec declares a floor of 0 says so, never "0 % výšky" (MQ-08).
+    zero = AIA_SOCIOMAP_V5.model_copy(
+        update={
+            "terrain": AIA_SOCIOMAP_V5.terrain.model_copy(  # type: ignore[union-attr]
+                update={"relative_height_floor": 0.0}
+            )
+        }
+    )
+    zero_blocks = compose_map_sections(
+        (z := tastes(zero)), object_map_snapshots(z), source="Frozen"
+    )[0].blocks
+    zero_prose = " ".join(
+        i.text
+        for b in zero_blocks
+        if isinstance(b, Paragraph)
+        for i in b.content
+        if hasattr(i, "text")
+    )
+    assert "nejvýše hodnocený objekt má plnou výšku, nejníže hodnocený nulovou." in zero_prose
     assert "Mapa respondentů ukazuje každého umístěného respondenta jako bod" in prose
     assert "Barva bodu ukazuje chuťový segment" in prose and "alespoň 80 %" in prose
     # An earlier method keeps its 0-1 sentence and has no respondent paragraph.

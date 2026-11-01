@@ -45,7 +45,7 @@ The run's compiled specification and its aggregate become:
   Its status is an `InstrumentStatus`, never one of the dictionary's 22, so no dictionary
   can declare one. Any other origin has no policy and refuses.
 - **A joint status.** A native run has no population panel, so no `CORE_JOINT_STATUS`
-  certificate: `load_joint_status(None)` answers `MISSING`, which permits nothing
+  certificate: its status is `evaluate_joint_certificate`'s `MISSING` fallback, which permits nothing
   client-facing. Validation is `None`, so every result says `METHOD_STATUS_PENDING`.
 - **Research questions**, from the Design Revision as the unit reads them:
   `research_plan.research_questions`, else `objectives`, else `goal`, at most eight.

@@ -12,6 +12,7 @@ from aia_core.domain.workflow_templates import (
     CLIENT_SOURCE_PROPOSALS,
     DEVELOP_SNAPSHOT,
     POPULATION_MATERIALIZE,
+    QC_STEP_KIND,
     REPORT_PDF,
     REPORT_PDF_STEP_KIND,
     REPORT_STEP_KIND,
@@ -113,3 +114,18 @@ def test_report_pdf_is_one_step_rendering_a_stored_report() -> None:
     assert step.consumes_population is False
     with pytest.raises(UnknownWorkflowType):
         steps_for_workflow(REPORT_PDF, project_type=ProjectType.SIMULATION)
+
+
+def test_the_research_graph_gains_the_run_qc_step_only_with_its_switch() -> None:
+    """RQC2: the run's QC reads the fieldwork's answers and nothing waits on it (MVP-24)."""
+    plain = steps_for_workflow(RESEARCH, project_type=ProjectType.RESEARCH)
+    assert "qc" not in {s.node_key for s in plain}
+    on = steps_for_workflow(
+        RESEARCH, project_type=ProjectType.RESEARCH, qc_enabled=True, analysis_enabled=True
+    )
+    (qc,) = [s for s in on if s.node_key == "qc"]
+    assert qc.kind == QC_STEP_KIND
+    assert qc.depends_on == ("run",)
+    assert qc.stage_type == "FIELDWORK"
+    assert qc.artifact_target == "research_qc"
+    assert not [s.node_key for s in on if "qc" in s.depends_on]

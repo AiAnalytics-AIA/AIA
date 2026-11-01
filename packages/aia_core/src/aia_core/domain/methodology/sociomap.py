@@ -188,7 +188,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             r"\qquad l \in \text{všechny položky, které } k \text{ hodnotil}"
         ),
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+        source_sha256="ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
         symbols=(
             Symbol(r"a_{ki}", "hodnocení respondenta k u objektu i (po F1)"),
             Symbol(r"\tilde a_{ki}", "totéž na vlastní škále respondenta: nejnižší 0, nejvyšší 1"),
@@ -484,7 +484,7 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Síla vztahu a jeho směr",
         formula_latex=r"s_{ij} = |r_{ij}|,\qquad \operatorname{sgn} r_{ij} \text{ jako barva}",
         implements=f"{_S}.engine_v2:compute_object_map",
-        source_sha256="486f2898a3ec104c14acfa87c3e54f2d5e28179b6ec78d0515583e9bcfb876e2",
+        source_sha256="3ff0e33db1e5d191fb157117c3f9cc3ef4a1a14ae2c2f1c241a3522468e95dbd",
         evidence=(_rule("AUDIT-F4"),),
         tests=(
             f"{_T}/test_sociomap_object_map.py::test_every_number_is_the_landed_functions_on_the_same_input",
@@ -938,7 +938,11 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
             f"{_T}/test_sociomap_primary_scores.py::test_the_scores_are_the_audits_formula_on_a_hand_computed_example",
             f"{_T}/test_sociomap_primary_scores.py::test_a_secondary_object_never_moves_a_primary_score_where_it_reshuffles_classic",
         ),
-        note_cs="Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne.",
+        note_cs=(
+            "Kontextový (SEKUNDÁRNÍ) objekt skóre PRIMÁRNÍHO nikdy nepohne. Metoda "
+            "aia-sociomap-5 skóre ani propojenost nepočítá ani nezobrazuje (metodik AIA, "
+            "28. 10. 2026)."
+        ),
     ),
     MethodStep(
         id="f8_height",
@@ -1464,11 +1468,12 @@ _CATALOGUE: Final[tuple[MethodStep, ...]] = (
         title_cs="Respondent bez rozptylu není umístěn",
         formula_latex=r"\max_l a_{kl} = \min_l a_{kl} \;\Rightarrow\; k \text{ NEUMÍSTĚN}",
         implements=f"{_S}.relations:person_minmax",
-        source_sha256="986d2b7017c7ac1b5647edab1e9fad0b2b5da295a322cac50d6ae9e26e0496be",
+        source_sha256="ff6ea9bfb61200811e5c4ba57fe55f2c5eaa9e90cd4772703d0e0d4d25d93b20",
         evidence=(_rule("AUDIT-F11"),),
         tests=(
             f"{_T}/test_sociomap_person_minmax.py::test_a_row_with_no_spread_is_excluded_never_divided_by_zero",
             f"{_T}/test_sociomap_object_map.py::test_a_straight_liner_is_not_placed_but_their_ratings_count_in_the_heights",
+            f"{_T}/test_straight_lining.py::test_the_v3_rescaling_keeps_only_a_spread",
         ),
         note_cs="Je vyloučen ze vztahů a z terénu, ale počítá se do výšek a je sečten.",
     ),

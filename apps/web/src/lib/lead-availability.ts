@@ -10,9 +10,13 @@
 // answer out of shape, or the worker's readiness not reported -- never on.
 //
 // The API's switch alone is not availability: with it on and the worker's switch or model keys off,
-// a fresh study answers available: true while every turn parks. GET /lead is to carry the worker's
-// readiness from the worker composition record (lead-orchestration LO12b, research-lead-workbench
-// 27b); until it does, `worker_ready` is absent and available: true reads as UNKNOWN.
+// a fresh study answers available: true while every turn parks. GET /lead carries the worker's
+// readiness: false from a parked turn, or, with AIA_AI_ROUTE_PREFLIGHT_ENABLED, from the newest
+// worker start's recorded AI route (lead-orchestration LO12b, research-lead-workbench 27b), its
+// refusal in `worker_reason`, or true from that record alone: the newest worker start was composed
+// to answer a turn, not proof that a worker runs now, so ON names the start's time and build
+// (`worker_composed_at`, `worker_build`; Nigel, 2026-10-28, "Yes, with its time"). Without a
+// signal available: true reads as UNKNOWN.
 
 import { leadReasonWords, type LeadState, type LeadTurn } from "./lead";
 
@@ -21,10 +25,15 @@ import { leadReasonWords, type LeadState, type LeadTurn } from "./lead";
  * true: the worker can answer a turn; false: it cannot, `worker_reason` saying why; absent or
  * null: not reported, which is unknown, never ready.
  */
-export type LeadStateWithWorker = LeadState & { worker_ready?: boolean | null; worker_reason?: string | null };
+export type LeadStateWithWorker = LeadState & {
+  worker_ready?: boolean | null;
+  worker_reason?: string | null;
+  worker_composed_at?: string | null;
+  worker_build?: string | null;
+};
 
 export type LeadAvailability =
-  | { kind: "ON" }
+  | { kind: "ON"; composedAt?: string | null; build?: string | null }
   | { kind: "WAITING"; reason: string | null }
   | { kind: "OFF"; reason: string }
   | { kind: "UNKNOWN"; reason: string | null };
@@ -52,7 +61,7 @@ export function leadAvailability(state: LeadStateWithWorker | null | undefined, 
   if (newest?.status === "WAITING") return { kind: "WAITING", reason: newest.reason };
   if (state.worker_ready === false) return { kind: "WAITING", reason: state.worker_reason ?? null };
   if (state.worker_ready !== true) return { kind: "UNKNOWN", reason: null };
-  return { kind: "ON" };
+  return state.worker_composed_at ? { kind: "ON", composedAt: state.worker_composed_at, build: state.worker_build ?? null } : { kind: "ON" };
 }
 
 /** Only ON is on: waiting, off and unknown are not. */
@@ -75,8 +84,13 @@ export function availabilityLabel(a: LeadAvailability): string {
 /** The sentence beside it: the reason in words, or why the state is not known. */
 export function availabilityWords(a: LeadAvailability): string {
   switch (a.kind) {
-    case "ON":
-      return "Vedoucí výzkumu odpovídá.";
+    case "ON": {
+      // Ready is read from a worker start's record: say which one, never that it runs now.
+      const at = a.composedAt ? new Date(a.composedAt) : null;
+      if (!at || Number.isNaN(at.getTime())) return "Vedoucí výzkumu odpovídá.";
+      const when = at.toLocaleString("cs-CZ", { timeZone: "Europe/Prague" });
+      return `Vedoucí výzkumu odpovídá: tak byl sestaven pracovník spuštěný ${when}${a.build ? ` (build ${a.build.slice(0, 7)})` : ""}.`;
+    }
     case "WAITING":
       return a.reason ? leadReasonWords(a.reason) : "Vedoucí výzkumu čeká.";
     case "OFF":

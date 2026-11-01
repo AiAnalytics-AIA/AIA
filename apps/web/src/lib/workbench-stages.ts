@@ -43,7 +43,30 @@ export const PHASES: readonly { id: Phase; label: string }[] = [
 
 export const isWorkbenchStage = (x: string): x is WorkbenchStage => (STAGE_ORDER as readonly string[]).includes(x);
 
-/** The URL of a stage: its step's, with the view as the hash ResultsWorkspace reads. */
+type Lane = Partial<Record<StepKey | "dimensions" | "sample", LaneStage>>;
+
+/**
+ * Sběr dat's view (FLD9, spec sber F1 + P6): one stage with two views, Kontrola a spuštění (`run`)
+ * and Průběh (`progress`). While the newest run moves (running, waiting for a person, or at
+ * fault) the stage opens on Průběh; otherwise, and when the runs are unread, on Kontrola.
+ */
+export function fieldworkStep(lane?: Lane): "run" | "progress" {
+  const tone = lane?.progress?.tone;
+  return tone === "running" || tone === "you" || tone === "fault" ? "progress" : "run";
+}
+
+/**
+ * Where opening Sběr dat goes from `current`, its view now (null off the stage): nowhere (null) when
+ * the view to open is already shown. Průběh stays open (a finished run's progress is still read there,
+ * FLD21); Kontrola stays unless a run moves, when Průběh opens.
+ */
+export function openFieldwork(current: "run" | "progress" | null, lane?: Lane): "run" | "progress" | null {
+  if (current === "progress") return null;
+  const want = fieldworkStep(lane);
+  return current === want ? null : want;
+}
+
+/** The URL of a stage: its step's, with the view as the hash ResultsWorkspace reads (Sběr dat's Kontrola; the workbench opens it by openFieldwork). */
 export function stageHref(stage: WorkbenchStage, stepHref: (step: StepKey) => string): string {
   const s = STAGES[stage];
   return s.view ? `${stepHref(s.step)}#${s.view}` : stepHref(s.step);
@@ -82,7 +105,7 @@ const WORD: Record<Tone, string> = { done: "Hotovo", running: "Běží", you: "�
  * - Sociomapa, Analýza and Zpráva are Výsledky's views; the lane knows no map, module or report of
  *   their own (research-lead-workbench F25), so they are inert, with Výsledky's line.
  */
-export function stageState(stage: WorkbenchStage, lane: Partial<Record<StepKey | "dimensions" | "sample", LaneStage>>): { tone: Tone; line: string; word: string } {
+export function stageState(stage: WorkbenchStage, lane: Lane): { tone: Tone; line: string; word: string } {
   const said = (tone: Tone, line: string) => ({ tone, line, word: WORD[tone] });
   const from = (step: StepKey | "dimensions" | "sample") => {
     const s = lane[step];

@@ -45,7 +45,7 @@ from aia_core.domain.deep_research.steps import (
 )
 from aia_core.domain.licence import DataLineage
 from aia_core.domain.material_rules import MaterialRule, classify_by_rule
-from aia_core.domain.residency import ClassAdvisory
+from aia_core.domain.residency import ClassAdvisory, DataClass
 from aia_core.domain.workflow import FailureClass
 from aia_core.infrastructure.study_design_repository import (
     DesignRevisionNotFound,
@@ -165,6 +165,13 @@ class PlanExecutor(_Step):
             design = designs.content(request.design_revision_id)
             decision = classify_material(design, runtime.config.material_approvals)
         dclass = decision.data_class
+        if dclass is None and request.open_posture:
+            # ADR 0032 decisions 2-3: an OPEN client's run needs no operator record for its
+            # web egress; its model requests take the design's rule class (Class B,
+            # ``material_rules``), so a model route approved for C alone still refuses them.
+            dclass = classify_by_rule(
+                design, MaterialRule.DESIGN, runtime.config.material_approvals
+            ).data_class
         if dclass is None:
             if not runtime.config.class_gates.advisory:
                 return Failed(
@@ -271,14 +278,18 @@ class PlanExecutor(_Step):
                 datasets=runtime.datasets,
                 archives=runtime.archives,
                 class_gates=runtime.config.class_gates,
+                open_posture=request.open_posture,
             )
-            refusal = gate.refusal_for_class(dclass)
+            # ADR 0032 decision 3: an OPEN run's queries leave as Class C on the posture's
+            # authority; the model requests below keep the design's class.
+            qclass = DataClass.CLASS_C_INTERNAL if request.open_posture else dclass
+            refusal = gate.refusal_for_class(qclass)
             if refusal is not None:
                 block(
                     StopReason.SEARCH_ROUTE_REFUSED,
                     Gate.SEARCH_ROUTE,
                     refusal,
-                    f"a query written from {dclass.value} material may not leave",
+                    f"a query written from {qclass.value} material may not leave",
                 )
             elif lead_mode:
                 lead = LeadPlanning(

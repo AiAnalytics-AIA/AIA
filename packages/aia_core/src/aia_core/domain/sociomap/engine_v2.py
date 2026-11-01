@@ -95,6 +95,8 @@ from .signed_off_segments import (
     taste_segments,
 )
 from .slots import (
+    ALIGNMENT,
+    CONNECTEDNESS,
     DISTANCE,
     EFFECT_FLOOR,
     EFFECTIVE_N,
@@ -219,6 +221,15 @@ CONNECTEDNESS_NOT_IN_METHOD: Final = {
         "relation; the baseline-corrected relation of this method has no such interval"
     ),
 }
+#: The alignment and connectedness scores (audit F8) are not part of the signed-off methodology:
+#: neither computed nor shown for its map (the methodology owner, 2026-10-28, MQ-05 (i)).
+SCORES_NOT_IN_METHOD: Final = {
+    "status": "not_computed",
+    "reason": (
+        "the object scores (audit F8) are not part of this method: the methodology owner "
+        "(2026-10-28, MQ-05) leaves them, and connectedness, out of aia-sociomap-5"
+    ),
+}
 #: The formulas a version may replace that the baseline-corrected relation and its signed-off
 #: layout never read: a replacement would be stored and silently do nothing, so it is refused.
 _UNREAD_BY_BASELINE_CORRECTED: Final = (
@@ -227,6 +238,8 @@ _UNREAD_BY_BASELINE_CORRECTED: Final = (
     INTERVAL_LOW,
     INTERVAL_HIGH,
     EFFECT_FLOOR,
+    ALIGNMENT,
+    CONNECTEDNESS,
     K100,
     DISTANCE,
     STRESS_1,
@@ -1014,7 +1027,11 @@ def compute_object_map(
                 start_fill=fit.start_fill,
             )
 
-    scores = primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots)
+    scores = (
+        SCORES_NOT_IN_METHOD
+        if corrected
+        else primary_scores(ids, pairs.r, pairs.status, inputs.roles, slots=slots).to_payload()
+    )
     heights = _heights(scaled, weights, columns, slots)
     terrain = spec.terrain
     if layout is not None and terrain is not None and terrain.relative_height_floor is not None:
@@ -1094,7 +1111,7 @@ def compute_object_map(
         outcome=(MapOutcome.MAPPED if layout is not None else MapOutcome.NOT_MAPPABLE).value,
         not_mappable=not_mappable,
         layout=layout,
-        scores=scores.to_payload(),
+        scores=scores,
         heights=heights,
         connectedness_100=connectedness,
         support=_support(

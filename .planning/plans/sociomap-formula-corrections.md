@@ -14,7 +14,7 @@ chunks:
   - "[ ] 3. Stage 3 -- the common 0-1 scale (F1); ideal-point placement against the object map, per-respondent misfit e_k and its flag (F10)"
   - "[x] 4a. Stage 4 -- connectedness 0-100 with a respondent-bootstrap interval; rank only where intervals do not overlap (F9)"
   - "[x] 4b. Stage 4 -- terrain as the max-envelope of hills, one formula for every surface (F12, F13)"
-  - "[ ] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16)"
+  - "[x] 4c. Stage 4 -- row-conditional unfolding with per-respondent slope and intercept and the anti-degeneracy penalty, or its retirement behind F6 + F10 (F16) -- closed for the MVP: F16 is not built; -5's respondent map is the canonical way people are placed (the methodology owner 2026-10-28, MQ-10 (a))"
   - "[ ] 4d. Stage 4 -- region tests: positioning variables excluded, Holm, Cohen's d and h ranking (F14, F15), with sociomapping-engine chunk 8"
   - "[x] 5a. Results: the contract-3 map from the artifact -- envelope terrain, links for RELIABLE pairs that meet the floor (|r| opacity, sign as colour), the Stress-1 label, the not-placed count; aia-sociomap-1 kept as a comparison"
   - "[ ] 5b. The report: the contract-3 map as a DOCX figure with its Stress-1 label, internal only; the client gate unchanged (OI-17)"
@@ -25,6 +25,7 @@ chunks:
   - "[ ] I3. Carry eligible respondent descriptors, positioning-variable lineage and actual support into regions and readiness"
   - "[ ] I4. Preserve historical spec/artifact readers and pin methodology on run creation and retry"
   - "[ ] I5. Prove the complete study-to-map-to-report journey, including dimension/audience changes and frozen replay"
+  - "[x] MQ05. Under aia-sociomap-5 the F8 scores (alignment, connectedness) are not computed and, with K100 and the respondent misfit, never shown, a map stored with them included (the methodology owner 2026-10-28, MQ-05 (i)(a), (ii)(a))"
 ---
 # Sociomap formula corrections -- the audit "NPC Sociomapa: faulty formulas in the code" fitted into AIA
 
@@ -1652,3 +1653,56 @@ Source: the owner's answers of 2026-10-20 (`.planning/evidence/scope-freeze/answ
 on the contract-3 route) is superseded by `-5`'s respondent map once the methodology owner confirms
 which of this plan's open items `-5` makes moot (packet MQ-05). Until then nothing here is built
 against `-3`.
+
+## MQ-05 and MQ-10 (2026-10-28)
+
+The methodology owner answered MQ-05 and MQ-10 of `.planning/mvp-methodology-packet.md` on 2026-10-28.
+
+**MQ-05 (i)(a), (ii)(a): the F8/F9 scores, connectedness and the misfit are not part of `-5`.** What
+the code did (`@ 947686c0`):
+- K100 was already not computed under `-5` (`domain/sociomap/engine_v2.py:1031-1032`,
+  `CONNECTEDNESS_NOT_IN_METHOD`).
+- The F8 scores were computed for every method, `-5` included (`engine_v2.py:1017`), and stored
+  (`:1097`). They are now stored as `{status: not_computed, reason}` under the baseline-corrected
+  relation (`SCORES_NOT_IN_METHOD`), as connectedness is. Earlier presets store exactly what they
+  stored. The spec and its fingerprint do not move; the stored map is the record, so maps already
+  stored keep their scores.
+- The web showed them: the object detail's connectedness (100 × the stored score) and alignment
+  (`apps/web/src/lib/object-map-signed-off.ts:209-222`, drawn at `ObjectMapPanel.tsx:1011-1012`), the
+  connectedness bar under the map (`lib/map-explained.ts:20,61`, `MapExplained.tsx:118`) and the
+  respondent's share explained, 1 − misfit (`object-map-signed-off.ts:286-297`,
+  `ObjectMapPanel.tsx:1078`): #517's (i)(b) and (ii)(b). All three are gone for a `-5` map, a
+  stored one carrying them included; the misfit stays stored (it is part of the placement).
+- The report printed none of them.
+- A stored version replacing `f8.alignment` or `f8.connectedness` on `-5` is refused, as `f9.k100`
+  is (`engine_v2._UNREAD_BY_BASELINE_CORRECTED`): it would be stored and do nothing.
+- Metodika's comparison of a `-5` edit answers `k100: null` (unknown), never an empty "Beze
+  změny"; the web says "Tato metoda propojenost nepočítá." Before, it compared 100 × the F8
+  connectedness as K100 although `-5` computes no K100.
+- Not changed: the sociomap step's reuse key. A `-5` map stored before this change and reused for
+  the same dataset and pins still holds its scores, which nothing shows. Bumping the engine version
+  in the key would also move the key every retired `-3` run's analysis retry finds its stored map
+  by (`reuse_only`, `apps/executors/src/aia_executors/research.py:866-875 @ 947686c0`).
+- Metodika's `f8_scores` step says `-5` neither computes nor shows them; `f4_strength` re-read
+  against `compute_object_map` (it still says what the code does) and re-pinned; the web's
+  Metodika fixture written again by `tools/methodology_fixture.py`.
+
+Tests (each failed on `947686c0`):
+`test_sociomap_signed_off_inputs.py::test_the_object_map_records_the_baseline_corrected_relations_under_aia_sociomap_5`
+(the scores `not_computed` under `-5`, kept under `-4`; a replaced F8 formula refused),
+`test_methodology_sociomap_check.py::test_under_aia_sociomap_5_k100_is_unknown_never_unchanged`,
+`test_methodology_api.py` (the `-5` comparison's `k100` null); in the web,
+`MethodologyVersions.test.tsx` (K100 not computed),
+`object-map-signed-off.test.ts` "never shows alignment or connectedness, a map stored with them
+included (MQ-05)" and "reads a respondent's segment: coloured in one, grey, or faded; never the misfit
+(MQ-05)", `map-explained.test.ts`, `MapInspect.test.tsx` and `ObjectMapPanel.test.tsx`. No golden
+fixture moved: F1-F9 are the reference engine's, and the `-5` component fixtures
+(`fixtures/sociomap/aia/signed_off_*.json`) hold no score.
+
+**MQ-10 (a): F16 is closed for the MVP**, so chunk 4c is closed: `-5`'s respondent map is the
+canonical placement.
+
+**Doc follow-up.** `CLAUDE.md` §2, `research_sociomap.py`: "each object's alignment and
+connectedness over the PRIMARY objects (F8)" holds for the earlier presets only; under `aia-sociomap-5`
+the scores are not computed (MQ-05). `apps/web` § `object-map-signed-off.ts`: the object detail shows
+no alignment or connectedness and the respondent detail no misfit.

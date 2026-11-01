@@ -154,6 +154,13 @@ function api(overrides: Record<string, (body: unknown) => unknown> = {}) {
         "POST /api/v1/studies/STU-1/research/runs": () => run({ created: true, phase: "QUEUED" }),
         ...overrides,
       };
+      // Kontrola reads the working revision's readiness (FLD22): unless a test answers it, as the
+      // readiness route would, naming the working revision and no Design Revision.
+      routes["GET /api/v1/studies/STU-1/research/readiness/working"] ??= async (b) => {
+        const read = { ...((await routes["GET /api/v1/studies/STU-1/research/readiness"]!(b)) ?? {}) } as Record<string, unknown>;
+        delete read.design_revision_id;
+        return { ...read, working_revision: new URL(u, "http://x").searchParams.get("working_revision") };
+      };
       // A route may answer later (a promise), to hold a read while the test looks at the screen.
       const answer = (await routes[`${method} ${u.split("?")[0]}`]?.(body)) ?? {};
       return answer instanceof Response ? answer : new Response(JSON.stringify(answer), { status: 200 });
@@ -166,6 +173,8 @@ const findMeasure = (id: string) => waitFor(() => {
   if (!card) throw new Error(`no measure ${id}`);
   return card;
 });
+/** Kontrola's "Co spustíte" (FLD23). */
+const whatRuns = () => screen.findByRole("region", { name: t("research.exec.what.title") });
 const called = (method: string, prefix: string) => calls.filter((c) => c.method === method && c.url.startsWith(prefix));
 
 beforeEach(() => {
@@ -230,6 +239,18 @@ describe("Run", () => {
     expect(screen.queryByText("PASS")).toBeNull();
   });
 
+  it("folds every check under one line counted by status, closed while none stops the run (FLD24)", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, checks: [...READY.checks, { id: "novel", status: "SOMETHING_NEW", message: "Nová kontrola." }] }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    await whatRuns();
+    const all = document.querySelector("[data-all-checks]") as HTMLDetailsElement;
+    expect(all.open).toBe(false);
+    const summary = all.querySelector("summary") as HTMLElement;
+    expect(within(summary).getByRole("heading", { name: "Všechny kontroly (3)" })).toBeTruthy();
+    // A status AIA does not know is counted apart, never as passed.
+    expect(summary.textContent).toContain("1 v pořádku · 1 upozornění · 0 brání · 1 neznámé");
+  });
+
   it("lists each earlier run in the state every screen reads, and opens results only once they are ready (6a)", async () => {
     const analysis = (outcome: string) => step("analysis_executive", "SUCCEEDED", { kind: "research_analysis", analysis_outcome: outcome });
     const blocked = run({ ...COMPLETED, run_id: "RUN-2", steps: [...COMPLETED.steps, analysis("BLOCKED")] });
@@ -243,31 +264,55 @@ describe("Run", () => {
     expect(links).toEqual([["Zobrazit průběh", "RUN-2"], ["Zobrazit výsledky", "RUN-1"]]);
   });
 
-  it("submits the design the person sees as a revision, shows AIA's checks, and starts one run over it", async () => {
+  it("reads the checks on the working copy, submits nothing on a visit, and on Start submits the design and runs it (FLD22)", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect((await whatRuns()).textContent).toMatch(/Pracovní kopie · revize \d+/);
+    // Kontrola reads, never submits (spec sber F2): the working revision's readiness, no Design Revision.
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("/readiness/working?working_revision=");
+    // PROJECT is a copy the template completed on load: it is saved (a save, no Design Revision) before
+    // the checks are read, so they read what is on screen (Codex on #1126), on the revision the save made.
+    const firstSave = calls.findIndex((c) => c.method === "PUT" && c.url.endsWith("/workspace/content"));
+    const firstRead = calls.findIndex((c) => c.url.includes("/readiness/working"));
+    expect(firstSave).toBeGreaterThanOrEqual(0);
+    expect(firstSave).toBeLessThan(firstRead);
+    expect(calls[firstRead].url).toContain("working_revision=4");
+    expect(screen.getByText("n = 450.")).toBeTruthy();
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect(submitted.body).toMatchObject({ source_stage: "run", content: { title: "Ranní nápoj", n: 450 } });
     // No client, org or unit id; the working revision the design is (ADR 0026), and nothing else.
     expect(Object.keys(submitted.body as object).sort()).toEqual(["content", "source_stage", "workspace_revision"]);
     expect((submitted.body as { workspace_revision: unknown }).workspace_revision).toEqual(expect.any(Number));
-    expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-a1");
-    expect(screen.getByText("n = 450.")).toBeTruthy();
-    expect(screen.getByText(/AIA zatím nepoužije filtry/)).toBeTruthy();
-    expect(screen.getByText(/Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie/)).toBeTruthy();
-    // Studio v3: "Co spustíte" names each step with a way back to it, and a check that does
-    // not pass links to the step that fixes it (the audience warning, to Audience).
-    expect(screen.getByText("Co spustíte")).toBeTruthy();
-    expect(screen.getAllByRole("link", { name: "Upravit" }).map((a) => a.getAttribute("href"))).toEqual(
-      (["brief", "plan", "questionnaire", "audience", "persona"] as const).map((s) => stagePath(s)),
-    );
-    expect(screen.getByRole("link", { name: "Opravit →" }).getAttribute("href")).toBe(stagePath("audience"));
-    expect(screen.getByRole("button", { name: t("research.exec.start") }).getAttribute("data-ai-action")).toBe("true");
-
-    fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
+    // The start reads the submitted revision's own readiness before it runs it.
+    const reads = called("GET", "/api/v1/studies/STU-1/research/readiness").map((c) => c.url);
+    expect(reads.at(-1)).toContain("design_revision_id=REV-a1");
+    const order = (pred: (c: (typeof calls)[number]) => boolean) => calls.findIndex(pred);
+    expect(order((c) => c.method === "POST" && c.url.endsWith("/design/revisions"))).toBeLessThan(order((c) => c.url.includes("design_revision_id=REV-a1")));
+    expect(order((c) => c.url.includes("design_revision_id=REV-a1"))).toBeLessThan(order((c) => c.method === "POST" && c.url.endsWith("/research/runs")));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1" });
+  });
+
+  it("names Kontrola's checks and links each stage", async () => {
+    api();
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    expect(await screen.findByText("n = 450.")).toBeTruthy();
+    // The warning is in the checks and, counted, beside Start (FLD23).
+    expect(screen.getAllByText(/AIA zatím nepoužije filtry/).length).toBe(2);
+    expect(screen.getByText(/Sběr dat pomocí AI respondentů je dostupný jen pro schválené studie/)).toBeTruthy();
+    // "Co spustíte" (FLD23, Fieldwork.dc.html): the design with its link to Dotazník, the population, the
+    // ceiling and the budget, then Start inside it; a check that does not pass links to the step that
+    // fixes it (the audience warning, to Audience).
+    const what = await whatRuns();
+    expect(within(what).getByRole("link", { name: t("aia.stages.questionnaire") }).getAttribute("href")).toBe(stagePath("questionnaire"));
+    expect(what.textContent).toContain("1 otázek · 1 sledovaných sad · 5 položek");
+    expect(what.textContent).toContain("N 450");
+    expect(within(what).getByText("Upozornění, která nebrání (1): AIA zatím nepoužije filtry.")).toBeTruthy();
+    expect(within(what).getByRole("button", { name: t("research.exec.start") })).toBeTruthy();
+    expect(within(screen.getByRole("list", { name: t("research.exec.steps.preflight") })).getByRole("link", { name: t("research.exec.checks.fix") }).getAttribute("href")).toBe(stagePath("audience"));
+    expect(screen.getByRole("button", { name: t("research.exec.start") }).getAttribute("data-ai-action")).toBe("true");
   });
 
   it("lets the person choose who answers, reads the checks again under it, and starts with it (run-recovery-and-truth 5a)", async () => {
@@ -285,10 +330,10 @@ describe("Run", () => {
       },
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
-    const roster = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.fictional_roster")) }) as HTMLInputElement;
-    const panel = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement;
-    expect(roster.checked).toBe(true);
+    const card = await whatRuns();
+    const roster = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.fictional_roster")) });
+    const panel = within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) });
+    expect(roster.getAttribute("aria-checked")).toBe("true");
     fireEvent.click(panel);
     // While the checks are read again under the new choice, Start cannot send the old one
     // (review, Codex on #439).
@@ -296,10 +341,31 @@ describe("Run", () => {
     await screen.findByText("Filtry se uplatní při výběru respondentů z populace.");
     await waitFor(() => expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(false));
     expect(called("GET", READINESS).at(-1)!.url).toContain("persona_source=panel");
-    expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).checked).toBe(true);
+    expect(within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }).getAttribute("aria-checked")).toBe("true");
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     await waitFor(() => expect(push).toHaveBeenCalledWith(stagePath("progress")));
     expect(called("POST", "/api/v1/studies/STU-1/research/runs")[0].body).toEqual({ design_revision_id: "REV-a1", persona_source: "panel" });
+  });
+
+  it("says who answers in words that claim nothing about the cost, the default named (FLD23)", async () => {
+    const sources = [
+      { source: "panel", offered: true, reason: null, default: true },
+      { source: "fictional_roster", offered: true, reason: null, default: false },
+    ];
+    let source = "panel";
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, persona_source: source, persona_sources: sources }) });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const what = await whatRuns();
+    const note = () => what.querySelector("[data-source-note]")?.textContent ?? "";
+    await waitFor(() => expect(note()).toBe(`${t("research.exec.what.source.default")} ${t("research.exec.what.source.panel")}`));
+    source = "fictional_roster";
+    fireEvent.click(within(what).getByRole("radio", { name: t("research.exec.respondents.fictional_roster") }));
+    await waitFor(() => expect(note()).toBe(t("research.exec.what.source.fictional")));
+    // Fictional respondents still cost money: the board's "nic se neplatí" is never said (coordinator, 2026-10-29).
+    expect(note()).not.toMatch(/neplatí/);
+    // Only a panel run draws its respondents from the population; any other source only records it.
+    const population = () => [...what.querySelectorAll("dt")].find((d) => d.textContent === t("research.exec.what.population"))?.nextElementSibling?.textContent ?? "";
+    expect(population()).toContain("jen zaznamenaná");
   });
 
   it("shows a source the deployment does not offer, with its reason, and never selectable", async () => {
@@ -314,12 +380,12 @@ describe("Run", () => {
       }),
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
+    const card = await whatRuns();
     expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).disabled).toBe(true);
     expect(within(card).getByText(t("research.exec.respondents.reason.panel_personas_disabled"))).toBeTruthy();
   });
 
-  it("saves a change not yet saved before the design becomes a revision", async () => {
+  it("saves a change not yet saved before reading the checks, and makes it a revision only on Start", async () => {
     const workspace = workspaceFixture(PROJECT);
     api({ "PUT /api/v1/studies/STU-1/workspace/content": (b) => workspace.answer(CONTENT_PATH, "PUT", b) });
     const at = (step: "brief" | "run") => (
@@ -330,7 +396,11 @@ describe("Run", () => {
     const { rerender } = render(at("brief"));
     fireEvent.change(await screen.findByLabelText(t("research.brief.goalLabel")), { target: { value: "Nový cíl" } });
     rerender(at("run")); // before the 1.8 s autosave
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect((await whatRuns()).textContent).toMatch(/Pracovní kopie · revize \d+/);
+    expect(called("PUT", CONTENT_PATH)).toHaveLength(1);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(1));
     const put = calls.findIndex((c) => c.method === "PUT" && c.url === CONTENT_PATH);
     const post = calls.findIndex((c) => c.method === "POST" && c.url === "/api/v1/studies/STU-1/design/revisions");
     expect(put).toBeGreaterThanOrEqual(0);
@@ -390,7 +460,10 @@ describe("Run", () => {
     served = { ...served, revision: 4, revision_id: "REV-4", content: { ...PROJECT, goal: "Cíl, který uložil kolega" } };
     refuse = false;
     fireEvent.click(screen.getByRole("button", { name: t("research.saveReload") }));
-    expect(await screen.findByText("Revize návrhu 3")).toBeTruthy();
+    expect((await whatRuns()).textContent).toMatch(/Pracovní kopie · revize \d+/);
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(await screen.findByRole("button", { name: t("research.exec.start") }));
+    await waitFor(() => expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(1));
     const [submitted] = called("POST", "/api/v1/studies/STU-1/design/revisions");
     expect((submitted.body as { content: { goal: string } }).content.goal).toBe("Cíl, který uložil kolega");
     expect(called("GET", CONTENT_PATH)).toHaveLength(2);
@@ -400,7 +473,6 @@ describe("Run", () => {
     expect(puts).toHaveLength(2);
     expect((puts[1].body as { base_revision: number }).base_revision).toBe(4);
     expect((submitted.body as { workspace_revision: number }).workspace_revision).toBe(5);
-    expect(called("POST", "/api/v1/studies/STU-1/research/runs")).toHaveLength(0);
   }, 15_000);
 
   it("submits nothing when the save before it fails, and says why", async () => {
@@ -434,14 +506,16 @@ describe("Run", () => {
       }),
     });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText(t("research.exec.notReady"))).toBeTruthy();
+    expect(within(await whatRuns()).getByText(t("research.exec.what.notReady"))).toBeTruthy();
+    // A check that stops the run opens "Všechny kontroly" (FLD24).
+    expect((document.querySelector("[data-all-checks]") as HTMLDetailsElement).open).toBe(true);
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("lets a reader see the latest revision's checks, but not write a revision or start", async () => {
     api();
     render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
-    expect(await screen.findByText("Revize návrhu 2")).toBeTruthy();
+    await waitFor(async () => expect((await whatRuns()).textContent).toContain("Revize návrhu 2"));
     expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
     expect(called("GET", "/api/v1/studies/STU-1/research/readiness")[0].url).toContain("design_revision_id=REV-old");
     expect((screen.getByRole("button", { name: t("research.exec.start") }) as HTMLButtonElement).disabled).toBe(true);
@@ -610,7 +684,7 @@ describe("Run: which questions the run will answer (run-recovery-and-truth 2b)",
   it("shows no card for a design with no items", async () => {
     api();
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    expect(await screen.findByText(t("research.exec.ready"))).toBeTruthy();
+    await whatRuns();
     expect(screen.queryByRole("region", { name: t("research.exec.outlook.title") })).toBeNull();
   });
 });
@@ -620,24 +694,24 @@ describe("Run: what a run can cost (5b.2)", () => {
   const PRICED = { ...READY, cost_ceiling_usd: 225, cost_ceiling_unknown: null, fieldwork_requests: 450, analysis_calls: 0, spend_confirm_usd: null, confirmation_required: false };
   const RUNS = "/api/v1/studies/STU-1/research/runs";
 
-  it("shows the ceiling as an upper bound beside what is left of the budget", async () => {
+  it("shows the ceiling as an upper bound beside what is left of the budget (FLD23)", async () => {
     api({ "GET /api/v1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    const cost = await screen.findByRole("region", { name: t("research.exec.cost.title") });
-    expect(await within(cost).findByText(/225\.00 USD/)).toBeTruthy();
-    expect(within(cost).getByText(/450 dotazů/)).toBeTruthy();
-    // Each amount says USD once (it read "400.00 USD USD").
-    expect(await within(cost).findByText("Z rozpočtu studie zbývá 400.00 USD (rozpočet 500.00 USD).")).toBeTruthy();
-    expect(within(cost).getByText(t("research.exec.cost.bound"))).toBeTruthy();
+    const what = await whatRuns();
+    const ceiling = what.querySelector("[data-what-ceiling]") as HTMLElement;
+    expect(ceiling.textContent?.replace(/\s/g, " ")).toContain("225,00 USD");
+    expect(within(ceiling).getByText(t("research.exec.what.bound"))).toBeTruthy();
+    // Each amount says USD once.
+    await waitFor(() => expect(what.querySelector("[data-what-budget]")?.textContent?.replace(/\s/g, " ")).toBe("zbývá 400,00 USD z 500,00 USD"));
   });
 
   it("says a ceiling it cannot work out is unknown, never zero", async () => {
     const unknown = { ...PRICED, cost_ceiling_usd: null, cost_ceiling_unknown: "fieldwork_reservation_missing" };
     api({ "GET /api/v1/studies/STU-1/research/readiness": () => unknown, "GET /api/v1/studies/STU-1": () => STUDY });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    const cost = await screen.findByRole("region", { name: t("research.exec.cost.title") });
-    expect(await within(cost).findByText(t("research.exec.cost.unknown.fieldwork_reservation_missing"))).toBeTruthy();
-    expect(within(cost).queryByText(/Běh může stát nejvýše/)).toBeNull(); // no figure at all, so no zero
+    const what = await whatRuns();
+    expect(await within(what).findByText(t("research.exec.cost.unknown.fieldwork_reservation_missing"))).toBeTruthy();
+    expect(what.querySelector("[data-what-ceiling]")?.textContent).not.toMatch(/\d,\d\d\sUSD/); // no figure at all, so no zero
   });
 
   it("asks before starting a run whose ceiling reaches the study's limit, and sends the yes", async () => {
@@ -657,6 +731,8 @@ describe("Run: what a run can cost (5b.2)", () => {
     fireEvent.click(within(dialog).getByRole("button", { name: t("dialog.cancel") }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(called("POST", RUNS)).toHaveLength(0); // no yes, no run
+    // Declining writes nothing: the spend is asked before the design becomes a revision (FLD22).
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
 
     fireEvent.click(screen.getByRole("button", { name: t("research.exec.start") }));
     fireEvent.click(await screen.findByRole("button", { name: /^Spustit běh · do 225,00\sUSD$/ }));
@@ -730,13 +806,53 @@ describe("Run: what a run can cost (5b.2)", () => {
     expect(start.disabled).toBe(true);
     fireEvent.change(within(gate).getByRole("textbox", { name: t("research.exec.answerability.why") }), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
     await waitFor(() => expect(start.disabled).toBe(false));
-    const card = (await screen.findByRole("heading", { name: t("research.exec.respondents.title") })).closest("section") as HTMLElement;
+    const card = await whatRuns();
     fireEvent.click(within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }));
-    await waitFor(() => expect((within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }) as HTMLInputElement).checked).toBe(true));
+    await waitFor(() => expect(within(card).getByRole("radio", { name: new RegExp(t("research.exec.respondents.panel")) }).getAttribute("aria-checked")).toBe("true"));
     await waitFor(() => expect(choice.checked).toBe(false));
     expect(screen.getByRole("button", { name: t("research.exec.start") })).toBe(start);
     expect(start.disabled).toBe(true);
     expect(screen.queryByRole("button", { name: t("research.exec.answerability.startLimited") })).toBeNull();
+    expect(called("POST", RUNS)).toHaveLength(0);
+  });
+
+  it("carries the acknowledgement given on Kontrola to the revision Start submits, for the same gaps under its digest (FLD22)", async () => {
+    const gaps = [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }];
+    const answer = (digest: string) => ({ rules: "aia-answerability-1", capable: false, digest, acknowledgement_required: true, gaps });
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => ({ ...READY, design_revision_id: undefined, answerability: answer("w".repeat(64)) }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability: answer("r".repeat(64)) }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    expect(called("POST", "/api/v1/studies/STU-1/design/revisions")).toHaveLength(0);
+    fireEvent.click(start);
+    await waitFor(() => expect(called("POST", RUNS)).toHaveLength(1));
+    expect((called("POST", RUNS)[0].body as { acknowledge_research_questions: unknown }).acknowledge_research_questions).toEqual({ digest: "r".repeat(64), reason: "Ověřujeme jen postup na fiktivních datech." });
+  });
+
+  it("starts nothing when the submitted revision's gaps differ from those acknowledged, and shows them again (FLD22)", async () => {
+    const gap = (q: string) => [{ kind: "not_answerable", research_question: q, verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }];
+    let reads = 0;
+    const shown = { rules: "aia-answerability-1", capable: false, digest: "w".repeat(64), acknowledgement_required: true, gaps: gap("Jak klienti důvěřují účtu?") };
+    const moved = { ...shown, digest: "x".repeat(64), gaps: gap("Proč odcházejí?") };
+    api({
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => ({ ...READY, answerability: reads++ === 0 ? shown : moved }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...READY, answerability: { ...moved, digest: "r".repeat(64) } }),
+    });
+    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
+    const gate = await screen.findByRole("region", { name: t("research.exec.answerability.title") });
+    fireEvent.click(within(gate).getByRole("checkbox", { name: t("research.exec.answerability.choice") }));
+    fireEvent.change(within(gate).getByRole("textbox"), { target: { value: "Ověřujeme jen postup na fiktivních datech." } });
+    const start = screen.getByRole("button", { name: t("research.exec.answerability.startLimited") }) as HTMLButtonElement;
+    await waitFor(() => expect(start.disabled).toBe(false));
+    fireEvent.click(start);
+    expect(await screen.findByText(t("research.exec.changedOnStart"))).toBeTruthy();
+    expect(await screen.findByText("Proč odcházejí?")).toBeTruthy();
     expect(called("POST", RUNS)).toHaveLength(0);
   });
 
@@ -844,11 +960,14 @@ describe("Run: what a run can cost (5b.2)", () => {
       rules: "aia-answerability-1", capable: false, digest: "d".repeat(64), acknowledgement_required: true,
       gaps: [{ kind: "not_answerable", research_question: "Co klienty odrazuje?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
     };
+    const capable = { ...READY, answerability: { rules: "aia-answerability-1", capable: true, digest: "e".repeat(64), acknowledgement_required: false, gaps: [] } };
     let reads = 0;
     api({
-      "GET /api/v1/studies/STU-1/research/readiness": () =>
+      // The start's own read of the submitted revision passes; Kontrola's read again fails.
+      "GET /api/v1/studies/STU-1/research/readiness": () => capable,
+      "GET /api/v1/studies/STU-1/research/readiness/working": () =>
         reads++ === 0
-          ? { ...READY, answerability: { rules: "aia-answerability-1", capable: true, digest: "e".repeat(64), acknowledgement_required: false, gaps: [] } }
+          ? capable
           : new Response(JSON.stringify({ code: "internal_error", message: "Chyba.", details: {} }), { status: 500 }),
       "POST /api/v1/studies/STU-1/research/runs": () =>
         new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "…", details: answerability }), { status: 409 }),
@@ -869,9 +988,11 @@ describe("Run: what a run can cost (5b.2)", () => {
       gaps: [{ kind: "not_answerable", research_question: "Jak klienti důvěřují účtu?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] }],
     };
     let reads = 0;
+    const off = { ...READY, answerability: { ...answerability, acknowledgement_required: false } };
     api({
       // Read first without the requirement (the gate was off), then as the server refuses.
-      "GET /api/v1/studies/STU-1/research/readiness": () => (reads++ === 0 ? { ...READY, answerability: { ...answerability, acknowledgement_required: false } } : { ...READY, answerability }),
+      "GET /api/v1/studies/STU-1/research/readiness": () => off,
+      "GET /api/v1/studies/STU-1/research/readiness/working": () => (reads++ === 0 ? off : { ...READY, answerability }),
       "POST /api/v1/studies/STU-1/research/runs": () =>
         new Response(JSON.stringify({ code: "research_questions_unanswerable", message: "The run cannot answer every research question.", details: answerability }), { status: 409 }),
     });
@@ -965,66 +1086,19 @@ describe("Run: what a run can cost (5b.2)", () => {
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
     const startButton = (await screen.findByRole("button", { name: t("research.exec.start") })) as HTMLButtonElement;
     expect(startButton.disabled).toBe(true);
-    expect(screen.getByText(t("research.exec.cost.unknownBlocks"))).toBeTruthy();
+    expect(screen.getByText(t("research.exec.what.unknownBlocks"))).toBeTruthy();
+    // The summary's pill follows whether Start can start, not readiness alone (FLD23).
+    expect(within(await whatRuns()).getByText(t("research.exec.what.notReady"))).toBeTruthy();
   });
 
-  it("sets the study's limit, clears it, and reads the checks again", async () => {
-    let limit: number | null = null;
-    api({
-      "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...PRICED, spend_confirm_usd: limit, confirmation_required: limit !== null && 225 >= limit }),
-      "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spend_confirm_usd: limit }),
-      "PUT /api/v1/studies/STU-1/spend-confirm": (b) => {
-        limit = (b as { limit_usd: number | null }).limit_usd;
-        return { ...STUDY, spend_confirm_usd: limit };
-      },
-    });
+  it("states the confirmation threshold and links to where it is set, with no setter on Kontrola (FLD23)", async () => {
+    api({ "GET /api/v1/studies/STU-1/research/readiness": () => ({ ...PRICED, spend_confirm_usd: 100, confirmation_required: true }), "GET /api/v1/studies/STU-1": () => ({ ...STUDY, spend_confirm_usd: 100 }) });
     render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    const form = await screen.findByRole("form", { name: t("research.exec.cost.limit") });
-    // Studio v3: the limit is a switch with an amount, saved on Enter (or on leaving the field).
-    const toggle = within(form).getByRole("switch", { name: t("research.exec.cost.switch") });
-    expect(toggle.getAttribute("aria-checked")).toBe("false");
-    fireEvent.click(toggle);
-    fireEvent.change(within(form).getByLabelText(t("research.exec.cost.limitAmount")), { target: { value: "150" } });
-    fireEvent.submit(form);
-    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(1));
-    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[0].body).toEqual({ limit_usd: 150 });
-    // The checks are read again, so the page now says Start will ask.
-    expect(await screen.findByText(t("research.exec.cost.willAsk"))).toBeTruthy();
-    // Switching it off clears the limit.
-    fireEvent.click(within(form).getByRole("switch", { name: t("research.exec.cost.switch") }));
-    await waitFor(() => expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(2));
-    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")[1].body).toEqual({ limit_usd: null });
-  });
-
-  it("keeps the switch on and the amount typed when they are set the moment the form appears", async () => {
-    api({ "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
-    // A MutationObserver runs in the microtask right after React commits the form, before
-    // React's passive effects run (a later task): the window in which a person's first click
-    // was once overwritten by the mount's "no limit". The amount is typed in the same window.
-    let acted = false;
-    const observer = new MutationObserver(() => {
-      const toggle = document.querySelector<HTMLElement>(`[role="switch"][aria-checked="false"]`);
-      if (acted || !toggle) return;
-      acted = true;
-      fireEvent.click(toggle);
-      const amount = screen.queryByLabelText(t("research.exec.cost.limitAmount"));
-      if (amount) fireEvent.change(amount, { target: { value: "150" } });
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    onTestFinished(() => observer.disconnect());
-    render(<ResearchScreen step="run" frame={TEST_FRAME} />);
-    await waitFor(() => expect(acted).toBe(true));
-    const form = await screen.findByRole("form", { name: t("research.exec.cost.limit") });
-    await screen.findByText(/Z rozpočtu studie zbývá/); // the study's budget arrived: the card's effects have run
-    expect(within(form).getByRole("switch", { name: t("research.exec.cost.switch") }).getAttribute("aria-checked")).toBe("true");
-    expect((within(form).getByLabelText(t("research.exec.cost.limitAmount")) as HTMLInputElement).value).toBe("150");
-  });
-
-  it("offers no limit control to a reader", async () => {
-    api({ "GET /api/v1/studies/STU-1/research/readiness": () => PRICED, "GET /api/v1/studies/STU-1": () => STUDY });
-    render(<ResearchScreen step="run" frame={{ ...TEST_FRAME, canEdit: false }} />);
-    await screen.findByRole("region", { name: t("research.exec.cost.title") });
-    expect(screen.queryByRole("form", { name: t("research.exec.cost.limit") })).toBeNull();
+    const what = await whatRuns();
+    const link = within(what).getByRole("link", { name: /nad prahem potvrzení 100,00\sUSD/ });
+    expect(link.getAttribute("href")).toBe("/app/settings#studies");
+    expect(screen.queryByRole("switch")).toBeNull();
+    expect(called("PUT", "/api/v1/studies/STU-1/spend-confirm")).toHaveLength(0);
   });
 
   it("asks again when a retry reaches the limit, and retries with the yes", async () => {
@@ -1230,6 +1304,7 @@ describe("Progress", () => {
       ...COMPLETED,
       steps: [
         step("aggregate", "SUCCEEDED"),
+        step("qc", "SUCCEEDED", { kind: "research_qc" }),
         step("run", "SUCCEEDED"),
         step("future_step", "RUNNABLE"),
         step("compile", "SUCCEEDED"),
@@ -1241,14 +1316,16 @@ describe("Progress", () => {
     const list = await screen.findByRole("list", { name: t("research.exec.stepsTitle") });
     const rows = [...list.querySelectorAll<HTMLElement>(":scope > li")];
     // Every step the run has, none it has not: known ones in the pipeline's order, the rest after.
-    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "aggregate", "analysis_objects", "future_step"]);
-    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5"]);
+    expect(rows.map((r) => r.dataset.step)).toEqual(["compile", "run", "qc", "aggregate", "analysis_objects", "future_step"]);
+    expect(rows.map((r) => r.querySelector("[data-step-number]")?.textContent)).toEqual(["1", "2", "3", "4", "5", "6"]);
+    // The run QC step (RQC2) is named, after the fieldwork whose answers it reads.
+    expect(within(rows[2]).getByText(t("research.exec.steps.qc"))).toBeTruthy();
     // The count belongs to the steps: their section says it, of the steps listed.
     const section = list.closest("section")!;
-    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toBeTruthy();
-    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 4, total: 5 }))).toHaveLength(1);
+    expect(within(section).getByText(tv("research.exec.stepsFinished", { done: 5, total: 6 }))).toBeTruthy();
+    expect(screen.getAllByText(tv("research.exec.stepsFinished", { done: 5, total: 6 }))).toHaveLength(1);
     // A step this client cannot name keeps its key as a code; the number is the list's, not read twice.
-    expect(rows[4].textContent).toContain(tv("research.exec.stepUnnamed", { code: "future_step" }));
+    expect(rows[5].textContent).toContain(tv("research.exec.stepUnnamed", { code: "future_step" }));
     expect(rows[0].querySelector("[data-step-number]")?.getAttribute("aria-hidden")).toBe("true");
   });
 
@@ -3548,7 +3625,7 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     );
   });
 
-  it("shows the spend as tiles in the prototype's words, the unpriced calls a fifth tile only when there are any (FLD4e)", async () => {
+  it("shows the spend as the board's compact panel in its words, the unpriced calls a row only when there are any (FLD4e, FLD20)", async () => {
     const labels = () => [...document.querySelectorAll("[data-run-spend] [data-spend] dt")].map((dt) => dt.textContent);
     const running = { ...PARKED, spend: { spent_usd: 1.5, reserved_usd: 0.25, uncertain_calls: 0 }, cost_ceiling: { usd: 2.5, unknown: null } };
     api({ ...listed(running), "GET /api/v1/studies/STU-1": () => STUDY });
@@ -3558,6 +3635,14 @@ describe("Náklady on Průběh (artifact-fieldwork FLD4b, FLD4e)", () => {
     expect(labels()).toEqual(["Utraceno", "Drženo pro běžící kroky", "Strop běhu", "Zbývá v rozpočtu studie"]);
     // Each tile its value first, as a figure; a note beneath it, never run into it.
     for (const tile of document.querySelectorAll("[data-run-spend] [data-spend]")) expect(tile.querySelector("dd > [data-spend-value]")).not.toBeNull();
+    // FLD20 (Fieldwork.dc.html "Náklady"): one row per amount, its label beside its value, not a tile; what is
+    // spent the one figure set strongest.
+    for (const row of document.querySelectorAll("[data-run-spend] [data-spend]")) {
+      expect([...row.children].map((c) => c.tagName)).toEqual(["DT", "DD"]);
+      expect(row.className).toContain("grid-cols-[1fr_auto]");
+    }
+    const strong = [...document.querySelectorAll("[data-run-spend] [data-spend-value]")].filter((v) => v.className.includes("font-semibold"));
+    expect(strong.map((v) => v.closest("[data-spend]")?.getAttribute("data-spend"))).toEqual(["spent"]);
     unmount();
 
     // An ended run with unpriced calls: a fifth tile, and no tile says a step still runs.

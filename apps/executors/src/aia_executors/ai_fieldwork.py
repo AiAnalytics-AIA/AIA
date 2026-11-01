@@ -91,6 +91,7 @@ from aia_core.domain.residency import DataClass
 from aia_core.domain.respondent_behavior import BEHAVIOR_VERSION, ResponseProcessSpec
 from aia_core.domain.respondent_facts import FACT_LAYER_VERSION
 from aia_core.domain.workflow import FailureClass
+from aia_core.infrastructure.artifact_repository import ArtifactRepository
 from aia_core.infrastructure.build_identity import BuildIdentity
 from aia_core.infrastructure.fieldwork_journal import FieldworkJournal
 from aia_core.infrastructure.population_source import PopulationAssetSource
@@ -226,7 +227,7 @@ def request_key(request: ModelRequest, binding: str) -> str:
             "class": request.data_classification.value if request.data_classification else None,
             "max_output_tokens": request.max_output_tokens,
             "system": request.system,
-            "messages": [[m.role, m.content] for m in request.messages],
+            "messages": [[m.role, m.text] for m in request.messages],
         }
     )
 
@@ -297,6 +298,7 @@ class AIFieldwork:
         scale_labels_in_prompt: bool | None = None,
         journal: _RunJournal | None = None,
         quota: PanelSample | None = None,
+        refused_answers: Callable[[Session], ArtifactRepository] | None = None,
     ) -> Answered | Failed:
         """Ask the model every block of every plan and draw the answers by code.
 
@@ -333,6 +335,7 @@ class AIFieldwork:
             runtime_version=self._build.sha or "",
             provider=cfg.provider,
             reservation_usd=cfg.reservation_usd,
+            refused_answers=refused_answers,
         )
 
         # Whether the resolved model takes a sampling setting; read from its profile once the
@@ -539,7 +542,12 @@ class AIFieldwork:
         return classify_input(value, self._config.material_approvals)
 
     def produce(
-        self, spec: ResearchSpecification, step: StepInput, context: StepContext
+        self,
+        spec: ResearchSpecification,
+        step: StepInput,
+        context: StepContext,
+        *,
+        refused_answers: Callable[[Session], ArtifactRepository] | None = None,
     ) -> ProducedDataset | Failed:
         cfg = self._config
         try:
@@ -658,6 +666,7 @@ class AIFieldwork:
             lineage=lineage,
             journal=_RunJournal(context, run_lineage) if run_lineage is not None else None,
             quota=built.sample if built is not None else None,
+            refused_answers=refused_answers,
         )
         if isinstance(answered, Failed):
             return answered

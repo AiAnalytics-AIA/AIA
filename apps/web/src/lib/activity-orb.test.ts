@@ -91,7 +91,7 @@ describe("whether a research run's step calls a model, at any status (artifact-f
     expect(researchStepWork(fixture, "analysis_executive")).toBe("ai");
   });
 
-  it.each(["compile", "preflight", "aggregate", "sociomap", "sociomapping", "sociomapping_report", "report"])("%s is code", (key) => {
+  it.each(["compile", "preflight", "qc", "aggregate", "sociomap", "sociomapping", "sociomapping_report", "report"])("%s is code", (key) => {
     expect(researchStepWork(ai, key)).toBe("running");
   });
 

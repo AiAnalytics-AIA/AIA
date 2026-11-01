@@ -1,6 +1,6 @@
 # ADR 0037 — A client dataset's evidence policy is compiled from its accepted data contract, and nothing else
 
-**Status:** Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
+**Status:** Accepted — 2026-10-29 (the methodology owner's verdict (a), now that MQ-16 to MQ-18 are answered; relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2), with the [amendment of 2026-10-29](#amendment-2026-10-29) below. Before: Proposed — 2026-10-20; **held for the methodology owner's answers** (the product
 owner, 2026-10-20: "accept 0028-0033, 0035, 0038-0040; hold 0034, 0036, 0037"). **The support,
 metric and benchmark rules (decision 4) are awaiting the methodology owner** (ADR 0027 Q1, Q2, Q4).
 **Amends** [ADR 0027](0027-client-data-is-client-reported-evidence.md), as that ADR reads after the
@@ -128,3 +128,11 @@ and AC-10.
 2. ~~**Sequencing with #508.** This ADR reads ADR 0027 as #508 amends it; if #508 changes before it
    merges, this ADR follows it.~~ Closed 2026-10-26 (the product owner, Q5 (a): "Close it"): #508
    has merged.
+
+## Amendment, 2026-10-29
+
+Accepted on the methodology owner's verdict (a), relayed by the product owner in the PM coordinator's chat, 2026-10-29; recorded in `.planning/mvp-methodology-packet.md`, part 2. Decision 4's support, metric and
+benchmark rules are his answers to MQ-16 and MQ-18 (2026-10-28), as ADR 0027's amendment of the same
+day states them: both intervals and no difference claimed; a survey's n is its row count or Kish n
+with an interval; a record count is "not a sample", exact, with no interval or test; a supplied
+aggregate is shown as reported; the metrics are mean, pct, n, count, amount and rate.

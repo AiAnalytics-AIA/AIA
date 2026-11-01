@@ -187,18 +187,50 @@ def test_a_second_accept_from_the_same_run_is_stale_and_writes_nothing(
 ) -> None:
     items = [i.item_id for i in _proposal(pass_one, store).items]
     first, _, _ = _accept(pass_one, store, items[:1])
-    for expected in (None, first.revision_id):
+    for expected, reason in (
+        (None, "proposal_already_accepted"),  # the run is spent by its accept (WCE5)
+        (first.revision_id, "stale_proposal"),  # not the revision the run researched
+    ):
         with pytest.raises(DesignRejected) as refused:
             _accept(pass_one, store, items[1:], expected=expected)
-        assert refused.value.reason == "stale_proposal"
+        assert refused.value.reason == reason
     assert _latest(pass_one.world) == first.revision_id
     assert len(_ledger(pass_one.world)) == 1
+
+
+def test_a_run_accepted_once_is_spent_even_after_the_person_reverts_its_items(
+    pass_one: Journey,  # noqa: F811
+    store: InMemoryArtifactStore,
+) -> None:
+    """With no head check (WCE5), a revert of the accepted block would let the same items be
+    written back over it; the run's recorded accept refuses that by name."""
+    world = pass_one.world
+    items = [i.item_id for i in _proposal(pass_one, store).items]
+    _accept(pass_one, store, items[:1])
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        workspaces = StudyWorkspaceRepository(session)
+        now = workspaces.content(scope)
+        reverted = {k: v for k, v in (now.content or {}).items() if k != "design_research"}
+        workspaces.save(
+            scope,
+            content=reverted,
+            base_revision=now.revision,
+            by=WriteBy(ActorKind.PERSON, scope.actor_id, OpSource.UI),
+        )
+        session.commit()
+    with pytest.raises(DesignRejected) as refused:
+        _accept(pass_one, store, items[:1])
+    assert refused.value.reason == "proposal_already_accepted"
+    assert len(_ledger(world)) == 1
 
 
 def test_a_design_edited_after_the_run_is_never_written_over(
     pass_one: Journey,  # noqa: F811
     store: InMemoryArtifactStore,
 ) -> None:
+    """The person's edit of a field the proposal does not change, submitted as a newer Design
+    Revision, stales nothing (WCE5, D-06): the accept lands on top of it and keeps the edit."""
     world = pass_one.world
     with world.sessions() as session:
         edited, _ = StudyDesignRepository(
@@ -206,10 +238,10 @@ def test_a_design_edited_after_the_run_is_never_written_over(
         ).submit_as_working_copy(content={**DESIGN, "goal": "Jiný cíl"}, source_stage="brief")
         session.commit()
     items = [i.item_id for i in _proposal(pass_one, store).items]
-    with pytest.raises(DesignRejected) as refused:
-        _accept(pass_one, store, items)
-    assert refused.value.reason == "stale_proposal"
-    assert _latest(world) == edited.revision_id and _ledger(world) == []
+    revision, created, content = _accept(pass_one, store, items)
+    assert created and revision.parent_revision == edited.revision
+    assert content["goal"] == "Jiný cíl"
+    assert _latest(world) == revision.revision_id and len(_ledger(world)) == 1
 
 
 @pytest.mark.parametrize(
@@ -329,3 +361,38 @@ def test_an_accept_that_would_overflow_the_design_jobs_context_is_refused(
         _accept(journey, store, taken)
     assert refused.value.reason == "design_context_too_large"
     assert _latest(research) == baseline and _ledger(research) == []
+
+
+def test_an_accept_onto_a_design_grown_since_the_run_is_held_to_the_context_bound(
+    pass_one: Journey,  # noqa: F811
+    store: InMemoryArtifactStore,
+) -> None:
+    """A newer Design Revision no longer stales the proposal (WCE5), so the accept can land on a
+    working copy the person grew after the run: the bound is checked on the copy it writes, never
+    the run's small baseline, and nothing is written."""
+    from aia_core.domain.research_agents import CONTEXT_MAX_BYTES, context_snapshot
+    from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+
+    world = pass_one.world
+    with world.sessions() as session:
+        scope = world.lead_scope(session)
+        knowledge = ClientKnowledgeRepository(session).for_study(scope)
+        used = len(
+            json.dumps(
+                context_snapshot(DESIGN, knowledge),
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=False,
+            ).encode()
+        )
+        padded = {**DESIGN, "notes": "x" * (CONTEXT_MAX_BYTES - used - 300 - len(',"notes":""'))}
+        context_snapshot(padded, knowledge)  # the person's copy still fits
+        grown, _ = StudyDesignRepository(session, scope).submit_as_working_copy(
+            content=padded, source_stage="brief"
+        )
+        session.commit()
+    items = [i.item_id for i in _proposal(pass_one, store).items]
+    with pytest.raises(DesignRejected) as refused:
+        _accept(pass_one, store, items)
+    assert refused.value.reason == "design_context_too_large"
+    assert _latest(world) == grown.revision_id and _ledger(world) == []

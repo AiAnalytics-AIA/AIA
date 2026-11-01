@@ -1,7 +1,7 @@
 ---
-status: planned
+status: in-progress
 chunks:
-  - "[ ] LK0. Prerequisite, built in its own fix PR: the licence determination for the unclassified-client-knowledge lineage, approved for bedrock-eu-primary only (Q60 a, 2026-10-21); closes Finding 1"
+  - "[x] LK0. Prerequisite, built in its own fix PR: the licence determination for the unclassified-client-knowledge lineage, approved for bedrock-eu-primary only (Q60 a, 2026-10-21); closes Finding 1 (#582 @ e68b898c)"
   - "[ ] LK1. The knowledge index as data, always in the context (ADR 0041 A2): every ACTIVE item, every PROPOSED proposal (unapproved), every client source (an internal one marked, Class C), REJECTED and removed out; compact entries within the knowledge layer's share, paged past it, never silent; ADR 0042 folded into ADR 0026 Amendment 2026-10-28 (Q4, accepted 2026-10-28), whose R2 knowledge tools are the search-and-read round"
   - "[ ] LK2. The index frozen at enqueue: study-scoped repository reads (no silent 200-row cap), reading pins per source and revisions per item in the frozen context, each entry classed by material_rules, the lineage declared"
   - "[ ] LK3. The search and read (ADR 0041 A3; since ADR 0026 Amendment 2026-10-28 the native read tools knowledge_search and knowledge_read, same limits, bound USD 0.50 or 8 rounds): LeadOutput.search (at most 2 word-search queries over the study's chosen knowledge) and LeadOutput.read (at most 3 page reads a turn), a searching or reading turn holds nothing else, at most three model calls a turn, the answering request's contract forbids another search or read; the reads layer sized as a share of the token budget (lead-conversation LC4); quotes grounded in the segment read and cited by page, numbers through lead_contract"
@@ -281,6 +281,12 @@ defect, so the determination Q60 (a) settled, `unclassified-client-knowledge` ap
 on its own fix PR now, not under this plan. This plan's chunks LK2, LK4 and LK5 build on it; its
 tick here records that PR once merged. It is the one chunk without a journey step: it is a
 policy record, tested by the licence gate's own tests.
+
+*Done, ticked 2026-10-28:* #582 (`Let unrecorded client knowledge reach the EU Bedrock route`, merged
+2026-10-21 as `e68b898c`) records the determination: `CLIENT_KNOWLEDGE_DATASET` approved for
+`bedrock-eu-primary` only, decided by the product owner as data owner
+(`packages/aia_core/src/aia_core/domain/licence_determinations.py:104-112 @ e06cfc10`), held by
+`packages/aia_core/tests/test_licence_gate.py:102-133`. Only the tick was missing.
 
 *ADR 0026 Amendment 2026-10-28 (accepted, #1085; the owner's Q4 "Fold it in"):* ADR 0042 is not written. Search and read
 are the native read tools `knowledge_search` and `knowledge_read` (its R2), keeping LK3's limits (2 searches, 3 page

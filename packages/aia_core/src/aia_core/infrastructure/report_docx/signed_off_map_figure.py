@@ -93,6 +93,8 @@ class FigureTexts:
     indicative: Callable[[int, int], str]  # objects, the declared minimum
     unplaceable: Callable[[int, int], str]  # objects, the ratings a respondent needs
     segments_hint: str  # {k}
+    #: Beside segments shown: they describe, never explain or compare (S-2).
+    segments_describe: str
     decimal_comma: bool
 
 
@@ -139,6 +141,7 @@ CZECH: Final = FigureTexts(
         f"umístit (potřeba aspoň {r} hodnocení)"
     ),
     segments_hint="Náznak {k} skupin · nejisté, body nejsou obarvené",
+    segments_describe="Segmenty jen popisují, jak se respondenti na této mapě liší.",
     decimal_comma=True,
 )
 
@@ -507,8 +510,7 @@ def render_objects(
     x0, y0, wl = 14 * s, h - 54 * s, 150 * s
     # The lowest hill's height is the declared floor of the relative heights.
     floor = artifact.spec.terrain.relative_height_floor if artifact.spec.terrain else None
-    floor = 0.0 if floor is None else floor
-    _ramp(ax, x0, y0, wl, s, floor)
+    _ramp(ax, x0, y0, wl, s, 0.0 if floor is None else floor)
     tx: dict[str, Any] = {"color": "#cfd6de", "fontsize": 7.2 * s, "zorder": 9}
     ax.text(x0, y0 - 6 * s, texts.height_title, va="bottom", weight="bold", **tx)
     if n_lab < shown.sum():
@@ -523,8 +525,11 @@ def render_objects(
         )
     ax.text(x0, y0 + 11 * s, _number(lo, 1, texts), va="top", **tx)
     ax.text(x0 + wl, y0 + 11 * s, _number(hi, 1, texts), va="top", ha="right", **tx)
-    lowest = texts.lowest.format(floor=f"{100 * floor:.0f}")
-    ax.text(x0, y0 + 24 * s, lowest, va="top", color="#8b96a3", fontsize=6.4 * s, zorder=9)
+    # At 0 the ramp's ends, the lowest and highest rating, say it all (MQ-08); a map declaring no
+    # floor gets no line, never a stated one.
+    if floor is not None and round(100 * floor) > 0:
+        lowest = texts.lowest.format(floor=f"{100 * floor:.0f}")
+        ax.text(x0, y0 + 24 * s, lowest, va="top", color="#8b96a3", fontsize=6.4 * s, zorder=9)
     ax.text(
         w - 14 * s,
         h - 46 * s,
@@ -742,6 +747,7 @@ def render_respondents(
             k = len(seg.shares)
             ax.add_patch(Circle((18 * s, (29 + 12 * k) * s), 3.2 * s, color=SEG_GREY, zorder=9))
             ax.text(26 * s, (25 + 12 * k) * s, texts.segment_grey, color="#8b96a3", **tx2)
+            ax.text(14 * s, (37 + 12 * k) * s, texts.segments_describe, color="#8b96a3", **tx2)
         else:
             if seg.decision == "BORDERLINE" and seg.hint is not None:
                 line = texts.segments_hint.format(k=seg.hint.k)
@@ -787,15 +793,19 @@ def _rating_ends(artifact: SociomapArtifactV3) -> tuple[float, float] | None:
 
 
 def signed_off_snapshots(
-    artifact: SociomapArtifactV3, labels: Mapping[str, str], *, only: str | None = None
+    artifact: SociomapArtifactV3,
+    labels: Mapping[str, str],
+    *,
+    only: str | None = None,
+    respondents: bool = True,
 ) -> dict[str, bytes]:
     """The report's figures of a signed-off map: the object map from above (``top``) and from the
-    side (``3d``), and the respondent map (``respondents``) where it is stored. ``only``: that
-    figure alone, the rest not drawn (a map snapshot, report-delivery RD4)."""
+    side (``3d``), and the respondent map (``respondents``) where it is stored and asked for.
+    ``only``: that figure alone, the rest not drawn (a map snapshot, report-delivery RD4)."""
     names = [labels.get(o, o) for o in artifact.object_ids]
     images: dict[str, bytes] = {}
     views: list[tuple[str, str, bool]] = [("top", "top", False), ("3d", "side", False)]
-    if isinstance(artifact.respondents, RespondentMap):
+    if respondents and isinstance(artifact.respondents, RespondentMap):
         views.append(("respondents", "side", True))
     for key, view, respondents in views:
         if only is not None and key != only:

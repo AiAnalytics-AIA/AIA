@@ -40,6 +40,7 @@ from ..domain.workflow import WorkflowRunStatus
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from ..infrastructure.storage import ArtifactStore
 from ..infrastructure.study_design_repository import StudyDesignRepository
+from ..infrastructure.study_workspace_repository import StudyWorkspaceRepository
 from ..infrastructure.workflow_repository import WorkflowRepository
 from .deep_research import DeepResearchRuns, LineageChanged
 from .proposal_accept import (
@@ -101,11 +102,12 @@ class DesignResearchProposals:
 
         Needs ``EDIT_STUDY`` and ``APPROVE_GATE`` on an open Study; the worker's scope holds
         no ``APPROVE_GATE`` (ADR 0019 decision 6). The run's lineage must still resolve and
-        ``expected_revision_id`` must be both the revision the run researched and the
-        Study's newest (``stale_proposal``). The items go into the working copy at
-        ``expected_workspace_revision`` too, item by item, in the same transaction, and the
-        Design Revision names the working revision written (ADR 0026 decisions 5-6); an edit of
-        the person's to an item the items change refuses it (``stale_proposal``,
+        ``expected_revision_id`` must be the revision the run researched (``stale_proposal``,
+        ``design_moved``); a newer one alone stales nothing (WCE5), and a run whose items were
+        accepted once is spent (``proposal_already_accepted``). The items go into the working
+        copy at ``expected_workspace_revision`` too, field by field, in the same transaction, and
+        the Design Revision names the working revision written (ADR 0026 decisions 5-6); an edit
+        of the person's to a field the items change refuses it (``stale_proposal``,
         ``items_changed``). An accept that changes no design writes no ledger row.
         """
         self.scope.require(Permission.EDIT_STUDY)
@@ -115,6 +117,13 @@ class DesignResearchProposals:
         if expected_revision_id != proposal.design_revision_id:
             raise StaleProposal(
                 "the proposal was researched from another Design Revision", why="design_moved"
+            )
+        # A newer Design Revision no longer stales a proposal (WCE5): a run whose items are in the
+        # design is spent by its accept, read under the Study lock the accept writes under.
+        StudyDesignRepository(self.session, self.scope).lock()
+        if WorkflowRepository(self.session, self.scope).design_research_accepted(run_id):
+            raise DesignRejected(
+                "items of this run are already in the design", reason="proposal_already_accepted"
             )
         try:
             DeepResearchRuns(self.session, self.scope).resolve_lineage(run_id, store=store)
@@ -132,7 +141,6 @@ class DesignResearchProposals:
             content = apply_to_design(baseline.content, proposal, item_ids)
         except DesignProposalRefused as exc:
             raise DesignRejected(str(exc), reason=exc.reason) from exc
-        self._require_design_jobs_keep_working(baseline.content, content)
         accepted = accept_into_working_copy(
             self.session,
             self.scope,
@@ -145,10 +153,18 @@ class DesignResearchProposals:
                 ActorKind.PERSON, self.scope.actor_id, OpSource.DESIGN_RESEARCH_ACCEPT, run_id
             ),
         )
+        # The accept may land on a newer working copy than the run's baseline (WCE5): the copy
+        # it merged into, as the person had it, and the merged one a design job will read,
+        # checked before anything is committed.
+        before = StudyWorkspaceRepository(self.session).at_revision(
+            self.scope, expected_workspace_revision
+        )
+        assert before is not None  # the accept has just merged into it
+        self._require_design_jobs_keep_working(dict(before.content or {}), accepted.merged.content)
         revision, created = accepted.revision, accepted.created
         if created:
             project_id = designs.project_id()
-            assert project_id is not None  # submit_if_current has just written to it
+            assert project_id is not None  # the accept has just written to it
             WorkflowRepository(self.session, self.scope).record_design_research_acceptance(
                 run_id,
                 selection_id=selection_id(run_id, item_ids),

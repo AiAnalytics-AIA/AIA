@@ -70,7 +70,7 @@ export function MethodologyComparison({ result }: { result: MethodCompare }) {
 
 function Panel({ panel: p, initiallyOpen }: { panel: MethodPanel; initiallyOpen: boolean }) {
   const heights = moved(p.heights);
-  const k100 = moved(p.k100);
+  const k100 = p.k100 === null ? null : moved(p.k100);
   const shifted = Object.entries(p.shifts).filter(([, d]) => d > SAME).sort((a, b) => b[1] - a[1]);
   return (
     <article data-compare-panel={p.panel} aria-label={p.label_cs} className="min-w-0 rounded-sm border border-border p-3 text-sm"><details open={initiallyOpen}><summary className="cursor-pointer"><h6 className="inline font-semibold">{p.label_cs}</h6></summary><div className="mt-3 flex min-w-0 flex-col gap-2">
@@ -107,8 +107,8 @@ function Panel({ panel: p, initiallyOpen }: { panel: MethodPanel; initiallyOpen:
       <Part title={t(`${C}.heights`)} empty={t(`${C}.noChange`)} has={heights.length > 0}>
         <Changes rows={heights} />
       </Part>
-      <Part title={t(`${C}.k100`)} empty={t(`${C}.noChange`)} has={k100.length > 0}>
-        <Changes rows={k100} />
+      <Part title={t(`${C}.k100`)} empty={t(k100 === null ? `${C}.k100NotComputed` : `${C}.noChange`)} has={k100 !== null && k100.length > 0}>
+        <Changes rows={k100 ?? []} />
       </Part>
       <Part
         title={t(`${C}.terrain`)}

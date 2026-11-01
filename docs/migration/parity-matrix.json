@@ -1005,8 +1005,11 @@
     "confirmed": false
    },
    "parity_owner": "parity-quality",
-   "implementation_state": "NOT_STARTED",
-   "implementation": [],
+   "implementation_state": "PARTIAL",
+   "implementation": [
+    "packages/aia_core/src/aia_core/domain/run_qc.py",
+    "packages/aia_core/src/aia_core/domain/straight_lining.py"
+   ],
    "reference_modules": [
     "pricing_engine.py",
     "qc.py"
@@ -1018,7 +1021,17 @@
     "F11_analysis_weight_fallback_chains",
     "U08_keyInsights"
    ],
-   "gates": [],
+   "gates": [
+    {
+     "id": "analysis.qc/unit-kontrola",
+     "kind": "production_contract",
+     "requires": [],
+     "tests": [
+      "packages/aia_core/tests/test_run_qc.py",
+      "packages/aia_core/tests/test_straight_lining.py"
+     ]
+    }
+   ],
    "recorded_evidence": [],
    "intentional_difference": null,
    "documented_deviations": [],
@@ -1028,7 +1041,7 @@
     "blocking": false,
     "reason": "On the MVP acceptance path (AC-08); its parity is reported as information, never a release gate (owner, 2026-10-19, MVP-21)."
    },
-   "notes": ""
+   "notes": "Run QC (evidence-integrity 2a): the checks a run's stored dataset and specification answer are ported from qc.kontrola and compared finding for finding and metric for metric with the unit's own run on captured fictional runs (tools/run_qc_capture.py, fixtures/run_qc). The demographic checks (2b), the probability diagnostics (2c) and pricing_engine.py are not ported; the technical error rate and the segment ESS have no input in AIA and are named not applicable. Not yet run by any step (run-qc-and-checkpoint RQC2)."
   },
   "api.http": {
    "family": "api",
@@ -4018,7 +4031,11 @@
     ],
     "tier_a": "On recorded calls at test prices: the ceiling shown before the start, reservations under the study-row lock, an exhausted budget parked in AWAITING_BUDGET with nothing spent, concurrent starts held to the budget, the spend-limit confirmation in the approval ledger.",
     "tier_b": "The same on live prices, inside the allocation's lines (tests/acceptance/allocation.json).",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_the_ceiling_is_shown_and_a_start_at_the_limit_is_confirmed_in_the_ledger",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_an_exhausted_budget_parks_the_run_and_spends_nothing",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac04_concurrent_starts_are_held_to_the_study_budget"
+    ]
    },
    {
     "id": "AC-05",
@@ -4052,7 +4069,10 @@
     ],
     "tier_a": "A worker process killed mid-fieldwork resumes after the last checkpointed respondent; a possibly-billed recorded call goes to RECOVERY_REQUIRED; an analysis-only retry reuses the frozen dataset.",
     "tier_b": "An analysis-only retry on develop (allocation line A09). The kill is not repeated live: until RQC0 a restart repays fieldwork (OI-64), and the record says so.",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac06_a_worker_killed_mid_fieldwork_loses_no_paid_work",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac06_an_analysis_only_retry_reuses_the_frozen_dataset"
+    ]
    },
    {
     "id": "AC-07",
@@ -4117,7 +4137,10 @@
     ],
     "tier_a": "Project memory's search and the design's reuse over HTTP, with its citation and labels; another client's studies not found.",
     "tier_b": "The fictional past study found and its design reused on develop, over the deployed API.",
-    "tests": []
+    "tests": [
+     "tests/acceptance/test_mvp_acceptance.py::test_ac12_a_past_study_is_found_and_its_design_reused_with_its_citation_and_labels",
+     "tests/acceptance/test_mvp_acceptance.py::test_ac12_another_client_s_studies_cannot_be_found_or_reused"
+    ]
    },
    {
     "id": "AC-13",

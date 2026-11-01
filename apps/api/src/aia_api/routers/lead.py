@@ -42,6 +42,7 @@ from aia_core.application.research_lead import (
     LeadCardStale,
     LeadContextTooLarge,
     LeadEditsStale,
+    LeadFileNotFound,
     LeadHatchNotPending,
     LeadHatchRefused,
     LeadHatchUnavailable,
@@ -58,10 +59,13 @@ from aia_core.application.research_lead import (
     NotAPaidRequest,
     ResearchLead,
     WorkspaceConflict,
+    worker_preflight,
     worker_readiness,
 )
+from aia_core.domain.client_sources import SourceRejected
 from aia_core.domain.design import DesignRejected
 from aia_core.domain.lead_commands import COMMANDS
+from aia_core.domain.lead_files import FILES_PER_MESSAGE
 from aia_core.domain.lead_hatch import HatchInput
 from aia_core.domain.research_agents import AgentContextTooLarge
 from aia_core.domain.scope import ScopeDenied
@@ -75,12 +79,15 @@ from ..dependencies import (
     ArtifactStoreDep,
     OrganizationDep,
     PanelSamplerDep,
+    PrincipalDep,
+    ResolverDep,
     RunPopulationDep,
     SessionDep,
     SettingsDep,
     StudyScopeDep,
 )
 from ..schemas.projects import ErrorResponse
+from .client_sources import SourceUpload, decoded
 from .deep_research import deep_research_mode, deep_research_start_errors, study_prices
 from .research import run_start_errors, run_start_settings
 
@@ -116,6 +123,34 @@ class TurnPost(BaseModel):
     text: str | None = Field(default=None, max_length=4000)
     stage: str = Field(min_length=1, max_length=32)
     focus: Focus | None = None
+    #: The study's client's sources the message carries to the Lead (lead-orchestration LO18a):
+    #: each kept first through ``POST …/lead/files``; another client's is 404.
+    files: list[Annotated[str, Field(pattern=r"^SRC-[0-9a-f]{16}$")]] = Field(
+        default_factory=list, max_length=FILES_PER_MESSAGE
+    )
+
+
+class LeadFile(BaseModel):
+    """A file a message carries to the Lead: the client's source, as the message stores it."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_id: str
+    sha256: str
+    reading_sha256: str | None
+    filename: str
+
+
+class LeadFileKept(BaseModel):
+    """The file kept as the client's source, and what reading it produced."""
+
+    model_config = ConfigDict(extra="forbid")
+    source_id: str
+    filename: str
+    family: str
+    outcome: str
+    reason: str | None
+    segments: int
+    characters: int
 
 
 class EditDecision(BaseModel):
@@ -254,6 +289,8 @@ class LeadTurn(BaseModel):
     queued: bool = False
     #: A person's message the researcher withdrew before the Lead was sent it.
     withdrawn: bool = False
+    #: The client's sources a person's message carried to the Lead (LO18a); none otherwise.
+    files: list[LeadFile] = Field(default_factory=list)
     #: The messages a Lead turn was sent, in queue order (its answer rows).
     answers: list[str] = Field(default_factory=list)
 
@@ -287,15 +324,22 @@ class LeadState(BaseModel):
     model_config = ConfigDict(extra="forbid")
     available: bool
     unavailable_reason: str | None
-    #: ``false`` only on evidence (the source says which); ``null``: unknown. Until the worker
-    #: publishes its composition (lead-orchestration LO12b) nothing here reports ``true``.
+    #: ``false`` only on evidence (the source says which); ``null``: unknown. ``true`` only from
+    #: the newest worker start's recorded composition (lead-orchestration LO12b): composed to
+    #: answer a turn, not proof that a worker runs now, so ``worker_composed_at`` and
+    #: ``worker_build`` say which start.
     worker_ready: bool | None
     #: Where ``worker_ready`` was read: ``newest_turn`` (this conversation's newest decided Lead
-    #: turn parked for a reason naming the worker's composition), or ``null`` with no source.
-    worker_ready_source: Literal["newest_turn"] | None
+    #: turn parked for a reason naming the worker's composition), ``composition`` (the newest
+    #: worker start's recorded AI route, with AIA_AI_ROUTE_PREFLIGHT_ENABLED), or ``null``.
+    worker_ready_source: Literal["newest_turn", "composition"] | None
     #: Why the worker is not ready (a park code, e.g. ``research_lead_unconfigured``); ``null``
     #: unless ``worker_ready`` is ``false``. The name ``lib/lead-availability.ts`` reads.
     worker_reason: str | None
+    #: With ``worker_ready_source: composition``: when that worker start was recorded (the
+    #: worker's clock) and its build; ``null`` otherwise.
+    worker_composed_at: datetime | None = None
+    worker_build: str | None = None
     #: The typed start commands the composer takes, with the Lead on or off (Q43).
     commands: list[TypedCommand]
     #: AIA_STUDY_WALLET_ENABLED: whether a typed start's card speaks of the Peněženka.
@@ -461,6 +505,8 @@ def _lead_errors() -> Iterator[None]:
         ) from exc
     except LeadTurnNotFound as exc:
         raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such resource.") from exc
+    except LeadFileNotFound as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, exc.reason, "No such source.") from exc
     except LeadUnavailable as exc:
         raise _error(409, exc.reason, "The Research Lead is not switched on here.") from exc
     except LeadNotHatched as exc:
@@ -572,14 +618,23 @@ def read_lead(scope: StudyScopeDep, session: SessionDep, settings: SettingsDep) 
         lead = ResearchLead(session, scope, enabled=settings.research_lead_on)
         state = lead.state()
         retry_run = newest_analysed_run(ResearchRuns(session, scope))
+        preflight = (
+            worker_preflight(session, scope) if settings.ai_route_preflight_enabled else None
+        )
     on = settings.research_lead_on
-    ready, source, reason = worker_readiness(state["turns"])
+    ready, source, reason = worker_readiness(state["turns"], preflight)
     return LeadState(
         available=on,
         unavailable_reason=None if on else _DISABLED,
         worker_ready=ready,
         worker_ready_source=source,
         worker_reason=reason,
+        worker_composed_at=preflight.composed_at
+        if preflight is not None and source == "composition"
+        else None,
+        worker_build=preflight.build_sha
+        if preflight is not None and source == "composition"
+        else None,
         commands=[
             TypedCommand(
                 phrase=c.phrase,
@@ -606,7 +661,13 @@ def _public(turns: list[dict[str, Any]], settings: Settings) -> list[dict[str, A
     """A turn as the browser reads it: not the class it was sent as, nor the stored detail
     of what waits (the browser reads that from the turn's output); with its prepared agent
     job's ceiling (LO23)."""
-    hidden = {"data_class", "pending_self_update", "self_update_base", "awaiting_budget"}
+    hidden = {
+        "data_class",
+        "pending_self_update",
+        "self_update_base",
+        "awaiting_budget",
+        "decided_at",
+    }
     return [
         {
             **{k: v for k, v in t.items() if k not in hidden},
@@ -668,10 +729,60 @@ def post_turn(
             stage=body.stage,
             text=body.text,
             focus=body.focus.model_dump() if body.focus else None,
+            files=body.files,
         )
     if not turns:
         response.status_code = status.HTTP_200_OK
     return LeadTurns(turns=[LeadTurn.model_validate(t) for t in _public(turns, settings)])
+
+
+@router.post(
+    "/lead/files",
+    response_model=LeadFileKept,
+    status_code=201,
+    responses={
+        404: {"model": ErrorResponse, "description": "Not a study of yours"},
+        409: {"model": ErrorResponse, "description": "The Lead is off, or not hatched"},
+        422: {
+            "model": ErrorResponse,
+            "description": "Empty, too large, not base64, or a format AIA does not take",
+        },
+    },
+)
+def add_lead_file(
+    body: SourceUpload,
+    scope: StudyScopeDep,
+    principal: PrincipalDep,
+    resolver: ResolverDep,
+    session: SessionDep,
+    settings: SettingsDep,
+    store: ArtifactStoreDep,
+) -> LeadFileKept:
+    """Keep a file a person gives the Lead as the study's client's source (lead-orchestration
+    LO18a): listed under the client's Data, read as every source is; a message then carries it
+    by its ``source_id``. Needs ``EDIT_STUDY`` on an open study. The file is never served
+    here; the client's sources route serves it, as ``application/octet-stream`` only."""
+    try:
+        client = resolver.client_context(principal, client_id=scope.client_id)
+    except ScopeDenied as exc:
+        raise _error(status.HTTP_404_NOT_FOUND, "not_found", "No such resource.") from exc
+    data = decoded(body)
+    with _lead_errors():
+        try:
+            record = ResearchLead(
+                session, scope, enabled=settings.research_lead_on, store=store
+            ).attach(client, filename=body.filename, data=data)
+        except SourceRejected as exc:
+            raise _error(422, exc.reason, str(exc)) from exc
+    return LeadFileKept(
+        source_id=record.source_id,
+        filename=record.filename,
+        family=record.family.value,
+        outcome=record.outcome.value,
+        reason=record.reason,
+        segments=record.segments,
+        characters=record.characters,
+    )
 
 
 @router.get(
@@ -852,6 +963,7 @@ def approve_request(
                 prices=study_prices(settings, session, scope),
                 modes=(deep_research_mode(settings),),
                 store=store,
+                document_store=store if settings.deep_research_document_text else None,
             ),
         )
     return ApprovedRequest.model_validate(started)

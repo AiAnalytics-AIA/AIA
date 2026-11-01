@@ -102,13 +102,14 @@ def test_a_new_runs_map_is_client_facing_and_an_edited_versions_is_not() -> None
         require_client_facing(run)
 
 
-def test_the_client_report_shows_a_new_runs_maps_its_respondent_map_included() -> None:
+def test_the_client_report_shows_a_new_runs_object_map_never_its_respondent_map() -> None:
     frozen = stored_result(spec=AIA_SOCIOMAP_V5)
     frozen["methods"] = [{"method_id": V5.method_id, "spec_fingerprint": V5.spec_fingerprint}]
     images = object_map_snapshots(frozen)
     (section,) = compose_map_sections(frozen, images, source="Frozen map", client=True)
     figures = [b for b in section.blocks if isinstance(b, SociomapFigure)]
-    assert [f.id.rsplit("-", 1)[-1] for f in figures] == ["top", "3d", "respondents"]
+    # The respondent map waits for the methodology owner's approval (2026-10-28, MQ-01 (b)).
+    assert [f.id.rsplit("-", 1)[-1] for f in figures] == ["top", "3d"]
     assert all(f.methodology_status == "CLIENT_FACING" for f in figures)
     words = " ".join(
         i.text

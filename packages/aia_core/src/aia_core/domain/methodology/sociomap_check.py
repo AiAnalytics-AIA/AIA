@@ -162,7 +162,9 @@ class PanelComparison:
     shifts: dict[str, float]
     alignment_rmsd: float | None
     heights: dict[str, tuple[float | None, float | None]]
-    k100: dict[str, tuple[float | None, float | None]]
+    #: ``None`` when either map computes no object scores (``aia-sociomap-5``: MQ-05), so no K100:
+    #: unknown, never "no change".
+    k100: dict[str, tuple[float | None, float | None]] | None
     #: The largest change of a terrain cell both maps reach; ``None`` when the grids differ
     #: or either map has no terrain.
     terrain_max_change: float | None
@@ -182,7 +184,9 @@ def _summary(art: SociomapArtifactV3) -> MapSummary:
     )
 
 
-def _k100(art: SociomapArtifactV3, slots: Slots) -> dict[str, float | None]:
+def _k100(art: SociomapArtifactV3, slots: Slots) -> dict[str, float | None] | None:
+    if "objects" not in art.scores:
+        return None  # the method computes no object scores (aia-sociomap-5, MQ-05)
     scale = slots.get(K100)
     out: dict[str, float | None] = {}
     for score in art.scores.get("objects", ()):
@@ -282,10 +286,12 @@ def compare_object_maps(
                     )
                     for oid in ids
                 },
-                k100={oid: (k_before.get(oid), k_after.get(oid)) for oid in k_before | k_after},
+                k100=None
+                if k_before is None or k_after is None
+                else {oid: (k_before.get(oid), k_after.get(oid)) for oid in k_before | k_after},
                 terrain_max_change=terrain,
                 terrain_note=terrain_note,
-                notes=(K100_INTERVAL_NOTE,),
+                notes=() if k_before is None or k_after is None else (K100_INTERVAL_NOTE,),
             )
         )
     return tuple(out)

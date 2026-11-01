@@ -742,6 +742,7 @@ class WorkflowRepository:
         limit: int = 50,
         workflow_type: str | None = None,
         key_prefix: str | None = None,
+        key_contains: str | None = None,
         steps: bool = False,
         run_ids: Sequence[str] | None = None,
         exclude_workflow_types: Sequence[str] = (),
@@ -750,7 +751,8 @@ class WorkflowRepository:
         """Return a project's runs, newest first, without their steps unless ``steps``.
 
         A listing for a screen; :meth:`get_run` returns one run in full. ``key_prefix``
-        keeps the runs whose idempotency key starts with it (matched literally).
+        keeps the runs whose idempotency key starts with it, ``key_contains`` those whose key
+        holds it anywhere (both matched literally).
         ``steps`` adds each run's steps from one more query for the page, without their
         attempt history: no ``attempts`` key, so nothing read from attempts (a start
         time, an error, a cost) is guessed from an empty list. ``run_ids`` keeps only
@@ -769,6 +771,8 @@ class WorkflowRepository:
             filters.append(WorkflowRunRow.status.in_([s.value for s in statuses]))
         if key_prefix is not None:
             filters.append(WorkflowRunRow.idempotency_key.startswith(key_prefix, autoescape=True))
+        if key_contains is not None:
+            filters.append(WorkflowRunRow.idempotency_key.contains(key_contains, autoescape=True))
         rows = self._session.scalars(
             select(WorkflowRunRow)
             .where(*filters)
@@ -1223,6 +1227,34 @@ class WorkflowRepository:
             .order_by(WorkflowRunRow.created_at, WorkflowRunRow.run_id, StepRunRow.step_id)
         ).all()
         return [(str(run_id), str(step_id)) for run_id, step_id in rows]
+
+    def awaits_budget(self, step_id: str) -> bool:
+        """Whether a step of a run in scope is still parked at the budget cap, read past the
+        session's copy of the row: after :meth:`lock_run`, a cancellation or a supersession that
+        committed while this transaction waited is seen."""
+        status = self._session.scalars(
+            select(StepRunRow.status)
+            .join(WorkflowRunRow, WorkflowRunRow.run_id == StepRunRow.run_id)
+            .where(StepRunRow.step_id == step_id, *self._scope_filter())
+            .execution_options(populate_existing=True)
+        ).first()
+        return status == StepRunStatus.AWAITING_BUDGET.value
+
+    def cancel_reason(self, run_id: str) -> str | None:
+        """The reason the newest cancellation request of a run in scope named
+        (:meth:`request_cancel`), or ``None`` when none was asked or it named none."""
+        self._run(run_id)
+        payload: dict[str, Any] | None = self._session.scalars(
+            select(WorkflowEventRow.payload_json)
+            .where(
+                WorkflowEventRow.run_id == run_id,
+                WorkflowEventRow.event_type == "RUN_CANCEL_REQUESTED",
+            )
+            .order_by(WorkflowEventRow.event_id.desc())
+            .limit(1)
+        ).first()
+        reason = (payload or {}).get("reason")
+        return str(reason) if reason else None
 
     def study_reserved_usd(self) -> float:
         """What the study in scope's open holds keep from its budget now (calls in flight)."""
@@ -2598,7 +2630,7 @@ class WorkflowRepository:
         Needs ``APPROVE_GATE``, which the worker's scope does not hold (ADR 0019 decision 6).
         Returns ``False`` and writes nothing when this job's accept is already recorded: an
         unchanged proposal can be accepted again, and that is not a second decision. The caller
-        holds the Study row lock (``StudyDesignRepository.submit_if_current``), so two accepts
+        holds the Study row lock (``accept_into_working_copy``), so two accepts
         cannot both pass the check.
 
         ``workspace_revision`` and ``workspace_revision_id`` name the working revision the accept
@@ -3181,6 +3213,22 @@ class WorkflowRepository:
         self._session.flush()
         return int(row.decision_id)
 
+    def design_research_accepted(self, run_id: str) -> bool:
+        """Whether a person has accepted any items of this Design Research run in this Study."""
+        return (
+            self._session.scalar(
+                select(ApprovalDecisionRow.decision_id)
+                .where(
+                    ApprovalDecisionRow.study_id == self.scope.study_id,
+                    ApprovalDecisionRow.subject_type == ApprovalSubject.DESIGN_RESEARCH,
+                    ApprovalDecisionRow.run_id == run_id,
+                    ApprovalDecisionRow.decision == "accept",
+                )
+                .limit(1)
+            )
+            is not None
+        )
+
     def record_design_research_acceptance(
         self,
         run_id: str,
@@ -3203,7 +3251,7 @@ class WorkflowRepository:
 
         Needs ``APPROVE_GATE``, which the worker's scope does not hold. Returns ``False`` and
         writes nothing when this selection is already recorded. The caller holds the Study row
-        lock (``StudyDesignRepository.submit_if_current``).
+        lock (``accept_into_working_copy``).
         """
         self.scope.require(Permission.APPROVE_GATE)
         run = self._run(run_id)
@@ -3634,7 +3682,8 @@ class WorkflowRepository:
         )
 
     def last_attempt_errors(self, step_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
-        """Each step's newest attempt's failure class and error, by step id, in one query.
+        """Each step's newest attempt's failure class, error and finish time, by step id, in one
+        query.
 
         For a listing that says why a step is waiting or failed without each step's whole
         history. Only steps of runs in this scope are read; a step with no attempt is absent.
@@ -3653,6 +3702,8 @@ class WorkflowRepository:
             last[a.step_id] = {
                 "failure_class": FailureClass(a.failure_class) if a.failure_class else None,
                 "error": dict(a.error_json or {}),
+                # When the worker decided it, by the worker's clock; None while undecided.
+                "finished_at": as_utc(a.finished_at) if a.finished_at else None,
             }
         return last
 

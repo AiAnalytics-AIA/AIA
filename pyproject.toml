@@ -193,6 +193,19 @@ ignore_imports = [
     "aia_executors.workbench -> aia_core.infrastructure.model_adapters.transport",
 ]
 
+# The confirming start is a person's (ADR 0028 decision 3, "What enforces it"; lead-orchestration
+# LO2): only confirm_spend issues a SpendConfirmation, to a scope holding APPROVE_BUDGET. Nothing
+# the worker runs imports it, so no step (LO3's plan step included) can confirm its own spend.
+# Direct imports only: an executor reaches application.research (research_artifacts), which names
+# the confirmation's type; holding the type confirms nothing. tools/layer_check.sh forbids building
+# one anywhere else.
+[[tool.importlinter.contracts]]
+name = "nothing the worker runs reaches the confirming start (ADR 0028)"
+type = "forbidden"
+source_modules = ["aia_worker", "aia_executors"]
+forbidden_modules = ["aia_core.application.spend_confirmation"]
+allow_indirect_imports = true
+
 # Live network wires are imported by the compositions that build a route and by
 # nothing else: deep_research_live and deep_research_runtime (web search, Common
 # Crawl), ai_runtime (the model route's transport). A module importing a wire would

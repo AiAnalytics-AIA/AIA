@@ -21,7 +21,7 @@ from aia_core.domain.research_agents import context_snapshot
 from aia_core.domain.scope import ClientContext, ClientPermission, ScopeDenied
 from aia_core.infrastructure.client_knowledge_repository import ClientKnowledgeRepository
 from aia_core.infrastructure.client_profile_repository import ClientProfileRepository
-from aia_core.infrastructure.tables import ClientRow
+from aia_core.infrastructure.tables import AccessAuditRow, ClientRow
 
 
 @pytest.fixture
@@ -153,3 +153,60 @@ def test_nothing_a_study_reads_or_sends_to_a_model_carries_a_contact(
     snapshot = context_snapshot({"title": "Studie"}, consumed)
     dumped = json.dumps(snapshot, ensure_ascii=False)
     assert "jana.tajna@klient.cz" not in dumped and "Jana Tajná" not in dumped
+
+
+def test_the_history_reads_budget_and_rules_by_name_and_the_budget_only_with_its_permission(
+    scoped: Any, profiles: ClientProfileRepository, session: Any
+) -> None:
+    """CPR3: budget and rule changes join the profile's history, each naming who made it."""
+    lead = client_scope(scoped, "lead")
+    scoped.scope_repo.set_client_budget(lead, 25.0)
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=False, client_id=lead.client_id
+    )
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=True, study_id=scoped.studies["primary"].study_id
+    )
+    history = profiles.history(lead)
+    assert [h.action for h in history] == ["SELF_APPROVAL_CONFIGURED", "CLIENT_BUDGET_CHANGED"]
+    [approval] = history[0].changes
+    assert (approval.after, approval.before_known) == (False, False)
+    [budget] = history[1].changes
+    assert (budget.field, budget.before, budget.after) == ("budget_usd", 0.0, 25.0)
+    assert history[1].actor_id == scoped.users["lead"]
+    assert history[1].actor_name is not None and "@" not in history[1].actor_name
+
+    # Without the budget's own permission its changes are not read.
+    blind = dataclasses.replace(
+        lead,
+        permissions=frozenset(
+            p for p in lead.permissions if p is not ClientPermission.VIEW_CLIENT_COSTS
+        ),
+    )
+    assert [h.action for h in profiles.history(blind)] == ["SELF_APPROVAL_CONFIGURED"]
+    assert profiles.history(client_scope(scoped, "other_lead", "other")) == []
+
+
+def test_the_history_reads_every_value_the_writers_store_and_never_fails_on_an_odd_one(
+    scoped: Any, profiles: ClientProfileRepository, session: Any
+) -> None:
+    """CPR3: a budget as str(float) wrote it, an inherited rule, and a value it cannot read."""
+    lead = client_scope(scoped, "lead")
+    scoped.scope_repo.set_client_budget(lead, 0.00001)  # its reason reads "0.0 -> 1e-05"
+    scoped.scope_repo.set_self_approval(
+        scoped.admin_context, allowed=None, client_id=lead.client_id
+    )
+    session.add(
+        AccessAuditRow(
+            organization_id=lead.organization_id,
+            client_id=lead.client_id,
+            actor_id=scoped.users["owner"],
+            action="CLIENT_RULES_CHANGED",
+            payload={"data_posture": {"from": ["?"], "to": "OPEN"}},
+        )
+    )
+    session.flush()
+    odd, inherit, budget = profiles.history(lead)
+    assert odd.changes == ()
+    assert [(c.after, c.before_known) for c in inherit.changes] == [("inherit", False)]
+    assert [(c.before, c.after) for c in budget.changes] == [(0.0, 0.00001)]

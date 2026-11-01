@@ -14,7 +14,6 @@ import ast
 import json
 import os
 import re
-import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -68,8 +67,6 @@ DESIGN: dict[str, Any] = {
 #: (USD 3 / 15 per million input / output tokens; conftest.WORKER_ENV).
 RESPONDENT_CALL_USD = (900 * 3 + 120 * 15) / 1_000_000
 ANALYSIS_CALL_USD = (2400 * 3 + 380 * 15) / 1_000_000
-#: Long enough for a cold worker on a CI runner (CLAUDE.md §7: size timing generously).
-RUN_SECONDS = 300.0
 
 
 ALLOCATION = HERE / "allocation.json"
@@ -226,22 +223,6 @@ def test_the_stack_is_separate_processes_after_one_declared_bootstrap(stack: Any
 # --------------------------------------------------------------------------- #
 
 
-def _wait_for_run(stack: Any, worker: Any, path: str, who: str) -> dict[str, Any]:
-    """Poll the run until it ends, or until the worker that drains it is gone."""
-    deadline = time.monotonic() + RUN_SECONDS
-    seen: dict[str, Any] = {}
-    while time.monotonic() < deadline:
-        reply = stack.http.get(path, as_user=who)
-        assert reply.status == 200, reply.text
-        seen = dict(reply.json())
-        if seen["status"] in {"COMPLETED", "FAILED", "CANCELLED"}:
-            return seen
-        if not worker.alive():
-            break
-        time.sleep(0.5)
-    raise AssertionError(f"the run did not finish: {json.dumps(seen)[:2000]}\n{stack.logs()}")
-
-
 def test_a_run_is_answered_by_recorded_models_behind_the_gateway(
     stack: Any, people: Any, signed_in: Callable[[str], None], unique: Callable[[str], str]
 ) -> None:
@@ -292,7 +273,7 @@ def test_a_run_is_answered_by_recorded_models_behind_the_gateway(
     run_path = f"{base}/research/runs/{started.json()['run_id']}"
 
     with stack.worker("recorded") as worker:
-        run = _wait_for_run(stack, worker, run_path, who)
+        run = stack.wait_for_run(worker, run_path, who)
     assert run["status"] == "COMPLETED", f"{_unfinished(run)}\n{stack.logs()}"
 
     analysis = http.get(f"{run_path}/analysis", as_user=who)
