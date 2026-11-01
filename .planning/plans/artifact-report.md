@@ -743,6 +743,8 @@ IR (Q47). The researcher approves the card; the accepted findings come back wove
 their sources, labelled external (Q58, CHN8), as the Lead's suggestions (RPT9). The panel's own start,
 depth and refresh controls go once typed starts exist (Q48, LO5a.3); what a run found stays readable
 beside the text (Záznam pokrytí or the inspector), never a second start path.
+*Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): the Interpretation Research card is offered
+and run on Analýza (ANL14/ANL15), not on Zpráva; Zpráva shows the woven text alone (CHN8).
 
 **RPT3. Doc bar and approval.** Tests: approval sends the artifact id shown; a stale version is
 refused. Depends on `report-delivery#RD2`, `#RD3`, `input-interactions#6`.
@@ -883,7 +885,10 @@ A spec id carries its section prefix (`navrh/`, `vzorek/`, `sber/`, `szz/`, `lea
 ids repeat across sections. A ticked chunk the spec reopens is never unticked: its rework is a
 follow-up chunk below.
 
-**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G). Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10). *Built, but for
+**RPT3c. One document bar** (spec `szz/Z2`; follows RPT3 and RPT3a; W3, lane G; W1 proposed 2026-10-29, Doc follow-up).
+*Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): "Zpráva s rešerší" and its "Připravit zprávu s
+rešerší" leave Zpráva when CHN8 lands; "Použít ve zprávě" on Analýza is the only way literature reaches the report.
+Stored reports with literature stay downloadable and approvable by artifact id. Nigel, 26 Oct 2026 (P3): no third document; literature reaches the report only through "Použít ve zprávě" (`artifact-chain-to-draft-report#CHN8`). RPT3a's "the report card keeps downloads only" is superseded: every download moves into the bar (contradiction 10). *Built, but for
 "Zpráva s rešerší" leaving the pane (`feature/report-doc-bar`):* the pane's doc bar (`ReportDocBar.tsx ReportExports`)
 downloads the document on screen, DOCX and PDF, each file checked by `downloadMismatch` to be the version and review
 shown; the PDF is offered only when the server says it exists (`pdfWhy`, `variantPdfWhy`), its reason as text otherwise,

@@ -1231,6 +1231,9 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
     calls.
 - Depends on #550, 12a and `lead-orchestration#LO5a.2`. Cards are display; the kill switch is as
   LO5a.2's.
+- *Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): the interpretation kind's
+  running card also stands on Analýza (`artifact-analysis#ANL15`), and `lib/lead.ts` `deepResearchStage`
+  answers `"analysis"`, not `"report"`, for INTERPRETATION_RESEARCH.
 
 **23c (DRL-7). The finished card: findings, sources and the report.**
 - Every finished card shows:
@@ -1257,6 +1260,10 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
   item appears on Znalosti → "Použít ve zprávě" → the report prepared, and approved by a second
   fictional member where self-approval is off.
 - Depends on 23b, and on 7b for the design link. No kill switch, since these are people's own gates.
+- *Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): the interpretation kind's
+  finished card stands on Analýza, its findings in Analýza's "Externí kontext" register; "Použít ve zprávě" marks
+  the run for the ONE internal draft (`artifact-chain-to-draft-report#CHN8`), and there is no report with
+  literature to prepare or approve for a new run (`artifact-report#RPT3c`). Stored ones stay readable.
 
 **26f.1 (DRL-5). The Deep Research half of 26f.**
 - Removed in every layout:
@@ -1278,6 +1285,8 @@ turn (`request_decision.run_id`); any other run stands at its creation time.
   work with the Lead off).** While the classic frame exists, it sits behind `leadOwnsAiStarts`, and
   27c deletes the predicate.
 - No kill switch, by D-12. `lead-orchestration#LO5a`'s acceptance is ticked with it.
+- *Amended 2026-10-29* (amended 2026-10-29: Interpretation Research lives on Analýza, `artifact-analysis.md` § "Interpretation Research lives on Analýza", ANL14/ANL15): `InterpretationResearch`'s reader
+  panel lives on Analýza only; the stage that says where to start is Analýza, whose offer (ANL14) is a typed start.
 
 ### Findings
 
