@@ -15,6 +15,7 @@ from lxml import etree
 from aia_core.application.report_maps import (
     PAIR_STATUS,
     compose_map_sections,
+    map_chapter_ids,
     pair_status_means,
 )
 from aia_core.domain.report.model import (
@@ -387,3 +388,14 @@ def test_every_number_the_map_writes_is_locked_under_its_map(report_doc: Any, sp
         assert words in locked[control], (control, words)
     # The caption's fit: its stress, or the signed-off layout's own words.
     assert any(t.startswith(("stres 1 =", "rozložení ")) for t in locked[tag]), locked[tag]
+
+
+def test_each_battery_names_the_map_chapter_drawn_for_it() -> None:
+    """A map target's literature is woven into its battery's chapter (artifact-chain CHN8): the
+    battery id names the id of the section ``compose_map_sections`` draws for it."""
+    frozen = result()
+    sections = compose_map_sections(frozen, object_map_snapshots(frozen), source="Frozen")
+    ids = map_chapter_ids(frozen)
+    assert list(ids.values()) == [s.id for s in sections]
+    assert list(ids) == [b["battery_id"] for b in frozen["batteries"]]
+    assert map_chapter_ids({"batteries": []}) == {}

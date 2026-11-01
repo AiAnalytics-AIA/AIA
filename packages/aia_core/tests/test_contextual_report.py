@@ -2,6 +2,7 @@
 
 import json
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -9,11 +10,13 @@ from pydantic import ValidationError
 
 from aia_core.application.contextual_report import (
     TopicRulesUnread,
-    literature_sections,
     todays_topic_rules,
+    woven_into,
+    woven_literature,
 )
 from aia_core.application.deep_research import BundleNotReady
 from aia_core.application.report import ReportCompositionRefused
+from aia_core.domain.analysis import AnalysisModuleId
 from aia_core.domain.deep_research.bundle import EvidenceBundle
 from aia_core.domain.deep_research.confidence import CONFIDENCE_WEIGHTS_V1
 from aia_core.domain.deep_research.contracts import (
@@ -26,7 +29,14 @@ from aia_core.domain.deep_research.contracts import (
     subject_key,
 )
 from aia_core.domain.deep_research.document_types import DOCUMENT_RULES_VERSION
-from aia_core.domain.deep_research.integration import ResultBatteryObjectTarget
+from aia_core.domain.deep_research.integration import (
+    AnalysisModuleTarget,
+    ResultBatteryObjectTarget,
+    ResultQuestionTarget,
+    SociomapObjectTarget,
+    SociomapRelationshipTarget,
+    SociomapTarget,
+)
 from aia_core.domain.deep_research.interpretation import interpretation_mission
 from aia_core.domain.deep_research.merge import MERGE_RULES_VERSION
 from aia_core.domain.deep_research.topicality import (
@@ -44,6 +54,7 @@ from aia_core.domain.report.model import (
     Link,
     Paragraph,
     Quote,
+    Section,
     Table,
     Text,
     TextCell,
@@ -87,6 +98,13 @@ def _words(block: object) -> str:
             + "\n".join(block.notes)
         )
     return ""
+
+
+def literature_sections(value: EvidenceBundle, **rules: object) -> tuple[Section, ...]:
+    """The review as a reader meets it: the literature chapter and the findings woven out of it,
+    in one section, so a test reads every word the review prints (artifact-chain CHN8)."""
+    woven = woven_literature(value, **rules)  # type: ignore[arg-type]
+    return (replace(woven.chapter, blocks=(*woven.findings, *woven.chapter.blocks)),)
 
 
 def prose(
@@ -953,3 +971,82 @@ def test_an_academic_host_the_rules_leave_undetermined_keeps_its_caveat() -> Non
     written = prose(bundle(accepted=data["accepted"], synthesis=None))
     assert "vse.cz: akademická instituce (může jít i o studentskou práci)" in written
     assert "studentská kvalifikační práce" not in written and "nepřijala" not in written
+
+
+def test_woven_findings_leave_the_chapter_and_keep_their_citations_and_lock() -> None:
+    """CHN8: woven, each accepted finding (its claim, its quote) leaves the literature chapter for
+    the body; the chapter keeps the scope, the sources and the limits and says where the findings
+    are; what was rejected prints nowhere; every block that prints a digit is locked under its
+    review, as the chapter is."""
+    original = bundle()
+    woven = woven_literature(original, research_run_id="RUN-abc")
+    findings = "\n".join(_words(b) for b in woven.findings)
+    chapter = "\n".join(_words(b) for b in woven.chapter.blocks)
+    for finding in original.accepted:
+        assert finding.evidence.claim in findings
+        assert finding.evidence.claim not in chapter
+        assert finding.evidence.quote in findings
+    for quarantined in original.quarantined:
+        assert quarantined.claim not in findings + chapter
+    assert "[L1]" in findings and "[L1]" in chapter
+    assert "v kapitole, které se týkají" in chapter
+    assert original.sha256 in chapter
+    assert woven.chapter.id == "literature"
+    for block in woven.findings:
+        if isinstance(block, Paragraph) and any(c.isdigit() for c in _words(block)):
+            assert block.control == "bundle:RUN-abc"
+
+
+def test_an_empty_review_weaves_nothing() -> None:
+    woven = woven_literature(bundle(accepted=[], synthesis=None), research_run_id="RUN-abc")
+    assert woven.findings == ()
+    assert "Bez opory v literatuře" in "\n".join(_words(b) for b in woven.chapter.blocks)
+
+
+_RUN = "RUN-abc"
+_ART = "ART-" + "a" * 16
+
+
+def test_each_target_is_woven_into_the_section_it_bears_on() -> None:
+    maps = {"b1": "ch-native-map-1", "b2": "ch-native-map-2"}
+    module = AnalysisModuleTarget(
+        kind="ANALYSIS_MODULE",
+        research_run_id=_RUN,
+        analysis_artifact_id=_ART,
+        module_id=AnalysisModuleId.IMPLICATIONS,
+    )
+    assert woven_into(module, maps) == "ch-7"
+    question = ResultQuestionTarget(
+        kind="RESULT_QUESTION", research_run_id=_RUN, aggregate_artifact_id=_ART, question_id="q1"
+    )
+    assert woven_into(question, maps) == "ch-2"
+    obj = ResultBatteryObjectTarget(
+        kind="RESULT_BATTERY_OBJECT",
+        research_run_id=_RUN,
+        aggregate_artifact_id=_ART,
+        battery_id="b1",
+        object_id="o1",
+    )
+    assert woven_into(obj, maps) == "ch-3"
+    the_map = SociomapTarget(
+        kind="SOCIOMAP", research_run_id=_RUN, sociomap_artifact_id=_ART, battery_id="b2"
+    )
+    assert woven_into(the_map, maps) == "ch-native-map-2"
+    pair = SociomapRelationshipTarget(
+        kind="SOCIOMAP_RELATIONSHIP",
+        research_run_id=_RUN,
+        sociomap_artifact_id=_ART,
+        battery_id="b1",
+        source_object_id="o2",
+        target_object_id="o1",
+    )
+    assert woven_into(pair, maps) == "ch-native-map-1"
+    # A battery the report draws no chapter for: the literature chapter keeps the findings.
+    lost = SociomapObjectTarget(
+        kind="SOCIOMAP_OBJECT",
+        research_run_id=_RUN,
+        sociomap_artifact_id=_ART,
+        battery_id="b9",
+        object_id="o1",
+    )
+    assert woven_into(lost, maps) is None

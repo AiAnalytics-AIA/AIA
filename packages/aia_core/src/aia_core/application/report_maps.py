@@ -222,6 +222,19 @@ QUALITY = {
 }
 
 
+def map_chapter_ids(result: Mapping[str, Any]) -> dict[str, str]:
+    """Each battery's id -> the id of the internal report's chapter :func:`compose_map_sections`
+    draws for it: where a map target's literature is woven (artifact-chain CHN8)."""
+    return {
+        str(battery["battery_id"]): _map_chapter_id(index)
+        for index, battery in enumerate(result.get("batteries", []), start=1)
+    }
+
+
+def _map_chapter_id(index: int) -> str:
+    return f"ch-native-map-{index}"
+
+
 def compose_map_sections(
     result: Mapping[str, Any],
     images: Mapping[tuple[str, str, str], bytes],
@@ -528,7 +541,7 @@ def compose_map_sections(
                 )
             )
         sections.append(
-            Section(f"Sociomapy · {battery['title']}", tuple(blocks), id=f"ch-native-map-{index}")
+            Section(f"Sociomapy · {battery['title']}", tuple(blocks), id=_map_chapter_id(index))
         )
     if client:
         return tuple(sections)  # no approved map at all: the client report has no map chapter
