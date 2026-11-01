@@ -226,6 +226,8 @@ def test_the_respondent_map_draws_every_placed_respondent_in_its_segment_colour(
     text = words(fig)
     assert "Výška · Shluky respondentů" in text
     assert "Chuťové segmenty" in text and "není jasně v jednom segmentu" in text
+    # Beside segments shown: they only describe (the methodology owner, 2026-10-29, S-2).
+    assert "Segmenty jen popisují, jak se respondenti na této mapě liší." in text
     for j, share in enumerate(seg.shares):
         assert f"Segment {j + 1} · {100 * share:.0f} %" in text
     assert f"bez polohy: {resp.counts['NOT_PLACED']} respondentů" in text
@@ -341,10 +343,11 @@ def test_the_respondent_map_says_why_it_shows_no_segments() -> None:
     assert (
         "Náznak 2 skupin · nejisté, body nejsou obarvené" in borderline
         and "Segment 1" not in borderline
+        and "Segmenty jen popisují" not in borderline  # a hint shows no segments (S-2)
     )
-    assert "Chuťové segmenty se nehledají (málo dat)" in line(
-        decision="NONE", reason="TOO_FEW_RESPONDENTS", hint=None
-    )
+    too_few = line(decision="NONE", reason="TOO_FEW_RESPONDENTS", hint=None)
+    assert "Chuťové segmenty se nehledají (málo dat)" in too_few
+    assert "Segmenty jen popisují" not in too_few  # no segments, nothing to describe
     assert "Žádné zřetelné chuťové segmenty" in line(
         decision="NONE", reason="NO_CLEAR_SEGMENTS", hint=None
     )

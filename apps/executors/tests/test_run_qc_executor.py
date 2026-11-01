@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 from aia_core.application.research import ResearchRuns, research_artifacts
 from aia_core.domain.fieldwork import DataOrigin, FieldworkSource
+from aia_core.domain.qc_flags import dataset_flags, flags_payload
 from aia_core.domain.run_qc import QcNotReadable, dataset_qc
 from aia_core.domain.workflow import StepRunStatus, WorkflowRunStatus
 from aia_core.infrastructure.build_identity import BuildIdentity
@@ -155,6 +156,10 @@ def test_the_fictional_run_completes_and_stores_the_domains_qc(
             research_executors._read_dataset(research, dataset_id),
             dry=True,
         )
+        dataset = research_executors._read_dataset(research, dataset_id)
+        spec = research_executors._read_spec(research, spec_id)
+        flags = flags_payload(dataset_flags(spec, dataset))
+        respondents = len(dataset.respondents)
     assert deps == {spec_id, dataset_id}
     assert stored["inputs"]["dataset_artifact_id"] == dataset_id
     assert stored["level"] == expected.level.value == out["level"]
@@ -164,6 +169,9 @@ def test_the_fictional_run_completes_and_stores_the_domains_qc(
     assert stored["metrics"] == expected.metrics
     # A fictional run is the unit's dry run: no ablation flag.
     assert "persona_effect_unverified" not in {f["check"] for f in stored["findings"]}
+    # RQC4a: the straight-liners the rule names, one flag each, the record a decision lands in.
+    assert stored["flags"] == flags
+    assert round(len(flags["flags"]) / respondents, 3) == stored["metrics"]["straightlining"]
     assert set(stored["not_applicable"]) == {k.value for k in expected.not_applicable}
 
 
@@ -193,7 +201,7 @@ def test_a_qc_it_cannot_read_is_stored_as_not_computed_and_the_run_completes(
             out["artifact_id"]
         )["qc"]
     assert stored["reason"].startswith("q2: a conditional question's base")
-    assert "findings" not in stored and "level" not in stored
+    assert "findings" not in stored and "level" not in stored and "flags" not in stored
 
 
 @pytest.mark.parametrize(

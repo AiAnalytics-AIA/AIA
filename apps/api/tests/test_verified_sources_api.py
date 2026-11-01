@@ -178,3 +178,34 @@ def test_a_study_with_self_approval_off_files_the_source_as_a_proposal(
     again = _add(researcher, world, run_id, SNAPSHOT, FINDING)
     assert again.status_code == 200 and again.json()["status"] == "exists"
     assert again.json()["proposal_id"] == body["proposal_id"]
+
+
+def test_the_item_is_the_captured_words_never_the_models_claim(
+    researcher: TestClient, world: Any, sealed: EvidenceBundle, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """K8's rule (client-knowledge-lifecycle K8a): a capture a person checked is their write;
+    anything a model wrote stays a proposal. The click writes the source's own words (its URL,
+    title and quote, from the sealed bundle), never the finding's claim, which a model worded."""
+    claim = "Model wording: plant drinks are the fastest-growing category."
+    reworded = sealed.model_copy(
+        update={
+            "accepted": tuple(
+                a.model_copy(update={"evidence": a.evidence.model_copy(update={"claim": claim})})
+                if a.evidence.evidence_id == FINDING
+                else a
+                for a in sealed.accepted
+            )
+        }
+    )
+
+    def served(self: DeepResearchRuns, run_id: str, *, store: Any) -> EvidenceBundle:
+        self.get(run_id)
+        return reworded
+
+    monkeypatch.setattr(DeepResearchRuns, "bundle", served)
+    run_id = _run(researcher, world)
+    assert _add(researcher, world, run_id, SNAPSHOT, FINDING).status_code == 201
+    [item] = _sources(researcher, world)
+    assert claim not in repr(item)
+    finding = next(a.evidence for a in sealed.accepted if a.evidence.evidence_id == FINDING)
+    assert item["content"]["quote"] == finding.quote

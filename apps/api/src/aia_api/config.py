@@ -100,6 +100,11 @@ class Settings(BaseSettings):
     # is shown its accepted findings as external context, never evidence (evidence-integrity 7;
     # AIA_AI_ANALYSIS_EXTERNAL_CONTEXT). Off by default; a retry keeps what its original pinned.
     ai_analysis_external_context: bool = False
+    # A Deep Research run enqueued now freezes each DOCUMENT or SOURCE knowledge item's file text
+    # from its source's reading, with the reading's SHA-256 and its "Interní dokument" mark
+    # (client-knowledge-lifecycle K8b; AIA_DEEP_RESEARCH_DOCUMENT_TEXT). A dataset's rows are never
+    # read. Off by default: off, the frozen request is the one it always was.
+    deep_research_document_text: bool = False
     # The experimental Sociomapping (AIA's H-Model candidate) and its internal draft report,
     # added to a research run's graph when the run starts (AIA_SOCIOMAPPING_EXPERIMENTAL_ENABLED).
     # Deterministic, no model call; recorded on the run, so a retry keeps it. Off by default.

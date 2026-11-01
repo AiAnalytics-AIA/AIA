@@ -13,7 +13,11 @@ channel -- the query proposer is never shown it (plan decision I-3).
 
 Classes follow the kinds (the plan's table): raw material (documents, sources,
 datasets, artifacts) is Class A; approved facts, findings, terms, entities,
-dimensions and audiences, which are derived summaries, are Class B. An item whose
+dimensions and audiences, which are derived summaries, are Class B. A DOCUMENT or SOURCE
+item's file text, given as a :class:`DocumentText` (client-knowledge-lifecycle K8b), is frozen
+with the reading it came from and the source's "Interní dokument" mark. The source a run holds is
+the item's own words with the file's, so it keeps the item's class: a mark, Class C by its rule
+(``material_rules``), never lowers the class of the client's words beside it. An item whose
 lineage nobody recorded -- a dataset, an artifact, a finding -- carries a named
 unresolved lineage, and the licence gate refuses it at the next model call, as it
 does for the design jobs.
@@ -24,7 +28,9 @@ Pure: stdlib and Pydantic only.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Final
+from typing import Final, Protocol
+
+from pydantic import BaseModel, ConfigDict, Field
 
 from ..knowledge import KnowledgeItem, KnowledgeKind
 from ..residency import DataClass
@@ -38,6 +44,8 @@ __all__ = [
     "KNOWLEDGE_CLASS",
     "RETRIEVAL_LIMIT",
     "UNRESOLVED_LINEAGE",
+    "DocumentReader",
+    "DocumentText",
     "client_terms",
     "freeze_knowledge",
     "retrieve",
@@ -72,9 +80,37 @@ _UNRESOLVED_KINDS: Final = frozenset(
 _TERM_KINDS: Final = frozenset({KnowledgeKind.ENTITY, KnowledgeKind.TERM})
 
 
-def _source(item: KnowledgeItem) -> KnowledgeSource:
+class DocumentText(BaseModel):
+    """A DOCUMENT or SOURCE item's file text as its source's reading holds it, read at enqueue
+    by the application in the study's scope: the reading's SHA-256 and whether the source was
+    marked "Interní dokument" then."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    text: str
+    reading_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    internal: bool = False
+    #: ``text`` is the whole reading; ``False``, the reader stopped short of it.
+    complete: bool = True
+
+
+class DocumentReader(Protocol):
+    """What ``freeze_knowledge`` asks of the application about an item's file (K8b)."""
+
+    def size(self, item: KnowledgeItem) -> int | None:
+        """How many characters the item's file text holds, known without reading it; ``None``
+        when the item has no file text a run may hold."""
+
+    def read(self, item: KnowledgeItem) -> DocumentText | None:
+        """The item's file text; ``None`` when it cannot be read after all (the item is then
+        held as without it, ``truncated``)."""
+
+
+def _source(item: KnowledgeItem, document: DocumentText | None) -> KnowledgeSource:
     body = item.content.get("text")
     parts = [item.title, item.summary, body if isinstance(body, str) else ""]
+    if document is not None:
+        parts.append(document.text)
     text = normalise_text("\n".join(p for p in parts if p))
     return KnowledgeSource(
         ref=f"{item.item_id}@{item.revision}",
@@ -83,33 +119,71 @@ def _source(item: KnowledgeItem) -> KnowledgeSource:
         kind=item.kind.value,
         title=item.title,
         text=text[:ITEM_TEXT_CHARS],
+        # The item's own words are approved knowledge; a mark on its file never lowers them.
         data_class=KNOWLEDGE_CLASS[item.kind],
         lineage=(UNRESOLVED_LINEAGE,) if item.kind in _UNRESOLVED_KINDS else (),
-        truncated=len(text) > ITEM_TEXT_CHARS,
+        truncated=len(text) > ITEM_TEXT_CHARS or (document is not None and not document.complete),
         public=item.content.get("public") is True,
+        internal=document is not None and document.internal,
+        reading_sha256=document.reading_sha256 if document is not None else None,
     )
 
 
-def freeze_knowledge(items: Sequence[KnowledgeItem]) -> FrozenKnowledge:
+def freeze_knowledge(
+    items: Sequence[KnowledgeItem], documents: DocumentReader | None = None
+) -> FrozenKnowledge:
     """The bounded knowledge a run holds: by item id, until the byte budget is spent.
 
     Never silently cut: every item left out is named in ``omitted_ids``, and an item
-    kept short says ``truncated``. The retrieval limit is the repository's.
+    kept short says ``truncated``. The retrieval limit is the repository's. ``documents``:
+    each item's file text (K8b); ``None``, no document is asked.
+
+    Reading documents only ever adds. The items are first held exactly as without them; then
+    each is given its file's text, in item order, while the budget lasts. A file is read only
+    when its size could fit: one that cannot stays as it was held, ``truncated``, unread; one
+    that would add no word to what its item holds is not read and names no reading. A size is
+    a character count, and a character is at least a byte, so a file is never read past the
+    budget (whitespace the frozen text collapses can make a file that would have fit unread).
     """
-    kept: list[KnowledgeSource] = []
+    window = sorted(items, key=lambda k: k.item_id)[:RETRIEVAL_LIMIT]
+    kept: dict[str, KnowledgeSource] = {}
     omitted: list[str] = []
     used = 0
-    for item in sorted(items, key=lambda k: k.item_id)[:RETRIEVAL_LIMIT]:
-        source = _source(item)
+    for item in window:
+        source = _source(item, None)
         size = len(source.text.encode("utf-8"))
         if used + size > KNOWLEDGE_BYTES:
             omitted.append(item.item_id)
             continue
-        kept.append(source)
+        kept[item.item_id] = source
         used += size
+    for item in window:
+        held = kept.get(item.item_id)
+        if documents is None or held is None or len(held.text) >= ITEM_TEXT_CHARS:
+            continue
+        file_size = documents.size(item)
+        if file_size is None:
+            continue
+        if used + min(file_size, ITEM_TEXT_CHARS - len(held.text)) > KNOWLEDGE_BYTES:
+            kept[item.item_id] = held.model_copy(update={"truncated": True})
+            continue
+        document = documents.read(item)
+        if document is None:
+            # Its size said it has text the run does not hold: it stops short, never whole.
+            kept[item.item_id] = held.model_copy(update={"truncated": True})
+            continue
+        fuller = _source(item, document)
+        if fuller.text == held.text:
+            continue
+        extra = len(fuller.text.encode("utf-8")) - len(held.text.encode("utf-8"))
+        if used + extra <= KNOWLEDGE_BYTES:
+            kept[item.item_id] = fuller
+            used += extra
+        else:
+            kept[item.item_id] = held.model_copy(update={"truncated": True})
     omitted += [k.item_id for k in sorted(items, key=lambda k: k.item_id)[RETRIEVAL_LIMIT:]]
     return FrozenKnowledge(
-        items=tuple(kept), omitted_ids=tuple(omitted), retrieval_limit=RETRIEVAL_LIMIT
+        items=tuple(kept.values()), omitted_ids=tuple(omitted), retrieval_limit=RETRIEVAL_LIMIT
     )
 
 

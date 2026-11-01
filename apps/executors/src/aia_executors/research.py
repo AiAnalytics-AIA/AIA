@@ -49,6 +49,7 @@ from aia_core.domain.methodology.pins import (
     read_support_pin,
 )
 from aia_core.domain.pipeline import fingerprint
+from aia_core.domain.qc_flags import QC_FLAGS_VERSION, dataset_flags, flags_payload
 from aia_core.domain.research_aggregate import AGGREGATE_VERSION, aggregate_dataset
 from aia_core.domain.research_design import (
     AIA_READINESS_V1,
@@ -1065,6 +1066,8 @@ class RunQcExecutor(_Step):
     RQC11) is stored as ``not_computed`` with the reason, and the step succeeds. A dataset that
     does not answer its specification fails the step, as it fails aggregation; a defect in the
     checks fails it too, reported rather than stored as a result.
+    Beside the findings it stores the respondents the straight-liner rule names, each a flag
+    with its id (``domain/qc_flags.py``, RQC4a): the record a decision on one is written to.
     ``dry`` is the unit's run without a model call: the fixture's invented answers
     (``SYNTHETIC_FIXTURE``), never fictional AI respondents, whose answers a model gave.
     """
@@ -1085,6 +1088,7 @@ class RunQcExecutor(_Step):
         dry = unit_dry(dataset.origin)
         try:
             qc: dict[str, Any] = _qc_payload(dataset_qc(spec, dataset, dry=dry))
+            qc["flags"] = flags_payload(dataset_flags(spec, dataset))
         except InvalidDataset as exc:
             return Failed(FailureClass.SCHEMA_VIOLATION, error={"message": str(exc)})
         except QcNotReadable as exc:
@@ -1106,6 +1110,7 @@ class RunQcExecutor(_Step):
                     {
                         "dataset": dataset_sha,
                         "qc": RUN_QC_VERSION,
+                        "flags": QC_FLAGS_VERSION,
                         "spec": spec.fingerprint(),
                         "dry": dry,
                         "thresholds": asdict(UNIT_THRESHOLDS),

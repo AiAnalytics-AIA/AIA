@@ -47,7 +47,7 @@ chunks:
   - "[x] LO23. ceiling_usd on a prepared request and on an analysis retry, before the start (spec lead LP-4, lead B1, szz A6; W1)"
   - "[ ] LO24. reserved_usd on AgentJobResponse (spec lead LP-5, lead B2; W2)"
   - "[ ] LO25. Dismissing a Lead turn's request, recorded in the ledger, so 'Teď ne' survives a reload (spec lead LP-7, lead B3; W1)"
-  - "[ ] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
+  - "[x] LO18a. A file to the Lead, any standard document on any stage: kept as the client's source (client_source_repository, a study occurrence; shown under the client's Data), the turn carrying its ref, read by read_source into a bounded files layer of the context, labelled the client's document and not evidence; prompt and harness bumps; the web attach (Nigel, 26 Oct; W1)"
   - "[ ] LO18b. A questionnaire table given to the Lead filed as a no-model questionnaire proposal (import_questionnaire), reviewed in ProposalReview and accepted through accept_into_working_copy (Nigel, 26 Oct; W1, with artifact-questionnaire#QST12)"
   - "[ ] LO18c. Navrhnout znalosti as a Lead request kind over the existing client_source_proposals run, paid from the client's budget (W2)"
   - "[ ] LO18d. Reading more of a file as the Lead's bounded read request (ADR 0041 amendment A3, lead-client-knowledge LK3), never a free loop (W2)"
@@ -1678,6 +1678,93 @@ the conversation. A person types **"Zopakuj analýzu"** (no instruction), matche
 - `CLAUDE.md` map, routers `lead`: the approval answers `purpose` for a Deep Research card, and
   an Interpretation card's `research_run_id` (the results it is shown under).
 
+## F-LO-PARK-1 fixed (2026-10-28, `fix/lead-park-refreeze`)
+
+The finding (recorded with LO2's PR, `feature/lead-typed-start-run`): a Lead turn parked at the
+budget answered from the context it froze when it parked, and the parked turn on develop was a
+greeting nobody wrote. Nigel's decisions, 2026-10-28: "Both" (W1Q11, the PM status page); then, in
+this session, "Owner's pane resends" and "Show a quiet note".
+
+Before (`@ e06cfc10`): `release_lead_budget_waits` resumed the parked step
+(`application/research_lead.py:476-532`, `WorkflowRepository.resume_budget_waits`), whose input
+holds the context frozen at enqueue (`:872-917`); the executor let a greeting's `BudgetExceeded`
+park it like a message (`apps/executors/src/aia_executors/research_lead.py:201`).
+
+Now:
+
+- **A greeting never parks at the budget.** The executor ends a greeting whose reservation the
+  budget refuses as `Succeeded({"skipped": "greeting_unfunded"})`, before anything is sent: no
+  retry, no park, no error report. The turn reads `COMPLETED`, reason `greeting_unfunded`, no
+  output; the pane says it in one slate line, "Přehled studie čeká na rozpočet.", with no button.
+  A message still parks.
+- **A released message is answered on the design as it is now.** A budget set no longer resumes
+  the parked step: it cancels its run (never paid) with the reason `lead_turn_released`
+  (`domain/research_lead.py`), under the same rules as before (the budget went up, the hold fits,
+  oldest first). The messages the turn held wait again (`ResearchLead._released`: the newest Lead
+  turn's run carries that cancel reason): the state marks them `queued` and the released turn
+  `reason: lead_turn_released` ("Rozpočet je nastavený: Vedoucí odpoví znovu, nad návrhem, jak je
+  teď."). The owner's pane sends what waits by itself (`LeadPane.tsx`, `answer_queued`), so the new
+  turn is frozen on the current working copy, under the owner's own scope: a colleague's budget set
+  never reads another researcher's Lead. A message written meanwhile is sent with the released one,
+  in order; a greeting is never sent ahead of them; a withdrawn one is not sent.
+- **No ledger row for a release.** Nothing is lifted: the parked run is cancelled, and the new turn
+  reserves from the budget as it now stands. The budget change itself stays audited
+  (`ScopeRepository.set_study_budget`).
+
+- **The pane reads again while a turn waits on the budget** (`LeadPane.tsx`, `PARKED_POLL_MS`, 10 s,
+  and when the tab regains focus), so a budget set in another tab or by a colleague sends the
+  released message without a reload; it polled only while the Lead was busy.
+
+**From the review of this fix (applied).** A released greeting, or a turn whose messages were all
+withdrawn, carries no `lead_turn_released` reason, since nothing follows it. Under the run's lock the
+release reads the step again (`WorkflowRepository.awaits_budget`, past the session's copy) and skips
+one no longer parked, so a hold is never counted twice. It needs `CANCEL_WORKFLOW` beside
+`APPROVE_BUDGET`, so it never fails the budget change it rides on. The released turn is read from one
+indexed query (`WorkflowRepository.cancel_reason`), not the run's whole event log. A greeting whose
+own reservation the gateway refuses (`reservation_exhausted`, a failed step rather than the
+reservation's `BudgetExceeded`) also ends unpaid; it parked for ever before.
+
+The trade-offs:
+- With no tab of the owner open, a released message is sent when they next open the study, not at
+  the moment the budget is set; its answer could not be read before then anyway.
+- A greeting whose repair call no longer fits its reservation drops the primary answer it paid for,
+  rather than park.
+
+Tests: `test_research_lead_application.py`
+`test_setting_the_budget_sends_the_parked_message_on_the_design_as_it_is_now` (replacing
+`…_and_records_the_person`), `test_a_message_written_after_the_release_is_sent_with_the_released_one`,
+`test_a_budget_set_by_another_researcher_releases_the_turn_for_its_owner_alone`,
+`test_a_released_message_withdrawn_is_never_sent`,
+`test_a_greeting_the_budget_did_not_pay_for_reads_as_one_quiet_line`,
+`test_a_released_greeting_promises_nothing`,
+`test_a_step_cancelled_since_it_parked_reads_as_no_longer_waiting`; `test_research_lead_executor.py`
+`test_a_greeting_the_budget_cannot_pay_for_ends_unpaid_and_never_parks`,
+`test_a_greeting_its_own_reservation_cannot_cover_ends_unpaid_too`; `test_research_lead_api.py`
+`test_setting_the_study_budget_sends_the_message_that_waited_for_it` (updated); `LeadPane.test.tsx`
+"says a greeting the budget could not pay for in one quiet line…" and "reads again when the tab comes
+back to a turn parked on the budget…". Red first on `e06cfc10`: the first five application tests,
+the executor's first test (the greeting read `WAITING`, `budget_exceeded`) and both pane tests fail;
+without its catch the second executor test reads `WAITING`, `reservation_exhausted`.
+
+### Doc follow-up (F-LO-PARK-1 fixed)
+
+- `CLAUDE.md` map, `routers/scope`: "PUT /studies/{id}/budget releases the study's Lead turns parked
+  at the cap whose hold now fits (Q39): each parked run cancelled (`lead_turn_released`), its
+  messages waiting again for their owner's pane to send them on the current design
+  (F-LO-PARK-1)", in place of "sends … lifted in the ledger under the person who set it".
+- `CLAUDE.md` map, `application/research_lead.py`: "`set_study_budget` / `release_lead_budget_waits`
+  release, never resume, a parked turn".
+- `CLAUDE.md` map, `aia_executors/research_lead.py`: "a greeting the budget cannot pay for ends
+  unpaid (`greeting_unfunded`), never parked".
+- ADR 0041 decision 7: a message released from a budget park waits again and is frozen afresh.
+- `open-items.md`: F-LO-PARK-1 closed by this PR.
+- `CLAUDE.md` §7 Known flakes, a candidate entry, met on this branch's full web run:
+  `apps/web/src/components/aia/settings/SystemDataPanels.test.tsx` › "shows the diagnostics to select
+  by hand when the browser refuses the copy, never 'Zkopírováno'": symptom, `expect(document.activeElement)
+  .toBe(field)` received `<body>`, on a host loaded with three other suites. Confirmation: passes run
+  alone, twice. Cause (a hypothesis): the field's focus is asserted the moment it appears, before
+  focus lands. Fix or waiver: none here; the file is untouched by this change.
+
 ## From the research build spec (2026-10-26)
 
 Source: the research build spec (https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy), checked chunk by chunk against this plan's front-matter at
@@ -1735,6 +1822,31 @@ follow-up chunk below.
 **LO18a-d. Files to the Lead** (Nigel, 26 Oct 2026 ~01:47 UTC, relayed by the PM coordinator: "uploading a document to the lead agent, whether its a docx, pdf, csv, xlsx or whatever standard document types, it should be able to work with it within the context of the study, irregardless of the current stage open. this will be up to the models reasoning and instructions"). LO18's "take a file from the composer", split as the Lead worker proposed (26 Oct, anchors at `2e7fc1dd`). Nigel settled D-a: a file given to the Lead is the client's source and shows under the client's Data. The file's class drops out for the MVP under `prototype-build#PB6` (computed and recorded, never refused); the per-turn class stays the design for when enforcement returns.
 
 - **LO18a. The file in a turn** (W1). Kept as a client source (`infrastructure/client_source_repository.py`, with the study occurrence); the turn carries its ref (source id + SHA-256), never the bytes. Read with `infrastructure/source_reading.py` `read_source`: segments with locators for PDF, DOCX, ODT, PPTX, TXT, MD, DOC, CSV, XLSX, XLS and ODS, a dataset as its preview with personal columns masked. A `files` layer of the 96 KB context with its own share (about 16 KB): the outline, every locator, the segments in order until the share is spent, the rest named. Labelled the client's document, not evidence. Prompt and harness bumps; the web attach in the composer. Its outputs only through what exists: edits through the gate, an agent-job request, LO18b's proposal, LO18c's request. A file never writes the design, knowledge or a Lead file by itself, never starts paid work, never leaves its client, never becomes respondent evidence or Sociomap input, is never marked internal by the model, and is never read whole into one turn. Test: a PDF given on Zadání reaches the turn as its bounded segments with locators and is listed under the client's Data; a turn's manifest names the file and what was left out.
+  **As built (2026-10-28).** The product owner's answers to the proposal's two questions: "citable like knowledge,
+  file only in its turn". Each claim is anchored by its test:
+  - kept as the client's source from the Lead's own route, origin `LEAD`, the study on the audit row (the
+    occurrence names no study: `study-files#SF4`'s column), listed under the client's Data:
+    `test_lead_files_api.py::test_a_pdf_given_on_zadani_reaches_its_turn_bounded_and_is_listed_under_the_clients_data`;
+  - the message carries at most three of the study's client's sources, its refs from the row; another client's is
+    404, a greeting or a typed command carries none: `::test_another_clients_source_is_404_and_nothing_is_stored`,
+    `::test_files_ride_only_a_message_and_at_most_three`;
+  - nothing kept while the Lead is off or not hatched: `::test_no_file_is_kept_while_the_lead_is_off_or_not_hatched`;
+  - the `files` layer, 16 KB, before `view`, at most three files a turn and the rest named, each file's outline and
+    whole segments in order, a too-long first segment cut as measured in JSON:
+    `test_lead_files.py::test_a_long_document_is_cut_at_its_share_and_the_rest_named`,
+    `::test_a_cut_is_measured_as_sent_so_escaped_text_never_overruns_the_share`,
+    `::test_a_turn_reads_three_files_and_names_the_rest`;
+  - a dataset its preview, never a row: `::test_a_dataset_is_its_preview_and_never_a_row`,
+    `test_lead_files_api.py::test_a_dataset_reaches_the_turn_as_its_preview_never_a_row`;
+  - citable, its class the source rule's (A, C marked internal), a dataset declaring the unrecorded
+    client-knowledge lineage: `test_lead_files.py::test_the_layer_sits_before_the_view_and_is_sent_and_citable`,
+    `::test_the_files_class_is_its_source_rule_and_a_dataset_declares_its_lineage`;
+  - the manifest names each file and what it left out: `::test_the_manifest_names_each_file_and_what_it_left_out`;
+  - only its turn reads it, a later turn names it: the PDF test above;
+  - the web attach, its chips and the held message: `LeadPane.test.tsx` "gives the Lead a file: kept as the client's
+    source first, the message holding until then, then carrying it (LO18a)".
+  Harness `aia-research-lead-8`, prompt 4 (`test_prompt_slots.py::test_the_lead_s_baseline_wording_changes_only_with_its_version`).
+  Fits ADR 0026's 2026-10-28 amendment, R5: the file is part of the message, frozen at enqueue.
 - **LO18b. A questionnaire table becomes a proposal** (W1, with `artifact-questionnaire#QST12`; Nigel's questionnaire decision of 01:41 UTC, quoted in `prototype-build.md`). `import_questionnaire` (`infrastructure/questionnaire_file.py:187 @ 2e7fc1dd`) reads it with no model call; the result is a no-model questionnaire proposal reviewed in ProposalReview and accepted through `accept_into_working_copy` (`application/proposal_accept.py:113`), not as Lead edits (no applied section operation; at most 12 edits a turn, `domain/research_lead.py:370`). Amending a questionnaire section by section would need the section operations (WCE3b). Test: an XLSX given in a turn files one proposal whose sections match the import; accepting it writes them; no model call is ledgered for the read.
 - **LO18c. Navrhnout znalosti from the Lead** (W2). A Lead request kind over the existing `client_source_proposals` run (`application/source_proposals.py`), paid from the client's budget as that run is. Test: the request prepares the run's card; nothing is filed before the run's proposals are accepted.
 - **LO18d. Reading more** (W2). The Lead's bounded `read` request (ADR 0041 amendment A3, `lead-client-knowledge#LK3`), not a free loop.

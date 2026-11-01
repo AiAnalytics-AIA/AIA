@@ -874,6 +874,10 @@ class StudyLeadTurnRow(Base):
     #: The turn this one answers or follows (ADR 0041 decision 7): a ``withdrawal`` names the
     #: queued message it withdraws. Set on insert, never after.
     parent_turn_id: Mapped[str | None] = mapped_column(String(64))
+    #: The client's sources a person's message carries to the Lead (lead-orchestration LO18a):
+    #: ``lead_files.LeadFileRef`` each, the bytes' and the reading's hash as attached; NULL for
+    #: a turn without any. Set on insert, never after.
+    files: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONType)
     created_by: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -902,6 +906,11 @@ class StudyLeadTurnRow(Base):
             "kind <> 'withdrawal' OR (actor = 'person' AND text IS NULL"
             " AND parent_turn_id IS NOT NULL)",
             name="study_lead_turn_withdrawal_has_parent",
+        ),
+        # Only a person's message carries files to the Lead (LO18a).
+        CheckConstraint(
+            "files IS NULL OR (actor = 'person' AND kind = 'message')",
+            name="study_lead_turn_files_are_a_messages",
         ),
         CheckConstraint("sequence_no >= 1", name="study_lead_turn_sequence_positive"),
         # A Lead turn is answered by its run; a person's turn names none.

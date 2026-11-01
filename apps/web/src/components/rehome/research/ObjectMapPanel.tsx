@@ -830,18 +830,19 @@ function DensityLegend({ segments }: { segments: SegmentLegend | null }) {
 
 export type SegmentLines = { title: string | null; rows: { colour: string; text: string }[]; foot: string | null };
 
-/**
- * What the panel's legend says about the taste segments (`updateLegend66` on Respondenti): with
- * segments, each one's colour, share and the objects its people rate above and below the rest,
- * the overlap when they are not distinct, and the grey of a dot not clearly in one; with a
- * borderline split, the likely groups in grey and that nobody is coloured; otherwise why none is shown.
- */
 /** A segment's share as the panel prints it: the panel rounds a share to 4 decimals before it prints
  *  the percentage (its payload does), so 23/107 reads 22 %, not 21 %. */
 export function sharePercent(x: number): string {
   return `${Math.round(100 * Number(x.toFixed(4)))} %`;
 }
 
+/**
+ * What the panel's legend says about the taste segments (`updateLegend66` on Respondenti): with
+ * segments, each one's colour, share and the objects its people rate above and below the rest,
+ * the overlap when they are not distinct, the grey of a dot not clearly in one, and, as its foot, that
+ * the segments only describe (S-2); with a
+ * borderline split, the likely groups in grey and that nobody is coloured; otherwise why none is shown.
+ */
 function segmentLines(legend: SegmentLegend): SegmentLines {
   const pct = sharePercent;
   const named = (g: SegmentLegend["segments"][number]) =>
@@ -854,7 +855,7 @@ function segmentLines(legend: SegmentLegend): SegmentLines {
         ...legend.segments.map((g, j) => ({ colour: SEGMENT_COLOURS[j % SEGMENT_COLOURS.length], text: tv("research.exec.objectMap.panel.segmentRow", { n: j + 1, share: pct(g.share) }) + named(g) })),
         { colour: SEGMENT_GREY, text: t("research.exec.objectMap.panel.segmentGrey") },
       ],
-      foot: null,
+      foot: t("research.exec.objectMap.panel.segmentsDescribe"),
     };
   }
   if (legend.decision === "BORDERLINE") {

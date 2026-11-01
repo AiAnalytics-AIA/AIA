@@ -285,7 +285,16 @@ export type ClientWorkspace = {
 export type ClientProfileFields = { short_code: string; industry: string; market: string; description: string };
 export type ClientContact = { contact_id: string; name: string; role: string; email: string; receives_reports: boolean };
 export type ContactWrite = Omit<ClientContact, "contact_id">;
-export type ProfileChange = { action: string; at: string | null; fields: string[]; contact_name: string | null };
+/** A profile history entry; `changes`: a budget or rule field from what to what (CPR3), `before_known` false where
+ *  the audit did not record the earlier value; `actor_name` a member's display name, never an e-mail. */
+export type ProfileChange = {
+  action: string;
+  at: string | null;
+  actor_name: string | null;
+  fields: string[];
+  contact_name: string | null;
+  changes: { field: string; before: string | number | boolean | null; after: string | number | boolean | null; before_known: boolean }[];
+};
 export type ClientProfile = ClientProfileFields & { contacts: ClientContact[]; history: ProfileChange[] };
 /** What the client's own AI work may cost (client-budget CB1); never its studies' budgets. */
 export type ClientBudget = { budget_usd: number; spent_usd: number; reserved_usd: number; available_usd: number };
@@ -1366,8 +1375,8 @@ export const research = {
   readiness: (studyId: string, revisionId: string, personaSource?: string, populationVersionId?: string) =>
     request<Readiness>("GET", `${studyPath(studyId)}/research/readiness${query({ design_revision_id: revisionId, persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** Readiness on a working revision, as a submit of it would read it; nothing is written (WCE7a). */
-  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string) =>
-    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource })}`),
+  workingReadiness: (studyId: string, workingRevision: number, personaSource?: string, populationVersionId?: string) =>
+    request<WorkingReadiness>("GET", `${studyPath(studyId)}/research/readiness/working${query({ working_revision: String(workingRevision), persona_source: personaSource, population_version_id: populationVersionId })}`),
   /** What a working revision changes against a Design Revision (the newest when none is named), stage by stage; nothing is written (WCE7c). */
   workingImpact: (studyId: string, workingRevision: number, designRevisionId?: string) =>
     request<WorkingImpact>("GET", `${studyPath(studyId)}/research/impact${query({ working_revision: String(workingRevision), design_revision_id: designRevisionId })}`),
@@ -1667,12 +1676,18 @@ export type StaleProposalDetails = {
   /** The words each conflicting item names, from the server (it knows the baseline; WCE1). */
   conflicting_wording?: Record<string, string>;
 };
+/** A file given to the Lead, kept as the client's source, and what reading it produced (LO18a). */
+export type LeadFileKept = Pick<ClientSource, "source_id" | "filename" | "family" | "outcome" | "reason" | "segments" | "characters">;
 const agentsPath = (studyId: string) => `${studyPath(studyId)}/research/agent-jobs`;
 /** The Research Lead's conversation on a study: the caller's own session (ADR 0026). */
 export const lead = {
   state: (studyId: string) => request<LeadState>("GET", `${studyPath(studyId)}/lead`),
-  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null }) =>
+  /** `files`: the client's sources the message carries, each kept first through attachFile (LO18a). */
+  post: (studyId: string, body: { kind: "message" | "greeting"; text?: string; stage: string; focus?: { id: string; label: string } | null; files?: string[] }) =>
     request<{ turns: LeadTurn[] }>("POST", `${studyPath(studyId)}/lead/turns`, body),
+  /** Keep a file given to the Lead as the study's client's source (listed under the client's Data; LO18a). */
+  attachFile: (studyId: string, body: { filename: string; data_b64: string }) =>
+    request<LeadFileKept>("POST", `${studyPath(studyId)}/lead/files`, body),
   /** Accept or dismiss a turn's edits: the server applies, saves and records them (gate 1). */
   /** `auto`: the researcher's standing choice accepts the turn's text edits, not a click (inline-decisions 2). */
   decideEdits: (studyId: string, turnId: string, body: { decision: "accept" | "dismiss"; indices: number[]; base_revision: number | null; auto?: boolean }) =>
