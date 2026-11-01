@@ -215,7 +215,9 @@ describe("Stav systému", () => {
     expect(field.value).toContain("Připravenost: nezjištěno");
     // Read only, focused and selected, to copy by hand; outside the live region, which says why.
     expect(field.readOnly).toBe(true);
-    expect(document.activeElement).toBe(field);
+    // Focused and selected by the panel's effect after the field renders: waited for, never read at
+    // once (a loaded runner has failed on it before the effect ran).
+    await waitFor(() => expect(document.activeElement).toBe(field));
     expect([field.selectionStart, field.selectionEnd]).toEqual([0, field.value.length]);
     const note = document.querySelector("[data-copy-note]") as HTMLElement;
     expect(note.contains(field)).toBe(false);
