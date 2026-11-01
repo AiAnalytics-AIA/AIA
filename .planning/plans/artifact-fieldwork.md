@@ -28,11 +28,11 @@ chunks:
   - "[ ] FLD17. 'Neúplný vzorek, kvóty nesplněny' wherever an incomplete run is read: Průběh, Výsledky, Sociomapa, Analýza and the internal report (W2, after FLD15)"
   - "[ ] FLD18. Průběh's steps grouped Sběr, Výpočet, Analýza and Zpráva, only the running group open (W1)"
   - "[ ] FLD19. A 'Celkem / Podle věku' switch on the respondent disc (W2, with run-qc-and-checkpoint#RQC7d's sectors)"
-  - "[ ] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
+  - "[x] FLD20. A compact Costs panel on Průběh (reworks FLD4e's tiles; W1)"
   - "[ ] FLD21. Průběh opens for any existing run, not only after a start: the view switch and the stage's link open a finished, failed or parked run's Průběh (follows FLD9; W1)"
-  - "[ ] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
-  - "[ ] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
-  - "[ ] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
+  - "[x] FLD22. Kontrola reads, never submits: readiness from the working copy, the revision submitted only inside Start (spec sber F2; carved out of FLD6; W1)"
+  - "[x] FLD23. 'Co spustíte': one summary of the design, who answers, the population, n and 'Cena nejvýše' (spec sber F3; carved out of FLD6; W1)"
+  - "[x] FLD24. The checks collapsed: 'Všechny kontroly (n)' with its counts, open when a check fails, each with Opravit; the trace and outlook cards inside it (spec sber F4; carved out of FLD6; W1)"
   - "[ ] FLD25. SpendDialog on Start: Strop běhu, Rozpočet studie (zbývá), Práh potvrzení and Peněženka, the primary 'Spustit · nejvýše {ceiling}' (spec sber F5; carved out of FLD6; W1, with input-interactions#6)"
 ---
 # Artifact: Sběr dat (Fieldwork: Spuštění and Průběh)
@@ -253,6 +253,17 @@ None new (replacement is MVPQ-10, already open).
   - Tests: those two journey steps.
   - Left: Výsledky's own standalone links (`ExecutionSteps.tsx:1644, 1719 @ 135e1e84`), its owner's.
 
+- **F-FLD-6. `coherence_journey.mjs` cannot run with the research workbench on.** Step 2 (a new study's
+  Dimenze) looks for the classic stage track, `navigation "Fáze výzkumu"` and its `/^Dimenze/` link
+  (`tools/ui_workbench/coherence_journey.mjs:121 @ 97edef87`); the workbench draws its own navigator, so the
+  locator times out (30 s) and the journey stops there.
+  - Reproduction: `AIA_WEB_RESEARCH_WORKBENCH=true python3 tools/ui_workbench/workbench.py up --fresh`,
+    `make ui-fixtures`, `node tools/ui_workbench/coherence_journey.mjs`: "FAIL the journey ran to its end
+    (locator.innerText: Timeout 30000ms exceeded … getByRole('navigation', { name: 'Fáze výzkumu' })…)".
+  - Consequence: the product walk is checked only in the classic layout, not in the workbench develop serves.
+  - Smallest fix: find a stage through the workbench navigator when `[data-workbench]` is on the page.
+  - Test: the same journey run with the switch on. Not this lane's to fix (the coordinator, 2026-10-29).
+
 ## Doc follow-up
 
 - `open-items.md`: F-FLD-1 (fixed by this PR, with Vzorek's F-SMP-1) and F-FLD-2 (open), from Findings above.
@@ -269,6 +280,18 @@ None new (replacement is MVPQ-10, already open).
   opens on Průběh while the newest run moves (running, waiting for a person, at fault), else on Kontrola (FLD9).
 - `CLAUDE.md` § 3, "The research workbench, in a browser": the journey also switches Sběr dat's two views at
   1440/1100/768/390; "A research run, end to end": after the start, Průběh is the selected view (FLD9).
+- `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola (RunStep) reads readiness on the working revision
+  and submits a Design Revision only inside Start, which reads the submitted revision's readiness before it runs
+  (FLD22); `lib/answerability.ts` `sameGaps`; `lib/api.ts` `research.workingReadiness` takes the population child.
+- `CLAUDE.md` § 3, "A research run, end to end": the visit to Kontrola submits nothing, the start exactly one
+  revision (FLD22).
+- `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola's "Co spustíte" (`WhatRuns`): design, who answers,
+  population, Cena nejvýše, the study's budget, the warnings and Start in one section; the threshold is set in
+  Settings → Studie a rozpočty only (FLD23).
+- `CLAUDE.md` § 3, "The research workbench, in a browser": Co spustíte with Dotazník and Start (FLD23).
+- `open-items.md`: F-FLD-6 (open), from Findings above.
+- `CLAUDE.md` § 2, `src/components/rehome/research/`: Kontrola's "Všechny kontroly (n)" (`AllChecks`), every
+  readiness check folded and counted, open while one fails, the trace and outlook inside (FLD24).
 
 ## From the research build spec (2026-10-26)
 
@@ -358,6 +381,12 @@ open.
 
 **FLD20. Compact costs** (W1). FLD4e's four tiles in one compact row, "Bez známé ceny" kept. Test: unknown spend reads
 unknown, never 0.
+*Ruled 2026-10-28* (Nigel, "The board's panel", relayed by the PM coordinator): the Náklady facts list as v9 draws it
+(Utraceno, Drženo, Strop běhu with "horní mez, ne odhad", Zbývá v rozpočtu studie), keeping "Bez známé ceny" as a row
+when there are unpriced calls. *Built:* `SpendCard` draws `spendRows` as one row per amount, label beside value,
+Utraceno set strongest, notes under their values; the held label stays plural ("Drženo pro běžící kroky", FLD4e:
+holds are summed across steps). The board's two-column row beside "Po sběru dat" waits for FLD18. Test:
+`ExecutionSteps.test.tsx` ("shows the spend as the board's compact panel …").
 
 **FLD21. Průběh for any run** (W1). FLD9 opens Průběh after a start and while a run moves; a finished, failed or parked
 run is reachable too, from the view switch and from the run list. Test: a finished run's Průběh opens from Kontrola's
@@ -372,6 +401,56 @@ switch.
   ResearchTraceCard and QuestionOutlookCard inside it. Test: a FAIL opens it.
 - FLD25 (`sber/F5`): `SpendDialog` replaces `ask()`; no dialog below the threshold or for fictional respondents.
   Test: the dialog's four lines and the primary's amount.
+
+*Built (FLD22):* `RunStep` reads an editor's readiness on the working revision on screen
+(`GET …/research/readiness/working`, through Vzorek's `loadSampleReadiness`: a change still waiting is saved
+first, a refused save never read), with the person's source and population child (the web's
+`research.workingReadiness` now passes `population_version_id`); it is read again when the working revision
+moves, only the newest read shown. A visit submits nothing (a study never saved is saved as the template
+completed it, never a Design Revision). Start asks the acknowledgement and the spend on what is on screen
+first, so declining writes nothing; then it submits the working copy (`submitWorkingDesign`), reads that
+revision's own readiness, and runs it. When the submitted revision is not ready, or asks for an acknowledgement
+the person did not give for those very gaps, nothing starts and Kontrola is read again ("Návrh se před
+spuštěním změnil"; a failed re-read says its own error). The acknowledgement carries over to the same gaps,
+whether one is required included, under the submitted revision's digest (`lib/answerability.ts` `sameGaps`), as
+decided by default under FLD9's note. The cost: that path leaves the submitted revision without a run, and a
+start reads readiness twice (the working copy's on screen, the submitted revision's). A reader still sees the newest Design Revision's
+readiness. "Co spustíte" titles the working copy ("Pracovní kopie · revize N") until FLD23 reworks it.
+Tests: `ExecutionSteps.test.tsx` ("reads the checks on the working copy, submits nothing on a visit …",
+"carries the acknowledgement …", "starts nothing when the submitted revision's gaps differ …");
+`workbench_journey.mjs` (four Kontrola visits submit no design), `research_journey.mjs` (the start submits
+exactly one) and `coherence_journey.mjs` step 4 (Kontrola names the edited working copy beside the run's own
+revision, in the classic layout; it read "Revize návrhu N" off Kontrola before).
+
+*Built (FLD23):* `WhatRuns` in `ExecutionSteps.tsx`, Fieldwork.dc.html's "Co spustíte": the pill (Lze spustit /
+Nelze spustit, by whether Start can start now); Návrh (the working copy's or the Design Revision's number, the counts, a link to Dotazník); Kdo
+odpovídá (the persona sources as one segmented choice, an unoffered one disabled with its reason, the caption by
+source); Populace (LIVE's label from the registry or the chosen child's, the audience's description, N; for any
+source but the panel "jen zaznamenaná", since only a panel run draws from it; an unread label "populace
+nezjištěna", never an id); Cena
+nejvýše (the server's `cost_ceiling_usd`, "horní mez, ne odhad", "nad / pod prahem potvrzení X" linking to
+Settings → Studie a rozpočty; unknown in words, never 0); Rozpočet studie (zbývá X z Y); the answerability gate and
+the client's populations inside it; then the warnings in one line ("Upozornění, která nebrání (n): …") or what
+holds the start back, and Start. It replaces the receipt with its per-stage "Upravit" links, the cost card and its
+threshold setter, and the respondents card; the classic layout keeps its dock's way back only.
+Deviations from the board, ruled by the coordinator on 2026-10-29:
+- the fictional source's caption leaves out "nic se neplatí": AI respondents cost money, fictional or not, and
+  "Cena nejvýše" shows the server's figure (never an assumed 0,00 USD);
+- the threshold setter leaves Kontrola, as the board draws it: Settings' stepper calls the same route under the
+  same permission (`MANAGE_STUDY_BUDGET`), but has a 10 USD floor, so a threshold under 10 USD can no longer be set.
+Tests: `ExecutionSteps.test.tsx` ("names Kontrola's checks and links each stage", "shows the ceiling as an upper
+bound …", "states the confirmation threshold and links to where it is set …", "says who answers in words that
+claim nothing about the cost …"); `workbench_journey.mjs` (Co spustíte with Dotazník and Start at four widths).
+
+*Built (FLD24):* `AllChecks` in `ExecutionSteps.tsx`, Fieldwork.dc.html's `<details>`: "Všechny kontroly (n)" with
+"x v pořádku · y upozornění · z brání" (and "k neznámé" for a status AIA does not know, never counted as passed),
+closed by default, open while a check stops the run (and opened again when one starts to); each row a status
+glyph (its words for a screen reader; an unknown status in words with its code), the message and, unless it
+passes, "Opravit" to where it is fixed (`checkHref`); the rules line; the research-question trace and the
+question outlook inside it. The readiness card's own "Návrh lze spustit" title is gone: "Co spustíte"'s pill says
+it once. The earlier runs' list stays below (spec F4 drops it for the Lead's cards; FLD21 links every run's Průběh
+from it). Tests: `ExecutionSteps.test.tsx` ("folds every check under one line …", "cannot start a design that fails
+a check" opening it).
 
 **FLD13 and FLD14** had no wave in the execution contracts (`tools/master_check.py` failed on develop `dbaa7720`); both
 are W1 now, with the disc (FLD8b, RQC7c), proposed here.

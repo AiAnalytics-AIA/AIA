@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { layerLines, layerName, moreOmitted, totalLine, type ManifestLayer } from "./lead-manifest";
+import { layerLines, layerName, moreOmitted, reasonWords, totalLine, type ManifestLayer } from "./lead-manifest";
 
 const layer = (over: Partial<ManifestLayer>): ManifestLayer => ({
   layer: "knowledge", recorded: true, bytes: 3000, ceiling_bytes: 20480, bounded_bytes: 2048, included: ["K-1"], included_count: 1, omitted: [], omitted_count: 0, ...over,
@@ -33,5 +33,11 @@ describe("lead manifest in words", () => {
     expect(layerName("memory")).toBe("Co jste spolu rozhodli");
     expect(totalLine({ turn_id: "LDT-1", recorded: true, manifest: { manifest_version: 1, total_bytes: 41_200, ceiling_bytes: 98_304, layers: [] } })).toBe("Celkem 40,2 kB z 96 kB");
     expect(totalLine({ turn_id: "LDT-1", recorded: false, manifest: null })).toBeNull();
+  });
+
+  it("names the attached documents and why part of one did not reach the turn (LO18a)", () => {
+    expect(layerName("files")).toBe("Přiložené dokumenty klienta");
+    expect(layerLines(layer({ layer: "files", included_count: 2 }))[1]).toBe("Viděl 2 dokumenty");
+    expect(reasonWords("reading_changed")).toMatch(/nic z něj neodešlo/);
   });
 });

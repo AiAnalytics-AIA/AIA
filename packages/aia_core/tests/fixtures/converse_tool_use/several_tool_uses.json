@@ -1,0 +1,58 @@
+{
+  "provenance": "HAND-WRITTEN from the Amazon Bedrock Converse API reference (ContentBlock, ToolUseBlock, ToolResultBlock, ReasoningContentBlock: reasoningText {text, signature} | redactedContent blob, base64 on the JSON wire); NOT a recording. Replace with the G2 capture from develop's Lead route (ADR 0026 Amendment 2026-10-28, Build G2; 'ok to record G2', 2026-10-28) when it lands.",
+  "description": "A read round: reasoning with its signature, a sentence, then two read calls in order; stopReason tool_use.",
+  "response": {
+    "status": 200,
+    "headers": {
+      "x-amzn-RequestId": "0d6f1c2e-0000-4000-8000-00000000a001",
+      "content-type": "application/json"
+    },
+    "body": {
+      "output": {
+        "message": {
+          "role": "assistant",
+          "content": [
+            {
+              "reasoningContent": {
+                "reasoningText": {
+                  "text": "Uživatel chce shrnutí běhu; nejdřív výsledky a stav.",
+                  "signature": "RklDVElPTkFMLXNpZ25hdHVyZS0x"
+                }
+              }
+            },
+            {
+              "text": "Přečtu výsledky a stav běhu."
+            },
+            {
+              "toolUse": {
+                "toolUseId": "tooluse_r1",
+                "name": "run_results",
+                "input": {
+                  "run_id": "run-fict-1"
+                }
+              }
+            },
+            {
+              "toolUse": {
+                "toolUseId": "tooluse_r2",
+                "name": "run_status",
+                "input": {
+                  "run_id": "run-fict-1"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "stopReason": "tool_use",
+      "usage": {
+        "inputTokens": 2400,
+        "outputTokens": 180,
+        "totalTokens": 2580
+      },
+      "metrics": {
+        "latencyMs": 1400
+      }
+    }
+  }
+}

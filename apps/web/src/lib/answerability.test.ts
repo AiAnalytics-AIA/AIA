@@ -10,6 +10,7 @@ import {
   compiledPlaces,
   fixHref,
   refusalFor,
+  sameGaps,
   GAP_REASONS,
   gapFixes,
   gapWords,
@@ -331,5 +332,19 @@ describe("the place a link names in Dotazník (review, 2026-10-18)", () => {
     const odd: Section[] = [{ id: "s", type: "questions", questions: [q("Q1"), q(1.5), q("Q2")] }];
     expect(compiledPlaces(odd).map((p) => p.anchor)).toEqual(["qedit_q1"]);
     expect(questionnairePlace("qedit_q2", odd)).toBe("q-editor");
+  });
+});
+
+describe("the same gaps on the working copy and the submitted revision (FLD22)", () => {
+  const gap = { kind: "not_answerable", research_question: "Proč?", verdict: "UNKNOWN", reasons: ["unlinked_design"], measures: [] } as unknown as AnswerabilityGap;
+  const read = (over: Partial<Answerability> = {}): Answerability => ({ rules: "r", capable: false, digest: "a".repeat(64), gaps: [gap], acknowledgement_required: true, ...over });
+  it("are the same whatever revision each digest names", () => {
+    expect(sameGaps(read(), read({ digest: "b".repeat(64) }))).toBe(true);
+  });
+  it("differ when the gaps, the pending questions or whether an acknowledgement is required differ", () => {
+    expect(sameGaps(read(), read({ gaps: [] }))).toBe(false);
+    expect(sameGaps(read(), read({ pending: ["Kdy?"] }))).toBe(false);
+    expect(sameGaps(read({ acknowledgement_required: false }), read())).toBe(false);
+    expect(sameGaps(read(), null)).toBe(false);
   });
 });

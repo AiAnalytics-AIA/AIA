@@ -103,6 +103,12 @@ def validate_version(
         raise MethodologyVersionInvalid(
             {"base_preset": f"{module.id} has no preset {base_preset!r}"}
         )
+    # A version is edited from the preset in force alone: for the Sociomap, aia-sociomap-5, and
+    # never an earlier one (the methodology owner, 2026-10-29, MQ-23 (a)). A stored run keeps the
+    # spec it pinned, so nothing already computed is read through this.
+    if module.in_force is not None and base_preset != module.in_force:
+        why = f"{module.id} is edited from {module.in_force!r} only, not {base_preset!r}"
+        raise MethodologyVersionInvalid({"base_preset": why})
     validated_spec: BaseModel | None = None
     try:
         validated_spec = type(preset.spec).model_validate(
