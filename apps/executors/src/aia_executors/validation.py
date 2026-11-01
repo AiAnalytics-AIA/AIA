@@ -272,7 +272,7 @@ class ArmExecutor(_ValidationStep):
                     "egress_unclassified_material",
                     "Dotazník validace nemá klasifikaci vstupních dat. Nic nebylo odesláno.",
                 )
-            # Advisory class gates (develop only): the unclassified specification is sent
+            # Advisory class gates (where set): the unclassified specification is sent
             # judged as Class A -- what the gateway judges unknown material as, never the
             # permissive answer -- and the step's event and the arm's artifact say so before
             # and after anything is sent.

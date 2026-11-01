@@ -72,16 +72,15 @@ def test_the_data_class_gates_are_enforced_unless_they_say_advisory() -> None:
         WorkerSettings.from_env({**BASE, "AIA_DATA_CLASS_GATES": "lenient"})
 
 
-@pytest.mark.parametrize("env", ["staging", "production", "", "nowhere"])
-def test_a_worker_outside_local_test_and_develop_refuses_advisory_gates(env: str) -> None:
-    """The API asks the same rule (aia_core.domain.deployment.data_class_gates_problem)."""
-    with pytest.raises(ValueError, match="AIA_DATA_CLASS_GATES=advisory is refused"):
-        WorkerSettings.from_env({**BASE, "AIA_ENV": env, "AIA_DATA_CLASS_GATES": "advisory"})
+@pytest.mark.parametrize(
+    "env", ["local", "test", "develop", "staging", "production", "", "nowhere"]
+)
+def test_a_worker_in_any_environment_accepts_advisory_gates(env: str) -> None:
+    """The product owner, 2026-10-28 (ADR 0008, Amendment 2026-10-28): every environment."""
+    from aia_core.domain.deployment import DataClassGates
 
-
-@pytest.mark.parametrize("env", ["local", "test", "develop"])
-def test_local_test_and_develop_workers_accept_advisory_gates(env: str) -> None:
-    WorkerSettings.from_env({**BASE, "AIA_ENV": env, "AIA_DATA_CLASS_GATES": "advisory"})
+    settings = WorkerSettings.from_env({**BASE, "AIA_ENV": env, "AIA_DATA_CLASS_GATES": "advisory"})
+    assert settings.data_class_gates is DataClassGates.ADVISORY
 
 
 def test_a_worker_never_defaults_to_sqlite() -> None:
