@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from aia_core.application.client_work import client_work_project, start_client_work
+from aia_core.application.workflows import start_workflow
 from aia_core.domain.scope import (
     CLIENT_WORK_PROJECT_OWNER,
     WORKER_PERMISSIONS,
@@ -23,7 +24,13 @@ from aia_core.domain.scope import (
     ClientWorkContext,
     ScopeDenied,
 )
-from aia_core.domain.workflow_templates import DEVELOP_SNAPSHOT
+from aia_core.domain.workflow_templates import (
+    CLIENT_SOURCE_PROPOSALS,
+    CLIENT_WORK_TYPES,
+    DEVELOP_SNAPSHOT,
+    WORKFLOW_TYPES,
+    NotClientWork,
+)
 from aia_core.infrastructure.repositories import ProjectRepository
 from aia_core.infrastructure.tables import ClientRow, ProjectRow, WorkflowRunRow
 
@@ -60,7 +67,7 @@ def test_the_work_runs_in_the_clients_own_project_and_names_no_study(
 ) -> None:
     scope = work_scope(scoped)
     started = start_client_work(
-        session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="extract:SRC-1"
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="extract:SRC-1"
     )
     assert started.created
     run = session.get(WorkflowRunRow, started.run_id)
@@ -75,11 +82,11 @@ def test_the_work_runs_in_the_clients_own_project_and_names_no_study(
 
     # The same key finds the same run; another key reuses the one project.
     again = start_client_work(
-        session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="extract:SRC-1"
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="extract:SRC-1"
     )
     assert (again.run_id, again.created) == (started.run_id, False)
     other = start_client_work(
-        session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="extract:SRC-2"
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="extract:SRC-2"
     )
     assert other.project_id == started.project_id
     assert client_work_project(session, scope) == started.project_id
@@ -93,7 +100,7 @@ def test_no_study_and_no_other_client_reaches_the_clients_own_project(
     scoped: Any, session: Session
 ) -> None:
     started = start_client_work(
-        session, work_scope(scoped), workflow_type=DEVELOP_SNAPSHOT, idempotency_key="k"
+        session, work_scope(scoped), workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="k"
     )
     study = scoped.scope(user="lead", study="primary")
     assert started.project_id not in {
@@ -118,10 +125,14 @@ def test_runs_are_listed_by_their_keys_prefix_matched_literally(
 
     scope = work_scope(scoped)
     mine = start_client_work(
-        session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="a_b:1"
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="a_b:1"
     )
-    start_client_work(session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="aXb:1")
-    start_client_work(session, scope, workflow_type=DEVELOP_SNAPSHOT, idempotency_key="a%b:1")
+    start_client_work(
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="aXb:1"
+    )
+    start_client_work(
+        session, scope, workflow_type=CLIENT_SOURCE_PROPOSALS, idempotency_key="a%b:1"
+    )
     runs = WorkflowRepository(session, scope).list_runs(
         project_id=mine.project_id, key_prefix="a_b:"
     )
@@ -158,3 +169,43 @@ def test_a_client_has_one_work_project_even_when_two_first_requests_race(
         select(ProjectRow).where(ProjectRow.owner == CLIENT_WORK_PROJECT_OWNER)
     ).all()
     assert len(owned) == 1
+
+
+def test_client_work_is_exactly_the_exception_ac02_grants() -> None:
+    """AC-02: every AI action starts through the Lead, but for one exception (MVPQ-08), a
+    client-level source extraction held to the client's budget and a person's approval."""
+    assert {CLIENT_SOURCE_PROPOSALS} == CLIENT_WORK_TYPES
+    assert WORKFLOW_TYPES - CLIENT_WORK_TYPES
+
+
+@pytest.mark.parametrize("workflow_type", sorted(WORKFLOW_TYPES - CLIENT_WORK_TYPES))
+def test_any_other_workflow_is_refused_as_client_work_before_anything_is_written(
+    scoped: Any, session: Session, workflow_type: str
+) -> None:
+    """Refused where every run is made, so no caller holding a client-work scope reaches the
+    client's budget with another workflow, whichever way it starts the run."""
+    before = session.scalars(select(WorkflowRunRow)).all()
+    with pytest.raises(NotClientWork):
+        start_client_work(
+            session, work_scope(scoped), workflow_type=workflow_type, idempotency_key="other"
+        )
+    assert session.scalars(select(WorkflowRunRow)).all() == before
+
+
+def test_a_run_started_past_start_client_work_is_refused_the_same(
+    scoped: Any, session: Session
+) -> None:
+    """The guard is where every run is made (``WorkflowRepository.create_run``), not in one
+    entry point: ``start_workflow`` under a client-work scope meets it too."""
+    scope = work_scope(scoped)
+    project_id = client_work_project(session, scope)
+    with pytest.raises(NotClientWork):
+        start_workflow(
+            session,
+            scope,
+            project_id=project_id,
+            workflow_type=DEVELOP_SNAPSHOT,
+            idempotency_key="past",
+            owner=CLIENT_WORK_PROJECT_OWNER,
+        )
+    assert session.scalars(select(WorkflowRunRow)).all() == []
