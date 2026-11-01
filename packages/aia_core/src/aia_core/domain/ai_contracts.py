@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -72,6 +73,7 @@ __all__ = [
     "StructuredValidation",
     "TextBlock",
     "ToolResultBlock",
+    "ToolSpec",
     "ToolUseBlock",
     "UsageOutcome",
     "canonical_json",
@@ -237,6 +239,9 @@ def input_fingerprint(request: AdapterRequest) -> str:
     # only when set: every fingerprint recorded without one is unchanged.
     if request.request_profile.effort is not None:
         content["effort"] = request.request_profile.effort.value
+    if request.tools:
+        # The same rule: a request offering no tool keeps its fingerprint.
+        content["tools"] = [t.wire() for t in request.tools]
     return content_fingerprint(content)
 
 
@@ -585,6 +590,8 @@ class ToolResultBlock:
     def __post_init__(self) -> None:
         if not self.tool_use_id.strip():
             raise ValueError("a tool result names the call it answers")
+        if not self.content.strip():
+            raise ValueError("a tool result says something: an empty read is a JSON value")
 
     def wire(self) -> dict[str, Any]:
         return {
@@ -638,6 +645,50 @@ class ReasoningBlock:
             "block": self.provider_block,
             "redacted": self.redacted,
         }
+
+
+@dataclass(frozen=True, slots=True)
+class ToolSpec:
+    """A tool offered to the model: its name, what it is for and its arguments' schema.
+
+    ``input_schema`` is the canonical JSON of a JSON Schema object, so the spec is
+    immutable and hashable; :meth:`of` builds it from the schema.
+    """
+
+    name: str
+    description: str
+    input_schema: str
+
+    def __post_init__(self) -> None:
+        if not _TOOL_NAME.fullmatch(self.name):
+            raise ValueError(f"a tool's name is [A-Za-z0-9_-]{{1,64}}, not {self.name!r}")
+        if not self.description.strip():
+            raise ValueError("a tool says what it is for")
+        try:
+            value = json.loads(self.input_schema)
+        except ValueError as exc:
+            raise ValueError("a tool's input schema is JSON") from exc
+        if not isinstance(value, dict) or value.get("type") != "object":
+            raise ValueError("a tool's input schema is a JSON Schema object")
+        object.__setattr__(self, "input_schema", canonical_json(value))
+
+    @classmethod
+    def of(cls, name: str, description: str, input_schema: Mapping[str, Any]) -> ToolSpec:
+        """The spec for a tool with this schema."""
+        return cls(name, description, canonical_json(dict(input_schema)))
+
+    @property
+    def schema(self) -> dict[str, Any]:
+        """The input schema as an object (a new copy each time)."""
+        value: dict[str, Any] = json.loads(self.input_schema)
+        return value
+
+    def wire(self) -> dict[str, Any]:
+        return {"name": self.name, "description": self.description, "input_schema": self.schema}
+
+
+#: A tool name every provider accepts.
+_TOOL_NAME: Final = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 
 #: A block of a message's content, beside plain text (ADR 0026 Amendment 2026-10-28).
@@ -875,6 +926,17 @@ class AdapterRequest:
     #: default is the shape every model was sent before profiles existed. An adapter
     #: that cannot send a profile refuses the request unsent.
     request_profile: RequestProfile = DEFAULT_REQUEST_PROFILE
+    #: Tools offered beside the output contract (a tool conversation's reads, ADR 0026
+    #: Amendment 2026-10-28). Empty for every caller before it: nothing else is sent. An
+    #: adapter that cannot offer them refuses the request unsent.
+    tools: tuple[ToolSpec, ...] = ()
+
+    def __post_init__(self) -> None:
+        names = [t.name for t in self.tools]
+        if len(set(names)) != len(names):
+            raise ValueError("an offered tool is named once")
+        if self.output_schema is not None and (self.schema_name or "structured_output") in names:
+            raise ValueError("an offered tool cannot take the output contract's name")
 
 
 class FinishReason(StrEnum):

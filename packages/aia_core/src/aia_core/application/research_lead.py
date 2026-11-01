@@ -38,11 +38,13 @@ from sqlalchemy.orm import Session
 from ..domain.ai_route_reach import AiRouteReach, lead_preflight
 from ..domain.analysis.steps import module_of_node
 from ..domain.approval_ledger import ApprovalSubject
+from ..domain.client_sources import SourceFamily, SourceOrigin, SourceRecord
 from ..domain.design import DESIGN_PROJECT_OWNER
 from ..domain.edit_log import ActorKind, OpSource, WriteBy
 from ..domain.lead_commands import MatchedCommand, match_command
 from ..domain.lead_context import manifest_view, omitted_page
 from ..domain.lead_digest import DigestEntry, decision_digest, edit_item
+from ..domain.lead_files import FILES_PER_MESSAGE, FileForTurn, LeadFileRef, files_layer
 from ..domain.lead_hatch import HatchInput, HatchOutput, hatch_refusals
 from ..domain.lead_research_targets import (
     DEEP_RESEARCH_RUNS,
@@ -87,12 +89,20 @@ from ..domain.research_lead import (
     target_refusal,
 )
 from ..domain.research_template import research_template
-from ..domain.scope import OrganizationContext, Permission, Study, StudyContext
+from ..domain.scope import (
+    ClientContext,
+    OrganizationContext,
+    Permission,
+    ScopeDenied,
+    Study,
+    StudyContext,
+)
 from ..domain.workflow import StepRunStatus, WorkflowRunStatus
 from ..domain.workflow_templates import RESEARCH, RESEARCH_LEAD
 from ..domain.workspace import edited_from_current
 from ..infrastructure.artifact_repository import ArtifactNotFound
 from ..infrastructure.client_knowledge_repository import ClientKnowledgeRepository
+from ..infrastructure.client_source_repository import ClientSourceRepository
 from ..infrastructure.prompt_repository import PromptResolver
 from ..infrastructure.researcher_lead_repository import (
     LeadAlreadyHatched,
@@ -138,6 +148,7 @@ __all__ = [
     "LeadContextTooLarge",
     "LeadDisabled",
     "LeadEditsStale",
+    "LeadFileNotFound",
     "LeadHatchNotPending",
     "LeadHatchRefused",
     "LeadHatchUnavailable",
@@ -286,6 +297,12 @@ def worker_readiness(
     if refusal is not None:
         return False, "composition", refusal
     return True, "composition", None
+
+
+class LeadFileNotFound(LookupError):
+    """A file a message names is not a source of the study's own client."""
+
+    reason = "unknown_source"
 
 
 class LeadBusy(Exception):
@@ -451,6 +468,8 @@ def _view(
         "created_by": turn.created_by,
         # The typed start the server matched in a person's message (LO5); its card is theirs.
         "command": turn.command,
+        # The client's sources the person's message carried to the Lead (LO18a).
+        "files": [f.model_dump(mode="json") for f in turn.files],
         "status": "COMPLETED",
         "reason": None,
         "output": None,
@@ -758,8 +777,14 @@ class ResearchLead:
         stage: str,
         text: str | None = None,
         focus: Mapping[str, str] | None = None,
+        files: Sequence[str] = (),
     ) -> list[dict[str, Any]]:
         """Store the person's message (none for a greeting) and queue the Lead's turn.
+
+        ``files``: the study's client's sources the message carries (lead-orchestration
+        LO18a), at most :data:`~aia_core.domain.lead_files.FILES_PER_MESSAGE`, each stored on
+        the message as its ref with the hashes read from its row (:class:`LeadFileNotFound`
+        for one that is not the client's). Only the turn answering the message reads them.
 
         Needs ``EDIT_STUDY`` and ``RUN_WORKFLOW`` on an open Study, a hatched Lead and no
         Lead turn of this researcher queued or running here (:class:`LeadBusy`). A greeting
@@ -776,7 +801,15 @@ class ResearchLead:
         (lead-orchestration LO5) -- so it is taken while the Lead is switched off (Q43), and
         needs no hatched Lead and no free conversation (:meth:`_post_command`).
         """
+        if files and kind != "message":
+            raise LeadRejected("only a message carries files", reason="invalid_lead_turn")
+        if len(set(files)) > FILES_PER_MESSAGE:
+            raise LeadRejected(
+                f"a message carries at most {FILES_PER_MESSAGE} files", reason="invalid_lead_turn"
+            )
         matched = match_command(text) if kind == "message" else None
+        if matched is not None and files:
+            raise LeadRejected("a typed command carries no file", reason="invalid_lead_turn")
         if matched is not None:
             return self._post_command(stage=stage, text=text, focus=focus, matched=matched)
         if not self.enabled:
@@ -788,6 +821,7 @@ class ResearchLead:
         if lead is None:
             raise LeadNotHatched("hatch your Research Lead first")
         message, focus_ = self._checked(kind=kind, stage=stage, text=text, focus=focus)
+        refs = self._file_refs(files)
 
         turns = self._turns()
         latest = turns.latest_lead_turn()
@@ -835,6 +869,7 @@ class ResearchLead:
                     text=message,
                     focus=focus_,
                     workspace_revision=workspace_revision,
+                    files=refs,
                 )
             )
         if busy:
@@ -959,6 +994,7 @@ class ResearchLead:
             stage=stage,
             focus=focus,
             message=taken[0].text if len(taken) == 1 else None,
+            files=_message_files(taken),
             content=content,
             analysis=analysis,
             workspace_revision=workspace_revision,
@@ -1492,6 +1528,70 @@ class ResearchLead:
                 )
         return message, focus_
 
+    def _sources(self) -> ClientSourceRepository:
+        if self.store is None:
+            raise LeadUnavailable("a file to the Lead needs the artifact store")
+        return ClientSourceRepository(self.session, self.store)
+
+    def _file_refs(self, source_ids: Sequence[str]) -> list[LeadFileRef]:
+        """Each named source of the study's own client as the message carries it, in order and
+        once; the hashes are the row's, never the browser's."""
+        if not source_ids:
+            return []
+        sources = self._sources()
+        refs: list[LeadFileRef] = []
+        for source_id in dict.fromkeys(source_ids):
+            try:
+                refs.append(sources.lead_ref(self.scope, source_id))
+            except ScopeDenied as exc:
+                if exc.reason != "unknown_source":
+                    raise
+                raise LeadFileNotFound(source_id) from exc
+        return refs
+
+    def _file(self, ref: LeadFileRef) -> FileForTurn:
+        """An attached file as the turn reads it; one whose source or stored reading is gone
+        is named with nothing of it sent."""
+        try:
+            return self._sources().lead_file(self.scope, ref)
+        except (ScopeDenied, IntegrityError, ObjectNotFound) as exc:
+            if isinstance(exc, ScopeDenied) and exc.reason != "unknown_source":
+                raise
+            return FileForTurn(
+                ref=ref,
+                family=SourceFamily.UNKNOWN,
+                internal=False,
+                reading=None,
+                unread="source_unavailable",
+            )
+
+    def attach(self, client: ClientContext, *, filename: str, data: bytes) -> SourceRecord:
+        """Keep a file a person gives the Lead as the study's client's source, from this study
+        (``SourceOrigin.LEAD``; lead-orchestration LO18a): listed under the client's Data, read
+        as every source is, accepting nothing and writing nothing else. ``client`` is the
+        caller's own context of the study's client, issued by the resolver. Refused, with
+        nothing kept, while the Lead is off or not hatched: no message could then carry it."""
+        if not self.enabled:
+            raise LeadUnavailable("the Research Lead is not switched on in this deployment")
+        self.scope.require(Permission.EDIT_STUDY)
+        self.scope.require_open_study()
+        if ResearcherLeadRepository(self.session, self.scope).lock() is None:
+            raise LeadNotHatched("hatch your Research Lead first")
+        if (client.organization_id, client.client_id, client.actor_id) != (
+            self.scope.organization_id,
+            self.scope.client_id,
+            self.scope.actor_id,
+        ):
+            raise ScopeDenied("the file goes to the study's own client", reason="forged_scope")
+        record, _created = self._sources().add(
+            client,
+            filename=filename,
+            data=data,
+            origin=SourceOrigin.LEAD,
+            study_id=self.scope.study_id,
+        )
+        return record
+
     @staticmethod
     def _focus_shown(focus: Mapping[str, str] | None, content: Mapping[str, Any]) -> None:
         """A person's focus names what ``content``, the working copy the turn is stored with,
@@ -1557,6 +1657,7 @@ class ResearchLead:
         workspace_revision: int | None,
         design_revision_id: str,
         view_extra: Mapping[str, Any] | None = None,
+        files: Sequence[LeadFileRef] = (),
     ) -> dict[str, Any]:
         s = self.scope
         prompt = PromptResolver(self.session, s.organization_id).pin_for(LEAD_PROMPT_ID)
@@ -1629,6 +1730,7 @@ class ResearchLead:
             memory_classes=digest_classes,
             deep_research=self._deep_research((targets or {}).get("candidates") or ()),
             targets=targets,
+            files=files_layer([self._file(ref) for ref in files]),
         )
 
     def _deep_research(self, candidates: Sequence[Mapping[str, Any]]) -> dict[str, Any] | None:
@@ -1772,6 +1874,15 @@ def _model_prepared(turn: LeadTurn) -> bool:
     return turn.actor == "lead"
 
 
+def _message_files(messages: Sequence[LeadTurn]) -> list[LeadFileRef]:
+    """The files the messages a turn answers carry, in order, each source once."""
+    seen: dict[str, LeadFileRef] = {}
+    for message in messages:
+        for ref in message.files:
+            seen.setdefault(ref.source_id, ref)
+    return list(seen.values())
+
+
 def _conversation(history: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Earlier turns as the Lead is shown them: a person's text, or a Lead's reply with the
     class its turn was sent as. A Lead turn without a reply (queued, parked, failed) is not
@@ -1779,7 +1890,11 @@ def _conversation(history: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     turns: list[dict[str, Any]] = []
     for t in history:
         if t["actor"] == "person" and t.get("text"):
-            turns.append({"actor": "person", "stage": t["stage"], "text": t["text"]})
+            entry = {"actor": "person", "stage": t["stage"], "text": t["text"]}
+            # An earlier message's files by name only: read in their own turn, never again.
+            if t.get("files"):
+                entry["files"] = [f["filename"] for f in t["files"]]
+            turns.append(entry)
         elif t["actor"] == "lead" and isinstance(t.get("output"), dict):
             turns.append(
                 {
