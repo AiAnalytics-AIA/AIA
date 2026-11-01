@@ -1262,8 +1262,28 @@ web card only navigates (`Workbench.tsx:258-262`).
     - retry and a moved target;
     - another organization.
   - `test_lead_commands.py` (preset per start, fixture matches and near-misses).
-- Still open: **LO5a.3b**, the web card: purpose, the target picker over `…/lead/interpretation-targets`, preset, the
-  quote, missing live settings; the journey on 12a.
+
+*LO5a.3b, the web card, landed (`feature/lo5a3b-typed-deep-research-card`).*
+- `lib/lead.ts` `commandRequest` reads the six starts onto the existing request kinds, with a new `deep_research_stop`.
+- `LeadPane` `TypedResearchCard` puts RequestCard over them:
+  - an Interpretation start's target is chosen in a select over `GET …/lead/interpretation-targets`, the default
+    preselected;
+  - its price comes from `POST …/deep-research/quote` (`priceFact`: "Cena nejvýše", "Horní mez, ne odhad."; an unknown
+    price "Neznámá", never 0; a design start's or a retry's "Spočte se při spuštění");
+  - a retry or a stop names its run ("Rešerše z …", GET /lead);
+  - nothing to act on, or missing live settings, holds the button and says who fixes it (`typedResearchBlocked`).
+- `Workbench.onRequest` sends `target_id` and `deep_research_run_id`, and asks again on a moved target.
+- Tests:
+  - `lead.test.ts`: `commandRequest` per start, `chosenTarget`, `priceFact`, `typedResearchBlocked` and the retry's facts;
+  - `LeadPane.test.tsx`: the chosen target sent, an unknown price in words and a held start, a stop naming its run;
+  - all new tests fail on develop.
+- Journey: `tools/ui_workbench/typed_deep_research_journey.mjs`, on a fresh workbench with `make ui-fixtures` and
+  `make ui-research`.
+  - At 1440: the typed card, its 27 targets and price, approved, one Interpretation run under one `chat_start` row;
+    "Zastav rešerši" named it and the stop ended it (CANCELLED).
+  - At 390, in the sheet: the quick card without overflow, left with "Teď ne".
+  - Zero priced ledger rows, no spend, no request off the machine.
+  - Re-run on the same workbench, it finds the first run again (idempotency) and has nothing to stop.
 
 **LO5a.4 (DRL-9, on LO3/LO4). Deep Research as plan-step kinds.**
 - `lead_plan_steps.kind` takes `design_research` and `interpretation_research`.
