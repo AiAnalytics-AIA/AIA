@@ -8,11 +8,73 @@ file: the files are canvas artboards, and they do not render as designed in a pl
 | | |
 |---|---|
 | Live canvas | <https://claude.ai/artifact/U4b83GH2X5coxx51ATL1T5>, in the product owner's second account, which owns the research pages prototype since 28 Oct 2026 (private to that account) |
-| Version | version 25, artifact version `1793528286-6903` |
+| Version | version 28, artifact version `1793540721-10d0` |
 | Exported | 1 Nov 2026 |
 | Earlier canvas | <https://claude.ai/artifact/3dkKPTDoa1yvK4GCV7PLtJ> in the first account, last exported at v95 (`1793099019-3a7d`, 27 Oct). It is no longer the source: change the second account's canvas, not this one |
-| Previous versions | in git history: version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
+| Previous versions | in git history: version 27 (1 Nov, the engine strategy map; this PR's first commit); version 25 (1 Nov, the Kupsi dual path); version 21 (30 Oct, the navigator and plain path cards); version 14 (29 Oct, the Zadání proposal's first export); version 9 (28 Oct, the core v4.3 heroes); v95 (27 Oct) is this folder's previous export; v73 (26 Oct) was `prototypes/research-stages-v73/` |
 | Build spec | <https://claude.ai/artifact/8HJhn5tAsqt3Ugf6nzfQNy>, v6. It still describes the prototype at v78 (see Open) |
+
+## What changed in version 28 (1 Nov)
+
+The product owner asked for "a logic and scientific pass": does each step take in the most relevant data in the most usable way, and does
+each step produce expert output that leads to the next step or into the final report? Above all, "i need the zadani stage to collect highly
+relevant data to then help create and shape the rest of the stages." This version applies that review.
+
+- **Zadání collects what the later stages need.** Each part says where it comes from and which stage uses it.
+  - `Z1Start`: still one required field. Ada shows what she read from it and asks for four optional sources, each with its reason and the
+    stage that reads it: the P&L, a CRM customer summary, delayed-delivery data and a transition plan.
+  - `Z2Triage`: Ada's three questions come first, ranked by how much each answer could change the recommendation: the risk limit, the
+    delayed-delivery data (about 1.7 M Kč of information value) and whether a pilot is possible. The proposal has 8 parts.
+  - `Z3Decision` is the shared core:
+    - the decision and the firm's goal;
+    - seven options with their constraints (capex cap, contract notice, warehouse capacity, the delivery promise);
+    - a rule with a threshold and a **risk limit**;
+    - three goals;
+    - execution and output.
+  - `Z4Research` follows Velis instead of the Pivovar example. It covers:
+    - what we need to know;
+    - Velis's customers from the CRM summary (they become the sample's quotas);
+    - today's delivery promise (it becomes the question's scenario);
+    - the indicators the model reads.
+  - `Z5Model` measures contribution after logistics, not cost. It also covers timing, boundaries, two missing numbers, guarantors and
+    correlations.
+  - `Z6Both` and `Z7Ready` now show what each stage inherits. R1–R7 now check the goal, the constraints, the risk limit and execution.
+- **Customer research** follows Velis:
+  - The question describes today's promise.
+  - It adds "how much less often", because order frequency costs more orders than churn does.
+  - The quotas follow the CRM mix.
+  - Results are calibrated against the client's delayed-delivery data: stated loss 5.8 % against observed 3.9 %.
+  - A table of segment against churn backs the map's reading.
+- **The business model is a profit model** (fictional numbers, seeded):
+  - Each of the seven options is scored by contribution after logistics. The model includes lost orders, warehouse capacity with
+    overflow, the hall's residual value, switching costs with real timing, and express delivery for the big cities.
+  - The rule: better than today with P ≥ 0.80, and a loss over 10 M Kč in at most 10 % of futures.
+  - Results: C2 is recommended at a median of +7.3 M Kč; B2 is the fallback.
+  - Charts: a forest plot of all options, a tornado chart, break-even points (7.2 % order loss, 37.4 Kč fee) and value of information in
+    Kč (EVPPI) in place of the Sobol shares.
+  - The report has an execution plan, a pilot and limits to watch.
+- **`KM5Map` is recomputed** with the `aia-sociomap-5` engine on 800 scenarios of the new model. C2 and B2 sit highest, and three scenario
+  families are explained by their drivers.
+
+## What changed in versions 26–27 (1 Nov)
+
+The product owner, in this session: "lets change the names for each lane, kupsi is stupid"; "this software is not client facing, its
+always an AIA researcher"; "in the cesta studie, i want the options to be better described … the two lanes need better names"; and of
+the strategy map, "this model does not come from the sociomap 5 engine, please rebuild".
+
+- **The client is Velis Commerce s.r.o.** (`VC`, fictional), and its two studies are "Strategie skladu a logistiky 2026–2032" (the
+  model) and "Zákazníci a rychlost doručení" (the research). The research path's map files keep their `kupsi_sociomap_*` names.
+- **The two paths are named "Výzkum zákazníků" and "Obchodní model"** on every board (tags, path cards, the study switch, the next
+  steps). On `Z2Triage` and `Z8bPhone` each path card says what it answers and from what: Výzkum zákazníků "Co chtějí zákazníci a
+  co udělají", Obchodní model "Co která varianta firmě přinese", Obojí "Zákazníci i čísla firmy".
+- **The screens speak to an AIA researcher**, never to the client: "Co klient potřebuje rozhodnout?", "ze souborů klienta", and
+  every acceptance is the researcher's ("přijal výzkumník").
+- **`KM5Map` is now "Sociomapa strategií", computed by the `aia-sociomap-5` engine.** The model's 800 scenarios of the uncertain
+  inputs (seeded, after the research) take the respondents' place: in each, the seven variants get a 1–10 mark by their 7-year
+  result for the firm. `compute_object_map` placed them and found three scenario families; the figures (`assets/velis_strategy_*.jpg`)
+  are the report's figure function's. The board says the method "scénáře místo respondentů" waits for the methodologist and the map
+  is internal. It replaces the designed WIND view, whose terrains (`kupsi_wind_*.png`) are removed. `KO1Link` shows it beside the
+  research map. The generating script is not in the repo.
 
 ## What changed in versions 22–25 (1 Nov)
 
@@ -31,7 +93,7 @@ showcase of the same case.
   - `KM3Model`: cost lines, the driver and the variants.
   - `KM4Results`: ranges and dominance, P(cheapest) against the rule, the C − B distribution, the tornado beside Sobol, break-even, the
     backtested forecast and value of information.
-  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height.
+  - `KM5Map`: Mapa rozhodnutí, 7 options × their properties with a WIND height (replaced in version 27; the model became a profit model in 28).
   - `KO1Link`: the research result proposed as the model's assumption.
   - `KM6Report`: the model's report.
 
@@ -119,7 +181,7 @@ board, stylesheet and asset is byte-identical to v95. Nothing is known to be wro
   export does not touch.
 - **`assets/aia-study.css`**: the research stages' own stylesheet (SHA-256 `d1a2d23b…00f689`).
 - **`assets/thinking-orbs.js`**: the Lead's orb (thinking-orbs 0.3.2, MIT, Jakub Antalik).
-- **`assets/kupsi_*`**: the -5 engine's map figures (fictional data) and the designed WIND terrains for `KM5Map`.
+- **`assets/kupsi_sociomap_*`, `assets/velis_strategy_*`**: the -5 engine's map figures on fictional data, the research path's and `KM5Map`'s.
 - **`assets/<id>.png|jpg`**: the screenshots of today's AIA that the boards' "UX kritika" sections show.
 
 The canvas keeps these files as they are here: `canvas.json`, the boards and `assets/` at the same relative
@@ -155,12 +217,12 @@ them.)
 | `Z2Triage.dc.html` | Z2 · Zadání: triáž |
 | `Z3Decision.dc.html` | Z3 · Zadání: rozhodnutí a pravidlo |
 | `Z8aPhone.dc.html`, `Z8bPhone.dc.html` | Z8a, Z8b · Telefon: začátek, triáž |
-| `Z4Research.dc.html` | Z4 · Zadání: cesta Výzkum |
-| `Z5Model.dc.html` | Z5 · Zadání: cesta Model |
+| `Z4Research.dc.html` | Z4 · Zadání: cesta Výzkum zákazníků (Velis since version 28) |
+| `Z5Model.dc.html` | Z5 · Zadání: cesta Obchodní model |
 | `Z6Both.dc.html` | Z6 · Zadání: obojí |
 | `Z7Ready.dc.html` | Z7 · Zadání: připravenost a předání |
-| `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Kupsi) |
-| `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Model: Data, Předpoklady, Model, Výsledky, Mapa rozhodnutí, Zpráva (Kupsi) |
+| `KV1Design.dc.html` … `KV5Report.dc.html` | V1–V5 · Výzkum zákazníků: Návrh a Dotazník, Vzorek, Výsledky, Sociomapa, Zpráva (Velis) |
+| `KM1Data.dc.html` … `KM6Report.dc.html` | M1–M6 · Obchodní model: Data, Předpoklady, Model, Výsledky, Sociomapa strategií, Zpráva (Velis) |
 | `KO1Link.dc.html` | O1 · Obojí: výzkum do modelu |
 
 ## What is decided (the product owner, 26–28 Oct 2026)
