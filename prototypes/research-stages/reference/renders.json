@@ -203,8 +203,8 @@
   "board": "Z0Flow.dc.html",
   "title": "Z0 · Zadání se dvěma cestami: průchod",
   "w": 1440,
-  "h": 2160,
-  "text_chars": 5940,
+  "h": 2290,
+  "text_chars": 6384,
   "errors": [],
   "failed_requests": [],
   "image": "20-Z0Flow.webp"
@@ -213,8 +213,8 @@
   "board": "Z1Start.dc.html",
   "title": "Z1 · Zadání: začátek",
   "w": 1440,
-  "h": 1800,
-  "text_chars": 3497,
+  "h": 1890,
+  "text_chars": 3717,
   "errors": [],
   "failed_requests": [],
   "image": "21-Z1Start.webp"
@@ -253,8 +253,8 @@
   "board": "Z5Model.dc.html",
   "title": "Z5 · Zadání: cesta Obchodní model",
   "w": 1440,
-  "h": 2930,
-  "text_chars": 5142,
+  "h": 3550,
+  "text_chars": 6448,
   "errors": [],
   "failed_requests": [],
   "image": "25-Z5Model.webp"
@@ -303,8 +303,8 @@
   "board": "KM1Data.dc.html",
   "title": "M1 · Model: Data",
   "w": 1440,
-  "h": 2260,
-  "text_chars": 4267,
+  "h": 2760,
+  "text_chars": 5144,
   "errors": [],
   "failed_requests": [],
   "image": "30-KM1Data.webp"
@@ -333,8 +333,8 @@
   "board": "KM4Results.dc.html",
   "title": "M4 · Model: Výsledky",
   "w": 1440,
-  "h": 2360,
-  "text_chars": 4324,
+  "h": 2420,
+  "text_chars": 4409,
   "errors": [],
   "failed_requests": [],
   "image": "33-KM4Results.webp"
@@ -343,8 +343,8 @@
   "board": "KM5Map.dc.html",
   "title": "M5 · Model: Mapa rozhodnutí",
   "w": 1440,
-  "h": 2280,
-  "text_chars": 3798,
+  "h": 2340,
+  "text_chars": 3858,
   "errors": [],
   "failed_requests": [],
   "image": "34-KM5Map.webp"
@@ -363,8 +363,8 @@
   "board": "KM6Report.dc.html",
   "title": "M6 · Model: Zpráva",
   "w": 1440,
-  "h": 1420,
-  "text_chars": 3636,
+  "h": 1840,
+  "text_chars": 4822,
   "errors": [],
   "failed_requests": [],
   "image": "36-KM6Report.webp"
@@ -418,5 +418,45 @@
   "errors": [],
   "failed_requests": [],
   "image": "41-KV5Report.webp"
+ },
+ {
+  "board": "KM7Finance.dc.html",
+  "title": "M4b · Výsledky: Business case a finance",
+  "w": 1440,
+  "h": 1880,
+  "text_chars": 3446,
+  "errors": [],
+  "failed_requests": [],
+  "image": "42-KM7Finance.webp"
+ },
+ {
+  "board": "KM8Accounting.dc.html",
+  "title": "M4c · Výsledky: Účetnictví",
+  "w": 1440,
+  "h": 1400,
+  "text_chars": 2624,
+  "errors": [],
+  "failed_requests": [],
+  "image": "43-KM8Accounting.webp"
+ },
+ {
+  "board": "KM9Operations.dc.html",
+  "title": "M4d · Výsledky: Operační výzkum",
+  "w": 1440,
+  "h": 1600,
+  "text_chars": 3147,
+  "errors": [],
+  "failed_requests": [],
+  "image": "44-KM9Operations.webp"
+ },
+ {
+  "board": "KM10Market.dc.html",
+  "title": "M4e · Výsledky: Velikost trhu",
+  "w": 1440,
+  "h": 1100,
+  "text_chars": 2231,
+  "errors": [],
+  "failed_requests": [],
+  "image": "45-KM10Market.webp"
  }
 ]

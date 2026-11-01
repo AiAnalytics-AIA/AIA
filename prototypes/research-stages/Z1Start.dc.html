@@ -114,7 +114,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
         <td><sc-if value="{{m.open}}" hint-placeholder-val="{{ true }}"><span class="row" style="gap: 6px"><button class="btn sm" type="button" onClick="{{m.add}}"><i class="ph ph-upload-simple s"></i>Přidat</button><button class="btn quiet sm" type="button" onClick="{{m.no}}">Nemáme</button></span></sc-if>
           <sc-if value="{{m.done}}" hint-placeholder-val="{{ false }}"><span class="cap" style="margin: 0">{{m.st}}</span></sc-if></td></tr></sc-for>
     </tbody></table>
-    <p class="cap" style="margin: 0">Co chybí, zůstane v Zadání jako otevřená položka. Model ho pak vezme jako předpoklad s širokým rozsahem a řekne, kolik by jeho ověření stálo za to.</p></div></section>
+    <p class="cap" style="margin: 0">Co chybí, zůstane v Zadání jako otevřená položka. Model ho pak vezme jako předpoklad s širokým rozsahem a řekne, kolik by jeho ověření stálo za to. Velikost trhu a ceny konkurence dohledá AIA sama z veřejných zdrojů (Deep Research).</p></div></section>
   </sc-if>
 
   <section class="sec"><div class="sh"><span class="num">{{nextNum}}</span><h2>Co se stane potom</h2></div>
@@ -130,7 +130,7 @@ a{color:var(--signal);text-decoration:none}a:hover{color:var(--shover);text-deco
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["light","dark"],"default":"light"},"$preview":{"width":1440,"height":1890}}'>
 class Component extends DCLogic {
 constructor(props) { super(props); this.state = { mode: 'typed', text: null, more: {} }; }
 renderVals() {
@@ -140,10 +140,10 @@ renderVals() {
   const ok = ['chip good', 'stg sm done', 'ph ph-check'], miss = ['chip', 'stg sm dash', ''];
   const F = [['rozhodnutí', ok], ['3 možnosti', ok], ['cíl: co přinese nejvíc', ok], ['kdo a do kdy', ok], ['mez rizika', miss]];
   const M = [
-    ['Výsledovka 2025', 'příspěvek na objednávku před logistikou', 'Bez něj model spočítá jen náklady, ne co varianta firmě vydělá nebo kolik stojí ztracený zákazník.', 'ztag-m', 'Obchodní model'],
-    ['Souhrn zákazníků z CRM', 'věk, kraj, velká města, četnost nákupů; bez osobních údajů', 'Výzkum se pak ptá lidí, jako jsou zákazníci Velis, ne průměrného Čecha.', 'ztag-r', 'Výzkum · Vzorek'],
-    ['Data o zpožděných zásilkách', 'objednávky doručené pozdě a nákupy těch zákazníků potom', 'Skutečné chování zpřesní, kolik zákazníků odejde. To je největší neznámá rozhodnutí.', 'ztag-r', 'Výzkum · Model'],
-    ['Plán přechodu', 'odhad jednorázových nákladů a souběhu při změně 3PL', 'Bez něj by změna dodavatele vypadala zadarmo.', 'ztag-m', 'Obchodní model']
+    ['Výsledovka a rozvaha za 3 roky, plán 2025', 'příspěvek na objednávku, náklady, majetek, dluh', 'Bez nich model spočítá jen náklady logistiky, ne zisk, návratnost a dopad na zdraví firmy.', 'ztag-m', 'Model · Finance, Účetnictví'],
+    ['Souhrn zákazníků z CRM', 'věk, kraj, velká města, četnost nákupů; bez osobních údajů', 'Výzkum se pak ptá lidí, jako jsou zákazníci Velis; model z toho odhadne podíl na trhu.', 'ztag-r', 'Výzkum · Vzorek, Model · Trh'],
+    ['Historie objednávek: zpoždění a ceny dopravy', 'zásilky doručené pozdě, změny ceny dopravy a nákupy po nich', 'Skutečné chování zpřesní, kolik zákazníků odejde, a jak citlivě reagují na cenu dopravy.', 'ztag-r', 'Výzkum · Model · Finance'],
+    ['Plán přechodu a kapacity dodavatelů', 'náklady přechodu, kapacita skladů po měsících', 'Bez nich by změna vypadala zadarmo a špičky by zůstaly skryté.', 'ztag-m', 'Model · Provoz']
   ];
   return {
     theme: this.props.theme ?? 'light', busy: false, idle: true,
