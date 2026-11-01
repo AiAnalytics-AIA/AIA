@@ -2,7 +2,7 @@
 
 The literature screen on Výsledky says a review predates today's acceptance rules from the sealed
 bundle's ``versions.merge`` (review web#5), and its report with literature labels the findings
-those rules would not accept from the same record (``contextual_report.literature_sections``:
+those rules would not accept from the same record (``contextual_report.woven_literature``:
 ``judged_topic`` and ``document_rules_of``). ``apps/web/src/lib/review-rules.ts`` ports both;
 its test reads ``apps/web/src/lib/fixtures/review-rules.json`` as this one does, so the port and
 the rules are checked against one file.
